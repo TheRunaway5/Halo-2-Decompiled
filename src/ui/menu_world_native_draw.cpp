@@ -174,6 +174,7 @@ struct PreparedDraw {
   VkPipeline pipeline{};
   VkDescriptorSet uniforms{},material{};
   std::uint32_t material_offset{};
+  std::array<float,2> raster_offset{};
 };
 struct Frame {
   explicit Frame(VkDevice owner):device(owner){}
@@ -191,7 +192,7 @@ struct MenuWorldNativeDraw::Impl {
   VkPhysicalDeviceProperties properties{};
   VkPhysicalDeviceMemoryProperties memory_properties{};
   VkDescriptorSetLayout draw_layout{};
-  VkPipelineLayout layout{};
+  VkPipelineLayout layout{},temporal_layout{};
   VkShaderModule geometry_shader{};
   std::map<std::string_view,VkShaderModule> fragment_modules;
   VkDeviceSize vertex_stride{},fragment_stride{};
@@ -214,8 +215,9 @@ struct MenuWorldNativeDraw::Impl {
     for(const auto &[path,handle]:fragment_modules)vkDestroyShaderModule(context.device,handle,nullptr);
     fragment_modules.clear();
     if(layout)vkDestroyPipelineLayout(context.device,layout,nullptr);
+    if(temporal_layout)vkDestroyPipelineLayout(context.device,temporal_layout,nullptr);
     if(draw_layout)vkDestroyDescriptorSetLayout(context.device,draw_layout,nullptr);
-    geometry_shader=VK_NULL_HANDLE;layout=VK_NULL_HANDLE;draw_layout=VK_NULL_HANDLE;
+    geometry_shader=VK_NULL_HANDLE;layout=temporal_layout=VK_NULL_HANDLE;draw_layout=VK_NULL_HANDLE;
   }
   VkShaderModule module(std::span<const std::uint32_t> words) {
     if(words.size()<5 || words[0]!=0x07230203u)
@@ -265,6 +267,9 @@ struct MenuWorldNativeDraw::Impl {
     VkPipelineLayoutCreateInfo create{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     create.setLayoutCount=2;create.pSetLayouts=sets;create.pushConstantRangeCount=1;create.pPushConstantRanges=&push;
     check(vkCreatePipelineLayout(context.device,&create,nullptr,&layout),"create raw world pipeline layout");
+    const VkPushConstantRange temporal_push[]{push,{VK_SHADER_STAGE_FRAGMENT_BIT,112,16}};
+    create.pushConstantRangeCount=2;create.pPushConstantRanges=temporal_push;
+    check(vkCreatePipelineLayout(context.device,&create,nullptr,&temporal_layout),"create temporal raw world pipeline layout");
     if(!context.triangle_vertices)geometry_shader=module(shader(context.shader_directory/"menu_world.geom.spv"));
   }
   std::unique_ptr<Buffer> buffer(VkDeviceSize size,VkBufferUsageFlags usage=VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {
@@ -300,6 +305,8 @@ struct MenuWorldNativeDraw::Impl {
   }
   void validate(const MenuWorldNativeDrawInput &input) const {
     (void)native_fragment_kernel_path("menu",input.fragment_program);
+    for(const auto value:input.raster_offset)if(!std::isfinite(value) || std::abs(value)>1.f)
+      throw FormatError("raw world temporal raster offset is not a finite subpixel displacement");
     if(input.w_clip_mode!=MenuWorldWClipMode::cull && input.w_clip_mode!=MenuWorldWClipMode::clamp)
       throw FormatError("raw world draw has an unadmitted source W clip mode");
     if(input.w_clip_mode==MenuWorldWClipMode::clamp && input.fragment.clip_range[2]>input.fragment.clip_range[3])
@@ -385,7 +392,9 @@ struct MenuWorldNativeDraw::Impl {
     identity.push_back(default_texture_w);
     identity.push_back(std::uint32_t(input.w_clip_mode));
     identity.push_back(std::uint32_t(input.fog_alpha_bound));
-    const auto fragment_path=native_fragment_kernel_path("menu",input.fragment_program);
+    const bool temporal=input.raster_offset!=std::array<float,2>{};
+    identity.push_back(temporal);
+    const auto fragment_path=native_fragment_kernel_path(temporal?"menu-temporal":"menu",input.fragment_program);
     for(unsigned i=0;i<60;++i)
       identity.push_back((i>=10 && i<26) || i==43 || i==44?0:input.fragment_program[i]);
     if(const auto found=pipelines.find(identity);found!=pipelines.end())return found->second;
@@ -435,7 +444,7 @@ struct MenuWorldNativeDraw::Impl {
     create.stageCount=context.triangle_vertices?2:3;create.pStages=context.triangle_vertices?triangle_stages:stages;create.pVertexInputState=&vertex;create.pInputAssemblyState=&assembly;
     create.pViewportState=&viewport;create.pRasterizationState=&raster;create.pMultisampleState=&samples;
     create.pDepthStencilState=&depth;create.pColorBlendState=&blend;create.pDynamicState=&dynamic;
-    create.layout=layout;create.renderPass=context.render_pass;
+    create.layout=temporal?temporal_layout:layout;create.renderPass=context.render_pass;
     VkPipeline result{};const auto status=vkCreateGraphicsPipelines(context.device,VK_NULL_HANDLE,1,&create,nullptr,&result);
     if(status!=VK_SUCCESS) {
       if(result)vkDestroyPipeline(context.device,result,nullptr);
@@ -497,7 +506,7 @@ struct MenuWorldNativeDraw::Impl {
         writes[binding].descriptorCount=1;writes[binding].descriptorType=binding<2?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;writes[binding].pBufferInfo=&buffers[binding];
       }
       vkUpdateDescriptorSets(context.device,descriptor_count,writes,0,nullptr);
-      next->draws.push_back({stored[i],pipeline(stored[i],input),sets[i],input.material_set,input.material_offset});
+      next->draws.push_back({stored[i],pipeline(stored[i],input),sets[i],input.material_set,input.material_offset,input.raster_offset});
     }
     flush(*next->vertex);flush(*next->fragment);frame=std::move(next);
   }
@@ -505,9 +514,15 @@ struct MenuWorldNativeDraw::Impl {
     if(!command || !frame || index>=frame->draws.size())
       throw FormatError("raw world record has no matching prepared draw");
     const auto &draw=frame->draws[index];const auto &geometry=draw.geometry;
+    const bool temporal=draw.raster_offset!=std::array<float,2>{};
+    const auto active_layout=temporal?temporal_layout:layout;
     vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,draw.pipeline);
     const VkDescriptorSet sets[]{draw.material,draw.uniforms};
-    vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,2,sets,1,&draw.material_offset);
+    vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,active_layout,0,2,sets,1,&draw.material_offset);
+    if(temporal) {
+      const std::array<float,4> offset{draw.raster_offset[0],draw.raster_offset[1],0,0};
+      vkCmdPushConstants(command,active_layout,VK_SHADER_STAGE_FRAGMENT_BIT,112,16,offset.data());
+    }
     if(context.triangle_vertices)vkCmdDraw(command,geometry.index_count,1,0,0);
     else {
       vkCmdBindVertexBuffers(command,0,std::uint32_t(geometry.vertex_buffers.size()),geometry.vertex_buffers.data(),geometry.vertex_offsets.data());

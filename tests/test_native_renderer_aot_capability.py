@@ -108,7 +108,8 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
             target.write_bytes(self.code[kind])
         self.generated = ['native_world/v-'+'1'*64+'.vert.spv',
                           'native_world/f-'+'2'*64+'.frag.spv',
-                          'native-fragments/hud/'+'3'*64+'.frag.spv']
+                          'native-fragments/hud/'+'3'*64+'.frag.spv',
+                          'native_world/v-'+'1'*64+'-source-depth.vert.spv']
         groups = []
         for name in self.generated:
             target = self.build/'shaders'/name
@@ -117,8 +118,8 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
             target.write_bytes(data)
             groups.append(dict(path=name, bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
         for relative, report in {
-            'native-world-kernel-catalog/compiled.json': dict(schema='HALO2_NATIVE_WORLD_KERNEL_COMPILED_V1', runtime_instruction_interpreter=False, stages=groups[:2]),
-            'native-fragment-catalog/compiled.json': dict(schema='HALO2_COMPILED_NATIVE_FRAGMENT_KERNELS_V1', passed=True, modules=groups[2:]),
+            'native-world-kernel-catalog/compiled.json': dict(schema='HALO2_NATIVE_WORLD_KERNEL_COMPILED_V1', runtime_instruction_interpreter=False, stages=[row for row in groups if row['path'].startswith('native_world/')]),
+            'native-fragment-catalog/compiled.json': dict(schema='HALO2_COMPILED_NATIVE_FRAGMENT_KERNELS_V1', passed=True, modules=[row for row in groups if row['path'].startswith('native-fragments/')]),
         }.items():
             target = self.build/relative
             target.parent.mkdir()
@@ -325,6 +326,13 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         self.assertLess(self.f.sidecar.stat().st_size, 65536)
         self.assertFalse((self.f.shaders/'hud.frag.spv').exists())
         self.assertFalse((self.f.shaders/'world.frag.spv').exists())
+
+    def test_source_depth_variant_requires_its_actual_executable_binding(self):
+        name=self.generated[-1]
+        self.assertIn(name,shaders._bound_shader_requirements(self.f.runtime)[0])
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes().replace(name.encode(),b'x'*len(name)))
+        with self.assertRaisesRegex(ValueError,'executable-bound program catalogs'):
+            shaders.validate_native_package(self.f.shaders,executable=self.f.runtime)
 
     def test_read_only_cli_checks_actual_package_and_reports_changed_modules(self):
         command = [sys.executable, '-B', str(ROOT/'tools/native_renderer_shaders.py'),

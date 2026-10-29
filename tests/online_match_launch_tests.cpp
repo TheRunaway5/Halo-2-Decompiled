@@ -3,6 +3,8 @@
 #include "halo2/online_account.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_outcome.hpp"
+#include "halo2/multiplayer_departure.hpp"
+#include "halo2/multiplayer_scoreboard.hpp"
 #include "halo2/game_voice.hpp"
 #include "halo2/discord_voice_blocks.hpp"
 #include "halo2/online_postgame.hpp"
@@ -13,6 +15,7 @@
 #include "halo2/source_authority_receiver.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include <SDL.h>
+#include <SDL_vulkan.h>
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <atomic>
@@ -64,7 +67,8 @@ int main(int argc,char **argv)try {
   const std::string first_playlist=argc==8?argv[7]:"ranked";
   const bool clan=mode=="clan" || mode=="clan-major" || mode=="clan-full";
   const bool group=mode=="party" || clan;
-  const bool team=group || mode=="team" || mode=="team-render";
+  const bool departure_only=mode=="render-departure" || mode=="team-render-departure";
+  const bool team=group || mode=="team" || mode=="team-render" || mode=="team-render-departure";
   const unsigned participants=mode=="source-render"?8:mode=="clan-full"?16:mode=="clan-major"?14:clan?6:group?4:2;
   const std::vector<std::string> owners={"one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen"};
   const auto found=std::find(owners.begin(),owners.end(),owner);check(found!=owners.end(),"Unknown fixture owner");
@@ -743,7 +747,7 @@ int main(int argc,char **argv)try {
     }
     session.reset();std::cout<<"PASS actual rendered TU1.5 ONLINE source capture workload with eight admitted couch seats\n";return 0;
   }
-  if(mode=="render" || mode=="team-render") {
+  if(mode=="render" || mode=="team-render" || departure_only) {
     if(!std::getenv("DISPLAY"))return 77;
     std::filesystem::create_directories(output);
     MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
@@ -757,15 +761,22 @@ int main(int argc,char **argv)try {
     runtime.screenshot=output/(owner+"-online.ppm");
     unsigned ticks{},players{};bool fire{};
     runtime.input_observer=[&](auto step,auto controls,const auto &state){ticks=step;fire|=controls[0].fire;players=std::max(players,unsigned(std::count_if(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;})));};
-    MultiplayerRuntimeOutcome outcome;
-    run_multiplayer(runtime,outcome);
-    check(ticks>10 && players==2 && fire && outcome.state.has_value(),"Rendered matched gameplay never advanced real players and controls");
-    check(outcome.reason==MultiplayerExitReason::online_postgame && outcome.state->game_over_complete(),"Runtime did not hand off actual completed results");
-    complete_and_requeue(true);
-    runtime.online_match=session;runtime.frames=500;runtime.screenshot=output/(owner+"-requeued.ppm");runtime.variant={team?"Team Slayer":"Slayer",0,{}};runtime.variant.values.set(91,int(team));
+    if(!departure_only) {
+      MultiplayerRuntimeOutcome outcome;run_multiplayer(runtime,outcome);
+      check(ticks>10 && players==2 && fire && outcome.state.has_value(),"Rendered matched gameplay never advanced real players and controls");
+      check(outcome.reason==MultiplayerExitReason::online_postgame && outcome.state->game_over_complete(),"Runtime did not hand off actual completed results");
+      complete_and_requeue(true);
+    }
+    runtime.online_match=session;runtime.frames=0;runtime.screenshot=output/(owner+"-requeued.ppm");runtime.variant={team?"Team Slayer":"Slayer",0,{}};runtime.variant.values.set(91,int(team));
+    if(departure_only){runtime.variant.values.set(10,0);runtime.variant.values.set(2,0);}
     runtime.desktop=std::make_shared<DesktopSession>();
-    unsigned leave_stage{};runtime.input_observer=[&](auto step,auto,const auto&){
-      if(owner!="one")return;
+    const bool quit_host=!std::getenv("HALO2_TEST_QUIT_NONHOST");
+    bool quitting_player{};
+    unsigned leave_stage{};runtime.input_observer=[&](auto step,auto controls,const auto& state){
+      ticks=step;fire|=controls[0].fire;
+      players=std::max(players,unsigned(std::count_if(state.players.begin(),state.players.end(),[](const auto& p){return p.connected;})));
+      if((session->self()==session->host())!=quit_host)return;
+      quitting_player=true;
       const auto key=[&](SDL_Keycode value){SDL_Event event{};event.type=SDL_KEYDOWN;
         event.key.windowID=SDL_GetWindowID(runtime.desktop->window(runtime.width,runtime.height,true));
         event.key.keysym.sym=value;check(SDL_PushEvent(&event)==1,"Could not deliver native pause/leave input");};
@@ -773,11 +784,44 @@ int main(int argc,char **argv)try {
       else if(step>=75 && leave_stage==1){key(SDLK_DOWN);key(SDLK_DOWN);key(SDLK_RETURN);++leave_stage;}
       else if(step>=90 && leave_stage==2){key(SDLK_UP);key(SDLK_RETURN);++leave_stage;}
     };
+    bool departure_game_over_visible{};
+    bool departure_capture_requested{};
+    const auto departure_capture=output/(owner+"-departure-game-over.ppm");
+    runtime.scoreboard_observer=[&](unsigned,bool normal,const FullScoreboardLayout& layout,const FullScoreboardPaintResult& paint){
+      departure_game_over_visible|=!normal && layout.title.text==u"GAME OVER" && layout.input_alpha>.9f && !paint.draw.vertices.empty();
+    };
+    runtime.frame_capture=[&](const MultiplayerState& world){
+      if(!departure_capture_requested && departure_game_over_visible && world.finished) {
+        departure_capture_requested=true;return departure_capture;
+      }
+      return std::filesystem::path{};
+    };
     MultiplayerRuntimeOutcome second;run_multiplayer(runtime,second);
-    check(second.state && second.state->tick>10,"Requeued ONLINE match did not launch real gameplay");
-    check(second.reason==(owner=="one"?MultiplayerExitReason::escape:MultiplayerExitReason::online_disconnected),"Leave/disconnect did not yield clean runtime ownership");
+    check(second.state && second.state->tick>10,"ONLINE departure match did not launch real gameplay");
+    check(ticks>10 && players==2 && fire,"Departure case did not advance real players and controls");
+    if(quitting_player)check(second.reason==MultiplayerExitReason::escape,"Confirmed local quit lost its actual exit reason");
+    else {
+      if(second.reason==MultiplayerExitReason::online_disconnected)
+        check(run_multiplayer_departure_game_over(runtime,*second.state,session->departed_players())==MultiplayerDepartureReturn::completed,
+            "Last opponent host departure skipped its GAME OVER presentation");
+      else check(second.reason==MultiplayerExitReason::online_postgame && second.state->game_over_complete(),
+          "Last opponent departure skipped normal match completion");
+      check(departure_game_over_visible,"Last opponent departure never rendered GAME OVER");
+      std::ifstream image(departure_capture,std::ios::binary);std::string magic;unsigned width{},height{},maximum{};
+      image>>magic>>width>>height>>maximum;image.get();
+      int drawable_width{},drawable_height{};
+      SDL_Vulkan_GetDrawableSize(runtime.desktop->window(runtime.width,runtime.height,true),&drawable_width,&drawable_height);
+      check(image && magic=="P6" && width==unsigned(drawable_width) && height==unsigned(drawable_height) && maximum==255,
+          "Departure GAME OVER did not produce its actual native framebuffer");
+      std::vector<unsigned char> pixels(std::size_t(width)*height*3);
+      image.read(reinterpret_cast<char*>(pixels.data()),std::streamsize(pixels.size()));
+      check(bool(image),"Departure GAME OVER framebuffer was truncated");
+      const auto [dark,light]=std::minmax_element(pixels.begin(),pixels.end());
+      check(*light>*dark+64,"Departure GAME OVER framebuffer omitted its visible scoreboard");
+      session->close_postgame();
+    }
     runtime.online_match.reset();session.reset();
-    std::cout<<"PASS second real ONLINE game -> Vista pause/confirmed Quit -> peer disconnect -> clean native return outcome\n";
+    std::cout<<"PASS real ONLINE game -> Vista pause/confirmed Quit -> last opponent GAME OVER -> clean native return outcome\n";
     std::cout<<"PASS rendered ONLINE host/client handoff players="<<players<<" ticks="<<ticks<<"\n";
     std::this_thread::sleep_for(2s);return 0;
   }

@@ -1,0 +1,37 @@
+{
+  "schema": "H2_COUNTDOWN_WRITER_ORIGINAL_REPORT_V1",
+  "scope": "Replay complete unchanged retail/TU1.5 countdown parameter writers.\n\nSynthetic session fields and caller operands only. No original Live, network,\ncontroller, rendered frame or full original caller provenance is claimed.\n",
+  "epochs": {
+    "retail": {
+      "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+      "entry": 384816,
+      "bytes": 243,
+      "code_sha256": "be9aa23e41d198a3908463ca300f6fb0459cb88fe6458dbc137678e3e8b894b2",
+      "calls": 768,
+      "instruction_visits": 33343,
+      "covered_instructions": 68,
+      "instructions": 68,
+      "all_executed_instruction_bytes_verified": true
+    },
+    "tu15": {
+      "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+      "entry": 388128,
+      "bytes": 243,
+      "code_sha256": "be9aa23e41d198a3908463ca300f6fb0459cb88fe6458dbc137678e3e8b894b2",
+      "calls": 768,
+      "instruction_visits": 33343,
+      "covered_instructions": 68,
+      "instructions": 68,
+      "all_executed_instruction_bytes_verified": true
+    }
+  },
+  "original_calls": 1536,
+  "paired_controls": 768,
+  "fixture": {
+    "path": "tests/fixtures/matchmaking_countdown_writer_original.json",
+    "bytes": 277109,
+    "sha256": "0fb4d1f349e341a834ecb5cab320cc8ca9bd1a10e421c4a97d3c20d178d32d92"
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-dvw3iv2c",
+  "retained_large_artifacts": []
+}

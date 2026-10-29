@@ -84,8 +84,9 @@ SourceShadowRawPlanStats validate_source_shadow_raw_plan(const SourceShadowRawPl
             for(const auto& draw:draws) {
                 validate_source_shadow_raw_draw(draw,phase?SourceShadowPhase::Apply:
                     SourceShadowPhase::Generate,root.uniforms);
+                const auto* camera=draw.entry_owner?draw.entry_owner->main_camera().data():draw.source.constants().data();
                 if(draw.command.root_owner!=root.root_owner ||
-                   std::memcmp(plan.camera.data(),draw.source.constants().data(),sizeof(plan.camera)))
+                   std::memcmp(plan.camera.data(),camera,sizeof(plan.camera)))
                     throw FormatError("raw shadow draw differs from its root/main camera bank");
                 if(previous && (draw.command.sorted_ordinal<previous->sorted_ordinal ||
                    (draw.command.sorted_ordinal==previous->sorted_ordinal &&

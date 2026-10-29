@@ -2,6 +2,9 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/source_camera.hpp"
+#include "halo2/online_postgame.hpp"
+#include "halo2/multiplayer_network.hpp"
+#include "halo2/native_player_profile.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <bit>
@@ -35,7 +38,8 @@ int main(int argc,char** argv)try {
   if(!std::filesystem::is_regular_file(argv[1]))return 77;
   Json fixture;std::ifstream(argv[2])>>fixture;
   const bool engine_event_flow=std::getenv("HALO2_COMBAT_ENGINE_EVENT_WIN_FLOW");
-  const bool winning_flow=engine_event_flow || std::getenv("HALO2_COMBAT_WIN_FLOW");
+  const bool accuracy_flow=std::getenv("HALO2_COMBAT_ACCURACY_FLOW");
+  const bool winning_flow=engine_event_flow || accuracy_flow || std::getenv("HALO2_COMBAT_WIN_FLOW");
   Json report={{"passed",false},{"cases",Json::array()},
     {"scope","Canonical source-born rosters, current units and original weapons receive ordinary aim/fire controls. Only initial positions use B95D0 and authored clear spawn pairs. No vitality, damage, credit, death, score, timer or callback result is supplied. This is bounded fatal-hit integration, not full matches, rendered/audio or network acceptance."}};
   const auto save=[&]{std::ofstream out(argv[3]);out<<report.dump(2)<<'\n';check(bool(out),"Cannot retain engine combat report");};
@@ -43,6 +47,7 @@ int main(int argc,char** argv)try {
   if(winning_flow)report["scope"]="Canonical original role holder receives ordinary aim/fire controls, with only score-limit parameter2 edited to one. The fatal hit must award its role point, select the original winner and complete real retained results/countdown/fade. B95D0 initial positions remain explicit; other role presets, weapon families, edited rules, presentation and networking remain separate acceptance.";
   report["declared_engine_death_input"]=engine_event_flow;
   if(engine_event_flow)report["scope"]="All nine authored Slayer and five Juggernaut presets with only score-limit parameter2 edited to one. Actual whole15F8B0 receives its declared credited-death event input before original physical unit cleanup, as in the existing role-flow contract. Original engine scoring must select its winner and retain a win through postgame or a genuine continuing-round reset. This does not qualify upstream projectile/damage attribution or every weapon. Positions, killer/victim identities and event arguments are explicit inputs; no score, win, clock, timer, phase or completion result is supplied.";
+  if(accuracy_flow)report["scope"]="Original MCC-backed Slayer with one-point score limit, ordinary firing and actual hit/death/completion. Exact source51EEF4 shot/hit counts are compared with retained statistics, terminal snapshot and published PCR. Declared local roster identities and authored initial positions are fixtures; no shot/hit counter, damage, death, score, clock or completion result is supplied. Internet/installed-client acceptance remains separate.";
   unsigned index{},failures{};
   for(const auto& preset:fixture.at("variants")) {
     const auto name=preset.at("name").get<std::string>();
@@ -57,7 +62,7 @@ int main(int argc,char** argv)try {
       options.source_object_savegame_directory=files.path;options.variant={name,preset.at("frontend_engine").get<unsigned>(),{}};
       for(const auto& w:preset.at("writes"))options.variant.values.append(w[0].get<unsigned>(),w[1].get<int>());
       if(winning_flow) {
-        if(!engine_event_flow)check(name=="3 on 1","Winning combat scope requires the authored3 on1 role preset");
+        if(!engine_event_flow)check(accuracy_flow?name=="Slayer":name=="3 on 1","Winning combat scope requires its declared original preset");
         const auto authored=source_game_variant(options.variant);options.variant.values.append(2,1);
         const auto edited=source_game_variant(options.variant);check(source_game_variant_valid(edited),"Original one-point role edit is invalid");
         const auto descriptor=source_game_variant_descriptors()[2];
@@ -67,12 +72,33 @@ int main(int argc,char** argv)try {
       const auto variant=source_game_variant(options.variant);const auto type=source_game_variant_type(variant);
       options.local_players=type==7?4:2;
       if(source_game_variant_get(variant,91))for(unsigned n=0;n<options.local_players;++n)options.selected_teams.push_back(n%2);
+      if(accuracy_flow) {
+        std::array<std::uint8_t,9> appearance{};
+        for(unsigned n=0;n<options.local_players;++n)
+          options.selected_profiles.push_back(native_selected_player_configuration("Accuracy "+std::to_string(n+1),appearance,-1));
+      }
       MultiplayerPreparedWorld prepared(options);auto& match=prepared.match;auto& objects=*prepared.source_objects;
       auto& world=objects.tu15_world();auto& memory=world.memory();
       check(prepared.rules.requires_source_engine && objects.uses_scenario_player_spawns(prepared.cache->spawns()),
           "Combat flow selected a bounded or declared-placement adapter");
       const auto engine=Bytes(memory.view(0x4f63b8u,4)).u32(0);
       unsigned shooter=prepared.local_slots[0],victim=prepared.local_slots[1];
+      std::unique_ptr<LanHost> accuracy_host;
+      std::unique_ptr<LanClient> accuracy_peer;
+      std::array<Controls,multiplayer_capacity> admission_controls{};
+      std::array<Controls,1> remote_controls{};
+      if(accuracy_flow) {
+        accuracy_host=std::make_unique<LanHost>(match,0,0x6163637572616379ull,options.variant);
+        std::array<std::uint8_t,9> appearance{};
+        const std::array<SourcePlayerConfiguration,1> remote_profiles{native_selected_player_configuration("Accuracy peer",appearance,-1)};
+        accuracy_peer=std::make_unique<LanClient>(accuracy_host->join_address(),0x6163637572616379ull,1,
+            std::span<const std::int8_t>{},remote_profiles);
+        for(unsigned n=0;n<80 && !accuracy_peer->ready() && accuracy_peer->error().empty();++n) {
+          accuracy_peer->send(remote_controls);accuracy_host->receive(admission_controls);
+          accuracy_host->broadcast();accuracy_peer->receive();
+        }
+        check(accuracy_peer->ready() && accuracy_peer->error().empty(),"Accuracy UDP participant failed admission");
+      }
       if(type==7) {
         const auto mask=Bytes(memory.view(engine+0xfcu,2)).u16(0);check(std::popcount(mask)==1,"Combat role has no unique holder");
         if(winning_flow) {
@@ -122,7 +148,9 @@ int main(int argc,char** argv)try {
         controls[shooter].pitch+=std::atan2(delta.z,std::hypot(delta.x,delta.y))-look->y;
       };
       const auto step=[&] {
+        if(accuracy_peer){accuracy_peer->send(remote_controls);accuracy_host->receive(controls);}
         aim();match.step(controls);const auto original=world.multiplayer_engine_state();
+        if(accuracy_peer){accuracy_host->broadcast();accuracy_peer->receive();}
         check(std::memcmp(&original.statistics,&match.source_match_statistics(),sizeof(original.statistics))==0,
             "Combat flow advanced a parallel native score/stat bank");
       };
@@ -168,6 +196,19 @@ int main(int argc,char** argv)try {
       check((engine_event_flow || attribution_stores) && engine_death_stores,"Fatal source input omitted its declared original attribution/event owner");
       if(!engine_event_flow)check(match.recorded_statistics() && match.recorded_statistics()->players[shooter][7]>=1 &&
           match.recorded_statistics()->players[victim][9]>=1,"Fatal source hit omitted original retained kill/death statistics");
+      if(accuracy_flow) {
+        const auto actual=source_result_accuracy(*match.recorded_statistics());
+        std::uint32_t shots{},hits{};
+        for(unsigned weapon=0;weapon<SourceResultAccuracy::weapon_count;++weapon) {
+          const auto at=0x51eef4u+2*(shooter*437+78+(weapon+5)*8+4);
+          const auto source=Bytes(memory.view(at,4));
+          check(actual.players[shooter][weapon][0]==(source.u16(0)&0x7fff) &&
+                actual.players[shooter][weapon][1]==(source.u16(2)&0x7fff),"Retained accuracy differs from actual source bank");
+          shots+=actual.players[shooter][weapon][0];hits+=actual.players[shooter][weapon][1];
+        }
+        check(shots>0 && hits>0,"Ordinary native shots/hits did not reach original retained accuracy counters");
+        row["original_accuracy"]={{"shots",shots},{"hits",hits}};
+      }
       if(type==7)check(Bytes(memory.view(engine+0xfcu,2)).u16(0)==1u<<shooter,"Credited source hit did not transfer the actual role");
       if(winning_flow) {
         row["stage"]="original-role-winning-outcome";auto original=world.multiplayer_engine_state();auto state=match.state();
@@ -191,6 +232,34 @@ int main(int argc,char** argv)try {
           check(original.finalized && original.recording.frozen && original.game_over.complete() && original.game_over.fade_started,
               "Winning source match did not complete actual retained results/countdown/fade");
           row["winning_outcome"]["postgame_frames"]=211;
+          if(accuracy_flow) {
+            const auto terminal=match.state();
+            check(terminal.result_accuracy && *terminal.result_accuracy==source_result_accuracy(*match.recorded_statistics()),
+                  "Terminal snapshot lost its completed original accuracy bank");
+            std::vector<OnlineAdmission> roster;
+            for(unsigned slot=0;slot<multiplayer_capacity;++slot) {
+              if(!match.player(slot).connected)continue;
+              OnlineAdmission admitted{slot,match.player(slot).name,match.player(slot).source_membership};
+              admitted.identity[0]=std::byte(slot+1);roster.push_back(admitted);
+            }
+            auto report=online_postgame_publish(match,options.variant,roster);
+            online_postgame_validate(terminal,options.variant,roster,report.source);
+            check(accuracy_peer->state().result_accuracy==terminal.result_accuracy,
+                  "Original terminal accuracy changed across native UDP snapshot encoding/decoding");
+            online_postgame_validate(accuracy_peer->state(),options.variant,roster,report.source);
+            const auto at=0xecc+2*(shooter*437+5*8+4);
+            report.source[at]^=std::byte{1};bool rejected{};
+            try {online_postgame_validate(terminal,options.variant,roster,report.source);}
+            catch(const FormatError&){rejected=true;}
+            check(rejected,"Modified PCR shot counter escaped final-state comparison");
+            report.source[at]^=std::byte{1};
+            auto unavailable=terminal;unavailable.result_accuracy.reset();rejected=false;
+            try {online_postgame_validate(unavailable,options.variant,roster,report.source);}
+            catch(const FormatError&){rejected=true;}
+            check(rejected,"Missing native accuracy observations became confirmed zero counters");
+            row["accuracy_report_checked"]=true;
+            row["terminal_accuracy_peer_checked"]=true;
+          }
         }else {
           const auto end_tick=state.tick;
           for(unsigned n=0;n<180;++n){step();original=world.multiplayer_engine_state();state=match.state();}

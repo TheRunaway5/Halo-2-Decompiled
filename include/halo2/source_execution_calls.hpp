@@ -18,6 +18,8 @@ struct SourceObjectAdmission;
 struct SourceDrawUnitState;
 struct SourceExecutionModelInputTu15;
 struct SourceBspPartCommandState;
+struct SourcePresentedModelPoseTu15;
+std::vector<std::byte> source_execution_arguments(std::span<const SourcePresentedModelPoseTu15>);
 std::vector<std::byte> source_execution_arguments(const std::array<Controls,16> &);
 // MatchStepViews: the step's controls, the producer's rewind mode and every
 // slot's remote displayed view (lag-compensated hitscan).

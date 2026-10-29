@@ -93,25 +93,25 @@ int main() {
     // Every input below traverses SDL_PushEvent -> SDL_PollEvent; no direct
     // adapter event call or global keyboard-state assignment admits a press.
     queue.key(SDL_SCANCODE_W, true); queue.key(SDL_SCANCODE_D, true);
-    queue.key(SDL_SCANCODE_LSHIFT, true); queue.drain(adapter);
+    queue.key(SDL_SCANCODE_LCTRL, true); queue.drain(adapter);
     auto input = adapter.snapshot(1.25f, -.5f);
     check(input.controls.forward == 1 && input.controls.right == 1, "W/D movement bindings");
-    check(input.controls.crouch, "left Shift crouch binding");
+    check(input.controls.crouch, "MCC left Ctrl crouch binding");
     check(input.controls.yaw == 1.25f && input.controls.pitch == -.5f, "Runtime camera angles changed");
     queue.key(SDL_SCANCODE_S, true); queue.key(SDL_SCANCODE_A, true);
-    queue.key(SDL_SCANCODE_RSHIFT, true); queue.key(SDL_SCANCODE_LSHIFT, false);
+    queue.key(SDL_SCANCODE_RCTRL, true); queue.key(SDL_SCANCODE_LCTRL, false);
     queue.drain(adapter);
     input = adapter.consume();
     check(!input.controls.forward && !input.controls.right, "opposite movement keys do not cancel");
-    check(input.controls.crouch, "releasing left Shift released held right Shift");
+    check(!input.controls.crouch, "unbound right Ctrl retained MCC crouch");
     queue.key(SDL_SCANCODE_W, false); queue.key(SDL_SCANCODE_D, false);
-    queue.key(SDL_SCANCODE_RSHIFT, false); queue.key(SDL_SCANCODE_LCTRL, true);
+    queue.key(SDL_SCANCODE_RCTRL, false); queue.key(SDL_SCANCODE_LSHIFT, true);
     queue.drain(adapter); input = adapter.snapshot();
     check(input.controls.forward == -1 && input.controls.right == -1, "S/A movement bindings");
-    check(!input.controls.crouch, "crouch still uses the replaced Ctrl binding");
+    check(!input.controls.crouch, "unbound Shift admitted MCC crouch");
     queue.reset(adapter);
 
-    for (const auto key : {SDL_SCANCODE_SPACE, SDL_SCANCODE_R, SDL_SCANCODE_TAB,
+    for (const auto key : {SDL_SCANCODE_SPACE, SDL_SCANCODE_R, SDL_SCANCODE_1,
                            SDL_SCANCODE_F, SDL_SCANCODE_Q}) {
       queue.key(key, true); queue.key(key, false);
     }
@@ -178,7 +178,71 @@ int main() {
       check(neutral(adapter.consume()),"Suspended vehicle evasion chord reached gameplay");
       adapter.resume(2000);
       check(neutral(adapter.consume()),"Suspended vehicle evasion chord replayed after resume");
+
+      // A complete physical chord can fit between two simulation ticks. Keep
+      // its overlapping direction with jump for seated delivery only.
+      for(bool modifier_first:{false,true}) {
+        queue.key(modifier_first?SDL_SCANCODE_SPACE:scan,true);
+        queue.key(modifier_first?scan:SDL_SCANCODE_SPACE,true);
+        queue.key(modifier_first?scan:SDL_SCANCODE_SPACE,false);
+        queue.key(modifier_first?SDL_SCANCODE_SPACE:scan,false);
+        queue.drain(adapter);
+        for(unsigned frame=0;frame<3;++frame) {
+          const auto sampled=adapter.snapshot();
+          const auto on_foot=sampled.gameplay_controls(false,false,false);
+          check(on_foot.jump && !on_foot.forward && !on_foot.right,
+              "Released evasion chord fabricated on-foot movement");
+          const auto seated=sampled.gameplay_controls(false,true,false);
+          check(seated.jump && seated.forward==direction[1] && seated.right==direction[2],
+              "Complete Space/direction tap lost its actual overlapping vehicle chord");
+        }
+        const auto seated=adapter.consume().gameplay_controls(false,true,false);
+        check(seated.jump && seated.forward==direction[1] && seated.right==direction[2],
+            "Simulation delivery lost the queued vehicle evasion chord");
+        const auto released=adapter.consume().gameplay_controls(false,true,false);
+        check(!released.jump && !released.forward && !released.right,
+            "Queued vehicle evasion chord was delivered more than once");
+        queue.key(SDL_SCANCODE_SPACE,true);queue.key(SDL_SCANCODE_SPACE,false);queue.drain(adapter);
+        const auto jump_only=adapter.consume().gameplay_controls(false,true,false);
+        check(jump_only.jump && !jump_only.forward && !jump_only.right,
+            "Old evasion direction was attached to a later jump");
+      }
+      // Separate taps must never become a chord merely because they share a
+      // simulation delivery. Test both physical orders.
+      for(bool modifier_first:{false,true}) {
+        const auto first=modifier_first?SDL_SCANCODE_SPACE:scan;
+        const auto second=modifier_first?scan:SDL_SCANCODE_SPACE;
+        queue.key(first,true);queue.key(first,false);
+        queue.key(second,true);queue.key(second,false);queue.drain(adapter);
+        const auto separate=adapter.consume().gameplay_controls(false,true,false);
+        check(separate.jump && !separate.forward && !separate.right,
+            "Non-overlapping jump and direction taps fabricated vehicle evasion");
+      }
+      for(bool lose_focus:{false,true}) {
+        queue.key(scan,true);queue.key(SDL_SCANCODE_SPACE,true);
+        queue.key(scan,false);queue.key(SDL_SCANCODE_SPACE,false);queue.drain(adapter);
+        if(lose_focus)queue.reset(adapter);
+        else {adapter.suspend(3000);adapter.resume(4000);}
+        const auto reset=adapter.consume().gameplay_controls(false,true,false);
+        check(!reset.jump && !reset.forward && !reset.right,
+            "Pause or focus change resurrected a queued vehicle evasion chord");
+        queue.key(SDL_SCANCODE_SPACE,true);queue.key(SDL_SCANCODE_SPACE,false);queue.drain(adapter);
+        const auto fresh=adapter.consume().gameplay_controls(false,true,false);
+        check(fresh.jump && !fresh.forward && !fresh.right,
+            "Pause or focus reset retained an old evasion direction");
+      }
     }
+
+    PcKeyboardSettings evasion_remap;
+    evasion_remap.bindings[unsigned(PcAction::Left)]=SDL_SCANCODE_J;
+    evasion_remap.bindings[unsigned(PcAction::Jump)]=pc_mouse_button(SDL_BUTTON_MIDDLE);
+    adapter.settings(evasion_remap);
+    queue.button(SDL_BUTTON_MIDDLE,true);queue.key(SDL_SCANCODE_J,true);
+    queue.button(SDL_BUTTON_MIDDLE,false);queue.key(SDL_SCANCODE_J,false);queue.drain(adapter);
+    const auto remapped_evasion=adapter.consume().gameplay_controls(false,true,false);
+    check(remapped_evasion.jump && !remapped_evasion.forward && remapped_evasion.right==-1,
+        "Queued vehicle evasion ignored remapped movement or mouse jump");
+    adapter.settings(PcKeyboardSettings{});
 
     // Pin observation time relative to the timestamp delivered by SDL. The
     // authored 233ms boundary is tested at the gameplay admission seam too.
@@ -193,7 +257,7 @@ int main() {
     queue.key(SDL_SCANCODE_E,true,true);queue.drain(adapter);
     input=adapter.snapshot(0,0,pickup_start+234);
     check(input.controls.pickup_milliseconds==234,"key repeat restarted the pickup hold");
-    queue.key(SDL_SCANCODE_X,true);queue.drain(adapter);
+    queue.key(SDL_SCANCODE_C,true);queue.drain(adapter);
     const auto dual_start=queue.key_timestamp;
     input=adapter.snapshot(0,0,dual_start+233);
     check(input.controls.pickup && input.controls.dual_wield &&
@@ -203,7 +267,7 @@ int main() {
     check(input.controls.pickup_milliseconds==65535 && input.controls.dual_wield_milliseconds==65535,
           "long interaction hold wrapped its source duration field");
     queue.reset(adapter);
-    for(const auto key:{SDL_SCANCODE_E,SDL_SCANCODE_X}) {
+    for(const auto key:{SDL_SCANCODE_E,SDL_SCANCODE_C}) {
       queue.key(key,true);queue.key(key,false);
     }
     queue.drain(adapter);input=adapter.consume();
@@ -249,8 +313,8 @@ int main() {
     adapter.settings(PcKeyboardSettings{});
 
     queue.key(SDL_SCANCODE_SPACE, true); queue.key(SDL_SCANCODE_R, true);
-    queue.key(SDL_SCANCODE_F3, true); queue.button(SDL_BUTTON_LEFT, true);
-    queue.button(SDL_BUTTON_RIGHT, true); queue.key(SDL_SCANCODE_TAB, true);
+    queue.key(SDL_SCANCODE_TAB, true); queue.button(SDL_BUTTON_LEFT, true);
+    queue.button(SDL_BUTTON_RIGHT, true); queue.key(SDL_SCANCODE_1, true);
     queue.key(SDL_SCANCODE_F, true); queue.key(SDL_SCANCODE_Q, true);
     queue.drain(adapter); input = adapter.consume();
     check(input.actions.scope_pressed && input.actions.switch_weapon && input.actions.melee &&
@@ -260,14 +324,14 @@ int main() {
               input.actions.scope_held && input.actions.scoreboard, "held actions did not persist");
     check(!input.actions.scope_pressed && !input.actions.switch_weapon && !input.actions.melee &&
               !input.actions.grenade, "held one-shot action repeated on another tick");
-    for (const auto key : {SDL_SCANCODE_TAB, SDL_SCANCODE_F, SDL_SCANCODE_Q})
+    for (const auto key : {SDL_SCANCODE_1, SDL_SCANCODE_F, SDL_SCANCODE_Q})
       queue.key(key, true, true);
     queue.drain(adapter); input = adapter.consume();
     check(!input.actions.switch_weapon && !input.actions.melee && !input.actions.grenade,
           "key repeat generated native action presses");
-    queue.key(SDL_SCANCODE_TAB, false); queue.key(SDL_SCANCODE_TAB, true);
+    queue.key(SDL_SCANCODE_1, false); queue.key(SDL_SCANCODE_1, true);
     queue.drain(adapter);
-    check(adapter.consume().actions.switch_weapon, "fresh Tab press did not rearm");
+    check(adapter.consume().actions.switch_weapon, "fresh weapon-switch key press did not rearm");
     queue.reset(adapter);
 
     // Unbound F1 has no gameplay action or debug overlay.
@@ -279,8 +343,8 @@ int main() {
     // Overlay ownership changes must clear held controls and queued requests
     // without fabricating a window-focus change or delivering them on return.
     for (const auto key : {SDL_SCANCODE_W, SDL_SCANCODE_D, SDL_SCANCODE_SPACE,
-                           SDL_SCANCODE_LSHIFT, SDL_SCANCODE_R, SDL_SCANCODE_TAB,
-                           SDL_SCANCODE_F, SDL_SCANCODE_Q, SDL_SCANCODE_F3})
+                           SDL_SCANCODE_LCTRL, SDL_SCANCODE_R, SDL_SCANCODE_1,
+                           SDL_SCANCODE_F, SDL_SCANCODE_Q, SDL_SCANCODE_TAB})
       queue.key(key, true);
     queue.button(SDL_BUTTON_LEFT, true); queue.button(SDL_BUTTON_RIGHT, true);
     queue.wheel(0, 1); queue.drain(adapter);
@@ -298,47 +362,50 @@ int main() {
     check(input.controls.yaw == 1.25f && input.controls.pitch == -.5f,
           "public release changed the runtime camera angles");
     for (const auto key : {SDL_SCANCODE_W, SDL_SCANCODE_D, SDL_SCANCODE_SPACE,
-                           SDL_SCANCODE_LSHIFT, SDL_SCANCODE_R, SDL_SCANCODE_TAB,
-                           SDL_SCANCODE_F, SDL_SCANCODE_Q, SDL_SCANCODE_F3})
+                           SDL_SCANCODE_LCTRL, SDL_SCANCODE_R, SDL_SCANCODE_1,
+                           SDL_SCANCODE_F, SDL_SCANCODE_Q, SDL_SCANCODE_TAB})
       queue.key(key, false);
     queue.button(SDL_BUTTON_LEFT, false); queue.button(SDL_BUTTON_RIGHT, false);
     queue.drain(adapter);
     check(neutral(adapter.consume()), "post-capture releases restored stale input");
     queue.key(SDL_SCANCODE_W, true); queue.key(SDL_SCANCODE_R, true);
-    queue.key(SDL_SCANCODE_TAB, true); queue.button(SDL_BUTTON_LEFT, true);
+    queue.key(SDL_SCANCODE_1, true); queue.button(SDL_BUTTON_LEFT, true);
     queue.drain(adapter); input = adapter.consume();
     check(input.controls.forward == 1 && input.controls.reload && input.controls.fire &&
               input.actions.switch_weapon,
           "public release prevented fresh input without a focus cycle");
     queue.reset(adapter);
 
-    for (const auto key : {SDL_SCANCODE_SPACE, SDL_SCANCODE_R, SDL_SCANCODE_TAB,
+    for (const auto key : {SDL_SCANCODE_SPACE, SDL_SCANCODE_R, SDL_SCANCODE_1,
                            SDL_SCANCODE_F, SDL_SCANCODE_Q}) queue.key(key, true, true);
     queue.drain(adapter);
     check(neutral(adapter.consume()), "repeat without an initial press admitted input");
     queue.wheel(0, 0); queue.drain(adapter);
     check(!adapter.consume().actions.switch_weapon, "zero mouse wheel admitted a switch");
+    PcKeyboardSettings wheel_binding;wheel_binding.secondary[unsigned(PcAction::SwitchWeapon)]=pc_wheel_up;
+    adapter.settings(wheel_binding);
     for (const auto wheel : {std::array{0, 1}, std::array{0, -1}, std::array{1, 0}}) {
       queue.wheel(wheel[0], wheel[1]); queue.drain(adapter);
       check(adapter.snapshot().actions.switch_weapon, "nonzero wheel switch did not persist");
       check(adapter.consume().actions.switch_weapon, "nonzero wheel did not deliver a switch");
       check(!adapter.consume().actions.switch_weapon, "wheel switch delivered twice");
     }
+    adapter.settings(PcKeyboardSettings{});
     queue.button(SDL_BUTTON_MIDDLE, true); queue.button(SDL_BUTTON_MIDDLE, false);
     queue.drain(adapter); check(neutral(adapter.consume()), "unbound mouse button admitted an action");
 
-    queue.key(SDL_SCANCODE_F, true); queue.key(SDL_SCANCODE_F, false); queue.drain(adapter);
+    queue.key(SDL_SCANCODE_Q, true); queue.key(SDL_SCANCODE_Q, false); queue.drain(adapter);
     input = adapter.consume();
-    check(input.actions.melee && !input.controls.reload, "F melee or R reload binding changed");
-    queue.key(SDL_SCANCODE_F3, true); queue.key(SDL_SCANCODE_F3, false); queue.drain(adapter);
-    check(!adapter.consume().actions.scoreboard, "released F3 remained held");
+    check(input.actions.melee && !input.controls.reload, "MCC Q melee or R reload binding changed");
+    queue.key(SDL_SCANCODE_TAB, true); queue.key(SDL_SCANCODE_TAB, false); queue.drain(adapter);
+    check(!adapter.consume().actions.scoreboard, "released Tab remained held");
     queue.key(SDL_SCANCODE_W, true, false, queue.id + 1); queue.focus(false, queue.id + 1);
     queue.drain(adapter); check(neutral(adapter.consume()), "foreign window changed input");
 
     queue.key(SDL_SCANCODE_W, true); queue.key(SDL_SCANCODE_SPACE, true);
     queue.key(SDL_SCANCODE_R, true); queue.key(SDL_SCANCODE_F, true);
-    queue.key(SDL_SCANCODE_Q, true); queue.key(SDL_SCANCODE_TAB, true);
-    queue.key(SDL_SCANCODE_F3, true); queue.key(SDL_SCANCODE_LSHIFT, true);
+    queue.key(SDL_SCANCODE_Q, true); queue.key(SDL_SCANCODE_1, true);
+    queue.key(SDL_SCANCODE_TAB, true); queue.key(SDL_SCANCODE_LCTRL, true);
     queue.button(SDL_BUTTON_LEFT, true); queue.button(SDL_BUTTON_RIGHT, true);
     queue.wheel(0, 1); queue.focus(false); queue.drain(adapter);
     check(neutral(adapter.consume()), "focus loss retained held state or pending dangerous presses");
@@ -398,7 +465,7 @@ int main() {
       queue.key(SDL_SCANCODE_E,false);
       queue.key(SDL_SCANCODE_Q,true);queue.key(SDL_SCANCODE_Q,false);
       queue.key(SDL_SCANCODE_F,true);queue.key(SDL_SCANCODE_F,false);queue.wheel(0,1);
-      queue.key(SDL_SCANCODE_W,true);queue.key(SDL_SCANCODE_X,true);queue.drain(paused);
+      queue.key(SDL_SCANCODE_W,true);queue.key(SDL_SCANCODE_C,true);queue.drain(paused);
       for(unsigned tick=0;tick<4;++tick){
         check(neutral(paused.snapshot(1.25f,-.5f,started+1000+tick)),"Suspended snapshot admitted gameplay");
         const auto blocked=paused.consume(1.25f,-.5f,started+1000+tick);

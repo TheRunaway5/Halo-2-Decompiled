@@ -133,7 +133,7 @@ class GatheringInputsTests(unittest.TestCase):
         import uuid
         g = Gathering(str(uuid.uuid4()), (ticket.id,), self.wall if born is None else born,
                       self.gatherings.leader(ticket), ticket.language)
-        self.gatherings.sessions[g.id] = g
+        g = self.gatherings._restore_fixture(g)
         return g
 
     def test_public_progress_reads_current_countdown_without_mutating_selection(self):
@@ -147,21 +147,21 @@ class GatheringInputsTests(unittest.TestCase):
         self.assertEqual(self.gatherings.progress(a,"a"),{"players":1,"minimum_players":2,
             "maximum_players":4,"wait_ms":None,
             "roster":[{"name":"Chosen name","self":True}]})
-        g.tickets+=(b.id,)
+        g=self.gatherings._fixture_members(g,(*g.tickets,b.id))
         g.clock.observe(self.gatherings.tick(self.now),2)
         self.assertEqual(self.gatherings.progress(b,"b")["wait_ms"],20000)
-        before=(self.core.rng.getstate(),vars(g.clock).copy(),self.gatherings.seed,
-                vars(state).copy(),len(self.requests))
+        before=(self.core.rng.getstate(),self.core.hoppers.seed,g.clock.snapshot(),self.gatherings.seed,
+                state.snapshot(),len(self.requests))
         self.now+=5
         for _ in range(3):
             self.assertEqual(self.gatherings.progress(a,"a")["wait_ms"],15000)
-        after=(self.core.rng.getstate(),vars(g.clock).copy(),self.gatherings.seed,
-               vars(state).copy(),len(self.requests))
+        after=(self.core.rng.getstate(),self.core.hoppers.seed,g.clock.snapshot(),self.gatherings.seed,
+               state.snapshot(),len(self.requests))
         self.assertEqual(before,after)
-        c=self.ticket("c");g.tickets+=(c.id,);self.now=26.0
+        c=self.ticket("c");g=self.gatherings._fixture_members(g,(*g.tickets,c.id));self.now=26.0
         g.clock.observe(self.gatherings.tick(self.now),3)
         self.assertEqual(self.gatherings.progress(c,"c")["wait_ms"],10000)
-        g.tickets=(a.id,b.id) # New lower count selects its delay, without resetting peak.
+        g=self.gatherings._fixture_members(g,(a.id,b.id)) # New lower count selects its delay, without resetting peak.
         self.now+=5
         self.assertEqual(self.gatherings.progress(a,"a")["wait_ms"],15000)
         self.assertIsNone(self.gatherings.progress(c,"c"))
@@ -184,6 +184,81 @@ class GatheringInputsTests(unittest.TestCase):
         self.assertEqual(row[0x74],1)
         self.assertEqual(row[0x24:0x48],g.id.encode())
         self.assertEqual(self.gatherings.search(self.policy,searcher)[0].average_rank,100)
+
+    def test_guest_is_excluded_from_actual_gathering_rank_advertisement(self):
+        self.policy=replace(self.policy,ranked=False,maximum_players=8,maximum_party=4)
+        self.core.playlists['lab']=self.policy
+        owner=replace(self.player('owner',20),connection_owner='owner')
+        guest=replace(self.player('guest',20),guest=True,connection_owner='owner')
+        couch=self.core.enqueue('couch','lab','halo2-native-queue-v8',(owner,guest))
+        remote=self.ticket('remote',40)
+        gathering=self.gathering(couch)
+        gathering=self.gatherings._fixture_members(gathering,(*gathering.tickets,remote.id))
+        self.measured[frozenset(('owner','remote'))]=Measurement(10,9999)
+        before=tuple(p.raw_rank for t in (couch,remote) for p in t.players)
+        bank=self.gatherings.bank(self.policy,remote,[gathering])
+        self.assertEqual(struct.unpack_from('<i',bank,0x5c)[0],30,
+                         'Guest copies must not bias the gathering raw average')
+        self.assertEqual(struct.unpack_from('<i',bank,0x120)[0],30)
+        self.assertEqual(struct.unpack_from('<i',bank,0x68)[0],40)
+        self.assertEqual(struct.unpack_from('<i',bank,0x124)[0],40)
+        self.assertEqual(self.gatherings.search(self.policy,couch)[0].average_rank,20)
+        self.assertEqual(before,tuple(p.raw_rank for t in (couch,remote) for p in t.players))
+
+    def test_selected_hopper_rank_table_reaches_actual_search_and_advertisement(self):
+        # Explicit diagnostic header, not a recovered historical service file.
+        header=bytearray(0x614)
+        struct.pack_into('<i',header,0,2)
+        struct.pack_into('<4i',header,0x5ec,2,2,0,0)
+        header[0x51c:0x59c]=bytes(range(128))
+        invalid=bytearray(header)
+        invalid[0x51c:0x59c]=bytes(128)
+        from multiplayer.master_server.protocol import Problem
+        with self.assertRaisesRegex(Problem,'Invalid hopper rank table'):
+            replace(self.policy,hopper=invalid.hex())
+        self.policy=replace(self.policy,hopper=header.hex())
+        self.core.playlists['lab']=self.policy
+        host=self.ticket('host',20)
+        remote=self.ticket('remote',40)
+        gathering=self.gathering(host)
+        gathering=self.gatherings._fixture_members(gathering,(*gathering.tickets,remote.id))
+        state=self.gatherings.state(host)
+        self.gatherings.start_search(self.policy,host,state,self.gatherings.tick(self.now))
+        search,_=self.gatherings.search(self.policy,host,state.progress)
+        self.assertEqual((search.minimum_rank,search.maximum_rank),(20,20))
+        self.assertEqual(rank_window(20,20,limits=tuple(range(128))),(0,20,20))
+        self.assertEqual(rank_window(20,20),(7,14,27))
+        bank=self.gatherings.bank(self.policy,host,[gathering])
+        self.assertEqual(struct.unpack_from('<i',bank,0x64)[0],40)
+        self.assertEqual(mapped_minimum(20,40),31)
+
+    def test_intmax_countdown_sentinel_cannot_launch_at_equal_elapsed(self):
+        from multiplayer.master_server.search_lifecycle import GatheringClock
+        self.policy=replace(self.policy,maximum_players=4,
+            gathering=GatheringConfiguration((I32_MAX,)*16,150000,'Explicit disabled countdown fixture'))
+        self.core.playlists['lab']=self.policy
+        a,b=self.ticket('a'),self.ticket('b')
+        gathering=self.gathering(a)
+        gathering=self.gatherings._fixture_members(gathering,(*gathering.tickets,b.id))
+        gathering=self.gatherings._restore_fixture(replace(gathering,clock=GatheringClock(0,0,2)))
+        self.now=I32_MAX/1000
+        self.assertIsNone(self.gatherings.proposal(self.policy,gathering),
+                          'Original 71730 rejects the INTMAX sentinel even at equal elapsed time')
+
+    def test_actual_query_routes_sixty_native_sessions_through_rust_provider_order(self):
+        from uuid import UUID
+        for index in range(60,0,-1):
+            ticket=self.ticket(f'host-{index}')
+            gathering=Gathering(str(UUID(int=index)),(ticket.id,),100+index%3,
+                                ticket.players[0].id,0)
+            self.gatherings._restore_fixture(gathering)
+        searcher=self.ticket('searcher')
+        state=self.gatherings.state(searcher)
+        self.gatherings.start_search(self.policy,searcher,state,self.gatherings.tick(self.now))
+        self.assertEqual(self.gatherings.query(self.policy,searcher,state,self.now),(False,None))
+        expected=tuple(str(UUID(int=n))for n in (*range(3,61,3),*range(1,61,3),*range(2,31,3)))
+        self.assertEqual(self.gatherings.queries[searcher.id].ids,expected)
+        self.assertEqual((state.progress.radius,state.progress.total),(0,0))
 
     def test_exact_selector_ranks_real_gatherings_instead_of_random_completed_subsets(self):
         a = self.ticket("host-a", language=6)
@@ -243,7 +318,7 @@ class GatheringInputsTests(unittest.TestCase):
     def test_advertisement_floor_is_derived_from_raw_extrema_not_adjusted_search_average(self):
         a,b = self.ticket("a",1),self.ticket("b",8)
         g = self.gathering(a)
-        g.tickets += (b.id,)
+        g=self.gatherings._fixture_members(g,(*g.tickets,b.id))
         searcher = self.ticket("search",4)
         self.measured[frozenset(("a","search"))] = Measurement(10,9999)
         bank = self.gatherings.bank(self.policy,searcher,[g])
@@ -290,7 +365,7 @@ class GatheringInputsTests(unittest.TestCase):
         self.now += 6
         self.wall += 6
         self.assertIsNone(self.gatherings.advance("lab"))
-        self.assertIs(self.gatherings.queries[searcher.id],query)
+        self.assertEqual(self.gatherings.queries[searcher.id].generation,query.generation)
         self.assertEqual(query.started,started)
         self.assertEqual((state.progress.radius,state.progress.total),(0,0))
         self.measured[frozenset(("host","search"))] = Measurement(10,9999)

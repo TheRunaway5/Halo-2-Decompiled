@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/cache.hpp"
+#include "halo2/appearance.hpp"
 #include "halo2/shader_animation.hpp"
 #include "halo2/source_player_profile.hpp"
 
@@ -17,4 +18,9 @@ std::optional<FunctionValue> source_object_emblem_input(const SourceObjectEmblem
 // original white fallback. Team/neutral overrides only change slots0/1.
 std::array<Vec3,2> source_player_emblem_colors(const SourcePlayerConfiguration &,
     std::span<const std::array<std::uint32_t,3>> palette);
+// Complete TU1.5 830C0/83050/1AA2B0. Team primary replaces channel0;
+// personal primary becomes channel1. Neutral overrides only channels0/1.
+ObjectColors source_player_appearance_colors(const SourcePlayerConfiguration &,
+    std::int16_t team,bool neutral,std::span<const std::array<std::uint32_t,3>> palette,
+    std::span<const std::array<std::uint32_t,3>> team_palette);
 }

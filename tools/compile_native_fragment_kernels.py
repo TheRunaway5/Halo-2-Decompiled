@@ -23,8 +23,8 @@ from audit_native_renderer_kernels import audit_spirv
 
 COLORS=frozenset((*range(10,26),43,44))
 FAMILIES={
-    'world':'world.frag','world-fixed':'world.frag','world-emblem':'world.frag',
-    'hud':'hud.frag','menu':'menu_world.frag',
+    'world':'world.frag','world-fixed':'world.frag','world-emblem':'world.frag','world-source-depth':'world.frag',
+    'hud':'hud.frag','menu':'menu_world.frag','menu-temporal':'menu_world.frag',
     'particle':'particle.frag','scene-copy':'scene_copy.frag',
     'scope-copy':'scope_copy.frag','lens':'source_lens_draw.frag',
     'contrail':'source_contrail.frag','decal':'source_decal.frag',
@@ -32,8 +32,10 @@ FAMILIES={
     'pstencil-normal':'pstencil/normal_accumulation.frag',
     'pstencil-normal-utility':'pstencil/normal_light_utility.frag',
     'pstencil-texture':'pstencil/texture_accumulation.frag',
+    'pstencil-texture-source-depth':'pstencil/texture_accumulation.frag',
     'pstencil-light-utility':'pstencil/light_utility.frag',
     'pstencil-dependent-light':'pstencil/dependent_light.frag',
+    'pstencil-dependent-light-source-depth':'pstencil/dependent_light.frag',
     'fog':'fog.frag','bloom':'bloom.frag','patchy-noise':'patchy_noise.frag',
     'patchy-composite':'patchy_composite.frag','bsp-patchy-noise':'bsp_patchy_noise.frag',
     'bsp-patchy-composite':'bsp_patchy_composite.frag',
@@ -62,6 +64,20 @@ def entries(paths):
             row={'family':family,'controls':words,'key':identity[1],
                  'path':f'native-fragments/{family}/{identity[1]}.frag.spv'}
             result[identity]=row
+            # The source W-depth variant uses the same complete authored
+            # combiner identity; only its raster/depth adapter differs.
+            if family=='world':
+                depth={**row,'family':'world-source-depth',
+                    'path':f'native-fragments/world-source-depth/{identity[1]}.frag.spv'}
+                result[('world-source-depth',identity[1])]=depth
+            if family in ('pstencil-texture','pstencil-dependent-light'):
+                depth_family=family+'-source-depth'
+                result[(depth_family,identity[1])]={**row,'family':depth_family,
+                    'path':f'native-fragments/{depth_family}/{identity[1]}.frag.spv'}
+            if family=='menu':
+                temporal={**row,'family':'menu-temporal',
+                    'path':f'native-fragments/menu-temporal/{identity[1]}.frag.spv'}
+                result[('menu-temporal',identity[1])]=temporal
     if not result:raise ValueError('Native fragment registry has no source-owned programs')
     return [result[k] for k in sorted(result)]
 
@@ -112,9 +128,11 @@ def source_for(shader_root,row):
             lower_fragment_program(words),authored_vertex=family!='world-fixed')
         if family=='world-emblem':
             source=source.replace('#version 450','#version 450\n#define H2_EMBLEM_W_DEPTH 1',1)
+        if family=='world-source-depth':
+            source=source.replace('#version 450','#version 450\n#define H2_SOURCE_WORLD_DEPTH 1',1)
         return source
     path=shader_root/FAMILIES[family];overrides={}
-    if family=='pstencil-texture':
+    if family in ('pstencil-texture','pstencil-texture-source-depth'):
         # This source adapter has two independently authored combiner phases.
         # Lower each phase separately; never retain its runtime word callback.
         original_source=(shader_root/'pstencil/texture_accumulation_2003_program.glsl').read_text()
@@ -135,9 +153,13 @@ def source_for(shader_root,row):
         overrides[path]=wrapper
     source=inline_source(path,shader_root,words,overrides=overrides,
         preserve_source_operations=family=='fog')
+    if family in ('pstencil-texture-source-depth','pstencil-dependent-light-source-depth'):
+        source=source.replace('#version 450','#version 450\n#define H2_SOURCE_WORLD_DEPTH 1',1)
     if family.startswith('pstencil-'):
         source=re.sub(r'\bmaterial\.flags\.w\s*!=\s*0u','true',source)
-    if family=='menu':
+    if family in ('menu','menu-temporal'):
+        if family=='menu-temporal':
+            source=source.replace('#version 450','#version 450\n#define H2_NATIVE_RASTER_OFFSET 1',1)
         source=re.sub(r'struct MenuWorldPixelProgramView\s*\{[^}]+\};\s*MenuWorldPixelProgramView menuWorldPixelProgram;','',source)
         source=source.replace('#define material menuWorldPixelProgram','').replace('#undef material','')
         source=re.sub(r'H2_FIXED_STAGE_UNROLL\s+for\(uint i=0u;i<15u;\+\+i\)\s*menuWorldPixelProgram\.program\[i\]=uvec4\([^;]+;', '',source)

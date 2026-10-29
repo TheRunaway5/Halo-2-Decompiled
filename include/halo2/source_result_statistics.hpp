@@ -21,6 +21,14 @@ struct SourceResultStatistics {
 static_assert(offsetof(SourceResultStatistics,pvp)==0x36a0);
 static_assert(offsetof(SourceResultStatistics,teams)==0x3aa0);
 static_assert(sizeof(SourceResultStatistics)==0x4040);
+// Original PCR accuracy consumers: reporting types5..38, kinds4/5. This is a
+// projection of the actual source bank, never a second firing/damage counter.
+struct SourceResultAccuracy {
+  static constexpr unsigned first_weapon=5,weapon_count=34;
+  std::array<std::array<std::array<std::uint16_t,2>,weapon_count>,16> players{};
+  bool operator==(const SourceResultAccuracy&)const=default;
+};
+SourceResultAccuracy source_result_accuracy(const SourceResultStatistics&);
 // Source51DFA0/+1 are independent raw bytes. This writer view does not imply
 // valid/complete retained player properties, names, identities or report rows.
 struct SourceResultRecording { std::uint8_t enabled{}, frozen{}; };

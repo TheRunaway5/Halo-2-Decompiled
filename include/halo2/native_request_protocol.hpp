@@ -81,9 +81,10 @@ struct NativeInputRequest {
     // Newest first; at most native_max_redundant_inputs, sequences >= 1.
     std::vector<NativeRedundantInput> redundant;
 };
+struct NativeTeamChangeRequest {std::uint64_t nonce{},cookie{};std::uint32_t sequence{};std::uint8_t view{},team{};};
 struct NativeLeaveRequest {std::uint64_t nonce{},cookie{};};
 struct NativeSessionQuery {std::uint64_t nonce{};};
-using NativeRequest=std::variant<NativeHelloRequest,NativeInputRequest,NativeLeaveRequest,NativeSessionQuery>;
+using NativeRequest=std::variant<NativeHelloRequest,NativeInputRequest,NativeLeaveRequest,NativeSessionQuery,NativeTeamChangeRequest>;
 
 // Complete decoding of native host-bound requests only. This namespace's kind
 // 6 is a session query, not the separate ONLINE voice format. Owned results

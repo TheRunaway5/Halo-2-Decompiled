@@ -76,26 +76,32 @@ std::uint32_t saved_word(const SourceRuntimeMemory::Checkpoint &bank,std::uint32
   for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);
   return value;
 }
-void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheckpoint &saved,
-                              const SourceRuntimeMemory::Checkpoint &bank) {
-  SourceRuntimeMemory::validate_checkpoint(bank);
+struct ArenaMemoryShape {
+  std::size_t stack_owners{};
+  std::optional<SourceRuntimeMemory::RegionMetadata> stack;
+};
+void arena_region(ArenaMemoryShape &shape,std::uint32_t stack,const SourceRuntimeMemory::RegionMetadata &region) {
+  shape.stack_owners+=region.owner==worker_stack_owner;
+  if(region.address==stack)shape.stack=region;
+}
+template<class ReadWord>
+void validate_arena_ownership_fields(const SourcePhysicsGameArenaNative::OwnershipCheckpoint &saved,
+    const ArenaMemoryShape &shape,ReadWord read_word) {
   require(saved.version==1 && saved.worker && saved.worker_stack && saved.worker_semaphore,
           "Unsupported or unfinished arena checkpoint");
-  require(saved_word(bank,0x4ecc24u)==saved.worker && saved_word(bank,0x4ecc30u)==saved.worker_semaphore &&
-          saved_word(bank,0x4ef1bcu)==0,"Arena checkpoint worker/queue binding differs");
-  require(std::count_if(bank.regions.begin(),bank.regions.end(),
-      [](const auto &region){return region.owner==worker_stack_owner;})==1,"Arena checkpoint worker-stack owner differs");
-  const auto stack=std::lower_bound(bank.regions.begin(),bank.regions.end(),saved.worker_stack,
-      [](const auto &region,auto address){return region.address<address;});
-  require(stack!=bank.regions.end() && stack->address==saved.worker_stack && stack->owner==worker_stack_owner &&
-          stack->bytes.size()==0x10000u && stack->access==SourceRuntimeMemory::Access::ReadWrite &&
-          !stack->page_bytes && stack->committed.empty() &&
-          std::uint64_t(saved.worker_stack)+stack->bytes.size()==saved.scratch.next,
+  require(read_word(0x4ecc24u)==saved.worker && read_word(0x4ecc30u)==saved.worker_semaphore &&
+          read_word(0x4ef1bcu)==0,"Arena checkpoint worker/queue binding differs");
+  require(shape.stack_owners==1,"Arena checkpoint worker-stack owner differs");
+  const auto &stack=shape.stack;
+  require(stack && stack->address==saved.worker_stack && stack->owner==worker_stack_owner &&
+          stack->bytes==0x10000u && stack->access==SourceRuntimeMemory::Access::ReadWrite &&
+          !stack->page_bytes && !stack->committed_pages &&
+          std::uint64_t(saved.worker_stack)+stack->bytes==saved.scratch.next,
           "Arena checkpoint scratch extent/cursor differs");
   require(saved.synchronization.objects.size()==3,"Arena checkpoint synchronization topology differs");
   std::set<std::uint32_t> handles;
   for(const auto address:{0x4ecc28u,0x4ecc2cu,0x4ecc30u}) {
-    const auto handle=saved_word(bank,address);
+    const auto handle=read_word(address);
     require(handles.insert(handle).second,"Arena checkpoint duplicates a synchronization binding");
     const auto object=std::ranges::find(saved.synchronization.objects,handle,&NativeSynchronization::ObjectCheckpoint::handle);
     require(object!=saved.synchronization.objects.end(),"Arena checkpoint lacks a bound synchronization object");
@@ -112,6 +118,23 @@ void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheck
             names.insert(file.name).second && file.bytes.size()<=UINT32_MAX,
             "Arena checkpoint file identity or extent differs");
   }
+}
+void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheckpoint &saved,
+                              const SourceRuntimeMemory::Checkpoint &bank) {
+  SourceRuntimeMemory::validate_checkpoint(bank);ArenaMemoryShape shape;
+  for(const auto &region:bank.regions)
+    arena_region(shape,saved.worker_stack,{region.address,region.access,region.owner,region.bytes.size(),
+        region.page_bytes,region.committed.size()});
+  validate_arena_ownership_fields(saved,shape,[&](auto address){return saved_word(bank,address);});
+}
+void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheckpoint &saved,
+                              const SourceRuntimeMemory &bank) {
+  // The enclosing operation/shared-memory gates still own this complete live
+  // bank and its retired worker. Validate the same metadata and checked reads
+  // without manufacturing and discarding another full byte checkpoint.
+  ArenaMemoryShape shape;
+  bank.visit_region_metadata([&](const auto &region){arena_region(shape,saved.worker_stack,region);});
+  validate_arena_ownership_fields(saved,shape,[&](auto address){return word(bank,address);});
 }
 }
 struct SourcePhysicsGameArenaNative::Impl {
@@ -495,7 +518,7 @@ SourcePhysicsGameArenaNative::OwnershipCheckpoint SourcePhysicsGameArenaNative::
     throw std::runtime_error("Native arena file checkpoint platform unavailable");
 #endif
   }
-  validate_arena_ownership(saved,impl_->shared.bank.checkpoint());
+  validate_arena_ownership(saved,impl_->shared.bank);
   return saved;
 }
 struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {

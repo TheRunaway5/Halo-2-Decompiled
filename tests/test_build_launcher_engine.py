@@ -109,6 +109,164 @@ class EnginePromotionTests(unittest.TestCase):
             self.assertEqual(engine.smoke(self.runtime, self.maps, 'lockout.map', 4,
                                           self.scratch, 1)['passed'], expected)
 
+    def test_smoke_uses_original_graphics_and_owned_preferences(self):
+        observation = self.scratch / 'smoke-observation.json'
+        self.record('import json,os,sys\nfrom pathlib import Path\n'
+                    f'Path({str(observation)!r}).write_text(json.dumps(dict(args=sys.argv[1:],'
+                    'data=os.environ.get("XDG_DATA_HOME"),config=os.environ.get("XDG_CONFIG_HOME"),'
+                    'cache=os.environ.get("XDG_CACHE_HOME"),'
+                    'halo2={k:v for k,v in os.environ.items() if k.startswith("HALO2_")},'
+                    'sdk=os.environ.get("EOS_POLICY_TEST"))))\n'
+                    'print("Multiplayer frames=4 ticks=4 players=1 connected=1 peak_players=1")')
+        with patch.dict(os.environ, XDG_DATA_HOME='/foreign-user-data', XDG_CONFIG_HOME='/foreign-user-config',
+                        HALO2_NATIVE_DYNAMIC_OBJECT_POSE_CACHE='1', HALO2_ENABLE_GPU_SKINNING='0',
+                        HALO2_NATIVE_SKIN_ADMISSION_CACHE='0', HALO2_NATIVE_BANDED_CULL='0',
+                        HALO2_GPU_OBJECT_SKINS='1', HALO2_MODEL_SKIN_DIAGNOSTICS='foreign-path',
+                        HALO2_KEEP_TEST_ARTIFACTS='1', HALO2_TEST_SCRATCH='/foreign-owner',
+                        EOS_POLICY_TEST='preserved-sdk-setting'):
+            self.assertTrue(engine.smoke(self.runtime, self.maps, 'lockout.map', 1,
+                                         self.scratch, 1)['passed'])
+        observed = json.loads(observation.read_text())
+        self.assertEqual(observed['args'][observed['args'].index('--graphics-mode') + 1], 'Original')
+        preferences = Path(observed['data']).parent
+        self.assertEqual(preferences.parent, self.scratch / 'smoke-preferences')
+        self.assertRegex(preferences.name, '^[0-9a-f]{32}$')
+        for key, suffix in (('data', 'data'), ('config', 'config'), ('cache', 'cache')):
+            self.assertEqual(observed[key], str(preferences / suffix))
+        self.assertEqual(observed['halo2'], dict(HALO2_TEST_SCRATCH=str(self.scratch),
+            HALO2_PIPELINE_CACHE_DIRECTORY=str(self.scratch / 'vulkan-cache')))
+        self.assertEqual(observed['sdk'], 'preserved-sdk-setting')
+
+    def gate_controls(self):
+        self.args.renderer_4k_reference_control = ['HALO2_REFERENCE_COPY_FP_GRAPH_METADATA=1',
+            'HALO2_REFERENCE_BODY_POSE_JOURNAL=1', 'HALO2_REFERENCE_DYNAMIC_OBJECT_POSE_CACHE=1']
+        return engine.renderer_reference_controls(self.args.renderer_4k_reference_control)
+
+    def test_packaged_4k_gate_runs_on_the_exact_published_runtime(self):
+        controls = self.gate_controls()
+        observed = []
+        def gate(source, runtime, maps, output, scratch, reference):
+            self.assertEqual(source, self.scratch / 'source')
+            self.assertEqual(maps, self.maps); self.assertEqual(scratch, self.scratch)
+            self.assertEqual(reference, controls)
+            self.assertTrue((runtime.parent / 'shaders/production-shaders.json').is_file())
+            self.assertEqual(self.selection.read_bytes(), self.original_selection)
+            observed.append(runtime)
+            return dict(passed=True, runtime=str(runtime), runtime_sha256=engine.digest(runtime),
+                        reference_controls=reference, parity_report='synthetic passing policy fixture')
+        with patch.object(engine, 'renderer_4k_qualification', side_effect=gate):
+            self.attempt(dict(passed=True))
+        record = json.loads(self.selection.read_text())
+        self.assertEqual(observed, [self.root / record['runtime']])
+        report = json.loads((self.args.output / 'report.json').read_text())
+        self.assertTrue(report['renderer_4k']['passed'])
+        self.assertEqual(report['renderer_4k']['runtime_sha256'], record['runtime_sha256'])
+        self.assertTrue(json.loads((observed[0].parent / 'qualification.json').read_text())['renderer_4k']['passed'])
+
+    def test_failed_packaged_4k_gate_cannot_be_accepted_as_a_smoke_exception(self):
+        self.gate_controls(); self.args.accept_smoke_failure = ['lockout.map:1', 'coagulation.map:4']
+        with patch.object(engine, 'renderer_4k_qualification', return_value=dict(passed=False, error='required parity failed')):
+            with self.assertRaisesRegex(RuntimeError, '4K frame qualification failed'):
+                self.attempt(dict(passed=True))
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        for name in self.launcher_modes:
+            self.assertEqual((self.root / name).read_text(), 'previous launcher')
+        self.assertEqual(list((self.root / 'bin/engine-builds').iterdir()), [])
+
+    def test_packaged_4k_gate_keeps_runtime_source_and_publication_guards(self):
+        for mutation in ('runtime', 'source', 'selection'):
+            with self.subTest(mutation=mutation):
+                self.gate_controls()
+                self.selection.write_bytes(self.original_selection)
+                def gate(source, runtime, *_):
+                    if mutation == 'runtime': runtime.write_bytes(b'foreign runtime after frame qualification')
+                    elif mutation == 'source': (source / 'CMakeLists.txt').write_text('changed frozen cohort')
+                    else: self.selection.write_text('foreign selection during supplemental qualification')
+                    return dict(passed=True)
+                with patch.object(engine, 'renderer_4k_qualification', side_effect=gate):
+                    with self.assertRaises(RuntimeError):
+                        self.attempt(dict(passed=True))
+                expected = b'foreign selection during supplemental qualification' if mutation == 'selection' else self.original_selection
+                self.assertEqual(self.selection.read_bytes(), expected)
+                self.assertEqual(list((self.root / 'bin/engine-builds').iterdir()), [])
+                # The test worker freezes a new source owner for each attempt.
+                shutil.rmtree(self.scratch / 'source')
+
+    def test_renderer_reference_controls_reject_ambiguous_or_nonreference_assignments(self):
+        for assignments in (['PATH=x'], ['HALO2_REFERENCE_TEST'], ['HALO2_REFERENCE_TEST='],
+                            ['HALO2_REFERENCE_TEST=1,OTHER=2'], ['HALO2_REFERENCE_TEST=1@runtime'],
+                            ['HALO2_REFERENCE_TEST=1\n'], ['HALO2_REFERENCE_TEST=1', 'HALO2_REFERENCE_TEST=2']):
+            with self.subTest(assignments=assignments), self.assertRaises(ValueError):
+                engine.renderer_reference_controls(assignments)
+
+    def test_renderer_4k_report_policy_rechecks_complete_cases_repeats_and_pins(self):
+        source = self.scratch / 'gate-source'
+        helper = source / 'tools/perf_4k60/parity.py'
+        helper.parent.mkdir(parents=True); helper.write_text('Synthetic parity-report policy recorder')
+        runtime = self.scratch / 'gate-runtime/halo2_native'
+        runtime.parent.mkdir(); (self.maps / 'coagulation.map').write_bytes(b'synthetic coagulation')
+        controls = {'HALO2_REFERENCE_BODY_POSE_JOURNAL': '1'}
+        def report():
+            cases = []
+            for index, case in enumerate(engine.RENDERER_4K_CASES):
+                roles = ['reference', 'reference-repeat', 'candidate', 'candidate-repeat'] if not index else ['reference', 'candidate']
+                cases.append(dict(case=case, passed=True, captures_valid=True, identical=True,
+                                  reference_deterministic=True, candidate_deterministic=True,
+                                  runs=[dict(role=role, valid=True, exit_code=0, sha256='a' * 64,
+                                             bytes=3840 * 2160 * 3 + 17) for role in roles]))
+            return dict(passed=True, reference=str(runtime), candidate=str(runtime),
+                        reference_env=controls, candidate_env={}, maps=str(self.maps), map='coagulation',
+                        map_path=str(self.maps / 'coagulation.map'), map_sha256=engine.digest(self.maps / 'coagulation.map'),
+                        native_size=[3840, 2160], reference_sha256=engine.digest(runtime),
+                        candidate_sha256=engine.digest(runtime), helper_sha256=engine.digest(helper), cases=cases)
+        for mode in ('pass', 'missing', 'failed', 'wrong_runtime', 'wrong_helper', 'wrong_map',
+                     'missing_repeat', 'invalid_capture', 'failed_capture', 'different_hash',
+                     'wrong_size', 'partial_cases', 'runtime_changed', 'malformed_cases',
+                     'malformed_runs', 'oversized_report'):
+            with self.subTest(mode=mode):
+                runtime.write_bytes(b'same exact packaged candidate')
+                output = self.scratch / ('gate-output-' + mode)
+                def execute(command, **kwargs):
+                    self.assertEqual(kwargs['cwd'], runtime.parent)
+                    self.assertEqual(kwargs['env']['H2_REPEAT_CANDIDATE'], '1')
+                    self.assertEqual(kwargs['env']['H2_MAP'], 'coagulation')
+                    self.assertEqual({key: value for key, value in kwargs['env'].items()
+                                      if key.startswith('HALO2_')},
+                                     {'HALO2_TEST_SCRATCH': str(self.scratch)})
+                    self.assertEqual(kwargs['env']['EOS_POLICY_TEST'], 'preserved-sdk-setting')
+                    self.assertEqual(command[command.index(str(helper)) + 2],
+                                     'HALO2_REFERENCE_BODY_POSE_JOURNAL=1@' + str(runtime))
+                    data = report()
+                    if mode == 'failed': data['passed'] = False
+                    elif mode == 'wrong_runtime': data['candidate'] = '/foreign/runtime'
+                    elif mode == 'wrong_helper': data['helper_sha256'] = 'b' * 64
+                    elif mode == 'wrong_map': data['map_sha256'] = 'b' * 64
+                    elif mode == 'missing_repeat': data['cases'][0]['runs'].pop()
+                    elif mode == 'invalid_capture': data['cases'][1]['runs'][1]['valid'] = False
+                    elif mode == 'failed_capture': data['cases'][1]['runs'][1]['exit_code'] = 1
+                    elif mode == 'different_hash': data['cases'][1]['runs'][1]['sha256'] = 'b' * 64
+                    elif mode == 'wrong_size': data['cases'][1]['runs'][1]['bytes'] = 1280 * 720 * 3 + 16
+                    elif mode == 'partial_cases': data['cases'].pop()
+                    elif mode == 'malformed_cases': data['cases'] = [1]
+                    elif mode == 'malformed_runs': data['cases'][1]['runs'] = [1]
+                    if mode != 'missing': (output / 'parity.json').write_text(json.dumps(data))
+                    if mode == 'oversized_report': (output / 'parity.json').write_bytes(b'x' * (1024 * 1024 + 1))
+                    if mode == 'runtime_changed': runtime.write_bytes(b'foreign candidate rewrite during captures')
+                    return subprocess.CompletedProcess(command, 0)
+                with patch.dict(os.environ, HALO2_REFERENCE_BODY_POSE_JOURNAL='inherited must not affect candidate',
+                                HALO2_NATIVE_DYNAMIC_OBJECT_POSE_CACHE='1', HALO2_ENABLE_GPU_SKINNING='0',
+                                HALO2_NATIVE_SKIN_ADMISSION_CACHE='0', HALO2_NATIVE_BANDED_CULL='0',
+                                HALO2_GPU_OBJECT_SKINS='1', HALO2_RENDER_GPU_TIMINGS='/foreign-output',
+                                HALO2_KEEP_TEST_ARTIFACTS='1', HALO2_TEST_SCRATCH='/foreign-owner',
+                                EOS_POLICY_TEST='preserved-sdk-setting'), \
+                     patch.object(engine.subprocess, 'run', side_effect=execute):
+                    result = engine.renderer_4k_qualification(source, runtime, self.maps, output,
+                                                              self.scratch, controls)
+                self.assertEqual(result['passed'], mode == 'pass', result)
+                self.assertEqual(json.loads((output / 'report.json').read_text())['passed'], mode == 'pass')
+                if mode == 'oversized_report':
+                    self.assertFalse((output / 'parity.json').exists())
+
     def build(self, command, **kwargs):
         build = self.scratch / 'build'
         build.mkdir(exist_ok=True)
@@ -153,6 +311,13 @@ class EnginePromotionTests(unittest.TestCase):
             target.write_text(json.dumps(manifest))
         (build / 'engine-targets.txt').write_text('halo2_native|halo2_systems||src/app/main.cpp\n'
                                                 'halo2_systems|||src/engine.cpp\n')
+        output=Path(command[command.index('--output')+1]);output.mkdir(parents=True,exist_ok=True)
+        build_only='--build-only' in command
+        (output/'report.json').write_text(json.dumps(dict(
+            passed=not build_only,status='built' if build_only else 'passed',
+            validation_not_run=build_only,
+            steps=[dict(name=name,exit_code=0) for name in
+                   (('configure','build') if build_only else ('configure','build','tests'))])))
         return subprocess.CompletedProcess(command, 0)
 
     def attempt(self, case, build=None, *, reader=None):
@@ -162,6 +327,91 @@ class EnginePromotionTests(unittest.TestCase):
              patch.object(engine.subprocess, 'run', side_effect=build or self.build), \
              patch.object(engine, 'smoke', return_value=case):
             engine.worker(self.args)
+
+    def test_canonical_shader_bank_exists_before_every_required_loading_check(self):
+        self.args.prepare_only=True
+        manifest=self.cache/'presentation/original-loading-v2/manifest.json'
+        manifest.parent.mkdir(parents=True);manifest.write_text('{}')
+        commands=[];staged_hashes=[]
+        def phases(command,**kwargs):
+            commands.append(command.copy())
+            directory=Path(next(value.split('=',2)[2] for value in command
+                if value.startswith('--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=')))
+            if '--build-only' in command:
+                self.assertFalse(directory.exists(),'Compilation must precede staging')
+            else:
+                self.assertTrue((directory/'world.vert.spv').is_file(),
+                    'Desktop loading tests need their compiled default shader bank before CTest')
+                proof=native_shaders.validate_native_package(directory,executable=self.scratch/'build/halo2_native')
+                staged_hashes.append(proof['package']['sha256'])
+            return self.build(command,**kwargs)
+        self.attempt(dict(passed=True),phases)
+        self.assertEqual(len(commands),2)
+        self.assertIn('--build-only',commands[0]);self.assertNotIn('--build-only',commands[1])
+        filters=[command[command.index('--filter')+1] for command in commands]
+        self.assertEqual(filters[0],filters[1])
+        for name in ['original_loading_gpu','original_loading_gpu_4_3','h2ek_loading_onboarding',
+                     'bundled_loading_ambience','native_vista_loading_adapter','original_vista_loading','original_vista_loading_thread',
+                     'launcher_engine_promotion','native_frontend_launcher_routing']:
+            self.assertIn(name,filters[1])
+        report=json.loads((self.args.output/'report.json').read_text())
+        runtime=self.root/report['runtime']
+        self.assertTrue(report['qualified_candidate'])
+        self.assertEqual(engine.digest(runtime.parent/'shaders/production-shaders.json'),staged_hashes[0],
+            'Packaging must retain the exact bank exercised by the required tests')
+        self.assertTrue(report['validation']['passed'])
+        self.assertEqual(self.selection.read_bytes(),self.original_selection)
+
+    def test_build_only_receipt_cannot_replace_completed_qualification(self):
+        def only_built(command,**kwargs):
+            result=self.build(command,**kwargs)
+            if '--build-only' not in command:
+                output=Path(command[command.index('--output')+1])
+                (output/'report.json').write_text(json.dumps(dict(
+                    passed=False,status='built',validation_not_run=True,steps=[])))
+            return result
+        with self.assertRaisesRegex(RuntimeError,'completed passing CTest'):
+            self.attempt(dict(passed=True),only_built)
+        self.assertEqual(self.selection.read_bytes(),self.original_selection)
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
+        report=json.loads((self.args.output/'report.json').read_text())
+        self.assertFalse(report['qualified_candidate']);self.assertEqual(report.get('smoke',[]),[])
+
+    def test_failed_required_checks_remove_the_pre_staged_unqualified_bank(self):
+        def failed(command,**kwargs):
+            result=self.build(command,**kwargs)
+            if '--build-only' not in command:
+                return subprocess.CompletedProcess(command,8)
+            return result
+        with self.assertRaisesRegex(RuntimeError,'launcher or loading checks failed'):
+            self.attempt(dict(passed=True),failed)
+        self.assertEqual(self.selection.read_bytes(),self.original_selection)
+        self.assertEqual((self.root/'Halo2-Launcher').read_text(),'previous launcher')
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
+
+    def test_staged_shader_mutation_during_checks_is_rejected_without_publication(self):
+        def changed(command,**kwargs):
+            result=self.build(command,**kwargs)
+            if '--build-only' not in command:
+                directory=Path(next(value.split('=',2)[2] for value in command
+                    if value.startswith('--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=')))
+                (directory/'world.vert.spv').write_bytes(b'changed after submitted-frame checks')
+            return result
+        with self.assertRaisesRegex(ValueError,'package identity'):
+            self.attempt(dict(passed=True),changed)
+        self.assertEqual(self.selection.read_bytes(),self.original_selection)
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
+
+    def test_executable_changed_after_staging_cannot_publish_a_mixed_candidate(self):
+        def changed(command,**kwargs):
+            result=self.build(command,**kwargs)
+            if '--build-only' not in command:
+                with (self.scratch/'build/halo2_native').open('ab') as file:file.write(b'changed')
+            return result
+        with self.assertRaisesRegex(RuntimeError,'executable changed'):
+            self.attempt(dict(passed=True),changed)
+        self.assertEqual(self.selection.read_bytes(),self.original_selection)
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
 
     def test_failed_frame_check_preserves_both_launchers_selection_and_removes_candidate(self):
         with self.assertRaisesRegex(RuntimeError, 'frame check'):
@@ -287,6 +537,25 @@ class EnginePromotionTests(unittest.TestCase):
         destination = self.scratch / 'frozen'
         pins = engine.freeze_source(self.root, destination)
         (self.root / 'CMakeLists.txt').write_text('next engine revision')
+        self.assertEqual(engine.source_hashes(destination), pins)
+        self.assertNotEqual(engine.source_hashes(self.root), pins)
+
+    def test_frozen_online_service_keeps_its_matching_coordinator_code(self):
+        server = self.root / 'multiplayer/master_server'
+        server.mkdir(parents=True)
+        service = server / 'match_transport.py'
+        service.write_text('operation = "room_setup_snapshot"\n')
+        docs = self.root / 'multiplayer/docs'
+        docs.mkdir()
+        (docs / 'reference.txt').write_text('existing reference')
+        destination = self.scratch / 'frozen'
+        pins = engine.freeze_source(self.root, destination)
+        self.assertFalse((destination / 'multiplayer').is_symlink())
+        self.assertFalse((destination / 'multiplayer/master_server').is_symlink())
+        self.assertTrue((destination / 'multiplayer/docs').is_symlink())
+        service.write_text('operation = "room_state_get"\n')
+        self.assertEqual((destination / 'multiplayer/master_server/match_transport.py').read_text(),
+                         'operation = "room_setup_snapshot"\n')
         self.assertEqual(engine.source_hashes(destination), pins)
         self.assertNotEqual(engine.source_hashes(self.root), pins)
 
@@ -865,6 +1134,23 @@ class EnginePromotionTests(unittest.TestCase):
         unknown.write_text('unknown source remains a failure')
         self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'],
                          ['src/physics/native_tu15_motion_pose_unknown.cpp'])
+
+    def test_unadmitted_typed_contact_and_seat_components_do_not_claim_runtime_delivery(self):
+        names = ('src/gameplay/vehicles/native_tu15_seat_look.cpp',
+                 'src/physics/native_tu15_contact_candidates.cpp')
+        for name in names:
+            path = self.root/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('standalone component with no production caller')
+        graph = self.scratch/'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['component_boundaries']), set(names))
+        self.assertTrue(set(names).isdisjoint(result['engine_sources']))
+        unknown = 'src/physics/native_tu15_contact_candidates_live.cpp'
+        (self.root/unknown).write_text('new source still requires its own admission')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'], [unknown])
 
     def test_unadmitted_broad_phase_and_solver_keep_explicit_residual_boundaries(self):
         components = (

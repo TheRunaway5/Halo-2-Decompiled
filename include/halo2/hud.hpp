@@ -69,6 +69,15 @@ struct HudViewport {
   UiRect outer, safe;
   unsigned mode{};
 };
+struct HudPresentationLayout {
+  HudViewport viewport;
+  Vec2 center, offset;
+  float scale{};
+};
+// Corner HUD presentation uses the whole player cell. Keep its original
+// center separately so changing edge padding cannot move aiming widgets.
+HudPresentationLayout hud_presentation_layout(HudViewport reference,
+                                             unsigned width, unsigned height);
 // Omitted preferences retain the original aspect-selected grid for reference
 // callers. Ordinary gameplay supplies its explicit two-player preference.
 constexpr bool hud_layout_widescreen(unsigned players,bool widescreen,
@@ -94,6 +103,7 @@ HudShieldLayer hud_shield_layer(const HudShieldHistory &, float current,
                                 unsigned layer, bool elite = false);
 class GameplayFontBank;
 class ControllerPromptArtwork;
+struct SourceHudPrimaryMessageTu15;
 class MultiplayerHud {
 public:
   MultiplayerHud(HudContent, const std::filesystem::path &fonts, Mesh &,
@@ -143,6 +153,8 @@ public:
   void prompt_keyboard_buttons(unsigned view,std::array<std::string,2> buttons);
   void prompt_boarding_buttons(unsigned view,const PcKeyboardSettings &,const ControllerSettings &);
   std::string action_text(const MultiplayerState &,unsigned player,unsigned view)const;
+  // An optional local presentation queue overrides only this recipient's
+  // literal text; the received authoritative snapshot remains unchanged.
   std::vector<Vertex> draw(const MultiplayerState &, unsigned player,
                            unsigned view, unsigned players, unsigned width,
                            unsigned height, int score_limit,
@@ -150,11 +162,25 @@ public:
                            std::optional<Vec2> player_aim_anchor_pixels = {},
                            std::optional<TwoPlayerSplit> split = {},
                            std::optional<SourceHudAimCamera> target_camera = {});
+  std::vector<Vertex> draw(const MultiplayerState &, unsigned player,
+                           unsigned view, unsigned players, unsigned width,
+                           unsigned height, int score_limit,unsigned time_ticks,
+                           std::optional<Vec2> player_aim_anchor_pixels,
+                           std::optional<TwoPlayerSplit> split,
+                           std::optional<SourceHudAimCamera> target_camera,
+                           const SourceHudMessages* messages);
   // 25B53A..25B5BE: independent centered status line. Alpha is the caller's
   // actual per-view HUD opacity; the ordinary native caller supplies one.
   std::vector<Vertex> draw_player_status(std::u16string_view,const MultiplayerState&,
       unsigned player,unsigned view,unsigned players,unsigned width,unsigned height,
       const FullScoreboardPaintConstants&,std::optional<TwoPlayerSplit> split,float alpha);
+  // 25B422..25B535: independent centered primary event channel. The caller
+  // supplies the same normal-HUD/scoreboard admission as the literal pass.
+  // Authored duration zero has no visible interval; it is not a default hold.
+  std::vector<Vertex> draw_primary_message(const SourceHudPrimaryMessageTu15&,
+      const MultiplayerState&,unsigned player,unsigned view,unsigned players,
+      unsigned width,unsigned height,const FullScoreboardPaintConstants&,
+      std::optional<TwoPlayerSplit> split,float alpha=1);
   // Per-viewport shader copies bind the original widget inputs independently.
   void animate(const MultiplayerState &, unsigned player, unsigned view,
                int score_limit, unsigned time_ticks, double seconds);

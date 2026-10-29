@@ -16,7 +16,7 @@ public:
     std::uint32_t encoded_body_bytes()const noexcept;
     std::optional<AuthorityTransferContext> context()const noexcept;
     bool same(const MultiplayerSnapshotOrigin &)const noexcept;
-    // Only independently continuity-bound receipts retain decoded values.
+    // Continuity-bound or native-presentation receipts retain decoded values.
     // Missing/pre-admission receipts throw instead of certifying caller state.
     // References/spans remain valid while a copy of this receipt is retained,
     // including after later receive batches or destruction of its LanClient.

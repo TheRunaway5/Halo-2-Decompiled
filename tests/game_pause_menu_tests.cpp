@@ -61,6 +61,37 @@ int main(int argc,char **argv) try {
   menu.back();check(!menu.activate_pointer(stale),"Queued confirmation click activated a replacement screen");
   choose(menu,2);choose(menu,1);check(actions.empty() && menu.frame().screen==vista_menu(18),"Cancel exited the match");
   choose(menu,2);choose(menu,0);check(actions.back()==GamePauseAction::Quit,"Confirmed Quit missed its game owner");
+  actions.clear();menu.open_game_pause(false,true);
+  check(menu.frame().entries.size()==3 && menu.frame().entries[2].label=="Leave Match",
+      "ONLINE pause omitted Leave Match or added campaign commands");
+  const auto online_vertices=painter.draw(menu,2,-1,2000,{1280,720}).vertices.size();
+  menu.game_pause_objectives("Campaign objectives must stay hidden online");
+  check(painter.draw(menu,2,-1,2000,{1280,720}).vertices.size()==online_vertices,
+      "ONLINE pause displayed campaign objectives");
+  menu.game_pause_objectives({});draws+=2;
+  choose(menu,1);menu.back();
+  check(menu.frame().entries[2].label=="Leave Match","Returning from ONLINE Settings lost Leave Match");
+  choose(menu,2);
+  check(menu.frame().selected==1 && menu.frame().title=="Leave Match" &&
+      menu.frame().entries[0].label=="Leave Match" && menu.frame().description=="Leave the current online match?" && actions.empty(),
+      "Leave Match did not require a match-specific confirmation with Cancel selected");
+  menu.back();check(menu.frame().screen==vista_menu(18) && actions.empty(),"Escape from Leave Match exited the match");
+  choose(menu,2);choose(menu,1);
+  check(menu.frame().screen==vista_menu(18) && actions.empty(),"Cancelling Leave Match exited the match");
+  choose(menu,2);choose(menu,0);
+  check(actions.size()==1 && actions.back()==GamePauseAction::Quit,"Leave Match did not reach the existing match-exit owner exactly once");
+  GamePauseTeams team_choices;team_choices.enabled=true;team_choices.available=0xff;team_choices.current=3;
+  std::int16_t chosen=-1;menu.game_pause_teams(team_choices,[&](std::int16_t team){chosen=team;return std::string{};});
+  menu.open_game_pause(false);check(menu.frame().entries.size()==4 && menu.frame().entries[2].label=="Change Team","Team pause omitted its selector");
+  choose(menu,2);check(menu.frame().entries.size()==8 && menu.frame().selected==3,"Team selector lost available teams or current membership");
+  for(unsigned team=0;team<8;++team) {
+    menu.select(team);const auto draw=painter.draw(menu,2,-1,2000,{640,480});
+    check(!draw.vertices.empty(),"A team choice could not render");
+  }
+  choose(menu,7);check(chosen==7 && actions.back()==GamePauseAction::Resume,"Team choice missed its game owner");
+  team_choices.enabled=false;menu.game_pause_teams(team_choices,[&](std::int16_t){throw FormatError("Disabled team callback ran");return std::string{};});
+  menu.open_game_pause(false);choose(menu,2);check(menu.frame().screen==vista_menu(8) && menu.frame().description=="Team Changing is Off for this match.","Team Changing Off did not refuse the selector");
+  menu.game_pause_teams({},{});
   actions.clear();menu.open_game_pause(false);menu.back();check(actions.back()==GamePauseAction::Resume,"Escape at pause root did not Resume");
   for(unsigned row=0;row<4;++row) {
     menu.open_game_pause(false);choose(menu,1);choose(menu,row);
@@ -163,6 +194,21 @@ int main(int argc,char **argv) try {
     saved.open_game_pause(false);choose(saved,1);choose(saved,2);choose(saved,2);choose(saved,0);
     check(display_calls==3 && saved.pc_display_settings().subtitles==0,"Automatic subtitles did not reach its display owner");}
   std::filesystem::remove(preferences);
+  menu.open_game_pause(false);choose(menu,1);choose(menu,1);
+  menu.select(5);
+  painter.draw(menu,2,-1,2000,{640,480});
+  bool defaults_target{};
+  for(int y=0;y<480 && !defaults_target;y+=2)for(int x=0;x<640 && !defaults_target;x+=2)
+    if(const auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry)
+      defaults_target=hit->index==5;
+  check(defaults_target,"Keyboard Restore Defaults has no visible mouse target");
+  choose(menu,5);choose(menu,0);
+  check(menu.pc_keyboard_settings()==PcKeyboardSettings{},"Keyboard Restore Defaults did not restore MCC controls");
+  check(menu.pc_value_label(menu.frame(),0)=="MCC Default","Keyboard hub did not identify MCC default controls");
+  MenuState mcc_retained(content);mcc_retained.adopt_pc_settings(menu.pc_keyboard_settings(),{},{});
+  mcc_retained.open_game_pause(false);choose(mcc_retained,1);choose(mcc_retained,1);
+  check(mcc_retained.pc_value_label(mcc_retained.frame(),0)=="MCC Default",
+      "Retained pause menu lost its MCC default label");
   for(unsigned preset=0;preset<3;++preset) {
     menu.open_game_pause(false);choose(menu,1);choose(menu,1);choose(menu,0);choose(menu,preset);
     MultiplayerKbm preset_input(17);preset_input.settings(menu.pc_keyboard_settings());SDL_Event key{};

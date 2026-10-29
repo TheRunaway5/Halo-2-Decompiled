@@ -5,6 +5,7 @@
 #include "halo2/collision.hpp"
 #include "halo2/math.hpp"
 #include "gameplay/objects/source_object_geometry.hpp"
+#include "rendering/models/model_frame_pose_cache.hpp"
 #include <cstdlib>
 #include <map>
 #include <set>
@@ -12,6 +13,7 @@
 #include <limits>
 #include <thread>
 #include <utility>
+#include <iostream>
 
 namespace halo2 {
 struct SourceDynamicObjectScene::Impl {
@@ -34,6 +36,10 @@ struct SourceDynamicObjectScene::Impl {
     std::map<std::uint32_t,Owner> owners;
     std::vector<std::uint32_t> order;
     std::array<std::vector<SourceDynamicObjectDraw>,4> draws;
+    // Derived frame-local computation only: resident models outlive this bank.
+    // It is deliberately outside Owner, whose map is staged/copied at sync.
+    ModelFramePoseCache pose_cache;
+    std::uint64_t pose_builds{},pose_reuses{},pose_requests{};
     const std::thread::id executor=std::this_thread::get_id();
     const std::shared_ptr<const int> identity=std::make_shared<const int>(0);
     std::uint64_t revision{};bool busy{};
@@ -60,6 +66,12 @@ struct SourceDynamicObjectScene::Impl {
         static_assert(std::is_nothrow_swappable_v<decltype(draws)>);
         owners.swap(state.owners);order.swap(state.order);draws.swap(state.draws);
         for(auto &[definition,bank]:banks)bank.geometry.exchange_presentation(state.geometry.find(definition)->second);
+        pose_cache.clear();
+    }
+    ~Impl() {
+        if(const auto *p=std::getenv("HALO2_DYNAMIC_OBJECT_POSE_DIAGNOSTICS");p&&*p)
+            std::cout<<"Dynamic object pose cache: requests="<<pose_requests<<" builds="<<pose_builds
+                <<" reuses="<<pose_reuses<<'\n';
     }
     Impl(const Cache &c,std::size_t bsp,Mesh &mesh,const CollisionWorld &world)
         :cache(c),collision(world),sh(c.load_source_prt_lighting(bsp)),lighting(c.load_bsp_lighting(bsp)),
@@ -117,6 +129,7 @@ struct SourceDynamicObjectScene::Impl {
             owner.nodes=pose==poses.end()?std::vector<Transform>{}:pose->nodes;
         }
         std::erase_if(staged,[&](const auto &entry){return !present.contains(entry.first);});owners.swap(staged);order.swap(next);
+        pose_cache.clear();
     }
     const std::vector<SourceDynamicObjectDraw> &draw_view(std::int32_t frame,const SourceObjectViewLod &view,
         const std::function<std::vector<Transform>(std::uint32_t)> &sample) {
@@ -136,11 +149,26 @@ struct SourceDynamicObjectScene::Impl {
             // (per-submission plan/pack cost exceeds the small objects' skins).
             static const bool reference_lod_skins=[]{const auto *p=std::getenv("HALO2_REFERENCE_OBJECT_LOD_SKINS");return p && *p;}();
             static const bool gpu_object_skins=[]{const auto *p=std::getenv("HALO2_GPU_OBJECT_SKINS");return p && *p;}();
+            static const bool cache_poses=[]{
+                const auto *native=std::getenv("HALO2_NATIVE_DYNAMIC_OBJECT_POSE_CACHE");
+                const auto *reference=std::getenv("HALO2_REFERENCE_DYNAMIC_OBJECT_POSE_CACHE");
+                return (!native||(*native&&!(native[0]=='0'&&!native[1])))&&!(reference&&*reference);
+            }();
             if(reference_lod_skins)geometry.pose_world_nodes(nodes);
             else {
                 const auto lod=geometry.choose_lod(id&65535u,id,o.sphere.center,o.sphere.radius,view,owner.previous_lod);
-                const bool allow_gpu=gpu_object_skins && model_skin_gpu_requested() && bool(view.shader);
-                geometry.pose_world_lod(lod,[&](const RenderModel &model){return model_skin_world_pose(model,nodes,allow_gpu);});
+                const bool allow_gpu=gpu_object_skins && model_skin_gpu_requested() && bool(view.shader) && !view.require_cpu_world_positions;
+                if(cache_poses && view.local_players>1) {
+                    struct Request {std::uint32_t owner;unsigned lod;std::span<const Transform> nodes;bool gpu;};
+                    const Request request{id,lod,nodes,allow_gpu};
+                    // Two pointer captures fit the existing callback's small
+                    // storage; do not add a heap allocation per owner/view.
+                    geometry.pose_world_lod_view(lod,[this,&request](const RenderModel &model) {
+                        const auto result=pose_cache.update_factory(request.owner,request.lod,model,request.nodes,request.gpu);
+                        ++pose_requests;if(result.reused)++pose_reuses;else ++pose_builds;
+                        return result.pose;
+                    });
+                } else geometry.pose_world_lod(lod,[&](const RenderModel &model){return model_skin_world_pose(model,nodes,allow_gpu);});
             }
             const auto selected=geometry.select(id&65535u,id,o.sphere.center,o.sphere.radius,view,owner.previous_lod);
             const bool due=object_lighting_query_due(owner.light,frame,o.sphere.center,selected.source_distance,o.frozen);
@@ -159,6 +187,9 @@ struct SourceDynamicObjectScene::Impl {
             const auto &draw=geometry.view(view.view_index);
             out.push_back({id,o.definition,draw.vertices,owner.light.lighting,draw.ordinary_lighting,colors,
                 geometry.owner_banks(cache,nodes,sh,selected.lod),o.camouflage,{}});
+            out.back().source_model=&geometry.at(selected.lod).model;
+            out.back().source_lod=selected.lod;out.back().source_render_model=bank.model.render_model;
+            out.back().source_ordinals=draw.ordinals;
             if(auto skin=geometry.view_skin(view.view_index,id,o.definition,bank.model.render_model))
                 out.back().skins.push_back({0,std::move(skin)});
         }
@@ -202,7 +233,7 @@ bool SourceDynamicObjectScene::commit_restore(PreparedRestore &prepared)noexcept
 void SourceDynamicObjectScene::reset_lifetimes() noexcept {
     if(!impl_||std::this_thread::get_id()!=impl_->executor||impl_->busy||impl_->revision==UINT64_MAX)return;
     Impl::Mutation mutation(*impl_);
-    auto &s=*impl_;s.owners.clear();s.order.clear();
+    auto &s=*impl_;s.owners.clear();s.order.clear();s.pose_cache.clear();
     for(auto &view:s.draws)view.clear();
     for(auto &[definition,bank]:s.banks)bank.geometry.reset_history();
 }

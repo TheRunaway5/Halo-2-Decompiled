@@ -77,12 +77,12 @@ int main(int argc,char **argv){try {
     }
     if(tick==20) {
       // A slow four-view frame can consume ticks18..20 before another SDL
-      // poll. Complete the actual focus delivery before checking/sending Q.
+      // poll. Complete the actual focus delivery before checking/sending F.
       SDL_RaiseWindow(window);
       check(SDL_SetWindowInputFocus(window)==0,"Could not refocus the actual grenade test window");
       SDL_PumpEvents();
-      check(SDL_GetKeyboardFocus()==window,"Grenade test lost actual OS keyboard focus before Q");
-      std::cout<<"actual SDL Q delivery: focused_window="<<SDL_GetWindowID(SDL_GetKeyboardFocus())<<'\n';
+      check(SDL_GetKeyboardFocus()==window,"Grenade test lost actual OS keyboard focus before F");
+      std::cout<<"actual SDL F delivery: focused_window="<<SDL_GetWindowID(SDL_GetKeyboardFocus())<<'\n';
       if(grenade_type==1){
         check(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Could not enable actual relative mouse look");
         const auto &settings=o.desktop->keyboard_settings;
@@ -93,9 +93,9 @@ int main(int argc,char **argv){try {
         check(SDL_PushEvent(&look)==1,"SDL downward plasma look queue failed");
       }
       SDL_Event e{};e.type=SDL_KEYDOWN;e.key.windowID=window_id;e.key.state=SDL_PRESSED;
-      e.key.keysym.scancode=SDL_SCANCODE_Q;e.key.keysym.sym=SDLK_q;
-      check(SDL_PushEvent(&e)==1,"SDL Q down queue failed");e.type=SDL_KEYUP;e.key.state=SDL_RELEASED;
-      check(SDL_PushEvent(&e)==1,"SDL Q up queue failed");
+      e.key.keysym.scancode=SDL_SCANCODE_F;e.key.keysym.sym=SDLK_f;
+      check(SDL_PushEvent(&e)==1,"SDL F down queue failed");e.type=SDL_KEYUP;e.key.state=SDL_RELEASED;
+      check(SDL_PushEvent(&e)==1,"SDL F up queue failed");
     }
     for(const auto &g:s.grenade_projectiles)if(g.unit==s.players[0].source_unit) {
       check(g.type==grenade_type,"Actual projectile differs from authored spawn grenade type");
@@ -141,7 +141,7 @@ int main(int argc,char **argv){try {
   const auto result=run_multiplayer(o);if(host)host->finish();
   std::cout<<"actual window grenade: pulses="<<pulses<<" debit="<<debit<<" prepared="<<prepared
       <<" released="<<released<<" detonated="<<detonated<<" fp_throw="<<fp_throws<<" body_throw="<<body_throws<<'\n';
-  check(result==0&&pulses==1&&debit&&prepared&&released&&(capture||detonated),"Actual window Q lifecycle/inventory failed");
+  check(result==0&&pulses==1&&debit&&prepared&&released&&(capture||detonated),"Actual window F lifecycle/inventory failed");
   check(fp_throws>0,"Actual window never rendered the registered source first-person throw");
   if(o.local_players>1)check(body_throws>0,"Four-view match submitted no actual body poses");
   for(unsigned view=0;view<o.local_players;++view) {
@@ -150,7 +150,7 @@ int main(int argc,char **argv){try {
     std::cout<<"view="<<view<<" grenade_draws="<<grenade_draws[view]
         <<" fractional_position_draws="<<fractional_draws[view]<<'\n';
   }
-  std::cout<<"PASS actual SDL Q -> source throw pose/inventory -> salted attachment/release"
+  std::cout<<"PASS actual SDL F -> source throw pose/inventory -> salted attachment/release"
       <<(capture?" -> finite released capture":" -> detonation")<<", views="
       <<o.local_players<<" nativeLAN="<<lan<<" grenade_type="<<grenade_type<<" first_person_throw_frames="<<fp_throws<<'\n';
   std::cout<<"PASS authored grenade world geometry submitted independently to every local view\n";

@@ -2,6 +2,7 @@
 #include "halo2/source_runtime_write_protection.hpp"
 #include <map>
 #include <stdexcept>
+#include <exception>
 
 namespace halo2 {
 namespace {
@@ -109,6 +110,16 @@ SourceExecutionObserverScope::~SourceExecutionObserverScope(){
     if(std::this_thread::get_id()!=inputs_->executor_)std::terminate();
     if(inputs_->counter_values()!=before_)inputs_->failed_=true;
     --inputs_->observer_depth_;
+}
+SourceExecutionFailedCleanupScope::SourceExecutionFailedCleanupScope(const SourceRuntimeMemory &memory) {
+    inputs_=source_execution_inputs(memory);if(!inputs_ || !inputs_->track_calls_){inputs_=nullptr;return;}
+    inputs_->require_executor();
+    if(!inputs_->failed_ && !std::uncaught_exceptions())
+        throw std::logic_error("Native cleanup admission requires a failed or unwinding phase");
+    inputs_->failed_=true;++inputs_->call_depth_;
+}
+SourceExecutionFailedCleanupScope::~SourceExecutionFailedCleanupScope() {
+    if(inputs_){if(std::this_thread::get_id()!=inputs_->executor_)std::terminate();--inputs_->call_depth_;}
 }
 void SourceExecutionInputs::require_executor()const{
     if(std::this_thread::get_id()!=executor_)throw std::logic_error("Native execution inputs belong to another executor");

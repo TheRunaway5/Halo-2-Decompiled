@@ -54,7 +54,7 @@ template<std::size_t N>void copy(std::array<std::byte,N> &out,std::span<const st
 }
 MenuWorldSourcePass load_menu_world_source_pass(const Cache &cache,std::uint32_t shader,
     const MenuWorldSourcePassChoice &choice) {
-  Reader reader(cache);MenuWorldSourcePass result;result.shader_=shader;result.choice_=choice;
+  Reader reader(cache);MenuWorldSourcePass result;result.cache_owner_=&cache;result.shader_=shader;result.choice_=choice;
   const auto root=reader.tag(shader,"shad");
   const auto definitions=reader.block(root+32,124);
   if(definitions.count!=1)throw FormatError("explicit source pass requires one ordinary shader postprocess definition");

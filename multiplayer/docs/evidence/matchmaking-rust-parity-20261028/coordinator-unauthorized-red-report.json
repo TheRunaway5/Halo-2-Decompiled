@@ -1,0 +1,24 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2a8xrl7q/master-source/rust/online_protocol/Cargo.toml",
+        "--test",
+        "matchmaking_coordinator"
+      ],
+      "returncode": 101
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2a8xrl7q/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2a8xrl7q",
+  "source_frozen": true
+}

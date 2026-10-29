@@ -14,12 +14,17 @@ Controls MultiplayerKbmInput::gameplay_controls(bool dual,bool seated,bool inver
   if(seated) {
     result.fire_secondary=actions.dual_secondary;
     result.crouch|=actions.dual_secondary;
+    if(result.jump && vehicle_evasion_direction) {
+      result.forward=(*vehicle_evasion_direction)[0];
+      result.right=(*vehicle_evasion_direction)[1];
+    }
   }
   return result;
 }
 void MultiplayerKbm::suspend(Uint32 milliseconds) {
   if(suspended_at_)return;
   suspended_at_=milliseconds;pressed_.fill(false);
+  pending_vehicle_evasion_direction_.reset();
 }
 void MultiplayerKbm::resume(Uint32 milliseconds) {
   if(!suspended_at_)return;
@@ -47,6 +52,7 @@ void MultiplayerKbm::release() {
   keys_.fill(false);
   mouse_.fill(false);
   pressed_.fill(false);
+  pending_vehicle_evasion_direction_.reset();
   pickup_hold_={};dual_hold_={};
   resumed_interactions_={};
 }
@@ -54,6 +60,25 @@ void MultiplayerKbm::press(int binding) {
   for (unsigned i = 0; i < pc_action_count; ++i)
     if (settings_.bindings[i] == binding || settings_.secondary[i] == binding)
       pressed_[i] = true;
+}
+void MultiplayerKbm::update_vehicle_evasion(int binding,bool down) {
+  if(suspended_at_)return;
+  const auto matches=[&](PcAction action) {
+    return settings_.bindings[unsigned(action)]==binding ||
+        settings_.secondary[unsigned(action)]==binding;
+  };
+  if(!matches(PcAction::Jump) && !matches(PcAction::Forward) &&
+      !matches(PcAction::Back) && !matches(PcAction::Left) && !matches(PcAction::Right))return;
+  // Use physical overlap, never two independently queued presses. A wheel
+  // jump is instantaneous but can still overlap an actually held direction.
+  if(!held(PcAction::Jump) && !(down && binding==pc_wheel_up && matches(PcAction::Jump)))return;
+  const std::array direction{
+      float(held(PcAction::Forward))-float(held(PcAction::Back)),
+      float(held(PcAction::Right))-float(held(PcAction::Left))};
+  if(direction[0] || direction[1])pending_vehicle_evasion_direction_=direction;
+  // A new opposite-direction press cancels the chord. Releasing its last
+  // direction retains the completed chord until its one simulation delivery.
+  else if(down)pending_vehicle_evasion_direction_.reset();
 }
 bool MultiplayerKbm::held(PcAction action) const {
   const auto test = [&](int binding) {
@@ -94,10 +119,12 @@ void MultiplayerKbm::handle_event(const SDL_Event &event) {
     const bool down = event.type == SDL_KEYDOWN;
     if (down && event.key.repeat)
       return;
-    if (down && !keys_[key] && !suspended_at_) {
+    const bool changed=keys_[key]!=down;
+    if (down && changed && !suspended_at_) {
       press(key);
     }
     keys_[key] = down;
+    if(changed)update_vehicle_evasion(key,down);
     const auto now=event.key.timestamp?event.key.timestamp:SDL_GetTicks();
     update_interactions(now);
   } else if (event.type == SDL_MOUSEBUTTONDOWN ||
@@ -106,9 +133,11 @@ void MultiplayerKbm::handle_event(const SDL_Event &event) {
         event.button.button >= mouse_.size())
       return;
     const bool down = event.type == SDL_MOUSEBUTTONDOWN;
-    if (down && !mouse_[event.button.button] && !suspended_at_)
+    const bool changed=mouse_[event.button.button]!=down;
+    if (down && changed && !suspended_at_)
       press(pc_mouse_button(event.button.button));
     mouse_[event.button.button] = down;
+    if(changed)update_vehicle_evasion(pc_mouse_button(event.button.button),down);
     const auto now=event.button.timestamp?event.button.timestamp:SDL_GetTicks();
     update_interactions(now);
   } else if (event.type == SDL_MOUSEWHEEL && own_window(event.wheel.windowID)) {
@@ -116,8 +145,10 @@ void MultiplayerKbm::handle_event(const SDL_Event &event) {
 #if SDL_VERSION_ATLEAST(2, 0, 18)
     moved |= event.wheel.preciseX != 0 || event.wheel.preciseY != 0;
 #endif
-    if (moved && !suspended_at_)
+    if (moved && !suspended_at_) {
       press(pc_wheel_up);
+      update_vehicle_evasion(pc_wheel_up,true);
+    }
   }
 }
 MultiplayerKbmInput MultiplayerKbm::snapshot(float yaw, float pitch,Uint32 milliseconds) const {
@@ -132,6 +163,7 @@ MultiplayerKbmInput MultiplayerKbm::snapshot(float yaw, float pitch,Uint32 milli
   c.forward = float(held(PcAction::Forward)) - float(held(PcAction::Back));
   c.right = float(held(PcAction::Right)) - float(held(PcAction::Left));
   c.jump = active(PcAction::Jump);
+  r.vehicle_evasion_direction=pending_vehicle_evasion_direction_;
   c.crouch = held(PcAction::Crouch);
   c.fire = active(PcAction::Fire);
   c.reload = active(PcAction::Reload);
@@ -159,6 +191,7 @@ MultiplayerKbmInput MultiplayerKbm::consume(float yaw, float pitch,Uint32 millis
   const auto result = snapshot(yaw, pitch,milliseconds);
   if(suspended_at_)return result;
   pressed_.fill(false);
+  pending_vehicle_evasion_direction_.reset();
   pickup_hold_.consume();dual_hold_.consume();
   resumed_interactions_={};
   // A physical press made during suspension cannot overwrite an older

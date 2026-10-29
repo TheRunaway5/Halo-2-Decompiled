@@ -18,6 +18,7 @@
 #include "ui/frontend_og_matchmaking_layout.hpp"
 #include "ui/frontend_mcc_model_viewports.hpp"
 #include "ui/frontend_mcc_frame_geometry.hpp"
+#include "ui/title_forever_artwork.hpp"
 #include "halo2/frontend_emblem.hpp"
 #include "halo2/frontend_frame_texture.hpp"
 #include "halo2/frontend_frame_sampling.hpp"
@@ -150,7 +151,7 @@ struct FrontendPainter::Impl {
   std::map<std::uint32_t, std::vector<unsigned>> images;
   std::map<unsigned, std::array<unsigned, 2>> frame_extensions;
   std::set<unsigned> original_mcc_frames;
-  unsigned white{}, background_dim{}, pcr_black{}, map_intro_black{};
+  unsigned white{}, background_dim{}, pcr_black{}, map_intro_black{}, forever{};
   UiColor clan_background_color;
   Mesh &mesh;
   std::unique_ptr<Impl> vista;
@@ -265,6 +266,10 @@ struct FrontendPainter::Impl {
     prompt_artwork=artwork?std::move(artwork):std::make_shared<ControllerPromptArtwork>(mesh,directory);
     white = unsigned(mesh.materials.size());
     mesh.materials.push_back({});
+    forever = unsigned(mesh.materials.size());
+    mesh.materials.push_back({"ui/branding/forever", detail::title_forever_texture()});
+    mesh.materials.back().texture_states[0].address_u = 3;
+    mesh.materials.back().texture_states[0].address_v = 3;
     background_dim = unsigned(mesh.materials.size());
     mesh.materials.push_back({"ui/background-dim"});
     mesh.materials.back().ui_widescreen_background = true;
@@ -657,32 +662,13 @@ struct FrontendPainter::Impl {
   }
   void forever_wordmark(float x, float y, float width, float height, float alpha) {
     if (alpha <= 0 || width <= 0 || height <= 0) return;
-    // Match the website's pale-blue, widely spaced subtitle. Use the
-    // imported font atlas so branding needs no additional runtime asset bank.
-    constexpr std::string_view label = "FOREVER";
-    const auto &f = font(1);
-    float ink_width = 0;
-    int top = 0, bottom = 0;
-    for (const auto c : label) {
-      const auto &g = f.glyphs.at(c);
-      ink_width += g.width;
-      top = std::max(top, g.bearing_y);
-      bottom = std::min(bottom, g.bearing_y - int(g.height));
-    }
-    if (top <= bottom) return;
-    const float scale = width * (9.f / 365.f) / float(top - bottom);
-    const float span = width * .53f;
-    const float tracking = (span - ink_width * scale) / float(label.size() - 1);
-    const float baseline = y + height + width * (12.f / 365.f) + top * scale;
+    // Frozen from the website's actual Arial/CSS layout, including spaces
+    // and trailing letter spacing. Do not substitute an imported game font.
+    const float scale = width / 365.f;
     const UiColor color{alpha, 182.f / 255, 217.f / 255, 247.f / 255};
-    float cursor = x + (width - span) * .5f;
-    for (const auto c : label) {
-      const auto &g = f.glyphs.at(c);
-      const auto [u0, v0, u1, v1] = retail_font_sample_uvs(f, c, 0, 0, g.width, g.height);
-      quad(cursor, baseline - g.bearing_y * scale,
-           g.width * scale, g.height * scale, font_material(1), color, u0, v0, u1, v1);
-      cursor += g.width * scale + tracking;
-    }
+    quad(x + detail::forever_left * scale, y + height + detail::forever_top * scale,
+         detail::forever_width / 8.f * scale, detail::forever_height / 8.f * scale,
+         forever, color);
   }
   void bitmap(const UiBitmap &b, Vec2 parent = {}, float alpha = 1,
               int frame = -1, std::optional<UiColor> tint = {},
@@ -1362,7 +1348,10 @@ struct FrontendPainter::Impl {
       if(lobby->party_names) {
         FrontendLobbyRosterInput input;
         input.pane=lobby_policy->pane;input.valid_session=1;
-        input.session_present=true;input.matchmaking=input.session_enum_is_six=true;
+        input.session_present=true;input.matchmaking=input.session_enum_is_six=lobby->input.session_enum==6;
+        input.team_mode=lobby->input.team_mode;
+        for(unsigned controller=0;controller<4;++controller)
+          input.local_teams[controller]={lobby->local_team_session_indices[controller],lobby->local_team_edits[controller].valid,lobby->local_team_edits[controller].team};
         input.tu15=true;
         input.players=lobby->party_players;input.appearance_palette=content.appearance_palette;
         roster=frontend_lobby_roster(input);
@@ -1384,7 +1373,8 @@ struct FrontendPainter::Impl {
       input.session_present = true;
       input.team_mode = lobby->input.team_mode;
       input.players = players;
-      input.local_teams[0] = {0, lobby->team_edit.valid, lobby->team_edit.team};
+      for(unsigned controller=0;controller<4;++controller)
+        input.local_teams[controller] = {lobby->local_team_session_indices[controller],lobby->local_team_edits[controller].valid,lobby->local_team_edits[controller].team};
       input.appearance_palette = content.appearance_palette;
       roster = frontend_lobby_roster(input);
       }
@@ -1516,7 +1506,7 @@ struct FrontendPainter::Impl {
       }
       if ((frame.screen == 6 || frame.screen == 9) && content.images.contains(image.datum) &&
           content.images.at(image.datum).name == title_logo)
-        image.position.y += 36.f / layout_scale();
+        image.position.y += 52.f / layout_scale();
       bitmap(image, parent, 1, -1, {}, clip_bottom);
       if (interactive && frame.vista_pcr && content.images.contains(image.datum) &&
           content.images.at(image.datum).name == "ui\\screens\\game_shell\\postgame_statistics\\spinners" &&
@@ -1652,7 +1642,7 @@ struct FrontendPainter::Impl {
       auto value = content.localized(screen, t.string);
       if(frame.screen==vista_menu(18)) {
         if(i==0)value=state.game_pause_objectives();
-        if(!frame.context)value.clear();
+        if(frame.context!=campaign_game_pause_context)value.clear();
       }
       if(frame.vista_leave_task && i==0)
         value=content.localized(screen,frame.vista_leave_task->status_string);
@@ -1761,7 +1751,9 @@ struct FrontendPainter::Impl {
                                 animation(t.animation, t.delay).position.z});
     }
     order_widgets(popup_widgets, "unrecorded appearance popup widget draw");
+    const bool custom_categories=frame.screen==178 && state.custom_match_settings_frame(frame);
     for (unsigned i = 0; i < pane.buttons.size(); ++i) {
+      if(custom_categories && i>=frame.entries.size())continue;
       if (lobby_policy && lobby_policy->buttons &&
           (i >= lobby_policy->buttons->size() || !(*lobby_policy->buttons)[i])) continue;
       if (frame.screen == 167 &&
@@ -1787,7 +1779,7 @@ struct FrontendPainter::Impl {
       const auto first = output.vertices.size();
       bitmap(image, parent);
       text(t,
-           state.expand((frame.screen == 167 || state.online_party_screen(frame) || is_vista_menu(frame.screen)) && i < frame.entries.size()
+           state.expand((custom_categories || frame.screen == 167 || state.online_party_screen(frame) || is_vista_menu(frame.screen)) && i < frame.entries.size()
                             ? frame.entries[i].label
                             : content.localized(screen, t.string)),
            parent, 1, true);
@@ -1935,10 +1927,11 @@ struct FrontendPainter::Impl {
     // Original2310F9 supplies screen186's persistent type1 list through
     // 23047E. Focus changes rebuild only ordinary pane children (230427 /
     // 22FBA9); panes1-3 intentionally have no list definition of their own.
-    // The original category popup207 likewise authors its persistent list
-    // only in pane0. MCC adds empty pane-local placeholders to later panes;
+    // The original settings categories178 and category popup207 likewise
+    // author their persistent lists only in pane0. MCC adds empty pane-local
+    // placeholders to later panes;
     // those must not replace the screen's primary list on a focus change.
-    const auto &lists = frame.screen == 186 || frame.screen == 207
+    const auto &lists = frame.screen == 178 || frame.screen == 186 || frame.screen == 207
         ? screen.panes.front().lists : pane.lists;
     if (!lists.empty() && !frame.entries.empty()) {
       std::optional<UiList> title_list;
@@ -2832,6 +2825,7 @@ std::optional<FrontendPointerTarget> FrontendPainter::pointer_hit(float x, float
   return {};
 }
 namespace {
+#include "ui/frontend_network_transition_layout_data.inc"
 // TU1.5 0x194890 compiled status constants: network_loading_map,
 // network_joining and network_leaving. MCC binds them by exact name.
 std::uint32_t network_transition_string(FrontendNetworkTransitionStatus status) {
@@ -2853,6 +2847,7 @@ struct FrontendNetworkTransitionPainter::State {
   std::array<std::string,network_transition_statuses.size()> status;
   std::map<unsigned,unsigned> remap;
   std::vector<Material> bank;
+  unsigned backdrop{};
   // The root pane owner for this one-pane dialog: no lists, scenes, header
   // (definition flag4) or button key. Same widget order and projection.
   std::vector<Vertex> paint(FrontendNetworkTransitionStatus value,float seconds,std::uint32_t clock) {
@@ -2861,6 +2856,15 @@ struct FrontendNetworkTransitionPainter::State {
     p.drawing_exit=false;p.canvas=frontend_canvas(640,480);
     const auto &screen=content.screens.at(network_transition_screen);
     const auto &pane=screen.panes.front();
+    // TU1.5 23B971 draws the wigl+6C overlay before this channel's
+    // widgets. Its window intro scales alpha, while RGB stays authored.
+    const auto duration=pane.animation?content.animations.at(pane.animation-1).intro.milliseconds:0;
+    const float fade=duration?std::clamp(float(clock)/float(duration),0.f,1.f):1.f;
+    const auto byte=[](float value){return std::uint32_t(std::nearbyint(value*255.f));};
+    const auto color=content.overlay;
+    const auto packed=(byte(color.alpha*fade)<<24)|(byte(color.red)<<16)|
+        (byte(color.green)<<8)|byte(color.blue);
+    p.quad(0,0,640,480,backdrop,frontend_text_pixel_color(packed));
     std::vector<const UiBitmap *> ordered;
     for(const auto &b:pane.bitmaps)ordered.push_back(&b);
     float nearest=std::numeric_limits<float>::max(),farthest=-nearest;
@@ -2896,15 +2900,53 @@ FrontendNetworkTransitionPainter::FrontendNetworkTransitionPainter(const Fronten
   // A private one-screen view of the selected content. Fonts, sampled pages,
   // animations and strings are the frontend's own; no other screen is built.
   auto &c=s.content;
+  auto rasters=ui_assets;
+  auto logical=detail::mcc_logical_layout::make_view(source);
+  if(detail::mcc_frontend_content(source) && !logical)
+    throw FormatError("Network transition requires the authenticated MCC logical layout");
+  const auto &globals=logical?logical->content:source;
   c.source_fonts=source.source_fonts;c.pc_string_ids=source.pc_string_ids;
   c.screens.emplace(network_transition_screen,found->second);
-  c.animations=source.animations;c.global_strings=source.global_strings;
-  c.button_keys=source.button_keys;c.header_fonts=source.header_fonts;
-  c.header_bounds=source.header_bounds;c.typewriter=source.typewriter;
-  c.color=source.color;c.overlay=source.overlay;
+  c.animations=globals.animations;c.global_strings=source.global_strings;
+  c.button_keys=source.button_keys;c.header_fonts=globals.header_fonts;
+  c.header_bounds=globals.header_bounds;c.typewriter=globals.typewriter;
+  c.color=globals.color;c.overlay=globals.overlay;
   for(const auto &bitmap:found->second.panes.front().bitmaps)
     if(const auto image=source.images.find(bitmap.datum);image!=source.images.end())c.images.insert(*image);
-  s.impl=std::make_unique<FrontendPainter::Impl>(c,fonts,s.scratch,std::filesystem::path{},ui_assets,sampled_fonts);
+  if(logical) {
+    using detail::mcc_logical_layout::Codec;
+    static const auto profile=nlohmann::json::parse(network_transition_layout_data);
+    const Codec actual{source};
+    if(actual.screen(found->second)!=profile.at("raw").at("screen"))
+      throw FormatError("Selected MCC network transition definition differs from its source profile");
+    auto screen=actual.screen(profile.at("original").at("screen"));
+    screen.strings=found->second.strings;
+    for(auto &pane:screen.panes)for(auto &text:pane.texts)
+      text.string=detail::frontend_compiled_string_id(source,text.string).value_or(text.string);
+    c.screens.insert_or_assign(network_transition_screen,std::move(screen));
+    for(const auto &[name,definition]:profile.at("original").at("images").items()) {
+      const auto id=Codec::named(c.images,name);
+      auto expected=profile.at("raw").at("images").at(name);
+      for(auto &frame:expected.at("frames"))frame.erase("format");
+      if(actual.image(source.images.at(id))!=expected)
+        throw FormatError("Network transition MCC raster descriptor differs from its source profile");
+      const auto &selected=source.images.at(id);
+      if(!rasters.contains(name))rasters.emplace(name,selected.images);
+      auto &image=c.images.at(id);
+      image.images.clear();
+      for(const auto &frame:definition.at("frames")) {
+        Texture texture;texture.width=frame.at("width");texture.height=frame.at("height");
+        texture.format=frame.at("format");image.images.push_back(std::move(texture));
+      }
+    }
+  }
+  s.impl=std::make_unique<FrontendPainter::Impl>(c,fonts,s.scratch,std::filesystem::path{},
+      rasters,logical?std::filesystem::path{}:sampled_fonts,false,bool(logical));
+  s.backdrop=unsigned(s.scratch.materials.size());
+  Material backdrop;backdrop.name="ui/network-transition-backdrop";
+  backdrop.ui_full_surface=true;
+  backdrop.diffuse={1,1,11,std::vector<std::byte>(4,std::byte{255}),{}};
+  s.scratch.materials.push_back(std::move(backdrop));
   const auto &screen=c.screens.at(network_transition_screen);
   for(const auto value:network_transition_statuses) {
     const auto id=detail::frontend_compiled_string_id(c,network_transition_string(value));
@@ -2917,7 +2959,7 @@ FrontendNetworkTransitionPainter::FrontendNetworkTransitionPainter(const Fronten
   std::set<unsigned> used;
   for(const auto value:network_transition_statuses)
     for(const float seconds:{0.f,60.f})
-      for(const auto &vertex:s.paint(value,seconds,0))used.insert(vertex.material);
+      for(const auto &vertex:s.paint(value,seconds,std::uint32_t(seconds*1000)))used.insert(vertex.material);
   if(used.empty())throw FormatError("Network transition dialog has no visible widgets");
   for(const auto index:used) {
     auto material=s.scratch.materials.at(index);

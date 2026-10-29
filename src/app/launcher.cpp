@@ -23,7 +23,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <process.h>
+#include <shellapi.h>
 #else
 #include <sys/wait.h>
 #include <unistd.h>
@@ -55,8 +55,15 @@ namespace fs = std::filesystem;
                                   "ui.vert.spv",      "ui.frag.spv", "hud.frag.spv"};
 #ifdef _WIN32
 constexpr auto native_name = "halo2_native.exe";
+constexpr auto launcher_name = "Halo2-Launcher.exe";
+constexpr auto title_launcher_name = "Halo2-Title-Launcher.exe";
+constexpr auto foreign_native_name = "halo2_native";
+int windows_environment(const char* name,const std::string& value);
 #else
 constexpr auto native_name = "halo2_native";
+constexpr auto launcher_name = "Halo2-Launcher";
+constexpr auto title_launcher_name = "Halo2-Title-Launcher";
+constexpr auto foreign_native_name = "halo2_native.exe";
 #endif
 struct Installation {
   fs::path root, runtime, build, release_launcher;
@@ -90,8 +97,16 @@ void bind_installation(const Installation &installation) {
   const auto value=nlohmann::json{{"schema","H2_INSTALLATION_LAYOUT_V1"},
       {"data",installation.root.string()},{"resources",installation.resources.string()}}.dump();
 #ifdef _WIN32
-  auto failed=_putenv_s("H2_INSTALLATION_LAYOUT",value.c_str());
-  if(installation.packaged)failed|=_putenv_s("PYTHONDONTWRITEBYTECODE","1");
+  auto failed=windows_environment("H2_INSTALLATION_LAYOUT",value);
+  if(fs::is_regular_file(installation.resources/"python/python.exe")) {
+    // The portable native interpreter and Tcl/Tk must resolve beside this
+    // installation after relocation, rather than from their SDK build prefix.
+    failed|=windows_environment("PYTHONHOME",(installation.resources/"python").string());
+    failed|=windows_environment("TCL_LIBRARY",(installation.resources/"python/lib/tcl8.6").string());
+    failed|=windows_environment("TK_LIBRARY",(installation.resources/"python/lib/tk8.6").string());
+    failed|=windows_environment("PYTHONDONTWRITEBYTECODE","1");
+  }
+  if(installation.packaged)failed|=windows_environment("PYTHONDONTWRITEBYTECODE","1");
 #else
   auto failed=setenv("H2_INSTALLATION_LAYOUT",value.c_str(),1);
   // A writable installed app still owns sealed code resources. Python must
@@ -119,8 +134,8 @@ std::vector<std::string> windows_arguments(const std::vector<std::string>& argum
   std::vector<std::string> quoted;
   quoted.reserve(arguments.size());
   for(const auto& argument:arguments) {
-    // The Windows CRT spawn API joins argv into one command line. Preserve
-    // spaces, embedded quotes and trailing backslashes through that join.
+    // The child CRT parses one Windows command line. Preserve spaces,
+    // embedded quotes and trailing backslashes through that round trip.
     std::string value="\"";
     std::size_t slashes=0;
     for(char c:argument) {
@@ -133,6 +148,66 @@ std::vector<std::string> windows_arguments(const std::vector<std::string>& argum
     quoted.push_back(std::move(value));
   }
   return quoted;
+}
+std::wstring windows_text(const std::string& value) {
+  if(value.empty())return {};
+  const auto count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,
+      value.data(),int(value.size()),nullptr,0);
+  if(!count)throw std::runtime_error("Invalid UTF-8 in launcher process arguments");
+  std::wstring result(std::size_t(count),L'\0');
+  if(MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),int(value.size()),
+      result.data(),count)!=count)
+    throw std::runtime_error("Could not encode launcher process arguments");
+  return result;
+}
+int windows_environment(const char* name,const std::string& value) {
+  return _wputenv_s(windows_text(name).c_str(),windows_text(value).c_str());
+}
+std::string windows_utf8(const std::wstring& value) {
+  if(value.empty())return {};
+  const auto count=WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,
+      value.data(),int(value.size()),nullptr,0,nullptr,nullptr);
+  if(!count)throw std::runtime_error("Invalid Unicode in launcher process arguments");
+  std::string result(std::size_t(count),'\0');
+  if(WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,value.data(),int(value.size()),
+      result.data(),count,nullptr,nullptr)!=count)
+    throw std::runtime_error("Could not decode launcher process arguments");
+  return result;
+}
+int windows_process(const std::vector<std::string>& arguments,bool search_path) {
+  if(arguments.empty())throw std::runtime_error("Missing launcher process arguments");
+  std::wstring command;
+  for(const auto& argument:windows_arguments(arguments)) {
+    if(!command.empty())command+=L' ';
+    command+=windows_text(argument);
+  }
+  const auto executable=windows_text(arguments.front());
+  STARTUPINFOW startup{};startup.cb=sizeof(startup);
+  const auto input=GetStdHandle(STD_INPUT_HANDLE);
+  const auto output=GetStdHandle(STD_OUTPUT_HANDLE);
+  const auto error_output=GetStdHandle(STD_ERROR_HANDLE);
+  if(input && input!=INVALID_HANDLE_VALUE && output && output!=INVALID_HANDLE_VALUE &&
+      error_output && error_output!=INVALID_HANDLE_VALUE) {
+    startup.dwFlags|=STARTF_USESTDHANDLES;
+    startup.hStdInput=input;startup.hStdOutput=output;startup.hStdError=error_output;
+  }
+  PROCESS_INFORMATION process{};
+  // Setup and home are native GUI windows. Their Python interpreter must not
+  // open a console, while inherited handles still support explicit CLI use
+  // and the setup child's redirected progress/ownership pipes.
+  if(!CreateProcessW(search_path?nullptr:executable.c_str(),command.data(),nullptr,
+      nullptr,TRUE,CREATE_NO_WINDOW,nullptr,nullptr,&startup,&process))
+    throw std::runtime_error("Could not start "+arguments.front()+
+        " (Windows error "+std::to_string(GetLastError())+")");
+  CloseHandle(process.hThread);
+  const auto waited=WaitForSingleObject(process.hProcess,INFINITE);
+  DWORD status{};
+  const bool complete=waited==WAIT_OBJECT_0 && GetExitCodeProcess(process.hProcess,&status);
+  const auto error=complete?ERROR_SUCCESS:GetLastError();
+  CloseHandle(process.hProcess);
+  if(!complete)throw std::runtime_error("Could not wait for "+arguments.front()+
+      " (Windows error "+std::to_string(error)+")");
+  return int(status);
 }
 #endif
 int run_tool(std::vector<std::string> arguments);
@@ -150,7 +225,12 @@ std::optional<nlohmann::json> local_gameplay(const Installation &installation) {
   if(fs::is_symlink(path) || !fs::is_regular_file(path) || fs::file_size(path)>65536)
     throw std::runtime_error("Invalid local gameplay selection");
   std::ifstream input(path);const auto record=nlohmann::json::parse(input);
-  if(fs::path(record.at("runtime").get<std::string>()).filename()!=native_name)
+  const auto runtime_name=fs::path(record.at("runtime").get<std::string>()).filename();
+  // A dual-platform source checkout can retain the other platform's selected
+  // engine. Leave its selection untouched; it grants this launcher no runtime
+  // or gameplay qualification.
+  if(runtime_name==foreign_native_name)return {};
+  if(runtime_name!=native_name)
     throw std::runtime_error("Invalid local gameplay selection runtime");
   const auto helper=installation.tool("gameplay_runtime_selection.py");
   if(!fs::is_regular_file(helper) || run_tool({installation.python(),helper.string(),
@@ -246,6 +326,7 @@ Installation locate() {
       continue;
     const auto project = fs::canonical(root);
     std::vector<fs::path> binaries{directory / native_name,
+                                  project / native_name,
                                   project / "bin" / native_name,
                                   project / "build" / native_name};
     // Installed local launchers retain their configured build directory.
@@ -273,7 +354,7 @@ Installation locate() {
           native_shader_package(source_installation,binary,shader_dir);
       if (shaders) {
         const auto launcher=selected.empty()?fs::path{}:
-            selected.parent_path()/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
+            selected.parent_path()/(title_first?title_launcher_name:launcher_name);
         Installation result{project, fs::canonical(binary),
             fs::is_regular_file(binary.parent_path()/"CMakeCache.txt")?binary.parent_path():build,
             binary==selected && fs::is_regular_file(launcher)?launcher:fs::path{}};
@@ -341,18 +422,14 @@ AssetSources read_sources(const fs::path &root) {
 }
 int run_tool(std::vector<std::string> arguments) {
 #ifdef _WIN32
-  auto encoded=windows_arguments(arguments);
+  std::cout.flush();std::cerr.flush();
+  return windows_process(arguments,true);
 #else
   auto& encoded=arguments;
-#endif
   std::vector<char*> pointers;
   for(auto &value:encoded)pointers.push_back(value.data());
   pointers.push_back(nullptr);
   std::cout.flush();std::cerr.flush();
-#ifdef _WIN32
-  const auto status=_spawnvp(_P_WAIT,arguments.front().c_str(),pointers.data());
-  if(status!=-1)return int(status);
-#else
   const auto child=fork();
   if(child==0) {execvp(arguments.front().c_str(),pointers.data());_exit(127);}
   if(child>0) {
@@ -492,10 +569,10 @@ fs::path native_test_save_directory(const fs::path &root) {
 fs::path launcher_executable(const fs::path &root) {
 #ifndef __APPLE__
   if(fs::is_regular_file(root/"PRECOMPILED_TEST_BUILD.json"))
-    return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
+    return root/(title_first?title_launcher_name:launcher_name);
 #endif
   if(const auto path=current_executable();!path.empty())return path;
-  return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
+  return root/(title_first?title_launcher_name:launcher_name);
 }
 std::optional<int> forward_to_release_launcher(const Installation &installation,
                                               std::vector<std::string> arguments) {
@@ -512,6 +589,19 @@ int main(int argc, char **argv) {
   SDL_SetMainReady();
 #endif
   try {
+#ifdef _WIN32
+    // The narrow CRT argv uses the active Windows code page. Keep Unicode
+    // installation and MCC paths intact when passing them to native Python.
+    const std::unique_ptr<wchar_t*,decltype(&LocalFree)> wide_arguments(
+        CommandLineToArgvW(GetCommandLineW(),&argc),LocalFree);
+    if(!wide_arguments)throw std::runtime_error("Could not read launcher process arguments");
+    std::vector<std::string> utf8_arguments;
+    std::vector<char*> utf8_pointers;
+    utf8_arguments.reserve(argc);utf8_pointers.reserve(argc+1);
+    for(int i=0;i<argc;++i)utf8_arguments.push_back(windows_utf8(wide_arguments.get()[i]));
+    for(auto& argument:utf8_arguments)utf8_pointers.push_back(argument.data());
+    utf8_pointers.push_back(nullptr);argv=utf8_pointers.data();
+#endif
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--prepared-mcc-cache-root" || argument.starts_with("--prepared-mcc-cache-root="))
@@ -803,28 +893,22 @@ int main(int argc, char **argv) {
     // party join secret is placed in the launch command or process arguments.
     if(const auto launcher=current_executable();!launcher.empty()) {
 #ifdef _WIN32
-      _putenv_s("H2_DISCORD_LAUNCHER",launcher.string().c_str());
+      windows_environment("H2_DISCORD_LAUNCHER",launcher.string());
 #else
       setenv("H2_DISCORD_LAUNCHER",launcher.c_str(),1);
 #endif
     }
 #ifdef _WIN32
-    auto encoded=windows_arguments(arguments);
+    std::cout.flush();std::cerr.flush();
+    return windows_process(arguments,false);
 #else
     auto& encoded=arguments;
-#endif
     std::vector<char *> pointers;
     for (auto &argument : encoded)
       pointers.push_back(argument.data());
     pointers.push_back(nullptr);
     std::cout.flush();
     std::cerr.flush();
-#ifdef _WIN32
-    const auto status = _spawnv(_P_WAIT, execution_runtime.string().c_str(),
-                                pointers.data());
-    if (status != -1)
-      return int(status);
-#else
     execv(execution_runtime.c_str(), pointers.data());
 #endif
     throw std::runtime_error("Could not start the game: " +

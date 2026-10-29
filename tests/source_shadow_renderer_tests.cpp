@@ -95,12 +95,15 @@ void verify(const std::filesystem::path &source,const std::filesystem::path &out
         "actual shadow receiver program does not consume original oD0 attenuation");
     require(application[0].material.forward_vertex!=3,
         "shadow receiver entered stencil texture's substituted diffuse consumer");
-    auto background=authored;require(prepare_dynamic_material(cache,background,{},true),"source scene stencil pass missing");
+    ObjectLightingState controlled_lighting;
+    controlled_lighting.ambient={1,1,1};
+    controlled_lighting.primary_direction={-1,0,0};
+    auto background=authored;require(prepare_dynamic_material(cache,background,controlled_lighting,true),"source scene stencil pass missing");
     require(!background.vertex_program.empty(),"controlled scene lacks original world VP");
-    // Only the controlled ordinary scene is a white source copy program.
-    // Shadow programs, images, source extern binding and pass state stay
-    // authored. This is a service/state fixture, not appearance evidence.
-    background.forward_program=scope_copy_frame({}).program;
+    // Keep the actual ordinary world fragment identity so this fixture uses
+    // its compiled native kernel. A scope-copy program belongs to a separate
+    // wrapper/catalog family. Its input texture, lighting externs and scene
+    // geometry are controlled here; this remains a service/state fixture.
     background.diffuse={1,1,11,std::vector<std::byte>(4,std::byte{255}),{}};
     background.environment_pass.reset();background.world_overlays_before.clear();background.world_overlays_after.clear();
     background.world_bloom_passes.clear();background.world_planar_passes={};background.planar_fog_pass.reset();
@@ -119,6 +122,10 @@ void verify(const std::filesystem::path &source,const std::filesystem::path &out
         {2,&generation[0]},{3,&application[0]},{4,&generation[0]},{5,&quarter[0]}}};
     const auto atmosphere=cache.load_bsp_atmosphere(0);
     auto reused_window=window(640,480);
+    // Retain the independent native presentation owners through all resize
+    // comparisons, then retire every swapchain before destroying an instance.
+    std::vector<Window> fresh_windows;
+    std::vector<std::unique_ptr<Renderer>> fresh_renderers;
     auto wrong=mesh;wrong.materials[2].diffuse.pixels.at(0)^=std::byte{1};
     rejects([&]{Renderer bad(reused_window.get(),wrong,true,resident);});
     wrong=mesh;wrong.materials[2].source_shader_datum^=1;
@@ -171,7 +178,9 @@ void verify(const std::filesystem::path &source,const std::filesystem::path &out
             for(auto &receiver:fixture[0].receivers)for(auto &vertex:receiver)vertex.normal={-1,0,0};
             ++controls;
         }
-        auto fresh_window=window(width,height);Renderer fresh(fresh_window.get(),mesh,true,resident);fresh.scene_bsp_atmosphere(atmosphere);
+        fresh_windows.push_back(window(width,height));
+        fresh_renderers.push_back(std::make_unique<Renderer>(fresh_windows.back().get(),mesh,true,resident));
+        auto &fresh=*fresh_renderers.back();fresh.scene_bsp_atmosphere(atmosphere);
         const auto fresh_shared=capture(fresh,std::span(views).first(count),output/(name+"-fresh.ppm"));
         require(difference(shared,fresh_shared).maximum<=1,"queued source shadows changed after renderer reuse/resize");++pairs;
         // Material slot isolation control: bind second roots to distinct
@@ -215,6 +224,8 @@ void verify(const std::filesystem::path &source,const std::filesystem::path &out
         require(difference(shared,restored).maximum<=1,"rejected shadow plan disturbed later frame state");++controls;
         std::cout<<name<<": shared/fresh/distinct-root-slot/restore controls passed\n"<<std::flush;
     }
+    reused.release_presentation();
+    for(auto &fresh:fresh_renderers)fresh->release_presentation();
     std::cout<<pairs<<" fresh/reused shadow view pairs, "<<controls<<" isolation/admission controls; explicit controlled source services, no live scene parity claim\n";
 }
 }

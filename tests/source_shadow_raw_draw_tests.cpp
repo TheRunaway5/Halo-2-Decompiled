@@ -2,6 +2,7 @@
 #include "halo2/source_shadow_plan.hpp"
 #include "halo2/source_shadow_raw_plan.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
+#include "halo2/source_shadow_bitmap_frames.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -22,8 +23,50 @@ template<class F>void rejects(F fn) {
     try{fn();}catch(const FormatError&){++rejected;return;}
     throw std::runtime_error("unsupported raw shadow join was admitted");
 }
+void bitmap_frame_dependencies() {
+    // Literal Waterworks banshee_oil_cab frame curve and selector, with two
+    // independently supplied object inputs. This exercises the shared sampler,
+    // not a fabricated native World or a successful receipt issuer.
+    Material material;material.forward_pass=true;material.forward_pass_index=0;
+    material.passes.resize(1);material.bitmaps.resize(1);
+    auto& pass=material.passes[0];pass.textures.push_back({0,0,0,0});
+    pass.bitmap_remaps.push_back({0,0,0});
+    auto& animation=material.animation;animation.tables=std::make_shared<ShaderFunctionTables>();
+    animation.passes.push_back({512});animation.implementations.push_back({{512},{},{}});
+    animation.mappings.push_back({0,0,0});animation.parameters.push_back({512});
+    animation.references.push_back({0,0});
+    const std::array<std::uint32_t,5> curve{0x00020000u,0u,0x3f800000u,0u,0u};
+    const auto bytes=std::as_bytes(std::span(curve));
+    animation.overlays.push_back({0x11001e4du,0,1.f,{bytes.begin(),bytes.end()}});
+    material.animated_textures[0].resize(2);
+    for(unsigned owner=0;owner<2;++owner) {
+        std::vector<std::uint32_t> calls;
+        const ShaderInput input=[&](auto name) {
+            calls.push_back(name);return name==0x11001e4du?float(owner):1.f;
+        };
+        const auto selected=source_shadow_bitmap_frames(material,input);
+        require(selected[0]==owner && material.texture_frames[0]==0,
+            "shadow frame selection shared another object's mutable image state");
+        require(calls==std::vector<std::uint32_t>{0x11001e4du,0},
+            "shadow frame selection changed its actual input/range sample order");
+        require(selected==animate_bitmap_frames(bitmap_frame_animations(material),37.,input,material.texture_frames),
+            "shadow frame selection differs from the existing original bitmap evaluator");
+    }
+    rejects([&]{auto bad=material;bad.animation.overlays[0].input=0;
+        (void)source_shadow_bitmap_frames(bad,{});});
+    rejects([&]{auto bad=material;bad.animation.implementations[0].vertex_constants={512};
+        (void)source_shadow_bitmap_frames(bad,{});});
+    rejects([&]{auto bad=material;bad.animation.references[0].transform=10;
+        (void)source_shadow_bitmap_frames(bad,{});});
+    auto unbound=material;unbound.passes[0].textures[0].parameter=1;
+    unbound.passes[0].bitmap_remaps[0].destination=1;
+    require(source_shadow_bitmap_frames(unbound,[](auto)->float {
+        throw FormatError("unbound shadow bitmap property sampled an unrelated input");
+    })==unbound.texture_frames,"unbound shadow bitmap property changed a resident frame");
+}
 }
 int main(int argc,char **argv) {try {
+    bitmap_frame_dependencies();
     const auto root=std::filesystem::path(HALO2_SOURCE_DIR);
     const auto map=argc>1?std::filesystem::path(argv[1]):root/"assets/disc/maps/lockout.map";
     if(!std::filesystem::exists(map))return 77;
@@ -138,8 +181,12 @@ int main(int argc,char **argv) {try {
     for(const auto *sample:{&casters.front(),&receivers.front()}) {
         rejects([&]{auto bad=*sample;bad.command.unit[0]|=0x800u;
             validate_source_shadow_raw_draw(bad,bad.command.phase,uniforms);});
-        rejects([&]{auto bad=*sample;bad.command.unit[6]&=~0x00ff0000u;
-            validate_source_shadow_raw_draw(bad,bad.command.phase,uniforms);});
+        for(unsigned fade=0;fade<256;++fade) {
+            auto fading=*sample;fading.command.unit[6]=(fading.command.unit[6]&~0x00ff0000u)|(fade<<16);
+            validate_source_shadow_raw_draw(fading,fading.command.phase,uniforms);
+            require(!source_shadow_raw_entry_stipple_tu15(fading.command.layer),
+                "Native shadow entry alpha enabled the disabled layer stipple state");
+        }
         rejects([&]{auto bad=*sample;bad.controls.surface_clip[2]=0;
             validate_source_shadow_raw_draw(bad,bad.command.phase,uniforms);});
         rejects([&]{auto bad=*sample;bad.controls.surface_clip[0]=0xffffffffu;
@@ -158,6 +205,12 @@ int main(int argc,char **argv) {try {
     require(stats.roots==1 && stats.caster_draws==casters.size() &&
         stats.receiver_draws==receivers.size() && stats.indices>0,
         "raw shadow plan lost actual descriptor/range counts");
+    rejects([&]{auto bad=casters.front();auto material=*bad.authored;
+        material.material.animated_textures[0].resize(2);bad.authored=&material;
+        validate_source_shadow_raw_draw(bad,SourceShadowPhase::Generate,uniforms);});
+    rejects([&]{auto bad=casters.front();auto material=*bad.authored;
+        material.material.animated_textures[0].resize(2);material.material.texture_frames[0]=2;bad.authored=&material;
+        validate_source_shadow_raw_draw(bad,SourceShadowPhase::Generate,uniforms);});
     rejects([&]{auto bad=plan;bad.camera[0][0]+=1;validate_source_shadow_raw_plan(bad,resident);});
     rejects([&]{auto bad=shadow_root;bad.root_owner^=1;auto p=plan;p.roots={&bad,1};validate_source_shadow_raw_plan(p,resident);});
     rejects([&]{auto bad=resident;bad.erase(bad.begin());validate_source_shadow_raw_plan(plan,bad);});

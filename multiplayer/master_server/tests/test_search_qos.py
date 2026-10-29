@@ -79,9 +79,17 @@ class SearchQosTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_disconnect_and_queue_cancellation_invalidate_measurements(self):
         qos, headers, ids, sockets = await self.pair()
-        from multiplayer.master_server.search_qos import Measurement
-        pair = tuple(sorted(ids))
-        qos.measurements[pair] = Measurement(50, self.now+30)
+        qos.request(*ids)
+        for total in (30,90,50):
+            first=await self.receive(sockets[0])
+            start=qos.probes[tuple(sorted(ids))].started
+            self.now=start+.01
+            await sockets[0].send_json({'echo':first})
+            second=await self.receive(sockets[1])
+            self.now=start+(total+.1)/1000
+            await sockets[1].send_json({'echo':second})
+        async with asyncio.timeout(1):
+            while qos.measurement(*ids) is None:await asyncio.sleep(.001)
         self.assertIsNotNone(qos.measurement(*ids))
         await sockets[0].close()
         self.assertIsNone(qos.measurement(*ids))
@@ -129,17 +137,16 @@ class SearchQosTests(unittest.IsolatedAsyncioTestCase):
                 pass
         self.assertFalse(self.api.search_qos.peers)
 
-    async def test_probe_scheduler_reserves_reply_budget_and_recovers(self):
+    async def test_probe_views_and_live_reservations_are_native_read_only(self):
         qos, _, ids, _ = await self.pair()
-        for player in ids:
-            qos.peers[player].probe_credits = 0
-        qos.request(*ids)
-        self.assertFalse(qos.probes)
-        self.now += 1
-        qos.request(*ids)
+        with self.assertRaises(AttributeError):qos.peers[ids[0]].probe_credits=0
+        with self.assertRaises(TypeError):qos.measurements[tuple(sorted(ids))]=None
+        self.assertTrue(qos.request(*ids))
         self.assertEqual(len(qos.probes),1)
-        qos.request(*ids)
+        self.assertTrue(qos.request(*ids))
         self.assertEqual(len(qos.probes),1)
+        # Exact reservation depletion/refill and recovery are qualified by
+        # native controls; no mutable Python budget is installed in a peer.
 
     async def test_native_language_is_required_bounded_and_private(self):
         for language in (None, True, -1, 9, "en-US"):

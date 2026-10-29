@@ -1,0 +1,477 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_ROOM_LIFECYCLE_VALIDATION_V1",
+  "updated_utc": "2026-10-28T22:54:01.416727+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "room_lifecycle_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust room lifecycle and result-authority/departure policy over admitted physical roster and authenticated socket/clock IO. Real HTTP/SQLite orchestration uses declared loader/world/report fixtures, not actual game outcomes, original Live arbitration, existing-world import or delivered/native gameplay acceptance.",
+  "reproduced_gap": {
+    "trigger": "A nonhost admitted player publishes a valid PCR through the result adapter, bypassing the transport-only host check.",
+    "before": "The result adapter accepted the report; the fresh red test observed no rejection.",
+    "after": "Submission and confirmation adapters use Rust room authority/phase/lease checks before immutable result mutation. The nonhost now receives403 and the result remains unchanged.",
+    "red_report": "room-lifecycle-red-report.json",
+    "red_log": "room-lifecycle-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Room phase and host/PCR authority, typed read-only Python projections, no live phase/deadline/closed snapshot installation",
+    "Declared native connection/loading/running/review/postgame deadlines and monotonic dedicated IO clock independent of account/queue time",
+    "Late-report rejection at the native operation boundary before writer cleanup",
+    "Physical active membership and departure masks, result revocation, direct TCP loss versus explicit authenticated departure",
+    "Negotiated native handoff or last-opponent GAME OVER departure conditions without inventing gameplay authority",
+    "Legacy relay continuity/departure, prestart closure, postgame presentation/voice-host selection and voice member publication",
+    "Native publisher and confirmation phase/authority checks shared by typed adapters and socket operations",
+    "Review completion grants: full-electorate committed results or explicitly unrecorded surviving-owner presentation, no manufactured votes",
+    "Native rejection/closure dispositions and cleanup using only frozen admitted ticket IDs"
+  ],
+  "checks": [
+    "Adapter nonhost denial before result mutation; read-only phase/authority/deadline/closed/recorded/departure projections",
+    "Injected SQLite admission insert denial rolls back summaries/history, leaves review pending and retries exactly once",
+    "Report rejected after the room lease expires even before writer cleanup",
+    "Advancing queue/account time by10000 seconds cannot expire a transferred running-room capability",
+    "Native clock/phase/deadline tests, direct TCP loss preserving admission and explicit last-opponent departure without host promotion",
+    "Closure ignores supplied ticket replacements and preserves an unrelated active search",
+    "Actual HTTP consent, ranked/casual/clan results, history rollback, direct reconnect, relay continuity, EOS late-proof fences, voice and requeue regressions",
+    "Full frozen cohort and separate default-feature production ABI, plus CMake build/helper and bounded identity receipt"
+  ],
+  "cohorts": {
+    "broad": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 248,
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_room_lifecycle.rs",
+        "rust/online_protocol/tests/matchmaking_room_setup.rs",
+        "multiplayer/master_server/match_transport.py",
+        "multiplayer/master_server/match_results.py",
+        "multiplayer/master_server/tests/test_carnage_history.py",
+        "multiplayer/master_server/tests/test_room_lifecycle_owner_native.py"
+      ],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 17,
+      "rust_checks_passed": 177,
+      "rust_ignored": 2,
+      "backend_tests": 82,
+      "backend_seconds": 35.85,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ajveia7m/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "95a70b94a36d1dea41164c1a0e50a01be0497567ecb28dae5fcd60b2751b9be4",
+        "bytes": 2788000,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-lifecycle-broad-report.json",
+      "source_manifest": "room-lifecycle-broad-source-manifest.json"
+    },
+    "final-focused": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 248,
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_room_lifecycle.rs",
+        "multiplayer/master_server/tests/test_carnage_history.py",
+        "multiplayer/master_server/tests/test_room_lifecycle_owner_native.py"
+      ],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 21,
+      "rust_checks_passed": 181,
+      "rust_ignored": 2,
+      "backend_tests": 33,
+      "backend_seconds": 13.195,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-yidfj_za/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "9e4085fc3d3251089a7ad0df4e613805d6fbd0ba6365d78d335615e1597dbf85",
+        "bytes": 2776624,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-lifecycle-final-focused-report.json",
+      "source_manifest": "room-lifecycle-final-focused-source-manifest.json"
+    },
+    "final-full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 248,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 80,
+      "rust_checks_passed": 240,
+      "rust_ignored": 2,
+      "backend_tests": 476,
+      "backend_seconds": 117.458,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-at6xnwal/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "d845df83175cf2aa893a25828d9f89784a522af6d4eeaca593a74bbe08c2b17f",
+        "bytes": 2787736,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-lifecycle-final-full-report.json",
+      "source_manifest": "room-lifecycle-final-full-source-manifest.json"
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 248,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 58,
+      "rust_checks_passed": 218,
+      "rust_ignored": 2,
+      "backend_tests": 212,
+      "backend_seconds": 56.319,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-rlbg5eev/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "9277d8575e5f85c73bd29e7f45101c44bec4ee690b8b10b0c14633e5e202746f",
+        "bytes": 2776312,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-lifecycle-production-report.json",
+      "source_manifest": "room-lifecycle-production-source-manifest.json"
+    }
+  },
+  "ignored_rust_tests": [
+    "netcode::stream::tests::captured_corpus_payload",
+    "netcode::stream::tests::encode_cost_for_large_mostly_static_bodies"
+  ],
+  "intermediate_diagnostics": {
+    "first": "Remaining rebind fixture assigned the retired Python clock path; adapted to an actual room IO-clock observation.",
+    "integration": "Found remaining Python legacy postgame host assignment and inactive-result status ordering; both moved/fenced in Rust. This broad run also intentionally excluded diagnostic fixture restoration and exposed two fixture-only controls; full-feature and explicit production cohorts are now separate.",
+    "full": "One history rollback test submitted a PCR while still loading. It now reaches running through matching authenticated loader reports before exercising database rollback.",
+    "final-focused": "Preceded the final expired-room cleanup and account/room clock-isolation additions; final-full and production are the matching current248-file snapshots."
+  },
+  "original_evidence": {
+    "new_original_execution": false,
+    "reference": {
+      "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+      "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+      "bytes": 639228,
+      "pages": 42,
+      "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+      "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+      "expanded_companion_registry_supplied": false
+    },
+    "reuse": "Existing unchanged-original numerical fixtures replayed by the Rust/backend suites. Native lifecycle/departure/timeout/consensus policies are explicitly separate from original Live recovery."
+  },
+  "cmake": {
+    "passed": true,
+    "source_frozen": false,
+    "scope": "Current-tree Rust static/CXX/security/SDK-worker build plus helper CTest; no game or selected-runtime acceptance",
+    "jobs": 2,
+    "test_jobs": 1,
+    "report": "room-lifecycle-cmake-report.json",
+    "identity": "room-lifecycle-cmake-identity.json"
+  },
+  "remaining_boundaries": [
+    "Accepted social/party/clan membership and invitation/privacy/activity CRUD plus remaining party HTTP request/idempotency/presentation policy",
+    "Retirement/transaction-retry notification acknowledgement and crash recovery across countdown SQL/native publication commits; pregame countdown state/rules now belong to Rust",
+    "Remaining bearer/signaling/packet/voice/provider policy and network effects; Rust owns room phases, clocks, result authority, review/postgame grants, departure/closure policy and frozen-ticket cleanup as well as setup/QoS and v11 continuity; actual engine/world acceptance remains open",
+    "Search QoS sensors/allocation and raw authenticated network timestamp/challenge/room observations; legacy v11 authority/world-proof coordination now belongs to Rust; full original/native world continuity remains open",
+    "Trusted directory/account/clan/room facts and temporary HTTP/file/provider/shared-identity/SQLite IO; future parallel/distributed fact/SQL/queue coordination",
+    "Full native client-visible profile/capability identity and public history readers"
+  ],
+  "goal_scope_preserved": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "full_gap_criteria_unchanged": true,
+    "acceptance_gates_unchanged": true,
+    "all_full_gaps_open": true
+  },
+  "cleanup": {
+    "named_private_trees": [
+      {
+        "run": "red",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-oi_l7ohl",
+        "removed": true
+      },
+      {
+        "run": "first",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-eg2cftgd",
+        "removed": true
+      },
+      {
+        "run": "integration",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-oaa0ii8z",
+        "removed": true
+      },
+      {
+        "run": "broad",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ajveia7m",
+        "removed": true
+      },
+      {
+        "run": "full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-gdmz9e43",
+        "removed": true
+      },
+      {
+        "run": "final-focused",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-yidfj_za",
+        "removed": true
+      },
+      {
+        "run": "final-full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-at6xnwal",
+        "removed": true
+      },
+      {
+        "run": "production",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-rlbg5eev",
+        "removed": true
+      },
+      {
+        "run": "cmake",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ckuv0c2j",
+        "removed": true
+      }
+    ],
+    "owned_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port",
+    "owned_parent_empty": true,
+    "unnamed_owned_format_runs": 7,
+    "generated_large_artifacts_retained": []
+  },
+  "activation": {
+    "service_restarted": false,
+    "runtime_selected": false,
+    "installed": false,
+    "deployed": false,
+    "committed_or_pushed": false
+  },
+  "retained_small_reports": {
+    "room-lifecycle-red-gaps-before.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-red-20261028/gaps-before.json",
+      "bytes": 86149,
+      "sha256": "10d5e11cd33dcd9c5c997772bc81c1703bca724ae3321ab7def7a2d4567b67a3"
+    },
+    "room-lifecycle-red-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-red-20261028/report.json",
+      "bytes": 1517,
+      "sha256": "3522a52cac011075d8285eab0d1115ca05c167df2936471eb02d9465a22b4ec7"
+    },
+    "room-lifecycle-red-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-red-20261028/source-manifest.json",
+      "bytes": 31371,
+      "sha256": "0e6cc7c1dfa281722c848e40d1060fa1e8e652f0cb4f46ef68bf44e0ee91fe20"
+    },
+    "room-lifecycle-red-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-red-20261028/step-0.log",
+      "bytes": 1440,
+      "sha256": "903861ed9334c9d5445d76884121f3abcb7f0ca5b3a0fc666c5d0fd672a84085"
+    },
+    "room-lifecycle-red-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-red-20261028/step-1.log",
+      "bytes": 1253,
+      "sha256": "e5c7e902fcf34314388f9f97436ca4397b73b6748b3f5b45adb1a7d3ce20ca6c"
+    },
+    "room-lifecycle-first-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-first-20261028/report.json",
+      "bytes": 2114,
+      "sha256": "299774c96514e69f8996342328944b85dd30a39a0378bf7bb7edf2ee8014b666"
+    },
+    "room-lifecycle-first-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-first-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "573ca340b974940d770261980d84ec4fae89e29a2ad433d770c932155bea03e9"
+    },
+    "room-lifecycle-first-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-first-20261028/step-0.log",
+      "bytes": 2070,
+      "sha256": "1f3e763866b285244404f45db86bc4e5bc14a26795b27af3beddbe18226b28cc"
+    },
+    "room-lifecycle-first-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-first-20261028/step-1.log",
+      "bytes": 1441,
+      "sha256": "0855f05f9f50bcfa7147b7a13de7ae180b030e787c3c7aa427aa58370c5ecaa9"
+    },
+    "room-lifecycle-first-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-first-20261028/step-2.log",
+      "bytes": 7775,
+      "sha256": "7f8c462041f73f22d75d4b29c80d29cecb5cb5bdfa33e9366c0ada35fb7eb37e"
+    },
+    "room-lifecycle-integration-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-integration-20261028/report.json",
+      "bytes": 2627,
+      "sha256": "2e457210514964e3bb48e194593e3cc01a504a500e418400e3502180dcef2d34"
+    },
+    "room-lifecycle-integration-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-integration-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "3900bca8c14f5d5852817fdf83223f1d042fd76e8df5e02bbb335fe69425f3d0"
+    },
+    "room-lifecycle-integration-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-integration-20261028/step-0.log",
+      "bytes": 19325,
+      "sha256": "d3737ac012082937cc3a66c7513c2a782637833dc30e2b3e9a71b959cdd0a08e"
+    },
+    "room-lifecycle-integration-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-integration-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "914165feb271bc89c25d8b881c5d88890aea3c7ed797d173ae26abf0867abed5"
+    },
+    "room-lifecycle-integration-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-integration-20261028/step-2.log",
+      "bytes": 17881,
+      "sha256": "2f36db794a318e39708b590b092380f03e095d1f88be320a850ee4c8aa8962e0"
+    },
+    "room-lifecycle-broad-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-broad-20261028/report.json",
+      "bytes": 2739,
+      "sha256": "5f17ace5073ba1d68e51c57f201e61f4d805300f830c82d780af1ddf01767d29"
+    },
+    "room-lifecycle-broad-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-broad-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "570c09be6636beba861108c36302988f4c6e733efcfedc8dbe2f27269aede212"
+    },
+    "room-lifecycle-broad-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-broad-20261028/step-0.log",
+      "bytes": 19239,
+      "sha256": "b6c6fa3e0d1cfe800cc5402f1463e33eccbb2fba456e4916aeba8393a46a6173"
+    },
+    "room-lifecycle-broad-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-broad-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "25bd9c651de434ac85f5ea510857fc2d83a6669756cb59a104ecae3ad4f395fe"
+    },
+    "room-lifecycle-broad-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-broad-20261028/step-2.log",
+      "bytes": 2206,
+      "sha256": "a8fcce4c3627a3612eaec49550b19cd05e76888137d72ed58acc114b54589031"
+    },
+    "room-lifecycle-full-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-full-20261028/report.json",
+      "bytes": 2806,
+      "sha256": "9eaeedfe173524594dff3c0531bd81e18985bc37aac1b884db8e7df4c149d975"
+    },
+    "room-lifecycle-full-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-full-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "9435b42b5617339b0c67b8fb976abf18716a2cb22ddd4ad40189bb7ea4f2821a"
+    },
+    "room-lifecycle-full-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-full-20261028/step-0.log",
+      "bytes": 27932,
+      "sha256": "5fe5d623e95037b95b1cd15a606b78b36b818082cebf109a9c0513c3ea785fe3"
+    },
+    "room-lifecycle-full-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-full-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "51c75df5c1462476e924cd813bd1bebfe80cefa78386c83f0267fd0be182dcdb"
+    },
+    "room-lifecycle-full-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-full-20261028/step-2.log",
+      "bytes": 19052,
+      "sha256": "86b017d76e67bda80a1166cd259bc2ab2a3bf465db92bb26d61bc74bed0ca8cb"
+    },
+    "room-lifecycle-final-focused-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-focused-20261028/report.json",
+      "bytes": 2293,
+      "sha256": "bfe9017415fda109ed3d71b8a62da891bbcc9fe0a454eb1d6301473b50557a2c"
+    },
+    "room-lifecycle-final-focused-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-focused-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "67eb4305e13f856ce57c9c0583546f8916a440960816ca1a4c24391e28f9da5e"
+    },
+    "room-lifecycle-final-focused-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-focused-20261028/step-0.log",
+      "bytes": 19588,
+      "sha256": "5485e26b60bacf161545f50bf0450cb017408330f89d41f266663816a89ab3ef"
+    },
+    "room-lifecycle-final-focused-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-focused-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "663dfe7febef541921b4fb380c3ea84718e48cc6a77c4560a7190e5c5e9cfe4f"
+    },
+    "room-lifecycle-final-focused-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-focused-20261028/step-2.log",
+      "bytes": 1729,
+      "sha256": "4c3a160d2a2722d38bea5f499efd27965bbd1584f7cccc510f4365235634c375"
+    },
+    "room-lifecycle-final-full-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-full-20261028/report.json",
+      "bytes": 2805,
+      "sha256": "31f00419c75b5c3862352a4aca7c4e0c183283037570a3c615227ac43ddb8966"
+    },
+    "room-lifecycle-final-full-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-full-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "bd8eb1e6c90d8423c66f784506dac49238353686c4c1b7b6092192dd17196b18"
+    },
+    "room-lifecycle-final-full-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-full-20261028/step-0.log",
+      "bytes": 27932,
+      "sha256": "8c952dcdbeaa1e54036cd72f5198875cd72484d3174686b79036d0a4c79cdd5a"
+    },
+    "room-lifecycle-final-full-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-full-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "4d1fe96c15b13e0a838bf5fc9b8d140be165053308fa4f83048901eec677de9a"
+    },
+    "room-lifecycle-final-full-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-final-full-20261028/step-2.log",
+      "bytes": 18405,
+      "sha256": "12cefa915014ef19c8356a44727133a855fd75006497d3515f34a6d7eb330689"
+    },
+    "room-lifecycle-production-invocation.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/invocation.json",
+      "bytes": 3236,
+      "sha256": "603197c7e35a4f82474ba3561985152cc368888aa0f17b44eecedee21c61283f"
+    },
+    "room-lifecycle-production-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/report.json",
+      "bytes": 4985,
+      "sha256": "1125501866c0e685a9c2bba882a10a307e5e109a71a97f408830646da046d080"
+    },
+    "room-lifecycle-production-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/source-manifest.json",
+      "bytes": 31501,
+      "sha256": "c457f1029283147bb26250b7368c791439789a8eb943576042cbef5ea470942f"
+    },
+    "room-lifecycle-production-step-0.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/step-0.log",
+      "bytes": 24410,
+      "sha256": "02b2c86f6a810a22aa465de9d21d750c5790c1279ddf9579fb38543fe635b044"
+    },
+    "room-lifecycle-production-step-1.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/step-1.log",
+      "bytes": 1440,
+      "sha256": "972d61a9430c828dda6b9b4fb3f867823a9459b641c51e6cdde082fa278d7705"
+    },
+    "room-lifecycle-production-step-2.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-production-20261028/step-2.log",
+      "bytes": 4378,
+      "sha256": "1fe80ce07c48a9b38d10f69d5055c9ea47262ca88eff83c33c15881237499382"
+    },
+    "room-lifecycle-cmake-build.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-cmake-20261028/build.log",
+      "bytes": 6784,
+      "sha256": "b8981fe406865746a4b318623a7e026029b28fc4902b7672ae4fd1fcf053b80b"
+    },
+    "room-lifecycle-cmake-configure.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-cmake-20261028/configure.log",
+      "bytes": 4642,
+      "sha256": "eae07bbe90067c02c3d1c49ff38f2b158668164370836e0a3f355935c40f7327"
+    },
+    "room-lifecycle-cmake-report.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-cmake-20261028/report.json",
+      "bytes": 2532,
+      "sha256": "069b9d71041d17d201f80fd7fcfa93dbed5d9d48411936a6c0a1bfa3e9b36e03"
+    },
+    "room-lifecycle-cmake-tests.log": {
+      "source": "build/test-results/matchmaking-room-lifecycle-cmake-20261028/tests.log",
+      "bytes": 304,
+      "sha256": "2f3bf2ca874086ae5c01737d17ee88498b6aa206c3d12fa4215fb7803fd680e7"
+    },
+    "room-lifecycle-cmake-identity.json": {
+      "source": "build/test-results/matchmaking-room-lifecycle-cmake-20261028/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1880,
+      "sha256": "bc5bf058ed03143c5455b372dd3605b34f17a22c3fcab9e528361d105baecfc4"
+    }
+  }
+}

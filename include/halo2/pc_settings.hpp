@@ -13,8 +13,8 @@ constexpr const char* fullscreen_mode_name(FullscreenMode mode) {
   return "Windowed";
 }
 
-// Host bindings retain the previously requested native defaults. Their action
-// labels are source PC string IDs; these are not Vista engine action ordinals.
+// Host bindings default to MCC's shipped keyboard mapping. Their action labels
+// are source PC string IDs; these are not Vista engine action ordinals.
 enum class PcAction : unsigned {
   Left,
   Right,

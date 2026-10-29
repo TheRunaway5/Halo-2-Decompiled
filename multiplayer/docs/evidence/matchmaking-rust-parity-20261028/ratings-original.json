@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "scope": "Original raw/effective roster ratings, advertisement floor and search bounds.\n\nRaw/effective controls enter unchanged retail 7E210 and stop at 7E550 after\nthe raw aggregates, before group-count/capacity production. Cases with a rated\nseat in every declared group also execute complete 7E210 and compare the same\noutputs; its observed validity is recorded, not assumed to be admission proof.\nAdvertisements execute 736A8..736FA, search initialization 9098B..90A5E after\nallocation, and query prefixes stop before the real Live wrapper 8FA80. All\ncalled original instructions/callees run unchanged. Inputs, tables and sessions\nare declared synthetic controls, not historical service observations.\nRun through tools/run_test.py; all compiler products stay in owned scratch.\n",
+  "roster_controls": 300,
+  "complete_7e210_calls": 219,
+  "inverse_controls": 516,
+  "search_initializations": 40,
+  "query_controls": 65,
+  "native_comparisons": 888,
+  "original_instructions": 3293,
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "tool_sha256": "f0baddcd29129bcf0d461da0b12f02f323412ab8a5e903782da2c124f4e61566",
+  "native_source_sha256": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+  "fixture_sha256": "1d03fce33b2e4a479155a98c989c6d549f52419435705f6298dc9e0b67124370",
+  "scratch": "/tmp/halo2-test-x93didvi",
+  "scratch_retained": false,
+  "full_summary_validity_and_capacity_ported": false,
+  "persistent_result_comparison_owner_qualified": false
+}

@@ -1,0 +1,199 @@
+{
+  "schema": "HALO2_MCC_DEFAULT_CONTROLS_V1",
+  "source_files": {
+    "Data/settings/default.xml": {
+      "bytes": 7394,
+      "sha256": "439bb8f6de7a66d9772370c346d118f66a4901c636fa8022a9408bd4cd7e2519"
+    },
+    "Data/BuiltInData/Halo2Controller.json": {
+      "bytes": 23816,
+      "sha256": "d1cc292306ce0d7032ffa19bce44686a122ddc029408956fcfe6bb5fa2d347a9"
+    },
+    "Data/settings/optionsdata.xml": {
+      "bytes": 234537,
+      "sha256": "44d0a7b454aa9eb92d22a7b81a6e1f47f39505989348fe63ff9916b0547249ee"
+    }
+  },
+  "controller_preset": "$PCSETTINGS_CONTROLS_PAD_LAYOUT_DEFAULT",
+  "keyboard": [
+    {
+      "action": 0,
+      "source_action": "GameAbstractButton_StrafeLeft",
+      "virtual_key": 65
+    },
+    {
+      "action": 1,
+      "source_action": "GameAbstractButton_StrafeRight",
+      "virtual_key": 68
+    },
+    {
+      "action": 2,
+      "source_action": "GameAbstractButton_MoveForward",
+      "virtual_key": 87
+    },
+    {
+      "action": 3,
+      "source_action": "GameAbstractButton_MoveBackward",
+      "virtual_key": 83
+    },
+    {
+      "action": 4,
+      "source_action": "GameAbstractButton_Jump",
+      "virtual_key": 32
+    },
+    {
+      "action": 5,
+      "source_action": "GameAbstractButton_Crouch",
+      "virtual_key": 162
+    },
+    {
+      "action": 6,
+      "source_action": "GameAbstractButton_Fire",
+      "virtual_key": 1
+    },
+    {
+      "action": 7,
+      "source_action": "GameAbstractButton_ThrowGrenade",
+      "virtual_key": 70
+    },
+    {
+      "action": 8,
+      "source_action": "GameAbstractButton_SwitchWeapon",
+      "virtual_key": 49
+    },
+    {
+      "action": 9,
+      "source_action": "GameAbstractButton_MeleeAttack",
+      "virtual_key": 81
+    },
+    {
+      "action": 10,
+      "source_action": "GameAbstractButton_Reload",
+      "virtual_key": 82
+    },
+    {
+      "action": 11,
+      "source_action": "GameAbstractButton_Zoom",
+      "virtual_key": 2
+    },
+    {
+      "action": 12,
+      "source_action": "GameAbstractButton_ShowScores",
+      "virtual_key": 9
+    },
+    {
+      "action": 13,
+      "source_action": "GameAbstractButton_ActionReload",
+      "virtual_key": 69
+    },
+    {
+      "action": 14,
+      "source_action": "GameAbstractButton_SwapWeapon",
+      "virtual_key": 67
+    },
+    {
+      "action": 15,
+      "source_action": "GameAbstractButton_Flashlight",
+      "virtual_key": 52
+    },
+    {
+      "action": 16,
+      "source_action": "GameAbstractButton_SwitchGrenade",
+      "virtual_key": 50,
+      "secondary_virtual_key": 51,
+      "secondary_source_action": "GameAbstractButton_PreviousGrenade"
+    },
+    {
+      "action": 17,
+      "source_action": "GameAbstractButton_DualWield",
+      "virtual_key": 2
+    },
+    {
+      "action": 18,
+      "source_action": "GameAbstractButton_Fire",
+      "virtual_key": 1
+    }
+  ],
+  "controller": [
+    {
+      "source_action": "GameAbstractButton_Jump",
+      "physical_button": "GamepadBinaryButtonA",
+      "hardware": 12
+    },
+    {
+      "source_action": "GameAbstractButton_Crouch",
+      "physical_button": "GamepadBinaryButtonLeftThumb",
+      "hardware": 8
+    },
+    {
+      "source_action": "GameAbstractButton_Fire",
+      "physical_button": "GamepadAnalogButtonRightTrigger",
+      "hardware": 1
+    },
+    {
+      "source_action": "GameAbstractButton_SecondaryFire",
+      "physical_button": "GamepadAnalogButtonLeftTrigger",
+      "hardware": 0
+    },
+    {
+      "source_action": "GameAbstractButton_ThrowGrenade",
+      "physical_button": "GamepadAnalogButtonLeftTrigger",
+      "hardware": 0
+    },
+    {
+      "source_action": "GameAbstractButton_Reload",
+      "physical_button": "GamepadBinaryButtonX",
+      "hardware": 14
+    },
+    {
+      "source_action": "GameAbstractButton_ActionReload",
+      "physical_button": "GamepadBinaryButtonX",
+      "hardware": 14
+    },
+    {
+      "source_action": "GameAbstractButton_SwapWeapon",
+      "physical_button": "GamepadBinaryButtonY",
+      "hardware": 15
+    },
+    {
+      "source_action": "GameAbstractButton_SwitchWeapon",
+      "physical_button": "GamepadBinaryButtonY",
+      "hardware": 15
+    },
+    {
+      "source_action": "GameAbstractButton_MeleeAttack",
+      "physical_button": "GamepadBinaryButtonB",
+      "hardware": 13
+    },
+    {
+      "source_action": "GameAbstractButton_Zoom",
+      "physical_button": "GamepadBinaryButtonRightThumb",
+      "hardware": 9
+    },
+    {
+      "source_action": "GameAbstractButton_Flashlight",
+      "physical_button": "GamepadBinaryButtonLeftShoulder",
+      "hardware": 10
+    },
+    {
+      "source_action": "GameAbstractButton_SwitchGrenade",
+      "physical_button": "GamepadBinaryButtonRightShoulder",
+      "hardware": 11,
+      "additional_hardware": [
+        4
+      ],
+      "additional_physical_buttons": [
+        "GamepadBinaryButtonDpadLeft"
+      ],
+      "additional_source_actions": [
+        "GameAbstractButton_PreviousGrenade"
+      ]
+    },
+    {
+      "source_action": "GameAbstractButton_ShowScores",
+      "physical_button": "GamepadBinaryButtonBack",
+      "hardware": 7
+    }
+  ],
+  "scope": "Existing native gameplay actions. Shared shipped MCC keyboard defaults and Halo2 BaseGamepadMapping selected by the named Default preset; no player profile settings read."
+}

@@ -1,0 +1,104 @@
+{
+  "original_image_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "routines": [
+    {
+      "entry": "0018f6b0",
+      "instructions": 22,
+      "calls": [
+        {
+          "site": "0018f6c5",
+          "target": "0xbcdf0"
+        },
+        {
+          "site": "0018f6ee",
+          "target": "0xd3300"
+        }
+      ],
+      "listing": [
+        "0018f6b0 a15c9b4f00 mov eax, dword ptr [0x4f9b5c]",
+        "0018f6b5 8a4829 mov cl, byte ptr [eax + 0x29]",
+        "0018f6b8 84c9 test cl, cl",
+        "0018f6ba 7438 je 0x18f6f4",
+        "0018f6bc 56 push esi",
+        "0018f6bd 8b742408 mov esi, dword ptr [esp + 8]",
+        "0018f6c1 6a03 push 3",
+        "0018f6c3 8bc6 mov eax, esi",
+        "0018f6c5 e826d7f2ff call 0xbcdf0",
+        "0018f6ca 85c0 test eax, eax",
+        "0018f6cc 7425 je 0x18f6f3",
+        "0018f6ce 8b4c240c mov ecx, dword ptr [esp + 0xc]",
+        "0018f6d2 8b154c2c4f00 mov edx, dword ptr [0x4f2c4c]",
+        "0018f6d8 8b4244 mov eax, dword ptr [edx + 0x44]",
+        "0018f6db 81e1ffff0000 and ecx, 0xffff",
+        "0018f6e1 69c9bc000000 imul ecx, ecx, 0xbc",
+        "0018f6e7 8b4c010c mov ecx, dword ptr [ecx + eax + 0xc]",
+        "0018f6eb 51 push ecx",
+        "0018f6ec 8bc6 mov eax, esi",
+        "0018f6ee e80d3cf4ff call 0xd3300",
+        "0018f6f3 5e pop esi",
+        "0018f6f4 c20c00 ret 0xc"
+      ]
+    },
+    {
+      "entry": "000bcdf0",
+      "instructions": 35,
+      "calls": [],
+      "listing": [
+        "000bcdf0 56 push esi",
+        "000bcdf1 57 push edi",
+        "000bcdf2 8bf0 mov esi, eax",
+        "000bcdf4 33ff xor edi, edi",
+        "000bcdf6 83feff cmp esi, -1",
+        "000bcdf9 7432 je 0xbce2d",
+        "000bcdfb 8b15d0cb4e00 mov edx, dword ptr [0x4ecbd0]",
+        "000bce01 8b4238 mov eax, dword ptr [edx + 0x38]",
+        "000bce04 8bce mov ecx, esi",
+        "000bce06 81e1ffff0000 and ecx, 0xffff",
+        "000bce0c 3bc8 cmp ecx, eax",
+        "000bce0e 7d1d jge 0xbce2d",
+        "000bce10 8b4224 mov eax, dword ptr [edx + 0x24]",
+        "000bce13 0fafc1 imul eax, ecx",
+        "000bce16 034244 add eax, dword ptr [edx + 0x44]",
+        "000bce19 668b08 mov cx, word ptr [eax]",
+        "000bce1c 6685c9 test cx, cx",
+        "000bce1f 740c je 0xbce2d",
+        "000bce21 0fbfc9 movsx ecx, cx",
+        "000bce24 c1fe10 sar esi, 0x10",
+        "000bce27 3bce cmp ecx, esi",
+        "000bce29 7502 jne 0xbce2d",
+        "000bce2b 8bf8 mov edi, eax",
+        "000bce2d 33c0 xor eax, eax",
+        "000bce2f 85ff test edi, edi",
+        "000bce31 7413 je 0xbce46",
+        "000bce33 8a4f03 mov cl, byte ptr [edi + 3]",
+        "000bce36 ba01000000 mov edx, 1",
+        "000bce3b d3e2 shl edx, cl",
+        "000bce3d 8554240c test dword ptr [esp + 0xc], edx",
+        "000bce41 7403 je 0xbce46",
+        "000bce43 8b4708 mov eax, dword ptr [edi + 8]",
+        "000bce46 5f pop edi",
+        "000bce47 5e pop esi",
+        "000bce48 c20400 ret 4"
+      ]
+    },
+    {
+      "entry": "000d3300",
+      "instructions": 12,
+      "calls": [],
+      "listing": [
+        "000d3300 8b0dd0cb4e00 mov ecx, dword ptr [0x4ecbd0]",
+        "000d3306 8b5144 mov edx, dword ptr [ecx + 0x44]",
+        "000d3309 25ffff0000 and eax, 0xffff",
+        "000d330e 8d0440 lea eax, [eax + eax*2]",
+        "000d3311 8b448208 mov eax, dword ptr [edx + eax*4 + 8]",
+        "000d3315 0fbf883e030000 movsx ecx, word ptr [eax + 0x33e]",
+        "000d331c 8b540138 mov edx, dword ptr [ecx + eax + 0x38]",
+        "000d3320 8d440130 lea eax, [ecx + eax + 0x30]",
+        "000d3324 3b542404 cmp edx, dword ptr [esp + 4]",
+        "000d3328 7507 jne 0xd3331",
+        "000d332a c74008ffffffff mov dword ptr [eax + 8], 0xffffffff",
+        "000d3331 c20400 ret 4"
+      ]
+    }
+  ]
+}

@@ -267,6 +267,15 @@ async def main():
                     print("PASS authenticated native lobby buttons, legacy countdown rejection" if legacy_countdown else
                           "PASS authenticated native source Game Setup and shared-clock Start")
                     return 0
+                if "--return-lobby-ui" in native_options:
+                    assert verified.count("t") >= 1 and len(session_creations) == 1, "Lobby return bypassed its authenticated session exchange"
+                    assert [playlist for _, playlist in native_queue_posts] == ["ranked"], "Return control did not abandon exactly its intended search"
+                    assert {token for token, _ in native_queue_posts} == native_session_tokens, "Return control replaced its authenticated queue session"
+                    assert all(t.players[0].screen_name == "Peer Pilot" for t in api.core.tickets.values()), "Return retained an abandoned ticket"
+                    assert all(s.screen_name == "Peer Pilot" for s in api.sessions.values()), "Return fixture retained its queue session after teardown"
+                    assert not api.core.proposals and not queue_during_consent, "Return retained a proposal or queued before consent"
+                    print("PASS authenticated abandoned-search return to original pregame lobby with retained party, playlist and profile")
+                    return 0
                 # The account grant authenticates one queue session. Lobby
                 # and hopper transitions retain it; explicit final teardown
                 # revokes it rather than forcing another identity exchange.

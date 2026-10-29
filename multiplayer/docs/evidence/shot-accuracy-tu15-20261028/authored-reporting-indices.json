@@ -1,0 +1,423 @@
+{
+  "source_map": "assets/disc/maps/lockout.map",
+  "source_map_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+  "scope": "Authored retail Lockout weapon barrel and projectile metadata; names annotate reporting indices, not runtime aliases or complete MCC family proof.",
+  "rows": [
+    {
+      "weapon": "objects\\weapons\\rifle\\battle_rifle\\battle_rifle",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\battle_rifle\\projectiles\\battle_rifle_bullet",
+      "reporting_byte": 10,
+      "reporting_index": 10,
+      "barrel_file_offset": 30618380,
+      "barrel_burst_bounds_1c_1e": [
+        3,
+        3
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\pistol\\magnum\\magnum",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\pistol\\magnum\\projectiles\\magnum_bullet",
+      "reporting_byte": 5,
+      "reporting_index": 5,
+      "barrel_file_offset": 30978312,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\pistol\\needler\\needler",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\pistol\\needler\\projectiles\\needler_shard\\needler_shard",
+      "reporting_byte": 7,
+      "reporting_index": 7,
+      "barrel_file_offset": 31017176,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\pistol\\plasma_pistol\\plasma_pistol",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\pistol\\plasma_pistol\\projectiles\\plasma_pistol_bolt",
+      "reporting_byte": 6,
+      "reporting_index": 6,
+      "barrel_file_offset": 31096556,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\pistol\\plasma_pistol\\plasma_pistol",
+      "barrel": 1,
+      "projectile": "objects\\weapons\\pistol\\plasma_pistol\\projectiles\\plasma_pistol_charged_bolt",
+      "reporting_byte": 6,
+      "reporting_index": 6,
+      "barrel_file_offset": 31096792,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\plasma_rifle\\plasma_rifle",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\plasma_rifle\\projectiles\\plasma_rifle_bolt",
+      "reporting_byte": 9,
+      "reporting_index": 9,
+      "barrel_file_offset": 31222288,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\shotgun\\shotgun",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\shotgun\\projectiles\\shotgun_bullet",
+      "reporting_byte": 12,
+      "reporting_index": 12,
+      "barrel_file_offset": 31277000,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 10
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\smg\\smg",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\smg\\projectiles\\smg_bullet",
+      "reporting_byte": 8,
+      "reporting_index": 8,
+      "barrel_file_offset": 31366192,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\sniper_rifle\\sniper_rifle",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\sniper_rifle\\projectiles\\sniper_bullet",
+      "reporting_byte": 13,
+      "reporting_index": 13,
+      "barrel_file_offset": 31406252,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\h_turret_ap\\weapon\\h_turret_ap",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\h_turret_ap\\weapon\\h_turret_ap_bullet",
+      "reporting_byte": 27,
+      "reporting_index": 28,
+      "barrel_file_offset": 31709504,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\support_high\\rocket_launcher\\rocket_launcher",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\support_high\\rocket_launcher\\projectiles\\rocket",
+      "reporting_byte": 15,
+      "reporting_index": 16,
+      "barrel_file_offset": 32651812,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\support_high\\rocket_launcher\\rocket_launcher",
+      "barrel": 1,
+      "projectile": "objects\\weapons\\support_high\\rocket_launcher\\projectiles\\rocket",
+      "reporting_byte": 15,
+      "reporting_index": 16,
+      "barrel_file_offset": 32652048,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\brute_plasma_rifle\\brute_plasma_rifle",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\brute_plasma_rifle\\projectiles\\brute_plasma_rifle_bolt",
+      "reporting_byte": 19,
+      "reporting_index": 15,
+      "barrel_file_offset": 32708808,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\covenant_carbine\\covenant_carbine",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\covenant_carbine\\projectiles\\carbine_slug\\carbine_slug",
+      "reporting_byte": 11,
+      "reporting_index": 11,
+      "barrel_file_offset": 32729608,
+      "barrel_burst_bounds_1c_1e": [
+        2,
+        2
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\covenant_carbine\\covenant_carbine",
+      "barrel": 1,
+      "projectile": "objects\\weapons\\rifle\\covenant_carbine\\projectiles\\carbine_slug\\carbine_slug",
+      "reporting_byte": 11,
+      "reporting_index": 11,
+      "barrel_file_offset": 32729844,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\support_low\\brute_shot\\brute_shot",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\support_low\\brute_shot\\projectiles\\grenade\\grenade",
+      "reporting_byte": 17,
+      "reporting_index": 18,
+      "barrel_file_offset": 32780656,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\weapons\\rifle\\beam_rifle\\beam_rifle",
+      "barrel": 0,
+      "projectile": "objects\\weapons\\rifle\\beam_rifle\\projectiles\\beam_rifle_beam",
+      "reporting_byte": 14,
+      "reporting_index": 14,
+      "barrel_file_offset": 32813000,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\characters\\sentinel_aggressor\\weapons\\beam\\sentinel_aggressor_beam",
+      "barrel": 0,
+      "projectile": "objects\\characters\\sentinel_aggressor\\weapons\\beam\\sentinel_aggressor_beam",
+      "reporting_byte": 39,
+      "reporting_index": 20,
+      "barrel_file_offset": 32850568,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\warthog\\turrets\\chaingun\\weapon\\chaingun_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\warthog\\turrets\\chaingun\\weapon\\bullet",
+      "reporting_byte": 36,
+      "reporting_index": 37,
+      "barrel_file_offset": 33149256,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\warthog\\turrets\\gauss\\weapon\\gauss_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\warthog\\turrets\\gauss\\weapon\\gauss_bullet",
+      "reporting_byte": 36,
+      "reporting_index": 37,
+      "barrel_file_offset": 33170560,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\ghost\\weapon\\ghost_gun",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\ghost\\weapon\\ghost_bolt",
+      "reporting_byte": 30,
+      "reporting_index": 31,
+      "barrel_file_offset": 33343540,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\cannon_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\tank_shell",
+      "reporting_byte": 38,
+      "reporting_index": 39,
+      "barrel_file_offset": 33560632,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\cannon_turret",
+      "barrel": 1,
+      "projectile": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\bullet",
+      "reporting_byte": 32,
+      "reporting_index": 33,
+      "barrel_file_offset": 33560868,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\cannon_turret_mp",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\tank_shell",
+      "reporting_byte": 38,
+      "reporting_index": 39,
+      "barrel_file_offset": 33599708,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\cannon_turret_mp",
+      "barrel": 1,
+      "projectile": "objects\\vehicles\\scorpion\\turrets\\cannon\\weapon\\bullet",
+      "reporting_byte": 32,
+      "reporting_index": 33,
+      "barrel_file_offset": 33599944,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\wraith\\turrets\\mortar\\mortar_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\wraith\\turrets\\mortar\\mortar_turret_charged",
+      "reporting_byte": 37,
+      "reporting_index": 38,
+      "barrel_file_offset": 33819372,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\wraith\\turrets\\minigun\\minigun_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\wraith\\turrets\\minigun\\wraith_minigun_bolt",
+      "reporting_byte": 0,
+      "reporting_index": 0,
+      "barrel_file_offset": 33872272,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\wraith\\turrets\\mortar\\mortar_turret_mp",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\wraith\\turrets\\mortar\\mortar_turret_charged",
+      "reporting_byte": 37,
+      "reporting_index": 38,
+      "barrel_file_offset": 33877740,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\banshee\\weapon\\banshee_gun",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\banshee\\weapon\\banshee_bolt",
+      "reporting_byte": 29,
+      "reporting_index": 30,
+      "barrel_file_offset": 34021712,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\banshee\\weapon\\banshee_gun",
+      "barrel": 1,
+      "projectile": "objects\\vehicles\\banshee\\weapon\\banshee_bomb",
+      "reporting_byte": 29,
+      "reporting_index": 30,
+      "barrel_file_offset": 34021948,
+      "barrel_burst_bounds_1c_1e": [
+        1,
+        1
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\spectre\\plasma_turret\\weapon\\plasma_turret",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\spectre\\plasma_turret\\weapon\\plasma_turret_beam",
+      "reporting_byte": 34,
+      "reporting_index": 35,
+      "barrel_file_offset": 34194376,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    },
+    {
+      "weapon": "objects\\vehicles\\c_turret_ap\\weapon\\big_needler",
+      "barrel": 0,
+      "projectile": "objects\\vehicles\\c_turret_ap\\weapon\\plasma_turret_bolt",
+      "reporting_byte": 28,
+      "reporting_index": 29,
+      "barrel_file_offset": 34271156,
+      "barrel_burst_bounds_1c_1e": [
+        0,
+        0
+      ],
+      "barrel_projectile_count_6a": 1
+    }
+  ]
+}

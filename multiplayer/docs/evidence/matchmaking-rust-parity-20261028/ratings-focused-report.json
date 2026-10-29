@@ -1,0 +1,36 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/tmp/halo2-test-8mtatlor/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_matchmaking_ratings_native",
+        "multiplayer.master_server.tests.test_gathering_sessions",
+        "multiplayer.master_server.tests.test_matchmaking",
+        "multiplayer.master_server.tests.test_team_balance_native",
+        "multiplayer.master_server.tests.test_clan_matchmaking_core",
+        "multiplayer.master_server.tests.test_clan_matchmaking_http",
+        "multiplayer.master_server.tests.test_couch_online"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/tmp/halo2-test-8mtatlor/master-source",
+  "scratch": "/tmp/halo2-test-8mtatlor",
+  "source_frozen": true
+}

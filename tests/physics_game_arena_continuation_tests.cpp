@@ -1,6 +1,7 @@
 #include "halo2/physics_game_arena_native.hpp"
 #include "halo2/native_threads.hpp"
 #include "halo2/source_runtime_image.hpp"
+#include "halo2/cache_file_snapshot.hpp"
 #include <nlohmann/json.hpp>
 #include <condition_variable>
 #include <fstream>
@@ -78,7 +79,12 @@ void startup(SourcePhysicsGameArenaNative &arena,const J &fixture) {
   }
 }
 std::size_t descriptors() {
-  std::size_t count=0;for(const auto &entry:std::filesystem::directory_iterator("/proc/self/fd")){(void)entry;++count;}return count;
+  std::size_t count=0;for(const auto &entry:std::filesystem::directory_iterator("/proc/self/fd")){(void)entry;++count;}
+  // Independent mapped snapshots now retain their private file until the last
+  // view dies. Separate those exact owner-counted handles from arena resources;
+  // the real savegame staging/cancellation/retirement +/-2 checks stay exact.
+  const auto snapshots=CacheFileSnapshot::storage_stats().retained_file_backings;
+  check(count>=snapshots,"Private snapshot file census exceeds actual descriptors");return count-snapshots;
 }
 }
 int main(int argc,char **argv) try {
@@ -123,7 +129,13 @@ int main(int argc,char **argv) try {
   check(rejected_reentry && protected_reentry,"Arena call gate lost callback reentry or admitted a mid-call checkpoint/stop");
   rejects([&]{original->ownership_checkpoint();}); // Idle but still running is not an exported worker.
   original->stop();resumed.stop();
-  const auto initial=original->ownership_checkpoint();check(initial.files.size()==2 && !initial.physical.allocations.empty(),"Original arena resources missing");
+  const auto before_capture=CacheFileSnapshot::storage_stats();
+  const auto initial=original->ownership_checkpoint();
+  const auto after_capture=CacheFileSnapshot::storage_stats();
+  check(after_capture.capture_input_bytes==before_capture.capture_input_bytes &&
+      after_capture.capture_written_bytes==before_capture.capture_written_bytes,
+      "Arena ownership validation captured/wrote an unused complete native bank");
+  check(initial.files.size()==2 && !initial.physical.allocations.empty(),"Original arena resources missing");
   const auto &allocation=initial.physical.allocations.back();
   const auto retained=allocation.base+allocation.bytes-1;
   source.write(retained,std::array{std::byte{0x9d}});

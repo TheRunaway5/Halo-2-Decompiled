@@ -48,7 +48,8 @@ std::string native_tu15_sound_compare_with(SourcePhysicsContactMemory &, SourceP
     const std::function<void(SourcePhysicsContactMemory &, SourcePhysicsContactRuntimeAbi &)> &run,
     const std::function<void(SourcePhysicsContactMemory &, SourcePhysicsContactRuntimeAbi &,
         const SourcePhysicsContactRecordObserver &)> &reference,
-    std::uint8_t gp_full, std::uint8_t gp_low16, std::uint8_t xmm, std::uint32_t entry);
+    std::uint8_t gp_full, std::uint8_t gp_low16, std::uint8_t xmm, std::uint32_t entry,
+    std::uint8_t gp_low8 = 0);
 // Object-loop routine at an original address, native where converted (tests).
 void native_tu15_object_loop_run(SourcePhysicsContactMemory &, std::uint32_t address,
     SourcePhysicsContactRuntimeAbi &, SourcePhysicsFactoryFloatingPoint,

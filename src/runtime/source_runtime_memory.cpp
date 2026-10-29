@@ -251,6 +251,27 @@ void SourceRuntimeMemory::visit_committed(const std::function<void(std::uint32_t
     }
   }
 }
+void SourceRuntimeMemory::visit_region_metadata(
+    const std::function<void(const RegionMetadata&)>& visit) const {
+  // The same shape admission as validate_checkpoint, over the actual owner.
+  // Live commitment entries are bool, so unlike imported bytes they cannot
+  // contain a third value. Validate every region before exposing metadata.
+  std::uint64_t previous_end{};
+  for(const auto& [address,region]:regions_) {
+    const auto size=region.storage().size();
+    if(!size || region.owner.empty() || address<previous_end ||
+       (region.access!=Access::ReadOnly && region.access!=Access::ReadWrite))
+      throw std::invalid_argument("Invalid live source memory region");
+    previous_end=end(address,size);
+    if(!region.page_bytes) {
+      if(!region.committed.empty())throw std::invalid_argument("Mounted live region has reservation pages");
+    }else if(region.access!=Access::ReadWrite || address%region.page_bytes || size%region.page_bytes ||
+             region.committed.size()!=size/region.page_bytes)
+      throw std::invalid_argument("Invalid live source memory commitment map");
+  }
+  for(const auto& [address,region]:regions_)
+    visit({address,region.access,region.owner,region.storage().size(),region.page_bytes,region.committed.size()});
+}
 SourceRuntimeMemory::Checkpoint SourceRuntimeMemory::checkpoint() const {
   Checkpoint result;
   result.regions.reserve(regions_.size());

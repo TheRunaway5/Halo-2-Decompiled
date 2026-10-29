@@ -48,6 +48,11 @@ public:
     SourceShadowScene(const SourceShadowScene&)=delete;
     SourceShadowScene& operator=(const SourceShadowScene&)=delete;
     std::span<const SourceShadowRawPlanMaterial> resident() const;
+    // Complete this Scene's immutable selected bitmap bank from the actual
+    // salted model owner's native BCB70 function/override/clock context.
+    // The completed material must retain its stable address through drawing.
+    SourceShadowBitmapFrameOwnerTu15 complete_bitmap_frames(PhysicsLiveWorldTu15&,
+        const MenuWorldSourcePass&,const MenuWorldSourceOwner&,SourceShadowMaterial&) const;
     // Consume synchronously while this completed root still owns the live
     // model contexts and geometry arena. Subsequent roots/secondary queries
     // may reuse them. Returned bindings copy the current pose and source bytes.

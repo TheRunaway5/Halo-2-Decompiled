@@ -57,9 +57,12 @@ void portable(const std::filesystem::path& root){
     const auto during=root/"during.map";save(during,a);during_decode=[&]{save(during,b);touch(during,3);};reject([&]{(void)read_mcc_resource_range(during,900,32);});check(read_mcc_resource_range(during,900,32)==direct(b,900,32),"Changed-during-decode owner was published");
     save(during,a);touch(during,4);during_decode=[&]{std::filesystem::resize_file(during,100);};reject([&]{(void)read_mcc_resource_range(during,900,32);});save(during,b);touch(during,5);check(read_mcc_resource_range(during,900,32)==direct(b,900,32),"Truncated source contaminated future owner");
     after_stat=[&]{save(during,a);touch(during,6);};reject([&]{(void)read_mcc_resource_range(during,900,32);});check(read_mcc_resource_range(during,900,32)==direct(a,900,32),"Cache-hit mutation published stale source");
-    save(ap,a);touch(ap,8);const auto link=root/"link.map",next=root/"next-link.map";std::filesystem::create_symlink(ap,link);std::filesystem::create_symlink(changed,next);bool retargeted=false;during_pread=[&]{std::filesystem::rename(next,link);retargeted=true;};check(read_mcc_resource_range(link,900,32)==direct(a,900,32) && retargeted,"Decode did not retain actual initially admitted FD during path retarget");check(read_mcc_resource_range(link,900,32)==direct(b,900,32),"Retargeted next-open source failed");
-    // Change the new target after both admissions: old returned values stay owned.
-    save(changed,a);touch(changed,7);check(read_mcc_resource_range(link,900,32)==direct(a,900,32),"Retargeted source identity was ignored");
+    save(ap,a);touch(ap,8);const auto link=root/"link.map";
+    std::filesystem::create_symlink(ap,link);
+    reject([&]{(void)read_mcc_resource_range(link,900,32);});
+    const auto directory_link=root/"linked-directory";
+    std::filesystem::create_directory_symlink(sub,directory_link);
+    reject([&]{(void)read_mcc_resource_range(directory_link/"a.map",900,32);});
     const auto threaded=root/"threaded.map";save(threaded,a);std::array<unsigned,2> counts{};std::array<bool,2> equal{};
     std::array<std::thread,2> workers{std::thread([&]{const auto begin=decodes;const auto x=read_mcc_resource_range(threaded,900,32),y=read_mcc_resource_range(threaded,900,32);counts[0]=decodes-begin;equal[0]=x==y && x==direct(a,900,32);}),std::thread([&]{const auto begin=decodes;const auto x=read_mcc_resource_range(threaded,900,32),y=read_mcc_resource_range(threaded,900,32);counts[1]=decodes-begin;equal[1]=x==y && x==direct(a,900,32);})};for(auto& w:workers)w.join();check(counts==std::array{1u,1u} && equal[0] && equal[1],"Threads shared a mutable or unowned last-container cache");
 #endif

@@ -1,4 +1,31 @@
 if(BUILD_TESTING)
+    # Stubbed Vulkan calls exercise timestamp ownership without a GPU/runtime.
+    add_executable(renderer_gpu_timings_tests tests/renderer_gpu_timings_tests.cpp)
+    target_include_directories(renderer_gpu_timings_tests PRIVATE include src ${Vulkan_INCLUDE_DIRS})
+    target_compile_features(renderer_gpu_timings_tests PRIVATE cxx_std_20)
+    if(MSVC)
+        target_compile_options(renderer_gpu_timings_tests PRIVATE /fp:strict)
+    else()
+        target_compile_options(renderer_gpu_timings_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+        if(HALO2_SANITIZERS)
+            target_compile_options(renderer_gpu_timings_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(renderer_gpu_timings_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+    add_test(NAME native_renderer_gpu_timing_contract COMMAND renderer_gpu_timings_tests "@HALO2_TEST_SCRATCH@")
+    set_tests_properties(native_renderer_gpu_timing_contract PROPERTIES TIMEOUT 30)
+
+    add_executable(source_world_draw_storage_tests tests/source_world_draw_storage_tests.cpp
+        src/rendering/world/source_world_draw_storage.cpp)
+    target_include_directories(source_world_draw_storage_tests PRIVATE include src ${Vulkan_INCLUDE_DIRS})
+    target_compile_features(source_world_draw_storage_tests PRIVATE cxx_std_20)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_world_draw_storage_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_world_draw_storage_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME native_raw_shadow_bitmap_descriptor_isolation COMMAND source_world_draw_storage_tests)
+    set_tests_properties(native_raw_shadow_bitmap_descriptor_isolation PROPERTIES TIMEOUT 30)
+
     add_executable(cinematic_camera_interpolation_tests tests/cinematic_camera_interpolation_tests.cpp
         src/campaign/cinematic_camera_interpolation.cpp src/campaign/campaign_frame_clock.cpp)
     target_include_directories(cinematic_camera_interpolation_tests PRIVATE include)

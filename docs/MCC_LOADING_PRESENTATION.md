@@ -1,15 +1,25 @@
 # MCC loading presentation
 
-## Original loading screens, October 26, 2026
+## Original loading screens, October 28, 2026
 
 The user asked for the original logo/animation loading screen, not the
 `LOADING NN%` caption, with its music taken from the installed Halo 2 Editing
-Kit (Steam app 1613450). ONLINE starts use the original `PLEASE WAIT` dialog.
+Kit (Steam app 1613450). Multiplayer starts and returns use the original
+`PLEASE WAIT` dialog, including local and System Link sessions.
 
 **Logo/sweep screen.** H2EK `loading_dx11.bin` holds the original PC loading
 art as six contiguous DDS images for normal-mode slots 0, 1, 3, 4, 5 and 11:
 the blue 1280×1024 background, the HALO 2 logo, both spinners, the sweep strip
-and the real starburst glow mask. Against the exported original PC loading
+and the real starburst glow mask. The logo is slot 1's 1024×128 DXT3 DDS,
+SHA256 `e11a54772d4361fa560effce9640645acca84e0a8d4629db145fdad05380854d`.
+Every staged DDS is byte-identical to its extent in the installed kit's
+`loading_dx11.bin`; no Xbox/Vista image provider is linked into this runtime.
+The user confirmed the classic kit logo with correct widescreen proportions.
+The imported logo is fitted to its original centred box using its 1024:128
+pixel aspect. The legacy normalized box otherwise stretches that same bitmap
+by 4/3 on 16:9 output. This production adapter leaves the original draw oracle
+and the background/spinner/sweep owners unchanged.
+Against the exported original PC loading
 bank they match within DXT error (background 42.95 dB PSNR once D3DX's
 power-of-two stretch is undone; about 1% RMSE elsewhere). The MCC V3 bank's
 greyscale background and reconstructed mask are therefore not used when the
@@ -25,32 +35,69 @@ launch, `configure_h2ek_original_loading_presentation` admits the bank,
 checking the exact DDS headers and hashes, the ADPCM hash and the decoded PCM.
 It decodes BC through the same path as the MCC inputs and binds
 `NativeVistaLoadingAudio`. Without a kit, MCC V3 remains selected. Returning to
-the menu after a match now uses this screen; the `LOADING NN%` map-copy wait is
-only a fallback when no logo bank exists.
+the menu after a multiplayer match uses the separate `Leaving game...` dialog.
+The `LOADING NN%` map-copy wait remains a fallback for a cache without screen231.
 
-**ONLINE dialog.** TU1.5 opens screen 231
+**Multiplayer dialog.** TU1.5 opens screen 231
 (`network_transition_progress_screen`) from `0x19430A → 0x1959C7` while a
 networked simulation world exists but is not yet active. Its update `0x258605`
-replaces pane text0 with the status selected by `0x19481B`. The black UI-only
-frame comes from `0x229C50 → 0x2C880`, and `0x255AFB` swallows all input. The
-port keeps the dialog over black and maps its statuses as follows:
+replaces pane text0 with the status selected by `0x19481B`. The UI-only frame
+comes from `0x229C50 → 0x2C880`, and `0x255AFB` swallows all input. Before the
+panel, `0x23B971` draws the shared `wigl+6C` tint. MCC and the reference both
+retain RGBA(.85,0,20/255,44/255), packed as `D900142C` at full intro opacity.
+It blends to RGB(0,17,37) over the cleared surface. The source 750 ms channel
+intro controls its alpha; it covers the complete window, including widescreen
+margins. The port maps its statuses as follows:
 
 | Port phase | TU1.5 string | Text |
 |---|---|---|
-| online map world preparation | `network_loading_map` | Loading map... |
-| new renderer's admitted frame until the first gameplay draw | `network_joining` | Setting up game... |
+| resident imported map preparation through the first gameplay draw | `network_joining` | Setting up game... |
 | post-game, disconnect or escape back to the menu | `network_leaving` | Leaving game... |
 
 TU1.5 itself shows `Loading map...` only for a pending blocking map copy,
-whose frames draw the percentage wait instead. Our MCC maps need no copy, so
-the user chose this mapping for the port's real world preparation.
+whose frames draw the percentage wait instead. Imported MCC maps need no
+utility-drive copy. Their setup keeps `network_joining` throughout admission.
 `FrontendNetworkTransitionPainter` paints the dialog with the frontend's own
 pane primitives from the selected MCC content, fonts and sampled pages. That
-covers bitmap order, animation 58, the flag-4 pulse, kerning and shadows, and
-the 480/1200 projection. It keeps only the materials it uses (all prefixed
+covers bitmap order, animation58, the flag-4 pulse, kerning and shadows.
+`frontend_network_transition_layout_data.inc` retains the authenticated original
+screen 231 geometry and the exact raw MCC definition used to admit it. The
+MCC 256/512-pixel rasters occupy the original 128/256-unit quads; text uses the
+original eleven font roles projected from MCC. This avoids the smaller PC
+dialog produced by its separate 480/1200 transform. The exporter retains
+metadata only, with zero Xbox artwork pixels. The painter keeps only its
+used materials (all prefixed
 `network-transition/`). The loading bridge presents it with the map-wait
 lifecycle, and the renderer admits that small UI bank. The original dialog's
-one-second fade of all sound classes to −64 dB is not reproduced.
+one-second fade of all named sound classes to −64 dB (`258565 → 228390`)
+uses the retained frontend audio engine and an independent loading-thread
+clock. UI/loading updates serialize their shared fade owner; an older clock
+query cannot rewind it or become a wrapped multi-day time step.
+It continues while the new renderer is quiescent before its first
+world draw. The returning menu restores its classes over two seconds. The
+map-activation owner's immediate selector is literally `scripted_dialog_player`,
+which matches none of TU1.5's 54 class names; other dialogue classes retain
+the two-second restore.
+The campaign's independent four-voice ambience never starts for this dialog.
+Campaign loading and gameplay also continue the retained menu music clock,
+so the original strict six-second music-transition debounce can stop the title
+voices after frontend departure. Loading ambience has its own gain/lifetime;
+the menu engine is not left looping underneath it.
+
+`mcc_onboarding.select` repairs/imports the H2EK bank before publishing a cache
+selection, including a cache imported before the kit was installed. Fresh
+preparation imports the same authenticated raw/decoded sound. Existing V3 and
+V1 reference banks are preserved. Frontend qualification now pins the actual
+selected bank and requires its native admission log; a V3 receipt cannot
+describe an H2EK runtime path. Engine promotion also requires the loading GPU
+handoff and onboarding regression tests when that bank is present.
+
+The installed-runtime reproduction on October 28 admitted MCC V3 despite an
+already prepared H2EK bank. Source fixes, effective build hashes, commands,
+qualification and cleanup receipts are recorded under
+[`analysis/loading-flows-20261028`](../analysis/loading-flows-20261028/).
+Rendered handoffs and source controls do not establish physical Xbox
+framebuffer/audio equivalence or every campaign checkpoint/network role.
 
 `original_loading_gpu_tests` (`HALO2_ORIGINAL_LOADING_CACHE`) captures both
 screens through real forward/reverse Vulkan handoffs.

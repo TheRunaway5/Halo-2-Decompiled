@@ -16,6 +16,22 @@ from compile_native_fragment_kernels import controls,key,source_for,entries,writ
 from audit_native_renderer_kernels import audit_spirv
 
 class NativeFragmentFamilies(unittest.TestCase):
+    def test_large_catalog_fits_clang_constant_evaluation_budget(self):
+        clang=shutil.which('clang++')
+        if not clang:self.skipTest('Clang catalog-size regression requires clang++')
+        work=Path(os.environ['HALO2_TEST_SCRATCH'])/'fragment-large-catalog';work.mkdir()
+        header=work/'large-fragments.hpp'
+        rows=[dict(family='world-fixed',controls=[0]*60,
+                   path='native_fragments/world-'+('1'*64)+'.frag.spv') for _ in range(2048)]
+        write_header(header,rows)
+        source='''#include "large-fragments.hpp"
+static_assert(halo2::generated_native_fragment_kernels::entries.size()==2048);
+static_assert(halo2::generated_native_fragment_kernels::entries[2047].family=="world-fixed");
+'''
+        result=subprocess.run([clang,'-std=c++20','-fconstexpr-steps=1048576','-fsyntax-only','-x','c++',
+            '-I'+str(work),'-'],input=source.encode(),stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+        self.assertEqual(result.returncode,0,result.stderr.decode()[-4000:])
+
     def test_identical_revalidation_completes_all_outputs_then_make_is_idle(self):
         make=shutil.which('make')
         if not make:self.skipTest('This generated-Makefile regression requires make')
@@ -75,6 +91,46 @@ class NativeFragmentFamilies(unittest.TestCase):
             self.assertNotIn('material.flags.w',source)
             self.assertNotIn('word(',source)
 
+    def test_source_depth_fragment_keeps_authored_combiner(self):
+        words=json.loads((ROOT/'shaders/native-programs/world/programs.json').read_text())['entries'][0]['controls']
+        source=source_for(ROOT/'shaders',{'family':'world-source-depth','controls':words})
+        self.assertIn('#define H2_SOURCE_WORLD_DEPTH 1',source)
+        self.assertIn('sourceDepth.clipRange',source)
+        self.assertNotIn('word(',source)
+        tools=[shutil.which(name) for name in ('glslangValidator','spirv-opt','spirv-val')]
+        self.assertTrue(all(tools),'Native kernel toolchain is required')
+        scratch=Path(os.environ['HALO2_TEST_SCRATCH'])/'source-depth-fragment';scratch.mkdir()
+        path=scratch/'ordinary.frag';raw=scratch/'raw.spv';spv=scratch/'ordinary.spv'
+        path.write_text(source)
+        for command in ([tools[0],'-V','--target-env','vulkan1.3','-I'+str(ROOT/'shaders'),str(path),'-o',str(raw)],
+                        [tools[1],'--preserve-interface','-O',str(raw),'-o',str(spv)],
+                        [tools[2],'--target-env','vulkan1.3',str(spv)]):
+            result=subprocess.run(command,capture_output=True,text=True)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertTrue(audit_spirv(spv.read_bytes())['passed'])
+
+    def test_pstencil_source_depth_retains_both_native_color_phases(self):
+        compiler,validator=[shutil.which(name) for name in ('glslangValidator','spirv-val')]
+        self.assertTrue(compiler and validator,'Native shader tools are required')
+        work=Path(os.environ['HALO2_TEST_SCRATCH'])/'pstencil-source-depth';work.mkdir()
+        registries=sorted((ROOT/'shaders/native-programs/fragments').glob('*.json'))
+        rows=entries(registries)
+        for family in ('pstencil-texture-source-depth','pstencil-dependent-light-source-depth'):
+            row=next(row for row in rows if row['family']==family)
+            source=source_for(ROOT/'shaders',row)
+            self.assertIn('#define H2_SOURCE_WORLD_DEPTH 1',source)
+            self.assertIn('sourceDepthRaster.clipAndOffset',source)
+            self.assertIn('worldWDepth(gl_FragCoord.xy-',source)
+            if family=='pstencil-texture-source-depth':
+                self.assertIn('runOriginalCombiners',source)
+                self.assertIn('colorFactor=runCombiners',source)
+            path=work/(family+'.frag');output=path.with_suffix('.spv');path.write_text(source)
+            for command in ([compiler,'-V','--target-env','vulkan1.3',str(path),'-o',str(output)],
+                            [validator,'--target-env','vulkan1.3',str(output)]):
+                result=subprocess.run(command,capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertTrue(audit_spirv(output.read_bytes())['passed'])
+
     def test_all_fog_kernels_preserve_source_stage_arithmetic(self):
         compiler=shutil.which('glslangValidator');validator=shutil.which('spirv-val')
         self.assertTrue(compiler and validator,'Native kernel toolchain is required')
@@ -111,7 +167,7 @@ class NativeFragmentFamilies(unittest.TestCase):
         if not all((compiler,optimizer,validator)):self.fail('Native kernel toolchain is required')
         work=Path(os.environ['HALO2_TEST_SCRATCH'])/'fragment-family-contract';work.mkdir()
         words=json.loads((ROOT/'shaders/native-programs/world/programs.json').read_text())['entries'][0]['controls']
-        for family in ('menu','hud','pstencil-normal','pstencil-normal-utility','pstencil-texture','pstencil-light-utility','pstencil-dependent-light'):
+        for family in ('menu','menu-temporal','hud','pstencil-normal','pstencil-normal-utility','pstencil-texture','pstencil-light-utility','pstencil-dependent-light'):
             source=source_for(ROOT/'shaders',{'family':family,'controls':words})
             self.assertNotIn('originalPhase',source)
             self.assertNotIn('menuWorldPixelProgram.program',source)

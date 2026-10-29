@@ -1,0 +1,29 @@
+{
+  "checked_scratch": [
+    {
+      "path": "/tmp/halo2-test-b6gczu64",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-knzs1hkl",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-loi5__bh",
+      "removed": true
+    }
+  ],
+  "large_generated_artifacts_retained": [],
+  "required_reference_pdf": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "bytes": 639228,
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "retained_small_reports": [
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/audit-receipt.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/team-balance-original.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/guest-advertisement.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/environment.json"
+  ],
+  "note": "Compiler binary, oracle fixture, and PDF page renders were generated only in run_test-owned scratch. The original executables, selected runtime, pre-existing fallback, and unrelated active work remain in place."
+}

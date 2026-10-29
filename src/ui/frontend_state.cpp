@@ -1,5 +1,6 @@
 #include "halo2/frontend.hpp"
 #include "ui/frontend_multiplayer_rules.hpp"
+#include "ui/frontend_custom_variant_settings.hpp"
 #include "halo2/frontend_online.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/frontend_lobby_game.hpp"
@@ -37,6 +38,31 @@ std::uint32_t pcr_milliseconds() {
 }
 const UiVariant &builtin_variant(const FrontendContent &content,unsigned index) {
   return index<content.variants.size()?content.variants.at(index):content.bundled_variants.at(index-content.variants.size());
+}
+std::string variant_buffer_text(const SourceGameVariant &variant) {
+  constexpr char digits[]="0123456789abcdef";
+  std::string text;
+  for(const auto byte:variant.bytes){text+=digits[byte>>4];text+=digits[byte&15];}
+  return text;
+}
+std::optional<SourceGameVariant> variant_buffer(std::string_view text,unsigned engine) {
+  SourceGameVariant variant;
+  if(engine>=7 || text.size()!=variant.bytes.size()*2)return {};
+  const auto digit=[](char value)->int {
+    if(value>='0' && value<='9')return value-'0';
+    if(value>='a' && value<='f')return value-'a'+10;
+    return -1;
+  };
+  for(unsigned i=0;i<variant.bytes.size();++i) {
+    const auto high=digit(text[i*2]),low=digit(text[i*2+1]);
+    if(high<0 || low<0)return {};
+    variant.bytes[i]=std::uint8_t(high*16+low);
+  }
+  // Validation applies after ordered overrides, just as it does for an
+  // authenticated LAN buffer. An override may repair a field in this base.
+  if(source_game_variant_type(variant)!=
+      source_game_variant_type(source_game_variant_default(engine)))return {};
+  return variant;
 }
 constexpr std::array<const char *, 15> campaign_names{
     "The Heretic", "The Armory",   "Cairo Station",    "Outskirts",
@@ -127,6 +153,10 @@ MenuState::MenuState(const FrontendContent &content,
           for (auto &v : saved_variants_)
             if (v.name == name)
               v.values.append(key, value);
+        } else if (kind == "saved_source" && file >> std::quoted(name)) {
+          std::string buffer;
+          if(file>>buffer)for(auto &v:saved_variants_)
+            if(v.name==name)v.source_settings=variant_buffer(buffer,v.engine);
         } else if (kind == "profile" && file >> std::quoted(name)) {
           if (!name.empty() && name.size() <= 48 && loaded.size() < 32 &&
               std::find(loaded.begin(), loaded.end(), name) == loaded.end())
@@ -146,6 +176,9 @@ MenuState::MenuState(const FrontendContent &content,
             profile_values_[name][key] = value;
         } else if (kind == "variant" && file >> key >> value) {
           variant_values_.append(key, value);
+        } else if (kind == "variant_source") {
+          std::string buffer;
+          if(file>>buffer)variant_source_settings_=variant_buffer(buffer,engine_);
         } else if (kind == "pc_display") {
           DisplaySettings v;
           unsigned safe{},legacy_aa{};
@@ -203,6 +236,7 @@ MenuState::MenuState(const FrontendContent &content,
     if (saved_variants_[i].name == variant_name_ &&
         saved_variants_[i].engine == engine_)
       saved_variant_ = int(i);
+  browsed_engine_=engine_;
   stack_.push_back(build(9, 0));
 }
 std::string MenuState::profile_name() const {
@@ -674,13 +708,13 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 15:
   case 208:
     for (unsigned i = 0; i < content_.variants.size(); ++i)
-      if (content_.variants[i].engine == engine_)
+      if (content_.variants[i].engine == browsed_engine_)
         f.entries.push_back({content_.variants[i].name, -7, int(i)});
     for (unsigned i=0;i<content_.bundled_variants.size();++i)
-      if(content_.bundled_variants[i].engine==engine_)
+      if(content_.bundled_variants[i].engine==browsed_engine_)
         f.entries.push_back({content_.bundled_variants[i].name,-7,int(content_.variants.size()+i)});
     for (unsigned i = 0; i < saved_variants_.size(); ++i)
-      if (saved_variants_[i].engine == engine_)
+      if (saved_variants_[i].engine == browsed_engine_)
         f.entries.push_back({saved_variants_[i].name, -9, int(i)});
     break;
   case 178: {
@@ -688,19 +722,38 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     const std::array<unsigned, 6> categories{
         match_category.at(engine_), 9,  team_category.at(engine_),
         game_category.at(engine_),  11, 12};
-    for (unsigned i = 0; i < ids.size(); ++i)
+    const auto variant=current_variant();
+    const bool custom=detail::frontend_custom_variant(variant);
+    for (unsigned i = 0; i < ids.size(); ++i) {
+      if(custom) {
+        const auto category=content_.categories.find(categories[i]);
+        if(category==content_.categories.end() ||
+            std::ranges::none_of(category->second,[&](auto datum){return variant_parameter(datum).has_value();}))continue;
+      }
       add(ids[i], 221, int(categories[i]));
+    }
+    if(custom) {
+      f.description=detail::frontend_custom_variant_description(variant);
+      if(!detail::frontend_custom_variant_parameters(variant).empty())
+        f.entries.push_back({"Mode Settings",221,int(detail::frontend_custom_variant_category)});
+    }
     break;
   }
   case 221:
   case 222: {
     const auto category = id == 222 ? 22 + match_category.at(engine_) : context;
-    if (const auto it = content_.categories.find(category);
+    if(category==detail::frontend_custom_variant_category) {
+      f.title="MODE SETTINGS";
+      f.description=detail::frontend_custom_variant_description(current_variant());
+      for(auto datum:detail::frontend_custom_variant_parameters(current_variant()))
+        if(const auto parameter=variant_parameter(datum))
+          f.entries.push_back({parameter->title,223,int(datum)});
+    } else if (const auto it = content_.categories.find(category);
         it != content_.categories.end())
       for (auto datum : it->second)
-        f.entries.push_back(
-            {content_.parameters.at(datum).title, 223, int(datum)});
-    if (id == 221) {
+        if(const auto parameter=variant_parameter(datum))
+          f.entries.push_back({parameter->title,223,int(datum)});
+    if (id == 221 && category!=detail::frontend_custom_variant_category) {
       const auto group = category == 9    ? 1
                          : category == 11 ? 4
                          : category == 12 ? 5
@@ -709,15 +762,16 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
                                           : 0;
       f.title = by_index(content_, s, 0x189e + group);
     }
+    if(detail::frontend_custom_variant(current_variant()))
+      f.description=detail::frontend_custom_variant_description(current_variant());
     break;
   }
   case 223:
-    if (const auto it = content_.parameters.find(context);
-        it != content_.parameters.end()) {
+    if (const auto parameter=variant_parameter(context)) {
       f.parameter = context;
-      f.title = it->second.header;
-      f.description = it->second.description;
-      for (const auto &v : it->second.choices)
+      f.title = parameter->header;
+      f.description = parameter->description;
+      for (const auto &v : parameter->choices)
         f.entries.push_back({v.label, -2, v.value});
     }
     break;
@@ -904,11 +958,15 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   if (!f.entries.empty() && id != 167) {
     int selected_value = 0;
     if (id == 223 && f.parameter) {
-      const auto &p = content_.parameters.at(f.parameter);
-      selected_value = source_game_variant_get(
-          source_game_variant({variant_name_,engine_,variant_values_}),
-          std::bit_cast<std::int32_t>(std::uint32_t(p.parameter)));
-    } else if (id == 10 || id == 193)
+      const auto parameter=variant_parameter(f.parameter);
+      if(parameter)selected_value=detail::frontend_variant_parameter_value(current_variant(),*parameter);
+    } else if(id==15 || id==208) {
+      const auto selected=std::ranges::find(f.entries,variant_name_,&MenuEntry::label);
+      if(browsed_engine_==engine_ && selected!=f.entries.end())selected_value=selected->value;
+      else selected_value=f.entries.front().value;
+    } else if(id==60 || id==207)
+      selected_value=int(engine_);
+    else if (id == 10 || id == 193)
       selected_value = int(profile_);
     else if (id == 11 || id == 2)
       selected_value = int(level_);
@@ -1008,10 +1066,14 @@ void MenuState::open(unsigned screen, unsigned context) {
   ++revision;
 }
 void MenuState::open_game_pause(bool campaign) {
+  open_game_pause(campaign,false);
+}
+void MenuState::open_game_pause(bool campaign,bool online) {
   if(!content_.gameplay_overlay || !content_.vista)
     throw FormatError("Pause menu requires its gameplay UI source");
   stack_.clear();
-  stack_.push_back(build(vista_menu(18),unsigned(campaign)));
+  stack_.push_back(build(vista_menu(18),campaign?campaign_game_pause_context:
+      online?online_game_pause_context:0u));
   ++revision;
 }
 void MenuState::set_pcr_clock(std::function<std::uint32_t()> clock) {
@@ -1117,13 +1179,17 @@ void MenuState::open_vista_lobby() {
   stack_.clear();launch.reset();quit=false;
   stack_.push_back(std::move(lobby));++revision;
 }
-void MenuState::set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer> players,unsigned machines) {
+void MenuState::set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer> players,unsigned machines,std::span<const unsigned> local_slots) {
   if(players.empty() || players.size()>16 || !machines || machines>16)
     throw FormatError("System Link lobby requires its actual retained participant roster");
   mode_=2;system_link_host_=host;system_link_players_=std::move(players);system_link_machines_=machines;
+  system_link_local_slots_.fill(-1);const auto locals=local_players();
+  if(local_slots.size()==locals.size())for(unsigned view=0;view<locals.size();++view)
+    system_link_local_slots_[locals[view].controller]=int(local_slots[view]);
 }
 void MenuState::leave_system_link_lobby() {
   system_link_host_.reset();system_link_players_.clear();system_link_machines_=0;system_link_leave_={};
+  system_link_local_slots_.fill(-1);lobby_team_change_={};
   lobby_session_action_={};session_countdown_.reset();stack_.clear();launch.reset();mode_=2;
   open(13);
 }
@@ -1133,8 +1199,12 @@ void MenuState::adopt_system_link_configuration(std::string_view map,const UiVar
     const auto slash=row.scenario_path.find_last_of("/\\");return row.scenario_path.substr(slash==std::string::npos?0:slash+1)==map;
   });
   if(selected==content_.multiplayer_maps.end())throw FormatError("System Link host selected an unavailable native map");
-  (void)source_game_variant(variant);map_=unsigned(selected-content_.multiplayer_maps.begin());
-  engine_=variant.engine;variant_values_=variant.values;variant_name_=variant.name;saved_variant_=-1;
+  if(!source_game_variant_valid(source_game_variant(variant)))
+    throw FormatError("System Link host selected invalid match settings");
+  map_=unsigned(selected-content_.multiplayer_maps.begin());
+  engine_=variant.engine;variant_values_=variant.values;variant_source_settings_=variant.source_settings;
+  browsed_engine_=engine_;
+  variant_name_=variant.name;saved_variant_=-1;
 }
 void MenuState::open_native_mainmenu(const std::function<void()>& before_register) {
   if(!before_register)throw FormatError("Native main-menu return requires its source presence publication owner");
@@ -1197,7 +1267,7 @@ std::vector<FrontendLocalPlayer> MenuState::local_players() const {
   if(signed_in_.empty())return players;
   players.push_back({0,signed_in_,appearance_for_profile(signed_in_),lobby_team_,local_inputs_[0]});
   for(unsigned i=1;i<local_profiles_.size();++i)if(!local_profiles_[i].empty())
-    players.push_back({i,local_profiles_[i],appearance_for_profile(local_profiles_[i]),0,local_inputs_[i]});
+    players.push_back({i,local_profiles_[i],appearance_for_profile(local_profiles_[i]),local_teams_[i],local_inputs_[i]});
   return players;
 }
 std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool join) {
@@ -1209,7 +1279,9 @@ std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool jo
   // Title sign-out clears every input slot. Rebind the selected host before
   // interpreting a new controller as an additional Split Screen player.
   if(join && local_inputs_[0]==-1 && !online_join) {local_inputs_[0]=instance;return 0;}
-  if((((frame().screen==30 || frame().screen==14) && mode_==1) || online_join) && join && !signed_in_.empty()) {
+  const bool local_join=(frame().screen==30 || frame().screen==14) &&
+      (mode_==1 || (mode_==2 && !system_link_host_.has_value()));
+  if((local_join || online_join) && join && !signed_in_.empty()) {
     for(unsigned i=1;i<local_profiles_.size();++i)if(local_profiles_[i].empty()) {
       local_inputs_[i]=instance;joining_controller_=i;host_profile_=profile_;
       joining_online_=online_join;
@@ -1224,7 +1296,7 @@ std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool jo
 void MenuState::finish_local_signin() {
   if(!joining_controller_)return;
   const auto controller=*joining_controller_;const bool online=joining_online_;
-  local_profiles_[controller]=profile_name();
+  local_profiles_[controller]=profile_name();local_teams_[controller]=0;local_team_edits_[controller]={};
   joining_controller_.reset();profile_=host_profile_;++revision;
   joining_online_=false;
   if(online){++couch_revision_;open_online_local_player(controller);}
@@ -1233,23 +1305,49 @@ void MenuState::leave_local_controller(unsigned controller) {
   if(controller==0 || controller>=4 || joining_controller_)return;
   if(mode_==3 && !online_couch_mutable())return;
   if(session_countdown_ && *session_countdown_>=0)back();
-  local_profiles_[controller].clear();local_inputs_[controller]=-1;++revision;
+  local_profiles_[controller].clear();local_inputs_[controller]=-1;local_teams_[controller]=0;local_team_edits_[controller]={};++revision;
   if(local_discord_logins_[controller])local_discord_logins_[controller]->cancel();
   local_discord_logins_[controller].reset();local_discord_subjects_[controller].clear();++couch_revision_;
   if(local_profile_accounts_[controller])local_profile_accounts_[controller]->sign_out();
   local_profile_accounts_[controller].reset();
 }
+UiVariant MenuState::current_variant() const {
+  return {variant_name_,engine_,variant_values_,variant_source_settings_};
+}
+std::optional<UiParameter> MenuState::variant_parameter(unsigned datum) const {
+  const auto variant=current_variant();
+  if(auto parameter=detail::frontend_custom_variant_parameter(variant,datum))return parameter;
+  const auto found=content_.parameters.find(datum);
+  if(found==content_.parameters.end())return {};
+  auto parameter=detail::frontend_custom_variant_parameter(variant,found->second);
+  if(parameter && detail::frontend_custom_variant(variant) &&
+      (parameter->parameter==15 || parameter->parameter==90)) {
+    const auto count=local_players().size();
+    std::erase_if(parameter->choices,[&](const auto &choice) {
+      auto candidate=variant;candidate.values.set(parameter->parameter,choice.value);
+      const auto source=source_game_variant(candidate);
+      return std::min(source_game_variant_get(source,15),source_game_variant_get(source,90))<int(count);
+    });
+    if(parameter->choices.empty())return {};
+  }
+  return parameter;
+}
+bool MenuState::custom_match_settings_frame(const MenuFrame &frame) const {
+  return (frame.screen==178 || frame.screen==221 || frame.screen==222 || frame.screen==223) &&
+      detail::frontend_custom_variant(current_variant());
+}
 FrontendLaunch MenuState::selected_multiplayer_configuration() const {
   if(mode_!=1 && mode_!=2)throw FormatError("Native multiplayer configuration requires its selected local mode");
-  UiVariant variant{variant_name_,engine_,variant_values_};
+  auto variant=current_variant();
   const auto rules=detail::frontend_multiplayer_rules(variant);
   FrontendLaunch result;
   result.map=frontend_multiplayer_launch_file(content_.multiplayer_maps,map_);
   const auto &map=content_.multiplayer_maps.at(map_);
   result.shared_maps=map.shared_maps;
-  if(rules.custom==CustomSlayer::none && !rules.defusal && frontend_multiplayer_energy_start(map))throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
   result.multiplayer=true;
   const auto players=local_players();result.local_players=unsigned(players.size());
+  if(!rules.requires_source_engine && players.size()>rules.maximum_players)
+    throw FormatError("Increase the player limit or remove a local player before starting this match.");
   if(mode_==1 && rules.custom==CustomSlayer::infection && players.size()<2)throw FormatError("Infection requires at least two local players or a System Link/ONLINE match.");
   for(const auto& player:players) {
     result.selected_profiles.push_back(native_selected_player_configuration(
@@ -1263,6 +1361,10 @@ FrontendLaunch MenuState::selected_multiplayer_configuration() const {
       result.selected_teams.push_back(team);
     }
   }
+  if(mode_==1 && bomb_defusal_variant(variant) &&
+      (std::ranges::find(result.selected_teams,0)==result.selected_teams.end() ||
+       std::ranges::find(result.selected_teams,1)==result.selected_teams.end()))
+    throw FormatError("Bomb Defusal requires local players on both Red and Blue teams. Use Change Team before starting.");
   result.host_port=mode_==2?2002:0;result.variant=std::move(variant);
   if(multiplayer_map_validator_)multiplayer_map_validator_(result);
   else if(rules.primary_light_vehicle)
@@ -1381,15 +1483,32 @@ void MenuState::accept() {
   if(content_.gameplay_overlay && !frame().entries.empty() &&
       frame().entries.at(frame().selected).destination<=-100) {
     const auto action=frame().entries.at(frame().selected).destination;
+    if(action==-114) {
+      if(!game_pause_teams_ || !game_pause_teams_->enabled) {unavailable("Team Changing is Off for this match.");return;}
+      open(vista_menu(18),team_game_pause_context);return;
+    }
+    if(action==-115) {
+      const auto team=std::int16_t(frame().entries.at(frame().selected).value);
+      const auto error=game_pause_change_team_?game_pause_change_team_(team):"The host is unavailable.";
+      if(!error.empty()){unavailable(error);return;}
+      if(game_pause_action_)game_pause_action_(GamePauseAction::Resume);
+      return;
+    }
     if(action==-104) {back();return;}
     if(action==-103 || action==-102) {
+      const bool leave_match=action==-103 && frame().context==online_game_pause_context;
       // Original23217B/2321FC confirm restart/quit before dispatch.
       const auto &d=content_.dialogs.at(action==-102?0xaa:0xa8);
       open(vista_menu(7));
       auto &f=stack_.back();f.title=d.title;f.description=d.message;
       if(action==-103) {
-        f.title=detail::frontend_pc_compiled_localized(*content_.vista, content_.screen(vista_menu(18)),0x040002ed);
-        f.description="Quit the current game? Unsaved progress will be lost.";
+        if(leave_match) {
+          f.title="Leave Match";
+          f.description="Leave the current online match?";
+        } else {
+          f.title=detail::frontend_pc_compiled_localized(*content_.vista, content_.screen(vista_menu(18)),0x040002ed);
+          f.description="Quit the current game? Unsaved progress will be lost.";
+        }
       }
       f.entries={{action==-102?d.first:f.title,action==-102?-112:-113,0},{d.second,-104,0}};
       f.selected=1;++revision;return;
@@ -1593,8 +1712,14 @@ void MenuState::accept() {
   if (f.screen == 47)
     appearance_part_ = unsigned(entry.value);
   if (f.screen == 60 || f.screen == 207)
-    engine_ = unsigned(entry.value);
+    browsed_engine_ = unsigned(entry.value);
   if (entry.destination >= 0) {
+    if (f.screen == 218 && entry.destination == 12) {
+      // New Game always starts at The Heretic, even after Select Level has
+      // retained another mission. Accepting difficulty creates a new launch.
+      level_ = 0;
+      launch.reset();
+    }
     if (entry.destination == 167) {
       keyboard_purpose_ = entry.value < 0 ? 0u : unsigned(entry.value);
       keyboard_text = keyboard_purpose_ == 1 || keyboard_purpose_ == 5
@@ -1697,12 +1822,16 @@ void MenuState::accept() {
     if (entry.destination == -7) {
       saved_variant_ = -1;
       variant_ = unsigned(entry.value);
+      engine_ = builtin_variant(content_,variant_).engine;
       variant_name_ = builtin_variant(content_,variant_).name;
       variant_values_ = builtin_variant(content_,variant_).values;
+      variant_source_settings_ = builtin_variant(content_,variant_).source_settings;
     } else {
       saved_variant_ = entry.value;
+      engine_ = saved_variants_.at(saved_variant_).engine;
       variant_name_ = saved_variants_.at(saved_variant_).name;
       variant_values_ = saved_variants_.at(saved_variant_).values;
+      variant_source_settings_ = saved_variants_.at(saved_variant_).source_settings;
     }
     if (category_ == 1)
       open(194, 1);
@@ -1752,7 +1881,10 @@ void MenuState::accept() {
       map_ = unsigned(entry.value);
       back();
     } else if (f.screen == 223 && f.parameter) {
-      variant_values_.set(content_.parameters.at(f.parameter).parameter, entry.value);
+      const auto parameter=variant_parameter(f.parameter);
+      if(!parameter || std::ranges::none_of(parameter->choices,[&](const auto &choice){return choice.value==entry.value;}))
+        throw FormatError("The selected match option changed before it was accepted");
+      variant_values_.set(parameter->parameter, entry.value);
       if (saved_variant_ >= 0)
         saved_variants_.at(saved_variant_).values = variant_values_;
       save();
@@ -1786,8 +1918,10 @@ void MenuState::accept() {
       saved_variants_.erase(saved_variants_.begin() + saved_variant_);
       saved_variant_ = -1;
       const auto &original = builtin_variant(content_,variant_);
+      engine_=browsed_engine_=original.engine;
       variant_name_ = original.name;
       variant_values_ = original.values;
+      variant_source_settings_ = original.source_settings;
       save();
       while (stack_.size() > 1 && frame().screen != 60)
         stack_.pop_back();
@@ -1996,8 +2130,21 @@ void MenuState::auxiliary() {
     keyboard_purpose_ = 1;
     keyboard_text = profile_name();
     open(167, 1);
-  } else if (frame().screen == 15 || frame().screen == 208)
+  } else if (frame().screen == 15 || frame().screen == 208) {
+    if(frame().entries.empty())return;
+    const auto &entry=frame().entries.at(frame().selected);
+    const auto &selected=entry.destination==-9?saved_variants_.at(entry.value):
+        builtin_variant(content_,unsigned(entry.value));
+    // Opening an editor commits the focused preset. Merely browsing another
+    // engine leaves the active match intact when the player backs out.
+    if(selected.engine!=engine_ || selected.name!=variant_name_) {
+      engine_=selected.engine;variant_name_=selected.name;variant_values_=selected.values;
+      variant_source_settings_=selected.source_settings;
+      saved_variant_=entry.destination==-9?entry.value:-1;
+      if(entry.destination==-7)variant_=unsigned(entry.value);
+    }
     open(178);
+  }
   else if (frame().screen == 26)
     open(frame().context == 1 ? 217 : 216,frame().context==0?43:0);
   else if (frame().screen == 167)
@@ -2140,7 +2287,7 @@ void MenuState::commit_text() {
         return;
       }
       saved_variant_ = int(saved_variants_.size());
-      saved_variants_.push_back({keyboard_text, engine_, variant_values_});
+      saved_variants_.push_back({keyboard_text, engine_, variant_values_,variant_source_settings_});
     } else
       saved_variants_.at(saved_variant_).name = keyboard_text;
     variant_name_ = keyboard_text;
@@ -2351,8 +2498,10 @@ void MenuState::save() const {
            << '\n';
   for (const auto &[key, value] : variant_values_)
     file << "variant " << key << ' ' << value << '\n';
+  if(variant_source_settings_)file<<"variant_source "<<variant_buffer_text(*variant_source_settings_)<<'\n';
   for (const auto &v : saved_variants_) {
     file << "saved_variant " << std::quoted(v.name) << ' ' << v.engine << '\n';
+    if(v.source_settings)file<<"saved_source "<<std::quoted(v.name)<<' '<<variant_buffer_text(*v.source_settings)<<'\n';
     for (const auto &[key, value] : v.values)
       file << "saved_value " << std::quoted(v.name) << ' ' << key << ' '
            << value << '\n';
@@ -2434,15 +2583,18 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
       frontend_lobby_variant_type(engine_), view.map != nullptr});
   view.input.host = true;
   view.input.party_privacy = profile_option(25, 0);
-  const auto settings=source_game_variant({variant_name_,engine_,variant_values_});
-  const bool defusal=!campaign && bomb_defusal_variant({variant_name_,engine_,variant_values_});
+  const auto variant=current_variant();
+  const auto settings=source_game_variant(variant);
+  const bool defusal=!campaign && bomb_defusal_variant(variant);
   view.input.team_mode = !campaign && source_game_variant_get(settings,91) != 0;
   // Original flag5/parameter13 controls NONE in the cycle. The retail assets
   // have no authored rule selector for this parameter; do not add one.
   view.allow_no_team = !campaign && source_game_variant_get(settings,13) != 0;
   view.player_team = lobby_team_;
-  view.team_edit = lobby_team_edit_;
-  view.input.local_team_selection = lobby_team_edit_.valid;
+  if(system_link_host_)view.local_team_session_indices=system_link_local_slots_;
+  view.team_edit = lobby_team_edit_;view.local_team_edits=local_team_edits_;
+  view.local_team_edits[0]=lobby_team_edit_;
+  view.input.local_team_selection = std::ranges::any_of(view.local_team_edits,[](const auto &edit){return edit.valid;});
   view.team_count = frontend_lobby_team_count(view.map ?
       std::span<const std::uint8_t>(view.map->team_counts) : std::span<const std::uint8_t>{},
       frontend_lobby_variant_type(engine_).value_or(-1), view.map != nullptr);
@@ -2458,10 +2610,12 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   // online/loading states. Current native roster contains one ready local
   // player;19A2CE excludes NONE from the distinct-team count. Co-op requires
   // two present and ready players. Preview edits do not replace membership.
+  std::uint16_t local_team_mask{};
+  for(const auto &player:local_players())if(player.team>=0 && player.team<int(view.team_count))local_team_mask|=std::uint16_t(1u<<player.team);
   if (view.map && view.input.player_count > 0)
     view.input.status = frontend_lobby_ready_status({view.input.session_enum,
         view.input.player_count, view.input.player_count, view.input.team_mode,
-        lobby_team_ >= 0 && lobby_team_ < (defusal?2:16) ? 1 : 0, int(view.team_count)});
+        std::popcount(local_team_mask), int(view.team_count)});
   // 63F00 checks local host/session ownership, independently of19A2CE.
   view.input.start_permission = view.input.host;
   // Actual native session countdown, rather than an immediate Start launch.
@@ -2476,6 +2630,10 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   if (!campaign) {
     std::map<unsigned,int> queries;
     for (unsigned id=0;id<112;++id)queries.emplace(id,source_game_variant_get(settings,int(id)));
+    if(detail::frontend_custom_variant(variant)) {
+      UiParameter capacity;capacity.parameter=90;
+      queries[90]=detail::frontend_variant_parameter_value(variant,capacity);
+    }
     view.quick_options = frontend_lobby_quick_options(content_, engine_, queries,
         detail::frontend_compiled_localized(content_,content_.screens.at(14),0x1a001820));
   }
@@ -2493,7 +2651,22 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   }
   return view;
 }
-bool MenuState::lobby_team_event(int type, int param) {
+void MenuState::adopt_gameplay_teams(std::span<const std::int8_t> teams,bool preserve_edits) {
+  const auto players=local_players();
+  if(teams.size()!=players.size())return;
+  bool changed{};
+  for(unsigned view=0;view<teams.size();++view)if(teams[view]>=0 && teams[view]<8) {
+    const auto controller=players[view].controller;
+    auto &team=controller==0?lobby_team_:local_teams_[controller];changed|=team!=teams[view];team=teams[view];
+  }
+  if(!preserve_edits){lobby_team_edit_={};local_team_edits_={};changed=true;}
+  if(changed)++revision;
+}
+bool MenuState::lobby_team_event(int type,int param) {return local_team_event(0,type,param);}
+bool MenuState::local_team_event(unsigned controller,int type, int param) {
+  if(controller>=4 || (controller && local_profiles_[controller].empty()))return false;
+  auto &membership=controller?local_teams_[controller]:lobby_team_;
+  auto &edit=controller?local_team_edits_[controller]:lobby_team_edit_;
   const auto lobby = lobby_view();
   if (!lobby) return false;
   FrontendLobbyTeamEvent input;
@@ -2502,10 +2675,16 @@ bool MenuState::lobby_team_event(int type, int param) {
   input.signed_in = !signed_in_.empty();
   input.available = frontend_lobby_team_available(lobby->input.session_enum,
                                                   lobby->input.team_mode ? 1 : 0);
-  if (input.signed_in) input.member = std::int8_t(lobby_team_);
+  if (input.signed_in) input.member = std::int8_t(membership);
   input.team_count = lobby->team_count;
   input.allow_none = lobby->allow_no_team;
-  const auto result = frontend_lobby_team_event(lobby_team_edit_, lobby_team_, input);
+  if(session_countdown_ && *session_countdown_>=0)input.unready=false;
+  const auto previous=membership;
+  const auto result = frontend_lobby_team_event(edit, membership, input);
+  if(result.update_requested && lobby_team_change_) {
+    const auto error=lobby_team_change_(controller,std::int16_t(membership));
+    if(!error.empty()){membership=previous;unavailable(error);}
+  }
   // This local session has no external original profile-update transport.
   // Its committed membership is the native session input exposed above.
   if (result.consumed) ++revision;

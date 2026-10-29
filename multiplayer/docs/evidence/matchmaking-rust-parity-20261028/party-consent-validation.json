@@ -1,0 +1,399 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_PARTY_CONSENT_VALIDATION_V1",
+  "updated_utc": "2026-10-28T20:30:45.562902+00:00",
+  "party_consent_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Native matching-party readiness/consent storage plans, profile/roster/session fencing, leader/ordered-roster/active-room/clan search gates, private queue permits and immutable party admission bindings. Accepted social/clan CRUD, countdown/remaining API/QoS/room policy, full client binding and original/native/delivery evidence remain open.",
+  "reproduced_gap": {
+    "trigger": "Remote member Ready; replace catalog description at the same ID/revision; leader starts a new search.",
+    "before": "HTTP 201 searching with stale remote consent",
+    "required_and_after": "HTTP 409 until fresh remote consent to the selected native profile and roster",
+    "failing_report": "party-consent-red-report.json",
+    "failing_log": "party-consent-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Consent schema/migration and reset plans, party revision/leader/member-handle SQL guards and atomic legacy/native consent writes",
+    "Accepted-party version/handle, full catalog/rank-table profile pin, bearer hash/session generation and whole connected-roster consent binding",
+    "Roster identity includes owner, session key/generation, protocol/maps/title language, signed-local/guest IDs and names; clan queues also bind accepted clan IDs",
+    "Fresh public readiness projection hides stale remote consent without exposing private binding material",
+    "The leader selects the current roster at Start; remote approval binds the whole roster. A valid own leader declaration can remain visible when another accepted connection first opens matchmaking.",
+    "Accepted leader/ordered physical roster, current remote consent, live/exact-build connections, guest/size/map/clan policy and active room/clan search checks",
+    "Opaque private request/actor/facts/profile/generation-bound queue permits, final seat validation and ticket/request/party-binding publication",
+    "Party change/invalidation/activity-link SQL plans and native ticket/proposal/gathering/query/permit retirement effects",
+    "Ordered private party bindings join the proposal digest and the existing Rust result source binding",
+    "One bounded native directory-seat operation supplies signed account IDs for typed clan lookup; no per-session ABI walk is needed"
+  ],
+  "storage_and_io": {
+    "trusted_facts": "The existing directory supplies accepted membership, canonical account/clan and room observations. Rust applies matching decisions; social/invitation/clan CRUD remains Python.",
+    "transaction": "Generic apply executes Rust statements within the caller transaction and enforces Rust expected row counts. A real SQLite trigger failure rolls back both native and presentation consent.",
+    "restart": "Service reinitialization against the same SQLite database in one test process preserves accepted membership/opaque handles and resets search consent. Native migration adds whole-roster binding to the earlier development table shape; this is not OS-process crash/distributed recovery evidence.",
+    "retirement": "Invalidation is conservative and grants no authority. It can cancel queued state before a later enclosing SQL rollback; notification acknowledgement/retry and future parallel/distributed fact/SQL/queue coordination remain unqualified.",
+    "permit_lease": "Uses the already configured native proposal lease; modern service policy, not an inferred original Live timeout.",
+    "human_client_scope": "The server freezes its selected complete profile. A full client-visible profile/capability chain through the native rendered flow is still an open requirement."
+  },
+  "checks": [
+    "Actual same-revision stale-consent HTTP red/green regression and stale readiness concealment",
+    "Connection replacement rejects remote consent even with unchanged database version and delayed retirement notification",
+    "Malformed/different request/facts/party/expiry and stale input cannot publish a ticket or advance original draw state",
+    "Successful admission retains party version, ordered handles/session generations and full profile digest while public responses hide them",
+    "Real SQLite trigger failure rolls back both consent representations; subsequent fresh Ready/search works",
+    "Same-process service reinitialization preserves party membership and migrates the prior storage shape while resetting approval",
+    "Existing privacy, activity, pregame countdown, linked account, Steam, couch, clan/private-rank/result and original numerical cohorts pass"
+  ],
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 52,
+    "backend_tests": 455,
+    "backend_seconds": 127.712,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ez_lhqez/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "2e802d5493820de7377dddc9cb0319782358080c5da4968d486bfb5252f006a2",
+      "bytes": 2114536,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 229,
+    "report": "party-consent-full-final-report.json",
+    "manifest": "party-consent-full-final-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ez_lhqez",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 30,
+    "backend_tests": 128,
+    "backend_seconds": 46.266,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-53so1ea5/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "6d42daa71c3fb957d1f6fb83cbbfdf3e22bac51d68d5511aa97f147fe2c232f2",
+      "bytes": 2109704,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 229,
+    "report": "party-consent-production-final-report.json",
+    "manifest": "party-consent-production-final-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-53so1ea5",
+    "scratch_removed": true
+  },
+  "integration_corrections": [
+    {
+      "report": "party-consent-roster-red-report.json",
+      "finding": "Fresh party readiness initially hid the leader declaration when the other accepted connection first opened matchmaking.",
+      "correction": "Remote consent still binds the whole roster; Start itself selects the leader roster. Existing shared-countdown tests pass without changing their expected consent/clock behavior.",
+      "passing_report": "party-consent-countdown-fix-report.json"
+    },
+    {
+      "report": "build/test-results/matchmaking-party-consent-native-20261028/report.json",
+      "finding": "One development invocation named test_parties_activity instead of the existing test_party_activity module; corrected invocations/full cohorts pass."
+    }
+  ],
+  "cmake": {
+    "passed": true,
+    "jobs": 2,
+    "test_jobs": 1,
+    "report": "party-consent-cmake-report.json",
+    "identity": "party-consent-cmake-build-identity.json",
+    "target": "halo2_online_protocol_rust_build",
+    "ctest": "online_protocol_rust_build_helper",
+    "archive_sha256": "61431375557342954c907c0d957d6546747c9a02cb8cdcc63a7357b87a73b8ae",
+    "worker_sha256": "3124c5aee60e9b0f23610dbc24c3a7d5a3d26cae2474557bebc8b6dba8816f4a",
+    "lock_sha256": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd",
+    "scope": "Live-tree component build; not frozen native gameplay or deployed release. Default service ABI has a separate frozen identity above.",
+    "build_removed": true
+  },
+  "original_evidence": {
+    "new_original_executable_runs": false,
+    "prior_pinned_numerical_fixtures_replayed": true,
+    "master_pdf_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "limits": "Declared native authorization and modern private permits; no original Live auth/party/service capture, historical download or actual native gameplay acceptance was recovered by this increment."
+  },
+  "remaining": [
+    "Rust accepted social/party/clan membership, invitation/privacy/activity and remaining HTTP policy/CRUD ownership",
+    "Party countdown publication state, retirement acknowledgement/retry and transaction/retry behavior across native invalidation effects",
+    "Future parallel/distributed directory-fact/SQL/queue coordination and full client-visible profile consent/capability identity",
+    "Remaining enqueue skill IO planning/roster construction, poll/cancel/content-failure/retry-cache policy, QoS sensors and running room/host/world continuity",
+    "Original summary/capacity/effective-to-result/result-wire/standings/arbitration/service producer recovery and all required historical profiles",
+    "Complete executable/map/profile/authority/expiry/namespace and pending-result recovery/concurrent dispute qualification",
+    "All seven families, 39 built-ins/historical variants, original-valid subjects/topologies, natural outcomes/continuity/results/party return/requeue and actual delivered G01-G12 acceptance"
+  ],
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_parties.rs": "6a4fe3bedd40940309b629d8f265e3421c4b63f0db7102846cdf8b935d7ffa29",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "1940f8c405870030d39d750b9fa6510a937e0341cd80a00dbfbddd3538855f35",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "c1f9dac1c4226dd12588a4d4604e0614072173c5e2415f201cbec71c590f12c0",
+    "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "rust/online_protocol/src/matchmaking_results.rs": "4ebf95a5fd41f369ab705d97c2aa55cad5349bcf98bb9d3b88ecedb6d117570e",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "887a189a052536b3d7a327383e577d634d7cc5058d3444388ba88565a99a53e2",
+    "rust/online_protocol/tests/matchmaking_parties.rs": "50ba5d4544c02749f5b0ea879c38411ccaaff05d6767b16b670757ee80e21d44",
+    "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "02884006cb7a0cda399f3a3f2d4121724e3a302baf65555c3f62238a4a47d0c4",
+    "rust/online_protocol/Cargo.toml": "a3a45bbd6a01d1720255abad8fc5cce0a06a80b5ff98693dee6b30b79011174e",
+    "rust/online_protocol/Cargo.lock": "c89281b09a6fab9364260eb440e65e1a7e73876b2771dbe9a4bd6ca8fd19b1e4",
+    "rust/online_security_ffi/Cargo.lock": "12b3ed9a6b0afc4e46b0ef8119819c74648ace877451011435a6814c56226fee",
+    "rust/online_protocol_bridge/Cargo.lock": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd",
+    "multiplayer/master_server/parties_http.py": "f12a230e6a2b8065461c00802f7e887cf1f78933a28f62d66e6a37e4bf4dfca9",
+    "multiplayer/master_server/matchmaking_http.py": "eb4839d312c820a527de57d51a71f7d14b4b4af3b7898e3952350381f02bf14c",
+    "multiplayer/master_server/native_database.py": "43e9bbe1437531ed0e5f0bdf47ba4f46c3235108ce0dfb12b0ada21a087b8a7a",
+    "multiplayer/master_server/native_matchmaking.py": "16a6af81c36312f87d721f6762b402a7bf8d6cef7c23ac45bfd4f85c89bd8796",
+    "multiplayer/master_server/tests/test_party_consent_owner_native.py": "cfd8551610b314d48b501e2c42bc5010eeb8c7f72631554ecd705f5964ecdb59",
+    "multiplayer/master_server/tests/test_parties_http.py": "6355d9afdb2f705957412f1bed71caf6a26852870110c141b7f6c0ffc0b63abe",
+    "tools/test_master_server.py": "0f4a47b8c60aa08fb1fd351433d318cf3efb49414d2c1ce0d09ab38a8d652daa"
+  },
+  "retained_small_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-full-final-report.json",
+      "bytes": 2479,
+      "sha256": "59623de9b767897048ad58c93711ea31283fed36aefc6cbed72bc730ff63017f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-full-final-source-manifest.json",
+      "bytes": 28977,
+      "sha256": "5b54824c7a420039f9cf243029f0dca880f2c88a8311bd70f4aa94e03ab05ac7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-full-final-step-0.log",
+      "bytes": 8679,
+      "sha256": "ec4356027d9a70d3a0ba217d580c38fc75df3993b683d0d59235189184fdc559"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-full-final-step-1.log",
+      "bytes": 1401,
+      "sha256": "eec793b4121af9d82471ae3b20e09c9065684a29bb08914cc2f3fd38a5dcf922"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-full-final-step-2.log",
+      "bytes": 64720,
+      "sha256": "e4159c426f23f3b5ae55057bba367efe7f5dc79c2f7d7eca6963e46a8a55aa70"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-production-final-report.json",
+      "bytes": 3211,
+      "sha256": "a0a70df6bcb7932e1d25ee74f8acfd4d611e946d0b5db55cfaa2ad4b9f107f62"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-production-final-source-manifest.json",
+      "bytes": 28977,
+      "sha256": "24f418ed236bcdc1b7b28eb432a4b5f5fc8c780d298ac7796a8768e3289e7a42"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-production-final-step-0.log",
+      "bytes": 5226,
+      "sha256": "fcff82a7c9bee5774eebd53ce0c0ef75f13299a56d87c82fdf46470e86ca2ecd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-production-final-step-1.log",
+      "bytes": 1401,
+      "sha256": "c2daf86ce9c02267a73389230a4d97c8c89208c5d2e7def55df0bd99ee1192f4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-production-final-step-2.log",
+      "bytes": 43058,
+      "sha256": "25b7d1b6ee614096bfcf7304791f4db869a713b954f23b733169de62d85dc5b1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-red-report.json",
+      "bytes": 1436,
+      "sha256": "a707d7f2b8efbf185f0bf1d53bdfe58809b44e78de1bfb200e0e601f1fcd953d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-red-source-manifest.json",
+      "bytes": 28729,
+      "sha256": "6aa1239d6b961edb5adb70131d2b7e85b9c892a9402891072a078ab203578bf4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-red-step-0.log",
+      "bytes": 1400,
+      "sha256": "346fca148d38bb8d42718b91187c21798e0dcfa38c7d5643ae631cdff0039c97"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-red-step-1.log",
+      "bytes": 1879,
+      "sha256": "e5a948cdf29684499bf687b7ad3d40ca47cba003c7a33fb87a9e54132f32954b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-countdown-fix-report.json",
+      "bytes": 1997,
+      "sha256": "5330e8361b46ef6e4d41893e810b6faa2b0c3d2db612f4b824e5625cd3ce63dc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-countdown-fix-source-manifest.json",
+      "bytes": 28977,
+      "sha256": "f78f00614d65631095ede80a665bb980772b33b617440d496631124bb4b9f2a0"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-countdown-fix-step-0.log",
+      "bytes": 1926,
+      "sha256": "1ddce39a8f5e63d84ffc53e02f7eee3c1e47dde2da72a4a462abf819c088b4a2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-countdown-fix-step-1.log",
+      "bytes": 1401,
+      "sha256": "52af1972946d5cac46bf9b00102875c7af94ba3fa55f97844248c74c9441a200"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-countdown-fix-step-2.log",
+      "bytes": 1997,
+      "sha256": "f1d14a443ac8a42011433ec6aab758f2504e7a2b56249b1689a363b44a1e5af7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-roster-red-report.json",
+      "bytes": 2069,
+      "sha256": "df4e8beb4f23197691469644252fb47afdce07a862f5119cd16d004c8e858b80"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-roster-red-source-manifest.json",
+      "bytes": 28852,
+      "sha256": "c689270ce6f3d5d4677da200a85445719994fad10cccc3a549a34f92acdf557a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-roster-red-step-0.log",
+      "bytes": 2204,
+      "sha256": "d80f79a05d833e202e7c0fb286e9db374662880b407abfc09e1a894060b0f529"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-roster-red-step-1.log",
+      "bytes": 1401,
+      "sha256": "c050cb36cf2879838fa060ce9af91498925c987a0efeb067527578c2488b7b56"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-roster-red-step-2.log",
+      "bytes": 15231,
+      "sha256": "7126be7554da18c3edaf273d7108e3df363eeff557a2b7711dd6915a00d8e44c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-directory-report.json",
+      "bytes": 2003,
+      "sha256": "25a09abec94871f7a3136ef4e25c580357e4ebcc028e3413bc08a03a97d5b019"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-directory-source-manifest.json",
+      "bytes": 28977,
+      "sha256": "6545ec3466c4c0f67667434c0197e356ffa18ca21eeb7c9fe6a9a626d69995e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-directory-step-0.log",
+      "bytes": 1926,
+      "sha256": "fdba21d9f1395176bfe101138f40bef9ad8a845302e2e23c93bcc6f3dbdd0b3c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-directory-step-1.log",
+      "bytes": 1401,
+      "sha256": "2dde38425fb226ca8e0285e3cdd6c9956b688e9ee9ab6ad03b3925f46011a901"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-directory-step-2.log",
+      "bytes": 14736,
+      "sha256": "3dc1202286e1649299b5292b6556b9eae0d3ea0a48473010181b3501c4e37dd7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-cmake-report.json",
+      "bytes": 2448,
+      "sha256": "b21728ad852aefa469a3342cec07a895c56fdfdf0e31801827c170b2eac316e7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-cmake-configure.log",
+      "bytes": 4624,
+      "sha256": "f835859131cac3991bde121e827539df9f1ab83b851677e109f84f959f7fbe7f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-cmake-build.log",
+      "bytes": 6785,
+      "sha256": "abc696f938a123e0970fcfdc971d1aeb629efb4d23b34efb000a74d4a056cb9e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-cmake-tests.log",
+      "bytes": 284,
+      "sha256": "162879bfa8bcd206dbb2c239ea7c479cbcf12a71250b3784dc0d7a01762c0d8f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-cmake-build-identity.json",
+      "bytes": 1820,
+      "sha256": "63cdc26c7f47424a2077cc57a62091c69a9abc1767b6e2dc7619aaf6c88343af"
+    }
+  ],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-m9e26c7j",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-cmake-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cpr2s67w",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-countdown-fix-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-74or8910",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-directory-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-uhbnx3ja",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-full-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ez_lhqez",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-full-final-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-4vrzio6f",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-native-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-mp7_ux_l",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-owner-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ezdatvn6",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-production-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-53so1ea5",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-production-final-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ot7bh9l2",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-red-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-albe5xa7",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-roster-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-99h9ia6x",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-sql-20261028/report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-rb5_wru1",
+      "removed": true,
+      "report": "build/test-results/matchmaking-party-consent-wired-20261028/report.json"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false
+}

@@ -26,6 +26,7 @@ void check(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
+void campaign_launch(const FrontendContent &content);
 template <class F> void rejects(F f) {
   bool rejected = false;
   try {
@@ -2472,10 +2473,11 @@ void retail(const std::filesystem::path &maps) {
   split.select(0);split.accept();
   check(split.launch && split.launch->multiplayer && split.launch->local_players==1 && !split.launch->host_port,
         "Selecting one local profile must not create a second local player");
-  MenuState unsupported(content);sign_in_local(unsupported);choose(unsupported,3,30);choose(unsupported,0,14);
-  choose(unsupported,1,23);choose(unsupported,1,207);choose(unsupported,1,208);
-  choose(unsupported,0,14);unsupported.select(0);unsupported.accept();
-  check(!unsupported.launch && unsupported.frame().screen!=14,"Unsupported multiplayer engines must remain explicit");
+  MenuState king(content);sign_in_local(king);choose(king,3,30);choose(king,0,14);
+  choose(king,1,23);choose(king,1,207);choose(king,1,208);
+  choose(king,0,14);king.select(0);king.accept();
+  check(king.launch && king.launch->variant.engine==3 && king.launch->host_port==2002,
+        "System Link King must reach its original multiplayer engine");
   MenuState campaign(content);
   campaign.open(6);
   choose(campaign, 0, 218);
@@ -2486,6 +2488,7 @@ void retail(const std::filesystem::path &maps) {
   check(campaign.launch && campaign.launch->map == "01b_spacestation.map" &&
             campaign.launch->campaign && campaign.launch->difficulty == 3,
         "campaign map handoff");
+  campaign_launch(content);
   MenuState variants(content, preferences);
   variants.open(19);
   choose(variants, 1, 60);
@@ -2589,6 +2592,49 @@ void retail(const std::filesystem::path &maps) {
   std::cout << "Retail menu navigation, 150 panes and all 92 parameter dialogs "
                "passed\n";
 }
+void campaign_launch(const FrontendContent &content) {
+  auto choose = [](MenuState &state, unsigned row, unsigned screen) {
+    state.select(row);
+    state.accept();
+    check(state.frame().screen == screen, "campaign menu route changed");
+  };
+  for (unsigned difficulty = 0; difficulty < 4; ++difficulty) {
+    MenuState state(content);
+    state.open(6);
+    choose(state, 0, 218);
+    choose(state, 2, 11);
+    choose(state, 14, 12);
+    state.select(3);
+    state.accept();
+    check(state.launch && state.launch->map == "08b_deltacontrol.map" &&
+              state.launch->campaign && state.launch->difficulty == 3,
+          "Select Level lost its selected mission or difficulty");
+    state.back(); // Return from Select Level's difficulty picker.
+    state.back();
+    check(state.frame().screen == 218, "campaign selector did not return");
+    choose(state, 0, 12);
+    check(!state.launch, "New Game retained an earlier launch request");
+    state.back();
+    check(state.frame().screen == 218 && !state.launch,
+          "cancelling New Game submitted a launch");
+    choose(state, 0, 12);
+    state.select(difficulty);
+    state.accept();
+    check(state.launch && state.launch->map == "00a_introduction.map" &&
+              state.launch->campaign && !state.launch->multiplayer &&
+              state.launch->difficulty == difficulty &&
+              state.launch->local_players == 1 && !state.launch->online_match,
+          "New Game did not request a fresh Heretic campaign at chosen difficulty");
+  }
+  MenuState resume(content);
+  resume.open(218);
+  choose(resume, 1, 8);
+  check(!resume.launch && resume.frame().title == "UNAVAILABLE" &&
+            resume.frame().description.find("save and resume") != std::string::npos,
+        "unimplemented Resume unexpectedly submitted a campaign launch");
+  std::cout << "Campaign New Game: four difficulties, retained Select Level, "
+               "cancel and unavailable Resume passed\n";
+}
 void movies(const std::filesystem::path &maps) {
   const std::array<std::pair<const char *, unsigned>, 3> files{
       {{"intro", 556}, {"attract", 3588}, {"credits", 10375}}};
@@ -2624,7 +2670,10 @@ int main(int argc, char **argv) {
     frame_edge_dds_parser();
     attract_timing();
     music_debounce();
-    if (argc > 2 && std::string(argv[2]) == "--movies")
+    if (argc > 2 && std::string(argv[2]) == "--campaign-only") {
+      Cache cache(std::filesystem::path(argv[1]) / "mainmenu.map");
+      campaign_launch(cache.load_frontend());
+    } else if (argc > 2 && std::string(argv[2]) == "--movies")
       movies(argv[1]);
     else if (argc > 1)
       retail(argv[1]);

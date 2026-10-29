@@ -3,6 +3,7 @@
 // Writes "frames cpu_ns wall_ns" rows to H2_CPU_MONITOR_OUT on exit.
 #define _GNU_SOURCE
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +14,11 @@
 
 #define CAP 4096
 static struct { long frames; uint64_t cpu, wall; } rows[CAP];
-static volatile int nrows, stop;
+// Only the watcher writes samples. dump() joins it before reading this bank.
+static int nrows;
+static atomic_int stop;
+static pthread_t watcher;
+static int watcher_started;
 static const char *tsv, *out;
 static clockid_t main_clock;
 
@@ -23,7 +28,7 @@ static void *watch(void *arg) {
     (void)arg;
     long lines = 0, offset = 0, last = -1;
     char buf[65536];
-    while (!stop) {
+    while (!atomic_load_explicit(&stop, memory_order_relaxed)) {
         struct stat st;
         if (stat(tsv, &st) == 0 && st.st_size < offset) { offset = 0; lines = 0; }
         FILE *f = fopen(tsv, "r");
@@ -47,7 +52,12 @@ static void *watch(void *arg) {
 }
 
 static void dump(void) {
-    stop = 1;
+    atomic_store_explicit(&stop, 1, memory_order_relaxed);
+    if (!watcher_started) return;
+    // Join publishes the complete last row and prevents the watcher from
+    // touching its paths/storage while exit tears down the process.
+    if (pthread_join(watcher, NULL) != 0) return;
+    watcher_started = 0;
     FILE *f = fopen(out, "w");
     if (!f) return;
     for (int i = 0; i < nrows; ++i) fprintf(f, "%ld %llu %llu\n", rows[i].frames, (unsigned long long)rows[i].cpu, (unsigned long long)rows[i].wall);
@@ -58,7 +68,12 @@ __attribute__((constructor)) static void init(void) {
     tsv = getenv("HALO2_RENDER_TIMINGS"); out = getenv("H2_CPU_MONITOR_OUT");
     if (!tsv || !out) return;
     unsetenv("LD_PRELOAD");
-    pthread_getcpuclockid(pthread_self(), &main_clock);
-    atexit(dump);
-    pthread_t t; pthread_create(&t, NULL, watch, NULL); pthread_detach(t);
+    if (pthread_getcpuclockid(pthread_self(), &main_clock) != 0) return;
+    if (pthread_create(&watcher, NULL, watch, NULL) != 0) return;
+    watcher_started = 1;
+    if (atexit(dump) != 0) {
+        atomic_store_explicit(&stop, 1, memory_order_relaxed);
+        pthread_join(watcher, NULL);
+        watcher_started = 0;
+    }
 }

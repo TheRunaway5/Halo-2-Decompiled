@@ -9,7 +9,7 @@ namespace halo2 {
 // clock, progress publisher, audio owner or frontend/world transition.
 class NativeLoadingPresentation {
 public:
-    explicit NativeLoadingPresentation(const VistaLoadingAssets&);
+    explicit NativeLoadingPresentation(const VistaLoadingAssets&,bool preserve_logo_proportions=false);
     const Mesh& resident_mesh() const { return mesh_; }
     std::span<const Material> materials() const { return mesh_.materials; }
     std::span<const Vertex> vertices() const { return vertices_; }
@@ -20,5 +20,7 @@ public:
 private:
     Mesh mesh_;
     std::vector<Vertex> vertices_;
+    bool preserve_logo_proportions_{};
+    Vec2 logo_size_{};
 };
 }

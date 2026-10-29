@@ -38,6 +38,11 @@ def main():
     value.update(returncode=result.returncode,command=command,original_controls=controls['original_fixtures'],
         input_sha256={str(p):sha(p) for p in (Path(binary),Path(map_path),ROOT/'tests/fixtures/multiplayer_engines_original_tu15.json')},
         raw_captures=[dict(file=p.name,bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(output.glob('*.ppm'))])
+    # CMake may request a bounded report in its owned build. Raw GPU frames
+    # remain in this test's private scratch and are removed by run_test.py.
+    if len(sys.argv)>4:
+        report_target=Path(sys.argv[4]);report_target.parent.mkdir(parents=True,exist_ok=True)
+        report_target.write_text(json.dumps(value,indent=2)+'\n')
     destination=os.environ.get('HALO2_ONLINE_FLOW_EVIDENCE')
     if destination:
         target=Path(destination)

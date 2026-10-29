@@ -37,4 +37,7 @@ if(WIN32 AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux" AND HALO2_STAGE_BUILD_OUTPU
         USES_TERMINAL
         COMMENT "Packaging native Windows Vulkan executable and runtime dependencies"
         VERBATIM)
+    if(TARGET halo2_mcc_loading_audio)
+        add_dependencies(halo2_windows_package halo2_mcc_loading_audio)
+    endif()
 endif()

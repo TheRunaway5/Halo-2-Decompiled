@@ -121,13 +121,18 @@ int main(int argc,char **argv)try {
       bounds[0]=std::min(bounds[0],p.x);bounds[1]=std::min(bounds[1],p.y);
       bounds[2]=std::max(bounds[2],p.x);bounds[3]=std::max(bounds[3],p.y);
     }
-    if(wide) {
-      const auto v=hud_viewport(players,view,true);
-      const auto shifted=v.outer.right*2-(v.outer.right-v.safe.right)*1.5f;
-      for(unsigned k:{0u,2u})expected[k]=(shifted+(expected[k]-v.safe.right)*1.5f)*.5f;
-    }
+    // Keep the original bitmap geometry relative to its bottom-right anchor;
+    // desktop presentation relocates that anchor to the player cell's edge.
+    const auto reference=hud_viewport(players,view,bool(wide));
+    const auto layout=hud_presentation_layout(reference,width,height);
+    for(unsigned k:{0u,2u})
+      expected[k]=((expected[k]-reference.safe.right+layout.viewport.safe.right)*
+          layout.scale+layout.offset.x)*640/width;
+    for(unsigned k:{1u,3u})
+      expected[k]=((expected[k]-reference.safe.bottom+layout.viewport.safe.bottom)*
+          layout.scale+layout.offset.y)*480/height;
     for(unsigned k=0;k<4;++k)check(std::abs(bounds[k]-expected[k])<.001f,
-        "Score icon position differs from original22AFF1 geometry");
+        "Score icon position differs from presented original22AFF1 geometry");
     ++geometry_cases;
   }
   check(geometry_cases==160,"Original score-icon layout coverage changed");

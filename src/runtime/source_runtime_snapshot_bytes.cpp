@@ -23,7 +23,16 @@ SourceRuntimeSnapshotBytes::SourceRuntimeSnapshotBytes(std::span<const std::byte
     owned_.assign(bytes.begin(), bytes.end());
 }
 SourceRuntimeSnapshotBytes::SourceRuntimeSnapshotBytes(const SourceRuntimeSnapshotBytes &other)
-    : SourceRuntimeSnapshotBytes(std::span<const std::byte>(other)) {}
+    : size_(other.size_) {
+    if(other.mapped_) {
+        mapped_=other.mapped_->try_private_copy(size_);
+        if(mapped_)return;
+    }
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+    if(size_>=file_threshold){mapped_=capture(std::span<const std::byte>(other));return;}
+#endif
+    owned_.assign(other.begin(),other.end());
+}
 SourceRuntimeSnapshotBytes::SourceRuntimeSnapshotBytes(SourceRuntimeSnapshotBytes &&other) noexcept
     : owned_(std::move(other.owned_)), mapped_(std::move(other.mapped_)),
       size_(std::exchange(other.size_, 0)) {}

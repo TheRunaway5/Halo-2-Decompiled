@@ -2,7 +2,7 @@
   "version": 1,
   "playlists": [
     {
-      "revision": "lab-3-gathering-1",
+      "revision": "development-3-gathering-1",
       "description": "Two-player Lockout Slayer with recovered retail skill search and XP. Custom validation rotation.",
       "team_size": 0,
       "minimum_players": 2,
@@ -24,9 +24,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "ranked",
-      "name": "Ranked Lab Slayer",
+      "name": "Head to Head",
       "ranked": true,
       "quickmatch": true,
       "skill": {
@@ -40,7 +40,7 @@
       }
     },
     {
-      "revision": "casual-lab-4-gathering-1",
+      "revision": "casual-development-4-gathering-1",
       "description": "Two-player Lockout Slayer with hidden skill and recovered query-driven casual widening. Custom validation rotation.",
       "team_size": 0,
       "minimum_players": 2,
@@ -62,9 +62,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "casual",
-      "name": "Casual Lab Slayer",
+      "name": "Slayer",
       "ranked": false,
       "quickmatch": false,
       "skill": {
@@ -78,7 +78,7 @@
       }
     },
     {
-      "revision": "party-lab-2-gathering-1",
+      "revision": "party-development-2-gathering-1",
       "description": "Four-player Lockout Team Slayer with recovered retail skill search and XP. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
       "team_size": 2,
       "minimum_players": 4,
@@ -100,9 +100,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "ranked-party",
-      "name": "Ranked Lab Team Slayer",
+      "name": "Double Team",
       "ranked": true,
       "quickmatch": false,
       "skill": {
@@ -135,7 +135,7 @@
       }
     },
     {
-      "revision": "casual-party-lab-3-gathering-1",
+      "revision": "casual-party-development-3-gathering-1",
       "description": "Four-player Lockout Team Slayer with hidden skill and recovered query-driven casual widening. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
       "team_size": 2,
       "minimum_players": 4,
@@ -157,9 +157,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "casual-party",
-      "name": "Casual Lab Team Slayer",
+      "name": "Team Doubles",
       "ranked": false,
       "quickmatch": false,
       "skill": {
@@ -192,7 +192,7 @@
       }
     },
     {
-      "revision": "clan-lab-1-gathering-1",
+      "revision": "clan-development-1-gathering-1",
       "description": "Two clan parties of 3 or 4; equal opposing sizes. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
       "team_size": 4,
       "minimum_players": 6,
@@ -214,9 +214,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "minor-clan",
-      "name": "Minor Clan Lab Slayer",
+      "name": "Minor Clan Match",
       "ranked": true,
       "quickmatch": false,
       "skill": {
@@ -231,7 +231,7 @@
       }
     },
     {
-      "revision": "clan-lab-1-gathering-1",
+      "revision": "clan-development-1-gathering-1",
       "description": "Two clan parties of 6 to 8; opposing sizes differ by at most two. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
       "team_size": 8,
       "minimum_players": 12,
@@ -253,9 +253,9 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
       "id": "major-clan",
-      "name": "Major Clan Lab Slayer",
+      "name": "Major Clan Match",
       "ranked": true,
       "quickmatch": false,
       "skill": {
@@ -298,7 +298,7 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies. Revised Tombstone added at equal weight by user request; custom rotation, not recovered 2010 configuration.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies. Revised Tombstone added at equal weight by user request; custom rotation, not recovered 2010 configuration.",
       "id": "casual-team",
       "name": "Casual Team Slayer",
       "ranked": false,
@@ -361,7 +361,7 @@
           "minimum_connection": 50
         }
       ],
-      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies. Revised Tombstone added at equal weight by user request; custom rotation, not recovered 2010 configuration.",
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies. Revised Tombstone added at equal weight by user request; custom rotation, not recovered 2010 configuration.",
       "id": "ranked-team",
       "name": "Ranked Team Slayer",
       "ranked": true,

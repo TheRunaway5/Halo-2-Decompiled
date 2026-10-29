@@ -1,0 +1,51 @@
+{
+  "scratch_removed": [
+    "/tmp/halo2-test-9af7e54q",
+    "/tmp/halo2-test-cuhx8o22",
+    "/tmp/halo2-test-je_8pr8i",
+    "/tmp/halo2-test-kh_ppgag",
+    "/tmp/halo2-test-m4c07ctc"
+  ],
+  "large_generated_artifacts_retained": [],
+  "required_expected_output_fixture": "tests/fixtures/hopper_selection_tu15_original.json",
+  "files": {
+    "tools/oracle_hopper_selection.py": {
+      "bytes": 8402,
+      "sha256": "43fe7ac29de6bb711a0869538f34b92adb06e4f95ce7c814717b91f1858d1372"
+    },
+    "tests/fixtures/hopper_selection_tu15_original.json": {
+      "bytes": 883738,
+      "sha256": "5b0fa8a010fe4f251a3caa1224bda19c71ec21eaa7148f1e89b306dc689f6c76"
+    },
+    "multiplayer/docs/playlist-hopper-sources-20261028.md": {
+      "bytes": 14287,
+      "sha256": "961d64dc91a7ea745f933830129bd7561535ccd2c75947af1ded825e7ad31955"
+    },
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/literal-tables.json": {
+      "bytes": 7057,
+      "sha256": "58d96b1f51f4d954f87320d9d3a7c45b411bca852ad400f63a98f048f98a08c0"
+    },
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/mcc-map-identities.json": {
+      "bytes": 13194,
+      "sha256": "828456f363fe55dacde12da0899ec5b0b16d0ac4ac9e1783715904e5f123959f"
+    },
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/selection-original.json": {
+      "bytes": 1212,
+      "sha256": "ae4f4bd2276ad710ccbfb3351ee26c9dab080c8a811f78d69ad52d1b5c4c06fb"
+    },
+    "multiplayer/master_server/data/recovered-hopper-rows-v1.json": {
+      "bytes": 236277,
+      "sha256": "78ec30c6cde74c58747620146c01865acf07dd8e977a6568aaed035119b5c5e8"
+    },
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/option-parameters.json": {
+      "bytes": 91829,
+      "sha256": "8066146324728a296f3eb40ca75d5635ac6bb3c65a29415a3a3369eeffbf4b18"
+    },
+    "multiplayer/master_server/data/published-hopper-membership-v1.json": {
+      "bytes": 160175,
+      "sha256": "01446eddc448de65b1e895eb2728c931b267a07db3d0430b077630caaaca421c"
+    }
+  },
+  "original_assets_modified": false,
+  "runtime_or_services_changed": false
+}

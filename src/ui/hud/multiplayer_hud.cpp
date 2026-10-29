@@ -3,6 +3,7 @@
 #include "halo2/mcc_hud_bitmap_geometry.hpp"
 #include "halo2/slayer.hpp"
 #include "halo2/source_camera.hpp"
+#include "halo2/source_event_messages_tu15.hpp"
 #include "halo2/full_scoreboard_providers.hpp"
 #include "halo2/full_scoreboard_painter.hpp"
 #include "halo2/frontend_ui_assets.hpp"
@@ -1027,6 +1028,59 @@ std::vector<Vertex> MultiplayerHud::draw_player_status(std::u16string_view text,
   }
   return std::move(result.draw.vertices);
 }
+std::vector<Vertex> MultiplayerHud::draw_primary_message(
+    const SourceHudPrimaryMessageTu15& message,const MultiplayerState& state,
+    unsigned id,unsigned view,unsigned players,unsigned width,unsigned height,
+    const FullScoreboardPaintConstants& constants,std::optional<TwoPlayerSplit> split,float alpha) {
+  Call call(*this,false);
+  if(id>=state.players.size() || view>=materials_.size() || !width || !height ||
+      !std::isfinite(alpha) || alpha<0 || alpha>1)
+    throw FormatError("Invalid primary message view");
+  if(hand_ || !state.players[id].connected || !message.active ||
+      message.text.empty() || message.duration_seconds<=0 || alpha==0)return {};
+  //1494F0 converts the authored integer seconds to the30Hz simulation clock.
+  //25B49B..25B4B3 has a strict upper bound, including for duration zero.
+  const auto duration=std::int64_t(message.duration_seconds)*30;
+  if(duration>std::numeric_limits<std::int32_t>::max())return {};
+  const auto now=std::bit_cast<std::int32_t>(state.tick);
+  const auto created=std::bit_cast<std::int32_t>(message.created_tick);
+  const auto end=std::bit_cast<std::int32_t>(message.created_tick+std::uint32_t(duration));
+  if(now<created || now>=end)return {};
+  const auto age=std::int64_t(now)-created;
+  //25B4CC..25B502 uses the source double exponent containing float0.4.
+  alpha*=float(std::pow(1-double(age)/double(duration),double(.4f)));
+  const bool widescreen=hud_layout_widescreen(players,
+      std::uint64_t(width)*3>std::uint64_t(height)*4,split);
+  const auto presentation=hud_presentation_layout(hud_viewport(players,view,widescreen,split),width,height);
+  const auto& viewport=presentation.viewport;
+  const auto short_word=[](int value){return std::bit_cast<std::int16_t>(std::uint16_t(value));};
+  const auto index=players>1?1u:0u;const auto& font=*status_fonts_[index];
+  const auto line_height=font.ascent+font.descent+font.leading;
+  const auto row_top=short_word(int(viewport.safe.bottom)-int(viewport.outer.top)-40);
+  FullScoreboardLayout layout;layout.status=FullScoreboardStatus::Ready;
+  auto& title=layout.title;title.valid=true;title.right_justified=true;
+  title.text=message.text.substr(0,62); //25AB76's63-word terminated buffer.
+  title.text_rectangle={row_top,short_word(int(viewport.safe.left)-int(viewport.outer.left)),
+      short_word(int(row_top)+line_height*5),short_word(int(viewport.safe.right)-int(viewport.outer.left))};
+  const auto rgb=source_hud_message_color(elite_hud(content_,state.players[id]));
+  title.foreground={alpha,rgb[0],rgb[1],rgb[2]};
+  FullScoreboardPaintFrame frame;
+  frame.clip={0,0,short_word(int(viewport.outer.bottom)-int(viewport.outer.top)),
+      short_word(int(viewport.outer.right)-int(viewport.outer.left))};
+  frame.clock={30,tick_seconds,std::int32_t(state.tick)};
+  frame.font_horizontal_offset=status_font_offsets_[index];frame.shadow_enabled=true;frame.x87_control_word=0x27f;
+  const FullScoreboardPainter painter(font,status_materials_[index],status_materials_[index]);
+  auto result=painter.draw(layout,constants,frame);
+  if(result.status!=FullScoreboardPaintStatus::Ready)
+    throw FormatError("Original primary message requires unavailable text controls or glyph state");
+  for(auto& vertex:result.draw.vertices) {
+    vertex.position.x=((vertex.position.x+viewport.outer.left)*presentation.scale+
+        presentation.offset.x)*640/width;
+    vertex.position.y=((vertex.position.y+viewport.outer.top)*presentation.scale+
+        presentation.offset.y)*480/height;
+  }
+  return std::move(result.draw.vertices);
+}
 std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                                          unsigned view, unsigned players,
                                          unsigned width, unsigned height,
@@ -1034,14 +1088,28 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                                          std::optional<Vec2> player_aim_anchor_pixels,
                                          std::optional<TwoPlayerSplit> split,
                                          std::optional<SourceHudAimCamera> target_camera) {
+  return draw(s,id,view,players,width,height,limit,time_ticks,player_aim_anchor_pixels,split,target_camera,nullptr);
+}
+std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
+                                         unsigned view, unsigned players,
+                                         unsigned width, unsigned height,
+                                         int limit, unsigned time_ticks,
+                                         std::optional<Vec2> player_aim_anchor_pixels,
+                                         std::optional<TwoPlayerSplit> split,
+                                         std::optional<SourceHudAimCamera> target_camera,
+                                         const SourceHudMessages* messages) {
   Call call(*this,false);
   if (id >= multiplayer_capacity || view >= materials_.size() || !width ||
       !height)
     throw FormatError("Invalid HUD draw viewport");
   std::vector<Vertex> out;
-  if (!s.players[id].connected || (s.players[id].dead && !(s.defusal && defusal_objectives_)))
+  if (!s.players[id].connected)
     return out;
-  const auto score=multiplayer_hud_score_display(s,id,limit,time_ticks,content_);
+  //25AE69 admits event text independently of the current unit. Death hides
+  // first-person artwork and the sensor, while the recipient's queued kill/
+  // death messages retain their actual clock and local viewport.
+  const bool unit_hud=!s.players[id].dead || (s.defusal && defusal_objectives_);
+  const auto score=unit_hud?multiplayer_hud_score_display(s,id,limit,time_ticks,content_):SourceHudScoreDisplay{};
   // Native output aspect selects the corresponding retail display mode.
   const bool widescreen = hud_layout_widescreen(players,
       std::uint64_t(width) * 3 > std::uint64_t(height) * 4,split);
@@ -1051,21 +1119,11 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                      unsigned(viewport.outer.right - viewport.outer.left),
                  logical_height =
                      unsigned(viewport.outer.bottom - viewport.outer.top);
-  // Preserve the authored pixel shape on wider output surfaces. Anchor
-  // margins remain in original HUD pixels while each world viewport expands.
-  const float scale = std::min(width / 640.f, height / 480.f),
-              left = (width - 640 * scale) / 2,
-              top = (height - 480 * scale) / 2;
-  const auto old = viewport.outer;
-  viewport.outer = {(old.top * height / 480.f - top) / scale,
-                    (old.left * width / 640.f - left) / scale,
-                    (old.bottom * height / 480.f - top) / scale,
-                    (old.right * width / 640.f - left) / scale};
-  viewport.safe = {viewport.outer.top + viewport.safe.top - old.top,
-                   viewport.outer.left + viewport.safe.left - old.left,
-                   viewport.outer.bottom + viewport.safe.bottom - old.bottom,
-                   viewport.outer.right + viewport.safe.right - old.right};
-  for (unsigned i = 0; i < content_.widgets.size(); ++i) {
+  const auto presentation = hud_presentation_layout(viewport, width, height);
+  const float scale = presentation.scale,
+              left = presentation.offset.x, top = presentation.offset.y;
+  viewport = presentation.viewport;
+  if(unit_hud)for (unsigned i = 0; i < content_.widgets.size(); ++i) {
     const auto &w = content_.widgets[i];
     if (materials_[view][i].empty() ||
         !hud_widget_visible(w, conditions(w, content_, s, id, score,!voice_text_.empty(),hand_)))
@@ -1074,7 +1132,8 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
         hud_screen_mode(logical_width, logical_height, w.anchor, widescreen);
     const auto input =
         widget_inputs(w, content_, s, id, score, winning_[view].amount,hand_);
-    Vec2 p = anchor(w.anchor, viewport), ax{1, 0}, ay{0, 1};
+    Vec2 p = w.anchor == 4 ? presentation.center : anchor(w.anchor, viewport),
+         ax{1, 0}, ay{0, 1};
     if(w.anchor==5) {
       if(!target_camera)continue;
       const auto point=(w.weapon_type==1 || w.weapon_type==4)?
@@ -1381,7 +1440,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
     float y=viewport.safe.top+(players>1?35.f:60.f);
     if(!message.empty())y+=float(line_height)*(1+std::count(message.begin(),message.end(),'\n'));
     const auto maximum=players>1?(message.empty()?3u:2u):4u;
-    const auto lines=source_hud_message_lines(s.players[id].source_messages,s.tick,tick_seconds,
+    const auto lines=source_hud_message_lines(messages?*messages:s.players[id].source_messages,s.tick,tick_seconds,
         content_.messages.hold_seconds,content_.messages.fade_seconds,maximum);
     for(const auto &line:lines) {
       const auto row_top=y;
@@ -1416,7 +1475,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
   //13954B draws the sensor separately after the authored nhdt widgets.
   // Its center offsets47FF40 and full/split extents come from the original
   //139614..139685/2548F0 corridor; they are not inferred from the background.
-  if(!s.defusal && sensors_[view].material && sensors_[view].tick!=~0u &&
+  if(unit_hud && !s.defusal && sensors_[view].material && sensors_[view].tick!=~0u &&
       (s.players[id].source_hud_zoom_mask&0x40)) {
     const auto mode=hud_screen_mode(logical_width,logical_height,2,widescreen);
     const auto base=anchor(2,viewport);

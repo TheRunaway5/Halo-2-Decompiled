@@ -29,7 +29,7 @@ class NativeRendererLauncherAdmissionTests(unittest.TestCase):
         tools = self.f.root/'tools'
         tools.mkdir()
         (tools/'setup_assets.py').write_text('# Isolated installation sentinel.\n')
-        for name in ('native_renderer_shaders.py', 'audit_native_renderer_kernels.py'):
+        for name in ('native_renderer_shaders.py', 'audit_native_renderer_kernels.py', 'file_identity.py'):
             shutil.copy2(ROOT/'tools'/name, tools/name)
 
     def info(self):

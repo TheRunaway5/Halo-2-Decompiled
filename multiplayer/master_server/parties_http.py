@@ -12,16 +12,17 @@ import uuid
 
 from aiohttp import web
 from .protocol import canonical, fields, identifier, integer, require, text
-from .party_countdown import Countdown, press
+from .native_party_countdowns import Countdowns
 from . import party_privacy
+from .native_matchmaking import value as native_value
+from .native_database import apply as apply_plan
 
 
 class PartyApi:
     def __init__(self, directory, *, wall=time.time, clock=time.monotonic):
         self.directory, self.db, self.wall = directory, directory.store.db, wall
         self.clock=clock
-        self.countdowns={}
-        self.countdown_serial=0
+        self._countdowns=Countdowns(self)
         self.db.executescript("""
         CREATE TABLE IF NOT EXISTS parties(id TEXT PRIMARY KEY,
           leader TEXT NOT NULL REFERENCES players(id), version INTEGER NOT NULL);
@@ -48,12 +49,39 @@ class PartyApi:
           mode INTEGER NOT NULL CHECK(mode IN (0,1,2)),
           revision INTEGER NOT NULL CHECK(revision>0));
         """)
-        # Accepted membership persists across a restart; search consent does not.
+        # Accepted membership persists; native search consent is connection-bound.
         with self.db:
-            self.db.execute("UPDATE party_members SET ready_playlist='',ready_revision='',ready_version=0")
-            # Existing accepted parties were invitation-only. Do not relabel
-            # that real admission policy OPEN when upgrading a live database.
+            columns = [row[1] for row in self.db.execute('PRAGMA table_info(matchmaking_party_consents)')]
+            apply_plan(self.db, native_value('party_consent_schema', columns=columns))
             self.db.execute("INSERT OR IGNORE INTO party_privacy SELECT id,1,1 FROM parties")
+
+    def matching_facts(self, who=None, *, party_id=None):
+        """Read accepted directory facts; Rust decides readiness and admission."""
+        if party_id is None:
+            party = self.party(who)
+        else:
+            party = self.db.execute('SELECT id,leader,version FROM parties WHERE id=?', (party_id,)).fetchone()
+        members = self.members(party[0]) if party else ()
+        records = []
+        for row in members:
+            consent = self.db.execute('SELECT party,version,handle,playlist,revision,profile,session_key,generation,roster '
+                                      'FROM matchmaking_party_consents WHERE player=?', (row[0],)).fetchone()
+            records.append(dict(player=row[0], handle=row[1], ready_playlist=row[3], ready_revision=row[4], ready_version=row[5],
+                consent=dict(zip(('party','version','handle','playlist','revision','profile','session_key','generation','roster'), consent)) if consent else None))
+        api = self.directory.matchmaking
+        owners = [row[0] for row in members] if party else ([who] if who is not None else [])
+        seats = api.core._call('session_directory_seats', owners=owners) if api.core else ()
+        clans = [dict(player=player, clan=api.member_clan(player)) for player in seats]
+        return dict(party=dict(id=party[0], leader=party[1], version=party[2], members=records) if party else None, clans=clans)
+
+    def matching_effects(self, plan):
+        api = self.directory.matchmaking
+        if api.core:
+            api.core._call('party_effects', effects=plan['effects'])
+
+    @property
+    def countdowns(self):
+        return self._countdowns
 
     def privacy_state(self, party):
         row=self.db.execute("SELECT mode,revision FROM party_privacy WHERE party=?",(party,)).fetchone()
@@ -139,26 +167,13 @@ class PartyApi:
                                             for r in transport.rooms.values())
 
     def changed(self, party, *, admitted=False):
-        # Call only within the enclosing DB transaction. The event loop performs
-        # no await between authenticated authorization and this queue mutation.
-        api = self.directory.matchmaking
-        self.countdowns.pop(party,None)
-        if api.core:
-            for ticket in tuple(api.core.tickets.values()):
-                if ticket.party_id == party:
-                    api.core.cancel(ticket.id)
-        self.db.execute("UPDATE parties SET version=version+1 WHERE id=?", (party,))
-        self.db.execute("UPDATE party_members SET ready_playlist='',ready_revision='',ready_version=0 WHERE party=?", (party,))
-        if admitted and len(self.members(party)) < 16:
-            # An accepted, separately targeted invitation adds a member to the
-            # same Discord party. Keep its bounded lease and presentation alias
-            # so other invitations already sent remain usable. No lease renewal.
-            self.db.execute("UPDATE party_activity_links SET version=version+1 WHERE party=? "
-                            "AND version=(SELECT version-1 FROM parties WHERE id=?)", (party,party))
-            self.db.execute("DELETE FROM party_activity_links WHERE party=? "
-                            "AND version!=(SELECT version FROM parties WHERE id=?)", (party,party))
-        else:
-            self.db.execute("DELETE FROM party_activity_links WHERE party=?", (party,))
+        # The caller owns the enclosing SQLite transaction. These invalidation
+        # effects grant no authority and preserve the existing conservative
+        # cancellation behavior if a later enclosing statement rolls back.
+        plan = native_value('party_change_plan', party=party,
+                            facts=self.matching_facts(party_id=party), admitted=admitted)
+        apply_plan(self.db, plan)
+        self.matching_effects(plan)
 
     def session_lost(self, who):
         party = self.party(who)
@@ -177,13 +192,10 @@ class PartyApi:
                 for who, peer in room.peers.items() if not peer.socket.closed}
 
     def advance_countdowns(self):
-        now=int(self.clock()*1000)
-        for pid,countdown in tuple(self.countdowns.items()):
-            party=self.db.execute("SELECT version FROM parties WHERE id=?",(pid,)).fetchone()
-            if not party or party[0]!=countdown.party_version:
-                self.countdowns.pop(pid,None)
-            else:
-                countdown.update(now)
+        core = self.directory.matchmaking.core
+        if core and self._countdowns:
+            versions = [dict(id=row[0], version=row[1]) for row in self.db.execute('SELECT id,version FROM parties LIMIT 1001')]
+            self._countdowns.refresh(core._call('party_countdown_tick', clock_ms=int(self.clock()*1000), versions=versions))
 
     async def lifetime(self, app):
         async def pump():
@@ -199,13 +211,34 @@ class PartyApi:
                 await task
 
     def countdown_view(self, who):
-        party=self.party(who)
-        countdown=self.countdowns.get(party[0]) if party else None
-        value=countdown.public() if countdown else None
-        if value is not None:
-            member=self.db.execute("SELECT handle FROM party_members WHERE party=? AND player=?",(party[0],countdown.requester)).fetchone()
-            value["requester"]=member[0] if member else None
-        return dict(version=party[2] if party else None,countdown=value)
+        core = self.directory.matchmaking.core
+        if core:
+            return core._call('party_countdown_view', player=who, facts=self.matching_facts(who))
+        party = self.party(who)
+        return dict(version=party[2] if party else None, countdown=None)
+
+    def countdown_command(self, who, body):
+        """Execute native SQL guards before committing native publication."""
+        api = self.directory.matchmaking
+        api.enabled()
+        token = None
+        try:
+            with self.db:
+                previous = self.db.execute('SELECT payload FROM party_requests WHERE player=? AND request=?',
+                                           (who, body['request_id'])).fetchone()
+                count = self.db.execute('SELECT count(*) FROM party_requests WHERE player=?', (who,)).fetchone()[0]
+                plan = api.core._call('party_countdown_prepare', player=who, body=body,
+                    facts=self.matching_facts(who), rooms=api.room_facts(), clock_ms=int(self.clock()*1000),
+                    wall_seconds=int(self.wall()), requests=dict(payload=previous[0] if previous else None, count=count))
+                token = plan['token']
+                apply_plan(self.db, plan)
+            if token is not None:
+                rows = api.core._call('party_countdown_commit', token=token,
+                    facts=self.matching_facts(who), rooms=api.room_facts())
+                self._countdowns.refresh(rows)
+        finally:
+            if token is not None:
+                api.core._call('party_countdown_abort', token=token)
 
     async def get_countdown(self, request):
         # Same authenticated account capability, independent bounded bucket.
@@ -222,12 +255,15 @@ class PartyApi:
         value = None
         if party:
             pid, leader, version = party
+            members = self.members(pid)
+            api = self.directory.matchmaking
+            ready = api.core._call('party_ready_view', facts=self.matching_facts(who)) if api.core else [''] * len(members)
             value = {"version": version, "leader": leader == who,
                      "members": [{"handle": r[1], "name": r[2], "self": r[0] == who,
                                   "leader": r[0] == leader, "online": r[0] in presence,
-                                  "ready_playlist": r[3] if r[5] == version else "",
+                                  "ready_playlist": ready[index],
                                   **({"postgame": r[0] in reviewing} if postgame else {})}
-                                 for r in self.members(pid)],
+                                 for index, r in enumerate(members)],
                      "outgoing": [{"id": r[0], "name": r[1]} for r in self.db.execute(
                          "SELECT i.id,p.screen_name FROM party_invites i JOIN player_profiles p ON p.player=i.target "
                          "WHERE i.party=? ORDER BY i.expires,i.id", (pid,))] if leader == who else []}
@@ -357,6 +393,9 @@ class PartyApi:
         require(action in options and set(body) == {"action","request_id",*options.get(action,())}, "Invalid party command")
         self.cleanup()
         _, who = self.directory.clans.session(request)
+        if action in ('countdown_start', 'countdown_cancel', 'countdown_request'):
+            self.countdown_command(who, body)
+            return web.json_response(self.view(who,countdown=request.query.get("countdown")=="1",privacy=request.query.get("privacy")=="1"))
         payload = canonical(body).decode()
         previous=self.db.execute("SELECT payload FROM party_requests WHERE player=? AND request=?",(who,rid)).fetchone()
         if previous:
@@ -454,31 +493,6 @@ class PartyApi:
                     #the independently versioned command idempotent.
                     db.execute("INSERT INTO party_privacy VALUES(?,?,?) ON CONFLICT(party) DO UPDATE SET mode=excluded.mode,revision=excluded.revision",
                                (pid,mode,revision+1))
-                elif action == "countdown_start":
-                    api=self.directory.matchmaking
-                    api.enabled()
-                    policy=api.core.playlists.get(text(body["playlist_id"]))
-                    require(policy is not None and policy.revision==text(body["revision"]),"Playlist changed; refresh it",409)
-                    old=self.countdowns.get(pid)
-                    require(old is None or old.playlist==policy.id and old.revision==policy.revision,
-                            "Cancel the current countdown before changing its playlist",409)
-                    if old is None or old.seconds is None:
-                        self.queue_members(who,policy)
-                    seconds=press(old.seconds if old else None)
-                    if old is None or seconds!=old.seconds or old.seconds is None:
-                        self.countdown_serial+=1
-                        self.countdowns[pid]=Countdown(self.countdown_serial,seconds,int(self.clock()*1000),policy.id,policy.revision,version)
-                elif action == "countdown_cancel":
-                    self.countdowns.pop(pid,None)
-                elif action == "countdown_request":
-                    # 19A7E9's member branch publishes(start=true,mode1,10),
-                    # not the leader's stop tuple. 5DF30 clears mode1 on the
-                    # next lower publication; no lasting policy is inferred.
-                    require(who!=leader,"The leader cancels its own countdown",409)
-                    old=self.countdowns.get(pid)
-                    require(old is not None and old.seconds is not None and not old.complete,"No active countdown",409)
-                    self.countdown_serial+=1
-                    self.countdowns[pid]=Countdown(self.countdown_serial,10,int(self.clock()*1000),old.playlist,old.revision,version,1,False,who)
                 elif action == "invite":
                     username = text(body["username"],73)
                     if "#" in username:
@@ -553,44 +567,29 @@ class PartyApi:
                 elif action == "ready":
                     api = self.directory.matchmaking
                     api.enabled()
-                    policy = api.core.playlists.get(text(body["playlist_id"]))
-                    require(policy is not None and policy.revision == text(body["revision"]), "Playlist changed; refresh it", 409)
-                    session = self.queue_session(who)
-                    require(session is not None and api.eligibility(session,policy), "Open matchmaking with the required maps first", 409)
-                    require(len(self.members(pid)) <= policy.maximum_party, "Party is too large for this playlist", 409)
-                    ticket = api.ticket(who)
-                    if ticket is not None and ticket.playlist != policy.id:
-                        self.changed(pid)
-                        version += 1
-                    db.execute("UPDATE party_members SET ready_playlist=?,ready_revision=?,ready_version=? WHERE player=?",
-                               (policy.id,policy.revision,version,who))
+                    plan = api.core._call('party_ready', player=who, playlist=body['playlist_id'],
+                        revision=body['revision'], version=body['version'], facts=self.matching_facts(who),
+                        rooms=api.room_facts())
+                    apply_plan(db, plan)
+                    self.matching_effects(plan)
                 elif action == "unready":
                     self.changed(pid)
             db.execute("INSERT INTO party_requests VALUES(?,?,?,?)", (who,rid,payload,int(self.wall())+86400))
             return web.json_response(self.view(who,countdown=request.query.get("countdown")=="1",privacy=request.query.get("privacy")=="1"))
 
     def queue_members(self, who, policy):
-        """Authoritative accepted roster and consent, frozen without an await."""
-        party = self.party(who)
-        if party is None:
-            session = self.queue_session(who)
-            require(session is not None, "Matchmaking session expired; reconnect", 401)
-            return who, (session,)
-        pid, leader, version = party
-        require(leader == who, "Only the party leader can start a search", 403)
-        members = self.members(pid)
-        require(len(members) <= policy.maximum_party, "Party is too large for this playlist", 409)
-        require(all(r[0] == who or (r[3],r[4],r[5]) == (policy.id,policy.revision,version) for r in members),
-                "Every party member must agree to this playlist", 409)
-        sessions = tuple(self.queue_session(r[0]) for r in members)
-        require(all(s is not None for s in sessions), "Every party member must open matchmaking", 409)
-        require(len({s.compatibility for s in sessions}) == 1, "Party members need compatible game builds", 409)
-        require(not any(self.playing(r[0]) for r in members), "A party member is still in a match", 409)
-        countdown=self.countdowns.get(pid)
-        if countdown is not None and countdown.complete:
-            # 6E410 stops49A8 before changing party A to matchmaking mode6.
-            countdown.seconds=None
-        return pid, sessions
+        api = self.directory.matchmaking
+        api.enabled()
+        selected = api.core._call('party_select', player=who, playlist=policy.id,
+                                 facts=self.matching_facts(who), rooms=api.room_facts())
+        return selected['party_id'], tuple(api.sessions.project(row) for row in selected['members'])
+
+    def queue_prepare(self, session, body):
+        api = self.directory.matchmaking
+        facts = self.matching_facts(session.player)
+        selected = api.core._call('party_queue_prepare', generation=session.generation, body=body,
+                                 facts=facts, rooms=api.room_facts())
+        return selected
 
     def routes(self):
         return [web.get("/v1/party",self.get),web.get("/v1/party/countdown",self.get_countdown),web.post("/v1/party/commands",self.command),

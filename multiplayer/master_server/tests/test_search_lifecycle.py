@@ -1,9 +1,11 @@
+import ctypes
 import json
 from pathlib import Path
 import unittest
 
 from multiplayer.master_server.search_lifecycle import (
-    GatheringClock, GatheringConfiguration, I32_MAX, SearchProgress, SeenSessions, elapsed, jitter, role, retail_configuration)
+    GatheringClock, GatheringConfiguration, I32_MAX, JitterStream, PartyState, SearchProgress, SeenSessions,
+    elapsed, jitter, native, native_birth_id_sessions, role, retail_configuration)
 
 
 class OriginalLifecycleTests(unittest.TestCase):
@@ -77,3 +79,56 @@ class OriginalLifecycleTests(unittest.TestCase):
         self.assertNotIn('151',seen)
         seen.clear()
         self.assertEqual(len(seen),0)
+
+    def test_rust_party_generation_owns_radius_seen_reset_and_stale_callback_rejection(self):
+        state=PartyState(search_offset=-1307,gather_offset=-1543)
+        state.start_search(10000,2,False)
+        old_progress,old_seen=state.progress,state.seen
+        old_seen.reject('session-a')
+        self.assertTrue(state.complete_query(0))
+        self.assertEqual((state.progress.radius,len(state.seen)),(1,1))
+        state.start_gather(11000)
+        self.assertEqual(state.gather_start,11000)
+        state.start_search(12000,0,True)
+        before=state.snapshot()
+        self.assertEqual((state.progress.radius,len(state.seen)),(0,0))
+        with self.assertRaises(ValueError):old_progress.complete(50)
+        with self.assertRaises(ValueError):old_seen.reject('stale')
+        with self.assertRaises(ValueError):state.progress.complete(51)
+        self.assertEqual(state.snapshot(),before)
+        self.assertFalse(state.complete_query(0))
+        self.assertEqual(state.mode,'choose')
+
+    def test_rust_clock_remaining_is_read_only_and_rejoin_preserves_old_peak(self):
+        config=GatheringConfiguration((1000,)*16,120000,'Native clock projection fixture')
+        clock=GatheringClock(100,100,1)
+        before=clock.snapshot()
+        self.assertEqual(clock.remaining(200,config,2,2,4),900)
+        self.assertEqual(clock.snapshot(),before)
+        self.assertFalse(clock.ready(200,config,2,2,4))
+        self.assertEqual((clock.peak,clock.growth),(2,200))
+        self.assertEqual(clock.observe(300,1),100)
+        self.assertEqual(clock.observe(400,2),200)
+        self.assertEqual(clock.growth,200)
+
+    def test_failed_ffi_response_capacity_does_not_advance_rng_or_touch_output(self):
+        stream=JitterStream(0)
+        owner=stream._owner.handle
+        source=ctypes.create_string_buffer(b'{"op":"jitter_next"}')
+        output=(ctypes.c_uint8*64)(*([0xa5]*64))
+        self.assertEqual(native().h2_lifecycle_command(owner,source,20,output,1),0)
+        self.assertEqual(stream.seed,0)
+        self.assertEqual(bytes(output),bytes([0xa5])*64)
+        self.assertEqual(stream.next(),(-1307,-1543))
+        stream.close()
+        self.assertEqual(native().h2_lifecycle_command(owner,source,20,output,64),0)
+        self.assertEqual(bytes(output),bytes([0xa5])*64)
+        self.assertEqual(native().h2_lifecycle_new(source,262145),0)
+
+    def test_native_provider_contract_is_explicit_bounded_and_rejects_duplicate_identities(self):
+        rows=[(100+n%3,f'{n:03}')for n in range(60,0,-1)]
+        expected=tuple(f'{n:03}'for n in (*range(3,61,3),*range(1,61,3),*range(2,31,3)))
+        self.assertEqual(native_birth_id_sessions(rows),expected)
+        with self.assertRaises(ValueError):native_birth_id_sessions([(1,'same'),(2,'same')])
+        with self.assertRaises(ValueError):native_birth_id_sessions([(True,'a')])
+        with self.assertRaises(ValueError):native_birth_id_sessions([(n,str(n))for n in range(1001)])

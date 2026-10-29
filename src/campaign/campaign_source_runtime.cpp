@@ -6,6 +6,8 @@
 #include "halo2/original_data.hpp"
 #include "halo2/player_command.hpp"
 #include "halo2/source_script.hpp"
+#include "halo2/native_campaign_ai_query_tu15.hpp"
+#include "halo2/source_secondary_trigger_intent_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -126,6 +128,18 @@ std::optional<unsigned> CampaignSourceRuntime::random_choice(unsigned count,std:
   auto state=Bytes(memory.view(random,4)).u32(0);
   const auto result=source_hs_begin_random(state,count,visited);
   memory.write(random,std::as_bytes(std::span(&state,1)));return result;
+}
+NativeCampaignAiLivingCountResult CampaignSourceRuntime::ai_living_count(std::uint32_t reference) {
+  const auto result=ai_query(reference,NativeCampaignAiQuery::living_count);
+  return {std::uint16_t(result.value),result.floating_point};
+}
+NativeCampaignAiQueryResult CampaignSourceRuntime::ai_query(std::uint32_t reference,NativeCampaignAiQuery query) {
+  const auto call=objects_->tu15_world().prepare_source_call();
+  if(!call.floating_point)throw FormatError("Campaign AI query lost its actual source FP policy");
+  NativeCampaignAiQueryResult result;
+  result.floating_point.mxcsr=call.floating_point->mxcsr;
+  result.value=native_campaign_ai_query_tu15(objects_->memory(),reference,query,result.floating_point);
+  return result;
 }
 NativeObjectLifetimes CampaignSourceRuntime::lifetimes() {
   return NativeObjectLifetimes(objects_->memory(),objects_->object_pool());
@@ -350,9 +364,11 @@ void CampaignSourceRuntime::deliver_controls(Simulation &simulation,const Contro
   // Original1889D0 derives bits6/16 from the same held primary byte for
   // every item. Preserve that input during weapon switches;1522E0 owns
   // weapon-specific admission and the original mode/cooldown gates.
-  put(0,unsigned(input.crouch)|(unsigned(input.jump)<<1)|(input.grenade?0x04000000u:0u)|
+  // The same held boost intent as multiplayer also inhibits Banshee evasion
+  // through the original F68C0 bit11 gate.
+  put(0,source_secondary_trigger_intent_tu15(unsigned(input.crouch)|(unsigned(input.jump)<<1)|(input.grenade?0x04000000u:0u)|
       (input.melee?0x20u:0u)|(input.fire?0x00010040u:0u)|
-      (input.fire_secondary?0x220000u:0u)|(input.reload?0x10000000u:0u));
+      (input.fire_secondary?0x220000u:0u)|(input.reload?0x10000000u:0u),input.fire_secondary));
   put(4,std::bit_cast<std::uint32_t>(input.yaw));put(8,std::bit_cast<std::uint32_t>(input.pitch));
   put(0xc,std::bit_cast<std::uint32_t>(input.forward));put(0x10,std::bit_cast<std::uint32_t>(-input.right));
   put(0x14,std::bit_cast<std::uint32_t>(input.fire?1.f:0.f));put(0x18,std::bit_cast<std::uint32_t>(input.fire_secondary?1.f:0.f));

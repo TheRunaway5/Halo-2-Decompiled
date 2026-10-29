@@ -215,7 +215,9 @@ class ContinuityHttpTests(unittest.IsolatedAsyncioTestCase):
         await sockets[candidate].send_json({"migration_accept": dict(epoch=1, tick=100, digest="a" * 64)})
         for i in survivors:
             await self.phase(queues[i], "rebinding")
-        room.continuity.deadline = time.monotonic() - 1
+        # A trusted clock observation exercises expiry; production state has no setter.
+        expired = room.continuity.deadline + 1
+        room.lifecycle_clock = lambda: expired
         await room.synchronize_continuity()
         value = await self.phase(queues[candidate], "running")
         self.assertEqual(value["continuity"]["members"], 1 << descriptors[candidate]["slot"])

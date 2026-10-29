@@ -8,6 +8,13 @@
 // never tear a record or update the same history cell concurrently.
 const uint traceLightingWords=12u,traceLightingInvalid=0xffffffffu;
 const uint traceHistoryWords=16u,traceHistoryLimit=16u;
+// An immutable snapshot makes reprojection independent of fragment execution
+// order. The current frame writes binding6; every history lookup reads9.
+layout(set=1,binding=9,std430) readonly restrict buffer TracePreviousHistory {
+    mat4 previousMVP[2];
+    vec4 previousViewport[2];
+    uint words[];
+} tracePrevious;
 uvec2 traceLightingGrid() {
     uint scale=max(traceVisibility.extent.w,1u);
     return (traceVisibility.extent.xy+scale-1u)/scale;
@@ -37,46 +44,119 @@ vec3 traceLightingLoad3(uint record) {
                 uintBitsToFloat(traceVisibility.words[record+1u]),
                 uintBitsToFloat(traceVisibility.words[record+2u]));
 }
-void traceLightingStore(uint record,vec3 diffuseLight,vec3 specularLight,
-                        vec3 position,vec3 normal,vec3 incoming,uint material,float roughness,
-                        float pixelFootprint) {
+vec3 tracePreviousLoad3(uint record) {
+    return vec3(uintBitsToFloat(tracePrevious.words[record]),
+                uintBitsToFloat(tracePrevious.words[record+1u]),
+                uintBitsToFloat(tracePrevious.words[record+2u]));
+}
+mat3 traceHistoryViewBasis() {
+    vec3 forward=traceNormalize(camera.eyeForward.xyz,vec3(0,0,1));
+    vec3 right=vec3(camera.viewProjection[0][0],camera.viewProjection[1][0],camera.viewProjection[2][0]);
+    vec3 up=vec3(camera.viewProjection[0][1],camera.viewProjection[1][1],camera.viewProjection[2][1]);
+    // Authored asymmetric lenses add a forward component to projection rows.
+    // Remove it before using those rows as a length-preserving camera basis.
+    right=traceNormalize(right-forward*dot(right,forward),vec3(1,0,0));
+    up=traceNormalize(up-forward*dot(up,forward)-right*dot(up,right),vec3(0,1,0));
+    return transpose(mat3(right,up,forward));
+}
+bool tracePreviousRecord(vec3 worldPosition,vec3 position,vec3 normal,vec3 geometric,
+                         vec3 incoming,uint material,float roughness,float pixelFootprint,
+                         bool viewDependent,out uint history,out uint count) {
+    uint role=camera.eyePosition.w==2.0?1u:0u;
+    history=0u;count=0u;
+    if((traceVisibility.temporal.z&(1u<<role))==0u)return false;
+    // A weapon follows the camera. Its history is in camera space, whereas
+    // the world uses its previous projection and world-space surface guides.
+    mat4 projection=role==1u?camera.viewProjection:tracePrevious.previousMVP[role];
+    if(role==1u) {
+        for(uint row=0u;row<2u;++row) {
+            float currentScale=length(vec3(camera.viewProjection[0][row],camera.viewProjection[1][row],
+                                          camera.viewProjection[2][row]));
+            float previousScale=length(vec3(tracePrevious.previousMVP[role][0][row],
+                tracePrevious.previousMVP[role][1][row],tracePrevious.previousMVP[role][2][row]));
+            if(abs(currentScale-previousScale)>max(currentScale,previousScale)*.001)return false;
+        }
+    }
+    vec4 clip=projection*vec4(worldPosition,1);
+    if(any(isnan(clip)) || any(isinf(clip)) || clip.w<=0.0)return false;
+    vec4 viewport=tracePrevious.previousViewport[role];
+    vec2 normalized=clip.xy/clip.w*.5+.5;
+    if(any(lessThan(normalized,vec2(0))) || any(greaterThanEqual(normalized,vec2(1))))return false;
+    vec2 pixel=normalized*viewport.zw+viewport.xy;
+    if(any(lessThan(pixel,vec2(0))) || any(greaterThanEqual(pixel,vec2(traceVisibility.extent.xy))))return false;
+    uint scale=max(traceVisibility.extent.w,1u);uvec2 grid=traceLightingGrid();
+    ivec2 base=ivec2(floor((pixel-(float(scale/2u)+.5))/float(scale)));
+    float positionTolerance=max(traceEpsilon*4.0,pixelFootprint*float(scale)*1.5);
+    float planeTolerance=max(traceEpsilon*4.0,pixelFootprint*float(scale)*.25);
+    float best=1e30;
+    // Four previous representatives cover the projected grid cell without
+    // blending across a material, silhouette, or disoccluded surface.
+    for(int y=0;y<2;++y)for(int x=0;x<2;++x) {
+        ivec2 cell=base+ivec2(x,y);
+        if(any(lessThan(cell,ivec2(0))) || any(greaterThanEqual(cell,ivec2(grid))))continue;
+        uint candidate=(role*grid.x*grid.y+uint(cell.y)*grid.x+uint(cell.x))*traceHistoryWords;
+        uint previousCount=tracePrevious.words[candidate+12u];
+        if(tracePrevious.words[candidate+7u]!=material || previousCount==0u ||
+           previousCount>traceHistoryLimit || tracePrevious.words[candidate+13u]+1u!=traceVisibility.temporal.x ||
+           abs(uintBitsToFloat(tracePrevious.words[candidate+11u])-roughness)>=.01)continue;
+        vec3 previousNormal=traceNormalize(unpackSnorm4x8(tracePrevious.words[candidate+3u]).xyz,normal);
+        vec3 previousGeometric=traceNormalize(unpackSnorm4x8(tracePrevious.words[candidate+15u]).xyz,geometric);
+        if(dot(previousNormal,normal)<=.995 || dot(previousGeometric,geometric)<=.95)continue;
+        if(viewDependent) {
+            vec3 previousIncoming=traceNormalize(unpackSnorm4x8(tracePrevious.words[candidate+14u]).xyz,incoming);
+            if(dot(previousIncoming,incoming)<=.9995)continue;
+        }
+        vec3 delta=tracePreviousLoad3(candidate+8u)-position;
+        float distanceSquared=dot(delta,delta);
+        float plane=max(abs(dot(delta,geometric)),abs(dot(delta,previousGeometric)));
+        if(distanceSquared>positionTolerance*positionTolerance || plane>planeTolerance)continue;
+        float score=distanceSquared/(positionTolerance*positionTolerance)+plane/planeTolerance;
+        if(score<best) {best=score;history=candidate;count=previousCount;}
+    }
+    return count>0u;
+}
+void traceLightingStore(uint record,vec3 diffuseLight,vec3 specularLight,vec3 currentDirect,
+                        vec3 position,vec3 normal,vec3 geometric,vec3 incoming,uint material,float roughness,
+                        float pixelFootprint,bool viewDependent) {
     diffuseLight=traceFiniteLighting(diffuseLight);specularLight=traceFiniteLighting(specularLight);
+    currentDirect=traceFiniteLighting(currentDirect);
     uint scale=max(traceVisibility.extent.w,1u);
     uint history=traceHistoryRecord(uvec2(gl_FragCoord.xy)/scale);
-    uint previousCount=traceVisibility.words[history+12u];
-    uint previousSerial=traceVisibility.words[history+13u],serial=traceVisibility.temporal.x;
-    bool reuse=traceVisibility.words[history+7u]==material && previousCount>0u &&
-        previousCount<=traceHistoryLimit && previousSerial+1u==serial;
-    if(reuse) {
-        vec3 previousNormal=traceNormalize(unpackSnorm4x8(traceVisibility.words[history+3u]).xyz,normal);
-        vec3 previousIncoming=traceNormalize(unpackSnorm4x8(traceVisibility.words[history+14u]).xyz,incoming);
-        vec3 delta=traceLightingLoad3(history+8u)-position;
-        float tolerance=max(traceEpsilon*4.0,pixelFootprint*.05);
-        // Fixed-grid history is intentionally conservative: moving surfaces,
-        // changed view directions and silhouettes restart their own estimate.
-        reuse=dot(previousNormal,normal)>.995 && dot(previousIncoming,incoming)>.9995 &&
-            dot(delta,delta)<=tolerance*tolerance &&
-            abs(uintBitsToFloat(traceVisibility.words[history+11u])-roughness)<.01;
+    vec3 historyPosition=position,historyNormal=normal,historyGeometric=geometric,historyIncoming=incoming;
+    if(camera.eyePosition.w==2.0) {
+        mat3 basis=traceHistoryViewBasis();
+        historyPosition=basis*(position-camera.eyePosition.xyz);
+        historyNormal=basis*normal;historyGeometric=basis*geometric;historyIncoming=basis*incoming;
     }
+    uint previous,previousCount,serial=traceVisibility.temporal.x;
+    bool reuse=tracePreviousRecord(position,historyPosition,historyNormal,historyGeometric,historyIncoming,
+        material,roughness,pixelFootprint,viewDependent,previous,previousCount);
     uint count=reuse?min(previousCount+1u,traceHistoryLimit):1u;
     if(reuse) {
         float previousWeight=1.0-1.0/float(count);
-        diffuseLight+=(traceLightingLoad3(history)-diffuseLight)*previousWeight;
-        specularLight+=(traceLightingLoad3(history+4u)-specularLight)*previousWeight;
+        diffuseLight+=(tracePreviousLoad3(previous)-diffuseLight)*previousWeight;
+        specularLight+=(tracePreviousLoad3(previous+4u)-specularLight)*previousWeight;
     }
     for(uint lane=0u;lane<3u;++lane) {
         uint diffuseWord=floatBitsToUint(diffuseLight[lane]),specularWord=floatBitsToUint(specularLight[lane]);
         uint positionWord=floatBitsToUint(position[lane]);
-        traceVisibility.words[record+lane]=diffuseWord;traceVisibility.words[history+lane]=diffuseWord;
+        // Persistent diffuse history contains stochastic transport only.
+        // The current resolve record also carries this frame's deterministic
+        // direct visibility, so an animated caster cannot leave its old shadow.
+        traceVisibility.words[record+lane]=floatBitsToUint(diffuseLight[lane]+currentDirect[lane]);
+        traceVisibility.words[history+lane]=diffuseWord;
         traceVisibility.words[record+4u+lane]=specularWord;traceVisibility.words[history+4u+lane]=specularWord;
-        traceVisibility.words[record+8u+lane]=positionWord;traceVisibility.words[history+8u+lane]=positionWord;
+        traceVisibility.words[record+8u+lane]=positionWord;
+        traceVisibility.words[history+8u+lane]=floatBitsToUint(historyPosition[lane]);
     }
     uint normalWord=packSnorm4x8(vec4(normal,0)),roughnessWord=floatBitsToUint(roughness);
-    traceVisibility.words[record+3u]=normalWord;traceVisibility.words[history+3u]=normalWord;
+    traceVisibility.words[record+3u]=normalWord;
+    traceVisibility.words[history+3u]=packSnorm4x8(vec4(historyNormal,0));
     traceVisibility.words[record+11u]=roughnessWord;traceVisibility.words[history+11u]=roughnessWord;
     traceVisibility.words[history+7u]=material;traceVisibility.words[history+12u]=count;
-    traceVisibility.words[history+13u]=serial;traceVisibility.words[history+14u]=packSnorm4x8(vec4(incoming,0));
-    traceVisibility.words[history+15u]=0u;
+    traceVisibility.words[history+13u]=serial;
+    traceVisibility.words[history+14u]=packSnorm4x8(vec4(historyIncoming,0));
+    traceVisibility.words[history+15u]=packSnorm4x8(vec4(historyGeometric,0));
     memoryBarrierBuffer();
     atomicExchange(traceVisibility.words[record+7u],material);
 }

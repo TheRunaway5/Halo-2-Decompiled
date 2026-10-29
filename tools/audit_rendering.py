@@ -9,12 +9,68 @@ import argparse
 import hashlib
 import json
 import mmap
+import os
+import stat
 from pathlib import Path
 import struct
 
 
 class FormatError(ValueError):
     pass
+
+
+class ImportBudget:
+    """Charge references, including aliases, before expanding donor metadata."""
+    def __init__(self, items=2_000_000, retained=512 * 1024**2):
+        self.items, self.retained = items, retained
+        self._retained_capacity = retained
+
+    def begin_retained_phase(self, *, carried_bytes=0):
+        """Release a completed phase's temporary metadata, retaining its live data.
+
+        Reference work remains cumulative across the whole import. Callers may
+        restart only the memory estimate, after releasing temporary owners and
+        accounting for every structure carried into the next phase.
+        """
+        if type(carried_bytes) is not int or not 0 <= carried_bytes <= self._retained_capacity:
+            raise FormatError("Aggregate import metadata budget exceeded")
+        self.retained = self._retained_capacity - carried_bytes
+
+    def charge(self, count=1, bytes_per_item=256):
+        if count < 0 or count > self.items or count * bytes_per_item > self.retained:
+            raise FormatError("Aggregate import metadata budget exceeded")
+        self.items -= count
+        self.retained -= count * bytes_per_item
+
+
+def donor_inventory(root, *, members=100_000, depth=32, byte_limit=256 * 1024**3):
+    """Bound enumeration before sorting; empty directories and files count."""
+    rows, total = [], 0
+    def walk(parent, level):
+        nonlocal total
+        if level > depth:
+            raise FormatError("Donor directory depth budget exceeded")
+        with os.scandir(parent) as entries:
+            for entry in entries:
+                if len(rows) >= members:
+                    raise FormatError("Donor directory member budget exceeded")
+                # Windows directory entries may cache zero st_ino/st_dev
+                # values. Keep a complete no-follow snapshot now so later
+                # Path.stat checks compare the same file identity without
+                # refreshing away a source change between inventory and copy.
+                info = Path(entry.path).lstat() if os.name == "nt" else entry.stat(follow_symlinks=False)
+                directory = stat.S_ISDIR(info.st_mode)
+                if not directory and not stat.S_ISREG(info.st_mode):
+                    raise FormatError("Symlink or nonregular donor entry")
+                total += info.st_size if not directory else 0
+                if total > byte_limit:
+                    raise FormatError("Donor directory byte budget exceeded")
+                path = Path(entry.path)
+                rows.append((path.relative_to(root), info, directory))
+                if directory:
+                    walk(path, level + 1)
+    walk(root, 0)
+    return sorted(rows, key=lambda row: row[0])
 
 
 def sha(data):
@@ -27,7 +83,8 @@ def file_sha(path):
 
 
 class Cache:
-    def __init__(self, path):
+    def __init__(self, path, budget=None):
+        self.parse_budget = budget or ImportBudget()
         self.path = Path(path)
         self.file = self.path.open("rb")
         self.data = None
@@ -46,6 +103,7 @@ class Cache:
             count = self.u32(index + 24)
             if not 0 < count <= 65536:
                 raise FormatError("invalid tag count")
+            self.parse_budget.charge(count)
             self.require(table, count * 16)
             names, size, offsets = self.u32(708), self.u32(712), self.u32(716)
             self.require(names, size)
@@ -87,9 +145,12 @@ class Cache:
 
     def string(self, offset, size):
         self.require(offset, size)
-        end = self.data.find(b"\0", offset, offset + size)
+        end = self.data.find(b"\0", offset, offset + min(size,4096))
         if end < 0:
             raise FormatError("unterminated cache string")
+        if not hasattr(self, "parse_budget"):
+            self.parse_budget = ImportBudget()
+        self.parse_budget.charge(1,end-offset)
         return self.data[offset:end].decode("utf-8")
 
     def pointer(self, address, magic, size):
@@ -99,6 +160,8 @@ class Cache:
 
     def block(self, offset, stride, magic=None, bounds=None):
         count = self.u32(offset)
+        if budget := getattr(self, "parse_budget", None):
+            budget.charge(count)
         if count > 65536:
             raise FormatError("excessive block count")
         if not count:

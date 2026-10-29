@@ -1,0 +1,485 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_CONTINUITY_VALIDATION_V1",
+  "updated_utc": "2026-10-28T22:29:27.006206+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "continuity_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust-owned legacy v11 central-relay physical authority and complete-world proof coordination, installed from actual frozen setup admission. Authenticated IO controls use declared world-digest fixtures; no native world import/preservation, original host-order, deployment or delivered-client acceptance claim.",
+  "reproduced_gap": {
+    "trigger": "A ready result is finalized with caller-supplied epoch=1234 at the private database bridge.",
+    "before": "The old bridge accepted the Python epoch argument instead of sourcing room authority state. The failing red test observed no rejection.",
+    "after": "The production bridge rejects that field before SQL. Valid finalization obtains its epoch from the same native setup/continuity owner. The green test records finalization authority_epoch=0.",
+    "red_report": "continuity-red-report.json",
+    "red_log": "continuity-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Immutable admitted physical seat ownership and whole couch-seat membership masks; live constructor runs only at the source zero/loading agreement gate",
+    "Active peers, monotonic u32 epochs, checked exhaustion, pinned selected-world retries and finite observed deadlines",
+    "At most64 immutable completed-tick seals, standby proof validation, newest-world-only candidate selection and no rollback",
+    "Explicitly modern measured-milliseconds/physical-slot election ordering, candidate acceptance, all-survivor rebind and timeout departures",
+    "Authenticated physical message admission, strict complete-world controls, atomic rejections and benign stale-generation handling with bounded late-ack exception",
+    "Late seal/ack suppression after Rust result submission; Python phase projections do not grant reopening authority",
+    "Private result source ownership and authority epoch derivation; caller epochs rejected before SQL",
+    "Read-only Python projections; compact packet/expiry state queries exclude world-proof history"
+  ],
+  "checks": [
+    "Actual HTTP setup attaches to one existing Rust room continuity owner; unknown/retired rooms cannot install/recreate it",
+    "Public epoch/deadline/membership/quality/proof projections cannot mutate the live owner",
+    "60 uniform physical grouping controls spanning2..16 slots and1..4 seats per connection and whole-connection departures",
+    "Latest-ack race, unavailable world, candidate retry/exhaustion, rebind timeout and repeated migration controls",
+    "Strict u64 ticks, u32 epochs, malformed bool/float/foreign/guest operands and immutable bounded history",
+    "Generation exhaustion returns503 without partial departure; signed-zero RTTs preserve physical tie order",
+    "Full frozen Rust/backend cohort, separate default-feature production ABI cohort and CMake build/helper",
+    "Master hash, original53-owner inventory,12 full gap criteria/statuses and all G01-G12 gates preserved"
+  ],
+  "cohorts": {
+    "focused": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 246,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/security_policy.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs",
+        "rust/online_protocol/tests/matchmaking_continuity.rs",
+        "multiplayer/master_server/match_continuity.py"
+      ],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 18,
+      "rust_checks_passed": 178,
+      "rust_ignored": 2,
+      "backend_tests": 30,
+      "backend_seconds": 7.499,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "abeae4e5f9ba40349e797371a41cc7a3eecc18c31481e4d8a99aa05e99b667b9",
+        "bytes": 2678616,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "continuity-focused-report.json",
+      "source_manifest": "continuity-focused-source-manifest.json"
+    },
+    "full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 246,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/security_policy.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs",
+        "rust/online_protocol/tests/matchmaking_continuity.rs",
+        "multiplayer/master_server/match_continuity.py"
+      ],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 77,
+      "rust_checks_passed": 237,
+      "rust_ignored": 2,
+      "backend_tests": 471,
+      "backend_seconds": 109.239,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-xqu7mqqv/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "0dca6fbc9f7ffc467a45393e914744b19fe4c8d4fc4712073a5a80ab61a37093",
+        "bytes": 2697928,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "continuity-full-report.json",
+      "source_manifest": "continuity-full-source-manifest.json"
+    },
+    "final-full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 246,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 77,
+      "rust_checks_passed": 237,
+      "rust_ignored": 2,
+      "backend_tests": 471,
+      "backend_seconds": 136.263,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-mmv_aoh6/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "c92da29f4b6768c84523146aa806efaac0c07642c024ae096185b50bf2b20833",
+        "bytes": 2700776,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "continuity-final-full-report.json",
+      "source_manifest": "continuity-final-full-source-manifest.json"
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 246,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 55,
+      "rust_checks_passed": 215,
+      "rust_ignored": 2,
+      "backend_tests": 193,
+      "backend_seconds": 55.337,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-f_20gi5z/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "f31ec80dc60c90a5abcc7af9f000e74af1a44430acf539a44cff0bf2ac68da60",
+        "bytes": 2681576,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "continuity-production-report.json",
+      "source_manifest": "continuity-production-source-manifest.json"
+    }
+  },
+  "ignored_rust_tests": [
+    "netcode::stream::tests::captured_corpus_payload",
+    "netcode::stream::tests::encode_cost_for_large_mostly_static_bodies"
+  ],
+  "intermediate_diagnostics": {
+    "first": "One new test read authority_epoch at the wrong metadata level; corrected to finalization.authority_epoch. Continuity/relay tests passed.",
+    "integration": "New Rust test used an unparenthesized indexed array in json!; corrected.",
+    "native": "New --rust-lib frozen cohort initially lacked existing hopper numerical fixture; it is now copied and hashed.",
+    "full": "Initial full pass preceded compact state-reader change and a concurrent security_policy.rs change; final-full/production are the current matching246-file cohort.",
+    "cmake": "First CMake/helper passed but requested an incorrect optional report path. Final CMake run retained the correct build identity report."
+  },
+  "original_evidence": {
+    "new_original_host_election_execution": false,
+    "reference": {
+      "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+      "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+      "bytes": 639228,
+      "pages": 42,
+      "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+      "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+      "expanded_companion_registry_supplied": false
+    },
+    "reuse": "Existing unchanged-original timer/readiness/assignment/rank/selector/search fixtures are replayed by the Rust/backend suites. Election/order/timeout/transport remain declared native."
+  },
+  "cmake": {
+    "passed": true,
+    "source_frozen": false,
+    "scope": "Current-tree Rust static/CXX/worker/security build plus helper CTest; no native game or selected-runtime qualification",
+    "report": "continuity-cmake-final-report.json",
+    "build_identity": "continuity-cmake-final-identity.json",
+    "jobs": 2,
+    "test_jobs": 1
+  },
+  "remaining_boundaries": [
+    "Accepted social/party/clan membership and invitation/privacy/activity CRUD plus remaining party HTTP request/idempotency/presentation policy",
+    "Retirement/transaction-retry notification acknowledgement and crash recovery across countdown SQL/native publication commits; pregame countdown state/rules now belong to Rust",
+    "High-level review/postgame, departure/socket/bearer/effect dispatch and actual direct-peer engine/world continuity; Rust owns room setup/readiness/start/QoS and legacy v11 authority/complete-world coordination",
+    "Search QoS sensors/allocation and raw authenticated network timestamp/challenge/room observations; legacy v11 authority/world-proof coordination now belongs to Rust; full original/native world continuity remains open",
+    "Trusted directory/account/clan/room facts and temporary HTTP/file/provider/shared-identity/SQLite IO; future parallel/distributed fact/SQL/queue coordination",
+    "Full native client-visible profile/capability identity and public history readers"
+  ],
+  "goal_scope_preserved": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "full_criteria_unchanged": true,
+    "acceptance_gates_unchanged": true,
+    "all_full_gaps_open": true
+  },
+  "cleanup": {
+    "named_private_trees": [
+      {
+        "run": "red",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-mjwrwyvn",
+        "removed": true
+      },
+      {
+        "run": "first",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-eeytxx0e",
+        "removed": true
+      },
+      {
+        "run": "integration",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-ruvppdy0",
+        "removed": true
+      },
+      {
+        "run": "native",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-hxomz_my",
+        "removed": true
+      },
+      {
+        "run": "focused",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k",
+        "removed": true
+      },
+      {
+        "run": "full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-xqu7mqqv",
+        "removed": true
+      },
+      {
+        "run": "final-full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-mmv_aoh6",
+        "removed": true
+      },
+      {
+        "run": "production",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-f_20gi5z",
+        "removed": true
+      },
+      {
+        "run": "cmake",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-ea0f_yx6",
+        "removed": true
+      },
+      {
+        "run": "cmake-final",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-o9z1623h",
+        "removed": true
+      }
+    ],
+    "owned_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port",
+    "owned_parent_empty": true,
+    "unnamed_owned_format_runs": 3,
+    "generated_large_artifacts_retained": []
+  },
+  "activation": {
+    "service_restarted": false,
+    "runtime_selected": false,
+    "installed": false,
+    "deployed": false,
+    "committed_or_pushed": false
+  },
+  "retained_small_reports": {
+    "continuity-red-gaps-before.json": {
+      "source": "build/test-results/matchmaking-continuity-red-20261028/gaps-before.json",
+      "bytes": 77451,
+      "sha256": "790492d93acc7c5defe39a8c69de6c5b9d15bdd584b98632ce55b5120a0ce5b5"
+    },
+    "continuity-red-report.json": {
+      "source": "build/test-results/matchmaking-continuity-red-20261028/report.json",
+      "bytes": 1574,
+      "sha256": "799660aa438659ac1c973969618147c42b8d39d7dd7c8e2fb30a6967fb6f0f4a"
+    },
+    "continuity-red-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-red-20261028/source-manifest.json",
+      "bytes": 30701,
+      "sha256": "e8f56979f68645924b4cf1ad9bd0bcb73d4feb1b9dd9ab960e75ed5ce910f0fb"
+    },
+    "continuity-red-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-red-20261028/step-0.log",
+      "bytes": 1433,
+      "sha256": "21023952e5491ed90c1f80162fa93cb11e6b9c3175a906d7cea1e63bf879dfff"
+    },
+    "continuity-red-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-red-20261028/step-1.log",
+      "bytes": 1575,
+      "sha256": "b0600bebe1eee0c903f1e1368fbc4de1d469e94c6f6059c69cfea7b04c27a39e"
+    },
+    "continuity-first-report.json": {
+      "source": "build/test-results/matchmaking-continuity-first-20261028/report.json",
+      "bytes": 2073,
+      "sha256": "894ec5ba94d89c6f5b56c2722de378a8b60774f201fc6d15b39abbd1f133a949"
+    },
+    "continuity-first-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-first-20261028/source-manifest.json",
+      "bytes": 30827,
+      "sha256": "142f6605d232e31dbea944794aab6dcfa721be2af2c424386271a9b91e254b4a"
+    },
+    "continuity-first-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-first-20261028/step-0.log",
+      "bytes": 2824,
+      "sha256": "377d274cf7e4ec71d86f79c9023e3ed92f995416ea46258574ccd2f02121964f"
+    },
+    "continuity-first-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-first-20261028/step-1.log",
+      "bytes": 1432,
+      "sha256": "b2c93e836db83fe202bc312d812b2e53cb6327d8a178f35f9e56da2ec46498a2"
+    },
+    "continuity-first-step-2.log": {
+      "source": "build/test-results/matchmaking-continuity-first-20261028/step-2.log",
+      "bytes": 1338,
+      "sha256": "d6d454a4c32d2cdd55ba7f433e4fd6b42ed9dc74761595be16873d2208a02ca6"
+    },
+    "continuity-integration-report.json": {
+      "source": "build/test-results/matchmaking-continuity-integration-20261028/report.json",
+      "bytes": 1132,
+      "sha256": "c3b20ecb1646252e5952cd34e7da88ae55480ba7312d0064157588332e10dcdc"
+    },
+    "continuity-integration-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-integration-20261028/source-manifest.json",
+      "bytes": 31094,
+      "sha256": "5aca18d31797abbdd3919179319f9954f7150f32526c97a7d01bdda3a2a28c66"
+    },
+    "continuity-integration-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-integration-20261028/step-0.log",
+      "bytes": 2145,
+      "sha256": "77571df4fd0edfdb157c4cc8441864c8c6c8eb160e2c92349e86052ecc1c26ad"
+    },
+    "continuity-native-report.json": {
+      "source": "build/test-results/matchmaking-continuity-native-20261028/report.json",
+      "bytes": 1149,
+      "sha256": "90b4a96622f9ea9cf2be63ff9fa6f1470ae071e71205911430adca146b934f3c"
+    },
+    "continuity-native-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-native-20261028/source-manifest.json",
+      "bytes": 31094,
+      "sha256": "dcdde6f0cce1ef5396677b3528717a7307d827e53fc666b12627c10cd22eca32"
+    },
+    "continuity-native-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-native-20261028/step-0.log",
+      "bytes": 1770,
+      "sha256": "408668e48880a54fb22cb479688c522982d4709323c1fe1a86f49b6e7d8470b3"
+    },
+    "continuity-focused-report.json": {
+      "source": "build/test-results/matchmaking-continuity-focused-20261028/report.json",
+      "bytes": 2213,
+      "sha256": "e13bce048fd8b7972571263e0345cdb6f47e87267d04fc05b35be1d295c854c3"
+    },
+    "continuity-focused-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-focused-20261028/source-manifest.json",
+      "bytes": 31220,
+      "sha256": "631100e8ef6ebdcaa2b81da57be9d402e0c72db766c7d02097789825453a8da1"
+    },
+    "continuity-focused-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-focused-20261028/step-0.log",
+      "bytes": 19305,
+      "sha256": "7b80122e21724151b17bb93de987e7d6b28ff2f9b5e74fc5e8d15351ea71982e"
+    },
+    "continuity-focused-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-focused-20261028/step-1.log",
+      "bytes": 1432,
+      "sha256": "c1c9b03ee652b5c788e280962517cd5d4866f951ff28f03daba97637b43f420d"
+    },
+    "continuity-focused-step-2.log": {
+      "source": "build/test-results/matchmaking-continuity-focused-20261028/step-2.log",
+      "bytes": 675,
+      "sha256": "4a7f161c7371117242e3691586d6ac6f9d56cbf1e6ae09b9eeae9ec3f4828207"
+    },
+    "continuity-full-report.json": {
+      "source": "build/test-results/matchmaking-continuity-full-20261028/report.json",
+      "bytes": 2785,
+      "sha256": "c6ec6de30c68124d64e2e0c579a11ef3cf7a9c893cba6cac1dfed9033ba24cd9"
+    },
+    "continuity-full-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-full-20261028/source-manifest.json",
+      "bytes": 31220,
+      "sha256": "8f26b9d1e52b3bc77c3b64b605f955c9811a05b3905bdf4d18708dc74e483dd6"
+    },
+    "continuity-full-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-full-20261028/step-0.log",
+      "bytes": 27600,
+      "sha256": "7a0647c45e9f459460ab1a42fb52ec38cb99910af2a5237c2004ffe7f70fec28"
+    },
+    "continuity-full-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-full-20261028/step-1.log",
+      "bytes": 1432,
+      "sha256": "63f8417c3c5d68da1c579ed5c21a3b6e6540b6e4181b863efc874f2d6b52367d"
+    },
+    "continuity-full-step-2.log": {
+      "source": "build/test-results/matchmaking-continuity-full-20261028/step-2.log",
+      "bytes": 12088,
+      "sha256": "a703557146af9e314114b83df3e25caf2e068fd420f2848e263d626043c5c0d5"
+    },
+    "continuity-final-full-report.json": {
+      "source": "build/test-results/matchmaking-continuity-final-full-20261028/report.json",
+      "bytes": 2785,
+      "sha256": "092a6eb036fec774caec6797a081dc8df151a6444b47a24dfd63a42ffd473ee5"
+    },
+    "continuity-final-full-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-final-full-20261028/source-manifest.json",
+      "bytes": 31220,
+      "sha256": "67d8c72a4403bb6fb6a114a4d880521bae8a47d4b5a76eb9832255240b7f7aa2"
+    },
+    "continuity-final-full-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-final-full-20261028/step-0.log",
+      "bytes": 27601,
+      "sha256": "c9e4e5a74036cf2d918eb99073ef8bbfbb6e9185839cdd033255b0a0a182e4f8"
+    },
+    "continuity-final-full-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-final-full-20261028/step-1.log",
+      "bytes": 1433,
+      "sha256": "66e39fbfd605260ceee319df562d070c39ae0d2ee8570ecb4b3cf5d957e54025"
+    },
+    "continuity-final-full-step-2.log": {
+      "source": "build/test-results/matchmaking-continuity-final-full-20261028/step-2.log",
+      "bytes": 50799,
+      "sha256": "fd8e08bb775a9978ceb4f4bbc31480ad74addbd2b6c52da254781592467c9ef6"
+    },
+    "continuity-production-invocation.json": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/invocation.json",
+      "bytes": 3043,
+      "sha256": "bdb4e1048d51e48ac311e953d7f71a6aabc673740c3e40420c15d869ab06cc97"
+    },
+    "continuity-production-report.json": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/report.json",
+      "bytes": 4762,
+      "sha256": "928d7c6feda79a813b474c32f01df824e3dc1f2a9fbb1a853f6bd89431b0c54a"
+    },
+    "continuity-production-source-manifest.json": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/source-manifest.json",
+      "bytes": 31220,
+      "sha256": "f237bcc001fbb12567e37e06c0028dc166290e6a866ebe53ebe9d3ca511f1f18"
+    },
+    "continuity-production-step-0.log": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/step-0.log",
+      "bytes": 24104,
+      "sha256": "39d823d948f40136d672e1b55102716249719e0d94047a2f7c5cabc420eb96f2"
+    },
+    "continuity-production-step-1.log": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/step-1.log",
+      "bytes": 1433,
+      "sha256": "d53260040814eda4cbeb3e752c58c8ded63fe91ca8b7e04ae23fc22b0de23a64"
+    },
+    "continuity-production-step-2.log": {
+      "source": "build/test-results/matchmaking-continuity-production-20261028/step-2.log",
+      "bytes": 8053,
+      "sha256": "7cfddfa7c51a3d43cb0a988e2aa0bda700ca70649f2f6ba621a52d92b23d223f"
+    },
+    "continuity-cmake-build.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-20261028/build.log",
+      "bytes": 6784,
+      "sha256": "452cee97d2e684c9e169bcfcb295e674033e1ff904077827b92e730366465a70"
+    },
+    "continuity-cmake-configure.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-20261028/configure.log",
+      "bytes": 4638,
+      "sha256": "1bf2b4bc957bc0488077173ef341268a58774bf60594b8ddc252034a854bf9b6"
+    },
+    "continuity-cmake-report.json": {
+      "source": "build/test-results/matchmaking-continuity-cmake-20261028/report.json",
+      "bytes": 2234,
+      "sha256": "5a64023cc6ebc913a2cc6ed427e6a6e7adbe64129b778acff90eb4aa70543fe4"
+    },
+    "continuity-cmake-tests.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-20261028/tests.log",
+      "bytes": 300,
+      "sha256": "785cc8f18904f7bc4eec89cff13ad262ce93aeea80d9a278af28ff90aa6130ee"
+    },
+    "continuity-cmake-final-build.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-final-20261028/build.log",
+      "bytes": 6784,
+      "sha256": "0d06db81e47b5e8ed08eb99975d5e046337890116d2142acf537b8f07d8d4931"
+    },
+    "continuity-cmake-final-configure.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-final-20261028/configure.log",
+      "bytes": 4638,
+      "sha256": "d5cd1c9d2b0c548f74a976e5b963d8d3bc1f639cddc280f11f5a82d66e709a1c"
+    },
+    "continuity-cmake-final-report.json": {
+      "source": "build/test-results/matchmaking-continuity-cmake-final-20261028/report.json",
+      "bytes": 2524,
+      "sha256": "282d2f86994250351f023452ecd1b9c012f90dccc8045d912f21f78c10937c9c"
+    },
+    "continuity-cmake-final-tests.log": {
+      "source": "build/test-results/matchmaking-continuity-cmake-final-20261028/tests.log",
+      "bytes": 300,
+      "sha256": "e101b1c4b36c01a83287d5959fbf5c0c790fd6a28fdacec80ad1da960ba83c88"
+    },
+    "continuity-cmake-final-identity.json": {
+      "source": "build/test-results/matchmaking-continuity-cmake-final-20261028/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1868,
+      "sha256": "29c20e85d32f3c3054b078be4710a35662817e6d25524dd89b9aa3261f7650ad"
+    }
+  }
+}

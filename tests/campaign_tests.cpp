@@ -72,19 +72,23 @@ LevelContent arena();
 void opening_release_timing() {
   Program p;
   p.script("opening_release_timing", p.call("begin", {
-      p.call("time_code_reset"), p.call("sleep", {p.scalar(2,7)}),
-      p.call("time_code_reset"), p.call("game_won")}));
+      p.call("time_code_reset"), p.call("map_reset"),
+      p.call("sleep", {p.scalar(2,7)}),
+      p.call("time_code_reset"), p.call("map_reset"), p.call("game_won")}));
   auto c=arena();c.scripts=p.data;
   Simulation sim(c,{},0,Spawn{});
   sim.start_level();
   sim.step({});
-  check(sim.scripts().diagnostics().empty() && !sim.level_finished() && sim.ticks()==1,
-        "Opening release time-code reset faults or changes the game clock");
+  check(sim.scripts().diagnostics().empty() && !sim.level_finished() &&
+            !sim.reset_requested() && sim.ticks()==1,
+        "Opening release reset faults, restarts the map or changes the game clock");
   sim.step({});
-  check(!sim.level_finished(),"Release time-code reset changes authored sleep timing");
+  check(!sim.level_finished() && !sim.reset_requested(),
+        "Release reset changes authored sleep timing or requests a map restart");
   sim.step({});
-  check(sim.scripts().diagnostics().empty() && sim.level_finished() && sim.ticks()==3,
-        "Opening release time-code reset interrupts the authored continuation");
+  check(sim.scripts().diagnostics().empty() && sim.level_finished() &&
+            !sim.reset_requested() && sim.ticks()==3,
+        "Opening release reset interrupts the authored continuation");
 }
 void vm_checkpoint() {
   Program p;

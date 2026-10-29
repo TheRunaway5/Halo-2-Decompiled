@@ -9,6 +9,7 @@
 #include "halo2/source_dynamic_object.hpp"
 #include "halo2/source_effect_random.hpp"
 #include "halo2/custom_slayer.hpp"
+#include "halo2/appearance.hpp"
 #include "halo2/bomb_defusal.hpp"
 #include "halo2/frontend.hpp"
 #include "halo2/simulation.hpp"
@@ -265,6 +266,7 @@ struct MultiplayerState {
     std::uint8_t physical_state=0xff;
     float health{},shield{};
     DamageFeedbackState damage_feedback;
+    std::optional<ObjectColors> colors;
   };
   struct Player {
     bool connected{}, dead{};
@@ -369,6 +371,9 @@ struct MultiplayerState {
   std::optional<KingObjective> king;
   bool finished{};
   bool results_finalized{};
+  // Present only after the real source recording has frozen at completion.
+  // Every report reviewer checks these native counters before confirmation.
+  std::optional<SourceResultAccuracy> result_accuracy;
   std::int32_t game_over_countdown{};
   bool game_over_fade_started{};
   bool game_over_complete()const{return finished && game_over_countdown==0;}
@@ -390,6 +395,8 @@ struct MultiplayerState {
   NetcodeMode netcode_mode = NetcodeMode::original;
   bool team_mode{};
   std::uint8_t retained_team_mask{};
+  bool team_changing{};
+  std::uint8_t available_team_mask{};
   int winner_team = -1;
   std::array<std::int16_t, 8> team_scores{};
   std::array<std::int16_t, 8> team_total_scores{}, team_wins{};
@@ -503,6 +510,8 @@ public:
   // Ordinary TU1.5 departure retains the allocated roster/profile/results.
   // Its original unit-death request is adopted after a later world phase.
   bool depart(unsigned);
+  // Empty error means the original profile owner accepted the selected team.
+  std::string change_team(unsigned,std::int16_t);
   // Failed native transport admission uses the existing allocation rollback;
   // it is distinct from an admitted source-world participant's departure.
   void cancel_join(unsigned);

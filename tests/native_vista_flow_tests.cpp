@@ -3,10 +3,15 @@
 #include "halo2/frontend_lobby.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/native_vista_loading_audio.hpp"
+#include "halo2/mcc_loading_presentation.hpp"
 #include "halo2/frontend_canvas.hpp"
 #include "halo2/original_data.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "../src/ui/mcc_frontend_string_ids.hpp"
+#include <bit>
 #include <chrono>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <thread>
 using namespace halo2;
@@ -41,9 +46,19 @@ int main(int argc,char** argv)try {
       !std::filesystem::is_regular_file(argv[2]) || !std::filesystem::is_regular_file(argv[3]))return 77;
   const std::filesystem::path maps=argv[1];
   FrontendSession frontend;
-  {Cache menu(maps/"mainmenu.map");frontend.retain_content(menu.load_frontend());}
+  bool imported{};
+  {Cache menu(maps/"mainmenu.map");imported=menu.is_mcc();frontend.retain_content(menu.load_frontend());}
   frontend.content().vista=load_vista_settings(argv[2]);
-  auto& state=frontend.create_state();
+  std::filesystem::path preferences;
+  if(imported && argc==5) {
+    // Use the real persisted one-minute Slayer option, so the native fade
+    // journal and render owner see every tick of an ordinary timed match.
+    // CPU acceleration would omit the presentation's bounded source history.
+    preferences=std::filesystem::path(argv[4])/"flow-menu.cfg";
+    std::filesystem::create_directories(preferences.parent_path());
+    std::ofstream(preferences)<<"halo2-native-menu-v1\nvariant 10 60\n";
+  }
+  auto& state=frontend.create_state(preferences);
   if(two_players)check(state.controller_slot(inputs[0],true)==0,"Host controller binding missing");
   state.accept();state.accept();state.text("Roundtrip Pilot");state.commit_text();state.back();
   check(state.frame().screen==6,"Actual selected profile did not reach main menu");
@@ -66,22 +81,31 @@ int main(int argc,char** argv)try {
   choose(state,0,14);
   check(state.lobby_view()->input.player_count==int(player_count),"Actual lobby lost its local roster");
   const auto name=state.signed_in_profile();
-  MultiplayerOptions defaults;defaults.gameplay_xbe=argv[3];
+  MultiplayerOptions defaults;
+  if(imported) {
+    // Match the installed menu's actual native object-world path. The TU1.5
+    // argument remains a reference input, never a runtime executable provider.
+    defaults.source_object_world=true;
+  } else defaults.gameplay_xbe=argv[3];
   defaults.mute=std::getenv("H2_TEST_DAMAGE_AUDIO")==nullptr;
   if(argc==5) {
     defaults.desktop=std::make_shared<DesktopSession>();
     const std::filesystem::path loading=std::getenv("H2_TEST_LOADING_ASSETS")?
         std::getenv("H2_TEST_LOADING_ASSETS"):"assets/menu-ui/vista/loading";
-    defaults.desktop->configure_loading(loading);
+    if(imported)check(configure_h2ek_original_loading_presentation(*defaults.desktop,maps.parent_path().parent_path(),true),
+        "Imported roundtrip requires the onboarded H2EK campaign loading bank");
+    else defaults.desktop->configure_loading(loading);
     // Exercise the application's actual loading-audio adapter lifetime. This
     // loading-tone capture stays muted; H2_TEST_DAMAGE_AUDIO enables world
     // audio so the absent-unit HUD interval is exercised after the fade.
+    if(!imported) {
     auto loading_audio=std::make_shared<NativeVistaLoadingAudio>(
         loading/"loading-tone.xbox-adpcm");
     defaults.desktop->set_loading_audio_services({
         [loading_audio]{loading_audio->begin(true);},
         [loading_audio](std::uint32_t gain){loading_audio->gain(gain);},
         [loading_audio]{loading_audio->end();}});
+    }
     FrontendOptions capture;capture.maps=maps;capture.vista_settings=argv[2];
     capture.session=std::shared_ptr<FrontendSession>(&frontend,[](FrontendSession*){});
     capture.desktop=defaults.desktop;capture.entry=FrontendOptions::Entry::fresh_lobby;
@@ -101,7 +125,11 @@ int main(int argc,char** argv)try {
     check(absent,"Loading presentation started after native world construction");
     ++resource_begins;
     if(argc==5) {
-      defaults.desktop->begin_loading();
+      if(imported)defaults.desktop->begin_multiplayer_loading();
+      else defaults.desktop->begin_loading();
+      if(imported)
+      check(defaults.desktop->loading_snapshot()->network_transition==FrontendNetworkTransitionStatus::SettingUpGame,
+          "Actual local Start did not select the multiplayer setup dialog");
       defaults.desktop->capture_loading(std::filesystem::path(argv[4])/
           ("native-loading-world-"+std::to_string(resource_begins)+".ppm"));
     }
@@ -114,10 +142,12 @@ int main(int argc,char** argv)try {
   check(flow->countdown()==10,"Initial countdown did not publish source stage10");
   const auto countdown_lobby=state.lobby_view();
   check(countdown_lobby && countdown_lobby->input.countdown &&
-      frontend_lobby_presentation(countdown_lobby->input).status_string==0x200001f0 &&
-      state.expand(frontend.content().localized(frontend.content().screen(14),0x200001f0))==
-          "Game start countdown in progress  10\r\nPress \xee\x84\x82 to cancel",
-      "Actual solo countdown shows a party requirement instead of its original countdown status");
+      frontend_lobby_presentation(countdown_lobby->input).status_string==0x200001f0,
+      "Actual countdown did not select its original status owner");
+  const auto countdown_text=state.expand(detail::frontend_compiled_localized(
+      frontend.content(),frontend.content().screen(14),0x200001f0));
+  check(countdown_text=="Game start countdown in progress  10\r\nPress \xee\x84\x82 to cancel",
+      ("Actual countdown caption differs: "+countdown_text).c_str());
   state.accept();
   check(flow->countdown()==9 && !state.launch,"Second Start did not quick-advance the retained countdown");
   state.back();
@@ -279,13 +309,25 @@ int main(int argc,char** argv)try {
       unsigned partial_draws{};
       bool accelerated{};
       bool checked_scoreboard{};
-      std::optional<std::uint32_t> captured_black;
+      std::optional<float> captured_black;
+      bool native_opening_clear{};
+      if(imported)rendered.gameplay_fade_observer=[&](unsigned view,auto tick,auto alpha,const auto& fade) {
+        check(view<player_count,"Native fade used an unselected viewport");
+        if(alpha) {
+          check(std::bit_cast<std::uint32_t>(*alpha)==fade.opacity_bits[view],
+              "Native viewport changed the source binary32 fade opacity");
+          ++black_draws;
+          if(*alpha>0 && *alpha<1)++partial_draws;
+        } else if(view==0 && tick>=45)native_opening_clear=true;
+        if(round && tick==rendered.capture_tick)captured_black=alpha;
+      };
       rendered.session_view_black=[&](unsigned view) {
+        check(!imported,"Imported world called the legacy PC viewport fade");
         const auto packed=flow->world_view_black(view);
         if(packed)++black_draws;
         if(packed && (*packed>>24)>0 && (*packed>>24)<255)++partial_draws;
         if(round && options.prepared_world->match.state().tick==rendered.capture_tick)
-          captured_black=packed;
+          captured_black=packed?std::optional<float>{float(*packed>>24)/255.f}:std::nullopt;
         return packed;
       };
       bool independent_input{};
@@ -327,6 +369,7 @@ int main(int argc,char** argv)try {
           ++updates;
           const auto close=flow->world_update(actual);observe_initial_view(actual);
           if(close)return true;
+          if(imported)return false;
           if(accelerated || actual.state().tick<60)return false;
           check(!flow->world_view_black(0),"Source opening fade did not clear before diagnostic acceleration");
           accelerated=true;
@@ -350,8 +393,9 @@ int main(int argc,char** argv)try {
       }
       check(run_multiplayer(rendered,outcome)==0 && black_draws && loaded==1 &&
           outcome.reason==((round || two_players)?MultiplayerExitReason::captured_tick:MultiplayerExitReason::frame_limit) &&
-          (!round || (checked_scoreboard && partial_draws && captured_black && (*captured_black>>24)>0 &&
-              (*captured_black>>24)<255)),"Actual viewport did not render its source fade");
+          (!round || (checked_scoreboard && partial_draws && captured_black && *captured_black>0 &&
+              *captured_black<1 && (!imported || native_opening_clear))),
+          "Actual viewport did not render its source fade");
       for(unsigned view=0;view<player_count;++view)check(presented_views[view],"GPU runtime omitted a selected local view");
       check(!two_players || round || independent_input,"GPU round missed independent two-controller input");
       // The GPU runtime's borrowed effect/audio consumers have ended. CPU
@@ -371,7 +415,8 @@ int main(int argc,char** argv)try {
     if(argc==5) {
       // CPU acceleration ends at the same real world-close result. Explicitly
       // invoke the production resource boundary omitted by the headless branch.
-      defaults.desktop->begin_loading();
+      if(imported)defaults.desktop->begin_multiplayer_loading(FrontendNetworkTransitionStatus::LeavingGame);
+      else defaults.desktop->begin_loading();
       defaults.desktop->capture_loading(std::filesystem::path(argv[4])/
           ("native-loading-menu-"+std::to_string(round+1)+".ppm"));
     }
@@ -433,7 +478,8 @@ int main(int argc,char** argv)try {
       capture.skip_intro=true;capture.validation=true;capture.width=1280;capture.height=720;
       capture.frames=150;capture.screenshot=std::filesystem::path(argv[4])/
           ("native-lobby-after-done-"+std::to_string(round+1)+".ppm");
-      Mesh hit_mesh;FrontendPainter hit_painter(frontend.content(),maps/"fonts",hit_mesh);
+      Cache selected_menu(maps/"mainmenu.map");
+      Mesh hit_mesh;FrontendPainter hit_painter(frontend.content(),gameplay_font_directory(selected_menu),hit_mesh);
       unsigned frames{},ready_frames{};int click_x{},click_y{};
       const bool mouse_done=round || std::getenv("H2_TEST_MOUSE_DONE")!=nullptr;
       const auto key=[&](SDL_Keycode code) {

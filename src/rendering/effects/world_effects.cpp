@@ -2,6 +2,8 @@
 #include "halo2/source_particle_sprite_context.hpp"
 #include "halo2/source_effect_event.hpp"
 #include "halo2/particle_presentation.hpp"
+#include "halo2/particle_material_validation.hpp"
+#include "halo2/particle_draw_resource_validation.hpp"
 #include "halo2/particle_effect_color.hpp"
 #include "halo2/material_effects.hpp"
 #include "halo2/math.hpp"
@@ -231,6 +233,9 @@ struct NativeWorldEffects::Impl {
     std::vector<std::string> missing_components;
   };
   std::map<std::uint32_t, Definition> definitions;
+  std::map<std::uint32_t,std::string> rejected_definitions;
+  std::set<std::uint32_t> rejected_attached_definitions;
+  unsigned resource_diagnostics{};bool resource_diagnostic_limit{};
   struct Emitter {
     ParticleEmitterState state;
     std::map<std::uint32_t, ParticleSimulationState> particles;
@@ -387,10 +392,13 @@ struct NativeWorldEffects::Impl {
     // not instantiate an effect or advance either random stream.
     const auto grenades=p.block(p.root,0x100,0x2c);
     for(unsigned n=0;n<p.root.u32(0x100);++n) {
-      Packet projectile(c,grenades.u32(n*0x2c+0x28));
+      const auto datum=grenades.u32(n*0x2c+0x28);
+      try {
+      Packet projectile(c,datum);
       if(projectile.tag.group!="proj")throw FormatError("Grenade preload is not a projectile");
       const auto effect=projectile.root.u32(0xfc);
-      if(effect!=none)definition(effect);
+      if(effect!=none)(void)try_definition(effect);
+      }catch(const FormatError& error){reject_definition(datum,error.what());}
     }
   }
   Impl(const Impl &o,SourceEffectRandom streams,ParticleCollisionQuery query)
@@ -403,7 +411,9 @@ struct NativeWorldEffects::Impl {
        light_queries(o.light_queries),light_selection(o.light_selection),
        source_light_queries(o.source_light_queries),source_light_selection(o.source_light_selection),
        source_decal_cache(o.source_decal_cache),decal_definitions(o.decal_definitions),
-       decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),effects(o.effects) {
+       decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),
+       rejected_definitions(o.rejected_definitions),rejected_attached_definitions(o.rejected_attached_definitions),resource_diagnostics(o.resource_diagnostics),
+       resource_diagnostic_limit(o.resource_diagnostic_limit),effects(o.effects) {
     // Every raw link points into this owner's copied definition graph. A
     // checkpoint must survive destruction of its intermediate restored owner.
     for(auto &effect:effects) {
@@ -443,7 +453,34 @@ struct NativeWorldEffects::Impl {
   float range(float low, float high) {
     return low == high ? low : (high - low) * fraction() + low;
   }
-  Definition &definition(std::uint32_t datum) {
+  void diagnose_definition(std::uint32_t datum,std::string_view message) {
+    const auto diagnostic="World visual resource "+std::to_string(datum)+": "+std::string(message.substr(0,512));
+    if(unavailable.contains(diagnostic))return;
+    if(resource_diagnostics<64) {
+      ++resource_diagnostics;
+      unavailable.insert(diagnostic);
+    } else if(!resource_diagnostic_limit) {
+      resource_diagnostic_limit=true;unavailable.insert("Additional unavailable world visual resources omitted; diagnostic limit reached");
+    }
+  }
+  void reject_definition(std::uint32_t datum,std::string_view message) {
+    if(rejected_definitions.contains(datum))return;
+    // Full salted identities prevent another resource inheriting a rejection.
+    // Keep both memoized CPU errors and emitted diagnostics bounded.
+    if(rejected_definitions.size()<256)rejected_definitions.emplace(datum,std::string(message.substr(0,512)));
+    diagnose_definition(datum,message);
+  }
+  Definition* try_definition(std::uint32_t datum) {
+    if(datum==none || rejected_definitions.contains(datum))return nullptr;
+    try{return &definition(datum);}
+    catch(const ParticleResourceError& error){reject_definition(datum,error.what());return nullptr;}
+  }
+  Effect* spawn(std::uint32_t datum,std::uint32_t owner,std::uint64_t at,const WorldEffectFrame& frame) {
+    auto* admitted=try_definition(datum);if(!admitted)return nullptr;
+    if(effects.size()>=256)throw FormatError("World effect pool exhausted");
+    effects.push_back(Effect{0,at,owner,frame,admitted,false,{}});return &effects.back();
+  }
+  Definition &definition(std::uint32_t datum) try {
     if (auto i = definitions.find(datum); i != definitions.end())
       return i->second;
     Packet p(cache, datum);
@@ -550,6 +587,7 @@ struct NativeWorldEffects::Impl {
           SystemDefinition out;
           out.render =
               cache.load_particle_system_render_definition(datum, n, j);
+          validate_particle_draw_resource(out.render);
           out.sort_bias = std::int16_t(systems.u16(a + 0x14));
           if (out.render.coordinates < 0 || out.render.coordinates > 2)
             throw FormatError(
@@ -558,10 +596,13 @@ struct NativeWorldEffects::Impl {
           Packet particle(cache, out.render.particle_datum);
           if(particle.tag.group=="PRTM") {
             out.model=std::make_shared<const ParticleModelDefinition>(load_particle_model(cache,out.render.particle_datum));
+            validate_particle_draw_resource(*out.model);
           }else {
             out.sprite = cache.load_particle_sprite(out.render.particle_datum);
             out.sprite_context=source_particle_sprite_context(cache,out.render.particle_datum,out.sprite);
-            if(out.sprite_context && !out.sprite_context->has_bitmap)out.sprite.bitmap_type=-1;
+            if(!out.sprite_context)throw ParticleResourceError("World particle has no admitted sprite context");
+            if(!out.sprite_context->has_bitmap)out.sprite.bitmap_type=-1;
+            validate_particle_draw_resource(out.sprite,*out.sprite_context);
           }
           if (!out.model && particle.root.u32(0x78) != none) {
             const auto group=particle.root.u32(0x74);
@@ -575,6 +616,7 @@ struct NativeWorldEffects::Impl {
           out.material = std::make_shared<const ParticleMaterial>(
               cache.load_particle_material(out.render.particle_datum, 15, 0,
                                            out.model?1:0));
+          validate_particle_material(*out.material);
           if (out.material->vertex.classification != (out.model?1:7) &&
               (out.model || (out.material->vertex.classification != 8 && out.material->vertex.classification != 9)))
             throw FormatError(
@@ -618,7 +660,7 @@ struct NativeWorldEffects::Impl {
           event.systems.push_back(std::move(out));
         } catch (const FormatError &e) {
           d.complete=false;
-          unavailable.insert(cache.string_id(locs.u32(0)) + ": " + e.what());
+          diagnose_definition(datum,p.tag.name + ": " + e.what());
         }
     }
     auto &retained = definitions.emplace(datum, std::move(d)).first->second;
@@ -626,8 +668,13 @@ struct NativeWorldEffects::Impl {
     // death boundary. Map ownership also closes recursive definition chains.
     for (const auto &event : retained.events)
       for (const auto &system : event.systems)
-        if (system.death_effect != none) definition(system.death_effect);
+        if (system.death_effect != none)(void)try_definition(system.death_effect);
     return retained;
+  }catch(const ParticleResourceError&){throw;}
+  catch(const FormatError& error) {
+    // Only immutable Cache reads and resource preparation occur here. Live
+    // source records, frame state and allocation invariants remain outside.
+    throw ParticleResourceError("World effect "+std::to_string(datum)+": "+error.what());
   }
   ParticleValueSources sources(const System &s, std::uint64_t t,
                                float seconds, const WorldEffectFrame &frame) const {
@@ -873,6 +920,18 @@ NativeWorldEffects::NativeWorldEffects(const Cache &c,Mesh &m,const CollisionWor
                                       SourceEffectRandom streams)
     :impl_(std::make_unique<Impl>(c,m,w,0,streams)) {}
 NativeWorldEffects::~NativeWorldEffects() = default;
+NativeWorldEffects::NativeWorldEffects(std::unique_ptr<Impl> state):impl_(std::move(state)){}
+std::unique_ptr<NativeWorldEffects> NativeWorldEffects::fork(SourceEffectRandom streams,
+    ParticleCollisionQuery collision)const {
+  const auto &from=impl_->random_streams;
+  if((&from.primary==&from.auxiliary)!=(&streams.primary==&streams.auxiliary) ||
+      &streams.primary==&from.primary || &streams.primary==&from.auxiliary ||
+      &streams.auxiliary==&from.primary || &streams.auxiliary==&from.auxiliary)
+    throw FormatError("World presentation fork requires independent RNG owners with the same alias relation");
+  auto state=std::make_unique<Impl>(*impl_,streams,std::move(collision));
+  state->sounds.clear();
+  return std::unique_ptr<NativeWorldEffects>(new NativeWorldEffects(std::move(state)));
+}
 struct NativeWorldEffects::Checkpoint::Data {
   std::shared_ptr<const int> owner;
   std::array<std::uint32_t,2> random;
@@ -928,11 +987,24 @@ void NativeWorldEffects::preload_attached(std::uint32_t datum) {
   };
   if(!complete(complete,datum)) {
     std::string reason;
-    for(const auto &gap:impl_->unavailable)reason+="; "+gap;
-    throw FormatError("Attached effect graph could not preload every authored particle system: "+std::to_string(datum)+reason);
+    for(const auto &gap:impl_->unavailable){reason+=("; "+gap).substr(0,512-reason.size());if(reason.size()==512)break;}
+    throw ParticleResourceError("Attached effect graph could not preload every authored particle system: "+std::to_string(datum)+reason);
+  }
+  impl_->rejected_definitions.erase(datum);
+  impl_->rejected_attached_definitions.erase(datum);
+}
+bool NativeWorldEffects::try_preload_attached(std::uint32_t datum) {
+  if(datum==none)return true;
+  if(impl_->rejected_definitions.contains(datum) || impl_->rejected_attached_definitions.contains(datum))return false;
+  try{preload_attached(datum);return true;}
+  catch(const ParticleResourceError& error){
+    // Attached consumers already required the complete particle graph. A raw
+    // impact can still display its independently supported systems and parts.
+    if(impl_->rejected_attached_definitions.size()<256)impl_->rejected_attached_definitions.insert(datum);
+    impl_->diagnose_definition(datum,error.what());return false;
   }
 }
-void NativeWorldEffects::preload_complete(std::uint32_t datum) {
+void NativeWorldEffects::preload_complete(std::uint32_t datum) try {
   preload_attached(datum);
   if(datum==none)return;
   std::set<std::uint32_t> visited;
@@ -961,7 +1033,8 @@ void NativeWorldEffects::preload_complete(std::uint32_t datum) {
     }
   };
   complete(complete,datum);
-}
+}catch(const ParticleResourceError&){throw;}
+catch(const FormatError& error){throw ParticleResourceError(error.what());}
 void NativeWorldEffects::object_markers(std::uint32_t handle,ObjectMarkers markers) {
   if(handle==none)throw FormatError("Attached effect requires a full object handle");
   for(auto &[name,frames]:markers)for(auto &f:frames)f.scale_a=f.scale_b=0;
@@ -976,16 +1049,16 @@ void NativeWorldEffects::remove_object(std::uint32_t handle) {
 void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target,
     std::uint32_t owner,std::uint64_t tick,SourceEffectColors colors,SourceEffectControls controls) {
   if(datum==none || !impl_->object_markers.contains(target))return;
-  preload_attached(datum);
-  spawn(datum,owner,tick,{});
-  auto &e=impl_->effects.back();e.target=target;e.frame.scale_a=controls.a;e.frame.scale_b=controls.b;
+  if(!try_preload_attached(datum))return;
+  auto* created=impl_->spawn(datum,owner,tick,{});if(!created)return;
+  auto &e=*created;e.target=target;e.frame.scale_a=controls.a;e.frame.scale_b=controls.b;
   e.colors=colors;
   e.initial_attached_step=true;
 }
 void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon,std::uint64_t tick,
     SourceEffectColors colors,Vec3 velocity,float a,float b,std::uint32_t source_instance,bool sounds,const ObjectMarkers *locations) {
   if(datum==none || (!locations && !impl_->object_markers.contains(weapon)))return;
-  preload_attached(datum);
+  if(!try_preload_attached(datum))return;
   if(source_instance!=none)for(auto &e:impl_->effects)
     if(e.source_instance==source_instance && e.target==weapon && e.definition->datum==datum) {
       // Complete17DFF0 refresh: retain controls/colors/linked systems and
@@ -997,8 +1070,8 @@ void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon
       if(locations)e.source_locations=*locations;
       return;
     }
-  spawn(datum,weapon,tick,{});
-  auto &e=impl_->effects.back();e.target=weapon;e.colors=colors;e.initial_attached_step=true;
+  auto* created=impl_->spawn(datum,weapon,tick,{});if(!created)return;
+  auto &e=*created;e.target=weapon;e.colors=colors;e.initial_attached_step=true;
   e.frame.scale_a=a;e.frame.scale_b=b;
   e.velocity=velocity;e.source_instance=source_instance;e.sounds=sounds;
   if(locations)e.source_locations=*locations;
@@ -1013,22 +1086,22 @@ void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_
     const ObjectMarkers *locations) {
   if(datum==none || target==none || (!locations && !impl_->object_markers.contains(target)))
     throw FormatError("Map attachment requires its current full object/marker owner");
-  preload_attached(datum);
-  spawn(datum,target,tick,{});
-  auto &e=impl_->effects.back();e.target=target;e.attached=true;
+  if(source && (source->instance==none || source->definition!=datum))
+    throw FormatError("Map attachment source allocation differs from its authored definition");
+  if(source && !locations)throw FormatError("Source map attachment requires its actual completed location bank");
+  if(!try_preload_attached(datum))return;
+  auto* created=impl_->spawn(datum,target,tick,{});if(!created)return;
+  auto &e=*created;e.target=target;e.attached=true;
   e.attachment_marker=std::move(marker);e.frame.scale_a=scale_a;e.frame.scale_b=scale_b;
   //175FA0's retained-repeat branch starts through179850 with a zero update,
   //independently of the definition's one-shot damage-effect bit1.
   e.initial_attached_step=true;
   if(source) {
-    if(source->instance==none || source->definition!=datum)
-      throw FormatError("Map attachment source allocation differs from its authored definition");
     e.source_instance=source->instance;e.source_attachment=*source;
     e.replica_render=source->render;
     if(source->render)e.replica_clock=source->render_clock;
     e.frame.scale_a=source->scale_a;e.frame.scale_b=source->scale_b;
     e.colors={source->colors[0],source->colors[1]};
-    if(!locations)throw FormatError("Source map attachment requires its actual completed location bank");
     e.source_locations=*locations;
   }
 }
@@ -1068,21 +1141,25 @@ std::size_t NativeWorldEffects::attach_scenery(const LevelContent &content) {
     for (unsigned n = 0; n < p.root.u32(0x94); ++n) {
       const auto at = n * 0x18;
       if (attachments.u32(at) != 0x65666665u || attachments.u32(at + 4) == none) continue;
-      if (attachments.u32(at + 8) || attachments.u32(at + 0x10) || attachments.u32(at + 0x14))
-        throw FormatError("Static scenery effect needs a posed marker/function owner");
       const auto datum = attachments.u32(at + 4);
+      if (attachments.u32(at + 8) || attachments.u32(at + 0x10) || attachments.u32(at + 0x14)) {
+        impl_->diagnose_definition(datum,"Static scenery effect needs a posed marker/function owner");continue;
+      }
+      if(!try_preload_attached(datum))continue;
       const auto &definition = impl_->definition(datum);
       // The title's attached flak has one constant, delay-free event. Keep
       // more general retained event graphs outside this bounded owner.
       if (definition.events.size() != 1 || definition.events[0].skip != 0 ||
           definition.events[0].delay_low != 0 || definition.events[0].delay_high != 0 ||
           definition.events[0].duration_low != definition.events[0].duration_high ||
-          !(definition.events[0].duration_low > 0) || !definition.events[0].parts.empty())
-        throw FormatError("Attached scenery effect requires additional event lifecycle");
+          !(definition.events[0].duration_low > 0) || !definition.events[0].parts.empty()) {
+        impl_->diagnose_definition(datum,"Attached scenery effect requires additional event lifecycle");continue;
+      }
       const auto rotation = authored_basis(object.rotation);
-      spawn(datum, index, 0, {object.position, rotation.up, rotation.forward,
-          rotation.forward, rotation.up, false});
-      impl_->effects.back().attached = true;
+      auto* created=impl_->spawn(datum,index,0,{object.position,rotation.up,rotation.forward,
+          rotation.forward,rotation.up,false});
+      if(!created)continue;
+      created->attached=true;
       ++count;
     }
   }
@@ -1091,14 +1168,7 @@ std::size_t NativeWorldEffects::attach_scenery(const LevelContent &content) {
 void NativeWorldEffects::spawn(std::uint32_t datum, std::uint32_t owner,
                                std::uint64_t tick,
                                const WorldEffectFrame &frame) {
-  if (datum == none)
-    return;
-  auto &i = *impl_;
-  auto &definition = i.definition(datum);
-  Impl::Effect e{0, tick, owner, frame, &definition, false, {}};
-  if (i.effects.size() >= 256)
-    throw FormatError("World effect pool exhausted");
-  i.effects.push_back(std::move(e));
+  (void)impl_->spawn(datum,owner,tick,frame);
 }
 void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
     std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors,SourceEffectControls controls,
@@ -1115,11 +1185,11 @@ void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
     const WorldEffectFrame frame{t.position,t.basis[0],t.basis[0],t.basis[0],t.basis[2],false};
     frames[impl_->cache.string_id(location.name)].push_back(frame);
   }
-  spawn(effect,owner,tick,frames.begin()->second.front());
-  impl_->effects.back().source_locations=std::move(frames);
-  impl_->effects.back().colors=colors;
-  impl_->effects.back().frame.scale_a=controls.a;impl_->effects.back().frame.scale_b=controls.b;
-  impl_->effects.back().replica_render=std::move(replica_render);
+  auto* created=impl_->spawn(effect,owner,tick,frames.begin()->second.front());if(!created)return;
+  created->source_locations=std::move(frames);
+  created->colors=colors;
+  created->frame.scale_a=controls.a;created->frame.scale_b=controls.b;
+  created->replica_render=std::move(replica_render);
 }
 std::vector<WorldEffectLensRequest> NativeWorldEffects::replica_lenses()const {
   const auto &i=*impl_;std::vector<WorldEffectLensRequest> out;

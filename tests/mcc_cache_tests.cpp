@@ -4,6 +4,7 @@
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/unit_animation.hpp"
 #include "halo2/unit_animation_graph_metadata.hpp"
+#include "halo2/source_unit_animation_graph_header.hpp"
 #include "halo2/tags/system.hpp"
 #include "halo2/source_runtime_cache_tags.hpp"
 #include "halo2/original_data.hpp"
@@ -309,6 +310,9 @@ int main(){
             save(root/"animation.map",animation_local);save(root/"shared.map",animation_shared);
             const Cache animation_cache(root/"animation.map");
             const auto graph=animation_cache.load_source_unit_animation_graph_metadata(0xe1000002u);
+            const auto header=load_source_unit_animation_graph_header(animation_cache,0xe1000002u);
+            check(std::ranges::equal(header,graph.header()),"Graph header-only load changed the complete authored header");
+            rejects([&]{(void)load_source_unit_animation_graph_header(animation_cache,0xffffffffu);});
             check(graph.source_address()!=address && graph.graph()==0xe1000002u,"Canonical animation lost its handle or retained donor addresses");
             const auto group=Bytes(graph.header()).u32(0xb0);
             const auto io=animation_cache.load_source_runtime_animation_image(group);

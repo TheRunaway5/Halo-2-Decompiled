@@ -148,8 +148,11 @@ source paths and hashes. Run `Run-Halo2.cmd` with the engine's normal arguments
 and a separately prepared MCC cache. A Vulkan-capable Windows graphics driver
 is required. The EOS online SDK also requires the
 [Microsoft Visual C++ v14 x64 Redistributable](https://aka.ms/vc14/vc_redist.x64.exe);
-its required DLLs are listed in the package manifest. Windows launcher setup still requires Windows Python and the
-source setup resources; the portable engine can run directly. The profile
+its required DLLs are listed in the package manifest. The Windows folder includes
+the same onboarding UI and setup tools as Linux, with native Python, Tk and
+Pillow bundled. Open `Halo2-Launcher.exe` or `onboarding/Halo2-Launcher.exe`
+to scan or browse for MCC and prepare its private cache; keep the complete
+folder together. The profile
 installs the pinned Rust Windows standard library through rustup automatically.
 Linux arm64 and Windows arm64 output staging remain unsupported. The [macOS port checklist](docs/MACOS_PORT.md) documents
 the universal arm64+x86_64 build and bundled MoltenVK graphics bring-up;

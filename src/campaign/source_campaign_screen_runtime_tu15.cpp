@@ -93,8 +93,8 @@ void source_campaign_screen_clock_tu15(SourceRuntimeMemory &m,double clock) {
     put(m,0x4c6860u,clock);put(m,0x4920c0u,clock);
 }
 void source_campaign_screen_update_tu15(PhysicsLiveWorldTu15 &w) {w.call_actual(0x1fd00u);}
-void source_campaign_screen_stop_tu15(PhysicsLiveWorldTu15 &w) {w.call_actual(0x1fcb0u);}
-void source_campaign_screen_capture_complete_tu15(PhysicsLiveWorldTu15 &w) {w.call_actual(0x1fce0u);}
+void source_campaign_screen_stop_tu15(PhysicsLiveWorldTu15 &w) {w.stop_campaign_screen();}
+void source_campaign_screen_capture_complete_tu15(PhysicsLiveWorldTu15 &w) {w.acknowledge_campaign_screen_capture();}
 CinematicCrossfadeState source_campaign_crossfade_state_tu15(const SourceRuntimeMemory &m) {
     const auto p=bank(m);if(!p)return {};
     const auto raw=m.view(p,0x3fcu);const Bytes b(raw);

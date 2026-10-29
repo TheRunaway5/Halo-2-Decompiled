@@ -58,6 +58,7 @@ struct RendererFrameTiming {
     std::size_t world_native_title_prepared_draws{},
         world_native_shadow_generate_prepared_draws{},
         world_native_shadow_apply_prepared_draws{},world_native_light_prepared_draws{};
+    std::size_t world_native_model_depth_recorded_draws{},world_native_model_depth_recorded_vertices{};
     std::size_t world_storage_upload_calls{},world_storage_upload_completed_calls{},
         world_storage_uploaded_draws{};
     // Inclusive host elapsed time, including failed attempts. These overlap the

@@ -12,7 +12,7 @@ namespace {
 void check(bool ok,const char *why){if(!ok)throw FormatError(why);}
 void hold(Uint32 window,bool down,bool dual=false){
   SDL_Event e{};e.type=down?SDL_KEYDOWN:SDL_KEYUP;e.key.windowID=window;
-  e.key.keysym.scancode=dual?SDL_SCANCODE_X:SDL_SCANCODE_E;e.key.state=down?SDL_PRESSED:SDL_RELEASED;
+  e.key.keysym.scancode=dual?SDL_SCANCODE_C:SDL_SCANCODE_E;e.key.state=down?SDL_PRESSED:SDL_RELEASED;
   check(SDL_PushEvent(&e)==1,"Queue actual interact key");
 }
 }

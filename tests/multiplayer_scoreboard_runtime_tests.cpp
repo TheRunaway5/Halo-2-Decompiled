@@ -13,16 +13,19 @@ namespace {
 void check(bool ok,const char *message){if(!ok)throw std::runtime_error(message);}
 void key(Uint32 window,bool down) {
   SDL_Event e{};e.type=down?SDL_KEYDOWN:SDL_KEYUP;e.key.windowID=window;
-  e.key.keysym.scancode=SDL_SCANCODE_F3;e.key.keysym.sym=SDLK_F3;
-  e.key.state=down?SDL_PRESSED:SDL_RELEASED;check(SDL_PushEvent(&e)==1,"Queue real F3 event");
+  e.key.keysym.scancode=SDL_SCANCODE_TAB;e.key.keysym.sym=SDLK_TAB;
+  e.key.state=down?SDL_PRESSED:SDL_RELEASED;check(SDL_PushEvent(&e)==1,"Queue real Tab event");
 }
 }
 int main(int argc,char **argv) {
   try {
     if(argc<4 || argc>8)throw std::runtime_error("Supply original MAP SHARED_MAPS UPDATE_XBE [--split4] [--wide] [--team] [--end|--end-capture]");
-    if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
+    const bool native_mcc=std::string_view(argv[3])=="native-mcc";
+    if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || (!native_mcc && !std::filesystem::exists(argv[3])))return 77;
     SDL_SetMainReady();MultiplayerOptions options;
-    options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
+    options.map=argv[1];options.shared_maps=argv[2];
+    if(native_mcc)check(Cache(options.map,options.shared_maps).is_mcc(),"native-mcc requires an imported MCC cache");
+    else options.gameplay_xbe=argv[3];
     float vista_start=2;unsigned vista_vertices=0;
     if(const auto *assets=std::getenv("HALO2_TEST_HUD_UI_ASSETS")) {
       options.ui_assets=assets;
@@ -87,7 +90,7 @@ int main(int argc,char **argv) {
     SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
     if(end_mode) {
       // Editable source parameter10 owns seconds. No native finished flag,
-      // score, F3 press or finalized statistic is supplied to this runtime.
+      // score, Tab press or finalized statistic is supplied to this runtime.
       options.variant.values.append(10,1);options.frames=120;
       unsigned full_mask{},calls{};bool finalized=false;MultiplayerState state;
       if(const auto* path=std::getenv("HALO2_SCOREBOARD_CAPTURE"))options.screenshot=path;
@@ -123,8 +126,8 @@ int main(int argc,char **argv) {
           full_mask==((1u<<options.local_players)-1) && calls>10,
           "Actual production time expiry/automatic result submission failed");
       std::cout<<(capture_end
-          ? "PASS actual automatic pre-carnage scoreboard on every local view without F3, captured before the source fade\n"
-          : "PASS actual rendered source time-limit ending, continuing world clock, completed postgame countdown, fade-start and automatic scoreboard on every local view without F3\n");
+          ? "PASS actual automatic pre-carnage scoreboard on every local view without Tab, captured before the source fade\n"
+          : "PASS actual rendered source time-limit ending, continuing world clock, completed postgame countdown, fade-start and automatic scoreboard on every local view without Tab\n");
       if(!options.ui_assets.empty())std::cout<<vista_vertices<<" Vista artwork vertices submitted by automatic scoreboard\n";
       std::cout<<"LIMIT original session teardown/return-to-lobby, physical audio and full raster/asset fidelity remain open\n";
       return 0;
@@ -134,8 +137,8 @@ int main(int argc,char **argv) {
     SDL_AddEventWatch([](void *,SDL_Event *event) {
       if(event->type==SDL_WINDOWEVENT && (event->window.event==SDL_WINDOWEVENT_FOCUS_GAINED || event->window.event==SDL_WINDOWEVENT_FOCUS_LOST))
         std::cerr<<"SDL window="<<event->window.windowID<<" focus_event="<<int(event->window.event)<<'\n';
-      else if((event->type==SDL_KEYDOWN || event->type==SDL_KEYUP) && event->key.keysym.scancode==SDL_SCANCODE_F3)
-        std::cerr<<"SDL window="<<event->key.windowID<<" F3="<<(event->type==SDL_KEYDOWN?"down":"up")<<'\n';
+      else if((event->type==SDL_KEYDOWN || event->type==SDL_KEYUP) && event->key.keysym.scancode==SDL_SCANCODE_TAB)
+        std::cerr<<"SDL window="<<event->key.windowID<<" Tab="<<(event->type==SDL_KEYDOWN?"down":"up")<<'\n';
       return 1;
     },nullptr);
     options.input_observer=[&](std::uint32_t step,std::span<const Controls> inputs,const MultiplayerState &state) {
@@ -152,7 +155,7 @@ int main(int argc,char **argv) {
     options.scoreboard_observer=[&](unsigned view,bool normal,const FullScoreboardLayout &layout,const FullScoreboardPaintResult &paint) {
       ++frames;
       check_artwork(paint);
-      if(view){check(normal && layout.rows.empty() && paint.draw.vertices.empty(),"F3 leaked into another local player's UI");return;}
+      if(view){check(normal && layout.rows.empty() && paint.draw.vertices.empty(),"Tab leaked into another local player's UI");return;}
       // A real interactive press occurs only after SDL assigns this window
       // keyboard focus. Synthesized focus events do not establish that owner.
       if(!raised){SDL_RaiseWindow(window);raised=true;}
@@ -169,7 +172,7 @@ int main(int argc,char **argv) {
           std::cerr<<"Roster observation tick="<<tick<<" normal_hud="<<normal<<" layout="<<int(layout.status)
               <<" rows="<<layout.rows.size()<<" paint="<<int(paint.status)<<" vertices="<<paint.draw.vertices.size()<<'\n';
         check(!normal && layout.status==FullScoreboardStatus::Ready && layout.rows.size()==options.local_players && !paint.draw.vertices.empty(),
-            "Held actual F3 did not submit source roster/font/cells and suppress normal HUD");
+            "Held actual Tab did not submit source roster/font/cells and suppress normal HUD");
         unsigned local{};
         for(const auto &row:layout.rows) {
           const auto slot=row.datum&0xffffu;
@@ -187,12 +190,12 @@ int main(int argc,char **argv) {
         partial|=!paint.emblems_unavailable;
         if(held_tick<30)full=true;else resumed=true;
       }
-      if(held_tick>=45 && held_tick<=59){check(normal && paint.draw.vertices.empty(),"Released F3 did not restore normal HUD");released=true;}
+      if(held_tick>=45 && held_tick<=59){check(normal && paint.draw.vertices.empty(),"Released Tab did not restore normal HUD");released=true;}
     };
     if(const auto *path=std::getenv("HALO2_SCOREBOARD_CAPTURE")){options.screenshot=path;options.capture_tick=120;}
     check(run_multiplayer(options)==0 && full && released && resumed && partial && frames>10,
-        "Actual F3 hold/release/resume and selected artwork not observed");
-    std::cout<<"PASS actual SDL F3 hold/release/resume, source full-identity roster/rank/name/score, original palette/font/cells, normal HUD suppression and independent local views\n";
+        "Actual Tab hold/release/resume and selected artwork not observed");
+    std::cout<<"PASS actual SDL Tab hold/release/resume, source full-identity roster/rank/name/score, original palette/font/cells, normal HUD suppression and independent local views\n";
     std::cout<<"LIMIT this probe covers manual active-Slayer display; watched-player observers, measured network quality and all Xbox math/raster parity remain separate\n";
   }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}
 }

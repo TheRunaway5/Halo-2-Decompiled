@@ -32,7 +32,8 @@ class DirectPeerHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def connect(self, descriptor):
         socket = await self.client.ws_connect('/v1/matches/' + descriptor['id'] + '/signal' +
-            ('?completion=1&native_handoff=1' if getattr(self, 'native_handoff', False) else ''),
+            ('?completion=1&native_handoff=1' if getattr(self, 'native_handoff', False) else
+             '?departure_game_over=1' if getattr(self, 'departure_game_over', False) else ''),
             headers={'Authorization': 'Bearer ' + descriptor['token']})
         queue = asyncio.Queue()
         async def read():
@@ -60,7 +61,37 @@ class DirectPeerHttpTests(unittest.IsolatedAsyncioTestCase):
             while True:
                 result = await queue.get()
                 if result is None or (key in result and (value is None or result[key] == value)):
+                    if isinstance(result, dict) and result.get('phase') == 'loading':
+                        # Advance the source-owned clock for component routes;
+                        # dedicated real-clock acceptance exercises the wait.
+                        for room in self.api.transport.rooms.values():
+                            if room.phase == 'loading':
+                                started = room.start_clock
+                                room.clock = lambda started=started: started + 10000
                     return result
+
+    async def test_last_opponent_host_departure_keeps_game_over_presentation(self):
+        self.departure_game_over = True
+        descriptors = await self.descriptors()
+        connections = [await self.connect(d) for d in descriptors]
+        for d, (socket, _) in zip(descriptors, connections):
+            other = next(p for p in descriptors if p['slot'] != d['slot'])
+            await socket.send_json({'peer_ready': [dict(peer=other['slot'], rtt_ms=20)]})
+        for socket, queue in connections:
+            await self.next(queue, 'phase', 'loading')
+            await socket.send_json({'loaded': '1234567890abcdef:0000042'})
+        for _, queue in connections:
+            await self.next(queue, 'phase', 'running')
+        room = self.api.transport.rooms[descriptors[0]['id']]
+        h = next(i for i, d in enumerate(descriptors) if d['slot'] == room.host)
+        await connections[h][0].send_json({'leave': True})
+        notice = await self.next(connections[1-h][1], 'departed_players')
+        departed = sum(1 << i for i, p in enumerate(descriptors[0]['players']) if p['peer'] == room.host)
+        self.assertEqual(notice, {'departed_players': departed},
+                         'Last opponent departure closed gameplay without GAME OVER membership')
+        self.assertFalse(room.closed)
+        self.assertEqual(room.phase, 'running')
+        self.assertEqual(self.api.directory.store.db.execute('SELECT count(*) FROM match_results').fetchone()[0], 0)
 
     async def test_authenticated_signaling_buffers_and_direct_admission(self):
         descriptors = await self.descriptors()
@@ -228,6 +259,22 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
         host = next(i for i, d in enumerate(descriptors) if d['slot'] == chosen)
         return room, descriptors, connections, host
 
+    async def test_ffa_departures_notify_each_survivor_until_last_opponent_leaves(self):
+        self.departure_game_over = True
+        room, descriptors, connections, host = await self.running_three()
+        leaving = next(i for i in range(3) if i != host)
+        survivor = next(i for i in range(3) if i not in (host, leaving))
+        await connections[leaving][0].send_json({'leave': True})
+        first = 1 << descriptors[leaving]['slot']
+        for i in (host, survivor):
+            self.assertEqual(await self.next(connections[i][1], 'departed_players'), {'departed_players': first})
+        self.assertFalse(room.closed)
+        await connections[host][0].send_json({'leave': True})
+        self.assertEqual(await self.next(connections[survivor][1], 'departed_players'),
+                         {'departed_players': first | (1 << descriptors[host]['slot'])})
+        self.assertFalse(room.closed)
+        self.assertEqual(room.host, descriptors[host]['slot'], 'GAME OVER elected a gameplay host')
+
     async def test_nonhost_explicit_leave_preserves_play_but_cannot_supply_consent(self):
         from .test_match_transport import MatchTransportTests
         room, descriptors, connections, host = await self.running_three()
@@ -392,3 +439,30 @@ class DirectStarConnectivityTests(unittest.IsolatedAsyncioTestCase):
             await socket.send_json({'peer_ready': rows})
         for socket, queue in sockets:
             self.assertEqual((await self.next(queue, 'phase', 'loading'))['host'], chosen)
+
+
+class TeamOpponentDepartureTests(unittest.IsolatedAsyncioTestCase):
+    asyncSetUp = baseline.MatchmakingHttpTests.asyncSetUp
+    connect = DirectPeerHttpTests.connect
+    next = DirectPeerHttpTests.next
+    descriptors = DirectPeerHttpTests.descriptors
+
+    def catalog_fixture(self):
+        value = baseline.catalog()
+        for row in value['playlists']:
+            row.update(team_size=2, minimum_players=4, maximum_players=4, maximum_party=2)
+            row['games'][0]['variant'] = 'Team Slayer'
+        return value
+
+    async def session(self, owner):
+        response = await self.client.post('/v1/matchmaking/session',
+            headers={'Authorization': 'Bearer ' + owner},
+            json=dict(screen_name='Pilot', maps=['lockout'], language=0,
+                      compatibility='halo2-native-queue-v12', local_players=[{'screen_name': 'Guest'}]))
+        self.assertEqual(response.status, 201, await response.text())
+        return {'Authorization': 'Bearer ' + (await response.json())['token']}
+
+    async def enqueue(self, headers):
+        return await baseline.MatchmakingHttpTests.enqueue(self, headers, 'casual')
+
+    test_all_opposing_couch_team_members_leave_including_host = DirectPeerHttpTests.test_last_opponent_host_departure_keeps_game_over_presentation

@@ -6,7 +6,7 @@
 #include <memory>
 namespace halo2 {
 class PhysicsLiveWorldTu15;class SourceRuntimeMemory;class SourceMainCameraRasterUseTu15;
-namespace detail {struct MainReceiptFrame;struct MainReadBorrow;}
+namespace detail {struct MainReceiptFrame;struct MainReadBorrow;struct MainCameraObserverBinding;}
 // Private CPU prototype: actual completed camera and logical raster operands.
 // Physical Renderer surfaces and original SDK submission are not owned here.
 struct SourceMainCameraOperandsTu15 {
@@ -68,4 +68,19 @@ private:
 };
 using SourceCompletedMainCameraObserverTu15=std::function<void(const SourceMainCameraRasterReceiptTu15&,const SourceRuntimeMemory&)>;
 using SourceRenderMemoryInspectorTu15=std::function<void(const SourceRenderMemoryBorrowTu15&,const SourceRuntimeMemory&)>;
+// Exclusive synchronous observer lifetime. The World retains only a weak
+// registration; destruction releases the callback captures and retires that
+// registration's camera frame without dereferencing a potentially dead World.
+class SourceCompletedMainCameraObserverScopeTu15 {
+public:
+    SourceCompletedMainCameraObserverScopeTu15(const SourceCompletedMainCameraObserverScopeTu15&)=delete;
+    SourceCompletedMainCameraObserverScopeTu15& operator=(const SourceCompletedMainCameraObserverScopeTu15&)=delete;
+    SourceCompletedMainCameraObserverScopeTu15(SourceCompletedMainCameraObserverScopeTu15&&) noexcept=default;
+    SourceCompletedMainCameraObserverScopeTu15& operator=(SourceCompletedMainCameraObserverScopeTu15&&) noexcept=default;
+private:
+    friend class PhysicsLiveWorldTu15;
+    explicit SourceCompletedMainCameraObserverScopeTu15(std::shared_ptr<detail::MainCameraObserverBinding> state)
+        :state_(std::move(state)){}
+    std::shared_ptr<detail::MainCameraObserverBinding> state_;
+};
 } //namespace halo2

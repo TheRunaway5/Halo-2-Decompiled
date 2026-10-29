@@ -646,10 +646,9 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 cold two-record source submitting-frame stack");
     memory.mount(0x47357cu,encode(std::array{0xffffffffu}),SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authoredNONE source submitting-frame depth");
-    memory.mount(0x4c6858u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
-        "native TU1.5 cold original2B9F0 submitted-view serial");
-    memory.mount(0x4c6870u,std::array<std::byte,0x24>{},SourceRuntimeMemory::Access::ReadWrite,
-        "native TU1.5 cold source current viewport and four retained cluster-leaf pairs");
+    // The submitted-view serial4C6858 and current viewport/cluster-leaf
+    // fields4C6870..4C6893 share the complete4C6854..4C6893 destination
+    // mounted by render-object startup above. Keep that original owner.
     // Whole3FD60 bounds eight cached special banks after scratch bank0;
     // 44AB0/44B2A selects them with stride408. Keep the complete nine-bank
     // loader-zeroed extent and the separate32-short fallback list. Original
@@ -906,6 +905,20 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // owners/padding and the final original string. Existing identical RO
     // providers are shared; callback bodies remain required native owners.
 #include "gameplay/multiplayer/native_tu15_game_engine_methods.inc"
+    // The final registered prefix is followed by this independent original
+    // UTF16 operand (authenticated by export_native_tu15_game_engine_methods).
+    // Whole2CA170 compares it during real Territory event formatting; omitting
+    // it aborts the ordinary capture frame before the event can be published.
+    constexpr auto territory_event_token=[] {
+        constexpr char16_t text[]=u"#territory_name";
+        std::array<std::byte,sizeof(text)> bytes{};
+        for(unsigned i=0;i<std::size(text);++i) {
+            bytes[i*2]=std::byte(text[i]);bytes[i*2+1]=std::byte(text[i]>>8);
+        }
+        return bytes;
+    }();
+    memory.mount(0x468f24u,territory_event_token,SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored Territory event UTF16 token operand");
     // Constructor-backed eight-slot physical records, authenticated in v1185.
     // Actual MCC PRT scenes reach41D03C+10; class3 bodies also require41D638.
     // Next constructors/type-name/scalar owners bound these exact records.
@@ -1004,6 +1017,13 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 object-build up default binding");
     // Both vectors already belong to the authored 44AC24 identity bank used
     // by 168BC5 above; retain that shared owner instead of mounting aliases.
+    // F1C68's right-roll branch reads the separate file-initialized -Y
+    // pointer and vector. Retain their original bits and distinct storage;
+    // neither is a generated vehicle pose or a maneuver result.
+    memory.mount(0x474d18u,encode(std::array{0x44ac68u}),SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored Banshee right-roll vector binding");
+    memory.mount(0x44ac68u,encode(std::array{0u,0xbf800000u,0u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored negative lateral unit vector");
     memory.mount(0x48b873u,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold physics 148360 reentrancy guard byte");
     // 148740 checks optional retained source bindings before consulting their

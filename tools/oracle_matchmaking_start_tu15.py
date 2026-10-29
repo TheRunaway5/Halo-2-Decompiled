@@ -28,6 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--xbe', type=Path, default=NEW_DEFAULT)
     parser.add_argument('--report-output', type=Path, required=True)
+    parser.add_argument('--fixture', type=Path)
     args = parser.parse_args()
     Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     source = Source({'path': str(args.xbe.resolve()), 'pin': NEW_PIN, 'globals': 0x51d048})
@@ -35,6 +36,7 @@ def main():
     state = 0x1100000
     memory.mem_map(state, 0x10000)
     executed = set()
+    boundary_calls = [0]
 
     def write(address, value):
         memory.mem_write(address, struct.pack('<I', value & 0xffffffff))
@@ -43,6 +45,7 @@ def main():
         return struct.unpack('<I', memory.mem_read(address, 4))[0]
 
     def boundary(start, stops, registers):
+        boundary_calls[0] += 1
         hit = []
 
         def observe(_memory, address, _size, _context):
@@ -50,6 +53,7 @@ def main():
                 hit.append(address)
                 memory.emu_stop()
             else:
+                assert bytes(memory.mem_read(address, _size)) == source.image.read(address, _size)
                 executed.add(address)
 
         hook = memory.hook_add(UC_HOOK_CODE, observe)
@@ -102,6 +106,34 @@ def main():
             assert stop == (0x76481 if readiness and not deferral else 0x764fb)
             dispatch.append(dict(readiness_result=readiness, deferral_byte=deferral, timer_entered=stop == 0x76481))
 
+    # Exercise the actual timer/helper arithmetic across the full signed and
+    # wrapping clock domain; expected outputs are collected from the XBE.
+    edge_controls = []
+    edges = (0, 1, 999, 1000, 9999, 10000, 10001, 0x7fffffff, 0x80000000, 0xffffffff)
+    inputs = [(saved, now) for saved in edges for now in edges]
+    seed = 0x76360
+    for _ in range(412):
+        seed = (1664525 * seed + 1013904223) & 0xffffffff
+        saved = seed
+        seed = (1664525 * seed + 1013904223) & 0xffffffff
+        inputs.append((saved, seed))
+    for saved, now in inputs:
+        memory.mem_write(0x51d048, b'\x01')
+        write(0x51d04c, now)
+        write(state + 0x18, saved)
+        boundary(0x76481, {0x764af}, [(UC_X86_REG_ESP, STACK),
+                 (UC_X86_REG_EBP, state), (UC_X86_REG_ESI, state + 0x1000)])
+        remaining = memory.reg_read(UC_X86_REG_EDI)
+        stored = read(state + 0x18)
+        boundary(0x764b4, {0x764d3}, [(UC_X86_REG_ESP, STACK),
+                 (UC_X86_REG_EDI, remaining), (UC_X86_REG_ESI, state + 0x1000)])
+        seconds = memory.reg_read(UC_X86_REG_EBX)
+        write(STACK + 0x14, state + 0x2000)
+        boundary(0x764d8, {0x764fb}, [(UC_X86_REG_ESP, STACK), (UC_X86_REG_EDI, remaining)])
+        ready = bytes(memory.mem_read(STACK + 0x12, 1))[0]
+        edge_controls.append(dict(saved_clock=saved, now_ms=now, stored_clock=stored,
+                                  remaining_ms=remaining, seconds=seconds, ready=bool(ready)))
+
     code = _Code(source.image, '.text')
     with (ROOT / 'analysis/multiplayer/title-update-1.5/decompiled/functions.tsv').open() as inventory:
         starts = {int(row['address'], 16) for row in csv.DictReader(inventory, delimiter='\t')}
@@ -120,13 +152,24 @@ def main():
                   owner_listing_sha256=hashlib.sha256(listing.encode()).hexdigest(),
                   executed_listing_sha256=hashlib.sha256(executed_listing.encode()).hexdigest(),
                   executed_distinct_instruction_count=len(executed), owner_listing=listing,
-                  executed_instructions=executed_listing)
+                  executed_instructions=executed_listing, edge_controls=edge_controls,
+                  boundary_invocations=boundary_calls[0], output_controls=len(edge_controls)+len(controls)+len(dispatch)+2,
+                  all_executed_instruction_bytes_verified=True,
+                  scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[])
     encoded = json.dumps(report, indent=2) + '\n'
     assert len(encoded.encode()) <= 1024 * 1024
     args.report_output.parent.mkdir(parents=True, exist_ok=True)
     args.report_output.write_text(encoded)
+    if args.fixture:
+        fixture=dict(schema='H2_TU15_START_TIMER_ORIGINAL_V1', scope=__doc__,
+                     original_xbe_sha256=NEW_PIN, timer_entry='0x76481',
+                     controls=edge_controls, dispatch_controls=dispatch,
+                     all_executed_instruction_bytes_verified=True,
+                     executed_listing_sha256=report['executed_listing_sha256'])
+        args.fixture.parent.mkdir(parents=True,exist_ok=True)
+        args.fixture.write_text(json.dumps(fixture, separators=(',',':'))+'\n')
     print(json.dumps(dict(passed=True, tu15_owner=report['tu15_owner'],
-                          executed_instructions=len(executed), controls=len(controls) + len(dispatch) + 2,
+                          executed_instructions=len(executed), controls=report['output_controls'],
                           report=str(args.report_output))))
 
 

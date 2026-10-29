@@ -169,7 +169,10 @@ std::int32_t source_game_variant_get(const SourceGameVariant &v, std::int32_t pa
   throw FormatError("Unrecovered game variant descriptor");
 }
 SourceGameVariant source_game_variant(const UiVariant &variant) {
-  auto result=source_game_variant_default(variant.engine);
+  const auto defaults=source_game_variant_default(variant.engine);
+  auto result=variant.source_settings.value_or(defaults);
+  if(source_game_variant_type(result)!=source_game_variant_type(defaults))
+    throw FormatError("Hopper option buffer differs from its native engine");
   for (const auto &[parameter,value] : variant.values)
     source_game_variant_set(result,std::bit_cast<std::int32_t>(std::uint32_t(parameter)),value);
   return result;

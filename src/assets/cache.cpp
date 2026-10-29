@@ -4,6 +4,7 @@
 #include "halo2/mcc_cache.hpp"
 #include "halo2/mcc_prepared_map_owner.hpp"
 #include "halo2/mcc_resource_reader.hpp"
+#include "halo2/confined_file.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/bsp_lighting.hpp"
 #include "halo2/world_material.hpp"
@@ -238,7 +239,7 @@ std::vector<std::byte> Cache::raw_data(std::uint32_t pointer, std::uint32_t size
     if(mcc_) {
         return read_mcc_resource_range(shared_directory_/names[location],offset,size);
     }
-    return read_file(shared_directory_ / names[location], offset, size, false);
+    return read_confined_file(shared_directory_ / names[location], offset, size, false);
 }
 
 BspLighting Cache::load_bsp_lighting(std::size_t index) const {

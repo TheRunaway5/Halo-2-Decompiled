@@ -1,0 +1,37 @@
+{
+  "toolchain": "1.96.0",
+  "capture_after_build": true,
+  "commands": [
+    {
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "stdout": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "cargo",
+        "-Vv"
+      ],
+      "stdout": "cargo 1.96.0 (30a34c682 2026-05-25)\nrelease: 1.96.0\ncommit-hash: 30a34c6821b57de0aaec83a901aca39f88f6778c\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nlibgit2: 1.9.2 (sys:0.20.4 vendored)\nlibcurl: 8.19.0-DEV (sys:0.4.87+curl-8.19.0 vendored ssl:OpenSSL/3.5.4)\nssl: OpenSSL 3.5.4 30 Sep 2025\nos: CachyOS Linux Rolling Release [64-bit]\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rustup",
+        "which",
+        "--toolchain",
+        "1.96.0",
+        "rustc"
+      ],
+      "stdout": "/home/eric/.rustup/toolchains/1.96.0-x86_64-unknown-linux-gnu/bin/rustc\n",
+      "stderr": ""
+    }
+  ],
+  "rustc_binary_sha256": "ba4b837efb6612dfa8d941c5a72b8a50d1d03a0f36216743b173949aa8d9eb75",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h7ilcq4_",
+  "scratch_retained": false,
+  "retained_large_artifacts": []
+}

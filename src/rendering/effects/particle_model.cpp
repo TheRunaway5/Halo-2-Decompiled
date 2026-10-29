@@ -15,7 +15,10 @@ ParticleModelDefinition load_particle_model(const Cache &cache,std::uint32_t dat
   };
   ParticleModelDefinition out;out.flags=b.u32(0);out.orientation=b.u32(4);
   out.shader=b.u32(0x1c);out.required_values=b.u32(0xd8);
-  if(out.orientation>4 || b.u32(0x78))throw FormatError("Particle model requires another original orientation/child owner");
+  if(out.orientation>4)throw FormatError("Particle model requires another original orientation owner");
+  // +78/+7C are the model's separately simulated attached particle systems,
+  // not a restriction on224FD0's authored mesh. Original13A6B0 selects model
+  // object486048; its22B710 child-row method consumes this exact block.
   for(unsigned i=0;i<4;++i) {
     const auto at=0x20+i*0x10;auto &p=out.properties[i];
     p.input=std::int16_t(b.u16(at));p.range=std::int16_t(b.u16(at+2));
@@ -34,7 +37,8 @@ ParticleModelDefinition load_particle_model(const Cache &cache,std::uint32_t dat
   }
   //1C330 assigns registers by the actual declaration's semantic ordinal.
   const auto material=cache.load_particle_material(datum,15,0,1);
-  const auto declaration=cache.load_source_vertex_declaration(material.vertex.vertex_datum,1);
+  const auto declaration=material.pass.vertex_declaration?*material.pass.vertex_declaration:
+      cache.load_source_vertex_declaration(material.vertex.vertex_datum,1);
   if(declaration.semantics!=std::vector<std::uint16_t>{0,3,14})
     throw FormatError("Particle model GPU stream requires its authored position/UV/radiance declaration");
   for(unsigned i=0;i<b.u32(0x88);++i) {

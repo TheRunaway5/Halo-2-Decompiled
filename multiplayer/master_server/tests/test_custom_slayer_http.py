@@ -53,7 +53,7 @@ class CustomSlayerHttpTests(unittest.IsolatedAsyncioTestCase):
     async def test_release_catalog_preserves_labs_and_adds_only_supported_custom_modes(self):
         from multiplayer.master_server.matchmaking_http import load_catalog
         root=Path(__file__).resolve().parents[1]
-        before=load_catalog(root/'examples/matchmaking-lab.json')
+        before=load_catalog(root/'examples/matchmaking-development.json')
         after=load_catalog(root/'examples/matchmaking-action-sack.json')
         self.assertEqual(after[:-1],before)
         added=after[-1]

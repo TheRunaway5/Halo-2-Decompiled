@@ -23,6 +23,9 @@ public:
     NativeTu15InputDevices& operator=(const NativeTu15InputDevices&)=delete;
     bool try_call(SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall&,SourcePhysicsWorldRuntimeAbi&);
     std::span<const NativeTu15InputCall> calls()const noexcept;
+    // Diagnostic receipts are owned by one caller phase. Production callers
+    // discard the previous phase before sampling, keeping storage bounded.
+    void clear_calls()noexcept;
     std::size_t live_controllers()const noexcept;
     std::vector<std::uintptr_t> native_controller_addresses()const;
 private:

@@ -132,6 +132,34 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertIn('Runtime: not built', result.stdout)
         self.assertFalse((self.root/'runtime-call.json').exists())
 
+    def test_nested_onboarding_finds_the_runtime_at_the_package_root(self):
+        binary = self.runtime()
+        packaged = self.root / binary.name
+        binary.rename(packaged)
+        (binary.parent / 'shaders').rename(self.root / 'shaders')
+        binary.parent.rmdir()
+        nested = self.root / 'onboarding' / self.launcher.name
+        nested.parent.mkdir()
+        shutil.copy2(self.launcher, nested)
+        self.launcher = nested
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Runtime: ' + str(packaged), result.stdout)
+        argv = self.call('renderer-admission')
+        self.assertEqual(argv[argv.index('--executable') + 1], str(packaged))
+        self.assertEqual(argv[argv.index('--directory') + 1], str(self.root / 'shaders'))
+
+    def test_other_platform_gameplay_selection_does_not_block_onboarding(self):
+        selection = self.root / 'gameplay-runtime-selection.json'
+        original = json.dumps(dict(schema='H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1',
+                                   runtime='windows/halo2_native.exe')).encode()
+        selection.write_bytes(original)
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Runtime: not built', result.stdout)
+        self.assertIn('Qualified MCC multiplayer: unavailable', result.stdout)
+        self.assertEqual(selection.read_bytes(), original)
+
     def legacy_registries(self):
         (self.root / 'assets').mkdir(exist_ok=True)
         for name in ('asset-sources', 'gameplay-source', 'hud-source', 'menu-source', 'loading-source'):

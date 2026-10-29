@@ -326,12 +326,18 @@ both appearances and video flags0/1/8/9 without patching original instructions.
 The final quad is84x84 logical pixels for one participant and64x64 for split
 screen. The native fixture checks all40 current-layout cases against those
 vertices, including the spanning view in three-player layouts, and checks that
-each quad remains inside its own cell. Desktop widescreen expansion retains
-our existing uniform artwork scale and source safe-area margins.
+each quad remains inside its own cell. Desktop presentation retains the uniform
+artwork scale and places corner HUD groups eight logical pixels from every edge
+of each player's viewport. This applies to single-player and all split layouts,
+including the spanning view in three-player layouts. Grenades and ammo use the
+top corners; shields/radar and scores use the bottom corners.
 
 The other40 original cases use the alternate32/24-pixel overscan margins.
 They remain recorded as reference; the current HUD has no option selecting
-that profile. The current48/36-pixel layout is preserved, as requested.
+that profile. The source48/36-pixel safe rectangle still owns camera/target
+projection. Center-anchored widgets retain their previous adapted midpoint, and
+explicit player-aim positions retain their physical-pixel meaning. The corner
+layout changes presentation padding without changing those source inputs.
 
 The Vulkan regression uses actual Xbox radar artwork plus Vista HUD artwork
 in all1–4-view layouts at640x480 and1280x720. Both species, independent trigger
@@ -426,3 +432,22 @@ actual Vista DDS files and preserves every existing player-cell rectangle in
 aspects. These are CPU submission and source instruction checks; live SDL and
 Vulkan checks separately exercise the production display paths. They do not
 claim a matched original Vista framebuffer or complete Xbox raster equality.
+
+
+## Source multiplayer event messages, 2026-10-28
+
+The generic event journal now reaches local HUD message queues across all seven
+original mode families. Actual MCC localized responses supply text, player/
+team/territory names and medal glyphs. Original audience, split-screen,
+postgame and explicit-target rules apply independently of audio and network
+role. Dead players retain message text under the ordinary scoreboard gate;
+unit artwork remains hidden. Per-view queues and delivery cursors survive
+receipt continuation, merge existing literal notices in source order, and
+reject duplicate or already expired packets.
+
+Eight focused checks pass, including a normal SMG fatal hit with killer/victim
+messages, all seven mode scenarios, real UDP late-join/delivery, 4,960 original
+admission cases and four-view Vulkan pixel isolation. See
+[the implementation and bounded validation](MP_EVENT_MESSAGES_SOURCE_RESEARCH.md#native-implementation)
+and [the retained acceptance report](../build/test-results/mp-event-messages-20261028/implementation-acceptance.json).
+The selected launcher was not changed by this work.

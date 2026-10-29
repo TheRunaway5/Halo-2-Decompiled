@@ -22,6 +22,24 @@ REPORT_TOTAL_LIMIT = 8 * 1024 * 1024
 REPORT_SUFFIXES = {'.json', '.log', '.txt', '.tsv', '.csv', '.md', '.xml'}
 
 
+def validation_environment(source, environ=None):
+    """Discover the repository's bundled layer for CTest, preserving overrides."""
+    env=dict(os.environ if environ is None else environ)
+    if 'VK_LAYER_PATH' in env:
+        return env, {'source':'explicit environment','layer_path':env['VK_LAYER_PATH']}
+    for root in dict.fromkeys((Path(source).resolve(), ROOT)):
+        bundle=root/'.tools/validation'
+        layers=bundle/'usr/share/vulkan/explicit_layer.d';libraries=bundle/'usr/lib'
+        if layers.is_dir() and libraries.is_dir():
+            env['VK_LAYER_PATH']=str(layers)
+            previous=env.get('LD_LIBRARY_PATH','')
+            if str(libraries) not in previous.split(os.pathsep):
+                env['LD_LIBRARY_PATH']=str(libraries)+(os.pathsep+previous if previous else '')
+            return env, {'source':'repository bundle','layer_path':str(layers),
+                         'library_path':str(libraries)}
+    return env, {'source':'system Vulkan loader discovery'}
+
+
 def retain_reports(args, build, report):
     records = []
     retained_bytes = 0
@@ -63,10 +81,10 @@ def retain_reports(args, build, report):
     report['retained_small_reports'] = records
 
 
-def run_step(command, log):
+def run_step(command, log, *, env=None):
     print('+ ' + ' '.join(command), flush=True)
     with log.open('w+b') as stream:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
         try:
             while data := process.stdout.read(65536):
                 stream.write(data)
@@ -101,16 +119,20 @@ def build_and_test(args):
     if args.sanitizers:
         configure.append('-DHALO2_SANITIZERS=ON')
     configure.extend(args.cmake_arg)
+    build_only=getattr(args,'build_only',False)
     commands = [
         ('configure', configure),
         ('build', ['cmake', '--build', str(build), '--config', args.config,
                    '--parallel', str(args.jobs), '--target', *(args.target or ['halo2_tests'])]),
-        ('tests', ['ctest', '--test-dir', str(build), '--build-config', args.config,
-                   '--output-on-failure', '--no-tests=error', '--parallel', str(args.test_jobs or args.jobs)]),
     ]
-    if args.filter:
-        commands[-1][1].extend(['--tests-regex', args.filter])
-    report = {'passed': False, 'status': 'running', 'build': str(build), 'steps': []}
+    if not build_only:
+        tests=['ctest', '--test-dir', str(build), '--build-config', args.config,
+               '--output-on-failure', '--no-tests=error', '--parallel', str(args.test_jobs or args.jobs)]
+        if args.filter:tests.extend(['--tests-regex',args.filter])
+        commands.append(('tests',tests))
+    test_env,validation=validation_environment(args.source)
+    report = {'passed': False, 'status': 'running', 'build': str(build), 'steps': [],
+              'build_only':build_only,'validation_not_run':True,'validation_environment':validation}
     def save_report():
         (args.output / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     save_report()
@@ -120,13 +142,16 @@ def build_and_test(args):
             step = {'name': name, 'command': command, 'log': str(log), 'exit_code': None}
             report['steps'].append(step)
             save_report()
-            result = run_step(command, log)
+            if name=='tests':
+                report['validation_not_run']=False
+                result=run_step(command,log,env=test_env)
+            else:result=run_step(command,log)
             step['exit_code'] = result
             save_report()
             if result:
                 report['status'] = 'failed'
                 return result if result > 0 else 128 - result
-        report.update(passed=True, status='passed')
+        report.update(passed=not build_only, status='built' if build_only else 'passed')
         return 0
     except Exception as error:
         report.update(status='failed', error=str(error))
@@ -146,6 +171,8 @@ def main():
                         help='Parent for disposable builds (on disk, rather than /tmp tmpfs)')
     parser.add_argument('--target', action='append', help='Build this target (repeatable)')
     parser.add_argument('--filter', help='CTest test-name regular expression')
+    parser.add_argument('--build-only',action='store_true',
+                        help='Configure/build without CTest; success is built, not validation acceptance')
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--test-jobs', type=int,
                         help='Concurrent CTests (default: --jobs); lower for memory-heavy native worlds')

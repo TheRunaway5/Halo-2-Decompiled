@@ -1,0 +1,127 @@
+{
+  "schema": "H2_RUST_CANDIDATES_VALIDATION_V1",
+  "updated_utc": "2026-10-28T16:18:00.956435+00:00",
+  "candidate_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Retail candidate client decision core and owned private state, reached through the actual service ABI and recorded frozen backend cohort. Full input-producer/task/session/service/profile/TU1.5/native/delivery proof remains separate.",
+  "implementation": {
+    "core": "rust/online_protocol/src/session_candidates.rs",
+    "ffi": "rust/online_security_ffi/src/matchmaking_candidates.rs",
+    "temporary_io_adapter": "multiplayer/master_server/session_candidates.py",
+    "state_owner": "Rust owns admitted search/configuration operands and the complete sorted bank/cache. Private monotone handles are finalized/closed without exposing Rust pointers. Python owns typed IO projections only for this component.",
+    "python_algorithms_removed": [
+      "Admission/version/rank/clan/address predicate",
+      "Rank/age/quality/language/RTT score and integer/float conversion",
+      "Asymmetric comparator and fixed-middle-pivot/eight-row-short sort",
+      "Radius threshold interpolation",
+      "memcmp cache decision and cached state",
+      "Ready-count, delay and first sufficiently scored candidate selection"
+    ],
+    "modern_private_resource_limit": {
+      "maximum_live_handles": 4096,
+      "request_bytes": 16384,
+      "original_service_population_rule": false
+    }
+  },
+  "original_replay": {
+    "report": "candidates-original.json",
+    "executable_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "oracle_sha256": "29133faa0b9a6a08868a3477f1f3a16bebc8e4c0660f8f2d11e9f4cf0a05e59e",
+    "executed_instruction_sha256": "a673673dfe0ad5bfe5e2f3833ea592e4a4e741127ded6afbe4660cf30acf8845",
+    "original_instructions": 1987,
+    "supporting_original_controls": 339,
+    "instruction_patches": [],
+    "replaced_callees": [],
+    "retained_fixture_matches_fresh_original": true,
+    "threshold_boundary": "Stops before real Live query 0x8FA80",
+    "synthetic_inputs": true,
+    "tu15_correspondence_proven": false
+  },
+  "original_rust_comparisons": {
+    "complete_50_record_banks": 264,
+    "admission_controls": 27,
+    "selection_controls": 124,
+    "threshold_controls": 100,
+    "total_fixture_controls": 515,
+    "exact_sorted_and_opaque_bytes": true,
+    "configuration_change_preserves_identical_byte_cache": true,
+    "all_integer_rtt_intervals_0_through_1000": true,
+    "claim_all_supporting_qos_or_config_parser_owners_ported": false
+  },
+  "passing_backend_cohort": {
+    "tests": 412,
+    "seconds": 82.728,
+    "frozen": true,
+    "passed": true,
+    "report": "candidates-backend-report.json",
+    "manifest": "candidates-source-manifest.json",
+    "diagnostics": "candidates-backend-tests.log",
+    "includes_concurrent_unrelated_work": true
+  },
+  "rust_regressions": {
+    "tests": 12,
+    "candidate_tests": 4,
+    "other_ratings_and_assignment_tests": 8,
+    "passed": true,
+    "diagnostics": "candidates-rust-tests.log"
+  },
+  "focused_backend": {
+    "tests": 27,
+    "passed": true,
+    "report": "candidates-focused-report.json"
+  },
+  "additional_abi_guards": [
+    "Retired handles cannot read or select, and IDs are not reused",
+    "Distinct queries retain isolated cache state",
+    "Invalid banks/configuration cannot publish a partly scored bank",
+    "Invalid lengths/JSON and scalar wrap are rejected; output remains untouched",
+    "No Python scoring or selection fallback"
+  ],
+  "current_task_source_sha256": {
+    "rust/online_protocol/src/session_candidates.rs": "ab5ea5cad303e787f61c3e1c2b60a44d9b828fe3b5e2b1b1bc4bbe0ff1c9dbaf",
+    "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+    "rust/online_security_ffi/src/matchmaking_candidates.rs": "4b69403269d3fe9c6b2812fc6629ee6052ef647e0bee37ad58450daac31f1a96",
+    "multiplayer/master_server/session_candidates.py": "d250f3131fd09ca86ec6c8bd33765894665ca471a7e2b609c8e77687f50a858d",
+    "multiplayer/master_server/gathering_sessions.py": "31d94547241c459715174885a75b38d0a74d3ee8ae8fd9df6534c4d17b66aecf",
+    "multiplayer/master_server/tests/test_session_candidates.py": "34f631f1ee7e527510ab512ce6ae28568291e9efa07e80a0b3f6a75a54a8509c",
+    "tools/test_master_server.py": "47b30342356da0e3876c7049d5fe761bdf423907e79be53318aefa4636f2dc41",
+    "rust/online_protocol/src/lib.rs": "6600c0c75270d464a3c079cb388e5bd76b8ca9992d12dc06bf4cd31a0a824b96",
+    "rust/online_security_ffi/src/lib.rs": "f3474957f2340c6d2aa96637ce4ef967ecc74d00a159d8dab0b4abd29a8efbe2"
+  },
+  "live_source_drift_since_passing_cohort": [],
+  "scratch_cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9bqbvuy2",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-75toz7yw",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yz_1347v",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-h7ilcq4_",
+      "removed": true
+    }
+  ],
+  "retained_existing_numerical_reference_fixture": {
+    "path": "multiplayer/master_server/tests/fixtures/retail-session-candidates.json.gz",
+    "bytes": 735608,
+    "sha256": "20ef2f951fdac45ebec6501c95dd3b372c706392961f89b36b51bf1acb8f649a"
+  },
+  "retained_large_generated_artifacts": [],
+  "installed_runtime_replaced_by_this_work": false,
+  "remote_service_replaced_by_this_work": false,
+  "remaining": [
+    "Full original descriptions/QoS/bandwidth/identity/rank input producers",
+    "Original Live provider filtering/order/truncation/ties and task lifecycle",
+    "Rust lifecycle, named native replacement provider, coordinator/API/result state and persistence",
+    "Versioned authenticated profiles/epochs and TU1.5 owner correspondence",
+    "Native all-mode played flow and delivered client/service/catalog identity"
+  ],
+  "toolchain_receipt": "candidates-toolchain.json"
+}

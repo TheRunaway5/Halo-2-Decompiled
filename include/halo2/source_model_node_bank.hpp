@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/source_model_resources.hpp"
+#include <memory>
 
 namespace halo2 {
 struct SourceModelNodeWorld {
@@ -11,6 +12,7 @@ struct SourceModelNodeWorld {
     // Read-only handoff of the effective WORLD input before palette creation,
     // including models whose original deferred-node gate returns immediately.
     std::function<void(std::uint32_t,std::uint32_t,std::int32_t)> observed_world_nodes;
+    std::function<std::shared_ptr<void>(std::uint32_t,std::uint32_t,std::uint32_t,unsigned)> presented_world_nodes;
 };
 // Whole1376C0 over current WORLD nodes and literal inverse binds. Output is
 // three float4 rows per node; every remaining output byte survives.

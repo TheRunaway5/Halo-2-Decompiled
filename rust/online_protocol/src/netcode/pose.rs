@@ -1024,9 +1024,9 @@ pub(crate) mod tests {
         let held = quantize(&raw);
         let mut current = raw.clone();
         let turn = rotation(std::f32::consts::FRAC_PI_2, 0.0);
-        for c in 0..3 {
-            for r in 0..3 {
-                current.nodes[0][1 + c * 3 + r] = turn[r][c];
+        for (r, row) in turn.iter().enumerate() {
+            for (c, value) in row.iter().enumerate() {
+                current.nodes[0][1 + c * 3 + r] = *value;
             }
         }
         let root = quantize(&current).root();

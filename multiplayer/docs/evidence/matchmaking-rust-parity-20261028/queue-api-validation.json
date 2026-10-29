@@ -1,0 +1,345 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_QUEUE_API_VALIDATION_V1",
+  "updated_utc": "2026-10-28T21:33:01.314405+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "queue_api_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust queue enqueue/skill/roster/guest/clan planning, transactional SQL snapshot bank, endpoint public/optional views, poll/cancel policy and admission/generation-bound room failure/retry cache. Remaining room/start/QoS/social/identity policy, crash/distributed recovery, original/native/delivered requirements remain open.",
+  "reproduced_gap": {
+    "trigger": "A launch is destroyed; the same sessions start and fail a newer launch; a missing-content report names the older destroyed room.",
+    "before": "HTTP200 accepted and overwrote the newer failure because only session object identity was compared.",
+    "after": "HTTP409 with the newer failure preserved; current-room/current-recent-admission reports remain accepted.",
+    "failing_report": "queue-api-red-report.json",
+    "failing_log": "queue-api-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Skill-store request planning and whole signed-local/guest/clan roster construction from actual native accepted sessions",
+    "Guest physical-owner raw-skill inheritance, public artwork domain and clan search rank",
+    "Bounded native SQL snapshot bank with one transaction and monotonic child continuation fencing",
+    "Full profile/facts/request/generation/party-permit enqueue continuation and final publication guards",
+    "Queued clan fact completeness and membership-change invalidation",
+    "Ticket/connection-owner lookup, heartbeat, legacy/gathering advancement, exact legacy/optional queue response and privacy/artwork/appearance rules",
+    "Cancellation, local cancellation exclusions, private proposal-derived failure participants/party groups and failure provenance",
+    "Latest-admission/generation fencing and bounded15-second destroyed-room content retry cache"
+  ],
+  "checks": [
+    "Actual stale destroyed-room report HTTP red/green with unchanged authenticated sessions across both launches",
+    "Signed-local second-profile migration failure rolls back whole SQLite snapshot bank, keeps draw seed and queue/request state unchanged, and same UUID retries successfully",
+    "Native guest raw-skill inheritance and exact ordered seat/owner publication",
+    "Changed profile, session, actor, expiry, abort, malformed results and replay cannot publish a ticket/request or consume original draw state",
+    "Legacy four-field response remains exact; opt-in private artwork/appearance/progress/failure/start fields use native rules",
+    "Current content reports, other-party failure, cache expiry, local cancellation and start-room selection remain scoped to admitted owners",
+    "Native snapshot bank rejects unrelated operations, stale/duplicate frames and post-completion replies",
+    "Existing original assignment/rating/candidate/lifecycle/countdown/XP, clan/result/couch/private identity/Steam and queue cohorts pass"
+  ],
+  "evidence_limits": {
+    "new_unchanged_original_calls": 0,
+    "original_numerical_evidence": "Retained pinned fixtures replayed in the full frozen Rust/backend cohort; no new original executable or Live capture in this increment.",
+    "modern_policy": "Authorization, continuation lease/capacity, response extensions, room failure provenance and the existing15-second recent-room window are declared native service rules.",
+    "trusted_io": "Provider/account, accepted-directory/clan/room/phase facts and existing room start-readiness/clock result remain trusted IO. The temporary room start/host/world producer still requires Rust migration.",
+    "transactions": "The native snapshot bank shares one SQLite transaction. Native queue publication occurs after SQL success; this does not certify OS-process crash/distributed cross-store recovery or transactional notification delivery.",
+    "runtime": "No native rendered/played flow, selected runtime delivery, deployed library/service/catalog or original-hardware acceptance is claimed."
+  },
+  "validation_setup_corrections": [
+    "The first production test selection included two result fixture subcases that correctly reject with diagnostic inputs disabled. The complete feature-enabled suite covers them; the final production selection uses production entry paths only.",
+    "The first native guest test used a nonregistered rank-policy fixture name; it now uses the actual exported RETAIL constant and the source-owned session language/local input schema."
+  ],
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 65,
+    "backend_tests": 464,
+    "backend_seconds": 92.397,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-2osl3rb_/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "bdf29e4f68063a1462844d8a31e8ec0ae94a4a3f6fe5769477650dd7811482cf",
+      "bytes": 2422304,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 237,
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "report": "queue-api-full-report.json",
+    "manifest": "queue-api-full-source-manifest.json",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-2osl3rb_",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 43,
+    "backend_tests": 142,
+    "backend_seconds": 24.458,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-k8ymf51f/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "0ad8297140139820a9f08d4f70c82fead02748909b75aab345b45436921276a9",
+      "bytes": 2413160,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 237,
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "report": "queue-api-production-report.json",
+    "manifest": "queue-api-production-source-manifest.json",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-k8ymf51f",
+    "scratch_removed": true
+  },
+  "cmake_component": {
+    "passed": true,
+    "report": "queue-api-cmake-report.json",
+    "identity": "queue-api-cmake-build-identity.json",
+    "archive_sha256": "5666735fcd690f0db60eddfec9868aeeb0219659f3f88b3e921b66abae701975",
+    "worker_sha256": "4c1eab31a33baae1b8b1a8266c2f87d0e073e3160ad3bec422ff6db1eb4d7dfa",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-n93suooe",
+    "scratch_removed": true,
+    "scope": "Live-tree component Rust static bridge/helper build with matching unchanged Rust sources; not a frozen native gameplay/delivery cohort."
+  },
+  "full_scope_preservation": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "gates": 12,
+    "all_gap_exit_criteria_preserved": true,
+    "complete_acceptance_gates_preserved": true,
+    "algorithm_index_preserved": true,
+    "all_full_gaps_and_gates_open": true
+  },
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "e38b7da794675f5870ce087a9776d91efe573e2eed61ee49e93279bf1edb48ad",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "46a24d5a1ca920fa4ab38f92238071bcf4fd620426c86d4b2952cd9175cab82b",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "bcf70e74eba1f6b10eb105fc5d1dc65d541877cf8ffc81895bef6f35da30e7dc",
+    "rust/online_protocol/src/matchmaking_parties.rs": "2b0bab9e1f12b4425997b2938e8df7a6bbcf1e5ec885ed88c9486c9fd5bf874c",
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "82810b8fe8f31828c8d96c9aec024071207c09b6634998c09376769907863ec8",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "a3300e4f5b37f1b340ff63b8b8ef396d6192cd5f10af503d5df36d2cbc762673",
+    "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "ccb776afdbd7650f357a398cfb6f3c444a4533f2be66833d5df9b1e34e022d52",
+    "multiplayer/master_server/matchmaking_http.py": "9eda70e876e9c5f30ef6e6adf8775d1447885ee8558c54458afb375ce81f18ad",
+    "multiplayer/master_server/match_transport.py": "e2aaf810fc2c80a3f76f1696ad66148c1fac797ec9a718e44ca8077a04895827",
+    "multiplayer/master_server/native_database.py": "43e9bbe1437531ed0e5f0bdf47ba4f46c3235108ce0dfb12b0ada21a087b8a7a",
+    "multiplayer/master_server/tests/test_queue_api_owner_native.py": "3097330cf370a3b76cd9dd478b3745413534f91756fffd8aba03136c5b6874ce",
+    "tools/test_master_server.py": "5753209de7704decd1ee8285e9f21a6a1cedc2e171d834ae6caa1bd2fa4349d4",
+    "rust/online_protocol/Cargo.lock": "c89281b09a6fab9364260eb440e65e1a7e73876b2771dbe9a4bd6ca8fd19b1e4",
+    "rust/online_security_ffi/Cargo.lock": "12b3ed9a6b0afc4e46b0ef8119819c74648ace877451011435a6814c56226fee",
+    "rust/online_protocol_bridge/Cargo.lock": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd"
+  },
+  "retained_small_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-red-report.json",
+      "bytes": 1492,
+      "sha256": "4314632bc393c21844aa1e1ad67b07b1f023c509eaa28d93299cd874275515e2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-red-source-manifest.json",
+      "bytes": 29806,
+      "sha256": "b11bcaf1464700f30dcc260cabfdb69dfeb14516501c5e11727a6783bf722259"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-red-step-0.log",
+      "bytes": 1430,
+      "sha256": "009d0b556ce1aa3eca6e280139d86a0740bb43959d2f20250992b96964681cc6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-red-step-1.log",
+      "bytes": 1677,
+      "sha256": "820b6d6ea4dd371ac3bb870ee0f63b419355130375744876693a943df1e08ba8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-first-report.json",
+      "bytes": 2194,
+      "sha256": "9eb49d1abfad6248d300b026fc9347862b294b2850daad4a564b32d205c39799"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-first-source-manifest.json",
+      "bytes": 29931,
+      "sha256": "c87bd07de47177db91a25ef936cf7a759f4666af1e196f951a36e435b7cfc62c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-first-step-0.log",
+      "bytes": 3332,
+      "sha256": "6d979a93a25ee892ca169ffe1356cfea490a4b0b01fa8673aacb7badb99a28ce"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-first-step-1.log",
+      "bytes": 1430,
+      "sha256": "632890a90eec6576bdb14ca3f9ea126ce4407e43460a44ebb30f425b86aa49de"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-first-step-2.log",
+      "bytes": 3836,
+      "sha256": "3362ff70465f9c2e72ef8b09ba28f380054afbe0ba5d2e59eb466e11f35c72f4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-report.json",
+      "bytes": 1083,
+      "sha256": "dba05d437f6ba9101075e0a9bd7d3bfd01d7fbbc33b308ac05b43e0ea89376ea"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-source-manifest.json",
+      "bytes": 30058,
+      "sha256": "90611fb7b3c3fd592c94ab8855ac8d7b7f0faeb6208d88791adc3c449ae63364"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-step-0.log",
+      "bytes": 2636,
+      "sha256": "f0ad7c76f50826b1eb17b3cc71d540f0fb3c9628890986b16da41f1b45881979"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-fixed-report.json",
+      "bytes": 2325,
+      "sha256": "b985aeb2cf96fd3a0779c5a420823c73d913bf43ddf770f1df946733ec94a5fb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-fixed-source-manifest.json",
+      "bytes": 30058,
+      "sha256": "5ea941c4ea2399059311e524994562c44801edb7469116395f3fd44d6cc92942"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-fixed-step-0.log",
+      "bytes": 2057,
+      "sha256": "a55366532b745388978757f4c9db91bdca0c39918f3cd1af9b095971abe11490"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-fixed-step-1.log",
+      "bytes": 1430,
+      "sha256": "90e7f643f85e5735f040d29ff70ce5b436b387b02d646332116ef08d2981aa16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-native-fixed-step-2.log",
+      "bytes": 839,
+      "sha256": "bcbdaa55f56532b234ae71a6f446906502599c2b274c3b86f053daf613febf0c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-full-report.json",
+      "bytes": 2659,
+      "sha256": "c52fd43f33be27f957f0ed981dd88135550b7ace6a3367ebda96393105c9413f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-full-source-manifest.json",
+      "bytes": 30058,
+      "sha256": "1fdbd0b3d129cf5f66cd315c761d4a6ef3eee55d1943447874c5b27ac5b1bc95"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-full-step-0.log",
+      "bytes": 10387,
+      "sha256": "97b10639881688d56f34acdc7740a3fddacbb5abed2ad2ecbf24fb7af617fe1d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-full-step-1.log",
+      "bytes": 1430,
+      "sha256": "9febf6f11aa60dd403a4d7a1c514aabdc3608c5243cf3e114236e95556bd54df"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-full-step-2.log",
+      "bytes": 11273,
+      "sha256": "83565a9836ed36632cd89b2389def43799a5bcfc539bcd5bdbaec294c44beba3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-production-report.json",
+      "bytes": 4076,
+      "sha256": "35c53eea4b59f0e29dda333b84d77ad0734e4abb8517b2d9e5ca093a8d571b4a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-production-source-manifest.json",
+      "bytes": 30058,
+      "sha256": "cb401b36f52a106b1700b2dee5f17ec9a6550f72943f764a426169fa6567b99a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-production-step-0.log",
+      "bytes": 6896,
+      "sha256": "17d65af25fec142c2305b313fa929b05c7410ce7c6ee7c596100a7fbe98c2550"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-production-step-1.log",
+      "bytes": 1430,
+      "sha256": "018cd4b3360b606a8a2d929e2fc5fa57a08109e1721b69b70508e0992c26b31d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-production-step-2.log",
+      "bytes": 2742,
+      "sha256": "b51c62ce98027d1ac954495eb085064c6788130cd2760ec7eef11b200660553f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-cmake-report.json",
+      "bytes": 2492,
+      "sha256": "03a1aa41bc6900061a51f12f19edf88668296be18be509a5909edaa66b9fd955"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-cmake-configure.log",
+      "bytes": 4637,
+      "sha256": "cc2226b74a4813efb0b9ac4d5c7de8fe59f51ac86742f3f13483ed82ba6f4d8e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-cmake-build.log",
+      "bytes": 6784,
+      "sha256": "f9739dfde17cc902a7e8067842105edc8991abe065d5562e82f3c7cbc4c844bb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-cmake-tests.log",
+      "bytes": 299,
+      "sha256": "ff4c40108682ca718cdbf69e459e3ac90532c259cb24660f8fc8e58e5471c594"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-cmake-build-identity.json",
+      "bytes": 1865,
+      "sha256": "4e73622cf74ca312fd986410e8b05a590d71f2126a9617312ed20a8366c6a545"
+    }
+  ],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-o3_0mvng",
+      "removed": true,
+      "report": "queue-api-red-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-iyscx1t0",
+      "removed": true,
+      "report": "queue-api-first-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-kjtnp79x",
+      "removed": true,
+      "report": "queue-api-native-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl",
+      "removed": true,
+      "report": "queue-api-native-fixed-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-2osl3rb_",
+      "removed": true,
+      "report": "queue-api-full-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-k8ymf51f",
+      "removed": true,
+      "report": "queue-api-production-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-n93suooe",
+      "removed": true,
+      "report": "queue-api-cmake-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-9_r3tphf",
+      "removed": true,
+      "report": "queue-api-validation.json report helper"
+    }
+  ],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-9_r3tphf",
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false,
+  "report_helper_scratch_removed": true,
+  "owned_scratch_root_empty": true
+}

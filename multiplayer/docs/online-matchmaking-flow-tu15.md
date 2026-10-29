@@ -48,7 +48,41 @@ of the launcher-selected runtime has been performed.
 
 The kernels are in `include/halo2/frontend_matchmaking_progress.hpp`.
 
+The service's actual setup clock/readiness and loading/running decision now live
+in Rust (`matchmaking_start.rs`, `matchmaking_room_setup.rs`). Authenticated early
+loader reports remain pending until the source clock reaches zero. The new
+[room setup receipt](evidence/matchmaking-rust-parity-20261028/room-setup-validation.json)
+includes a full ten-second HTTP wait and unchanged-original numerical replay.
+The C++ helpers above remain presentation/legacy component evidence; full signed
+outlier transport/presentation and native played/delivered acceptance are separate.
+
+Legacy v11 relay continuity now also lives in Rust. Setup installs its authority
+owner from the immutable admitted physical roster; Python forwards world proofs,
+handoff/rebind messages and clock observations. The same Rust owner supplies the
+result finalization epoch, so a Python-supplied generation cannot become stored
+provenance. This is declared native coordination over peer-reported complete-world
+digests. Actual engine continuity and original host election ordering remain
+separate gates; see the [continuity receipt](evidence/matchmaking-rust-parity-20261028/continuity-validation.json).
+
 ## Service and presentation boundaries
+
+Rust now also owns the room descriptor, bearer/capability revisions and socket
+connection generations, upgrade eligibility and bounded peer signaling. Room
+proofs revalidate the same capability after body/provider work. EOS room identity
+guards execute before provider binding and native proof publication. Pending
+signaling drains in bounded native batches, and retired sources cannot publish
+queued messages. These are declared native transport contracts, separate from
+original Live protocol recovery and actual engine continuity. See the
+[room wire receipt](evidence/matchmaking-rust-parity-20261028/room-wire-validation.json).
+
+Room phases, lifecycle clocks, PCR publisher/confirmation eligibility, review
+completion, departure decisions, voice-host/member publications and frozen-ticket
+cleanup now belong to Rust. Python forwards authenticated socket observations
+and executes IO/publication effects. A SQL failure leaves native review pending;
+postgame requires either committed full-electorate results or an explicitly
+unrecorded surviving-owner presentation. Transport and provider code, signaling,
+packet/voice policy and actual engine continuity remain separate migration and
+acceptance work. See the [lifecycle receipt](evidence/matchmaking-rust-parity-20261028/room-lifecycle-validation.json).
 
 - Native friend-tag entry uses the original keyboard's unrestricted
   `0x237998` branch for invite/search purposes. Its Extra Symbols page supplies

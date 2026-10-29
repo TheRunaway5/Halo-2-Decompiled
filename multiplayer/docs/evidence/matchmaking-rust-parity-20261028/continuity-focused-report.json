@@ -1,0 +1,65 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k/master-source/rust/online_protocol/Cargo.toml",
+        "--lib",
+        "--test",
+        "matchmaking_continuity",
+        "--test",
+        "matchmaking_room_setup",
+        "--test",
+        "matchmaking_results"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_continuity_owner_native",
+        "multiplayer.master_server.tests.test_match_continuity",
+        "multiplayer.master_server.tests.test_match_continuity_http",
+        "multiplayer.master_server.tests.test_results_owner_native"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/continuity-port/halo2-test-yhv6_q4k/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "abeae4e5f9ba40349e797371a41cc7a3eecc18c31481e4d8a99aa05e99b667b9",
+    "bytes": 2678616,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

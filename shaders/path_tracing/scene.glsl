@@ -1,8 +1,8 @@
 #ifndef H2_PATH_TRACING_SCENE_GLSL
 #define H2_PATH_TRACING_SCENE_GLSL
 struct TraceNode {vec4 minimum,maximum;uvec4 children;};
-struct TraceTriangle {vec4 p0,p1,p2,n0,n1,n2,uv01,uv2;uvec4 metadata;};
-struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;};
+struct TraceTriangle {vec4 p0,p1,p2,n0,n1,n2,uv01,uv2;uvec4 metadata;vec4 colorGuide;};
+struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;uvec4 colorGuide;};
 struct TraceLight {vec4 position_radius,color_intensity;vec4 planes[6];};
 layout(set=1,binding=0,std430) readonly restrict buffer TraceNodes {TraceNode traceNodes[];};
 layout(set=1,binding=1,std430) readonly restrict buffer TraceTriangles {TraceTriangle traceTriangles[];};
@@ -45,6 +45,7 @@ bool traceAlphaPass(TraceMaterial material,float alpha) {
 }
 #include "path_tracing/surface.glsl"
 #include "path_tracing/emission.glsl"
+#include "path_tracing/color_guide.glsl"
 struct TraceHit {float distance;uint triangle;vec3 barycentric;};
 vec3 traceInverseDirection(vec3 direction) {
     return vec3(abs(direction.x)<1.e-20?0.0:1.0/direction.x,
@@ -72,17 +73,32 @@ float traceBoxNear(TraceNode node,vec3 origin,vec3 direction,vec3 inverseDirecti
 bool traceTriangleHit(uint index,vec3 origin,vec3 direction,float maximum,out TraceHit hit) {
     // Normal/color/UV lanes are not needed for opaque visibility. Do not load
     // the full nine-lane record for every candidate traversed by every ray.
-    vec3 p0=traceTriangles[index].p0.xyz;
-    vec3 e1=traceTriangles[index].p1.xyz-p0,e2=traceTriangles[index].p2.xyz-p0;
-    vec3 p=cross(direction,e2);float determinant=dot(e1,p);
-    if(abs(determinant)<1.e-9)return false;
-    vec3 t=origin-p0;float u=dot(t,p)/determinant;
-    if(u<0.0 || u>1.0)return false;
-    vec3 q=cross(t,e1);float v=dot(direction,q)/determinant;
-    if(v<0.0 || u+v>1.0)return false;
-    float distance=dot(e2,q)/determinant;
-    if(distance<=traceEpsilon*.5 || distance>=maximum)return false;
-    vec3 barycentric=vec3(1.0-u-v,u,v);
+    // Ray-aligned edge tests (Woop/Benthin/Wald, JCGT2013) avoid subtracting
+    // nearly equal long edge products on native needle-shaped BSP triangles.
+    // Keep the same float32 operation order as the CPU validation path.
+    uint kz=abs(direction.x)>abs(direction.y)?0u:1u;
+    if(abs(direction.z)>abs(direction[kz]))kz=2u;
+    if(direction[kz]==0.0)return false;
+    uint kx=(kz+1u)%3u,ky=(kx+1u)%3u;
+    if(direction[kz]<0.0){uint temporary=kx;kx=ky;ky=temporary;}
+    precise float inverseZ=1.0/direction[kz];
+    precise float sx=direction[kx]*inverseZ,sy=direction[ky]*inverseZ;
+    precise vec3 a=traceTriangles[index].p0.xyz-origin;
+    precise vec3 b=traceTriangles[index].p1.xyz-origin;
+    precise vec3 c=traceTriangles[index].p2.xyz-origin;
+    precise float ax=a[kx]-sx*a[kz],ay=a[ky]-sy*a[kz];
+    precise float bx=b[kx]-sx*b[kz],by=b[ky]-sy*b[kz];
+    precise float cx=c[kx]-sx*c[kz],cy=c[ky]-sy*c[kz];
+    precise float u=cx*by-cy*bx,v=ax*cy-ay*cx,w=bx*ay-by*ax;
+    if(min(u,min(v,w))<0.0 && max(u,max(v,w))>0.0)return false;
+    precise float determinant=(u+v)+w;
+    if(determinant==0.0)return false;
+    precise float az=a[kz]*inverseZ,bz=b[kz]*inverseZ,cz=c[kz]*inverseZ;
+    // Anchor depth interpolation so common-depth faces retain that exact
+    // depth instead of rounding a weighted sum of the same plane distance.
+    precise float distance=az+(v*(bz-az)+w*(cz-az))/determinant;
+    if(!(distance>traceEpsilon*.5 && distance<maximum))return false;
+    precise vec3 barycentric=vec3(u,v,w)/determinant;
     uint materialIndex=traceTriangles[index].metadata.x;
     // Function arguments are evaluated before traceAlphaPass. Guard the
     // lookup here: ordinary opaque triangles require no alpha texel at all.
@@ -95,8 +111,11 @@ bool traceTriangleHit(uint index,vec3 origin,vec3 direction,float maximum,out Tr
     }
     hit=TraceHit(distance,index,barycentric);return true;
 }
-bool traceClosest(vec3 origin,vec3 direction,float maximum,out TraceHit hit) {
+#include "path_tracing/surface_ray.glsl"
+bool traceClosest(vec3 origin,vec3 direction,float maximum,out TraceHit hit,
+                  vec3 surfacePosition,vec3 geometricNormal,bool smoothTerminator,uint sourceTriangle) {
     if(traceScene.counts.x==0u)return false;
+    bool excludeStartingSurface=smoothTerminator;
     vec3 inverseDirection=traceInverseDirection(direction);
     float rootNear=traceBoxNear(traceNodes[0],origin,direction,inverseDirection,maximum);
     if(rootNear<0.0)return false;
@@ -122,13 +141,22 @@ bool traceClosest(vec3 origin,vec3 direction,float maximum,out TraceHit hit) {
         }
         for(uint n=0u;n<node.children.y;++n) {
             TraceHit candidate;
-            if(traceTriangleHit(node.children.x+n,origin,direction,hit.distance,candidate)) {hit=candidate;found=true;}
+            uint index=node.children.x+n;
+            if(traceTriangleHit(index,origin,direction,hit.distance,candidate)) {
+                if(excludeStartingSurface && traceSkipStartingSurface(index,surfacePosition,geometricNormal,direction,sourceTriangle))continue;
+                hit=candidate;found=true;
+            }
         }
     }
     return found;
 }
-bool traceOccluded(vec3 origin,vec3 direction,float maximum) {
+bool traceClosest(vec3 origin,vec3 direction,float maximum,out TraceHit hit) {
+    return traceClosest(origin,direction,maximum,hit,vec3(0),vec3(0),false,0xffffffffu);
+}
+bool traceOccluded(vec3 origin,vec3 direction,float maximum,
+                   vec3 surfacePosition,vec3 geometricNormal,bool smoothTerminator,uint sourceTriangle) {
     if(traceScene.counts.x==0u)return false;
+    bool excludeStartingSurface=smoothTerminator;
     vec3 inverseDirection=traceInverseDirection(direction);
     uint stack[32];uint size=1u;stack[0]=0u;
     while(size>0u) {
@@ -137,15 +165,25 @@ bool traceOccluded(vec3 origin,vec3 direction,float maximum) {
         if(node.children.z==0u) {stack[size++]=node.children.x;stack[size++]=node.children.y;continue;}
         for(uint n=0u;n<node.children.y;++n) {
             TraceHit hit;
-            if(traceTriangleHit(node.children.x+n,origin,direction,maximum,hit))return true;
+            uint index=node.children.x+n;
+            if(traceTriangleHit(index,origin,direction,maximum,hit)) {
+                if(excludeStartingSurface && traceSkipStartingSurface(index,surfacePosition,geometricNormal,direction,sourceTriangle))continue;
+                return true;
+            }
         }
     }
     return false;
 }
+bool traceOccluded(vec3 origin,vec3 direction,float maximum) {
+    return traceOccluded(origin,direction,maximum,vec3(0),vec3(0),false,0xffffffffu);
+}
 vec3 traceNormal(TraceTriangle triangle,vec3 barycentric,vec3 incoming) {
     vec3 geometric=traceNormalize(cross(triangle.p1.xyz-triangle.p0.xyz,triangle.p2.xyz-triangle.p0.xyz),vec3(0,0,1));
     vec3 normal=traceNormalize(triangle.n0.xyz*barycentric.x+triangle.n1.xyz*barycentric.y+triangle.n2.xyz*barycentric.z,geometric);
-    return dot(normal,incoming)>0.0?-normal:normal;
+    // Secondary hits retain the same geometric-facing convention as primary
+    // surfaces, including smooth normals just beyond the view horizon.
+    if(dot(geometric,incoming)>0.0)geometric=-geometric;
+    return dot(normal,geometric)<0.0?-normal:normal;
 }
 vec3 traceHemisphere(vec3 normal,inout uint state) {
     float a=traceRandom(state),b=traceRandom(state),r=sqrt(a),angle=2.0*tracePi*b;
@@ -157,8 +195,14 @@ float traceReflection(TraceMaterial material,vec3 normal,vec3 incoming) {
 }
 uint traceBounceLimit() {return uint(clamp(camera.viewport.y,1.0,2.0));}
 bool traceEnvironmentNee() {return (traceVisibility.temporal.y&1u)!=0u;}
-vec3 traceDirect(vec3 position,vec3 normal,inout uint state) {
-    bool pointBank=traceScene.counts.z>0u,meshBank=traceScene.counts.w>0u,skyBank=traceEnvironmentNee();
+vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint sourceTriangle,inout uint state,bool primary) {
+    // The primary continuation already samples diffuse sky misses and mesh
+    // emission hits. Reserve its direct query for point/directional lights:
+    // choosing between a sun, sky and black emitter needlessly gives every
+    // receiver a high-variance direct shadow. Secondary surfaces retain NEE
+    // for all three banks, including the final allowed transport vertex.
+    bool pointBank=traceScene.counts.z>0u,meshBank=!primary && traceScene.counts.w>0u;
+    bool skyBank=!primary && traceEnvironmentNee();
     uint banks=uint(pointBank)+uint(meshBank)+uint(skyBank);
     if(banks==0u)return vec3(0);
     // Choose one bank and form its complete radiance estimate first. A single
@@ -181,6 +225,7 @@ vec3 traceDirect(vec3 position,vec3 normal,inout uint state) {
             if(cosine>0.0) {
                 float fade=distant?1.0:max(1.0-distance/radius,0.0);fade*=fade;
                 contribution=light.color_intensity.rgb*(light.color_intensity.w*fade*cosine*float(traceScene.counts.z)*bankWeight);
+                if(distant)contribution=traceStaticColor(contribution,colorGuide);
                 valid=true;
             }
         }
@@ -211,11 +256,13 @@ vec3 traceDirect(vec3 position,vec3 normal,inout uint state) {
         // Terminal diffuse hits can therefore receive actual sky radiance at
         // depth1, including colored canyon-to-ground transport.
         direction=traceHemisphere(normal,state);
-        contribution=max(textureLod(traceSky,direction,0.0).rgb,vec3(0))*bankWeight;valid=true;
+        contribution=traceStaticColor(max(textureLod(traceSky,direction,0.0).rgb,vec3(0))*bankWeight,colorGuide);valid=true;
     }
-    if(valid && !traceOccluded(position+normal*traceEpsilon,direction,maximum))return contribution;
+    if(valid && !traceOccluded(position+normal*traceEpsilon,direction,maximum,position,normal,
+        dot(normal,direction)>0.0,sourceTriangle))return contribution;
     return vec3(0);
 }
+#include "path_tracing/emitter_sampling.glsl"
 bool traceGGXDirection(vec3 normal,vec3 incoming,TraceMaterial material,inout uint state,
                        out vec3 direction,out float sampleWeight) {
     // GGX half-vector sampling: original strengths stay independent of the
@@ -234,10 +281,12 @@ bool traceGGXDirection(vec3 normal,vec3 incoming,TraceMaterial material,inout ui
     float ggxL=2.0*nl/(nl+sqrt(alpha*alpha+(1.0-alpha*alpha)*nl*nl));
     sampleWeight=ggxV*ggxL*vh/(nv*nh);return true;
 }
-void traceLighting(vec3 position,vec3 normal,vec3 incoming,TraceMaterial material,
-                   vec3 albedo,inout uint state,out vec3 diffuseLight,out vec3 specularLight) {
-    diffuseLight=vec3(0);specularLight=vec3(0);vec3 throughput=vec3(1);
+void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceMaterial material,
+                   vec3 albedo,vec4 colorGuide,inout uint state,out vec3 diffuseLight,out vec3 specularLight,
+                   out vec3 currentDirect) {
+    diffuseLight=vec3(0);specularLight=vec3(0);currentDirect=vec3(0);vec3 throughput=vec3(1);
     bool primarySpecular=false;
+    uint sourceTriangle=0xffffffffu;
     uint maximumBounces=traceBounceLimit();
     // A single transport loop owns every secondary segment. Keeping the BVH,
     // direct-light and authored-emission call sites here avoids inlining a
@@ -246,10 +295,15 @@ void traceLighting(vec3 position,vec3 normal,vec3 incoming,TraceMaterial materia
         float reflection=traceReflection(material,normal,incoming);
         bool diffuseSurface=bounce==0u?(material.texture.w&32u)==0u:any(greaterThan(albedo,vec3(0)));
         if(diffuseSurface && reflection<1.0) {
-            vec3 direct=(1.0-reflection)*traceDirect(position,normal,state);
+            vec3 direct=(1.0-reflection)*traceDirect(position,normal,geometric,colorGuide,sourceTriangle,state,bounce==0u);
             // Keep the primary authored albedo outside the lighting estimate.
             // Secondary surfaces still contribute their own colored response.
-            if(bounce==0u)diffuseLight+=direct;
+            // A single authored light has deterministic primary visibility.
+            // Resolve it in the current frame instead of averaging a moving
+            // caster's old shadow into the stochastic indirect estimate.
+            // Multiple sampled lights still need their temporal estimate.
+            if(bounce==0u && traceScene.counts.z==1u)currentDirect=direct;
+            else if(bounce==0u)diffuseLight+=direct;
             else if(primarySpecular)specularLight+=throughput*albedo*direct;
             else diffuseLight+=throughput*albedo*direct;
         }
@@ -267,30 +321,39 @@ void traceLighting(vec3 position,vec3 normal,vec3 incoming,TraceMaterial materia
             if(bounce!=0u)throughput*=albedo;
             else if((material.texture.w&32u)!=0u)break;
             if(!any(greaterThan(throughput,vec3(0))))break;
-            direction=traceHemisphere(normal,state);
+            if(bounce==0u) {
+                float weight;direction=traceDiffuseContinuation(position,normal,state,weight);throughput*=weight;
+            }else direction=traceHemisphere(normal,state);
         }
         if(!any(greaterThan(throughput,vec3(0))))break;
         vec3 origin=position+normal*traceEpsilon;TraceHit hit;
-        if(!traceClosest(origin,direction,1.e10,hit)) {
-            // Diffuse sky paths are already estimated by the environment
-            // bank at the previous surface. Specular misses retain their
-            // own cube radiance, including reflection→diffuse paths later.
-            if(reflected || !traceEnvironmentNee()) {
-                vec3 sky=throughput*textureLod(traceSky,direction,0.0).rgb;
+        if(!traceClosest(origin,direction,1.e10,hit,position,normal,
+            !reflected && dot(normal,direction)>0.0,sourceTriangle)) {
+            // The primary surface uses this existing continuation for sky
+            // lighting. Later diffuse misses are already covered by their
+            // previous vertex's environment NEE; specular misses are not.
+            if(reflected || bounce==0u || !traceEnvironmentNee()) {
+                vec3 skyColor=textureLod(traceSky,direction,0.0).rgb;
+                if(!reflected)skyColor=traceStaticColor(skyColor,colorGuide);
+                vec3 sky=throughput*skyColor;
                 if(primarySpecular)specularLight+=sky;else diffuseLight+=sky;
             }
             break;
         }
         TraceTriangle triangle=traceTriangles[hit.triangle];
         position=origin+direction*hit.distance;normal=traceNormal(triangle,hit.barycentric,direction);
+        geometric=traceNormalize(cross(triangle.p1.xyz-triangle.p0.xyz,triangle.p2.xyz-triangle.p0.xyz),normal);
+        if(dot(geometric,normal)<0.0)geometric=-geometric;
+        sourceTriangle=hit.triangle;
         material=traceMaterials[triangle.metadata.x];incoming=direction;
+        colorGuide=traceTriangleColorGuide(triangle,hit.barycentric,material);
         vec2 uv=traceUV(triangle,hit.barycentric);vec3 tint=traceVertexColor(triangle,hit.barycentric);
         vec4 surface;if(!traceAtlasSurface(material,uv,surface))break;
         albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(surface.rgb*tint,0.0,1.0);
-        // Diffuse emission is sampled by next-event estimation. A reflected
-        // hit contributes its authored radiance because that specular lobe
-        // was not included in the diffuse next-event estimator above.
-        if(reflected) {
+        // Primary diffuse emission uses the existing BSDF continuation.
+        // Later diffuse hits are covered by mesh NEE at their previous
+        // vertex. Reflected hits always retain their authored emission.
+        if(reflected || bounce==0u) {
             vec3 emission=throughput*traceEmission(material,uv,tint);
             if(primarySpecular)specularLight+=emission;else diffuseLight+=emission;
         }

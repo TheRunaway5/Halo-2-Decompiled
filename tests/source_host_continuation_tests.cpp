@@ -5,6 +5,7 @@
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
+#include "halo2/source_world_pose_wire.hpp"
 #include <openssl/sha.h>
 #include <algorithm>
 #include <deque>
@@ -98,8 +99,18 @@ int main(int argc,char **argv)try {
       "Host fixture did not preserve its admitted four-view remote ownership");
   for(unsigned view=0;view<4;++view)local[view].yaw=match.unit(couch.slots()[view]).yaw;
   remote.yaw=match.unit(5).yaw;
-  // Three input datagrams coalesce before one native phase. Their pulse
-  // backlog must survive, while consumed completions must never execute again.
+  // Complete genuine unit birth and the ordinary peer eye before queuing
+  // inputs whose consumption history must survive the continuation cut.
+  for(unsigned tick=0;tick<16 && !couch.state().players[couch.slots()[0]].source_player_camera;++tick) {
+    std::array<Controls,4> neutral{};
+    for(unsigned view=0;view<couch.slots().size();++view)neutral[view].yaw=match.unit(couch.slots()[view]).yaw;
+    Controls another;another.yaw=match.unit(other.slots()[0]).yaw;
+    couch.send(std::span(neutral).first(couch.slots().size()));other.send(std::span(&another,1));
+    commands={};commands[0].yaw=match.unit(0).yaw;host->receive(commands);match.step(commands);
+    host->broadcast();couch.receive();other.receive();
+  }
+  // Produce three pulse serials and one completed250ms interaction. Native
+  // receive consumes one buffered input per tick; it does not coalesce these.
   for(unsigned packet=0;packet<3;++packet) {
     for(unsigned view=0;view<4;++view) {
       local[view].jump=local[view].fire=local[view].reload=true;
@@ -108,15 +119,26 @@ int main(int argc,char **argv)try {
     }
     couch.send(local);
   }
+  // All three retained keepalives carry that completion and the final pulse
+  // serial. Exercise the real three-entry cap: consuming the first leaves two
+  // grenade/melee edges, while the completed interaction is delivered once.
+  for(unsigned packet=0;packet<3;++packet) {
+    for(auto &c:local)c.grenade=c.melee=c.switch_grenade=false;
+    couch.send(local);
+  }
   commands={};commands[0].yaw=match.unit(0).yaw;host->receive(commands);
   check(commands[1].grenade&&commands[1].melee&&commands[1].pickup&&commands[1].pickup_milliseconds==250,
       "Real host did not latch completed interactions and queued pulse inputs");
   match.step(commands);host->broadcast();couch.receive();other.receive();
+  const auto ordinary_eye=couch.state().players[couch.slots()[0]].source_player_camera;
+  check(ordinary_eye && ordinary_eye->camera_mode==0,"Native host sidecar fixture has no actual completed ordinary peer eye");
   AuthorityTransferContext context;context.session.front()=std::byte{0x71};context.epoch=3;context.membership_revision=7;
   context.peers=(1u<<0)|(1u<<1)|(1u<<5);context.host=0;const auto binding=source_authority_binding(context);
   const auto slots=std::array{0u,1u,2u,3u,4u,5u};
   const auto admitted=authority.player_admissions(slots);
   const auto captured=capture_source_host_continuation(*host,context,1);
+  const auto model_metadata=encode_source_world_pose_models(match.state().source_body_poses);
+  check(model_metadata.size()>2,"Native host continuation fixture lacks current unit/held-weapon model metadata");
   const auto &world=captured.world;const auto &sidecar=captured.host;
   const auto cut_bytes=encode_source_authority(world);
   const auto bundled=encode_source_host_continuation(captured);
@@ -139,6 +161,17 @@ int main(int argc,char **argv)try {
   rejects([&]{encode_source_host_continuation(captured,tight);});
   const LanHost::ContinuationBinding bound{context,{1,authority.execution_tick(),cut_bytes.size(),hash(cut_bytes)}};
   const auto wire_bytes=LanHost::encode_continuation(sidecar,bound);
+  std::vector<std::byte> eye_bytes{std::byte{1}};
+  for(float value:{ordinary_eye->position.x,ordinary_eye->position.y,ordinary_eye->position.z,
+      ordinary_eye->forward.x,ordinary_eye->forward.y,ordinary_eye->forward.z,
+      ordinary_eye->up.x,ordinary_eye->up.y,ordinary_eye->up.z,
+      ordinary_eye->horizontal_fov,ordinary_eye->aim_displacement}) {
+    const auto bits=std::bit_cast<std::uint32_t>(value);
+    for(unsigned byte=0;byte<4;++byte)eye_bytes.push_back(std::byte(bits>>(8*byte)));
+  }
+  eye_bytes.push_back(std::byte{0});
+  check(std::search(wire_bytes.begin(),wire_bytes.end(),eye_bytes.begin(),eye_bytes.end())!=wire_bytes.end(),
+      "Host continuation omitted the actual completed ordinary peer eye");
   check(LanHost::encode_continuation(LanHost::decode_continuation(wire_bytes,bound,fingerprint,roster,admitted),bound)==wire_bytes,
       "Host continuation is not a canonical value round trip");
   for(unsigned prefix=0;prefix<wire_bytes.size();++prefix)
@@ -267,6 +300,8 @@ int main(int argc,char **argv)try {
     const auto received=decode_source_host_continuation(bundled,context,fingerprint,roster,admitted);
     const auto &received_world=received.world;const auto &sidecar=received.host;
     auto next=imported.prepare(received_world,binding,admitted);check(imported.commit(std::move(next)),"Cannot import the complete native cut");
+    check(encode_source_world_pose_models(target.match.state().source_body_poses)==model_metadata,
+        "Restored native host cut lost current full model definitions or16D660 region choices");
     auto target_bus=std::make_shared<Bus>();auto target_wire=std::make_shared<Endpoint>(target_bus,0);
     const auto create=[&](auto cut,auto b,auto fp,auto admissions,auto accepted) {
       return LanHost::resume(target.match,target_wire,fp,std::move(admissions),cut,b,accepted);

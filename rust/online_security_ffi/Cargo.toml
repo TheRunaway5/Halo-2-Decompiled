@@ -5,6 +5,9 @@ edition = "2024"
 rust-version = "1.96"
 publish = false
 
+[features]
+matchmaking-test-inputs = ["halo2-online-protocol/matchmaking-test-inputs"]
+
 [lib]
 crate-type = ["cdylib"]
 

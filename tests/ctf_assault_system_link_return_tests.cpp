@@ -1,6 +1,8 @@
 #include "helpers/objective_match_completion_tu15.hpp"
 #include "halo2/system_link_session.hpp"
 #include "halo2/frontend_session.hpp"
+#include "halo2/custom_slayer.hpp"
+#include "halo2/bomb_defusal.hpp"
 #include "helpers/system_link_proxy.hpp"
 #include <fstream>
 #include <iostream>
@@ -39,7 +41,7 @@ int main(int argc,char** argv)try {
   const auto* scratch=std::getenv("HALO2_TEST_SCRATCH");need(scratch,"System Link regression needs owned scratch");
   auto content=Cache(map.parent_path()/"mainmenu.map").load_frontend();content.vista=load_vista_settings(map.parent_path()/"mainmenu.map");
   Json fixture;std::ifstream(argv[2])>>fixture;
-  Json report={{"passed",false},{"transport_profile","native complete snapshots"},{"cases",Json::array()},{"scope","Nine original objective presets, actual raw encrypted UDP peers, natural source match completion, independently checked final snapshots, world-free retained sessions, native PCR Done/leave policy, fresh lobby, source countdown/cancel and next source-world admission. Positions/controller samples are declared inputs; no objective/timer/score/winner/readiness/completion result supplied. Physical/Xbox/cross-machine comparisons remain separate."}};
+  Json report={{"passed",false},{"transport_profile",std::getenv("H2_NET_PROFILE")?std::getenv("H2_NET_PROFILE"):"original"},{"cases",Json::array()},{"scope","Nine original objective presets, actual raw encrypted UDP peers, natural source match completion, independently checked final snapshots, world-free retained sessions, native PCR Done/leave policy, fresh lobby, source countdown/cancel and next source-world admission. The Single Bomb extension also edits all seven original engines in the retained lobby and completes customized next worlds through natural time limits, including FFA/team changes. Positions/controller samples and option edits are declared inputs; no objective/timer/score/winner/readiness/completion result supplied. Physical/Xbox/cross-machine comparisons remain separate."}};
   const auto save=[&]{std::ofstream out(argv[3]);out<<report.dump(2)<<'\n';};unsigned count{},failures{};
   for(const auto& preset:fixture.at("variants")) {
     const auto type=preset.at("source_type").get<int>();if(type!=1 && type!=9)continue;
@@ -99,6 +101,59 @@ int main(int argc,char** argv)try {
       for(unsigned i=0;i<120;++i){proxy.pump();hs->update_frontend(hm,host_frontend.ui_clock(),{});proxy.pump();cs->update_frontend(cm,client_frontend.ui_clock(),{});proxy.pump();}
       need(hm.frame().instance==lobby && !hm.launch && hm.lobby_view()->input.player_count==2 && !cm.lobby_view()->input.host,"System Link resumed a stale screen or fabricated host membership");
       if(extended) {
+        row["edited_engine_countdowns"]=Json::array();
+        const auto respawn=std::ranges::find_if(content.parameters,[](const auto& item){return item.second.parameter==17;});
+        need(respawn!=content.parameters.end(),"Original respawn customization is absent");
+        const auto choose_variant=[&](const UiVariant& variant) {
+          const auto selected=std::ranges::find(content.variants,variant.name,&UiVariant::name);
+          unsigned index{};
+          if(selected!=content.variants.end())index=unsigned(selected-content.variants.begin());
+          else {
+            const auto bundled=std::ranges::find(content.bundled_variants,variant.name,&UiVariant::name);
+            need(bundled!=content.bundled_variants.end(),"Retained lobby preset is absent");
+            index=unsigned(content.variants.size()+std::size_t(bundled-content.bundled_variants.begin()));
+          }
+          choose(hm,1,23);choose(hm,1,207);choose(hm,entry(hm,variant.engine),208);
+          choose(hm,entry(hm,int(index)),14);
+        };
+        for(unsigned engine=0;engine<7;++engine) {
+          const auto preset=std::ranges::find(content.variants,engine,&UiVariant::engine);
+          need(preset!=content.variants.end(),"Retained lobby lost an original game engine");
+          choose_variant(*preset);
+          const auto before=source_game_variant(hm.selected_multiplayer_configuration().variant);
+          hm.open(223,respawn->first);
+          const auto choice=std::ranges::find_if(hm.frame().entries,[&](const auto& option){return option.value!=source_game_variant_get(before,17);});
+          need(choice!=hm.frame().entries.end(),"Respawn picker has no alternate customization");
+          const auto value=choice->value;const auto index=unsigned(choice-hm.frame().entries.begin());
+          choose(hm,index,14);
+          auto expected=before;source_game_variant_set(expected,17,value);
+          need(source_game_variant(hm.selected_multiplayer_configuration().variant).bytes==expected.bytes,
+              "Retained lobby edit changed unrelated source option bytes");
+          hm.select(0);hm.accept();
+          need(hs->state()->countdown==10 && !hm.launch,"An edited original engine could not start its retained System Link countdown");
+          hm.back();need(hs->state()->countdown==-1 && !hm.launch,"Edited engine countdown did not cancel normally");
+          need(source_game_variant(hm.selected_multiplayer_configuration().variant).bytes==expected.bytes,
+              "Retained System Link countdown discarded customized match settings");
+          row["edited_engine_countdowns"].push_back({{"engine",engine},{"name",preset->name},{"respawn",value}});
+          proxy.pump();hs->update_frontend(hm,host_frontend.ui_clock(),{});proxy.pump();cs->update_frontend(cm,client_frontend.ui_clock(),{});proxy.pump();
+        }
+        unsigned custom_refusals{};
+        for(const auto& custom:content.bundled_variants) {
+          if(custom_slayer(custom)==CustomSlayer::none && !bomb_defusal_variant(custom))continue;
+          choose_variant(custom);const auto before=*hs->state();
+          hm.select(0);hm.accept();
+          need(!hm.launch && !hs->closed() && hs->state()->countdown==-1 &&
+              hs->state()->revision==before.revision && hs->state()->generation==before.generation &&
+              hs->state()->fingerprint==before.fingerprint && hs->state()->active_players==before.active_players &&
+              hm.frame().description=="Start a new LAN session to use this custom game.",
+              "A retained custom game bypassed its separate LAN lifecycle or changed the actual session");
+          hm.back();need(hm.frame().screen==14,"Custom game refusal lost the retained lobby");++custom_refusals;
+        }
+        need(custom_refusals==3,"Retained lobby lost Fiesta/Infection/Defusal boundary coverage");
+        row["custom_game_new_session_refusals"]=custom_refusals;
+        choose_variant(h.variant);
+        need(source_game_variant(hm.selected_multiplayer_configuration().variant).bytes==source_game_variant(h.variant).bytes,
+            "All-engine countdown coverage failed to restore the original next-world selection");
         late_launch=select(late_frontend,content,map,name,"Link Late",1);
         late_session=std::make_shared<SystemLinkSession>(false);
         late=late_session->enter_client(host_address,fingerprint,1,late_launch.selected_teams,late_launch.selected_profiles);
@@ -172,6 +227,49 @@ int main(int argc,char** argv)try {
         const auto sparse_report=hs->report(host_frontend);
         need(sparse_report->results->player_count==2 && hs->state()->report[0x370+0x94]==std::byte{} && hs->state()->report[0x370+late_slot*0x94]==std::byte{1},"Sparse native PCR compacted or resurrected a source slot");
         row["three_player_match_completed"]=true;row["authenticated_leave"]=true;row["sparse_source_slot"]=late_slot;row["sparse_pcr_completed"]=true;
+        row["customized_next_worlds"]=Json::array();
+        // Retain the same real socket, participants and committed profiles
+        // while changing every original game engine, including FFA -> teams.
+        // Only timer/respawn inputs are shortened; native owners decide all
+        // outcomes, final snapshots and PCR rows without supplied results.
+        for(unsigned engine=0;engine<7;++engine) {
+          row["stage"]="customized next world "+std::to_string(engine);
+          hs->done();until([&]{hs->pump();late_session->pump();return late_session->state()->phase==SystemLinkPhase::lobby;},"All-engine retained lobby was not delivered");
+          options.variant={"Retained engine "+std::to_string(engine),engine,{}};
+          options.variant.source_settings=source_game_variant_default(engine,u"Retained customized match");
+          options.variant.values.set(10,1);options.variant.values.set(17,1);
+          const auto expected=source_game_variant(options.variant);
+          const bool teams=source_game_variant_get(expected,91)!=0;
+          options.selected_teams=teams?h.selected_teams:std::vector<std::int8_t>{};
+          options.source_object_savegame_directory=std::filesystem::path(scratch)/("link-all-engine-"+std::to_string(engine));
+          world=std::make_shared<MultiplayerPreparedWorld>(options);world->bind_source_local_views(world->local_slots);
+          need(world->match.source_engine_owned(),"Customized next world lost its original engine owner");
+          const auto next_fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,world->network_starting_weapon_identity()),options.variant);
+          host=hs->enter_host(world->match,port,next_fingerprint,options.variant,map.stem().string());
+          until([&]{host->receive(actual);host->broadcast();late_session->pump();return late_session->state()->phase==SystemLinkPhase::starting;},"All-engine retained Start was not delivered");
+          const auto next=late_session->state();const auto participant=std::ranges::find(next->roster,late_slot,&OnlineAdmission::slot);
+          need(source_game_variant(next->variant).bytes==expected.bytes && next->variant.source_settings &&
+              next->variant.source_settings->bytes==options.variant.source_settings->bytes && participant!=next->roster.end() &&
+              participant->team==(teams?late_launch.selected_teams[0]:-1),
+              "Customized next-world settings or FFA/team admission differed at the actual peer");
+          const auto selected=teams?std::span<const std::int8_t>(late_launch.selected_teams):std::span<const std::int8_t>{};
+          late=late_session->enter_client(host_address,next_fingerprint,1,selected,late_launch.selected_profiles);
+          until([&]{late->send(remote);host->receive(actual);host->broadcast();late->receive();return late->ready() && hs->state()->phase==SystemLinkPhase::running;},"Customized next-world FFA/team admission timed out");
+          need(late->slots()[0]==late_slot && host->join_address()==host_address &&
+              world->match.player(late_slot).source_profile_request==late_launch.selected_profiles[0],
+              "Customized next world replaced a retained socket, slot or committed profile");
+          actual={};remote={};unsigned frames{};
+          while(frames++<600 && hs->state()->phase!=SystemLinkPhase::postgame) {
+            late->send(remote);host->receive(actual);world->match.step(actual);host->broadcast();late->receive();
+            hs->world_update(world->match.state());late_session->world_update(late->state());
+          }
+          until([&]{late->send(remote);host->receive(actual);host->broadcast();late->receive();hs->world_update(world->match.state());late_session->world_update(late->state());
+            return hs->state()->phase==SystemLinkPhase::postgame && late_session->state()->phase==SystemLinkPhase::postgame;},"Customized next world did not confirm its natural native results");
+          need(world->match.state().results_finalized && hs->state()->report==late_session->state()->report,
+              "Customized next world lost its original finalized result bank");
+          row["customized_next_worlds"].push_back({{"engine",engine},{"team_mode",teams},{"frames",frames},{"generation",hs->state()->generation}});
+          hs->retain(std::move(host),{});late_session->retain({},std::move(late));world.reset();save();
+        }
         late_session->close();
       }
       // End this finite second match through ordinary owner destruction.

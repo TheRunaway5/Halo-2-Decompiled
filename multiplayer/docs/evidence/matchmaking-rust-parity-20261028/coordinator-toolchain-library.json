@@ -1,0 +1,12 @@
+{
+  "updated_utc": "2026-10-28T17:33:06.964045+00:00",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2",
+  "git_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ab3tgf49/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "474c3cc198a230896d0dfda5c9fe949d3203a0f7fc19b7147a72d34433c339f3",
+    "bytes": 1130016,
+    "retained": false
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ab3tgf49"
+}

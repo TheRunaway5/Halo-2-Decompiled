@@ -1,0 +1,66 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--test",
+        "matchmaking_queue_api"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_queue_api_owner_native",
+        "multiplayer.master_server.tests.test_matchmaking_http",
+        "multiplayer.master_server.tests.test_match_transport",
+        "multiplayer.master_server.tests.test_couch_online",
+        "multiplayer.master_server.tests.test_matchmaking_appearance",
+        "multiplayer.master_server.tests.test_gathering_sessions"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-vsnjs3jl/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "164a22b48a0332807e9f89c0d01350d7c3789fad6fdefb2a223b681e5b34cca0",
+    "bytes": 2422312,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

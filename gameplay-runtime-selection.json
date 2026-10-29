@@ -2,13 +2,13 @@
   "cache": "assets/imported/mcc-sky-water-tu15-20261025-v7",
   "default_map": "coagulation.map",
   "eos_worker": {
-    "bytes": 1831128,
+    "bytes": 1944200,
     "name": "eos_sdk_worker",
     "schema": "H2_EOS_SDK_WORKER_V1",
-    "sha256": "47089f0c26776a4b8e264ab0749706f0085aa50dc98b2ffae8bf62325efece7c"
+    "sha256": "a78ff46bd5d3639d8c33d2cf5160bd9dcca08e9d7068498fb9195a4b03a9c087"
   },
-  "inventory": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/runtime-files.json",
-  "inventory_sha256": "70af79c24fe9634800651e9fc9aac9be408e6020bbd1d282a8753444292560cc",
+  "inventory": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/runtime-files.json",
+  "inventory_sha256": "6521a74c157801081aed0d8c443680971a1a36ff5165db8eb1b08f7368c21352",
   "local_players": 2,
   "maps": {
     "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
@@ -23,10 +23,10 @@
     "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
     "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044"
   },
-  "qualification": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/qualification.json",
-  "qualification_sha256": "8bd462e597d1d0a93835eda1f3d2bb66d58e567758bb561c685f00dab1e16a3c",
-  "runtime": "bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/halo2_native",
-  "runtime_sha256": "ea2a889433821435231f4d504099e5b50b1f0d232f617a3c437c5c1cf38a05b5",
+  "qualification": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/qualification.json",
+  "qualification_sha256": "e79a2273551572bbb5bab0424baae313f744fff54c44532d10cbcfc8b2745821",
+  "runtime": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/halo2_native",
+  "runtime_sha256": "c4cf078db68795d25668e12241d7eeb345e0382a5bbc097d0688d2e76b0b5b49",
   "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
   "video_driver": "x11"
 }

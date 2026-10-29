@@ -19,8 +19,13 @@ struct MultiplayerSnapshotOrigin::Data {
     unsigned self=16;
     std::uint64_t revision{};
     MultiplayerSnapshotStamp stamp;
-    // Legacy/unbound receipts keep no decoded state or slot allocation.
+    // Retained by continuity or the native presentation lane. Legacy standalone
+    // receipts keep no decoded state or slot allocation.
     std::unique_ptr<const Decoded> decoded;
+    // A native presentation body is an exact authenticated historical value,
+    // not an ordinary gameplay/candidate/recovery receipt.
+    bool presentation_only{};
+    bool gameplay_repair{};
 };
 struct MultiplayerSnapshotProof::Data {
     MultiplayerSnapshotOrigin origin;

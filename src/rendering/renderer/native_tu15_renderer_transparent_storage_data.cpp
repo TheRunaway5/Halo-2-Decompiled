@@ -26,6 +26,10 @@ void mount_native_tu15_renderer_transparent_storage_data(SourceRuntimeMemory& me
     constexpr std::array<char,20> name{"transparent planes"};
     memory.mount(0x45c548,std::as_bytes(std::span(name)),SourceRuntimeMemory::Access::ReadOnly,
         "source140C80 authored transparent-container name and copy padding");
+    // Original2F7E0 reads this independent .rdata scalar at2F806. It follows
+    // the name's padding but is not part of the writable renderer state.
+    memory.mount(0x45c55c,std::array{std::byte{0xc3},std::byte{0xf5},std::byte{0x48},std::byte{0x3f}},
+        SourceRuntimeMemory::Access::ReadOnly,"source2F7E0 authored view-angle scalar");
 }
 NativeTu15RendererTransparentStorage native_tu15_renderer_transparent_storage_initial_views(
     const SourceRuntimeMemory& memory) {

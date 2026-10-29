@@ -562,6 +562,260 @@ cannot relink: the other session's regenerated
   overlap at `0x4C6858` mounted by the other session's edit of
   `native_tu15_world_memory.cpp` (16:45) — still unusable for parity/A/B.
 
+## Resume 2026-10-28
+
+- Removed the two duplicate world mounts at `4C6858` and `4C6870`.
+  Their serial, viewport and cluster/leaf fields already belong to the
+  complete loader-zeroed `4C6854..4C6893` render-object startup destination.
+  The actual cold-world composition failed before this correction and passes
+  afterward. Its regression also checks shared backing, access and live
+  checkpoint preservation.
+- Corrected `tools/perf_4k60/parity.py` to require successful, complete
+  3840×2160 RGB captures and deterministic repeats, report failures with a
+  nonzero exit status, and retire each capture's process tree on timeout.
+  Reports now pin runtime/helper hashes and commands. The tooling regression
+  passes through CTest; a retained `prev3` reference control produced four
+  byte-identical 3840×2160 output captures. The later preference findings
+  below limit what those output dimensions establish about the workload.
+- Fixed a lifetime error in the opt-in skin-admission cache before promotion.
+  Campaign section draws create temporary `RenderModel` objects; a later
+  temporary can reuse every component of the old global pointer key while
+  containing different vertices. An actual-pose probe reproduces a stale
+  acceptance with the old cache and rejects it correctly with the new one.
+  Each model now owns its immutable summary through an atomic cache slot;
+  copies and moves start empty, and destruction releases the summary.
+  Cold models retain only a small pending key and run the full predicate;
+  only a second use builds the per-vertex summary. This avoids paying for an
+  unused summary on temporary campaign section models. Allocation controls
+  verify zero summary allocations on first use, one on second use and reuse
+  afterward; changing the bank returns to cold state and retires the old data.
+  Actual-pose tests cover exact address/bank reuse, concurrent publication
+  and copies, floating-point/output equality and lifetime release, in Release
+  and ASan/UBSan.
+- Corrected the validation tools' legacy imported-map path to use the selected
+  `mcc-sky-water-tu15-20261025-v7` cache through `--maps`/`H2_MAPS`; parity
+  reports retain the resolved map path and hash. Banded-cull-only and
+  skin-cache-only comparisons each produced equal output captures for four
+  cases (4p idle/firing, 1p firing and 2p firing). These runs inherited the
+  saved upscaler context and do not qualify the intended Original/Off workload.
+- Rejected the first timing cohort after inspecting its recorded dimensions:
+  although it requested 3840×2160 internal rendering, every row rendered
+  1280×720 and GPU skin jobs stayed zero. A subsequent 3840×2160 Xvfb viewport
+  did record 4K render/presentation dimensions, but the cohort expired after
+  540 seconds with only three of six runs completed. Presentation waits were
+  roughly 160–350 ms under heavy shared-host contention. Neither cohort is
+  accepted performance evidence or establishes 4K60.
+- Traced the workload discrepancy to the user's saved `pc_upscaling`
+  preference inherited during pause initialization. It overrode the intended
+  `--render-size` workload at a 720p viewport and suppressed the GPU-skin path.
+  Both validation tools now use private scratch-owned `XDG_DATA_HOME` and
+  `XDG_CONFIG_HOME` directories and explicitly select `--graphics-mode
+  Original`; clean preferences leave upscaling Off. The original configuration
+  was read only by this work, with its observed hash recorded in
+  `preferences-observation.json`. A later concurrent configuration change was
+  preserved rather than rolled back.
+- A clean-preferences control on the RTX 5080 records 3840×2160 rendering with
+  1280×720 presentation and actual source-unit `allowed=1 deferred=1` GPU-skin
+  submissions while the cache oracle is enabled. The profiling wrapper now
+  rejects any recorded row whose render/presentation dimensions differ from
+  that workload, including warmup rows. Canonical Original/Off parity with
+  both optimizations and the cache oracle passed all four cases: 4p idle and
+  firing, 1p firing and 2p firing. Reference/candidate repeats are deterministic
+  and every complete 3840×2160 output is byte-identical. See
+  `original-off-combined-parity.json` for commands, hashes and case results.
+- Removed the CPU monitor's exit race: an atomic stop flag and an owned
+  watcher join complete the final sample before dumping rows. Lightweight
+  tests cover blocked in-flight sampling and 24 real preload exits, including
+  a clean ThreadSanitizer run. Renderer timing rows now flush after each
+  completed row, and CPU summaries exclude the last five frames to avoid
+  teardown endpoints. The observer still estimates main-thread CPU only;
+  it excludes worker CPU and is not a timestamp taken at the frame boundary.
+
+The banded cull and lazy model-owned skin-admission cache are now enabled by
+default. `HALO2_NATIVE_BANDED_CULL=0` restores the serial walk and
+`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` restores the full per-pose predicate;
+empty values also restore those reference routes. The final frozen native
+build and eleven focused CTests pass. Cache default, explicit-on, zero and
+empty controls also pass in Release and ASan/UBSan. A final 4p tick30 capture
+also matches with both defaults against both explicit zero reference controls,
+including a deterministic reference repeat.
+
+The corrected Original/Off CPU cohort completed three interleaved pairs of
+300 frames with verified 3840×2160 rendering and 1280×720 presentation.
+Default-on main-thread CPU was lower in two pairs and higher in the third;
+the shared host remained heavily loaded. This is not a stable FPS gain or
+4K60 acceptance. See `original-off-default-ab-summary.json`; the overall
+component receipt is `acceptance.json`. These component results
+and workload controls do not establish 4K60,
+all-map equivalence or launcher delivery. Bounded receipts are under
+`build/test-results/renderer-resume-20261028`,
+`build/test-results/renderer-parity-harness-20261028` and
+`build/test-results/renderer-skin-cache-20261028`; the monitor lifecycle receipt
+is `build/test-results/cpumon-lifecycle-20261028.json`.
+
+The proposed per-view phase split also needs explicit prepared inputs and
+owned outputs. Current object, vehicle, body and HUD consumers mutate shared
+lighting, LOD, pose and resident-image state in view order. Their executor
+checks cannot safely be replaced with worker tokens alone. Static-world
+assembly is the smallest prospective extraction; the earlier 5–6 ms estimate
+is not a demonstrated available speedup.
+
+## Measured copy and pose work (2026-10-28)
+
+Claude's recorded public profiling findings in **Renderer Improvements** guided
+the investigation: preserve the native/translated oracles, measure per-view
+preparation, avoid the slower small-object GPU-skin option, and keep gameplay
+input latency unchanged. An all-thread profile of the selected runtime found
+complete first-person animation-graph copies (5.66% of samples), dynamic skin
+copies (4.12%), and body-pose undo allocations (2.34%). Sampling only the main
+thread would miss the overlapped renderer. These percentages are inclusive
+sample attribution, not independent additive frame costs.
+
+Final accepted result: the five defaults reduced main-thread CPU by a median
+9.97% and improved FPS by a median 9.83% against a same-feature baseline with
+the literal pre-optimization FP memory class and the other four original
+paths. Both runtimes matched at full 4K before timing. All three interleaved
+300-frame pairs improved on the shared host:
+
+| Pair | Baseline CPU ms/frame | Default CPU ms/frame | Baseline FPS | Default FPS |
+|---:|---:|---:|---:|---:|
+| 1 | 40.457 | 35.625 | 24.13 | 27.37 |
+| 2 | 38.068 | 34.274 | 25.68 | 28.07 |
+| 3 | 36.672 | 33.110 | 26.75 | 29.38 |
+
+Every recorded row used 3840×2160 internal rendering, 1280×720 presentation,
+four views and a run with actual GPU skin jobs. Timing used immediate
+presentation; normal launcher presentation remains FIFO. This establishes a
+real bounded throughput gain, not sustained 4K60 or physical display parity.
+
+Five changes now run by default:
+
+- Read the owned 196-byte animation-graph header while validating the complete
+  tag extent, instead of copying multi-megabyte metadata for header fields.
+- Pack body-pose undo bytes and records into reusable vectors, retaining every
+  original store and exact reverse rollback order, including overlapping
+  writes, nesting and exception paths.
+- Reuse complete dynamic-object skin output only for an identical salted
+  owner, LOD, model and exact WORLD-node input. The cache respects FP/errno and
+  includes the incoming SSE precision flag for GPU-capable decisions. A
+  regression caught and fixed CPU/GPU admission changing on the next call
+  after a cold CPU skin sets that flag. A 120-frame four-player run recorded
+  11,768 requests, 4,463 builds and 7,305 reuses.
+- Bulk-copy owned runs in first-person context memory, update ownership in
+  word-sized operations and skip redundant repinning. Source callback/fault boundaries remain identical
+  to the pinned original implementation.
+- Retain cleared GPU skin-planner vector capacity, bounded to 8 MiB per
+  renderer. All source aliases, shared owners, maps, values and counts retire
+  at frame exit, including failures. A warmed 43,932-record component workload
+  reduced allocations from 6.54–6.73 MB/frame to 0.44–0.45 MB/frame, with
+  3,146,096 idle bytes retained. Median thread CPU savings were 0.0666 ms;
+  the larger initial prototype saving was allocator-warmup-sensitive. This
+  component saving is separate from the whole-frame measurements below.
+
+Reference controls, workload requirements and profiling limitations are in
+[`tools/perf_4k60/README.md`](../tools/perf_4k60/README.md). Release and
+ASan/UBSan component comparisons passed. Final native validation passed 18/18
+tests, including the actual TU1.5 scene-lifetime reference cases; shadow owner
+and raw-draw checks passed 7/7. The offline TU1.5 XBE is a component reference;
+the running game continues to use MCC assets.
+
+The following initial four-path cohort is superseded by the literal-baseline
+result above. Three interleaved pairs of 300-frame
+four-player Original/Off runs at verified 3840×2160
+internal rendering and 1280×720 presentation compared all four paths against
+their reference controls on the same binary:
+
+| Pair | Default CPU ms/frame | Reference CPU ms/frame | CPU reduction |
+|---:|---:|---:|---:|
+| 1 | 52.230 | 69.078 | 24.39% |
+| 2 | 54.248 | 82.282 | 34.07% |
+| 3 | 64.504 | 67.172 | 3.97% |
+
+The median paired reduction was 24.39%. The shared host was heavily loaded;
+one pair's wall-clock FPS reversed, so this is bounded CPU evidence rather
+than a stable FPS estimate. A separate two-pair pose-cache comparison improved
+both CPU and throughput: 17.47→25.11 FPS and 18.34→20.40 FPS, with other fast
+paths held fixed. These runs used immediate presentation for uncapped
+diagnostics; normal launcher presentation remains FIFO. No gameplay tick was
+moved one frame ahead.
+
+Final installed-package Vulkan timestamps, harvested after the existing frame
+fence, measured 8.07 ms median queue elapsed time over a complete 120-frame
+four-player 4K run. The scene interval was 4.12 ms and the preceding
+transfer/compute/prologue interval was 3.95 ms; these intervals include queue
+stalls and are not shader occupancy.
+The final installed all-thread profile contains 2,425 samples with no lost
+samples: 72.99% main thread, 14.97% render executor, 9.69% native workers and
+2.35% presentation copy. Native World execution remains the largest named
+inclusive owner (27.71% of all user CPU); skinning accounts for 10.02% across
+main and workers. Renderer packing measured 5.31 ms mean elapsed time in that
+sampled window. Exact libc ELF/mapping attribution finds memory copying at
+16.87%, including 5.94% directly under skinning. Full graph copies have no
+sampled hits and the packed journal is down to 0.165% inclusive. These nested shares are not additive,
+do not measure blocked/GPU time, and cannot establish the frame's critical
+path. The raw baseline/final shares also cannot substitute for matched timing
+because the sampling and host conditions differ. **4K60 remains active and
+unachieved.**
+
+The first single-player capture exposed an immutable shadow BSP owner mismatch
+in the earlier frozen cohort. A declared refresh adopted the working tree's
+canonical MCC relocation/owner fix. The World-dependent raw-pass factory was
+moved into its systems owner to restore the cache-only test link boundary.
+Single-player reference/candidate captures and both repeats then matched
+exactly. Earlier failed reports are retained as superseded diagnostics.
+
+Launcher qualification uses the exact final packaged executable, its compiled
+production shader bank, fresh private preferences and default controls. It
+requires the four 4K cases (4p idle, 4p firing, 1p firing and 2p firing), with
+reference and candidate repeats on the first case, before selection changes.
+Its source inventory identifies the declared frozen cohort; later unrelated
+campaign/audio changes in the shared working tree are outside that inventory.
+Delivery and cleanup receipts are recorded in
+`build/test-results/renderer-4k60-next-20261028/acceptance.json`.
+
+Runtime `6ef5ae1281fd4b679b4574da6e7da8ee` completed that production gate and
+was selected by both launchers: 15 launcher/loading checks, 13 map/player
+startup cases, four frontend cases and all four exact 4K comparisons passed.
+Its immutable source cohort intentionally differs from later shared-tree
+work; it is not a claim that every current root edit was packaged.
+
+A conservative final-package timing cohort held native FP context memory on
+in both roles and compared the other four optimized paths against their
+original routes. All three pairs improved both CPU and FPS: median 4.03%
+less main-thread CPU and 2.91% higher throughput. FP context memory is tested
+separately against the pinned literal original class: nine rotated cycles
+gave median 91.31% less sampling CPU and 97.28% less repinning CPU. The named
+production reference uses the original per-byte algorithm on an explicit
+packed mask; its bit-access implementation is 7.9–15.7% slower on this component
+than the literal original. Thus the initial four-path table above is evidence
+against named controls, not a precise comparison to an unchanged release.
+The disposable literal-FP baseline restores the unchanged pinned class and
+original repinning body in one engine object; it also matches the selected
+package's complete 4K idle frame with both repeats. Final combined timing
+against that baseline is recorded in
+`build/test-results/renderer-4k60-next-20261028/literal-baseline-performance/report.json`.
+
+Cleanup is verified: the investigation owner, all nested build/probe owners,
+literal baseline executable, raw profiles and raw captures were removed, with
+no owned processes left. The installed runtime/resources are intentionally
+retained at `bin/engine-builds/6ef5ae1281fd4b679b4574da6e7da8ee`
+(3,182,527,454 bytes). Prior runtimes, assets and reference evidence remain.
+See `build/test-results/renderer-4k60-next-20261028/cleanup.json`.
+
+The first production candidate was rejected before publication by eight map
+startup checks. Authored two-sided culling needed its actual state147=0 apply
+and state147=900 retirement contract, proved against the original setter;
+animated ordinary depth pages needed the real descriptor/frame receipt and
+the retained CPU frame selection. Waterworks additionally selected the Banshee
+cab's live bitmap animation. Its completed material now samples actual native
+BCB70 object functions, keys by full geometry owner and uses an opaque
+pass/material/frame receipt. Each raw shadow draw overrides its own copied
+descriptor with the selected resident page; the native packet consumes that
+same page's metadata. Unsupported live clocks and pixel/vertex animation still
+reject. Source-born actor/override tests distinguish frames0/1 and reject
+swapped, changed and stale owners. These corrections preserve the native
+ownership checks rather than accepting failed map smokes.
+
 ## Frame map from prof-seat, by direct callee (2026-10-26)
 
 Measured with a full-depth callee query over the kept profile (the earlier

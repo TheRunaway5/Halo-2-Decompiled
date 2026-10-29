@@ -160,6 +160,16 @@ bool same(const std::optional<NativeRequest> &a,const std::optional<NativeReques
 }
 }
 int main(){try{
+    auto team=header(19);put(team,0x8877665544332211ull,8);put(team,7,4);put(team,3,1);put(team,6,1);
+    const auto request=decode_native_request(team,protocol);
+    check(request && std::holds_alternative<NativeTeamChangeRequest>(*request),"Team change did not cross the typed Rust bridge");
+    const auto accepted=std::get<NativeTeamChangeRequest>(*request);
+    check(accepted.nonce==0x123456789abcdef0ull && accepted.cookie==0x8877665544332211ull && accepted.sequence==7 &&
+        accepted.view==3 && accepted.team==6,"Team bridge lost request identity or local ownership operands");
+    for(unsigned n=0;n<team.size();++n)check(!decode_native_request(Bytes(team.begin(),team.begin()+n),protocol),"Truncated team request was accepted");
+    auto invalid=team;invalid.back()=std::byte{8};check(!decode_native_request(invalid,protocol),"Invalid team crossed the typed boundary");
+    invalid=team;invalid[27]=std::byte{4};check(!decode_native_request(invalid,protocol),"Arbitrary player slot crossed the local-view boundary");
+
     std::size_t comparisons{};
     const auto compare=[&](const Bytes &p,std::uint16_t version=protocol){
         check(same(decode_native_request(p,version),reference(p,version)),"Native Rust/reference request differs");++comparisons;};

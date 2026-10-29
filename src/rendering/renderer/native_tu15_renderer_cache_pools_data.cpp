@@ -32,7 +32,7 @@ NativeRuntimeAddress pool(const SourceRuntimeMemory& memory, std::uint32_t cell,
 }
 void mount_native_tu15_renderer_cache_pools_data(SourceRuntimeMemory& memory) {
     memory.mount(0x474ce8, std::array{std::byte{0xec}, std::byte{0xab}, std::byte{0x44}, std::byte{}},
-        SourceRuntimeMemory::Access::ReadOnly, "Source12560 authored default render vector binding");
+        SourceRuntimeMemory::Access::ReadWrite, "Source12560 authored default render vector binding");
     // Scalar startup already owns this shared immutable zero vector. Require
     // its complete original bytes instead of introducing an overlapping bank.
     if (!memory.is_read_only(0x44abec, 12) ||

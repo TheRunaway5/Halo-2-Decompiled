@@ -4,6 +4,7 @@
 #include "halo2/online_peer_transport.hpp"
 #include "halo2/online_voice_protocol.hpp"
 #include "halo2/voice_origin.hpp"
+#include "halo2/online_packet_role.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/peer_migration_preparation.hpp"
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
@@ -47,6 +48,7 @@ std::string digest(std::span<const std::byte> bytes) {
 std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
 AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false,bool terminal=false){
   AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
+  limits.features|=authority_feature_source_presented_model_poses;
   if(snapshot_candidates)limits.features|=authority_feature_source_snapshot_candidate;
   if(survivor_selection)limits.features|=authority_feature_survivor_selection;
   if(terminal){limits.features&=~authority_feature_source_common_cut;limits.features|=authority_feature_source_admitted_camera;}
@@ -70,6 +72,9 @@ struct OnlineMatchSession::Impl {
   std::vector<std::byte> report;
   std::optional<bool> result_recorded;
   std::optional<TerminalObservation> terminal;
+  std::uint16_t departed_players{};
+  std::uint16_t direct_failed_players{};
+  bool gameplay_admitted{};
   std::deque<Frame> incoming, outgoing;
   std::deque<std::string> continuation_outgoing;
   std::deque<OnlineWorldSeal> seals;
@@ -145,7 +150,7 @@ struct OnlineMatchSession::Impl {
     require(origin.find_first_of("@?#\\\r\n\t ") == std::string::npos);
     const auto scheme = origin.find(':');
     const auto url = std::string(origin.starts_with("https:") ? "wss" : "ws") + origin.substr(scheme) + "/v1/matches/" + room + (transport_options.direct_udp?"/signal":"/relay") +
-        (transport_options.peer_host_migration?"?completion=1&native_handoff=1":"?completion=1");
+        (transport_options.peer_host_migration?"?completion=1&native_handoff=1&departure_game_over=1":"?completion=1&departure_game_over=1");
     const auto room_api=origin+"/v1/matches/"+room;
     worker = std::jthread([this, url, room_api, bearer](std::stop_token stop) { run(url, room_api, bearer, stop); });
   }
@@ -322,6 +327,7 @@ struct OnlineMatchSession::Impl {
     phase=name=="running"?Phase::Running:name=="loading"?Phase::Loading:
         name=="awaiting_world"?Phase::AwaitingWorld:name=="migrating"?Phase::Migrating:
         name=="rebinding"?Phase::Rebinding:Phase::Connecting;
+    gameplay_admitted|=phase==Phase::Running;
     if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
       std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
       const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
@@ -417,8 +423,7 @@ struct OnlineMatchSession::Impl {
     if(epoch_packets() && (epoch!=continuity_state.epoch || !(continuity_state.members&(1u<<source))))return;
     require(packet.size()>=7 && packet.size()<=1400 && get(packet,0,4)==0x324e3248 && get(packet,4,2)==native_multiplayer_protocol);
     const auto kind=get(packet,6,1);
-    require((self==host && (kind==1 || kind==2 || kind==4 || kind==6)) ||
-            (source==host && (kind==3 || kind==5 || kind==6 || kind==14)));
+    require(online_packet_role(self==host,source==host,kind));
     if(kind!=6) {
       // A native freeze cannot manufacture predecessor silence. Authenticated
       // current-host traffic still services suspicion; it never reaches the
@@ -429,6 +434,7 @@ struct OnlineMatchSession::Impl {
       return;
     }
     if(frozen_selection)return;
+    if(!(voice_members&(1u<<source)))return;
     // The mandatory Rust reader returns owned syntax-checked fields. Sender,
     // seat, role and generation authority still comes from this real session.
     std::optional<VoiceOrigin::Signature> origin_signature;
@@ -437,14 +443,15 @@ struct OnlineMatchSession::Impl {
       VoiceOrigin::Signature signature;std::copy(packet.end()-64,packet.end(),signature.begin());
       packet=packet.first(packet.size()-64);
       const auto speaker=get(packet,8,1);
-      if(speaker>=roster.size()||!voice_origin.verify(packet,signature,online_admission_peer(roster[speaker]),epoch))return;
+      if(speaker>=roster.size()||online_admission_peer(roster[speaker])!=source||
+          !voice_origin.verify(packet,signature,source,epoch,self))return;
       origin_signature=signature;
     }
     auto parsed=decode_online_voice_frame(packet,native_multiplayer_protocol);
     require(parsed.has_value());
     MatchVoicePacket voice;voice.peer=source;
     if(const auto *preferences=std::get_if<ParsedOnlineVoicePreferences>(&*parsed)) {
-      require(!preferences->forwarded_source || source==host);
+      require(!preferences->forwarded_source);
       voice.preferences=true;voice.frame.source=preferences->forwarded_source.value_or(source);
       require(voice.frame.source<roster.size());
       voice.enabled=preferences->enabled;voice.muted=preferences->muted;
@@ -452,11 +459,11 @@ struct OnlineMatchSession::Impl {
       auto &frame=std::get<ParsedOnlineVoiceAudio>(*parsed);
       voice.frame.source=frame.source;voice.frame.sequence=frame.sequence;
       require(voice.frame.source<roster.size() && (voice_members&(1u<<voice.frame.source)) &&
-          (source==host || online_admission_peer(roster[voice.frame.source])==source));
+          online_admission_peer(roster[voice.frame.source])==source);
       voice.frame.radio=frame.radio;voice.frame.gains={frame.left,frame.right};
       // The coordinator supplies the account block mask. The receiving PC
       // enforces it even when a player host forwards a blocked speaker.
-      if(self!=host && (voice_blocked&(1u<<voice.frame.source)))return;
+      if(voice_blocked&(1u<<voice.frame.source))return;
       voice.frame.opus=std::move(frame.opus);
       voice.frame.origin_signature=origin_signature;
     }
@@ -496,10 +503,12 @@ struct OnlineMatchSession::Impl {
       std::vector<unsigned> physical;
       for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical.push_back(player.slot);
       bool announced=false;
+      std::uint16_t opened_peers{};
       std::optional<Clock::time_point> measurement_started;
       while(!stop.stop_requested()) {
         std::uint16_t ready_mask=0;for(auto peer:physical)if(peer!=self&&direct->ready(peer))ready_mask|=std::uint16_t(1u<<peer);
         direct_ready.store(ready_mask,std::memory_order_relaxed);
+        opened_peers|=ready_mask;
         for(auto &signal:direct->signals()) {
           const auto value=Json{{"peer_signal",{{"peer",signal.peer},{"type",signal.type},{"payload",signal.payload},{"mid",signal.mid}}}}.dump();
           std::lock_guard lock(mutex);require(continuation_outgoing.size()<1024);continuation_outgoing.push_back(value);
@@ -507,6 +516,15 @@ struct OnlineMatchSession::Impl {
         if(!measurement_started&&direct->authentication_ready())measurement_started=Clock::now();
         std::shared_ptr<PeerMeshQuality> quality;Phase current_phase;
         {std::lock_guard lock(mutex);quality=mesh_quality;current_phase=phase;}
+        if(current_phase==Phase::Running) {
+          std::uint16_t retired{};
+          for(const auto &player:roster) {
+            const auto owner=online_admission_peer(player);
+            if(owner!=self && (opened_peers&(1u<<owner)) && direct->failed(owner))
+              retired|=std::uint16_t(1u<<player.slot);
+          }
+          std::lock_guard lock(mutex);direct_failed_players=retired;
+        }
         const auto measured=quality?quality->local(transfer_time()):std::nullopt;
         const auto complete_measurement=std::all_of(physical.begin(),physical.end(),[&](auto peer){
           return peer==self||(measured&&measured->links[peer].measured);});
@@ -542,7 +560,6 @@ struct OnlineMatchSession::Impl {
           if(peer_fenced || (epoch_packets()&&frame.epoch!=continuity_state.epoch))continue;
           if(frame.data.size()>6&&frame.data[6]==std::byte{6}&&frame.audio_generation!=audio_generation)continue;
           unsigned target=frame.peer;
-          if(phase==Phase::Postgame && self!=host && frame.data.size()>=7 && get(frame.data,6,1)==6)target=host;
           const auto members=phase==Phase::Reviewing||phase==Phase::Postgame?voice_members:continuity_state.members;
           if(epoch_packets()&&!(members&(1u<<target)))continue;
           if(epoch_packets()) {
@@ -747,7 +764,19 @@ struct OnlineMatchSession::Impl {
           if (meta->bytesleft || (meta->flags & CURLWS_CONT)) continue;
           if (meta->flags & CURLWS_TEXT) {
             const auto data = Json::parse(reinterpret_cast<const char *>(assembled.data()), reinterpret_cast<const char *>(assembled.data()+assembled.size()));
-            if(data.contains("voice_auth")) {
+            if(data.contains("departed_players")) {
+              require(data.size()==1 && data["departed_players"].is_number_unsigned() &&
+                  data["departed_players"].get<std::uint64_t>()<=UINT16_MAX);
+              const auto mask=data["departed_players"].get<std::uint16_t>();
+              std::lock_guard lock(mutex);
+              require(gameplay_admitted && !(mask&~((1u<<roster.size())-1)));
+              for(const auto &player:roster) {
+                const auto owner=online_admission_peer(player);
+                require(bool(mask&(1u<<player.slot))==bool(mask&(1u<<owner)) &&
+                    (owner!=self || !(mask&(1u<<player.slot))));
+              }
+              departed_players|=mask;
+            } else if(data.contains("voice_auth")) {
               require(data.size()==1);const auto &value=data["voice_auth"];
               require(value.is_object()&&value.size()==3&&value["version"]==1&&value["keys"].is_array()&&value["keys"].size()==roster.size());
               const auto key=[](const Json &text){
@@ -862,6 +891,7 @@ OnlineMatchSession::~OnlineMatchSession() {
   if(impl_->audio)impl_->audio->enable(false);
 }
 OnlineMatchSession::Phase OnlineMatchSession::phase() const { std::lock_guard lock(impl_->mutex); return impl_->phase; }
+std::uint16_t OnlineMatchSession::departed_players() const { std::lock_guard lock(impl_->mutex);return impl_->departed_players|impl_->direct_failed_players; }
 std::optional<bool> OnlineMatchSession::result_recorded() const { std::lock_guard lock(impl_->mutex);return impl_->result_recorded; }
 std::optional<std::uint16_t> OnlineMatchSession::postgame_presence() const {
   std::lock_guard lock(impl_->mutex);
@@ -911,7 +941,7 @@ bool OnlineMatchSession::authority_supported(unsigned peer) const {
 bool OnlineMatchSession::authority_replay_supported(unsigned peer) const {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
-      transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts);
+      transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_presented_model_poses);
 }
 bool OnlineMatchSession::authority_pipeline_supported(unsigned peer)const{
   std::shared_ptr<PeerAuthorityTransfer> transfer;
@@ -1264,8 +1294,8 @@ void OnlineMatchSession::voice(unsigned target,const GameVoiceFrame &frame) {
   std::optional<VoiceOrigin::Signature> signature;
   if(frame.source>=impl_->roster.size())return;
   const auto owner=online_admission_peer(impl_->roster[frame.source]);
-  if(owner==impl_->self)signature=impl_->voice_origin.sign(packet,impl_->continuity_state.epoch);
-  else if(frame.origin_signature&&impl_->voice_origin.verify(packet,*frame.origin_signature,owner,impl_->continuity_state.epoch))signature=frame.origin_signature;
+  if(owner==impl_->self && target<16 && !(impl_->voice_blocked&(1u<<target)))
+    signature=impl_->voice_origin.sign(packet,impl_->continuity_state.epoch,target);
   if(!signature)return;
   packet.insert(packet.end(),signature->begin(),signature->end());
   if(impl_->audio&&(frame.delivery_generation!=impl_->audio_generation||!impl_->audio->ready(impl_->audio_generation)))return;
@@ -1304,8 +1334,7 @@ void OnlineMatchSession::pump_postgame_voice() {
   if(phase_now!=Phase::Reviewing && phase_now!=Phase::Postgame)return;
   audio->focus(impl_->voice_focused);audio->radio(false,true);
   audio->blocks(voice_blocks());
-  const auto selected=audio->snapshot();const auto local=self(),leader=host();
-  const bool hosting=local==leader;
+  const auto selected=audio->snapshot();const auto local=self();
   {std::lock_guard lock(impl_->mutex);impl_->voice_enabled[local]=selected.enabled;impl_->voice_mutes[local]=selected.muted;}
   const auto now=Clock::now();
   const double elapsed=std::chrono::duration<double>(now-impl_->voice_credit_at).count();impl_->voice_credit_at=now;
@@ -1313,7 +1342,8 @@ void OnlineMatchSession::pump_postgame_voice() {
   const bool announce=now-impl_->voice_preferences_at>std::chrono::milliseconds(200);
   if(announce) {
     impl_->voice_preferences_at=now;
-    if(!hosting)voice_preferences(leader,selected.enabled,selected.muted);
+    for(const auto &member:roster())if(online_admission_peer(member)==member.slot && member.slot!=local)
+      voice_preferences(member.slot,selected.enabled,selected.muted | selected.blocked);
   }
   auto route=[&](GameVoiceFrame frame) {
     const auto source=frame.source;if(source>=roster().size() || !(impl_->voice_members&(1u<<source)))return;
@@ -1329,20 +1359,12 @@ void OnlineMatchSession::pump_postgame_voice() {
     }
   };
   for(auto &packet:voice_packets()) {
+    if(packet.peer>=roster().size() || packet.peer==local)continue;
     if(packet.preferences) {
-      const auto source=hosting?packet.peer:packet.frame.source;
-      if(source>=roster().size() || source==local || (!hosting && packet.peer!=leader))continue;
-      std::lock_guard lock(impl_->mutex);impl_->voice_enabled[source]=packet.enabled;impl_->voice_mutes[source]=packet.muted;
-    } else if(hosting) {route(std::move(packet.frame));}
-    else if(packet.peer==leader && packet.frame.source<roster().size())audio->receive(std::move(packet.frame));
+      std::lock_guard lock(impl_->mutex);impl_->voice_enabled[packet.peer]=packet.enabled;impl_->voice_mutes[packet.peer]=packet.muted;
+    } else audio->receive(std::move(packet.frame));
   }
-  if(hosting && announce)for(const auto &p:roster())if(online_admission_peer(p)==p.slot && p.slot!=local && (impl_->voice_members&(1u<<p.slot)))for(const auto &member:roster()) {
-    const auto peer=online_admission_peer(member);
-    auto packet=voice_header(2);put(packet,impl_->voice_enabled[peer],1);
-    put(packet,impl_->voice_mutes[peer],2);put(packet,member.slot,1);
-    std::lock_guard lock(impl_->mutex);if(impl_->outgoing.size()<512)impl_->outgoing.push_back({p.slot,std::move(packet),impl_->continuity_state.epoch,impl_->audio_generation});
-  }
-  for(auto &frame:audio->outgoing()){frame.source=local;if(hosting)route(std::move(frame));else voice(leader,frame);}
+  for(auto &frame:audio->outgoing()){frame.source=local;route(std::move(frame));}
 }
 void OnlineMatchSession::close_postgame() {
   {std::lock_guard lock(impl_->mutex);impl_->postgame_presence_closed=true;impl_->postgame_presence_observed=false;}

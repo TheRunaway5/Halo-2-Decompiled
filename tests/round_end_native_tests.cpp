@@ -84,10 +84,48 @@ void exhaust(MultiplayerMatch& match,unsigned target,int lives) {
 }
 }
 int main(int argc,char** argv)try {
+  std::cout<<std::unitbuf;
   check(argc==2,"Supply the repository root");const std::filesystem::path root(argv[1]),maps=root/"assets/disc/maps";
   Cache frontend(maps/"mainmenu.map");const auto front=frontend.load_frontend();const auto variant=front.variants.at(0);
   Cache cache(maps/"lockout.map",{},OriginalData::load_xbe(root/"assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03"));
   const auto content=cache.load_content(0,true);auto arena=content;arena.collision.clear();arena.kill_triggers.clear();
+  for(bool team:{false,true}) {
+    const UiVariant departure_variant{"Departure",0,{{2,0},{10,0},{91,team?1:0}}};
+    auto unlimited=slayer_rules(departure_variant,true);
+    unlimited.weapon=cache.slayer_starting_weapon(unlimited.starting_weapon);
+    MultiplayerMatch departure(arena,0,cache.spawns(),unlimited);
+    departure.join("Retained",team?0:-1);LanHost host(departure,0,0x15e441);
+    const std::array<std::int8_t,1> choice{7};const auto teams=team?std::span<const std::int8_t>(choice):std::span<const std::int8_t>{};
+    auto leaving_peer=std::make_unique<LanClient>(host.join_address(),0x15e441,1,teams);
+    auto last_peer=std::make_unique<LanClient>(host.join_address(),0x15e441,1,teams);
+    std::array<Controls,16> controls{};
+    for(unsigned n=0;n<100 && !(leaving_peer->ready() && last_peer->ready());++n) {
+      leaving_peer->send(std::array<Controls,1>{});last_peer->send(std::array<Controls,1>{});
+      host.receive(controls);host.broadcast();leaving_peer->receive();last_peer->receive();
+    }
+    check(leaving_peer->ready() && last_peer->ready(),"Opponent departure UDP participants did not join");
+    const auto leaving=leaving_peer->slots()[0],last=last_peer->slots()[0];
+    const auto original=departure.player(leaving);
+    leaving_peer.reset();host.receive(controls);departure.step({});
+    check(host.peers()==1 && !departure.finished(),"Match ended with another opponent still present");
+    last_peer.reset();host.receive(controls);departure.step({});
+    check(host.peers()==0 && departure.finished() && departure.state().winner==(team?-1:0) &&
+        departure.state().winner_team==(team?0:-1) && departure.state().players[0].wins==1,
+        "Last opponent's real UDP departure did not trigger GAME OVER");
+    check(departure.player(leaving).connected && (departure.player(leaving).source_flags&2u) &&
+        departure.player(leaving).source_datum==original.source_datum && departure.player(leaving).name==original.name &&
+        departure.player(leaving).score==original.score && departure.player(leaving).deaths==original.deaths &&
+        departure.state().results_finalized,"GAME OVER lost a departed result row or invented a death");
+    Mesh final_mesh;MultiplayerScoreboard final_board(cache,maps/"fonts",final_mesh,departure_variant);
+    SourcePlayerStatusTextInput final_text;final_text.lifecycle=2;final_text.special_mode=true;
+    const auto expected_title=source_player_status_text(cache.load_full_scoreboard_assets(),final_text);
+    check(expected_title && final_board.status_text(departure.state(),0,false)==expected_title,
+        "Completed native GAME OVER lost its original lifecycle heading without a player status record");
+    for(unsigned tick=0;tick<210;++tick)departure.step({});
+    check(departure.state().game_over_complete() && departure.state().players[0].wins==1 &&
+        departure.player(last).source_current_object==null_datum,"Departure countdown duplicated awards or respawned a retired player");
+    std::cout<<(team?"Team":"FFA")<<" real UDP opponent departures retain results and finish GAME OVER once\n";
+  }
   for(bool team:{false,true})for(int lives:{1,2}) {
     const auto local_launch=normal_launch(front,team,0,lives),lan_launch=normal_launch(front,team,1,lives);
     check(source_game_variant(local_launch.variant).bytes==source_game_variant(lan_launch.variant).bytes,

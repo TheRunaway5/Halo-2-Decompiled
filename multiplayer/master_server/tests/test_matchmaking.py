@@ -277,7 +277,7 @@ class MatchmakingTests(unittest.TestCase):
 
     def test_measured_connection_compatibility_and_map_eligibility(self):
         with self.assertRaises(Problem):
-            self.party((10,), maps=frozenset(("lockout",)))
+            self.party((10,), maps=frozenset(("waterworks",)))
         with self.assertRaises(Problem):
             self.party((10,) * 5)
         for _ in range(7):
@@ -293,6 +293,23 @@ class MatchmakingTests(unittest.TestCase):
         self.now += 30
         self.qos(score=70)
         self.assertIsNotNone(self.coordinator.advance(self.policy.id))
+
+    def test_partial_installed_pool_selects_only_a_common_available_map(self):
+        # Original selection zeros unavailable rows instead of requiring every
+        # map in the catalog. This reaches admission, formation and native draw.
+        rules=policy('partial-map-pool',team_size=0,ranked=False,radius=6)
+        core=Coordinator((rules,),clock=lambda:self.now,rng=random.Random(7))
+        for _ in range(2):
+            self.party((10,),coordinator=core,maps=frozenset(('lockout',)))
+        self.qos(core)
+        proposal=core.advance(rules.id)
+        self.assertIsNotNone(proposal)
+        self.assertEqual(proposal.game.map,'lockout')
+        disjoint=Coordinator((rules,),clock=lambda:self.now,rng=random.Random(7))
+        self.party((10,),coordinator=disjoint,maps=frozenset(('lockout',)))
+        self.party((10,),coordinator=disjoint,maps=frozenset(('ascension',)))
+        self.qos(disjoint)
+        self.assertIsNone(disjoint.advance(rules.id))
 
     def test_duplicate_idempotence_and_capacity(self):
         ticket = self.party((10,))

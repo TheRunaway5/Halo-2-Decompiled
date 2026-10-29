@@ -26,7 +26,7 @@ void classification() {
   check(!predicted_shot_weapon(automatic),"Spew (automatic) trigger predicted");
   auto travelling=w;travelling.instantaneous=false;
   check(!predicted_shot_weapon(travelling),"Travelling projectile predicted");
-  auto energy=w;energy.energy.emplace();
+  auto energy=w;energy.energy=WeaponDefinition::Energy{};
   check(!predicted_shot_weapon(energy),"Energy weapon (unreplicated heat) predicted");
   auto no_magazine=w;no_magazine.capacity=0;
   check(!predicted_shot_weapon(no_magazine),"Weapon without magazine rounds predicted");

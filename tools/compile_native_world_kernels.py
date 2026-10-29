@@ -84,12 +84,15 @@ def validate_entry(entry):
 
 
 VERTEX_WRAPPERS = {'world': 'world.vert',
+                   'source-depth': 'world.vert',
                    'normal': 'pstencil/normal_accumulation.vert',
                    'normal-utility': 'pstencil/normal_light_utility.vert'}
 
 
 def vertex_source(shader_root, row, wrapper='world'):
     base = (shader_root / VERTEX_WRAPPERS[wrapper]).read_text()
+    if wrapper == 'source-depth':
+        base = base.replace('#version 450', '#version 450\n#define H2_SOURCE_WORLD_DEPTH 1', 1)
     marker = '#include "world_vertex.glsl"'
     if base.count(marker) != 1:
         raise ValueError('Native world vertex wrapper ABI changed')
@@ -302,8 +305,9 @@ def main():
                 input_locations=inputs,
                 output_locations=spirv_interface_locations(data,3))
         entries.append(row)
-    header = ['#pragma once', '#include "halo2/native_world_kernel.hpp"', '#include <array>',
-              'namespace halo2::generated_native_world_kernels {']
+    header = ['#pragma once', '#include "halo2/native_world_kernel.hpp"', '#include <array>', '#include <string_view>',
+              'namespace halo2::generated_native_world_kernels {',
+              'using namespace std::string_view_literals;']
     programs = {}
     for index, row in enumerate(entries):
         if row['program'] not in programs:
@@ -314,12 +318,13 @@ def main():
         vertex = stages[('vert', row['vertex_key'])]['path'];fragment = stages[('frag', row['fragment_key'])]['path']
         normal = stages[('vert', row['vertex_key']+'-normal')]['path']
         utility = stages[('vert', row['vertex_key']+'-normal-utility')]['path']
+        source_depth = stages[('vert', row['vertex_key']+'-source-depth')]['path']
         metadata = lower_vertex_program(row['instructions'],declaration=row['declaration'],
                                         extended_vertex_bank=row['extended'])
         header += [f'    {{{programs[row["program"]]}, {{{",".join(str(x)+"u" for x in row["controls"])}}}, '
                    f'{{{",".join(str(x)+"u" for x in row["declaration"])}}}, '
-                   f'{str(row["extended"]).lower()}, "{vertex}", "{fragment}", "{normal}", "{utility}", '
-                   f'{metadata["default_texture_w_mask"]}u,{str(metadata["relative_constants"]).lower()}}},']
+                   f'{str(row["extended"]).lower()}, "{vertex}"sv, "{fragment}"sv, "{normal}"sv, "{utility}"sv, '
+                   f'{metadata["default_texture_w_mask"]}u,{str(metadata["relative_constants"]).lower()}, "{source_depth}"sv}},']
     header += ['}};', '} // namespace halo2::generated_native_world_kernels', '']
     report = dict(schema='HALO2_NATIVE_WORLD_KERNEL_COMPILED_V1', abi=1, target='vulkan1.3',
         registry_sha256=sha(registry_raw), source_sha256=pins, entries=len(entries),

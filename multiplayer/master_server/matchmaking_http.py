@@ -1,22 +1,19 @@
 """Discord-authorized native queue API. No client-supplied identities or ranks."""
 from dataclasses import dataclass
-from fractions import Fraction
-import hashlib
 from pathlib import Path
-import secrets
 import time
-import uuid
 
 from aiohttp import web
 
-from .matchmaking import Coordinator, Game, Player, Playlist, SearchStage, PARTY_RULES_2007, CLAN_RULES_RETAIL
-from .protocol import fields, identifier, integer, parse, require, text, Problem
+from .matchmaking import Coordinator, Playlist
+from .native_matchmaking import project, value
+from .native_database import run as database
+from .protocol import require, Problem
 from .player_identity import initialize, player as resolve_player, VERIFIED_DISCORD_USERNAME
-from .playlist_skill import PlaylistSkills, POLICIES, display_level
+from .playlist_skill import PlaylistSkills
 from .clan_skill import ClanSkills
-from .search_lifecycle import GatheringConfiguration, retail_configuration
-from .couch_players import LocalPlayer, NATIVE_GATHERING, guest_id, screen_name, verify_local_players, supports_compatibility, same_continuity_protocol
-from .player_profile import appearance as profile_appearance
+from .couch_players import verify_local_players
+from .native_sessions import Sessions, Requests, Failures
 
 
 @dataclass(frozen=True)
@@ -30,103 +27,21 @@ class CatalogEntry:
 
 
 def load_catalog(path):
+    """Read local bytes; Rust parses and validates every catalog policy field."""
     if not path:
         return ()
-    raw = Path(path).read_bytes()
-    require(len(raw) <= 1024 * 1024, "Matchmaking catalog too large")
-    root = parse(raw)
-    fields(root, ("version", "playlists"))
-    require(type(root["version"]) is int and root["version"] == 1, "Unsupported matchmaking catalog")
-    require(type(root["playlists"]) is list and 1 <= len(root["playlists"]) <= 64, "Invalid playlist catalog")
-    entries = []
-    for row in root["playlists"]:
-        fields(row, ("id", "revision", "name", "description", "ranked", "quickmatch", "team_size",
-                     "minimum_players", "maximum_players", "maximum_party", "games", "stages", "skill", "provenance"),
-               ("party_balance", "rank_configuration", "clan_match", "candidate_selection", "gathering", "required_compatibility", "team_count"))
-        require(type(row["quickmatch"]) is bool, "Invalid Quickmatch flag")
-        require(type(row["games"]) is list and 1 <= len(row["games"]) <= 256, "Invalid game pool")
-        games = []
-        for game in row["games"]:
-            fields(game, ("id", "map", "variant", "weight"))
-            games.append(Game(**game))
-        require(type(row["stages"]) is list and 1 <= len(row["stages"]) <= 16, "Invalid search stages")
-        stages = []
-        for stage in row["stages"]:
-            fields(stage, ("after_seconds", "rank_numerator", "rank_denominator", "minimum_connection"),
-                   ("unbounded_skill",))
-            numerator = integer(stage["rank_numerator"], 1, 10000)
-            denominator = integer(stage["rank_denominator"], 1, 10000)
-            stages.append(SearchStage(stage["after_seconds"], Fraction(numerator, denominator),
-                                      stage["minimum_connection"], stage.get("unbounded_skill", False)))
-        skill = row["skill"]
-        fields(skill, ("kind",), ("radius", "high_rank_radius", "mixed_party_floor"))
-        require(skill["kind"] in ("bungie-2007", "custom"), "Invalid skill policy")
-        historical = skill["kind"] == "bungie-2007"
-        require((historical and "radius" not in skill) or
-                (not historical and set(skill) == {"kind", "radius"}), "Incompatible skill fields")
-        balance = row.get("party_balance")
-        require(balance is None or balance in PARTY_RULES_2007, "Unknown party balance policy")
-        clan_match = row.get("clan_match")
-        require(clan_match is None or clan_match in CLAN_RULES_RETAIL, "Unknown clan lineup policy")
-        gathering = row.get("gathering")
-        if gathering is not None:
-            if type(gathering) is dict and set(gathering) == {"retail_hopper"}:
-                minimum,maximum,gathering = retail_configuration(integer(gathering['retail_hopper'],0,6))
-                require((row['minimum_players'],row['maximum_players']) == (minimum,maximum),
-                        "Retail gathering dimensions differ from this playlist")
-            else:
-                fields(gathering, ("countdown_ms", "timeout_ms", "provenance"))
-                require(type(gathering["countdown_ms"]) is list and len(gathering["countdown_ms"]) == 16,
-                        "Gathering requires all sixteen countdown entries")
-                gathering = GatheringConfiguration(tuple(integer(n,0,0x7fffffff) for n in gathering["countdown_ms"]),
-                    integer(gathering["timeout_ms"],10000,3600000),text(gathering["provenance"],512))
-        policy = Playlist(text(row["id"]), text(row["revision"]), row["ranked"], row["team_size"],
-                          row["minimum_players"], row["maximum_players"], row["maximum_party"],
-                          tuple(games), tuple(stages), row["provenance"],
-                          PARTY_RULES_2007.get(balance), historical, skill.get("high_rank_radius"),
-                          skill.get("mixed_party_floor", False), skill.get("radius"), CLAN_RULES_RETAIL.get(clan_match),
-                          row.get("candidate_selection"), gathering, row.get("team_count",2))
-        required = row.get("required_compatibility")
-        require(required is None or required in NATIVE_GATHERING, "Unknown required native compatibility")
-        configuration = row.get("rank_configuration")
-        require(configuration is None or configuration in POLICIES, "Unknown rank configuration")
-        require(policy.team_count==2 or configuration in POLICIES,
-                "Original multi-team balancing requires an authenticated raw-rating configuration")
-        require(clan_match is None or configuration in POLICIES, "Clan playlists require a supported clan rank configuration")
-        # Retail types1/3 update the same per-hopper XP while hiding its level;
-        # types2/4 expose it. Visibility is independent of the versioned tables.
-        entries.append(CatalogEntry(policy, text(row["name"]), text(row["description"], 256),
-                                    row["quickmatch"], configuration, row.get("required_compatibility")))
-    require(len({e.policy.id for e in entries}) == len(entries), "Duplicate playlist")
-    require(sum(e.quickmatch for e in entries) <= 1, "Only one Quickmatch default is allowed")
-    return tuple(entries)
-
-
-@dataclass
-class Session:
-    player: str
-    screen_name: str
-    maps: frozenset[str]
-    compatibility: str
-    expires: float
-    seen: float
-    language: int = 0  # Native title-language index, never a Discord locale.
-    local_players: tuple[LocalPlayer, ...] = ()
-    appearance: bytes | None = None
-
-    def seats(self):
-        return self.local_players or (LocalPlayer(self.player, self.screen_name, appearance=self.appearance),)
+    try:
+        raw = Path(path).read_bytes().decode('utf-8')
+    except UnicodeError:
+        raise Problem(400, 'Invalid catalog UTF8 text') from None
+    return tuple(project('catalog', row) for row in value('catalog_parse', raw=raw))
 
 
 class MatchmakingApi:
     def __init__(self, directory, entries=(), *, clock=time.monotonic):
-        self.directory, self.entries, self.clock = directory, entries, clock
-        self.core = Coordinator(tuple(e.policy for e in entries), clock=clock) if entries else None
-        self.sessions, self.requests = {}, {}
-        # Session-bound terminal search outcomes survive ticket/room teardown.
-        # They are presentation state, never identities or Xbox Live policy.
-        self.failures = {}
-        self.content_failure_rooms = {}
+        self.directory, self.clock = directory, clock
+        self.core = Coordinator(tuple(e.policy for e in entries), clock=lambda: self.clock(), catalog=entries) if entries else None
+        self._sessions, self._requests, self._failures = Sessions(self), Requests(self), Failures(self)
         initialize(directory.store.db)
         directory.store.db.executescript("""
         CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY, provider TEXT NOT NULL,
@@ -140,142 +55,98 @@ class MatchmakingApi:
         self.clan_skills = ClanSkills(directory.store.db)
         self.results = MatchResults(directory.store, self.skills, self.clan_skills)
 
+    @property
+    def sessions(self): return self._sessions
+    @property
+    def requests(self): return self._requests
+    @property
+    def failures(self): return self._failures
+
+    @property
+    def entries(self):
+        return self.core.catalog if self.core else ()
+
+    @entries.setter
+    def entries(self, entries):
+        self.enabled()
+        self.core.catalog = tuple(entries)
+
     def enabled(self):
         require(self.core is not None, "Matchmaking playlists are not configured", 503)
 
     def ticket(self, player):
-        return next((t for t in self.core.tickets.values() if any(p.id == player for p in t.players)), None)
+        return project('tickets', self.core._call('api_ticket', player=player)) if self.core else None
 
     def connection_owner(self, player):
-        ticket = self.ticket(player)
-        member = next((p for p in ticket.players if p.id == player), None) if ticket else None
-        return member.connection_owner or member.id if member else player
+        return self.core._call('api_connection_owner', player=player)
 
     def cleanup(self):
         if not self.core:
             return
-        self.content_failure_rooms = {key: value for key, value in self.content_failure_rooms.items() if value[2]>self.clock()}
-        while len(self.content_failure_rooms)>1024:
-            self.content_failure_rooms.pop(next(iter(self.content_failure_rooms)))
-        self.core.cleanup()
-        for ticket in tuple(self.core.tickets.values()):
-            if ticket.clan and any(self.member_clan(p.id) != ticket.clan for p in ticket.players):
-                self.core.cancel(ticket.id)
-        for key, session in list(self.sessions.items()):
-            if session.expires <= self.clock():
-                self.remove_session(key)
+        subjects = self.core._call('api_cleanup_subjects')
+        self.core._call('api_cleanup', clans={who: self.member_clan(who) for who in subjects})
+        self.core._call('session_cleanup')
+        self.session_events()
+
+    def session_events(self):
+        """Deliver native retirement effects to the temporary socket/party IO."""
+        if not self.core:
+            return
+        events = self.core._call('session_events')
+        for event in events:
+            qos = getattr(self, 'search_qos', None)
+            if qos:
+                qos.discard(event['player'],generation=event['generation'])
+            parties = getattr(self.directory, 'parties', None)
+            if parties:
+                parties.session_lost(event['player'])
+        gatherings = getattr(self, 'gatherings', None)
+        if events and gatherings:
+            gatherings.cleanup()
 
     def remove_session(self, key):
-        session = self.sessions.pop(key, None)
-        if session:
-            self.failures.pop(session.player, None)
-            qos = getattr(self, "search_qos", None)
-            if qos:
-                qos.discard(session.player)
-            ticket = self.ticket(session.player)
-            if ticket:
-                self.core.cancel(ticket.id)
-            gatherings = getattr(self, "gatherings", None)
-            if gatherings:
-                gatherings.cleanup()
-            self.requests = {k: v for k, v in self.requests.items() if k[0] != session.player}
-            parties = getattr(self.directory, "parties", None)
-            if parties: parties.session_lost(session.player)
+        self.core._call('session_revoke', key=key)
+        self.session_events()
 
     def session(self, request):
         self.enabled()
         self.cleanup()
-        header = request.headers.get("Authorization", "")
-        require(header.startswith("Bearer ") and len(header) <= 256, "Matchmaking session required", 401)
-        key = hashlib.sha256(header[7:].encode()).hexdigest()
-        value = self.sessions.get(key)
-        require(value is not None, "Matchmaking session expired; reconnect", 401)
-        value.seen = self.clock()
-        return key, value
+        row = self.core._call('session_auth', header=request.headers.get('Authorization', ''))
+        return row['key'], self.sessions.project(row)
 
     async def create_session(self, request):
         self.enabled()
         body = await self.directory.body(request)
-        fields(body, ("screen_name", "maps", "compatibility"), ("language", "local_players", "renew_session", "appearance"))
-        primary_appearance=profile_appearance(body["appearance"]) if "appearance" in body else None
-        name, compatibility = text(body["screen_name"]), text(body["compatibility"])
-        require(not compatibility.startswith("halo2-native-queue-") or compatibility in
-                ("halo2-native-queue-v7", *NATIVE_GATHERING),
-                "Update Halo 2 before using ONLINE matchmaking", 409)
-        require(compatibility not in NATIVE_GATHERING or "language" in body,
-                "Native title language required", 400)
-        language = integer(body.get("language", 0), 0, 8)
-        try:
-            name_units = name.encode("utf-16-le")
-        except UnicodeError:
-            raise Problem(400, "Screen name contains invalid Unicode") from None
-        require(len(name_units) <= 62, "Screen name must fit 31 UTF-16 characters")
-        require(type(body["maps"]) is list and 1 <= len(body["maps"]) <= 256, "Invalid map capabilities")
-        maps = frozenset(text(value) for value in body["maps"])
-        require(len(maps) == len(body["maps"]), "Duplicate map capability")
-        provider, subject = await self.directory.owner(request)
-        locals_verified = await verify_local_players(self.directory, body, (provider, subject))
+        plan = value('session_body', body=body)
+        owner = tuple(value('session_verified_identity', owner=await self.directory.owner(request)))
+        locals_verified = await verify_local_players(self.directory, plan)
+        # All provider proofs complete before persistent identity IO. No await
+        # separates the Rust preflight, canonical identity IO and admission.
         self.cleanup()
         db = self.directory.store.db
-        verified_owners = [(provider, subject)] + [owner for _, owner, _ in locals_verified if owner]
-        # Replacing this primary connection is allowed; taking another PC's
-        # independently authenticated seat is not.
-        existing_primary = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", (provider, subject)).fetchone()
-        renewal = None
-        if "renew_session" in body:
-            renewal_token = text(body["renew_session"], maximum=128)
-            renewal = self.sessions.get(hashlib.sha256(renewal_token.encode()).hexdigest())
-            require(renewal is not None and renewal.expires > self.clock(),
-                    "Matchmaking session expired; reconnect", 401)
-            require(existing_primary is not None and renewal.player == existing_primary[0],
-                    "Matchmaking session belongs to another account", 403)
-        for owner in verified_owners:
-            existing = db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", owner).fetchone()
-            if existing:
-                require(not any(s.player != (existing_primary[0] if existing_primary else None)
-                    and any(p.player == existing[0] for p in s.seats()) for s in self.sessions.values()),
-                    "A Discord account is already seated on another PC", 409)
-                transport = getattr(self, "transport", None)
-                require(transport is None or not any(r.active_member(existing[0]) and
-                    r.owners[existing[0]] != (existing_primary[0] if existing_primary else None)
-                    and not r.closed and r.phase != "postgame" for r in transport.rooms.values()),
-                    "This Discord account is already playing on another PC", 409)
-                if owner != (provider, subject):
-                    require(self.directory.parties.party(existing[0]) is None,
-                            "Leave this player's separate party before adding their local profile", 409)
-        player = resolve_player(db, (provider, subject), name, request.get(VERIFIED_DISCORD_USERNAME, ""))
-        local_seats = [(resolve_player(db, owner, local_name, username) if owner else None, local_name)
-                       for local_name, owner, username in locals_verified]
-        local_appearances=tuple(profile_appearance(row["appearance"]) if "appearance" in row else None
-                                for row in body.get("local_players",()))
-        # A fresh external primary grant and every signed-in local grant have
-        # been checked above. Only an unchanged physical connection renews;
-        # guest IDs, queue clocks and the party's consent remain its own.
-        if (renewal is not None and renewal.screen_name == name and renewal.maps == maps
-                and renewal.compatibility == compatibility and renewal.language == language
-                and len(renewal.seats()) == 1 + len(local_seats)
-                and all(old.screen_name == local_name and old.guest == (identity is None)
-                        and (old.guest or old.player == identity)
-                        for old, (identity, local_name) in zip(renewal.seats()[1:], local_seats))):
-            renewal.expires, renewal.seen = self.clock() + 900, self.clock()
-            # Cosmetics are physical-session profile inputs, not a new identity
-            # or party revision. A verified renewal keeps all guest IDs and
-            # the existing ticket while updating the exact current profiles.
-            renewal.appearance=primary_appearance
-            renewal.local_players=tuple(LocalPlayer(old.player,old.screen_name,old.guest,raw)
-                for old,raw in zip(renewal.seats(),(primary_appearance,*local_appearances)))
-            return web.json_response({"token": renewal_token, "expires_in": 900}, status=201)
-        seats = (LocalPlayer(player, name,appearance=primary_appearance),) + tuple(
-            LocalPlayer(identity or guest_id(),local_name,identity is None,raw)
-            for (identity,local_name),raw in zip(local_seats,local_appearances))
-        for key, old in list(self.sessions.items()):
-            if old.player == player:
-                self.remove_session(key)
-        require(len(self.sessions) < 1000, "Session capacity reached", 503)
-        token = secrets.token_urlsafe(32)
-        self.sessions[hashlib.sha256(token.encode()).hexdigest()] = Session(player, name, maps, compatibility,
-                                                                        self.clock() + 900, self.clock(), language, seats, primary_appearance)
-        return web.json_response({"token": token, "expires_in": 900}, status=201)
+        owners = [owner] + [local_owner for _, local_owner, _ in locals_verified]
+        identities = []
+        parties = getattr(self.directory, 'parties', None)
+        for account in owners:
+            if account is None:
+                identities.append(None)
+                continue
+            row = db.execute('SELECT player FROM player_identities WHERE provider=? AND subject=?', account).fetchone()
+            player = row[0] if row else None
+            identities.append(dict(owner=account, player=player,
+                separate_party=bool(player and parties and parties.party(player))))
+        transport = getattr(self, 'transport', None)
+        rooms = [dict(closed=room.closed, phase=room.phase, owners=room.owners, active=tuple(room.tokens))
+                 for room in transport.rooms.values()] if transport else []
+        operands = dict(body=body, identities=identities, rooms=rooms)
+        self.core._call('session_check', **operands)
+        resolved = [resolve_player(db, owner, plan['screen_name'], request.get(VERIFIED_DISCORD_USERNAME, ''))]
+        resolved.extend(resolve_player(db, account, name, username) if account else None
+                        for name, account, username in locals_verified)
+        admitted = self.core._call('session_register', resolved=resolved, **operands)
+        self.sessions.project(admitted['session'])
+        self.session_events()
+        return web.json_response(admitted['response'], status=201)
 
     async def delete_session(self, request):
         key, _ = self.session(request)
@@ -283,16 +154,8 @@ class MatchmakingApi:
         return web.json_response({"state": "signed_out"})
 
     def rank(self, player, playlist):
-        entry = next(e for e in self.entries if e.policy.id == playlist)
-        if entry.policy.clan_match:
-            clan = self.member_clan(player)
-            return display_level(self.clan_rank(clan, entry)) if clan else None
-        if entry.rank_configuration:
-            return display_level(self.skills.snapshot(player, playlist, entry.rank_configuration).raw)
-        db = self.directory.store.db
-        with db:
-            db.execute("INSERT OR IGNORE INTO playlist_ranks VALUES(?,?,1)", (player, playlist))
-            return db.execute("SELECT rank FROM playlist_ranks WHERE player=? AND playlist=?", (player, playlist)).fetchone()[0]
+        return database(self.directory.store.db, 'public_rank', source=self.core._handle,
+                        playlist=playlist, player=player, clan=self.member_clan(player))
 
     def member_clan(self, player):
         member = self.directory.clans.member(player)
@@ -304,12 +167,7 @@ class MatchmakingApi:
         return self.clan_skills.snapshot(clan, entry.policy.id, entry.rank_configuration).raw
 
     def common_clan(self, players, policy):
-        rule = policy.clan_match
-        require(rule.minimum <= len(players) <= rule.maximum,
-                f"This clan playlist requires {rule.minimum}–{rule.maximum} players in one party", 409)
-        clans = {self.member_clan(player) for player in players}
-        require(len(clans) == 1 and None not in clans, "Every party member must belong to the same accepted clan", 409)
-        return next(iter(clans))
+        return self.core.common_clan(policy.id, [dict(clan=self.member_clan(player)) for player in players])
 
     def clan_membership_changing(self, player):
         """Native authority policy: preserve admitted owners, revoke queued consent."""
@@ -320,233 +178,110 @@ class MatchmakingApi:
         if ticket and ticket.clan:
             self.directory.parties.changed(ticket.party_id)
 
-    def eligibility(self, session, policy):
-        entry = next(e for e in self.entries if e.policy.id == policy.id)
-        if entry.required_compatibility and not supports_compatibility(session.compatibility, entry.required_compatibility):
-            return False
-        if policy.candidate_selection and session.compatibility not in NATIVE_GATHERING:
-            return False
+    def eligibility_facts(self, session):
+        # Only authenticated directory/party/seat facts cross this boundary;
+        # Rust applies compatibility, maps, guest, size and clan policy.
         parties = getattr(self.directory, "parties", None)
         party = parties.party(session.player) if parties else None
         connections = [next((s for s in self.sessions.values() if s.player == r[0]), None)
                        for r in parties.members(party[0])] if party else [session]
-        if not same_continuity_protocol(connections):
-            return False
-        if entry.required_compatibility and any(not s or not supports_compatibility(s.compatibility, entry.required_compatibility) for s in connections):
-            return False
-        seats = [p for s in connections if s for p in s.seats()]
-        if len(seats) > policy.maximum_party or ((policy.ranked or policy.clan_match) and any(p.guest for p in seats)):
-            return False
-        if policy.clan_match:
-            players = [p.player for p in seats]
-            clans = {self.member_clan(player) for player in players}
-            if (not policy.clan_match.minimum <= len(players) <= policy.clan_match.maximum or
-                    len(clans) != 1 or None in clans):
-                return False
-        return (all(game.map in session.maps for game in policy.games)
-                and (party is None or len(parties.members(party[0])) <= policy.maximum_party))
+        facts = [None if s is None else dict(id=s.player, compatibility=s.compatibility,
+            maps=tuple(s.maps), seats=[dict(id=p.player, guest=p.guest, clan=self.member_clan(p.player))
+                                       for p in s.seats()]) for s in connections]
+        return facts
+
+    def eligibility(self, session, policy):
+        return self.core.eligible(policy.id, session.compatibility, self.eligibility_facts(session))
 
     async def playlists(self, request):
         _, session = self.session(request)
-        rows = []
-        for entry in self.entries:
-            policy = entry.policy
-            rows.append({"id": policy.id, "revision": policy.revision, "name": entry.name,
-                         "description": entry.description, "ranked": policy.ranked, "quickmatch": entry.quickmatch,
-                         "minimum_players": policy.minimum_players, "maximum_players": policy.maximum_players,
-                         "eligible": self.eligibility(session, policy),
-                         "level": self.rank(session.player, policy.id) if policy.ranked else None})
-            if policy.clan_match:
-                rows[-1]["clan_match"] = True
-        return web.json_response({"playlists": rows})
+        facts = self.eligibility_facts(session)
+        levels = {playlist: self.rank(session.player, playlist)
+                  for playlist in self.core._call('catalog_display_requests')}
+        return web.json_response(self.core._call('catalog_public_view',
+            compatibility=session.compatibility, connections=facts, levels=levels))
+
+    def room_facts(self):
+        transport = getattr(self, 'transport', None)
+        return [dict(closed=room.closed, phase=room.phase, owners=room.owners, active=tuple(room.tokens),
+                     playlist=room.proposal.playlist, clans=tuple(room.clans.values()))
+                for room in transport.rooms.values()] if transport else []
+
+    def queue_room_facts(self):
+        transport = getattr(self, 'transport', None)
+        return [dict(id=room.id, closed=room.closed, phase=room.phase,
+                     owners=room.owners, active=tuple(room.tokens))
+                for room in transport.rooms.values()] if transport else []
+
+    @staticmethod
+    def query_facts(request):
+        return {key: request.query.get(key) for key in request.query}
+
+    def queue_io(self, event, session):
+        """Execute only the bounded IO chosen by the native queue endpoint."""
+        frame = None
+        try:
+            while event['kind'] == 'io':
+                frame = event['frame']
+                if event['action'] == 'database':
+                    result = database(self.directory.store.db, 'snapshot_bank', operations=event['operations'])
+                elif event['action'] == 'gathering_advance':
+                    self.gatherings.advance(event['playlist'])
+                    result = None
+                else:
+                    require(event['action'] == 'room_start', 'Invalid Rust queue IO action', 503)
+                    room = self.transport.rooms.get(event['room'])
+                    result = room.start_countdown_ms() if room else None
+                event = self.core._call('api_resume', frame=frame, generation=session.generation,
+                    result=result, facts=self.directory.parties.matching_facts(session.player),
+                    match_rooms=self.room_facts(), rooms=self.queue_room_facts())
+            require(event['kind'] == 'done', 'Invalid Rust queue endpoint response', 503)
+            return event['value']
+        finally:
+            if frame is not None:
+                self.core._call('api_abort', frame=frame)
 
     async def enqueue(self, request):
-        # Parse before session lookup: no await is allowed between authorization
-        # and mutation, including when a simultaneous DELETE revokes a session.
-        body = await self.directory.body(request)
-        fields(body, ("playlist_id", "revision", "request_id"))
-        request_id = identifier(body["request_id"])
+        body = value('session_queue_body', body=await self.directory.body(request))
         _, session = self.session(request)
-        policy = self.core.playlists.get(text(body["playlist_id"]))
-        transport = getattr(self, "transport", None)
-        require(transport is None or not any(room.active_member(session.player) and not room.closed
-                and room.phase not in ("connecting", "postgame") for room in transport.rooms.values()),
-                "Leave the current ONLINE match before searching again", 409)
-        require(policy is not None, "Playlist not found", 404)
-        entry = next(e for e in self.entries if e.policy.id == policy.id)
-        require(not entry.required_compatibility or supports_compatibility(session.compatibility, entry.required_compatibility), "Update Halo 2 for this custom Slayer playlist", 409)
-        require(policy.revision == text(body["revision"]), "Playlist changed; refresh playlists", 409)
-        key = session.player, request_id
-        if key in self.requests:
-            ticket = self.core.tickets.get(self.requests[key])
-            require(ticket is not None and ticket.playlist == policy.id, "Queue request already completed or cancelled", 409)
-        else:
-            require(len([k for k in self.requests if k[0] == session.player]) < 64, "Reconnect before more queue requests", 429)
-            current = self.ticket(session.player)
-            require(current is None or current.playlist == policy.id, "Already searching another playlist", 409)
-            party_id, members = self.directory.parties.queue_members(session.player, policy)
-            for member in members:
-                self.failures.pop(member.player, None)
-            require(same_continuity_protocol(members), "Every party member must use the same host-continuation protocol", 409)
-            require(not policy.candidate_selection or all(member.compatibility in NATIVE_GATHERING for member in members),
-                    "Every party member must update Halo 2 for gathering matchmaking", 409)
-            require(not entry.required_compatibility or all(supports_compatibility(m.compatibility, entry.required_compatibility) for m in members), "Every party member must update Halo 2 for this playlist", 409)
-            clan, clan_rank = None, None
-            if policy.clan_match:
-                clan = self.common_clan([p.player for member in members for p in member.seats()], policy)
-                require(transport is None or not any(clan in room.clans.values() and room.proposal.playlist == policy.id
-                        and not room.closed and room.phase != "postgame" for room in transport.rooms.values()),
-                        "This clan is already playing this playlist", 409)
-                entry = next(e for e in self.entries if e.policy.id == policy.id)
-                clan_rank = self.clan_rank(clan, entry)
-            entry = next(e for e in self.entries if e.policy.id == policy.id)
-            players = []
-            for member in members:
-                require(not (policy.ranked or policy.clan_match) or not any(p.guest for p in member.seats()),
-                        "Guests may use casual playlists only", 409)
-                owner_raw = (self.skills.snapshot(member.player, policy.id, entry.rank_configuration).raw
-                             if entry.rank_configuration and not clan else None)
-                for seat in member.seats():
-                    raw = owner_raw if seat.guest else (self.skills.snapshot(seat.player, policy.id, entry.rank_configuration).raw
-                          if entry.rank_configuration and not clan else None)
-                    players.append(Player(seat.player, seat.screen_name,
-                                          display_level(raw) if raw is not None else
-                                          (1 if clan or seat.guest else self.rank(seat.player, policy.id)),
-                                          member.maps, raw, seat.guest, member.player))
-            ticket = self.core.enqueue(party_id, policy.id, session.compatibility,
-                                       tuple(players), clan=clan, clan_rank=clan_rank,
-                                       leader=session.player, language=session.language)
-            self.requests[key] = ticket.id
+        self.queue_io(self.core._call('api_enqueue_begin', generation=session.generation, body=body,
+            facts=self.directory.parties.matching_facts(session.player), match_rooms=self.room_facts()), session)
         return web.json_response(self.view(session), status=201)
 
     def advance(self, playlist):
-        # Grouping is useful before a native connectivity adapter exists. A
-        # hostless proposal cannot pass readiness or become a gameplay handoff.
         self.cleanup()
-        if self.core.playlists[playlist].candidate_selection:
-            self.gatherings.advance(playlist)
-        else:
-            self.core.advance(playlist, allow_pending_connectivity=True)
+        event = self.core._call('api_advance', playlist=playlist)
+        if event['gathering'] is not None:
+            self.gatherings.advance(event['gathering'])
 
-    def player_appearance(self,player):
-        # Identity is the authenticated admitted seat, never its display name.
-        for session in self.sessions.values():
-            for seat in session.seats():
-                if seat.player==player:
-                    if seat.appearance is not None:return seat.appearance.hex()
-                    if seat.guest:return None
-        row=self.directory.store.db.execute("SELECT appearance FROM player_customization WHERE player=?",(player,)).fetchone()
-        return bytes(row[0]).hex() if row else None
+    def player_appearance(self, player):
+        plan = self.core._call('api_player_appearance', player=player)
+        return database(self.directory.store.db, **plan['database']) if plan['database'] is not None else plan['value']
 
-    def view(self, session):
-        ticket = self.ticket(session.player)
-        if not ticket:
-            return {"state": "idle", "playlist_id": "", "queued_players": 0, "match": None}
-        self.advance(ticket.playlist)
-        status = self.core.status(ticket.id)
-        match = None
-        if "proposal_id" in status:
-            proposal = self.core.refresh_connections(status["proposal_id"])
-            status = self.core.status(ticket.id)
-            roster = {p.id: p.screen_name for key in proposal.tickets for p in self.core.tickets[key].players}
-            match = {"map": proposal.game.map, "variant": proposal.game.variant,
-                     "players": [{"name": roster[player], "team": team, "self": player == session.player}
-                                 for team, players in enumerate(proposal.teams) for player in players]}
-        count = sum(len(t.players) for t in self.core.tickets.values()
-                    if t.playlist == ticket.playlist and t.compatibility == ticket.compatibility)
-        return {"state": status["state"], "playlist_id": ticket.playlist, "queued_players": count, "match": match}
+    def view(self, session, *, query=None, heartbeat=False):
+        return self.queue_io(self.core._call('api_view_begin', generation=session.generation,
+            query={} if query is None else query, heartbeat=heartbeat, rooms=self.queue_room_facts()), session)
 
     async def poll(self, request):
         _, session = self.session(request)
-        ticket = self.ticket(session.player)
-        if ticket:
-            self.core.heartbeat(ticket.id)
-        result = self.view(session)
-        # Existing native v8 clients validate the exact four-field response.
-        # Updated UIs opt in without changing queue/gameplay compatibility.
-        if request.query.get("progress") == "1":
-            result["progress"] = (self.gatherings.progress(self.ticket(session.player),session.player)
-                                  if result["state"] == "searching" else None)
-        if request.query.get("start") == "1":
-            # The core ticket has already retired when readiness commits.
-            # Read this authenticated owner's live room instead of using the
-            # legacy ticket's idle state or starting a clock in the observer.
-            room = next((room for room in self.transport.rooms.values()
-                         if not room.closed and room.phase == "loading"
-                         and room.active_member(session.player)), None)
-            result["start_countdown_ms"] = room.start_countdown_ms() if room else None
-        if request.query.get("failure") == "1":
-            outcome = self.failures.get(session.player)
-            result["failure"] = outcome[1] if outcome and outcome[0] is session else None
-        ranks=request.query.get("ranks") == "1"
-        appearances=request.query.get("appearance") == "1"
-        if ranks or appearances:
-            # Only the admitted roster's public artwork level crosses this
-            # boundary. Raw XP/search skill and account identifiers stay private.
-            ticket = self.ticket(session.player)
-            if ticket:
-                group = None
-                if result["match"]:
-                    proposal = self.core.proposals[self.core.status(ticket.id)["proposal_id"]]
-                    group = tuple(self.core.tickets[key] for key in proposal.tickets)
-                    rows = result["match"]["players"]
-                    ordered = [player for team in proposal.teams for player in team]
-                elif result.get("progress"):
-                    gathering = next(g for g in self.gatherings.sessions.values() if ticket.id in g.tickets)
-                    group = self.gatherings.group(gathering)
-                    ordered = [p.id for t in group for p in t.players]
-                    rows = result["progress"]["roster"]
-                if group:
-                    levels = {p.id: (display_level(t.clan_rank) if t.clan_rank is not None else p.rank)
-                              if self.core.playlists[t.playlist].ranked and not p.guest else None
-                              for t in group for p in t.players}
-                    for row, player in zip(rows, ordered):
-                        if ranks:row["level"] = levels[player]
-                        if appearances:row["appearance"]=self.player_appearance(player)
-        return web.json_response(result)
+        return web.json_response(self.view(session, query=self.query_facts(request), heartbeat=True))
 
     async def cancel(self, request):
         _, session = self.session(request)
-        if request.query.get("cancel") == "1":
-            for room in self.transport.rooms.values():
-                if room.active_member(session.player) and room.phase in ("connecting", "loading"):
-                    room.local_cancellers.add(session.player)
-                    room.record_failure("party_cancelled", session.player)
-        self.failures.pop(session.player, None)
-        ticket = self.ticket(session.player)
-        if ticket:
-            self.core.cancel(ticket.id)
-        self.gatherings.cleanup()
-        return web.json_response({"state": "idle", "playlist_id": "", "queued_players": 0, "match": None})
+        result = self.core._call('api_cancel', generation=session.generation,
+            query=self.query_facts(request), rooms=self.queue_room_facts())
+        return web.json_response(result)
 
     async def content_failure(self, request):
         body = await self.directory.body(request)
-        fields(body, ("match_id", "kind"))
         _, session = self.session(request)
-        require(body["kind"] == "missing_content", "Invalid match failure")
-        room = self.transport.rooms.get(text(body["match_id"]))
-        if room is None:
-            recent = self.content_failure_rooms.get(body["match_id"])
-            require(recent is not None and recent[0].get(session.player) is session, "Match admission required", 403)
-            outcome = self.failures.get(session.player)
-            require(outcome is not None and outcome[0] is session and self.ticket(session.player) is None,
-                    "Match content rejection is no longer current", 409)
-            owners, parties, _ = recent
-            for player, admitted in owners.items():
-                current = self.failures.get(player)
-                if current and current[0] is admitted:
-                    self.failures[player] = (admitted, "missing_content" if player in parties[session.player] else "search_failed")
-            return web.json_response({"accepted": True})
-        require(room is not None and room.active_member(session.player), "Match admission required", 403)
-        # A just-rejected native launch may already have closed its socket.
-        # Never allow an older room to overwrite a newer search's outcome.
-        latest = next((r for r in reversed(tuple(self.transport.rooms.values()))
-                       if r.active_member(session.player)), None)
-        require(latest is room and room.phase in ("connecting", "loading") and self.ticket(session.player) is None,
-                "Match content rejection is no longer current", 409)
-        room.record_failure("missing_content", session.player)
-        await room.close("A party member is missing required content.")
-        return web.json_response({"accepted": True})
+        effect = self.core._call('api_content_failure', generation=session.generation,
+            body=body, rooms=self.queue_room_facts())
+        if effect['close'] is not None:
+            room = self.transport.rooms.get(effect['close'])
+            if room:
+                await room.close(effect['reason'])
+        return web.json_response(effect['response'])
 
     def routes(self):
         return [web.post("/v1/matchmaking/session", self.create_session),

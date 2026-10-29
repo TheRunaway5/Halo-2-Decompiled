@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import json
+import sqlite3
 import struct
 import unittest
 import uuid
@@ -104,20 +105,32 @@ class CarnageHistoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((row["screen_name"],row["screen_name_at_match"]),("New Pilot","Same Name"))
 
     async def test_detail_failure_rolls_back_summary_and_all_history_rows(self):
-        _, descriptors, _, _, _ = await self.pair()
+        _, descriptors, sockets, queues, _ = await self.pair()
+        for socket in sockets:
+            await socket.send_json({'loaded':'1234567890abcdef:000001c'})
+        for queue in queues:
+            self.assertEqual((await asyncio.wait_for(queue.get(),2))['phase'],'running')
         room = self.api.transport.rooms[descriptors[0]["id"]]
-        room.result = bytes(self.report(descriptors))
-        room.result_digest = hashlib.sha256(room.result).hexdigest()
-        room.confirmations = dict.fromkeys(room.tokens, room.result_digest)
-        capture = self.api.results.history.capture
-        def fail_after_details(room):
-            capture(room)
-            raise Problem(500, "Injected history storage failure")
-        self.api.results.history.capture = fail_after_details
-        with self.assertRaises(Problem):
-            self.api.results.commit(room)
+        raw = self.report(descriptors)
+        raw[0x13] = raw[0x68] = 1
+        for slot, (_, _, team) in enumerate(room.players):
+            raw[0x370+slot*0x94+0x88] = team
+            raw[0xcb0+team*0x18] = 1
+        self.api.results.submit(room, room.players[room.host][0], raw.hex())
+        for owner in room.tokens:
+            self.api.results.confirm(room, owner, hashlib.sha256(raw).hexdigest())
         db = self.api.directory.store.db
-        for table in ("match_results", "match_result_players", "carnage_reports", "history_players",
+        with db:
+            db.execute("""CREATE TRIGGER injected_history_failure BEFORE INSERT ON carnage_player_summaries
+                       BEGIN SELECT RAISE(ABORT, 'injected history storage failure'); END""")
+        before_xp = list(db.execute('SELECT * FROM playlist_skill ORDER BY player'))
+        before_outbox = list(db.execute('SELECT * FROM eos_profile_outbox ORDER BY player'))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.api.results.commit(room)
+        self.assertEqual(list(db.execute('SELECT * FROM playlist_skill ORDER BY player')), before_xp)
+        self.assertEqual(list(db.execute('SELECT * FROM eos_profile_outbox ORDER BY player')), before_outbox)
+        for table in ("match_results", "match_result_players", "match_result_admission", "match_result_skill",
+                      "match_result_clan_skill", "carnage_reports", "history_players",
                       "carnage_players", "carnage_player_summaries", "carnage_general_stats", "carnage_medals", "carnage_weapon_stats"):
             self.assertEqual(db.execute("SELECT count(*) FROM "+table).fetchone()[0], 0, table)
 

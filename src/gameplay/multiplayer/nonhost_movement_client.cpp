@@ -149,6 +149,14 @@ void NonHostMovementClient::present(MultiplayerState &shown, std::span<const uns
     // the newest received endpoint has resumed ordinary prediction.
     if (const auto position = eligible(shown.players.at(slots[view])) ? presented(view, tick_fraction) : std::nullopt) {
       auto &player = shown.players.at(slots[view]);
+      if(player.source_player_camera &&
+          (player.position.x!=position->x || player.position.y!=position->y || player.position.z!=position->z)) {
+        // Preserve245060/CD4A0/E18D0's measured eye-to-body displacement.
+        // Prediction translates this same source body; leaving its completed
+        // eye at the accepted host root makes the local legs chase the view.
+        const auto delta=*position-player.position;
+        player.source_player_camera->position=player.source_player_camera->position+delta;
+      }
       player.position = *position;
       player.velocity = views_[view].predictor->predicted().body.velocity;
     }

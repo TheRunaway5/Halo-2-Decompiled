@@ -1,0 +1,408 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_ROOM_SETUP_VALIDATION_V1",
+  "updated_utc": "2026-10-28T22:05:50.065657+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "room_setup_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust admitted room setup/readiness/QoS/host/clock/loading-running policy over trusted authenticated network IO. Original predicates/timer are independently replayed; host scoring and transport remain declared native. Full original caller/platform, remaining room/world/social/IO, native played/delivered and outlier-client acceptance remain open.",
+  "reproduced_gap": {
+    "trigger": "Both authenticated loaders report identical data while the source start clock still has5000ms remaining.",
+    "before": "Service entered running immediately.",
+    "after": "Service remains loading at5000ms and enters running only after source zero and matching loaded data.",
+    "failing_report": "room-setup-red-report.json",
+    "failing_log": "room-setup-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Immutable admitted seat/physical-owner/team/protocol setup context; capability independent of later account retirement",
+    "Bounded three-sample RTT history, direct peer report shape/ownership/ranges and read-only data projections",
+    "Physical peer-bank construction and original connected-team/eligibility leaves without invented Live authentication/policy flags",
+    "Explicitly native relay/direct scoring and physical reciprocal loss/upload/RTT host ranking with no unmeasured downgrade",
+    "Original zero sentinel, wrapping/signed countdown arithmetic and readiness clock reset at the native service boundary",
+    "Readiness acknowledgement and one-time loading/running setup grants, loader signature agreement and authoritative zero gate"
+  ],
+  "original_execution": {
+    "timer_report": "room-setup-original-start-timer.json",
+    "timer_controls": 528,
+    "timer_edge_controls": 512,
+    "timer_block_invocations": 1572,
+    "timer_distinct_instructions": 52,
+    "readiness_report": "room-setup-original-readiness.json",
+    "readiness_predicates": 12,
+    "policy_reads": 4,
+    "policy_producer_consumer_controls": 4,
+    "caller_routes": 10,
+    "constructor_control": true,
+    "readiness_distinct_instructions": 498,
+    "all_executed_instruction_bytes_verified": true,
+    "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "timer_command": [
+      "python3",
+      "-B",
+      "tools/run_test.py",
+      "--scratch-root",
+      ".local/test-scratch/room-setup-port",
+      "--",
+      ".tools/python/bin/python",
+      "-B",
+      "tools/oracle_matchmaking_start_tu15.py",
+      "--fixture",
+      "tests/fixtures/tu15_matchmaking_start_original.json",
+      "--report-output",
+      "build/test-results/matchmaking-room-setup-original-20261028/start-timer.json"
+    ],
+    "readiness_command": [
+      "python3",
+      "-B",
+      "tools/run_test.py",
+      "--scratch-root",
+      ".local/test-scratch/room-setup-port",
+      "--",
+      ".tools/python/bin/python",
+      "-B",
+      "tools/oracle_matchmaking_readiness_tu15.py",
+      "--report-output",
+      "build/test-results/matchmaking-room-setup-original-20261028/readiness.json"
+    ]
+  },
+  "checks": [
+    "Actual early-loaded HTTP red/green at a controlled5000ms and10000ms clock",
+    "Separate full ten-second real-service-clock HTTP wait; loading remains pending before zero",
+    "All512 original timer edge outputs and retained original readiness outputs match Rust",
+    "Reciprocal relay score/physical direct upload ranking, missing measured-column no-downgrade and malformed/foreign measurement guards",
+    "Readiness-loss clock restart, one-time ticket/acknowledgement/loading/running publication and absent restore path",
+    "Read-only samples/direct reports/loaded data/start clock and retained setup after separate auth-session retirement",
+    "Legacy/direct/EOS/couch/clan/result/continuity and all prior original numerical cohorts pass"
+  ],
+  "evidence_limits": {
+    "original": "Synthetic executable operands; the initial host-leave/platform transaction, full normal start owner, original network publication/mode-change callees and authentic Live policy/service inputs remain outside these controls.",
+    "modern": "Relay/direct QoS units, scoring, upload/loss ordering, loader signature validation, timer-reset/waiting adaptation and transport timeouts remain explicitly native service policy.",
+    "timing": "One real-service-clock HTTP test uses the full ten-second interval. Component gameplay/result helpers advance trusted clocks to source zero explicitly. Neither is native played/original-hardware proof.",
+    "client_domain": "Existing C++ parser/display still accepts ordinary0..10000ms. Its unused elapsed helper/unsigned sentinel test does not qualify the full source domain; signed/wrapping outlier producer outputs are Rust numerical evidence only.",
+    "remaining": "High-level review/postgame, migration/departure/socket/bearer/effect dispatch, actual host/world continuity, search QoS sensors, party/social/clan CRUD, crash/distributed coordination and selected/deployed/native played acceptance remain open."
+  },
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 70,
+    "backend_tests": 467,
+    "backend_seconds": 116.672,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "e7ceed86cc944acc38d41ae9d63fc8166cdd07711707e3df1fc3255a829e14dd",
+      "bytes": 2567216,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 242,
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "report": "room-setup-full-report.json",
+    "manifest": "room-setup-full-source-manifest.json",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 48,
+    "backend_tests": 174,
+    "backend_seconds": 52.21,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-yzc_0c5x/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "eb6da093c13cea289698903eff2bf2783f9823b1b57edf3685f27204e124a90d",
+      "bytes": 2543352,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 242,
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "report": "room-setup-production-report.json",
+    "manifest": "room-setup-production-source-manifest.json",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-yzc_0c5x",
+    "scratch_removed": true
+  },
+  "cmake_component": {
+    "passed": true,
+    "report": "room-setup-cmake-report.json",
+    "identity": "room-setup-cmake-build-identity.json",
+    "archive_sha256": "25ec57ba6f0f939b45502c55adc2ee53acc4a81ae259373c2ac5a3744176b802",
+    "worker_sha256": "56d1763c21296f1957f41531c1e7290ac085e41e3845ddaf9bb091461e8d5a77",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-j6nfjg4l",
+    "scratch_removed": true,
+    "scope": "Current Rust static bridge/helper component build; not a frozen native renderer/gameplay/delivery cohort."
+  },
+  "full_scope_preservation": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "gates": 12,
+    "all_gap_exit_criteria_preserved": true,
+    "complete_acceptance_gates_preserved": true,
+    "algorithm_index_preserved": true,
+    "all_full_gaps_and_gates_open": true
+  },
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "65742d5ae5ca051c09ffb46b120effd7543174155eab279eaa28bb6700fa160b",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "a6a8db0c26b5fa10636c0161f62aa6a14f20c44537aaf3689b21bf2e99ed3c65",
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "a0db431044da158ed46fba2d8b8df686f5863691a827f4fe8c88fcd0f8051b21",
+    "rust/online_protocol/src/lib.rs": "4c295b42b839bc07fe07c95ea0a28b456fff90446650bbbfef791d8e2a421eaf",
+    "rust/online_protocol/tests/matchmaking_room_setup.rs": "0336658f13e4ba763490c22b1d4b65bab3ba6b0bafb1de66cdbd2f1e7a77a2c0",
+    "multiplayer/master_server/match_transport.py": "15ceec0ffa52fb9e137a3f1cad55f18b60216ed6e6ddbf833f96a162145702af",
+    "multiplayer/master_server/tests/test_room_setup_owner_native.py": "7cb4cbd80f395e462ab6f2d768881b208c743ef8ec9fb1468073409d735ba01a",
+    "multiplayer/master_server/tests/test_match_transport.py": "aafe53a4521566d292e8b51381ab6b40eabb68229777dd5eb803368d8cf3762d",
+    "multiplayer/master_server/tests/test_direct_peer_http.py": "32da4e435cd70a6bf0e2df3cf14ec8faece24c2d9da9361cb1b54193cb0b69c0",
+    "tools/oracle_matchmaking_start_tu15.py": "065d79f351d501e25bb9cec77154bed510fd251ee836b8c3ad95068ac2ce4f82",
+    "tools/oracle_matchmaking_readiness_tu15.py": "5d252f39860b5b3a601350026c3dcab31b6ae903aecad9cfeba507dde7ce9b16",
+    "tools/test_master_server.py": "74f25fd3b18a81bb87245687f20745c370d8811b2c17598f397f7d137a137643",
+    "tests/fixtures/tu15_matchmaking_start_original.json": "2580f93b33c2701f23e06e7455ca46df0edde5f2c5fc942fa2176b2c7294fc61",
+    "tests/fixtures/tu15_matchmaking_readiness_original.json": "99141226b35e3349530a7491ad9bf425006c0a05b05b8db21f0b21d41d28ea85",
+    "rust/online_protocol/Cargo.lock": "c89281b09a6fab9364260eb440e65e1a7e73876b2771dbe9a4bd6ca8fd19b1e4",
+    "rust/online_security_ffi/Cargo.lock": "12b3ed9a6b0afc4e46b0ef8119819c74648ace877451011435a6814c56226fee",
+    "rust/online_protocol_bridge/Cargo.lock": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd"
+  },
+  "retained_required_reference": {
+    "path": "tests/fixtures/tu15_matchmaking_start_original.json",
+    "bytes": 61441,
+    "sha256": "2580f93b33c2701f23e06e7455ca46df0edde5f2c5fc942fa2176b2c7294fc61"
+  },
+  "retained_small_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-red-report.json",
+      "bytes": 1497,
+      "sha256": "c513fc82cf01cf99c0cfad4342db9b2ecb4ac2d00f337f126f4c8def7c96f83e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-red-source-manifest.json",
+      "bytes": 30199,
+      "sha256": "fd837b4a2199ea09032695453ecf6fab3bd2eeae781beabea58f4a7d1a44dafe"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-red-step-0.log",
+      "bytes": 1432,
+      "sha256": "0a244cfa5d7983a0d56c02ec6084c484820214bcdb2bdefa49ceebb9ee1556f6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-red-step-1.log",
+      "bytes": 1413,
+      "sha256": "6c263d8d97ab6ce20497615cd2028755fbac2e977652eff58137bf095643b804"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-first-report.json",
+      "bytes": 1496,
+      "sha256": "f9fa0698f1d323bd75a8465de6907471d7d5ef52a917a62dc5ee8d92389be06e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-first-source-manifest.json",
+      "bytes": 30573,
+      "sha256": "e18191f6f12ee9691be1e1a639545caeb0c55ede75036df26f7f06db9588761c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-first-step-0.log",
+      "bytes": 1432,
+      "sha256": "3d3b07211a1a286594a029eda903ed8408c2d084e1e040826950c699d1d36ef6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-first-step-1.log",
+      "bytes": 98,
+      "sha256": "203da42ef62aae56ebd1d12648988166db5dc713a82af24d7bb09f888b521f10"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-integration-report.json",
+      "bytes": 1874,
+      "sha256": "a24b7c7a8b14a330925aef5f1484c9139842d9f60516f69f1805c256dfc629d7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-integration-source-manifest.json",
+      "bytes": 30573,
+      "sha256": "81ff10c47cb9b5a586b7af8668f17af9c913a31a414a58d5247f21c1bb4c1caa"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-integration-step-0.log",
+      "bytes": 1432,
+      "sha256": "bfa813b53c39519fe0d580c12e12ffc875d3bf7391049f34709963f041a7402c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-integration-step-1.log",
+      "bytes": 2472,
+      "sha256": "2ab8748b75e53abf85fc391a77d54760a183a2af764325a5dfdcd04fa3ed5cfa"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-native-report.json",
+      "bytes": 2019,
+      "sha256": "311ab329749b1956bac08652dbbd1e5beded00f55e1012092c9e6d0928db4786"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-native-source-manifest.json",
+      "bytes": 30701,
+      "sha256": "86cce2fdc4f379dabcf0e4ea60abb0947cca85b3261ba7e0bb45f0506f683a7a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-native-step-0.log",
+      "bytes": 2778,
+      "sha256": "97ef52c3f3272d09bddef8d6da2a8503ff868338645011daf7dae1b0310dd698"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-native-step-1.log",
+      "bytes": 1432,
+      "sha256": "680ebf5a477a4fe274ad1b81c392fc5a6e7e9e6777c5ef55b79727e4ccff6e84"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-native-step-2.log",
+      "bytes": 1346,
+      "sha256": "04ba08f6e9d004ba3c6527cbc560caea366e376448d1bfa8b3e092d15e675094"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-full-report.json",
+      "bytes": 2716,
+      "sha256": "7ab736d3f97bb943b978bd91450aee3bc21979c3114bd71cf04c6d3ddf4e6157"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-full-source-manifest.json",
+      "bytes": 30701,
+      "sha256": "d50f0e4b871ce88f4987514ecf72fa5ef824d76e78e532efea52d3d83cb16dd3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-full-step-0.log",
+      "bytes": 11121,
+      "sha256": "cbdbd9017eb3a37f769acd0238c86d02f791c8a07a00b9004f23194665d9e090"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-full-step-1.log",
+      "bytes": 1432,
+      "sha256": "4ed0f7498783934ace6224c7933f0a1de6c85b8d39f39f5cdd2045970af68c7a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-full-step-2.log",
+      "bytes": 28170,
+      "sha256": "ae3114648e7800287caf21473b3e204d78818a7acb92f084cbdc02e3ae301a03"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-production-report.json",
+      "bytes": 4556,
+      "sha256": "a002ca8ce9fda2be999f26c6f7128587c3b63f2a43abe2cb1a818bf842a9ee49"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-production-source-manifest.json",
+      "bytes": 30701,
+      "sha256": "f06b00e697bac0d47daddca5d90b9e7bb7b35a548a45b9c5b894e0eb012b01b4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-production-step-0.log",
+      "bytes": 7624,
+      "sha256": "05330141f6d63f3d002b7534ee3eb7ee50b153a862b4ed958fc5053fdd279f9d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-production-step-1.log",
+      "bytes": 1432,
+      "sha256": "294575e74b1cd6e8793de80dde0e5ad782d895be616f3fec26b8c936ec2cdfdb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-production-step-2.log",
+      "bytes": 7850,
+      "sha256": "3d140025ed5bffa11447da8c13b2dd6be13d138e15bedeb06b9c9816977a9fa1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-original-start-timer.json",
+      "bytes": 100191,
+      "sha256": "5eb3c4d827222a9e7ba5d4c59919a95aa8a8709c56753ec8c35136560140c619"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-original-readiness.json",
+      "bytes": 21506,
+      "sha256": "64ef2ccc0a5922d2297a5c2f08bef47dcd8334d1f8515c035b3576e55a8e72ee"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-cmake-report.json",
+      "bytes": 2500,
+      "sha256": "33d19e35618917fdd3747a821f0ee4a77a592aa8c3c3963e9797f17ceba657cb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-cmake-configure.log",
+      "bytes": 4638,
+      "sha256": "8e669b89943a1ba8735aa23c6419a571cf4b00cdcba2e6969dc611b14c451a67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-cmake-build.log",
+      "bytes": 6784,
+      "sha256": "c7f00f67aeebeb343a294663f1c65e7df91d519b0fda4a6c4ddee3df331459dd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-cmake-tests.log",
+      "bytes": 300,
+      "sha256": "57fa162f600f4c49a0f9e966f3e2d73f485fe1786ec7a66e6bd84c0f81f87e85"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-cmake-build-identity.json",
+      "bytes": 1868,
+      "sha256": "be8e15455ae4644eac07a38675681f114e833c35c19aa149218c8317f992a9ad"
+    }
+  ],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-ig8z07w1",
+      "removed": true,
+      "report": "room-setup-red-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-33cuqugc",
+      "removed": true,
+      "report": "room-setup-first-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-f2v74xd2",
+      "removed": true,
+      "report": "room-setup-integration-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-ewz6qi81",
+      "removed": true,
+      "report": "room-setup-native-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos",
+      "removed": true,
+      "report": "room-setup-full-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-yzc_0c5x",
+      "removed": true,
+      "report": "room-setup-production-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-jkingm1h",
+      "removed": true,
+      "report": "room-setup-original-start-timer.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-n726_7sr",
+      "removed": true,
+      "report": "room-setup-original-readiness.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-j6nfjg4l",
+      "removed": true,
+      "report": "room-setup-cmake-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-3i3jcwxh",
+      "removed": true,
+      "report": "room-setup-validation.json report helper"
+    }
+  ],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-3i3jcwxh",
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false,
+  "report_helper_scratch_removed": true,
+  "owned_scratch_root_empty": true
+}

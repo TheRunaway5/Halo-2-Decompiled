@@ -190,7 +190,7 @@ bool configure_h2ek_original_loading_presentation(DesktopSession& desktop,
   if(pcm.size()!=65408 || digest(std::as_bytes(std::span(pcm)))!="b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d")
     throw FormatError("H2EK loading ambience decoder differs");
   auto voice=std::make_shared<NativeVistaLoadingAudio>(tone);
-  desktop.configure_loading(assets);
+  desktop.configure_loading(assets,true);
   desktop.set_loading_audio_services({[voice,mute]{
       voice->begin(mute);
       const auto state=voice->snapshot();
@@ -232,7 +232,7 @@ void configure_mcc_loading_presentation(DesktopSession& desktop,const Cache& men
   if(pcm.size()!=65408 || digest(std::as_bytes(std::span(pcm)))!="b740acf4ce447da6583b4f6c7fd6696fabbb249664a53fb780b18c4dd58cd73d")
     throw FormatError("Original loading ambience decoder differs");
   auto voice=std::make_shared<NativeVistaLoadingAudio>(tone);
-  desktop.configure_loading(assets);
+  desktop.configure_loading(assets,true);
   desktop.set_loading_audio_services({[voice,mute]{
       voice->begin(mute);
       const auto state=voice->snapshot();
@@ -270,7 +270,7 @@ void configure_mcc_loading_presentation_v3(DesktopSession& desktop,const Cache& 
   },[voice](std::uint32_t gain){voice->gain(gain);},[voice] {
     voice->end();std::cout<<"MCC V3 loading audio: stopped after graphics join\n";
   }};
-  desktop.configure_loading(assets);
+  desktop.configure_loading(assets,true);
   desktop.set_loading_audio_services(std::move(services));
   std::cout<<"MCC V3 loading: genuine PCM and reconstructed artwork admitted; authored loop/transition timing unqualified\n";
 }catch(const Json::exception& error) {

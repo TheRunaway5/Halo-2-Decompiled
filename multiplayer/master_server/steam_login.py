@@ -6,12 +6,13 @@ stay in private authentication storage; public rosters use chosen Halo names.
 import base64
 import hashlib
 import hmac
+import html
 import re
 import secrets
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qs
 
 from aiohttp import web
 from .protocol import fields, require, text
@@ -23,6 +24,8 @@ SELECT = NS + "/identifier_select"
 MAX_SUBJECT_SESSIONS = 4
 REFRESH_LIFETIME = 30 * 86400
 MAX_REMEMBERED_SESSIONS = 100_000
+MAX_PENDING_PER_SOURCE = 4
+PENDING_NEW_SOURCE_RESERVE = 128
 
 
 @dataclass
@@ -31,6 +34,10 @@ class Pending:
     expires: float
     status: str = "pending"
     identity: object = None
+    source: str = ""
+    confirmation: str = ""
+    browser_token: str = ""
+    attempts: int = 0
 
 
 class SteamLogin:
@@ -71,15 +78,22 @@ class SteamLogin:
 
     async def start(self, request):
         self.enabled()
-        self.directory.rate("steam-start:" + self.directory.source(request), 20)
+        source = self.directory.source(request)
+        self.directory.rate("steam-start:" + source, 20)
         body = await self.directory.body(request)
-        fields(body, ("challenge",))
+        fields(body, ("challenge", "confirmation"))
         challenge = text(body["challenge"], maximum=43)
         require(bool(re.fullmatch(r"[A-Za-z0-9_-]{43}", challenge)), "Invalid Steam login proof")
+        confirmation = text(body["confirmation"], maximum=43)
+        require(bool(re.fullmatch(r"[A-Za-z0-9_-]{43}", confirmation)), "Invalid confirmation proof")
         self.cleanup()
+        occupied = sum(p.source == source for p in self.pending.values())
+        require(occupied < MAX_PENDING_PER_SOURCE and
+                (not occupied or len(self.pending) < 1000 - PENDING_NEW_SOURCE_RESERVE),
+                "Too many pending Steam sign-ins from this source", 429)
         require(len(self.pending) < 1000, "Steam sign-in capacity reached", 503)
         state = secrets.token_urlsafe(32)
-        self.pending[state] = Pending(challenge, self.clock() + 300)
+        self.pending[state] = Pending(challenge, self.clock() + 300, source=source, confirmation=confirmation)
         url = OP + "?" + urlencode({
             "openid.ns": NS, "openid.mode": "checkid_setup",
             "openid.realm": self.directory.settings.public_url + "/",
@@ -161,10 +175,60 @@ class SteamLogin:
                         "Steam response replayed")
                 self.db.execute("INSERT INTO steam_login_nonces VALUES(?,?)", (nonce, int(self.clock()) + 600))
             pending.identity = VerifiedOwner("steam", subject, name)
-            pending.status = "complete"
+            pending.status = "awaiting_confirmation"
+            pending.browser_token = secrets.token_urlsafe(32)
         except BaseException:
             pending.status = "failed"
             raise
+        path = "/v1/auth/steam/confirm/" + state
+        response = web.Response(status=303, headers={"Location": path, "Cache-Control": "no-store",
+            "Referrer-Policy": "no-referrer"})
+        response.set_cookie("steam-confirm", pending.browser_token, path=path, max_age=300,
+                            secure=not self.directory.settings.public_url.startswith("http://"),
+                            httponly=True, samesite="Strict")
+        return response
+
+    async def confirm(self, request):
+        state = request.match_info["state"]
+        pending = self.pending.get(state)
+        require(pending and pending.expires > self.clock() and pending.status == "awaiting_confirmation" and
+                hmac.compare_digest(request.cookies.get("steam-confirm", ""), pending.browser_token),
+                "Steam confirmation expired", 401)
+        headers = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer",
+                   "Content-Security-Policy": "default-src 'none'; form-action 'self'; frame-ancestors 'none'",
+                   "X-Content-Type-Options": "nosniff"}
+        if request.method == "GET":
+            name = html.escape(pending.identity.username)
+            return web.Response(text=f'<!doctype html><meta charset="utf-8"><title>Confirm Halo sign-in</title>'
+                f'<h1>Sign in as {name}</h1><p>Enter the confirmation code shown in your Halo 2 game. '
+                'Only continue if you started sign-in in that game. Never use a code sent by someone else.</p>'
+                '<form method="post"><label>Game confirmation code <input name="code" maxlength="12" '
+                'required autocomplete="off"></label><button>Authorize this game</button></form>',
+                content_type="text/html", headers=headers)
+        require(request.headers.get("Origin") == self.directory.settings.public_url,
+                "Different confirmation origin", 403)
+        raw = await request.content.read(1025)
+        require(len(raw) <= 1024, "Confirmation too large")
+        try:
+            values = parse_qs(raw.decode("ascii"), strict_parsing=True)
+        except (ValueError, UnicodeError):
+            require(False, "Invalid confirmation")
+        require(set(values) == {"code"} and len(values["code"]) == 1, "Invalid confirmation")
+        pending.attempts += 1
+        code = values["code"][0].strip().upper()
+        digest = base64.urlsafe_b64encode(hashlib.sha256(code.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
+        accepted = bool(re.fullmatch(r"[0-9A-F]{12}", code)) and hmac.compare_digest(digest, pending.confirmation)
+        if not accepted:
+            if pending.attempts >= 5:
+                pending.status = "failed"
+                pending.browser_token = ""
+            require(False, "Game confirmation code rejected", 401)
+        # Both the immutable verified identity and client-generated code belong
+        # to this single pending object; polling alone can never authorize it.
+        require(self.pending.get(state) is pending and pending.status == "awaiting_confirmation" and
+                pending.expires > self.clock(), "Steam confirmation expired", 401)
+        pending.status = "complete"
+        pending.browser_token = ""
         return self.finish_redirect()
 
     @staticmethod
@@ -356,6 +420,8 @@ class SteamLogin:
         return [web.post("/v1/auth/steam/start", self.start),
                 web.get("/v1/auth/steam/complete", self.complete_page),
                 web.get("/v1/auth/steam/callback/{state}", self.callback),
+                web.get("/v1/auth/steam/confirm/{state}", self.confirm),
+                web.post("/v1/auth/steam/confirm/{state}", self.confirm),
                 web.post("/v1/auth/steam/poll", self.poll),
                 web.post("/v1/auth/steam/resume", self.resume),
                 web.post("/v1/auth/steam/forget", self.forget),

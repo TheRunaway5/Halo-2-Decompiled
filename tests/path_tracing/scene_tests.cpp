@@ -1,5 +1,6 @@
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
+#include "halo2/path_tracing/emitter_sampling.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -98,6 +99,37 @@ void same_payload(const pt::Scene& actual,const pt::Scene& expected) {
         std::sort(result.begin(),result.end());return result;
     };
     require(emitter_ordinals(actual)==emitter_ordinals(expected),"Refit retained stale emitter indices");
+}
+void native_needle_self_shadow() {
+    // Actual prepared Coagulation blood_cliffs: expanded triangle7813,
+    // admitted triangle6031. The old scalar triple-product intersection
+    // returned three positive hits for these outward shadow origins even
+    // though their double-precision plane distances are all positive.
+    const std::array<Vec3,3> positions{{
+        {27.594724655151367f,-116.19940948486328f,12.582358360290527f},
+        {28.29535675048828f,-120.41195678710938f,18.776273727416992f},
+        {28.295442581176758f,-120.41218566894531f,18.776273727416992f}}};
+    const std::array<Vec3,4> origins{{
+        {28.062026977539062f,-119.00779724121094f,16.711681365966797f},
+        {27.980289459228516f,-118.51634979248047f,15.989065170288086f},
+        {27.98025894165039f,-118.51626586914062f,15.98906421661377f},
+        {27.980297088623047f,-118.51634216308594f,15.989039421081543f}}};
+    const Vec3 direction{.879587709903717f,.0769539475440979f,.4694715738296509f};
+    const Vec3 reverse{-direction.x,-direction.y,-direction.z};
+    const Material material=white();std::vector<Vertex> vertices;
+    for(auto position:positions){Vertex v;v.position=position;v.color={1,1,1};v.normal={0,0,1};vertices.push_back(v);}
+    for(bool reversed:{false,true}) {
+        if(reversed)std::swap(vertices[1],vertices[2]);
+        const auto scene=pt::build_scene(vertices,std::span(&material,1));pt::Hit hit;
+        require(scene.triangles.size()==1,"Actual native needle triangle was discarded");
+        for(const auto origin:origins) {
+            require(!pt::intersect(scene,origin,direction,1,hit),"Outward source sun ray falsely hit its native needle triangle");
+            require(pt::intersect(scene,origin,reverse,1,hit) && hit.distance>1.e-4f && hit.distance<.001f,
+                "Precision correction discarded a real inward hit on the same native needle triangle");
+            require(!pt::intersect(scene,origin,reverse,hit.distance*.5f,hit),
+                "Native needle intersection ignored the finite ray segment");
+        }
+    }
 }
 void same_hits(const pt::Scene& actual,const pt::Scene& expected,std::span<const Vertex> vertices) {
     for(std::size_t first=0;first<vertices.size();first+=3) {
@@ -207,10 +239,13 @@ void refit_regressions() {
 }
 }
 int main()try {
+    native_needle_self_shadow();
     std::vector<Material> materials{white()};std::vector<Vertex> vertices;
     for(unsigned n=0;n<24;++n)triangle(vertices,float(n)*2,0);
     auto scene=pt::build_scene(vertices,materials);pt::Hit hit;
     require(scene.nodes.size()>1,"Scene did not build an acceleration hierarchy");
+    require(!pt::intersect(scene,{.2f,.2f,0},{0,0,std::numeric_limits<float>::denorm_min()},3,hit),
+        "Subnormal coplanar ray produced a nonfinite triangle hit");
     for(unsigned n=0;n<24;++n) {
         require(pt::intersect(scene,{float(n)*2+.2f,.2f,2},{0,0,-1},3,hit) && hit.distance==2,
             "BVH traversal lost a source triangle after partitioning");
@@ -251,8 +286,16 @@ int main()try {
         "Visor lost its independent roughness/tinted reflection response");
     materials={white(),white()};materials[1].forward_vertex=2;materials[1].forward_diffuse={.5f,.1f,.02f,1};
     scene=pt::build_scene(vertices,materials);
-    require(scene.emissive_count==1 && scene.pixels.size()==scene.texture_texel_count+1,
+    const auto emitter_groups=scene.texture_texel_count+scene.emissive_count;
+    require(scene.emissive_count==1 && scene.pixels.size()==emitter_groups+pt::emitter_group_header_words+pt::emitter_group_words,
         "Authored emissive geometry was omitted from direct-light sampling");
+    require(scene.pixels[emitter_groups]==pt::emitter_group_magic && scene.pixels[emitter_groups+1]==1 &&
+        std::bit_cast<float>(scene.pixels[emitter_groups+2])>0,
+        "Emissive continuation lost its bounded source-group proposal metadata");
+    const auto group=emitter_groups+pt::emitter_group_header_words;
+    require(scene.pixels[group]==1 && scene.pixels[group+1]==1 &&
+        std::bit_cast<float>(scene.pixels[group+3])>0 && std::bit_cast<float>(scene.pixels[group+7])>0,
+        "Emitter proposal changed its source material, triangle count or finite geometric bounds");
     auto uniform=scene.uniform();require(uniform.environment[0]==0 && uniform.environment[1]==0 && uniform.environment[2]==0,
         "Scene added an invented sky light");
     require(std::bit_cast<std::uint32_t>(uniform.environment[3])==scene.texture_texel_count,

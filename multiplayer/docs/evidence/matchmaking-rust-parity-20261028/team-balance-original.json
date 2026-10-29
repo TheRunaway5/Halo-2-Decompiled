@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "cases": 256,
+  "whole_original_calls": 768,
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "mapping": [
+    {
+      "retail": "0x91fc0",
+      "tu15": "0x9e1a0",
+      "retail_instructions": 181,
+      "tu15_instructions": 181,
+      "shape_and_internal_branches_equal": true
+    },
+    {
+      "retail": "0x91e30",
+      "tu15": "0x9e010",
+      "retail_instructions": 70,
+      "tu15_instructions": 70,
+      "shape_and_internal_branches_equal": true
+    },
+    {
+      "retail": "0x91f00",
+      "tu15": "0x9e0e0",
+      "retail_instructions": 68,
+      "tu15_instructions": 68,
+      "shape_and_internal_branches_equal": true
+    }
+  ],
+  "original_instructions": 1111,
+  "tool_sha256": "b34b449391278c48790f1ba80e1142c94c90e28d6810f48ce2a6ef8df17f42be",
+  "native_source_sha256": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+  "fixture_sha256": "6cdaba98f2c3be912f83e48c1c35550db5ccd1ebe8e051b594fd318dbd97f45f",
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "scope": "Complete unchanged TU1.5 balancing calls versus the compiled native kernel.\n\nSynthetic party/rating arrays are explicit inputs. All original callees execute;\nno instructions, allocators, optimizer calls or services are substituted.\nRun through tools/run_test.py; compiler outputs live only in its owned scratch.\n",
+  "scratch": "/tmp/halo2-test-loi5__bh",
+  "scratch_retained": false
+}

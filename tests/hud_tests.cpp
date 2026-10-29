@@ -13,6 +13,35 @@ void check(bool b, const char *message) {
   if (!b)
     throw std::runtime_error(message);
 }
+Vec2 source_anchor(unsigned anchor, const UiRect &safe) {
+  switch (anchor) {
+  case 0: return {safe.right, safe.top};
+  case 1: return {safe.left, safe.top};
+  case 2: return {safe.left, safe.bottom};
+  case 3: return {safe.right, safe.bottom};
+  default: return {std::floor((safe.left + safe.right) * .5f),
+                   std::floor((safe.top + safe.bottom) * .5f)};
+  }
+}
+Vec2 presented_anchor(unsigned anchor, const HudViewport &reference,
+                      unsigned width, unsigned height) {
+  const float scale=std::min(width/640.f,height/480.f);
+  const auto &outer=reference.outer;
+  const UiRect corners{outer.top*height/480+8*scale,
+      outer.left*width/640+8*scale,outer.bottom*height/480-8*scale,
+      outer.right*width/640-8*scale};
+  if(anchor<4)return source_anchor(anchor,corners);
+  // The aiming anchor keeps the old adapted safe-area midpoint, including
+  // its original floor before converting back to physical pixels.
+  const float left=(width-640*scale)/2,top=(height-480*scale)/2;
+  const auto &safe=reference.safe;
+  const float l=(outer.left*width/640-left)/scale+safe.left-outer.left,
+      r=(outer.right*width/640-left)/scale+safe.right-outer.right,
+      t=(outer.top*height/480-top)/scale+safe.top-outer.top,
+      b=(outer.bottom*height/480-top)/scale+safe.bottom-outer.bottom;
+  return {std::floor((l+r)*.5f)*scale+left,
+          std::floor((t+b)*.5f)*scale+top};
+}
 void layout() {
   check(hud_screen_mode(640, 480) == 0 && hud_screen_mode(640, 240) == 1 &&
             hud_screen_mode(320, 240) == 2,
@@ -173,9 +202,8 @@ void retail_positions(const HudContent &content,
     MultiplayerHud hud(std::move(isolated), directory / "fonts", mesh, 4);
     // The source oracle supplies winning input zero. Leave the per-view
     // animation at its initialized zero when comparing geometry.
-    // Standard records compare the final native vertices directly with
-    // untouched Xbox 22AFF1 output. Widescreen records exercise its grid,
-    // anchor-specific slot and original sprite geometry on native 16:9.
+    // Keep the untouched Xbox geometry fixtures and translate their anchors
+    // to the desktop corner presentation, retaining source sprite geometry.
     const unsigned width = wide ? 1280 : 640, height = wide ? 720 : 480;
     const auto vertices =
         hud.draw(state, view, view, players, width, height, 25, 14400);
@@ -185,47 +213,14 @@ void retail_positions(const HudContent &content,
       continue;
     }
     check(!vertices.empty(), "Original HUD position record produced no sprite");
-    if (wide) {
-      const auto viewport = hud_viewport(players, view, true);
-      constexpr float scale = 1.5f;
-      const auto &safe = viewport.safe;
-      auto shifted_anchor = [&](unsigned anchor) -> Vec2 {
-        switch (anchor) {
-        case 0:
-          return {safe.right, safe.top};
-        case 1:
-          return {safe.left, safe.top};
-        case 2:
-          return {safe.left, safe.bottom};
-        case 3:
-          return {safe.right, safe.bottom};
-        default:
-          return {std::floor((safe.left + safe.right) * .5f),
-                  std::floor((safe.top + safe.bottom) * .5f)};
-        }
-      };
-      const auto original = shifted_anchor(widget->anchor);
-      // Native wide output extends the cell horizontally; corner margins
-      // and sprite dimensions keep their original uniform pixel scale.
-      const auto &outer = viewport.outer;
-      float x;
-      if (widget->anchor == 0 || widget->anchor == 3)
-        x = outer.right * 2 - (outer.right - safe.right) * scale;
-      else if (widget->anchor == 1 || widget->anchor == 2)
-        x = outer.left * 2 + (safe.left - outer.left) * scale;
-      else {
-        const float l = outer.left * 2 + (safe.left - outer.left) * scale,
-                    r = outer.right * 2 - (outer.right - safe.right) * scale;
-        // Match the original integer-center operation in the adapted HUD
-        // coordinate system, before the full-surface vertex transform.
-        x = std::floor(((l + r) * .5f - 160) / scale) * scale + 160;
-      }
-      const float dx = x - original.x * scale;
-      expected.left = expected.left * scale + dx;
-      expected.right = expected.right * scale + dx;
-      expected.top *= scale;
-      expected.bottom *= scale;
-    }
+    const auto viewport=hud_viewport(players,view,wide);
+    const auto original=source_anchor(widget->anchor,viewport.safe),
+        presented=presented_anchor(widget->anchor,viewport,width,height);
+    const float scale=std::min(width/640.f,height/480.f);
+    expected.left=presented.x+(expected.left-original.x)*scale;
+    expected.right=presented.x+(expected.right-original.x)*scale;
+    expected.top=presented.y+(expected.top-original.y)*scale;
+    expected.bottom=presented.y+(expected.bottom-original.y)*scale;
     UiRect actual{vertices[0].position.y * height / 480,
                   vertices[0].position.x * width / 640,
                   vertices[0].position.y * height / 480,
@@ -256,7 +251,7 @@ void retail_positions(const HudContent &content,
         "Incomplete original-instruction HUD position coverage");
   std::cout
       << "Verified " << checked
-      << " original-instruction bitmap positions across both display modes\n";
+      << " original-instruction bitmap shapes at desktop corner anchors across both display modes\n";
 }
 void retail_counter_positions(const HudContent &content,
                               const std::filesystem::path &directory,
@@ -311,12 +306,9 @@ void retail_counter_positions(const HudContent &content,
           const bool ammo = std::string_view(name) == "bullets_right";
           const float local_width =
               (outer.right - outer.left) * width / 640 / scale;
-          const float anchor_x =
-              ammo ? local_width - (outer.right - viewport.safe.right)
-                   : viewport.safe.left - outer.left;
+          const float anchor_x = ammo ? local_width-8 : 8;
           const float local_x = anchor_x + widget->offset[viewport.mode].x,
-                      local_y = viewport.safe.top - outer.top +
-                                widget->offset[viewport.mode].y;
+                      local_y = 8 + widget->offset[viewport.mode].y;
           float expected_left =
                     outer.left * width / 640 +
                     (std::trunc(local_x - (ammo ? 13 : 4)) + 1) * scale,
@@ -328,12 +320,16 @@ void retail_counter_positions(const HudContent &content,
                 original.at(std::tuple{wide, players, view, std::string(name)});
             glyph_width = bounds.right - bounds.left;
             glyph_height = bounds.bottom - bounds.top;
-            // 4:3 output compares the actual glyph vertices directly with
-            // original 22AA16/13EA60/13F0E0/13F700 instruction output.
-            if (!wide) {
-              expected_left = bounds.left;
-              expected_top = bounds.top;
-            }
+            // Preserve the source glyph bearing, while applying source text
+            // truncation relative to the newly anchored player cell.
+            const float old_x=(ammo?viewport.safe.right:viewport.safe.left)-outer.left+
+                    widget->offset[viewport.mode].x-(ammo?13:4),
+                old_y=viewport.safe.top-outer.top+widget->offset[viewport.mode].y;
+            const float bearing_x=bounds.left-outer.left-std::trunc(old_x),
+                bearing_y=bounds.top-outer.top-std::trunc(old_y);
+            expected_left=outer.left*width/640+
+                (std::trunc(local_x-(ammo?13:4))+bearing_x)*scale;
+            expected_top=outer.top*height/480+(std::trunc(local_y)+bearing_y)*scale;
           }
           const auto vertices =
               hud.draw(state, view, view, players, width, height, 25, 14400);
@@ -360,6 +356,76 @@ void retail_counter_positions(const HudContent &content,
         }
   }
   std::cout << "Verified 60 viewport-local authored counter placements\n";
+}
+void corner_presentation(const HudContent &content,
+                         const std::filesystem::path &directory,
+                         const std::filesystem::path &fixture) {
+  using Key=std::tuple<bool,unsigned,unsigned,std::string>;
+  std::map<Key,UiRect> source;
+  std::ifstream records(fixture);
+  check(bool(records),"Missing original HUD corner geometry fixture");
+  std::string line;
+  while(std::getline(records,line)) {
+    if(line.empty() || line[0]=='#' || line.starts_with("widescreen\t"))continue;
+    std::istringstream row(line);unsigned wide,players,view;int sequence;std::string name;UiRect bounds;
+    check(bool(row>>wide>>players>>view>>name>>sequence>>bounds.left>>bounds.top>>bounds.right>>bounds.bottom),
+          "Invalid original HUD corner geometry fixture");
+    if(sequence>=0)source.emplace(Key{bool(wide),players,view,name},bounds);
+  }
+  MultiplayerState state;
+  for(auto &p:state.players) {
+    p.connected=true;p.loaded=60;p.reserve=120;p.health=p.shield=1;
+  }
+  constexpr std::array names{"weapon_background_right","no_grenades",
+      "motion_tracker_background","player_arrow","crosshair"};
+  constexpr std::array dimensions{std::array{640u,480u},std::array{1280u,720u},
+      std::array{2560u,720u},std::array{3840u,2160u},std::array{853u,479u}};
+  unsigned cases=0;
+  for(unsigned anchor=0;anchor<names.size();++anchor) {
+    const auto widget=std::find_if(content.widgets.begin(),content.widgets.end(),
+        [&](const auto &w){return !w.is_text && w.name==names[anchor];});
+    check(widget!=content.widgets.end() && widget->anchor==anchor,
+          "Authored HUD corner/aiming widget is missing or changed anchor");
+    auto isolated=content;isolated.widgets={*widget};
+    Mesh mesh;MultiplayerHud hud(std::move(isolated),directory/"fonts",mesh,4);
+    for(const auto size:dimensions)for(const auto split:{TwoPlayerSplit::Horizontal,TwoPlayerSplit::Vertical})
+      for(unsigned players=1;players<=4;++players)for(unsigned view=0;view<players;++view) {
+        const auto width=size[0],height=size[1];
+        const bool wide=hud_layout_widescreen(players,std::uint64_t(width)*3>std::uint64_t(height)*4,split);
+        const auto reference=hud_viewport(players,view,wide,split);
+        const auto original=source_anchor(anchor,reference.safe),
+            presented=presented_anchor(anchor,reference,width,height);
+        const float scale=std::min(width/640.f,height/480.f);
+        auto expected=source.at(Key{wide,players,view,names[anchor]});
+        expected.left=presented.x+(expected.left-original.x)*scale;
+        expected.right=presented.x+(expected.right-original.x)*scale;
+        expected.top=presented.y+(expected.top-original.y)*scale;
+        expected.bottom=presented.y+(expected.bottom-original.y)*scale;
+        const auto vertices=hud.draw(state,view,view,players,width,height,25,14400,{},split);
+        check(vertices.size()==6,"Corner/aiming fixture did not produce its single authored quad");
+        UiRect actual{1e6f,1e6f,-1e6f,-1e6f};
+        for(const auto &v:vertices) {
+          const float x=v.position.x*width/640,y=v.position.y*height/480;
+          actual.left=std::min(actual.left,x);actual.right=std::max(actual.right,x);
+          actual.top=std::min(actual.top,y);actual.bottom=std::max(actual.bottom,y);
+          check(x>=reference.outer.left*width/640-.001f && x<=reference.outer.right*width/640+.001f &&
+                y>=reference.outer.top*height/480-.001f && y<=reference.outer.bottom*height/480+.001f,
+                "A corner HUD widget escaped its player viewport");
+        }
+        if(std::abs(actual.left-expected.left)>.001f || std::abs(actual.right-expected.right)>.001f ||
+           std::abs(actual.top-expected.top)>.001f || std::abs(actual.bottom-expected.bottom)>.001f) {
+          std::ostringstream error;
+          error<<"Corner/aiming presentation mismatch widget="<<names[anchor]<<" players="<<players
+              <<" view="<<view<<" dimensions="<<width<<'x'<<height<<" split="<<unsigned(split)
+              <<" expected="<<expected.left<<','<<expected.top<<','<<expected.right<<','<<expected.bottom
+              <<" actual="<<actual.left<<','<<actual.top<<','<<actual.right<<','<<actual.bottom;
+          throw std::runtime_error(error.str());
+        }
+        ++cases;
+      }
+  }
+  check(cases==500,"Incomplete corner and unchanged aiming-anchor coverage");
+  std::cout<<cases<<" actual HUD corner/aiming quads verified across 1-4 players, both split preferences and SD/HD/ultrawide/4K/odd sizes\n";
 }
 void sampled_layout(const HudContent &content,const std::filesystem::path &fonts,
                     const std::filesystem::path &assets) {
@@ -466,6 +532,8 @@ void retail(const std::filesystem::path &directory,
         "HUD locale scoreboard parser token");
   if (!positions.empty())
     retail_positions(content, directory, positions);
+  if (!positions.empty())
+    corner_presentation(content,directory,positions);
   if (!positions.empty())
     retail_positions(cache.load_hud(level.player_representations.at(3).biped.datum,weapon),
                      directory,positions.parent_path()/"retail_elite_hud_positions.tsv",true);
@@ -641,7 +709,13 @@ int main(int argc, char **argv) {
   try {
     layout();
     shield_history();
-    if (argc > 1)
+    if (argc == 4 && std::string_view(argv[2]) == "--corners-only") {
+      const std::filesystem::path directory = argv[1];
+      Cache cache(directory / "lockout.map");
+      const auto level = cache.load_content(0, true);
+      corner_presentation(cache.load_hud(level.player.datum, cache.slayer_starting_weapon()),
+                          directory, argv[3]);
+    } else if (argc > 1)
       retail(argv[1], argc > 2 ? argv[2] : std::filesystem::path{},
              argc > 3 ? argv[3] : std::filesystem::path{},
              argc > 4 ? argv[4] : std::filesystem::path{});

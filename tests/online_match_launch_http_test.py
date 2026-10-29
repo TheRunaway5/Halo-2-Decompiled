@@ -137,8 +137,11 @@ async def main():
     parser.add_argument("mode",nargs="?",default="core")
     parser.add_argument("playlist",nargs="?",default="ranked")
     parser.add_argument("--mcc-root",type=Path)
+    parser.add_argument("--asset-root",type=Path,default=ROOT,
+                        help="Original read-only asset owner for a frozen native build")
     args=parser.parse_args()
     binary = str(args.binary.resolve())
+    asset_root=args.asset_root.resolve(strict=True)
     mode,playlist=args.mode,args.playlist
     ui_root=args.mcc_root
     if ui_root is None and os.environ.get("HALO2_ONLINE_FLOW_UI_ROOT"):
@@ -176,7 +179,7 @@ async def main():
             if major:
                 fixture["playlists"][0].update(team_size=8,minimum_players=12,maximum_players=16,
                     maximum_party=8,clan_match="major-retail-launch-2004")
-        if mode in ("team", "team-render", "party"):
+        if mode in ("team", "team-render", "team-render-departure", "party"):
             for row in fixture["playlists"]:
                 row["team_size"] = 2 if mode == "party" else 1
                 if mode == "party" or clan:
@@ -289,7 +292,7 @@ async def main():
                     env = os.environ | dict(HALO2_NATIVE_FIXTURE_BARRIER=str(Path(temp)/"native-barriers"), SDL_AUDIODRIVER="dummy", HTTP_PROXY="http://127.0.0.1:1", NO_PROXY="", no_proxy="")
                     if audio_capture and owner=='one':env.update(audio_env)
                     if ui_root is not None:env["HALO2_ONLINE_FLOW_UI_ROOT"]=str(ui_root)
-                    processes.append(await asyncio.create_subprocess_exec(binary, str(ROOT), str(client.make_url("/")).rstrip("/"),
+                    processes.append(await asyncio.create_subprocess_exec(binary, str(asset_root), str(client.make_url("/")).rstrip("/"),
                         owner, port(), str(output), mode, playlist, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env))
                 if audio_capture:audio_capture.watch_completion(processes)
                 results = await asyncio.wait_for(asyncio.gather(*(p.communicate() for p in processes)), 300 if mode=="party" else 180)
@@ -328,6 +331,10 @@ async def main():
                     print("PASS native preflight -> measured relay route -> retail query/countdown/selection -> retained gathering host")
                 assert all(room.closed for room in directory.match_transport.rooms.values())
                 db = directory.store.db
+                if mode in ("render-departure", "team-render-departure"):
+                    assert db.execute("SELECT count(*) FROM match_results").fetchone()[0] == 0
+                    print("PASS real native last-opponent GAME OVER and framebuffer; departed-owner consent prevents competitive history")
+                    return 0
                 if mode == "nonhost-loss":
                     assert db.execute("SELECT count(*) FROM match_results").fetchone()[0] == 0
                     print("PASS real native direct nonhost departure retained the running host; no unfinished report was committed")

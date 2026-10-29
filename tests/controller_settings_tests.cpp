@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
                 native.dual_wield == source(39) &&
                 native.switch_weapon == source(4));
           check(native.flashlight == source(6) &&
-                native.switch_grenade == source(3) &&
+                native.switch_grenade == (source(3) || (settings.buttons==0 && hardware==4)) &&
                 native.accept == source(19) && native.cancel == source(20));
           check(native.look_yaw == float(source(54)) - float(source(53)) &&
                 native.look_pitch == float(source(55)) - float(source(56)));

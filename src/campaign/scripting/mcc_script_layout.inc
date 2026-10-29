@@ -1,7 +1,7 @@
 // Generated from tools/mcc-script-layout.json.
 // MCC SHA256 de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946
 // Xbox TU1.5 SHA256 21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd
-constexpr std::array<Builtin,403> builtins{{
+constexpr std::array<Builtin,404> builtins{{
     {0,0,3,0,2,"begin",{}},
     {1,1,3,0,2,"begin_random",{}},
     {2,2,3,0,2,"if",{}},
@@ -187,6 +187,7 @@ constexpr std::array<Builtin,403> builtins{{
     {323,321,4,2,0,"ai_berserk",{19,5}},
     {327,325,7,1,0,"ai_fighting_count",{19}},
     {328,326,7,1,0,"ai_living_count",{19}},
+    {329,327,6,1,0,"ai_living_fraction",{19}},
     {330,328,6,1,0,"ai_strength",{19}},
     {331,329,7,1,0,"ai_swarm_count",{19}},
     {332,330,7,1,0,"ai_nonswarm_count",{19}},

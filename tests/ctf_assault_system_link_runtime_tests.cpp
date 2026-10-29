@@ -29,6 +29,7 @@ int main(int argc,char** argv)try {
   auto world=std::make_shared<MultiplayerPreparedWorld>(options);options.prepared_world=world;
   const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,world->network_starting_weapon_identity()),variant);
   std::promise<std::string> address;auto ready=address.get_future();std::exception_ptr client_error;std::shared_ptr<SystemLinkSession> peer;
+  std::promise<void> peer_completed;auto peer_done=peer_completed.get_future();
   std::jthread worker([&](std::stop_token stop){try {
     need(ready.wait_for(30s)==std::future_status::ready,"Runtime did not publish its real LAN host key");
     peer=std::make_shared<SystemLinkSession>(false);auto client=peer->enter_client(ready.get(),fingerprint,1,std::array<std::int8_t,1>{1},std::array<SourcePlayerConfiguration,1>{remote});
@@ -39,10 +40,10 @@ int main(int argc,char** argv)try {
       const auto ms=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-start).count();
       input[0].pickup=(ms/500)%2==0;input[0].pickup_milliseconds=unsigned(ms%500);
       client->send(input);client->receive();if(client->ready())peer->world_update(client->state());
-      if(peer->state() && peer->state()->phase==SystemLinkPhase::postgame){peer->retain({},std::move(client));return;}
+      if(peer->state() && peer->state()->phase==SystemLinkPhase::postgame){peer->retain({},std::move(client));peer_completed.set_value();return;}
       if(!client->error().empty())throw FormatError(client->error());std::this_thread::sleep_for(5ms);
     }
-  }catch(...){client_error=std::current_exception();}});
+  }catch(...){client_error=std::current_exception();}peer_completed.set_value();});
   options.session_lan_host_ready=[&](const auto& key){address.set_value(key);};
   // The normal runtime alone advances the match. These are declared approach
   // and goal position inputs, read from genuine registry/mapping owners.
@@ -69,7 +70,16 @@ int main(int argc,char** argv)try {
     if(found)source.set_object_position(match.player(1).source_current_object,position);
     return false;
   };
-  MultiplayerRuntimeOutcome outcome;const auto result=run_multiplayer(options,outcome);worker.request_stop();worker.join();if(client_error)std::rethrow_exception(client_error);
+  MultiplayerRuntimeOutcome outcome;const auto result=run_multiplayer(options,outcome);
+  // The host can retire before the peer receives its actual Postgame
+  // publication. Service the retained socket as the application frontend does;
+  // do not cancel the peer worker while it still owns a live client.
+  const auto confirmed=std::chrono::steady_clock::now()+5s;
+  while(peer_done.wait_for(0ms)!=std::future_status::ready) {
+    need(std::chrono::steady_clock::now()<confirmed,"Runtime peer did not receive retained Postgame publication");
+    session->pump();std::this_thread::sleep_for(2ms);
+  }
+  worker.request_stop();worker.join();if(client_error)std::rethrow_exception(client_error);
   need(result==0 && outcome.reason==MultiplayerExitReason::system_link_postgame && outcome.system_link_session==session && outcome.authoritative_banks && outcome.state && outcome.state->game_over_complete(),"Ordinary native runtime did not hand off completed System Link ownership");
   const std::weak_ptr<MultiplayerPreparedWorld> departed=world;options.prepared_world.reset();world.reset();need(departed.expired(),"Ordinary runtime handoff retained its native world");
   need(peer && peer->state()->phase==SystemLinkPhase::postgame,"Ordinary runtime peer lost its confirmed session");

@@ -30,9 +30,16 @@ void main() {
         }
         vec2 uv=(vec2(p)+0.5-view.rectangle.xy-view.jitter.xy)/view.rectangle.zw;
         vec4 world=view.inverseCurrent*vec4(uv*2.0-1.0,d,1.0);
+        if(d>=0.999999) {
+            // Sky has direction but no finite world position. Subtract the
+            // near point homogeneously so camera translation cannot move it,
+            // while the previous projection still supplies rotational motion.
+            vec4 nearWorld=view.inverseCurrent*vec4(uv*2.0-1.0,0.0,1.0);
+            world=vec4(world.xyz*nearWorld.w-nearWorld.xyz*world.w,0.0);
+        }
         vec4 old=view.previous*world;
         vec2 velocity=vec2(0);
-        if(view.planes.w==0.0 && old.w>0.0 && d<0.999999) {
+        if(view.planes.w==0.0 && old.w>0.0) {
             vec2 oldPixel=(old.xy/old.w*0.5+0.5)*view.rectangle.zw+view.rectangle.xy;
             velocity=oldPixel-(vec2(p)+0.5-view.jitter.xy);
         }

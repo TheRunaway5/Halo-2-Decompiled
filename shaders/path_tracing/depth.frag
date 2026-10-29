@@ -1,14 +1,22 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_control_flow_attributes : require
+// Match the shared vertex stage interface, including fields unused by this
+// depth/coverage role, so pipeline validation sees the complete producer ABI.
+layout(location=0) in vec3 traceWorld;
 layout(location=1) in vec2 traceTexcoord;
+layout(location=2) in vec3 traceWorldNormal;
 layout(location=3) flat in uint traceMaterialIndex;
 layout(location=4) in vec2 titleDepth;
 layout(location=5) flat in uint stippleLevel;
+layout(location=6) in vec3 traceTint;
 layout(location=8) flat in uint sourceDepthRaw;
+layout(location=9) in vec2 traceLightmapUV;
+layout(location=10) flat in uint traceLightmapIndex;
+layout(location=11) in vec3 traceVertexRadiance;
 // Exact existing material ABI. The cheap visibility phase needs no BVH,
 // emission evaluator, or ray transport calls.
-struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;};
+struct TraceMaterial {vec4 base,emission,response;uvec4 texture;vec4 transform;uvec4 colorGuide;};
 layout(set=1,binding=2,std430) readonly buffer TraceMaterials {TraceMaterial traceMaterials[];};
 layout(set=1,binding=4,std430) readonly buffer TracePixels {uint tracePixels[];};
 #include "source_alpha_test.glsl"

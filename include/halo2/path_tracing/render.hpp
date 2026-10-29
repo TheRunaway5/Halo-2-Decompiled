@@ -52,6 +52,10 @@ public:
     // pass before their ray-shaded phase. It uses a private D32 attachment and
     // never replaces the ordinary source D24S8 attachment.
     void prepare_visibility(VkExtent2D);
+    // The actual Vulkan viewport, including any temporal-upscaler offset.
+    // Repeated same-extent calls select the next world/foreground phase
+    // without changing descriptors or allocating resources while recording.
+    void prepare_visibility(VkExtent2D,const VkViewport& actual_viewport);
     void begin_visibility(VkCommandBuffer);
     void bind_visibility(VkCommandBuffer,VkDescriptorSet material,std::uint32_t dynamic_bank_offset,
                          std::span<const std::byte> camera,std::uint32_t material_index)const;

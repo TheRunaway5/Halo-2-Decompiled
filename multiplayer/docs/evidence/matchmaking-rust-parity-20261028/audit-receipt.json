@@ -1,0 +1,71 @@
+{
+  "schema": "H2_MATCHMAKING_PDF_GAP_AUDIT_V1",
+  "source_commit": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "reference_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+  "source_hashes": {
+    "multiplayer/master_server/matchmaking.py": "9e3613f268268c8b315a65f128dfff26c4e2e03fe6ad6ab76e6046eed94d0e0e",
+    "multiplayer/master_server/gathering_sessions.py": "b49983874231c05169bb5b31f2f74db169f7a8fd239554456575ff3685a6b0a1",
+    "multiplayer/master_server/team_balance.py": "457fcda6c34df231655606e2115e40f0bbfa3713383cd5953cbbd12b49130840",
+    "multiplayer/master_server/session_candidates.py": "b2ca6d355e27d1cdf1fdbfb637a8d19a16e10ac1089e16032c2fb2b8959d79d4",
+    "multiplayer/master_server/search_lifecycle.py": "666fba61d77fdfa37569f023215239e88951971013963ee233a839e91c26e646",
+    "multiplayer/master_server/playlist_skill.py": "1c71413fc9c51a0ecd9c176d94d415a80a2f6cd636e0568c9d493e058efa9819",
+    "multiplayer/master_server/clan_skill.py": "0bf9dec78264e9972fe7a4fa1a48045b904ec2d6aaebf45c0822dde94475fd86",
+    "multiplayer/master_server/match_results.py": "16337ff908da1ccb112661fdd2a0d8b43b98f1e6e700d36d5a2a547a29f73b94",
+    "multiplayer/master_server/matchmaking_http.py": "a9a8ed0cc0109101bfac9f8a6e0f14ebac7bf2173b6ce1dfd7936f5d6f62b420",
+    "multiplayer/master_server/match_transport.py": "9c48156ac985f80ade0a34dfcb1d1bcca994d42d2489e2fd006aaa3b06eee853",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "frontend-runtime-selection.json": "8657a8d8d144675cf706a461c03491b31201f349a6a5e380de0b49d4fa01810b",
+    "gameplay-runtime-selection.json": "f5e76f1d1897b3ea0b9dde09cf4e13c2b47bc0c427e6be97bd96625c5e48fda9"
+  },
+  "counterexample": {
+    "seed": 2,
+    "teams": [
+      [
+        24,
+        24,
+        20,
+        20
+      ],
+      [
+        22,
+        22,
+        22,
+        22
+      ]
+    ],
+    "cost": 24,
+    "route": "GatheringSessions.proposal -> Coordinator._teams"
+  },
+  "rust_kernel": {
+    "assignment": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1
+    ],
+    "teams": [
+      [
+        24,
+        22,
+        22,
+        20
+      ],
+      [
+        24,
+        22,
+        22,
+        20
+      ]
+    ],
+    "cost": 0,
+    "compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "scope": "Actual production gathering finalization with synthetic authenticated-seat inputs; compiled recovered Rust kernel comparison. No original XBE execution, live service, GPU, or full-match claim.",
+  "scratch": "/tmp/halo2-test-knzs1hkl",
+  "scratch_retained": false,
+  "production_code_changed": false
+}

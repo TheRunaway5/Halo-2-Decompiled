@@ -1,14 +1,9 @@
 #include "halo2/particle_renderer.hpp"
 #include "halo2/sampler.hpp"
 #include "halo2/texture.hpp"
-#include "halo2/vertex_program.hpp"
 #include "halo2/native_fragment_kernel.hpp"
+#include "halo2/particle_material_validation.hpp"
 #include <bit>
-#include "particle_program.hpp"
-#include "particle_directional_program.hpp"
-#include "particle_perpendicular_program.hpp"
-#include "particle_model_program.hpp"
-#include "particle_distortion_program.hpp"
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -37,12 +32,14 @@ struct ParticleRenderer::Impl {
   VkDescriptorSetLayout set_layout{};VkPipelineLayout layout{};VkBuffer corners{};VkDeviceMemory corner_memory{};
   std::array<VkShaderModule,8> shaders{};
   std::filesystem::path shader_directory;
+  bool mirror_clamp_enabled{};
   struct Buffer {VkBuffer handle{};VkDeviceMemory memory{};};
   struct Image {VkImage handle{};VkDeviceMemory memory{};VkImageView view{};VkSampler sampler{};};
   struct MaterialGpu {
     std::shared_ptr<const ParticleMaterial> source;
     std::array<Image,2> images;VkPipeline pipeline{};bool external23{};
     std::string fragment_kernel;
+    ParticleMaterialValidation validation;
   };
   struct MaterialUniform {
     std::array<std::uint32_t,60> program;std::array<std::uint32_t,4> alpha;
@@ -54,14 +51,19 @@ struct ParticleRenderer::Impl {
     bool scene_resolved{};mutable bool scene_recorded{},view_recorded{};bool view_prepared{},view_published{};
     mutable VkViewport viewport{};mutable VkRect2D scissor{};
     std::optional<ParticlePreparedViewBounds> required_view;
-    unsigned local_view{};bool foreground{},material_bindings_ready{};};
+    unsigned local_view{};bool foreground{},material_bindings_ready{},active{};};
   std::map<const ParticleMaterial*,MaterialGpu> materials;
+  struct FailedMaterial {std::shared_ptr<const ParticleMaterial> source;std::string diagnostic;};
+  std::map<const ParticleMaterial*,FailedMaterial> unavailable_materials;
   std::map<const ParticleModelDefinition*,ModelGpu> models;
   std::vector<DrawGpu> draws;VkDescriptorPool descriptors{};
+  std::vector<std::shared_ptr<const ParticleMaterial>> diagnosed_materials;
+  std::vector<std::string> resource_diagnostics;
+  bool diagnostic_limit_reported{};
   Buffer uniforms;void *uniform_data{};std::size_t draw_count{},material_offset{},depth_offset{},draw_stride{};
   mutable std::uint64_t view_revision{};
-  Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory)
-    :physical(p),device(d),queue(q),pass(rp),shader_directory(directory) {
+  Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory,bool mirror_clamp)
+    :physical(p),device(d),queue(q),pass(rp),shader_directory(directory),mirror_clamp_enabled(mirror_clamp) {
     try {
     VkPhysicalDeviceFeatures features{};vkGetPhysicalDeviceFeatures(physical,&features);
     if(!features.geometryShader || !features.shaderTessellationAndGeometryPointSize || !features.depthClamp)
@@ -116,19 +118,57 @@ struct ParticleRenderer::Impl {
     if(b.handle)vkDestroyBuffer(device,b.handle,nullptr);
     if(b.memory)vkFreeMemory(device,b.memory,nullptr);
   }
+  NativeSampler sampler(const ShaderTextureState& state)const {
+    if(!mirror_clamp_enabled && (state.address_u==5 || state.address_v==5 || state.address_w==5))
+      throw ParticleResourceError("Particle mirror-once addressing has no enabled sampler capability");
+    try {
+      auto result=native_sampler(state,properties.limits,false);
+      if(result.custom_border)throw ParticleResourceError("particle custom sampler border requires original device support");
+      return result;
+    }catch(const ParticleResourceError&){throw;}
+    catch(const FormatError& error){throw ParticleResourceError(error.what());}
+  }
+  void free_material(MaterialGpu& material) {
+    if(material.pipeline)vkDestroyPipeline(device,material.pipeline,nullptr);
+    for(auto image:material.images) {
+      if(image.sampler)vkDestroySampler(device,image.sampler,nullptr);
+      if(image.view)vkDestroyImageView(device,image.view,nullptr);
+      if(image.handle)vkDestroyImage(device,image.handle,nullptr);
+      if(image.memory)vkFreeMemory(device,image.memory,nullptr);
+    }
+    material.pipeline=VK_NULL_HANDLE;material.images={};
+  }
+  void diagnose(const std::shared_ptr<const ParticleMaterial>& source,std::string_view message) {
+    if(std::find(diagnosed_materials.begin(),diagnosed_materials.end(),source)!=diagnosed_materials.end())return;
+    constexpr std::size_t limit=64;
+    if(diagnosed_materials.size()>=limit) {
+      if(!diagnostic_limit_reported){resource_diagnostics.emplace_back("Additional unavailable particle materials omitted; diagnostic limit reached");diagnostic_limit_reported=true;}
+      return;
+    }
+    diagnosed_materials.push_back(source);
+    const auto owner=source?source->pass.name.substr(0,240):std::string("missing material owner");
+    resource_diagnostics.push_back(owner+": "+std::string(message.substr(0,512)));
+  }
+  void reject_material(const std::shared_ptr<const ParticleMaterial>& source,std::string_view message) {
+    // This material is immutable for its source lifetime. Live draws need not
+    // repeat failed uploads; strict program() remains an explicit repair retry.
+    unavailable_materials.try_emplace(source.get(),FailedMaterial{source,std::string(message.substr(0,512))});
+    diagnose(source,message);
+  }
   Image make_image(const Texture &input,const ShaderTextureState &state) {
+    auto native=sampler(state);
     const auto source=prepare_signed_texture(input,state.color_sign);
-    if((source.format!=11 && source.format!=native_rgba32f) || source.layers!=1 || source.depth || source.mips.empty())throw FormatError("particle upload requires original-decoded 2D mips");
-    if(state.color_key_op)throw FormatError("unsupported original particle color-key operation: "+std::to_string(state.color_key_op));
-    auto sampler=native_sampler(state,properties.limits,false);
-    if(sampler.custom_border)throw FormatError("particle custom sampler border requires original device support");
+    if((source.format!=11 && source.format!=native_rgba32f) || source.layers!=1 || source.depth || source.mips.empty())throw ParticleResourceError("particle upload requires original-decoded 2D mips");
+    if(state.color_key_op)throw ParticleResourceError("unsupported original particle color-key operation: "+std::to_string(state.color_key_op));
+    if(source.width>properties.limits.maxImageDimension2D || source.height>properties.limits.maxImageDimension2D)
+      throw ParticleResourceError("particle image exceeds native device dimensions");
     Image image;Buffer staging{};VkCommandBuffer command{};
     try {
     VkImageCreateInfo ci{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};ci.imageType=VK_IMAGE_TYPE_2D;
     ci.format=source.format==native_rgba32f?VK_FORMAT_R32G32B32A32_SFLOAT:VK_FORMAT_R8G8B8A8_UNORM;
     VkFormatProperties format_properties;vkGetPhysicalDeviceFormatProperties(physical,ci.format,&format_properties);
     const auto required=VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT|VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
-    if((format_properties.optimalTilingFeatures&required)!=required)throw FormatError("particle signed texture filtering unavailable");
+    if((format_properties.optimalTilingFeatures&required)!=required)throw ParticleResourceError("particle signed texture filtering unavailable");
     ci.extent={source.width,source.height,1};ci.mipLevels=source.mips.size();ci.arrayLayers=1;
     ci.samples=VK_SAMPLE_COUNT_1_BIT;ci.tiling=VK_IMAGE_TILING_OPTIMAL;ci.usage=VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_SAMPLED_BIT;
     check(vkCreateImage(device,&ci,nullptr,&image.handle));VkMemoryRequirements req;vkGetImageMemoryRequirements(device,image.handle,&req);
@@ -136,7 +176,7 @@ struct ParticleRenderer::Impl {
     check(vkAllocateMemory(device,&ai,nullptr,&image.memory));check(vkBindImageMemory(device,image.handle,image.memory,0));
     VkImageViewCreateInfo vi{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};vi.image=image.handle;vi.viewType=VK_IMAGE_VIEW_TYPE_2D;vi.format=ci.format;
     vi.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,ci.mipLevels,0,1};check(vkCreateImageView(device,&vi,nullptr,&image.view));
-    check(vkCreateSampler(device,&sampler.info,nullptr,&image.sampler));
+    check(vkCreateSampler(device,&native.info,nullptr,&image.sampler));
     staging=make_buffer(source.pixels.size(),VK_BUFFER_USAGE_TRANSFER_SRC_BIT,source.pixels.data());
     VkCommandBufferAllocateInfo ca{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};ca.commandPool=uploads;ca.level=VK_COMMAND_BUFFER_LEVEL_PRIMARY;ca.commandBufferCount=1;
     check(vkAllocateCommandBuffers(device,&ca,&command));
@@ -166,35 +206,25 @@ struct ParticleRenderer::Impl {
       throw;
     }
   }
-  VkPipeline make_pipeline(const MaterialPass &source,unsigned classification,bool distortion) {
-    const auto fragment_path=native_fragment_kernel_path("particle",source.program.words);
-    ForwardRasterState raster_state;bool blend=false;unsigned src=1,dst=0,equation=0x8006;
-    for(const auto &s:source.states)switch(s.index) {
-      case 57:raster_state.depth_function=s.value;break;case 59:blend=s.value!=0;break;
-      case 58:raster_state.alpha_function=s.value;break;
-      case 60:raster_state.alpha_test=s.value;break;case 61:raster_state.alpha_reference=s.value;break;
-      case 62:src=s.value;break;case 63:dst=s.value;break;case 64:raster_state.depth_write=s.value;break;
-      case 67:raster_state.color_write=s.value;break;case 74:equation=s.value;break;
-      case 143:raster_state.depth_enable=s.value;break;case 147:raster_state.cull=s.value;break;
-      // Source SDK state158 is line width. Both the geometry programs and
-      // model path rasterize filled triangles, so it has no raster effect.
-      case 158:break;
-      default:throw FormatError("unsupported original particle raster state "+std::to_string(s.index));
-    }
-    if(equation!=0x8006 || raster_state.depth_enable!=2 || raster_state.depth_function<0x200 || raster_state.depth_function>0x207 || raster_state.alpha_function<0x200 || raster_state.alpha_function>0x207)
-      throw FormatError("unsupported original particle blend/depth operation");
+  VkPipeline make_pipeline(const ParticleMaterialValidation& validated) {
+    const auto& raster_state=validated.raster;
+    const auto classification=validated.classification;const bool distortion=validated.distortion;
     VkPipelineShaderStageCreateInfo stages[3]{};
     const VkShaderStageFlagBits flags[]{VK_SHADER_STAGE_VERTEX_BIT,VK_SHADER_STAGE_GEOMETRY_BIT,VK_SHADER_STAGE_FRAGMENT_BIT};
     for(unsigned n=0;n<3;++n)stages[n]={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,flags[n],shaders[n],"main",nullptr};
-    std::ifstream fragment_file(shader_directory/std::string(fragment_path),std::ios::binary|std::ios::ate);
-    if(!fragment_file || fragment_file.tellg()<=0 || fragment_file.tellg()%4)
-      throw FormatError("compiled native particle fragment kernel missing");
+    std::ifstream fragment_file(shader_directory/std::string(validated.fragment_kernel),std::ios::binary|std::ios::ate);
+    if(!fragment_file || fragment_file.tellg()<20 || fragment_file.tellg()>16*1024*1024 || fragment_file.tellg()%4)
+      throw ParticleResourceError("compiled native particle fragment kernel missing");
     std::vector<std::uint32_t> fragment_words(std::size_t(fragment_file.tellg())/4);fragment_file.seekg(0);
     if(!fragment_file.read(reinterpret_cast<char*>(fragment_words.data()),fragment_words.size()*4))
-      throw FormatError("compiled native particle fragment kernel truncated");
+      throw ParticleResourceError("compiled native particle fragment kernel truncated");
+    if(fragment_words[0]!=0x07230203u || !fragment_words[3] || fragment_words[4])
+      throw ParticleResourceError("compiled native particle fragment kernel has an invalid header");
     VkShaderModuleCreateInfo fragment_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
     fragment_info.codeSize=fragment_words.size()*4;fragment_info.pCode=fragment_words.data();
-    VkShaderModule fragment{};check(vkCreateShaderModule(device,&fragment_info,nullptr,&fragment));
+    VkShaderModule fragment{};const auto shader_result=vkCreateShaderModule(device,&fragment_info,nullptr,&fragment);
+    if(shader_result==VK_ERROR_INVALID_SHADER_NV)throw ParticleResourceError("compiled native particle fragment kernel is unsupported by the device");
+    check(shader_result);
     struct FragmentLease{VkDevice device;VkShaderModule shader;~FragmentLease(){vkDestroyShaderModule(device,shader,nullptr);}} fragment_lease{device,fragment};
     stages[2].module=fragment;
     if(classification==8)stages[0].module=shaders[3];
@@ -214,8 +244,6 @@ struct ParticleRenderer::Impl {
     // Original Xbox W-depth is clipped in the fragment stage. The captured
     // NV2A Vulkan pipeline disables fixed-function Z clipping and clamps Z.
     rs.depthClampEnable=VK_TRUE;
-    if(raster_state.cull!=0 && raster_state.cull!=0x900 && raster_state.cull!=0x901)
-      throw FormatError("unsupported original particle cull state");
     // D3DCULL names the screen winding to remove (CW=900,CCW=901).
     // This pipeline declares CW front faces; the ordinary world pipeline
     // declares CCW, so its front/back selection is correspondingly reversed.
@@ -223,76 +251,64 @@ struct ParticleRenderer::Impl {
         raster_state.cull==0x901?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
     VkPipelineMultisampleStateCreateInfo ms{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};ms.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
     VkPipelineDepthStencilStateCreateInfo ds{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};ds.depthTestEnable=raster_state.depth_enable!=0;ds.depthWriteEnable=raster_state.depth_write!=0;ds.depthCompareOp=VkCompareOp(raster_state.depth_function-0x200);
-    VkPipelineColorBlendAttachmentState cb{};cb.blendEnable=blend;cb.srcColorBlendFactor=cb.srcAlphaBlendFactor=blend_factor(src);cb.dstColorBlendFactor=cb.dstAlphaBlendFactor=blend_factor(dst);cb.colorBlendOp=cb.alphaBlendOp=VK_BLEND_OP_ADD;
+    VkPipelineColorBlendAttachmentState cb{};cb.blendEnable=validated.blend;cb.srcColorBlendFactor=cb.srcAlphaBlendFactor=blend_factor(validated.source_blend);cb.dstColorBlendFactor=cb.dstAlphaBlendFactor=blend_factor(validated.destination_blend);cb.colorBlendOp=cb.alphaBlendOp=VK_BLEND_OP_ADD;
     constexpr unsigned shift[]{16,8,0,24};for(unsigned n=0;n<4;++n)if((raster_state.color_write>>shift[n])&1)cb.colorWriteMask|=1u<<n;
     VkPipelineColorBlendStateCreateInfo bs{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};bs.attachmentCount=1;bs.pAttachments=&cb;
     const VkDynamicState dynamic[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};VkPipelineDynamicStateCreateInfo di{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};di.dynamicStateCount=2;di.pDynamicStates=dynamic;
     VkGraphicsPipelineCreateInfo pi{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};pi.stageCount=3;pi.pStages=stages;pi.pVertexInputState=&vi;pi.pInputAssemblyState=&ia;pi.pViewportState=&vs;pi.pRasterizationState=&rs;pi.pMultisampleState=&ms;pi.pDepthStencilState=&ds;pi.pColorBlendState=&bs;pi.pDynamicState=&di;pi.layout=layout;pi.renderPass=pass;
-    VkPipeline pipeline;check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&pipeline));return pipeline;
+    VkPipeline pipeline{};const auto pipeline_result=vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&pipeline);
+    if(pipeline_result!=VK_SUCCESS && pipeline)vkDestroyPipeline(device,pipeline,nullptr);
+    if(pipeline_result==VK_ERROR_INVALID_SHADER_NV)throw ParticleResourceError("compiled particle pipeline is unsupported by the device");
+    check(pipeline_result);return pipeline;
   }
   MaterialGpu &material(std::shared_ptr<const ParticleMaterial> source) {
-    if(!source || (source->vertex.classification!=1 && source->vertex.classification!=7 && source->vertex.classification!=8 && source->vertex.classification!=9))throw FormatError("unsupported original particle vertex classification");
-    const std::string fragment_kernel(native_fragment_kernel_path("particle",source->pass.program.words));
-    const auto modes=source->pass.program.words[54];
-    if(source->textures[2] || source->textures[3] || (modes>>10u)!=0u ||
-       (modes&31u)>1u || (((modes>>5u)&31u)>1u && ((modes>>5u)&31u)!=6u))
-      throw FormatError("original particle texture modes require an unimplemented sampling path");
-    bool external23=false;
-    for(const auto &binding:source->pass.textures)if(binding.external) {
-      if(binding.stage!=1 || binding.external!=23 || binding.parameter!=255 || binding.flags || external23)
-        throw FormatError("unsupported particle external texture binding");
-      external23=true;
-    }
-    if(external23 && (source->textures[1] || modes!=0xc1u))
-      throw FormatError("particle external23 requires the original dependent framebuffer lookup");
-    if(((modes>>5u)&31u)==6u && !source->textures[1] && !external23)
-      throw FormatError("particle bump lookup requires its completed second texture binding");
-    if(((modes>>5u)&31u)==6u && (modes&31u)!=1u)
-      throw FormatError("particle bump lookup requires an active preceding texture stage");
-    std::uint64_t hash=14695981039346656037ull;for(auto byte:source->vertex.program)hash=(hash^std::to_integer<unsigned>(byte))*1099511628211ull;
-    const auto expected=source->vertex.classification==1?particle_model_program_hash:
-        source->vertex.classification==7?particle_program_hash:
-        source->vertex.classification==8?particle_directional_program_hash:particle_perpendicular_program_hash;
-    const bool distortion=source->vertex.classification==7 && hash==particle_distortion_program_hash;
-    if(hash!=expected && !distortion)throw FormatError("particle program differs from compiled original disc tokens");
-    auto [entry,inserted]=materials.try_emplace(source.get());auto &gpu=entry->second;
-    if(!inserted) {
-      if(!gpu.pipeline)throw FormatError("particle material initialization previously failed");
-      if(gpu.fragment_kernel!=fragment_kernel)throw FormatError("particle program identity changed after native pipeline admission");
+    if(!source)throw ParticleResourceError("Particle program has no material owner");
+    const auto validated=validate_particle_material(*source);
+    if(auto entry=materials.find(source.get());entry!=materials.end()) {
+      auto& gpu=entry->second;const auto& old=gpu.validation;
+      if(!gpu.pipeline || old.fragment_kernel!=validated.fragment_kernel || old.program_hash!=validated.program_hash ||
+         old.raster!=validated.raster || old.blend!=validated.blend || old.source_blend!=validated.source_blend ||
+         old.destination_blend!=validated.destination_blend || old.external_scene_texture!=validated.external_scene_texture)
+        throw FormatError("Particle material identity changed after native pipeline admission");
       return gpu;
     }
+    // Do not make a failed shader/image upload visible to the cache. Its owner
+    // may repair or finish loading the same immutable material and retry it.
+    MaterialGpu gpu{};
     gpu.source=source;
-    gpu.fragment_kernel=fragment_kernel;
-    gpu.external23=external23;
-    if(!source->textures[0] || source->pass.texture_states.empty())throw FormatError("particle primary texture missing");
+    gpu.fragment_kernel=validated.fragment_kernel;gpu.validation=validated;
+    gpu.external23=validated.external_scene_texture;
+    try {
     for(unsigned stage=0;stage<2;++stage) {
-      if(stage==1 && external23) {
-        if(source->pass.texture_states.size()<2)throw FormatError("particle external23 sampler missing");
-        const auto &state=source->pass.texture_states[1];
-        if(state.alpha_kill || state.color_key_op || state.color_sign)
-          throw FormatError("unsupported particle framebuffer texture operation");
-        auto sampler=native_sampler(state,properties.limits,false);
-        if(sampler.custom_border)throw FormatError("particle custom framebuffer border unsupported");
-        check(vkCreateSampler(device,&sampler.info,nullptr,&gpu.images[stage].sampler));
+      if(stage==1 && gpu.external23) {
+        const auto native=sampler(source->pass.texture_states[1]);
+        check(vkCreateSampler(device,&native.info,nullptr,&gpu.images[stage].sampler));
         continue;
       }
       const unsigned bound=source->textures[stage]?stage:0;
-      if(bound>=source->pass.texture_states.size())throw FormatError("particle sampler missing");
       gpu.images[stage]=make_image(*source->textures[bound],source->pass.texture_states[bound]);
     }
-    gpu.pipeline=make_pipeline(source->pass,source->vertex.classification,distortion);return gpu;
+    gpu.pipeline=make_pipeline(validated);
+    return materials.emplace(source.get(),std::move(gpu)).first->second;
+    }catch(...){free_material(gpu);throw;}
   }
   RendererParticleProgramConfiguration program(std::shared_ptr<const ParticleMaterial> source) {
-    if(!source)throw FormatError("Native particle program has no material owner");
-    const auto decoded=decode_vertex_program(source->vertex.program);auto &gpu=material(source);
-    std::uint64_t hash=14695981039346656037ull;
-    for(auto byte:source->vertex.program)hash=(hash^std::to_integer<unsigned>(byte))*1099511628211ull;
-    const auto classification=source->vertex.classification;
+    auto &gpu=material(source);unavailable_materials.erase(source.get());const auto& validated=gpu.validation;
+    const auto classification=validated.classification;
     const auto shader=classification==1?shaders[5]:classification==8?shaders[3]:classification==9?shaders[4]:
-        hash==particle_distortion_program_hash?shaders[7]:shaders[0];
+        validated.distortion?shaders[7]:shaders[0];
     return {std::bit_cast<std::uint64_t>(gpu.pipeline),std::bit_cast<std::uint64_t>(shader),
-        std::bit_cast<std::uint64_t>(layout),hash,0,classification,decoded.count,
+        std::bit_cast<std::uint64_t>(layout),validated.program_hash,0,classification,validated.instructions,
         NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&gpu))}};
+  }
+  std::optional<RendererParticleProgramConfiguration> try_program(
+      std::shared_ptr<const ParticleMaterial> source,std::string& diagnostic) {
+    diagnostic.clear();
+    if(auto failure=unavailable_materials.find(source.get());failure!=unavailable_materials.end()) {
+      diagnostic=failure->second.diagnostic;return std::nullopt;
+    }
+    try{return program(source);}
+    catch(const ParticleResourceError& error){diagnostic=error.what();reject_material(source,diagnostic);return std::nullopt;}
   }
   void clear_draws() {
     if(uniform_data)vkUnmapMemory(device,uniforms.memory);
@@ -341,25 +357,39 @@ struct ParticleRenderer::Impl {
     // three Vulkan memory objects per live particle on every upload.
     ++view_revision;draw_count=0;reserve_draws(source.size());
     for(std::size_t index=0;index<source.size();++index) {
-      const auto &d=source[index];auto &m=material(d.material);auto &gpu=draws[index];
-      if(m.external23 && !scene.view)throw FormatError("particle external23 requires its current-surface texture owner");
+      const auto &d=source[index];auto &gpu=draws[index];gpu.active=false;
       gpu.scene_resolved=bool(d.bump_texture);gpu.scene_recorded=false;gpu.view_recorded=false;
       gpu.view_prepared=false;gpu.view_published=false;
       gpu.local_view=0;gpu.foreground=false;
       gpu.required_view=required.empty()?std::nullopt:required[index];
       gpu.model=nullptr;
+      if(unavailable_materials.contains(d.material.get()))continue;
+      bool admitted_material=false;
+      try {
+      auto &m=material(d.material);
+      admitted_material=true;
+      if(m.external23 && !scene.view)throw ParticleResourceError("Particle framebuffer lookup has no current-surface texture owner");
+      if(m.external23 && (!std::isfinite(d.vertex.surface_fog[0]) || !std::isfinite(d.vertex.surface_fog[1]) ||
+          !(d.vertex.surface_fog[0]>0 && d.vertex.surface_fog[1]>0)))
+        throw ParticleResourceError("Particle framebuffer lookup has no completed finite surface dimensions");
       if(d.model) {
         if(d.material->vertex.classification!=1 || d.model_first>d.model->indices.size() ||
             d.model_count>d.model->indices.size()-d.model_first || d.model_count%3)
           throw FormatError("Particle model draw escapes authored triangle bank");
-        auto [at,created]=models.try_emplace(d.model.get());auto &model=at->second;
-        if(created) {
-          model.source=d.model;
-          model.vertices=make_buffer(d.model->vertices.size()*sizeof(d.model->vertices[0]),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,d.model->vertices.data());
-          model.indices=make_buffer(d.model->indices.size()*2,VK_BUFFER_USAGE_INDEX_BUFFER_BIT,d.model->indices.data());
+        auto at=models.find(d.model.get());
+        if(at==models.end()) {
+          if(d.model->vertices.empty() || d.model->indices.empty() ||
+             std::any_of(d.model->indices.begin(),d.model->indices.end(),[&](unsigned i){return i>=d.model->vertices.size();}))
+            throw ParticleResourceError("Particle model indices have no authored vertex owner");
+          ModelGpu staged{};staged.source=d.model;
+          try {
+            staged.vertices=make_buffer(d.model->vertices.size()*sizeof(d.model->vertices[0]),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,d.model->vertices.data());
+            staged.indices=make_buffer(d.model->indices.size()*sizeof(d.model->indices[0]),VK_BUFFER_USAGE_INDEX_BUFFER_BIT,d.model->indices.data());
+            at=models.emplace(d.model.get(),std::move(staged)).first;
+          }catch(...){free_buffer(staged.vertices);free_buffer(staged.indices);throw;}
         }
-        gpu.model=&model;gpu.first=d.model_first;gpu.count=d.model_count;
-      } else if(d.material->vertex.classification==1)throw FormatError("Particle model has no authored geometry");
+        gpu.model=&at->second;gpu.first=d.model_first;gpu.count=d.model_count;
+      } else if(d.material->vertex.classification==1)throw ParticleResourceError("Particle model has no authored geometry");
       auto *destination=static_cast<std::byte*>(uniform_data)+index*draw_stride;
       std::memcpy(destination,&d.vertex,sizeof(d.vertex));
       MaterialUniform uniform{native_fragment_uniform_words(d.material->pass.program.words),{0,0x207,0,0},{},{1,1,0,0}};
@@ -367,7 +397,7 @@ struct ParticleRenderer::Impl {
         if(d.bump_texture) {
           uniform.bump_matrix=d.bump_texture->matrix;uniform.coordinate_scale=d.bump_texture->coordinate_scale;
         } else if(!m.external23 || d.material->sampler_writes.empty())
-          throw FormatError("particle bump lookup requires completed original texture-stage state");
+          throw ParticleResourceError("Particle bump lookup has no completed texture-stage state owner");
       }
       uniform.alpha[3]=d.material->pass.texture_states[0].color_sign>>28;
       // Original TEXCTL0 ALPHAKILLEN bit2 belongs to each fetched stage,
@@ -391,15 +421,19 @@ struct ParticleRenderer::Impl {
         gpu.material=&m;
         gpu.material_bindings_ready=true;
       }
+      gpu.active=true;
+      }catch(const ParticleResourceError& error){
+        if(!admitted_material)reject_material(d.material,error.what());else diagnose(d.material,error.what());
+      }
     }
     draw_count=source.size();
   }
   void record(VkCommandBuffer command,VkViewport viewport,VkRect2D scissor,std::size_t first,std::size_t count) const {
     if(first>draw_count || count>draw_count-first)throw FormatError("particle draw range outside prepared state");
     if(!count)return;
-    for(std::size_t n=first;n<first+count;++n)if(draws[n].view_prepared)
+    for(std::size_t n=first;n<first+count;++n)if(draws[n].active && draws[n].view_prepared)
       throw FormatError("Camera-only prepared particle resources cannot record particle geometry");
-    for(std::size_t n=first;n<first+count;++n)if(draws[n].required_view) {
+    for(std::size_t n=first;n<first+count;++n)if(draws[n].active && draws[n].required_view) {
       const auto &r=*draws[n].required_view;const auto &v=r.viewport;const auto&s=r.scissor;
       if(v.x!=viewport.x || v.y!=viewport.y || v.width!=viewport.width || v.height!=viewport.height ||
          v.minDepth!=viewport.minDepth || v.maxDepth!=viewport.maxDepth ||
@@ -408,7 +442,7 @@ struct ParticleRenderer::Impl {
         throw FormatError("Particle draw recording differs from its actual prepared view owner");
     }
     ++view_revision;
-    for(std::size_t index=first;index<first+count;++index)if(draws[index].material->external23) {
+    for(std::size_t index=first;index<first+count;++index)if(draws[index].active && draws[index].material->external23) {
       if(!draws[index].scene_resolved || draws[index].scene_recorded)
         throw FormatError("particle external23 requires one completed ordered scene lookup per draw");
       draws[index].scene_recorded=true;
@@ -417,6 +451,7 @@ struct ParticleRenderer::Impl {
     vkCmdBindVertexBuffers(command,0,1,&corners,&offset);
     for(std::size_t n=first;n<first+count;++n) {
       const auto &d=draws[n];
+      if(!d.active)continue;
       d.viewport=viewport;d.scissor=scissor;d.view_recorded=true;
       vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,d.material->pipeline);
       vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&d.set,0,nullptr);
@@ -430,6 +465,7 @@ struct ParticleRenderer::Impl {
   void prepare_views(std::span<const RendererParticleViewInput> source,unsigned width,unsigned height) {
     if(source.empty() || source.size()>8 || !width || !height)
       throw FormatError("Particle view preparation requires its actual local-view bank and target extent");
+    std::vector<MaterialGpu*> admitted;admitted.reserve(source.size());
     for(const auto &input:source) {
       const auto &r=input.rectangle;
       if(!input.material || r[0]<0 || r[1]<0 || r[2]<=0 || r[3]<=0 ||
@@ -437,6 +473,7 @@ struct ParticleRenderer::Impl {
         throw FormatError("Prepared particle view escapes its actual target");
       if(input.material->vertex.classification<7 || input.material->vertex.classification>9)
         throw FormatError("Prepared particle camera requires its admitted original world shader interface");
+      admitted.push_back(&material(input.material));
     }
     // Only vertex/depth bindings are produced here. Texture/current-surface
     // lookups and material uniforms retain their actual draw-time owners.
@@ -444,7 +481,7 @@ struct ParticleRenderer::Impl {
     ++view_revision;draw_count=0;reserve_draws(source.size());
     for(std::size_t n=0;n<source.size();++n) {
       const auto &input=source[n];auto &gpu=draws[n];const auto&r=input.rectangle;
-      gpu.material=&material(input.material);gpu.material_bindings_ready=false;gpu.model=nullptr;
+      gpu.material=admitted[n];gpu.material_bindings_ready=false;gpu.model=nullptr;gpu.active=true;
       gpu.scene_recorded=gpu.scene_resolved=gpu.view_recorded=gpu.view_published=false;
       gpu.required_view.reset();gpu.view_prepared=true;
       ParticleVertexState vertex;vertex.constants=input.constants;vertex.clip_range=input.clip_range;vertex.surface_fog=input.surface_fog;
@@ -458,7 +495,7 @@ struct ParticleRenderer::Impl {
     draw_count=source.size();
   }
   void publish_view(std::size_t index,std::span<const ShaderVector,12> camera,ShaderVector clip) {
-    if(index>=draw_count || !draws[index].view_prepared || draws[index].view_recorded ||
+    if(index>=draw_count || !draws[index].active || !draws[index].view_prepared || draws[index].view_recorded ||
        draws[index].view_published || !uniform_data)
       throw FormatError("Particle view has no unique live camera publication slot");
     for(const auto&v:camera)for(float x:v)if(!std::isfinite(x))throw FormatError("Prepared particle camera contains a nonfinite input");
@@ -474,7 +511,7 @@ struct ParticleRenderer::Impl {
     draws[index].view_published=true;
   }
   RendererParticleViewState view_inputs(std::size_t index) const {
-    if(index>=draw_count || (!draws[index].view_recorded && !draws[index].view_prepared) || !uniform_data)
+    if(index>=draw_count || !draws[index].active || (!draws[index].view_recorded && !draws[index].view_prepared) || !uniform_data)
       throw FormatError("Particle view requires actual prepared or recorded native inputs");
     const auto &draw=draws[index];const auto &v=draw.viewport;const auto &s=draw.scissor;
     if(s.extent.width>INT32_MAX || s.extent.height>INT32_MAX)
@@ -500,15 +537,7 @@ struct ParticleRenderer::Impl {
   }
   void release() {
     for(auto &[key,model]:models){free_buffer(model.vertices);free_buffer(model.indices);}
-    clear_draws();for(auto &[key,m]:materials) {
-      if(m.pipeline)vkDestroyPipeline(device,m.pipeline,nullptr);
-      for(auto i:m.images) {
-        if(i.sampler)vkDestroySampler(device,i.sampler,nullptr);
-        if(i.view)vkDestroyImageView(device,i.view,nullptr);
-        if(i.handle)vkDestroyImage(device,i.handle,nullptr);
-        if(i.memory)vkFreeMemory(device,i.memory,nullptr);
-      }
-    }
+    clear_draws();for(auto &[key,m]:materials)free_material(m);
     free_buffer({corners,corner_memory});for(auto shader:shaders)if(shader)vkDestroyShaderModule(device,shader,nullptr);
     if(layout)vkDestroyPipelineLayout(device,layout,nullptr);
     if(set_layout)vkDestroyDescriptorSetLayout(device,set_layout,nullptr);
@@ -518,10 +547,13 @@ struct ParticleRenderer::Impl {
 };
 static_assert(sizeof(ParticleVertexState)==3360 && offsetof(ParticleVertexState,constants)==256);
 static_assert(sizeof(ParticleDepthState)==32);
-ParticleRenderer::ParticleRenderer(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory)
-  :impl_(std::make_unique<Impl>(p,d,q,family,rp,directory)){}
+ParticleRenderer::ParticleRenderer(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory,bool mirror_clamp)
+  :impl_(std::make_unique<Impl>(p,d,q,family,rp,directory,mirror_clamp)){}
 ParticleRenderer::~ParticleRenderer()=default;
 RendererParticleProgramConfiguration ParticleRenderer::program(std::shared_ptr<const ParticleMaterial> material){return impl_->program(std::move(material));}
+std::optional<RendererParticleProgramConfiguration> ParticleRenderer::try_program(
+    std::shared_ptr<const ParticleMaterial> material,std::string& diagnostic){return impl_->try_program(std::move(material),diagnostic);}
+std::vector<std::string> ParticleRenderer::take_resource_diagnostics(){std::vector<std::string> out;out.swap(impl_->resource_diagnostics);return out;}
 RendererParticleViewState ParticleRenderer::view_inputs(std::size_t index) const{return impl_->view_inputs(index);}
 std::uint64_t ParticleRenderer::view_revision() const{return impl_->view_revision;}
 void ParticleRenderer::prepare(std::span<const ParticleDraw> d,ParticleSceneTexture scene,
@@ -530,10 +562,10 @@ void ParticleRenderer::prepare_views(std::span<const RendererParticleViewInput> 
 void ParticleRenderer::publish_view(std::size_t n,std::span<const ShaderVector,12> c,ShaderVector clip){impl_->publish_view(n,c,clip);}
 bool ParticleRenderer::reads_scene_texture(std::size_t index) const {
   if(index>=impl_->draw_count)throw FormatError("particle scene texture query outside prepared draws");
-  return impl_->draws[index].material->external23;
+  return impl_->draws[index].active && impl_->draws[index].material->external23;
 }
 void ParticleRenderer::resolve_scene_lookup(std::size_t index,const ParticleBumpTextureState &state) {
-  if(index>=impl_->draw_count || !impl_->draws[index].material->external23 || impl_->draws[index].scene_recorded)
+  if(index>=impl_->draw_count || !impl_->draws[index].active || !impl_->draws[index].material->external23 || impl_->draws[index].scene_recorded)
     throw FormatError("particle scene lookup resolution escapes its unrecorded draw");
   auto *destination=static_cast<std::byte*>(impl_->uniform_data)+index*impl_->draw_stride+impl_->material_offset;
   std::memcpy(destination+offsetof(Impl::MaterialUniform,bump_matrix),state.matrix.data(),sizeof(state.matrix));

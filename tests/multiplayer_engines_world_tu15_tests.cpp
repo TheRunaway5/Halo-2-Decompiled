@@ -4,6 +4,7 @@
 #include "halo2/source_game_variant.hpp"
 #include "halo2/datum_pool.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
+#include "halo2/native_tu15_physics_frame_observation.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
@@ -297,13 +298,29 @@ int main(int argc,char** argv)try {
                     options.variant.values.append(90,std::stoi(edited_limit));
                     variant=source_game_variant(options.variant);
                 }
+                const auto edited_views=std::getenv("HALO2_ENGINE_PREPARED_VIEWS");
+                if(edited_views) {
+                    // Exercise edited shared rules, respawn, weapons and Slayer
+                    // scoring through an ordinary multi-view source world.
+                    // Four local players also exercise selected-team inputs.
+                    for(const auto [parameter,value]:GameVariantSettings{{0,1},{2,47},{10,900},{16,7},
+                            {17,2},{18,4},{28,1},{29,0},{30,1},{84,0},{88,0},{89,3},{94,4}})
+                        options.variant.values.set(parameter,value);
+                    if(std::stoi(edited_views)==4)
+                        for(const auto [parameter,value]:GameVariantSettings{{91,1},{23,1},{25,1},{26,6}})
+                            options.variant.values.set(parameter,value);
+                    variant=source_game_variant(options.variant);
+                    check(source_game_variant_valid(variant),"Edited split-screen variant failed original validation");
+                    result["edited_parameters"]=options.variant.values.size();
+                }
                 const auto type=source_game_variant_type(variant);
-                options.local_players=edited_limit||type==7?4:2;
+                options.local_players=edited_views?unsigned(std::stoul(edited_views)):edited_limit||type==7?4:2;
+                check(options.local_players>=2 && options.local_players<=4,"Prepared split-screen cohort needs two to four local players");
                 const bool teams=source_game_variant_get(variant,91)!=0;
                 if(teams)for(unsigned n=0;n<options.local_players;++n)options.selected_teams.push_back(std::int8_t(edited_limit?n/2:n%2));
                 MultiplayerPreparedWorld prepared(options);
                 check(prepared.rules.requires_source_engine && prepared.match.source_engine()==type,"Prepared match selected a compatibility rule adapter");
-                if(std::getenv("HALO2_ENGINE_PREPARED_VIEWS")) {
+                if(edited_views) {
                     result["stage"]="initial-first-person-configuration";
                     const auto binding=prepared.cache->load_first_person_binding(prepared.rules.weapon,2);
                     prepared.match.configure_replicated_first_person(binding);
@@ -311,6 +328,15 @@ int main(int argc,char** argv)try {
                     result["configured_local_views"]=prepared.local_slots.size();
                 }
                 auto& world=prepared.source_objects->tu15_world();auto& memory=world.memory();
+                const auto configured_variant=word(memory,0x4f3218u)+0x13cu;
+                const auto check_configuration=[&] {
+                    check(std::ranges::equal(memory.view(configured_variant,variant.bytes.size()),
+                        std::as_bytes(std::span(variant.bytes))),"Prepared source world changed the complete edited variant buffer");
+                    check(prepared.match.session_configuration() &&
+                        source_game_variant(*prepared.match.session_configuration()).bytes==variant.bytes,
+                        "Prepared split-screen Match lost its complete edited variant");
+                };
+                check_configuration();result["exact_configured_variant"]=true;
                 check(world.multiplayer_engine_state().recording.enabled,"Prepared host omitted original retained-result startup");
                 const auto pool=world.source_player_pool(),records=word(memory,pool+0x44u),stride=word(memory,pool+0x24u);
                 check(word(memory,word(memory,0x4f63b8u)+0xc14u)==std::uint32_t(type),"Prepared engine selector differs from the actual source registry");
@@ -336,11 +362,29 @@ int main(int argc,char** argv)try {
                 Json observed=Json::array();SourcePhysicsEntryObserverBinding observation(memory,[&](bool entering,auto entry,const auto&) {
                     if(entering && std::ranges::find(entries,entry)!=entries.end())observed.push_back(entry);
                 });
+                // The physics slot now belongs to the native semantic frame.
+                // Observe its real boundary in the same ordered phase stream;
+                // the retired lifted1CC8D0 entry must not be called as well.
+                unsigned native_frames{},completed_native_frames{};
+                NativeTu15PhysicsFrameObserverBinding native_observation(memory,[&](const auto& event) {
+                    if(event.entry){++native_frames;observed.push_back(0x1cc8d0u);}
+                    else ++completed_native_frames;
+                });
                 result["stage"]="ordinary-source-frames";
                 for(unsigned n=0;n<3;++n) {
-                    observed=Json::array();const auto before=prepared.match.state().tick;prepared.match.step({});
+                    observed=Json::array();native_frames=completed_native_frames=0;
+                    const auto before=prepared.match.state().tick;
+                    const auto physics_before=world.native_physics_frame_activity().frame_calls;
+                    prepared.match.step({});
                     const auto state=prepared.match.state();const auto source=world.multiplayer_engine_state();
+                    check_configuration();
+                    if(observed!=Json(entries))result["phase_mismatch"]={{"frame",n},
+                        {"expected",entries},{"observed",observed}};
                     check(observed==Json(entries),"Prepared mode duplicated or omitted original engine/world phases");
+                    check(native_frames==1 && completed_native_frames==1 &&
+                        world.native_physics_frame_activity().frame_calls==physics_before+1,
+                        "Prepared mode omitted, duplicated or failed its actual native physics frame");
+                    result["native_physics_frames"]=n+1;
                     check(state.tick==before+1 && state.tick==word(memory,word(memory,0x51df54u)+8u),"Prepared source and native clocks diverged");
                     check(std::memcmp(&source.statistics,&prepared.match.source_match_statistics(),sizeof(source.statistics))==0,"Prepared mode retained a parallel score bank");
                     for(const auto slot:prepared.local_slots) {

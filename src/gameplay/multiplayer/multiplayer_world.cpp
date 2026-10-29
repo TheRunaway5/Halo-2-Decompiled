@@ -17,6 +17,10 @@
 #endif
 
 namespace halo2 {
+void select_multiplayer_mode_authority(MultiplayerOptions &options) {
+  if(custom_slayer(options.variant)!=CustomSlayer::none || bomb_defusal_variant(options.variant))
+    options.source_object_world=false;
+}
 namespace {
 TagSystem world_tags(std::shared_ptr<const Cache> cache, std::size_t bsp) {
   TagSystem tags(std::move(cache));
@@ -282,6 +286,37 @@ std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::incoming_sou
     std::shared_ptr<PhysicsLiveClockSource> clock) {
   auto cache=resident.original_cache();
   return source_shadow(options,SourceShadowViews::IncomingHost,std::move(clock),std::move(cache));
+}
+std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::shadow_presentation_world(
+    const MultiplayerOptions &options,const MultiplayerPreparedWorld &resident,
+    std::span<const OnlineAdmission> roster,std::span<const unsigned> views,
+    std::span<const unsigned> selected) {
+  auto cache=resident.original_cache();
+  if(roster.empty() || roster.size()>multiplayer_capacity || views.size()>4 || selected.empty() ||
+     selected.size()!=options.local_players || options.local_players>4)
+    throw FormatError("Native shadow presentation requires its accepted roster and couch views");
+  std::uint16_t slots{};
+  for(const auto &seat:roster) {
+    if(seat.slot>=multiplayer_capacity || (slots&(1u<<seat.slot)))
+      throw FormatError("Native shadow presentation has a duplicate or invalid admitted seat");
+    slots|=std::uint16_t(1u<<seat.slot);
+  }
+  for(const auto group:{views,selected}) {
+    std::uint16_t seen{};
+    for(auto slot:group) {
+      if(slot>=multiplayer_capacity || !(slots&(1u<<slot)) || (seen&(1u<<slot)))
+        throw FormatError("Native shadow presentation has an unadmitted or duplicate view");
+      seen|=std::uint16_t(1u<<slot);
+    }
+  }
+  SourceShadowSetup setup;setup.roster.assign(roster.begin(),roster.end());
+  // A real dedicated producer owns zero local/input users. Keep that exact
+  // workspace view bank while selected still identifies1..4 recipient seats.
+  setup.locals.assign(views.begin(),views.end());setup.selected.assign(selected.begin(),selected.end());
+  // These private native births establish constructor/service owners only.
+  // The presentation owner must import and validate the independently
+  // accepted full native cut before any renderer can borrow this world.
+  return std::unique_ptr<MultiplayerPreparedWorld>(new MultiplayerPreparedWorld(options,std::nullopt,&setup,{}, {},std::move(cache)));
 }
 std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::source_shadow(
     const MultiplayerOptions &options,SourceShadowViews views,std::shared_ptr<PhysicsLiveClockSource> clock,

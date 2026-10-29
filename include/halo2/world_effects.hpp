@@ -96,6 +96,12 @@ public:
     std::shared_ptr<const int> owner_;
   };
   Checkpoint checkpoint()const;
+  // Independent presentation timeline over the same resident material IDs.
+  // Call before either timeline advances beyond its common starting state.
+  // RNG owners and collision callbacks belong to the new timeline; queued
+  // audio is not copied. Checkpoints cannot cross between the two owners.
+  std::unique_ptr<NativeWorldEffects> fork(SourceEffectRandom,
+      ParticleCollisionQuery)const;
   // Same local owner/assets only, at a completed frame. Allocate every owner
   // before publishing any. The enclosing coordinator restores shared visual
   // RNG atomically with the other consumers; preparation never writes it.
@@ -125,6 +131,9 @@ public:
   // construction. Other part owners are reported separately; this alone is
   // not proof that every authored part can play.
   void preload_attached(std::uint32_t effect);
+  // Production visual admission quarantines immutable content failures only.
+  // Source-frame, pool and current-object invariants remain strict.
+  bool try_preload_attached(std::uint32_t effect);
   // Strict graph admission for callers requiring every authored part.
   // Retained source lens/damage/object owners cannot be omitted by this
   // presentation-only runtime. Existing partial map-component delivery uses
@@ -190,6 +199,7 @@ public:
   WorldEffectDiagnostics diagnostics() const;
 
 private:
+  explicit NativeWorldEffects(std::unique_ptr<Impl>);
   std::unique_ptr<Impl> impl_;
   std::shared_ptr<const int> owner_=std::make_shared<const int>(0);
 };

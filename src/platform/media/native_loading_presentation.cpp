@@ -1,5 +1,6 @@
 #include "halo2/native_loading_presentation.hpp"
 #include <bit>
+#include <algorithm>
 #include <cmath>
 
 namespace halo2 {
@@ -17,7 +18,9 @@ VistaLoadingMaterialBlend blend(VistaLoadingBlend value) {
 float real(std::uint32_t word) { return std::bit_cast<float>(word); }
 float channel(std::uint32_t argb,unsigned shift) { return float((argb>>shift)&255u)/255.f; }
 }
-NativeLoadingPresentation::NativeLoadingPresentation(const VistaLoadingAssets& assets) {
+NativeLoadingPresentation::NativeLoadingPresentation(const VistaLoadingAssets& assets,bool preserve_logo_proportions)
+    :preserve_logo_proportions_(preserve_logo_proportions),
+     logo_size_{float(assets[1].source_width),float(assets[1].source_height)} {
     mesh_.materials.reserve(texture_slots.size());vertices_.reserve(72);
     for(unsigned i=0;i<texture_slots.size();++i) {
         const auto& asset=assets[texture_slots[i]];
@@ -54,6 +57,16 @@ void NativeLoadingPresentation::update(std::span<const VistaLoadingDraw> draws,s
             const auto& source=draw.vertices[index];
             Vertex vertex;
             vertex.position={real(source.position[0]),real(source.position[1]),channel(source.argb,24)};
+            if(i==10 && preserve_logo_proportions_) {
+                // The legacy normalized logo box assumes4:3. Fit the imported
+                // image into that box, preserving its own pixel aspect at
+                // widescreen/ultrawide sizes. Other draw owners stay intact.
+                const float box_width=(real(draw.vertices[2].position[0])-real(draw.vertices[0].position[0]))*float(width);
+                const float box_height=(real(draw.vertices[1].position[1])-real(draw.vertices[0].position[1]))*float(height);
+                const float fit=std::min(box_width/logo_size_.x,box_height/logo_size_.y);
+                vertex.position.x=.5f+(vertex.position.x-.5f)*(logo_size_.x*fit/box_width);
+                vertex.position.y=.5f+(vertex.position.y-.5f)*(logo_size_.y*fit/box_height);
+            }
             vertex.color={channel(source.argb,16),channel(source.argb,8),channel(source.argb,0)};
             vertex.uv={real(source.texcoord0[0]),real(source.texcoord0[1])};
             vertex.lightmap_uv={real(source.texcoord1[0]),real(source.texcoord1[1])};

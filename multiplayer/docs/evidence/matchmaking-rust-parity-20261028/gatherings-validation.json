@@ -1,0 +1,203 @@
+{
+  "schema": "H2_RUST_GATHERING_REGISTRY_VALIDATION_V1",
+  "updated_utc": "2026-10-28T18:09:02.289521+00:00",
+  "gathering_registry_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Unified Rust queue/gathering/query/party registry and native advertisement/IO lifecycle. Existing original numerical fixtures are reused; authenticated original service/summary/QoS inputs, full original callers, API/results and native/delivery acceptance remain open.",
+  "rust_authorities": [
+    "Session identities, admission membership, birth and growth clocks",
+    "Per-party state, lifecycle jitter and current search/view generations",
+    "Ordered query IDs, native birth/id provider and original50-record bank cap",
+    "Complete per-query candidate bank/cache and original selector calls",
+    "Native advertisement projection from admitted raw roster, selected rank map, age, clan, language and measured relay facts",
+    "Probe allocation/pending/failure/seen transitions and completion-driven radius/exhaustion",
+    "Query selection, group joining, founding game preservation and proposal publication",
+    "Cancellation, expiry and profile-change retirement of registries, views and IO continuations",
+    "Pure progress projection without RNG, query allocation or peak mutation"
+  ],
+  "io_boundary": {
+    "continuations": "Private monotonically generated tokens bind requested readiness/measurement/allocation results to Rust work. Count/type-invalid replies are rejected before taking the continuation; stale/replayed replies and aborts cannot target new work.",
+    "adapter": "Python executes only Rust-requested existing authenticated QoS calls; it holds immutable projections, not registry/cache/seen/matching policy.",
+    "retirement": "Queue cancellation and same-revision profile changes immediately retire actual Rust state. Saved views do not keep an independent live lifecycle owner.",
+    "atomicity_limit": "Individual private commands are serialized. The existing service pumps multi-command IO synchronously on one event loop. This is not distributed transaction or exactly-once network allocation proof."
+  },
+  "modern_replacements": [
+    "Birth/private-ID service ordering and synchronous50-record native queries",
+    "Relay-route three-sample median and unknown quality0/-1 projection",
+    "Native structural membership/capacity and12-second allocation-refusal wait",
+    "Private IO generations and stale-view safeguards"
+  ],
+  "original_evidence_limits": {
+    "new_original_executable_runs_in_this_increment": false,
+    "prior_original_fixtures_reused": true,
+    "authentic_original_service_inputs_supplied": false,
+    "original_platform_allocation_nat_qos_summary_parity_proven": false,
+    "source_oracle_receipts": [
+      "lifecycle-validation.json",
+      "candidates-validation.json",
+      "ratings-validation.json",
+      "assignment-validation.json"
+    ]
+  },
+  "diagnostic_feature": {
+    "name": "matchmaking-test-inputs",
+    "purpose": "Explicit synthetic registry/member/clock input restoration for retained fixture tests only.",
+    "default_production_feature_enabled": false,
+    "default_command_rejection_proven": true,
+    "docker_and_cmake_enable_feature": false,
+    "release_routes_checked": [
+      "multiplayer/master_server/Dockerfile",
+      "cmake/OnlineProtocolRust.cmake",
+      "tools/build_online_protocol_rust.py"
+    ]
+  },
+  "passing_frozen_backend": {
+    "passed": true,
+    "rust_tests": 26,
+    "new_registry_runtime_tests": 3,
+    "previous_queue_tests": 5,
+    "original_fixture_tests": 18,
+    "backend_tests": 436,
+    "backend_seconds": 227.876,
+    "feature_enabled": true,
+    "report": "gatherings-backend-report.json",
+    "manifest": "gatherings-source-manifest.json",
+    "drift_at_recording": [
+      "tools/test_master_server.py"
+    ],
+    "drift_explanation": "After freezing, the harness added compiler/library hash reporting. Production and test source bodies match the frozen cohort."
+  },
+  "passing_default_abi": {
+    "passed": true,
+    "rust_tests": 4,
+    "backend_tests": 14,
+    "backend_seconds": 1.127,
+    "feature_enabled": false,
+    "includes_real_three_sample_http_socket_probe": true,
+    "report": "gatherings-production-report.json",
+    "manifest": "gatherings-production-source-manifest.json",
+    "drift_at_recording": [],
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-q06y45dx/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "7de4c59c86c90277ac8b435b318249cda1430dd3a36fe1327ef2db28363a54bd",
+      "bytes": 1334656,
+      "retained": false,
+      "borrowed_external": false
+    }
+  },
+  "contract_tests": [
+    "Registry/query snapshots cannot replace native state",
+    "Live probes preserve original query generation/clock and radius",
+    "Malformed/replayed/aborted IO cannot advance or cancel a newer frame",
+    "Canceled party progress/seen views cannot mutate a requeued party",
+    "Same-revision profile changes retire sessions, states, queries and pending work",
+    "IO exceptions abort the current continuation without fabricating probe completion",
+    "Read-only progress and original sentinel/countdown guards remain unchanged",
+    "Production ABI excludes diagnostic state restoration"
+  ],
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "cd39c00edc7692e2fa871e4253a333bc964f1e9fb7f991290f56a30f601bb2ba",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "a531925a37d9c1eeb1c15fc1033703746331f18e3dd7fa34f31e27f0b7b191b4",
+    "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+    "rust/online_protocol/src/matchmaking_model.rs": "af1253a23e14f4f90c5c357ad8d3a36abffb06b39f80ccc109839a7cfa03d0de",
+    "rust/online_protocol/Cargo.toml": "3f4db99edcbde8192f920b9bebeca4917872fb2075e269b7eaaa6a918767a5cd",
+    "rust/online_security_ffi/Cargo.toml": "9e8ecf61312cd13ffa80ab824399779940acbe39defc8c64c948ef2ac4bd5f7b",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "c19a1d9d15593d7eea4d65e69378c081b33193e8e190b781f17608b1994251d7",
+    "multiplayer/master_server/gathering_sessions.py": "be9d029fb5528407d4033304ad959341ba8e31ef5b27d6df2cb6fe3cf211154a",
+    "multiplayer/master_server/native_matchmaking.py": "f2e494e83661f4ed54d02eb2f6c63a92fdcdf65bdb23504516dfdb9730650e48",
+    "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+    "multiplayer/master_server/tests/test_gathering_owner_native.py": "2bcc82956320c2ccfae0f1b019ca6756d0ff93ab29e6b21137a2990f694462d4",
+    "multiplayer/master_server/tests/test_gathering_sessions.py": "8cf695add3db0a01f099fc621a2bff520232c4f4921614dc0861e1381282b611",
+    "multiplayer/master_server/tests/test_team_balance_native.py": "02589d9fe0bc760842ec689fe1497d44770df6cfae10a74625a793db1a0b648a",
+    "multiplayer/master_server/tests/test_hopper_catalog.py": "c278feae64e88454254e7e8a399a048594101bbe71856eff08ad6ba1af04d1d4"
+  },
+  "test_harness_sha256": "f746de6e1725746f4bcdfcc8c1ebf008523096bde7000c14b108165e7579193d",
+  "native_played_flow_qualified": false,
+  "installed_runtime_replaced": false,
+  "remote_service_replaced": false,
+  "remaining": [
+    "Rust API/catalog document parsing and matching-related identity/local-seat/party/clan consent",
+    "Rust QoS sensor/transport policy and authentic original quality/summary/platform input correspondence",
+    "Full settings/executable/map/profile/rank/roster/authority/namespace binding through native gameplay and results",
+    "Rust persistent rank/XP, result/arbitration/quarantine and transactional finalization",
+    "All seven families/39 built-ins/historical profiles and original-valid subjects/topologies through genuine native outcomes, continuity, party return/requeue and delivered activation",
+    "All twelve GAP records,53 original-owner IDs and G01-G12 exit evidence"
+  ],
+  "owned_scratch_cleanup": [
+    {
+      "report": "build/test-results/matchmaking-gatherings-compile-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-uulqylha",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-gatherings-focused-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-tvf8ex_6",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-gatherings-focused2-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-mqn9dgz2",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-gatherings-full-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cqclv1t2",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-gatherings-production-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3iwmr3_4",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-gatherings-production2-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-q06y45dx",
+      "removed": true
+    }
+  ],
+  "all_owned_scratch_removed": true,
+  "retained_reports": {
+    "gatherings-backend-report.json": {
+      "bytes": 1641,
+      "sha256": "efe551b0a7057b8b469effb29546ab361f26e5ede19701394066a8f191342535"
+    },
+    "gatherings-source-manifest.json": {
+      "bytes": 25482,
+      "sha256": "6cf1998031a277fdda532b98672202756ae9fef616440827f8b7f110dc38b3a0"
+    },
+    "gatherings-rust-tests.log": {
+      "bytes": 4917,
+      "sha256": "9f05d6254118169af351d5f0d2b5b30f25d4cd36496db75b81367eb1900081e6"
+    },
+    "gatherings-backend-tests.log": {
+      "bytes": 137157,
+      "sha256": "eade3da5900ea468eb8842662f3772d9119799fc17162cf106a447eb29a5816b"
+    },
+    "gatherings-toolchain-library.json": {
+      "bytes": 595,
+      "sha256": "f2c20ef2db7d12c49bba8644d86ff209e12d373fa9e73325965cfad3c179207e"
+    },
+    "gatherings-production-report.json": {
+      "bytes": 1962,
+      "sha256": "b52a405db19d7a74aa345c241294e4f380ed4d977b095424e15561ae8e96a5c8"
+    },
+    "gatherings-production-source-manifest.json": {
+      "bytes": 25482,
+      "sha256": "31b3e24844d0cd8d14b518efafa52e930d67028d8853c8cb8ce5615388c1dd0c"
+    },
+    "gatherings-production-rust-tests.log": {
+      "bytes": 1820,
+      "sha256": "f3825879fb25f96713e707cc52b4873a54ec8f1d57ec6c7801927de557e4068f"
+    },
+    "gatherings-production-backend-tests.log": {
+      "bytes": 1759,
+      "sha256": "0c9a95fa76f0eb4cc68857b0862e50dfd287a3a5b93b6b1c7f71c243f6623019"
+    }
+  },
+  "retained_large_artifacts": []
+}

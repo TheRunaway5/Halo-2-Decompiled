@@ -32,7 +32,7 @@ public:
     struct Slot {unsigned material{},section{},lod{};bool prt{};unsigned shader_lod{};};
     struct ViewDraw {
         std::vector<Vertex> vertices;
-        // Source vertex ordinals of vertices, recorded for deferred LOD banks.
+        // Source ordinals survive CPU and deferred selection identically.
         std::vector<std::uint32_t> ordinals;
         bool ordinary_lighting{},prt_lighting{};
     };
@@ -97,6 +97,10 @@ public:
     // view_skin() publishes the deferred geometry. Other LOD banks keep
     // their earlier records; select() reads only its chosen LOD.
     void pose_world_lod(unsigned lod,const std::function<ModelSkinWorldPose(const RenderModel &)> &);
+    // Consume a frame-owned complete pose without allocating a temporary
+    // return-vector copy. Geometry retains its own material-remapped bank;
+    // no borrowed span survives the callback or enters a checkpoint.
+    void pose_world_lod_view(unsigned lod,const std::function<ModelSkinWorldPoseView(const RenderModel &)> &);
     // The renderer-deformed geometry of a view whose selected LOD bank is
     // deferred; null when that bank holds WORLD records.
     std::shared_ptr<ModelSkinGeometry> view_skin(unsigned view_index,std::uint32_t owner,
@@ -124,6 +128,7 @@ public:
                                     std::array<std::int8_t,4> &owner_previous_lod);
     void reset_history() noexcept;
     const RenderModel &model()const{return lods[5].model;}
+    const SourcePrtDefinition* prt_definition()const{return prt?&*prt:nullptr;}
     const Lod &at(unsigned lod)const{return lods.at(lod);}
     const ViewDraw &view(unsigned index)const{return views.at(index);}
     bool ordinary_lighting()const;

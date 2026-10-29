@@ -18,7 +18,7 @@ MultiplayerState decode(const Packet &p,std::span<const unsigned> ids,unsigned v
 }
 int main(int argc,char **argv)try {
     need(argc==1 || argc==2,"Supply optional bounded transport report");
-    need(native_multiplayer_protocol==117,"Native attachment input requires its explicit native protocol");
+    need(native_multiplayer_protocol>=120,"Native attachment/ordinary-camera inputs require their explicit protocol extensions");
     MultiplayerState state;state.tick=8;state.devices.tick=state.tick;state.source_game_type=2;state.source_engine=2;
     state.source_round_lifecycle_available=true;state.round_phase=1;state.round_index=0;state.round_countdown=0;
     for(unsigned n=0;n<2;++n) {
@@ -67,13 +67,33 @@ int main(int argc,char **argv)try {
         SourceWorldPose pose;pose.object=attached.players[n].source_unit;pose.nodes.resize(1);
         pose.nodes[0].position={float(n)+.25f,0.f,0.f};pose.sphere={{float(n),0.f,0.f},.5f};
         pose.attachment=SourceWorldPoseAttachment{null_datum,std::uint8_t(0xe3+n),{}};
+        pose.model=SourceWorldPoseModel{0x50003u+n,{0,255,std::uint8_t(n)}};
         attached.source_body_poses.push_back(pose);
     }
     attached.source_body_poses[1].attachment=SourceWorldPoseAttachment{
         attached.source_body_poses[0].object,0,attached.source_body_poses[0].nodes[0]};
+    attached.players[1].source_weapon=0x60005u;attached.players[1].weapon=0x70006u;
+    SourceWorldPose held{attached.players[1].source_weapon,{Transform{}},{{0,0,0},.5f}};
+    held.attachment=SourceWorldPoseAttachment{attached.players[1].source_unit,0,attached.source_body_poses[1].nodes[0]};
+    held.model=SourceWorldPoseModel{attached.players[1].weapon,{2,255}};
+    attached.source_body_poses.push_back(held);
     const auto attached_bytes=encode(attached,ids0);
     const auto attached_received=decode(attached_bytes,ids0);
     need(encode(attached_received,ids0)==attached_bytes,"New native attachment snapshot changed its exact input bank");
+    need(attached_received.source_body_poses[0].model==attached.source_body_poses[0].model &&
+        attached_received.source_body_poses[1].model==attached.source_body_poses[1].model &&
+        attached_received.source_body_poses[2].model==held.model,
+        "Snapshot lost actual biped/held-weapon model region bytes");
+    auto no_models=attached;for(auto &pose:no_models.source_body_poses)pose.model.reset();
+    for(unsigned version=110;version<=121;++version) {
+        need(encode(attached,ids0,version)==encode(no_models,ids0,version),
+            "WORLD model metadata changed an earlier snapshot body");
+        need(!decode(encode(attached,ids0,version),ids0,version).source_body_poses[0].model,
+            "Earlier snapshot fabricated native model region ownership");
+    }
+    reject([&]{encode(no_models,ids0);});
+    auto foreign_model=attached;foreign_model.source_body_poses[2].model->definition++;
+    reject([&]{encode(foreign_model,ids0);});
     need(attached_received.source_body_poses[0].attachment->parent_node==0xe3 &&
         attached_received.source_body_poses[1].attachment->parent==attached.players[0].source_unit &&
         attached_received.source_body_poses[1].attachment->parent_frame->position.x==.25f,
@@ -106,6 +126,9 @@ int main(int argc,char **argv)try {
     changed=attached;changed.source_body_poses[1].attachment->parent_node=1;
     need(source_execution_state_result(changed)!=source_execution_state_result(attached),
         "Full native state seal omitted the actual native parent node");
+    changed=attached;changed.source_body_poses[1].model->permutations[0]=255;
+    need(source_execution_state_result(changed)!=source_execution_state_result(attached),
+        "Full native state seal omitted current WORLD model region choices");
     SnapshotStreamSender sender(1292,80);SnapshotStreamReceiver receiver(1292);
     SnapshotBodyLayout layout;Packet body;encode_state(body,state,ids0,&layout);
     SnapshotStreamSender::Frame input{body,layout.floats,layout.anchor_offsets,layout.anchor_keys,layout.poses,1,1,1000,{},{},{}};
@@ -133,6 +156,10 @@ int main(int argc,char **argv)try {
             "Acknowledged stream detached the exact prefix from its materialized nodes");
         need(std::abs(value.source_body_poses[1].nodes[0].position.x-1.25f)<.002f,
             "Materialized WORLD root exceeded the declared lossy coordinate tolerance");
+        need(value.source_body_poses[0].model==attached.source_body_poses[0].model &&
+            value.source_body_poses[1].model==attached.source_body_poses[1].model &&
+            value.source_body_poses[2].model==held.model,
+            "Acknowledged WORLD stream lost its exact current native model region metadata");
         need(attachment_receiver.commit(got->sequence),"Native attachment receipt did not commit");attachment_delivered=true;
     }
     need(attachment_delivered,"Native attachment snapshot fragments never completed");
@@ -141,6 +168,8 @@ int main(int argc,char **argv)try {
         {"legacy_versions_unchanged",{110,111,112,113,114}},{"physical_state_legacy_unknown",{110,111,112,113,114,115}},
         {"attachment_legacy_unknown",{110,111,112,113,114,115,116}},
         {"attachment_prefix_exact",true},{"attachment_acknowledged_stream",true},{"cancelled_sword_mode6_roundtrip",true},{"malformed_cases_rejected",rejected},
+        {"world_model_metadata_exact",true},{"world_model_metadata_legacy_unchanged_through",121},
+        {"world_model_metadata_acknowledged_stream",true},{"world_model_metadata_state_sealed",true},
         {"packet_bytes",packet.size()},{"snapshot_fragments",output->packets.size()},
         {"scope","Production snapshot codec and acknowledged stream with declared typed native FP input stimuli"}};
     std::ofstream(argc==2?std::filesystem::path(argv[1]):std::filesystem::path(scratch)/"fp-transport.json")<<report.dump(2)<<'\n';

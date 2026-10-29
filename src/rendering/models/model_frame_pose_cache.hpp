@@ -17,6 +17,13 @@ public:
     }
     unsigned builds() const noexcept{return builds_;}
     unsigned reuses() const noexcept{return reuses_;}
+    void clear()noexcept {poses_.clear();builds_=reuses_=0;}
+    ModelWorldPoseCache::DeferredResult update_factory(std::uint32_t owner,unsigned lod,
+        const RenderModel &model,std::span<const Transform> nodes,bool allow_gpu) {
+        const auto result=poses_[{owner,lod}].update_factory(model,nodes,allow_gpu);
+        if(result.reused)++reuses_;else ++builds_;
+        return result;
+    }
     std::span<const Vertex> update_preserving_effects(std::uint32_t owner,unsigned lod,
         const RenderModel &model,std::span<const Transform> nodes) {
         const auto result=poses_[{owner,lod}].update_preserving_effects(model,nodes);

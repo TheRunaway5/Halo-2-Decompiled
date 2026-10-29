@@ -28,8 +28,10 @@ int main(int argc,char **argv)try {
   if(!std::filesystem::is_regular_file(pc/"maps/mainmenu.map"))return 77;
   FrontendContent content;content.vista=load_vista_settings(pc/"maps/mainmenu.map");
   unsigned cases{};
-  for(unsigned engine=0;engine<7;++engine) {
-    const auto variant=source_game_variant_default(engine,u"Source PCR family");
+  for(unsigned index=0;index<8;++index) {
+    const auto engine=index<7?index:0;const bool changing=index==7;
+    auto variant=source_game_variant_default(engine,u"Source PCR family");
+    if(changing){source_game_variant_set(variant,91,1);source_game_variant_set(variant,22,1);}
     const auto type=source_game_variant_type(variant);const bool teams=source_game_variant_get(variant,91)!=0;
     check(source_game_variant_valid(variant),"Original family default is invalid");
     SourceResultStatistics numeric;
@@ -45,14 +47,15 @@ int main(int argc,char **argv)try {
       roster.push_back(admitted);auto &player=input.players[slot];player.occupied=1;player.identity=admitted.identity;
       std::array<std::uint8_t,9> appearance{};appearance[0]=std::uint8_t(n?8:4);
       player.configuration=native_vista_selected_profile_payload(native_selected_player_configuration(admitted.name,appearance,admitted.team));
-      player.configuration[0x7c]=std::byte(teams?n:0xff);player.score=50-int(n);player.placement=int(n);
+      player.configuration[0x7c]=std::byte(teams?(changing?n+2:n):0xff);player.score=50-int(n);player.placement=int(n);
       if(teams)input.teams[n]={1,50-int(n),int(n)};
+      if(changing)input.teams[n+2]={1,40-int(n),int(n+2)};
     }
     const auto source=vista_pcr_publish_consumed_snapshot(input);
     check(std::equal(input.variant.bytes.begin(),input.variant.bytes.end(),source.source.begin()+0x20),"Family publication changed its actual304byte variant");
     std::optional<std::uint16_t> presence=std::uint16_t((1u<<3)|(1u<<7));
     NativeVistaPcr pcr(source,roster,content,fp,[&]{return presence;});const auto results=pcr.results();const auto before=*results;
-    check(results->variant==unsigned(type) && results->player_count==2 && results->team_count==(teams?2u:0u),"Original family PCR lost player/team/type");
+    check(results->variant==unsigned(type) && results->player_count==2 && results->team_count==(teams?(changing?4u:2u):0u),"Original family PCR lost player/team/type");
     unsigned first{},second{};switch(type){case 2:first=13;second=12;break;case 1:first=16;second=15;break;case 3:first=26;second=25;break;case 4:first=28;second=27;break;case 7:first=38;second=39;break;case 8:first=43;second=44;break;case 9:first=21;second=20;break;default:throw FormatError("Unexpected original family");}
     for(unsigned row=0;row<2;++row) {
       const auto &display=results->players[row];const auto identity=std::to_integer<unsigned>(display[0x100]);const unsigned slot=identity-1;
@@ -70,7 +73,7 @@ int main(int argc,char **argv)try {
     presence.reset();for(unsigned row=0;row<2;++row)check(gray(pcr.appearance(row).name_color),"Unknown current membership fabricated admission presence");
     check(*results==before,"Dynamic source presence changed retained numeric report");++cases;
   }
-  check(cases==7,"Original PCR family coverage incomplete");
+  check(cases==8,"Original PCR family coverage incomplete");
   std::cout<<"PASS seven original family carriers/numeric columns, source-valid304byte options, sparse current/departed/unknown membership, admitted rank metadata; declared component banks, natural source/GPU/ONLINE flow tested separately\n";
   return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

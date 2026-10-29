@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/model_skin_submission.hpp"
+#include "halo2/source_model_depth_selection.hpp"
 #include "halo2/pstencil/lightmap.hpp"
 #include "halo2/pstencil/point_caster.hpp"
 #include "halo2/renderer_device_lease.hpp"
@@ -23,6 +24,7 @@
 #include "halo2/appearance.hpp"
 #include "halo2/display_settings.hpp"
 #include "halo2/path_tracing/scene.hpp"
+#include "halo2/path_tracing/geometry.hpp"
 #include "halo2/scene.hpp"
 #include "halo2/cinematic_crossfade.hpp"
 #include "halo2/bsp_atmosphere.hpp"
@@ -53,6 +55,9 @@
 #include <memory>
 
 namespace halo2 {
+class SourceWorldDepthInput;
+class SourceModelDepthInput;
+class SourceWorldDepthFrameReceipt;
 class MainmenuWorldSourcePlan;
 class SourceBspResidentPlan;
 struct MainmenuBspAdmissionFrame;
@@ -99,6 +104,8 @@ struct ModelObjectDraw {
     std::span<const SourcePrtMaterialBank> prt_banks;
     std::optional<float> camouflage; // Resolved source first-biped, before animation.
     std::span<const ModelSkinSubmission> deferred_skins;
+    const SourceModelDepthInput* source_model_depth{};
+    std::optional<SourceModelDepthSelection> source_model_selection;
 };
 // Read-only CPU metadata for the material image cache at uniform upload.
 // A draw may instead bind a baked lightmap, accumulation/scope/water target,
@@ -127,6 +134,9 @@ struct RendererCompletedMaterialUpload {
     // Borrowed only during the synchronous callback, after actual per-view
     // completion and before upload. The observer must copy any retained bytes.
     std::span<const std::byte> material_uniform,vertex_bank_uniform;
+    // Available for admitted ordinary depth materials only, borrowed through
+    // this synchronous callback. A copied capability expires with its upload.
+    const SourceWorldDepthFrameReceipt* source_depth_frame_receipt{};
 };
 // Capture-only facts copied from actual Vulkan creation/write/bind/draw calls.
 // These record command inputs, not surviving samples or original-frame parity.
@@ -292,6 +302,9 @@ struct ModelView {
     // Original indexed class0..6 geometry and current palettes. Supplying
     // both shadow representations in one view is rejected before recording.
     std::optional<SourceShadowRawPlan> raw_source_shadows;
+    // Diagnostic packet isolation retains the completed native receiver/pose
+    // owners so ordinary model depth stays identical in the paired draw.
+    bool raw_source_shadow_gpu_disabled{};
     // Optional live reference owner. Checked AFTER swapchain recreation and
     // before raw planning/recording; a stale native lease cannot bind this
     // plan to replacement attachments. Caller retains it through draw().
@@ -335,12 +348,21 @@ struct ModelView {
     std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
     std::span<const pstencil::PointCaster> pstencil_point_casters;
     bool pstencil_native_point_casters=false;
+    const SourceWorldDepthInput* source_world_depth{};
+    const RendererTargets::Use* source_world_depth_targets{};
+    const SourceModelDepthInput* source_model_depth{};
     // Exact configured4922F8 clip/effect distance, independent of the
     // submitted camera far in projection_clip_planes (491E7C).
     std::optional<float> source_w_distance;
     // Empty in ordinary play. Delivered after this view's actual GPU skin
     // submission and optional completed readback, without changing admission.
     std::function<void(const ModelSkinGpuOwnerObservation&)> model_skin_gpu_owner_observer;
+    // Complete native WORLD player bodies/carried weapons for secondary rays. These never
+    // enter primary visibility; replacing their ordinary/lower-body material
+    // ranges avoids duplicate partial-body occluders in the same BVH.
+    std::span<const Vertex> path_tracing_body_occluders;
+    std::span<const path_tracing::MaterialRange> path_tracing_replaced_body_materials;
+    std::span<const path_tracing::SecondaryBodyOwner> path_tracing_secondary_bodies;
 };
 // Optional Path Tracing ownership only. Borrowed original assets and shared
 // scene/presentation resources are excluded from these lifecycle diagnostics.
@@ -457,6 +479,10 @@ public:
     RendererConstantMode constant_mode_control();
     RendererDepthMode depth_mode_control();
     RendererParticleProgram particle_program_control();
+    // Register known content before render overlap begins. Unsupported visual
+    // resources are diagnosed independently; device/allocation errors propagate.
+    std::size_t preload_particle_materials(
+        std::span<const std::shared_ptr<const ParticleMaterial>>);
     RendererParticleView particle_view_inputs();
     RendererParticleView prepare_particle_views(std::span<const RendererParticleViewInput>);
     RendererOutputState output_state_control();
@@ -512,6 +538,7 @@ public:
     void scene_particles(std::vector<ParticleDraw>);
     std::string device_name() const;
     SourceWorldDeviceState source_world_device_state() const;
+    bool prepare_world_targets();
     RendererDeviceLease device_lease();
 private:
     struct Impl;

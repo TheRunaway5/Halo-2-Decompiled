@@ -35,11 +35,28 @@ struct SourceWorldPoseAttachment {
     // atomically; a held pose retains its corresponding earlier frame.
     std::optional<Transform> parent_frame;
 };
+struct SourceWorldPoseModel {
+    // Actual object definition and16D660 permutation bytes, copied beside
+    // this owner's completed WORLD hierarchy. Secondary rays resolve these
+    // choices through4C2B0 at their explicit LOD4 policy; this is not a claim
+    // that a camera-dependent native collector selected that LOD.
+    std::uint32_t definition{0xffffffffu};
+    std::vector<std::uint8_t> permutations;
+    bool operator==(const SourceWorldPoseModel&)const=default;
+};
+inline std::vector<unsigned> source_world_pose_secondary_sections(const SourceWorldPoseModel &model,
+    std::uint32_t expected_definition,const SourceInitialModelDefinition &definition) {
+    if(model.definition!=expected_definition)
+        throw FormatError("Secondary WORLD model lost its accepted full definition identity");
+    SourceInitialModelSelection selection;selection.permutations=model.permutations;
+    return source_initial_model_sections(definition,selection,4);
+}
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};
     std::vector<Transform> nodes;
     ShadowCasterSphere sphere;
     // Unavailable on legacy wire formats, distinct from known unparented.
     std::optional<SourceWorldPoseAttachment> attachment;
+    std::optional<SourceWorldPoseModel> model;
 };
 }

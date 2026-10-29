@@ -1,0 +1,11 @@
+{
+  "scope": "Production raw-party average and production gathering-bank brief with synthetic signed-in/guest admission and empty genuine SearchQos state. Original guest producer is source/recorded evidence, not freshly replayed here.",
+  "signed_in_raw_ranks": [
+    20,
+    40
+  ],
+  "guest_raw_rank": 20,
+  "party_rank_excludes_guest": 30,
+  "gathering_advertised_average": 26,
+  "mismatch": true
+}

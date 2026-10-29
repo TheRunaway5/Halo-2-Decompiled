@@ -241,6 +241,8 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
   const auto order=vista_pcr_order(source_.source);
   if(order.player_count!=online_roster_.size())
     throw FormatError("ONLINE PCR does not match its completed original roster");
+  const bool changing=(source_.source[0x68]&std::byte{0x40})!=std::byte{};
+  unsigned required_team_mask{};
   unsigned team_mask{};
   for(unsigned i=0;i<16;++i) {
     const auto at=0x370+i*0x94;
@@ -251,9 +253,10 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
         throw FormatError("ONLINE PCR identity differs from authenticated admission");
       const auto expected=wide(admitted->name);
       if(team) {
-        const auto selected=admitted->team;
-        if(selected<0 || selected>7 || source_.source[at+0x88]!=std::byte(selected))
-          throw FormatError("ONLINE PCR team differs from admission");
+        const auto selected=admitted->team;const auto current=std::to_integer<unsigned>(source_.source[at+0x88]);
+        if(selected<0 || selected>7 || current>=8 || (!changing && current!=unsigned(selected)))
+          throw FormatError("ONLINE PCR team differs from its admitted rule");
+        required_team_mask|=(1u<<selected)|(1u<<current);
         team_mask|=1u<<selected;
       } else if(source_.source[at+0x88]!=std::byte{0xff})
         throw FormatError("FFA PCR contains team membership");
@@ -263,6 +266,15 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
         if(value!=(j<expected.size()?expected[j]:0))throw FormatError("ONLINE PCR screen name differs from admission");
       }
     } else if(source_.source[at]!=std::byte{})throw FormatError("ONLINE PCR contains an unadmitted player");
+  }
+  if(changing && team) {
+    team_mask=0;
+    for(unsigned i=0;i<8;++i) {
+      const auto present=std::to_integer<unsigned>(source_.source[0xcb0+i*0x18]);
+      if(present>1)throw FormatError("Invalid retained PCR team presence");
+      if(present)team_mask|=1u<<i;
+    }
+    if((team_mask&required_team_mask)!=required_team_mask)throw FormatError("ONLINE PCR omitted an admitted or final team");
   }
   for(unsigned i=0;i<16;++i)if(source_.source[0xcb0+i*0x18]!=std::byte(i<8 && (team_mask&(1u<<i))))
     throw FormatError("ONLINE PCR team rows differ from admission");

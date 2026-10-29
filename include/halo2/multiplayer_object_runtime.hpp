@@ -153,6 +153,7 @@ public:
   // Native roster input, before player allocation/configuration. Original
     // team-mask and existing-player configuration owners consume the change.
     void publish_roster_team(unsigned user,std::int8_t team);
+  SourcePlayerConfiguration update_player_configuration(std::uint32_t,const SourcePlayerConfiguration &);
     void bind_player(std::uint32_t player,std::uint32_t object);
   // TU1.5 ordinary departure retains the allocated identity/profile. The
   // original world consumes its deferred unit-death request on a later tick.
@@ -222,6 +223,7 @@ public:
   unsigned retire_lens_queries();
   // Host observer/read-borrow metadata only: no native view reset is made.
   void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
+  SourceCompletedMainCameraObserverScopeTu15 scoped_completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
   void inspect_render_memory(const SourceRenderMemoryInspectorTu15&) const;
   std::optional<std::vector<Transform>> rendered_world_nodes(std::uint32_t object) const;
   SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
@@ -261,6 +263,8 @@ public:
     bool for_owner(const MultiplayerObjectRuntime &) const noexcept;
     const SourceRuntimeMemory &replacement_memory() const;
     SourcePhysicsWorldRuntimeAbi replacement_caller() const;
+    void retain_live_multiplayer_render_history();
+    void retain_live_multiplayer_render_history_from(const MultiplayerObjectRuntime &);
   private:
     friend class MultiplayerObjectRuntime;
     PreparedAuthority();

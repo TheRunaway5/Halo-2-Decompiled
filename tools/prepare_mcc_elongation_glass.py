@@ -8,7 +8,6 @@ references and asset registries are read-only. Normal import uses bundled deltas
 through mcc_graphics_corrections instead of this incremental candidate tool.
 """
 import argparse
-import fcntl
 import hashlib
 import json
 import os
@@ -108,6 +107,10 @@ def rgba(cache, bank, profile=PROFILE_V5, *, donor=True):
 
 def allocated_unshared(path):
     """Linux FIEMAP extents; None means this filesystem cannot report sharing."""
+    try:
+        import fcntl
+    except ImportError:
+        return None
     try:
         position = total = 0
         with path.open("rb") as stream:

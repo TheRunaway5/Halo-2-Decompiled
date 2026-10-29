@@ -7,6 +7,7 @@
 #include "halo2/multiplayer_presentation.hpp"
 #include "halo2/nonhost_movement_client.hpp"
 #include "halo2/render_interpolation.hpp"
+#include "halo2/model_node_interpolation.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
 #include <array>
@@ -85,6 +86,8 @@ MultiplayerState snapshot(std::uint32_t tick,Vec3 own,Vec3 velocity,std::uint32_
   auto &a=s.players[0];
   a.connected=true;a.source_unit=own_unit;a.source_weapon=own_weapon;a.native_physical_state=1;
   a.native_grounded=true;a.position=own;a.velocity=velocity;a.source_teleport_serial=teleport;
+  a.source_player_camera=NativeDeathCameraView{own+Vec3{.125f,-.03125f,.55f},
+      {0,.125f,-.992156744f},{0,.992156744f,.125f},1.2f,-0.f,0};
   auto &b=s.players[1]; // Second local view, seated: never predicted.
   const Vec3 seat{-4.f+.05f*float(tick),6,.5f};
   b.connected=true;b.source_unit=seated_unit;b.source_parent=vehicle;b.source_seat=0;
@@ -138,9 +141,11 @@ void predicted_own_body() {
   // Three identical banks: predicted (the runtime's), ordinary (before this
   // change) and prediction off (no movement client: no roots).
   SourceWorldInterpolation predicted_bank,ordinary_bank,off_bank;
+  ModelNodeInterpolation first_person_body;
   MultiplayerState previous=snapshot(10,{0,0,ground},{},0),current=previous;
   for(auto *bank:{&predicted_bank,&ordinary_bank,&off_bank})
     capture_multiplayer_body_poses(*bank,previous,current,true);
+  first_person_body.capture(current.tick,current.source_body_poses.front().nodes);
   Controls run;run.forward=1;run.right=.25f;
   check(!client.predict(0,10,run,0,0,current.players[0],b,collision),"Prediction started before a baseline");
   check(!client.predict(1,10,run,0,0,current.players[1],b,collision),"Seated view predicted");
@@ -169,6 +174,8 @@ void predicted_own_body() {
       if(cut){++teleport;position=position+Vec3{21,0,0};}
       previous=current;current=snapshot(t,position,velocity,teleport);
       for(auto *bank:{&predicted_bank,&ordinary_bank,&off_bank})capture_multiplayer_body_poses(*bank,previous,current);
+      if(cut)first_person_body=ModelNodeInterpolation{};
+      first_person_body.capture(current.tick,current.source_body_poses.front().nodes);
       client.reconcile(0,current.players[0],receipt(consumed),collision);
       client.reconcile(1,current.players[1],receipt(consumed),collision);
     }
@@ -190,6 +197,13 @@ void predicted_own_body() {
       check(roots.size()==1 && roots[0].object==own_unit,"Own predicted body was not selected");
       ++totals.predicted_frames;
       const auto camera=shown.players[0].position;
+      check(shown.players[0].source_player_camera.has_value(),"Prediction dropped the completed native on-foot eye");
+      const auto expected_eye=camera+Vec3{.125f,-.03125f,.55f};
+      check(distance(shown.players[0].source_player_camera->position,expected_eye)<1e-4f,
+          "Native looking-down eye detached from the predicted body root");
+      check(same_bits(shown.players[0].source_player_camera->forward,host_shown.players[0].source_player_camera->forward) &&
+          same_bits(shown.players[0].source_player_camera->up,host_shown.players[0].source_player_camera->up),
+          "Prediction changed the native looking-down eye basis");
       totals.lag=std::max(totals.lag,distance(camera,host_shown.players[0].position));
       if(length(client.predictor(0)->position_offset())>1e-4f)++totals.correction_frames;
       if(gap)++totals.unpaired_frames;
@@ -200,6 +214,15 @@ void predicted_own_body() {
       const float root_error=distance(body[0].position,camera);
       totals.root_error=std::max(totals.root_error,root_error);
       check(root_error<1e-4f,"Own body root is not at the predicted camera origin");
+      auto fp_nodes=first_person_body.sample(body_model,animation);
+      const auto native_fp=fp_nodes;
+      present_first_person_body_nodes(fp_nodes,previous,current,shown,0,first_person_body.paired(),animation);
+      check(distance(fp_nodes.front().position,camera)<1e-4f,"Own first-person torso/legs lag behind the native predicted eye");
+      for(unsigned n=0;n<fp_nodes.size();++n) {
+        check(same_basis(fp_nodes[n],native_fp[n]),"First-person body prediction changed a native node basis");
+        check(distance(fp_nodes[n].position-fp_nodes.front().position,native_fp[n].position-native_fp.front().position)<1e-4f,
+            "First-person body prediction changed its native relative pose");
+      }
       const auto moved=body[0].position-plain[0].position;
       for(unsigned n=0;n<body.size();++n) {
         check(same_basis(body[n],plain[n]),"Own body pose rotated");

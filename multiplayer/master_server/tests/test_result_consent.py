@@ -126,7 +126,8 @@ class ResultConsentHttpTests(unittest.IsolatedAsyncioTestCase):
             if i != host:
                 await self.confirm(room, descriptors[i], connections[i], digest)
         self.assert_no_result(room)
-        room.deadline = time.monotonic() - 1
+        expired = room.deadline + 1
+        room.lifecycle_clock = lambda: expired
         await self.api.transport.cleanup()
         self.assertTrue(room.closed)
         self.assert_no_result(room)

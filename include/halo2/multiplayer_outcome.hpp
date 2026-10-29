@@ -36,6 +36,7 @@ struct MultiplayerRuntimeOutcome {
   // absence rather than copying the runtime's local placeholder as host data.
   // Actual local/host outcomes always contain their authoritative state.
   std::optional<MultiplayerState> state;
+  std::vector<unsigned> local_slots;
   // Present only for actual authoritative local/host matches. A client's
   // snapshot results_finalized flag does not create an authoritative bank.
   std::optional<MultiplayerOutcomeBanks> authoritative_banks;

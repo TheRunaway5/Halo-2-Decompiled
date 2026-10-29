@@ -1,0 +1,13 @@
+{
+  "gaps": 12,
+  "algorithm_ids": 53,
+  "acceptance_gates": 12,
+  "all_full_gap_statuses_open": true,
+  "all_gap_exit_criteria_preserved": true,
+  "complete_acceptance_gates_preserved": true,
+  "algorithm_index_preserved": true,
+  "certified": false,
+  "full_goal_complete": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-ybzz4q0r",
+  "retained_large_artifacts": []
+}

@@ -39,7 +39,7 @@ class LauncherHome(LauncherCanvas):
         self.status = self.tk.Label(window, text=("Play opens the intro, title screen and main menu."
                                     if self.frontend else UNAVAILABLE_MESSAGE), background=PANEL,
                                     foreground=CYAN if self.frontend else "#ffd29b", font=self.font(17),
-                                    anchor="nw", justify="left", wraplength=self.px(540))
+                                    anchor="nw", justify="left", wraplength=self.px(540), borderwidth=1)
         self.place(self.status, 402, 275, 560, 100)
         self.play_button = self.button("Play", self.play, 400, 572, 588, 70, primary=True)
         if not self.frontend:

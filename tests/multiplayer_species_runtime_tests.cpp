@@ -132,8 +132,8 @@ int main(int argc,char **argv)try {
     if((phase>=18 && !reload_sent) || (phase>=75 && !grenade_sent)) {
       const bool reload=!reload_sent;
       SDL_Event event{};event.type=SDL_KEYDOWN;event.key.windowID=window_id;event.key.state=SDL_PRESSED;
-      event.key.keysym.scancode=reload?SDL_SCANCODE_R:SDL_SCANCODE_Q;
-      event.key.keysym.sym=reload?SDLK_r:SDLK_q;
+      event.key.keysym.scancode=reload?SDL_SCANCODE_R:SDL_SCANCODE_F;
+      event.key.keysym.sym=reload?SDLK_r:SDLK_f;
       check(SDL_PushEvent(&event)==1,"Elite grenade key down failed");
       event.type=SDL_KEYUP;event.key.state=SDL_RELEASED;check(SDL_PushEvent(&event)==1,"Elite grenade key up failed");
       if(reload)reload_sent=true;else grenade_sent=true;

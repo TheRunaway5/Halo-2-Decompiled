@@ -54,6 +54,8 @@ void source_model_geometry_node_bank(std::uint32_t owner,std::uint32_t model,
     const auto& w=world.memory;const auto m=metadata(w,model);
     const auto group=read<std::int8_t>(w,m+std::uint32_t(lod)+0x3c);
     if(!(first_person&255u) && owner!=0xffffffffu)nodes=deferred(owner,selected,nodes,world);
+    const auto presented=!(first_person&255u) && world.presented_world_nodes?
+        world.presented_world_nodes(owner,model,nodes,read<std::uint32_t>(w,m+0x48)):std::shared_ptr<void>{};
     if(!(first_person&255u) && owner!=0xffffffffu && world.observed_world_nodes)
         world.observed_world_nodes(owner,nodes,read<std::int32_t>(w,m+0x48));
     const bool compact=(read<std::uint8_t>(w,m+4)&4)!=0;

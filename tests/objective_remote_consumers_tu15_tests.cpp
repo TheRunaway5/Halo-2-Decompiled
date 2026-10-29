@@ -104,6 +104,7 @@ int main(int argc,char** argv)try {
             auto client=options(launch(content,map,name,"Objective Peer",false),map);
             client.join=host.join_address;client.frames=120;client.width=640;client.height=480;
             client.validation=!std::getenv("HALO2_OBJECTIVE_NO_VALIDATION");
+            row["vulkan_validation"]=client.validation;
             client.screenshot=std::filesystem::path(scratch)/("peer-"+std::to_string(cases)+".ppm");
             unsigned vertices{},submitted{},ready_views{};
             client.objective_waypoint_draw_observer=[&](unsigned,std::uint32_t,std::span<const Vertex> value){vertices+=value.size();};

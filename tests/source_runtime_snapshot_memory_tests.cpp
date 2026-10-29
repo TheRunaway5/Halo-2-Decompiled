@@ -1,4 +1,5 @@
 #include "halo2/source_runtime_host_physical_memory.hpp"
+#include "halo2/cache_file_snapshot.hpp"
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -44,16 +45,46 @@ Bank::Checkpoint incoming(std::uint32_t size){
 }
 void restore(){
   auto saved=incoming(48u*1024u*1024u);std::cout<<"READY complete 48 MiB nonuniform incoming checkpoint\n";
-  Bank restored;restored.restore(saved);verify(restored.view(data_base,saved.regions[0].bytes.size()));
+  const auto before=CacheFileSnapshot::storage_stats();Bank restored;restored.restore(saved);
+  const auto after=CacheFileSnapshot::storage_stats();
+  check(after.capture_input_bytes==before.capture_input_bytes && after.capture_written_bytes==before.capture_written_bytes &&
+      after.independent_mapping_bytes-before.independent_mapping_bytes==saved.regions[0].bytes.size(),
+      "Native restore recaptured/wrote its pristine complete byte bank");
+  std::cout<<"Native restore storage: mapped="<<after.independent_mapping_bytes-before.independent_mapping_bytes
+      <<" captured="<<after.capture_input_bytes-before.capture_input_bytes<<" written="<<after.capture_written_bytes-before.capture_written_bytes<<'\n';
+  verify(restored.view(data_base,saved.regions[0].bytes.size()));
   saved.regions[0].bytes[7]^=std::byte{0xff};check(restored.view(data_base+7,1)[0]==sample(7),"Restored bank aliases checkpoint writes");
   restored.write(data_base+8,std::array{std::byte{0x94}});check(saved.regions[0].bytes[8]==sample(8),"Checkpoint aliases restored bank writes");
   check(restored.native_address(data_base,1).value>0xffffffffu,"Restored native address was truncated");
   std::cout<<"PASS complete large restore, native address and two-way isolation\n";
 }
 void copy(){
+  {
+    const auto pristine=incoming(4u*1024u*1024u);
+    const auto before=CacheFileSnapshot::storage_stats();
+    auto independent=pristine;
+    const auto after=CacheFileSnapshot::storage_stats();
+    const auto &original=pristine.regions[0].bytes;
+    const auto &copied=independent.regions[0].bytes;
+    check(original==copied && original.data()!=copied.data(),"Pristine snapshot copy lost complete bytes or independent mapping");
+    check(after.capture_input_bytes==before.capture_input_bytes && after.capture_written_bytes==before.capture_written_bytes &&
+        after.independent_mapping_bytes-before.independent_mapping_bytes==original.size(),
+        "Pristine snapshot copy recaptured/wrote unchanged payload");
+    std::cout<<"Pristine copy storage: mapped="<<after.independent_mapping_bytes-before.independent_mapping_bytes
+        <<" captured="<<after.capture_input_bytes-before.capture_input_bytes<<" written="<<after.capture_written_bytes-before.capture_written_bytes<<'\n';
+    independent.regions[0].bytes[7]^=std::byte{0xff};
+    check(original[7]==sample(7),"Private copied mapping changed the original immutable snapshot");
+  }
   auto saved=incoming(40u*1024u*1024u);auto *borrowed=saved.regions[0].bytes.data();
   std::cout<<"READY complete 40 MiB nonuniform checkpoint with borrowed mutable bytes\n";
-  auto clone=saved;verify(clone.regions[0].bytes);borrowed[17]^=std::byte{0xff};
+  const auto before=CacheFileSnapshot::storage_stats();auto clone=saved;
+  const auto after=CacheFileSnapshot::storage_stats();
+  check(after.capture_input_bytes-before.capture_input_bytes==saved.regions[0].bytes.size() &&
+      after.capture_written_bytes>before.capture_written_bytes && after.independent_mapping_bytes==before.independent_mapping_bytes,
+      "Escaped mutable snapshot pointer bypassed complete independent capture");
+  std::cout<<"Escaped copy storage: mapped="<<after.independent_mapping_bytes-before.independent_mapping_bytes
+      <<" captured="<<after.capture_input_bytes-before.capture_input_bytes<<" written="<<after.capture_written_bytes-before.capture_written_bytes<<'\n';
+  verify(clone.regions[0].bytes);borrowed[17]^=std::byte{0xff};
   check(clone.regions[0].bytes[17]==sample(17),"Checkpoint copy aliases a pre-existing mutable borrower");
   clone.regions[0].bytes[18]^=std::byte{0xff};check(saved.regions[0].bytes[18]==sample(18),"Checkpoint copies share mutable bytes");
   std::cout<<"PASS complete large checkpoint copy and pre-existing borrower isolation\n";
@@ -65,6 +96,15 @@ void contracts(){
   bank.commit(0x2000,page);bank.commit(0x4000,page);auto saved=bank.checkpoint();
   saved.regions[1].bytes[0x1008]=std::byte{0x62}; // Preserve inaccessible hole bytes too.
   Bank restored;restored.restore(saved);check(restored.checkpoint()==saved,"Snapshot lost complete bytes, holes or metadata");
+  std::vector<Bank::RegionMetadata> layout;
+  restored.visit_region_metadata([&](const auto &region){layout.push_back(region);});
+  check(layout.size()==saved.regions.size(),"Live metadata lost an actual region");
+  for(std::size_t i=0;i<layout.size();++i) {
+    const auto &live=layout[i];const auto &captured=saved.regions[i];
+    check(live.address==captured.address && live.access==captured.access && live.owner==captured.owner &&
+        live.bytes==captured.bytes.size() && live.page_bytes==captured.page_bytes &&
+        live.committed_pages==captured.committed.size(),"Live metadata differs from complete admitted checkpoint topology");
+  }
   rejects([&]{restored.view(0x3000,1);});rejects([&]{restored.mutable_view(0x1000,1);});
   const auto before=restored.checkpoint();const auto native=restored.native_address(0x2000,1);
   auto invalid=saved;invalid.regions[1].committed[0]=2;rejects([&]{restored.restore(invalid);});
@@ -112,12 +152,17 @@ void storage(){
   auto copy=moved;borrowed[17]=std::byte{0x95};check(copy[17]==std::byte{0x22},"Copy shares an earlier mutable borrower");
   copy.clear();check(copy.empty(),"Byte-buffer clear differs");
 #if defined(__linux__) || defined(__APPLE__)
-  auto saved=incoming(2u*1024u*1024u);Bank target;const std::array marker{std::byte{0x71}};
+  const auto immutable=incoming(2u*1024u*1024u);
+  auto saved=incoming(2u*1024u*1024u);saved.regions[0].bytes[17]^=std::byte{0x15};
+  Bank target;const std::array marker{std::byte{0x71}};
   target.mount(0x1000,marker,Bank::Access::ReadWrite,"existing target");
   const auto before=target.checkpoint();const auto native=target.native_address(0x1000,1);
   const auto old=std::getenv("XDG_CACHE_HOME");const std::optional<std::string> old_cache=old?std::optional<std::string>(old):std::nullopt;
   struct RestoreEnvironment {std::optional<std::string> previous;~RestoreEnvironment(){if(previous)::setenv("XDG_CACHE_HOME",previous->c_str(),1);else ::unsetenv("XDG_CACHE_HOME");}} environment{old_cache};
   check(::setenv("XDG_CACHE_HOME","/dev/null",1)==0,"Cannot select unavailable snapshot backing");
+  Bank independent;independent.restore(immutable);verify(independent.view(data_base,immutable.regions[0].bytes.size()));
+  independent.write(data_base+17,std::array{std::byte{0x28}});
+  check(immutable.regions[0].bytes[17]==sample(17),"Retained immutable file copy depended on a fresh path or shared writable pages");
   rejects([&]{target.restore(saved);});
   check(target.checkpoint()==before && target.native_address(0x1000,1)==native,"Unavailable backing changed current memory or views");
 #endif

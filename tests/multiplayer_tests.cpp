@@ -104,6 +104,8 @@ void session_configuration() {
   const auto content=arena();const auto spawn=starts();
   MultiplayerMatch match(content,0,spawn,rules());
   UiVariant variant{"Authoritative source settings",0,{}};
+  variant.source_settings=source_game_variant_default(0);
+  source_game_variant_set(*variant.source_settings,2,37);
   for(unsigned n=0;n<600;++n) {
     variant.values.append(76,n%2?5:1);
     variant.values.append(89,5);
@@ -181,10 +183,42 @@ void session_configuration() {
   check(description.fingerprint==0x5155455259ull && description.variant.name==variant.name &&
       description.variant.engine==variant.engine && description.variant.values==variant.values,
       "Complete ordered host configuration did not survive actual UDP");
+  check(description.variant.source_settings && description.variant.source_settings->bytes==variant.source_settings->bytes,
+      "Host configuration discarded complete hopper settings");
   const auto after=match.state();
   check(host.peers()==0 && after.tick==before &&
       std::none_of(after.players.begin(),after.players.end(),[](const auto &p){return p.connected;}),
       "Configuration query admitted a player or changed the world");
+  // Each original engine must carry all of its valid descriptor edits, even
+  // when the frontend starts with a full source buffer instead of a preset.
+  // This is a transport fixture; it never advances this replica's authority.
+  for(unsigned engine=0;engine<7;++engine) {
+    UiVariant customized{"Edited engine "+std::to_string(engine),engine,{}};
+    customized.source_settings=source_game_variant_default(engine,u"LAN customization");
+    unsigned edits{};
+    const auto descriptors=source_game_variant_descriptors();
+    for(unsigned parameter=0;parameter<descriptors.size();++parameter) {
+      if(descriptors[parameter].kind<0)continue;
+      const auto current=source_game_variant(customized);
+      const auto value=source_game_variant_get(current,int(parameter));
+      for(const int replacement:{value+1,value-1}) {
+        auto candidate=current;source_game_variant_set(candidate,int(parameter),replacement);
+        if(candidate.bytes==current.bytes || !source_game_variant_valid(candidate))continue;
+        customized.values.append(parameter,replacement);++edits;break;
+      }
+    }
+    const auto expected=source_game_variant(customized);
+    check(edits>40 && source_game_variant_valid(expected),"All-engine customization fixture lost valid option edits");
+    LanHost configured(match,0,0x435553544f4dull+engine,customized);
+    const auto received=query_lan_session(configured.join_address(),std::chrono::seconds(3));
+    check(received.variant.name==customized.name && received.variant.engine==engine &&
+        received.variant.values==customized.values && received.variant.source_settings &&
+        received.variant.source_settings->bytes==customized.source_settings->bytes &&
+        source_game_variant(received.variant).bytes==expected.bytes,
+        "An original engine lost customized source settings during authenticated LAN discovery");
+    check(configured.peers()==0 && match.state().tick==before,
+        "All-engine customization discovery admitted a player or advanced its world");
+  }
   auto handwritten=rules();handwritten.session_configuration.reset();
   MultiplayerMatch undeclared(content,0,spawn,handwritten);
   LanHost legacy(undeclared,0,0x5155455259ull);
@@ -396,7 +430,7 @@ void rules_and_match() {
   full.join("A");
   full.join("B");
   rejects([&] { full.join("C"); }, "Capacity ignored");
-  full.leave(0);
+  full.cancel_join(0);
   check(full.join("C") == 0, "Released slot not reusable");
 }
 void asset_identity() {
@@ -583,7 +617,7 @@ void native_request_ingress() {
   auto trailing=leave;trailing.push_back(std::byte{});inject(trailing);retained(.125f);
   inject(leave);
   const auto state=match.state();
-  check(host.peers()==0&&state.tick==before&&std::none_of(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;}),
+  check(host.peers()==0&&state.tick==before&&std::none_of(state.players.begin(),state.players.end(),[](const auto &p){return p.connected && !(p.source_flags&2u);}),
       "Valid leave did not remove its four seats atomically");
 }
 void network_vehicle_intent() {

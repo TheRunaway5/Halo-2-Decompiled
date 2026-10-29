@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "returncode": 0,
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cjswicef/source/rust/online_protocol/Cargo.toml",
+    "--jobs",
+    "2",
+    "--test",
+    "matchmaking_ratings_original",
+    "--test",
+    "team_assignment_original"
+  ],
+  "source_frozen": true,
+  "source_manifest": "source-manifest.json",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cjswicef",
+  "scratch_retained": false,
+  "scope": "Rust raw/effective ratings/search and assignment original-fixture regression suites; not whole original session admission or native played acceptance."
+}

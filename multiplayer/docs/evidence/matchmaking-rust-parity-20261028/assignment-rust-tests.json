@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "argv": [
+    "cargo",
+    "test",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/home/eric/Developer/Halo-2-Decompiled/rust/online_protocol/Cargo.toml",
+    "--jobs",
+    "2",
+    "--test",
+    "team_assignment_original"
+  ],
+  "returncode": 0,
+  "source_hashes": {
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+    "tests/fixtures/matchmaking_assignment_original.json": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee"
+  },
+  "scratch": "/tmp/halo2-test-ga3z8caq",
+  "scratch_retained": false,
+  "scope": "Four Rust regression tests, including 336 unchanged-original assignment/getter records; not full session acceptance."
+}

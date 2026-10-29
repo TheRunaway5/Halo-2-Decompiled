@@ -3,6 +3,12 @@
 #include <bit>
 
 namespace halo2 {
+namespace {
+Vec3 palette_color(std::int8_t index,std::span<const std::array<std::uint32_t,3>> palette) {
+  return index>=0 && std::size_t(index)<palette.size()
+      ?std::bit_cast<Vec3>(palette[unsigned(index)]):Vec3{1,1,1};
+}
+}
 SourceObjectEmblem source_player_object_emblem(const SourcePlayerConfiguration &profile) {
   SourceObjectEmblem emblem;
   std::copy_n(profile.begin()+0x45,emblem.size(),emblem.begin());
@@ -28,8 +34,22 @@ std::array<Vec3,2> source_player_emblem_colors(const SourcePlayerConfiguration &
   std::array<Vec3,2> colors;
   for(unsigned i=0;i<colors.size();++i) {
     const auto index=std::bit_cast<std::int8_t>(profile[0x42+i]);
-    colors[i]=index>=0 && std::size_t(index)<palette.size()
-        ?std::bit_cast<Vec3>(palette[unsigned(index)]):Vec3{1,1,1};
+    colors[i]=palette_color(index,palette);
+  }
+  return colors;
+}
+ObjectColors source_player_appearance_colors(const SourcePlayerConfiguration &profile,
+    std::int16_t team,bool neutral,std::span<const std::array<std::uint32_t,3>> palette,
+    std::span<const std::array<std::uint32_t,3>> teams) {
+  ObjectColors colors;
+  for(unsigned i=0;i<colors.size();++i)
+    colors[i]=palette_color(std::bit_cast<std::int8_t>(profile[0x40+i]),palette);
+  if(neutral)colors[0]=colors[1]={1,1,1};
+  else if(team!=-1) {
+    colors[1]=colors[0];
+    // Literal [474C94] fallback in original83050, shared with retail7F720.
+    colors[0]=team>=0 && std::size_t(team)<teams.size()
+        ?std::bit_cast<Vec3>(teams[unsigned(team)]):Vec3{1,.41f,.7f};
   }
   return colors;
 }

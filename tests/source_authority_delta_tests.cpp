@@ -49,6 +49,34 @@ void run(){
     rejects([&]{AuthorityArchiveImage::read(high_ratio,source_authority_network_delta_limits());});
     std::mt19937 random(0x1500);Bytes raw(2*1024*1024);for(unsigned i=0;i<1024*1024;++i)raw[i]=std::byte(random());
     const auto base=AuthorityArchiveImage::read(archive(raw));auto target=raw;
+    const auto direct=AuthorityArchiveImage::from_raw(raw);
+    check(direct.digest()==base.digest()&&direct.encode()==base.encode(),
+        "Owned canonical image differs from its authenticated envelope");
+    {
+        auto moved=raw;const auto prior= reinterpret_cast<std::uintptr_t>(moved.data());
+        const auto sealed=AuthorityArchiveImage::from_raw(std::move(moved));
+        // The moved input's old pointer may no longer be live. Compare its
+        // saved numeric address only; never dereference a retired alias.
+        check(reinterpret_cast<std::uintptr_t>(sealed.raw().data())!=prior &&
+            sealed.digest()==base.digest()&&std::ranges::equal(sealed.raw(),raw),
+            "Public moved canonical input retained a pre-existing mutable alias");
+        auto caller=raw;const auto copied=AuthorityArchiveImage::from_raw(caller);
+        std::fill(caller.begin(),caller.end(),std::byte{0x42});
+        check(copied.digest()==base.digest()&&std::ranges::equal(copied.raw(),raw),
+            "Caller mutation changed the sealed canonical image");
+        const auto detached=[&]{auto local=raw;return AuthorityArchiveImage::from_raw(std::move(local));}();
+        check(detached.digest()==base.digest()&&std::ranges::equal(detached.raw(),raw),
+            "Canonical image lost complete bytes when the caller buffer died");
+        auto two_banks=AuthorityDeltaLimits{};two_banks.working_bytes=raw.size()+raw.size()/2;
+        rejects([&]{AuthorityArchiveImage::from_raw(raw,two_banks);});
+    }
+    rejects([&]{AuthorityArchiveImage::from_raw({});});
+    auto direct_limits=AuthorityDeltaLimits{};direct_limits.decoded_bytes=raw.size()-1;
+    rejects([&]{AuthorityArchiveImage::from_raw(raw,direct_limits);});
+    direct_limits={};direct_limits.working_bytes=raw.size();
+    rejects([&]{AuthorityArchiveImage::from_raw(raw,direct_limits);});
+    auto capacity=Bytes(1);capacity.reserve(4096);direct_limits={};direct_limits.decoded_bytes=128;
+    rejects([&]{AuthorityArchiveImage::from_raw(std::move(capacity),direct_limits);});
     for(unsigned i:{23u,5013u,700115u})target[i]^=std::byte{0x15};
     target.insert(target.begin()+10103,137,std::byte{0x42});target.erase(target.begin()+500000,target.begin()+500092);
     std::copy_n(raw.begin()+200000,4096,target.begin()+800000);
@@ -98,6 +126,23 @@ void run(){
         rejects([&]{apply_authority_delta(maximum,too_large_patch,bounded);});
         std::cout<<"Network maximum image: "<<maximum.decoded_size()<<" decoded / "<<bytes.size()
             <<" encoded bytes; unchanged delta: "<<copy.size()<<" bytes; decode/patch reservation "<<bounded.working_bytes<<" bytes\n";
+    }
+    {
+        const auto shadow=source_shadow_archive_delta_limits();
+        check(source_authority_network_delta_limits().decoded_bytes==96ull*1024*1024,
+            "Shadow archive policy changed recovery admission");
+        const auto bytes=archive(Bytes(shadow.decoded_bytes,std::byte{}));
+        // A complete MCC-sized image requires its explicit presentation
+        // policy. The generic recovery lane must continue to reject it.
+        rejects([&]{AuthorityArchiveImage::read(bytes,source_authority_network_delta_limits());});
+        const auto maximum=AuthorityArchiveImage::read(bytes,shadow);
+        const auto copy=encode_authority_delta(maximum,maximum,shadow);
+        check(apply_authority_delta(maximum,copy,shadow).digest()==maximum.digest(),
+            "Maximum complete presentation archive did not reconstruct");
+        auto too_large=bytes;set(too_large,16,shadow.decoded_bytes+1);
+        rejects([&]{AuthorityArchiveImage::read(too_large,shadow);});
+        auto tight=shadow;tight.working_bytes=maximum.decoded_size();
+        rejects([&]{apply_authority_delta(maximum,copy,tight);});
     }
     // Tiny states, complete replacement and growing/shrinking cuts exercise
     // the literal-only path independently of the copy index.

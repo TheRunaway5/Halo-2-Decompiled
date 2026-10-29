@@ -1,0 +1,171 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_CATALOG_VALIDATION_V1",
+  "updated_utc": "2026-10-28T19:29:38.603041+00:00",
+  "catalog_api_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust-supplied-catalog parsing/registry, compatibility and eligibility rules, public playlist endpoint and public rank-store selection, with full profile/catalog/rank-table binding. Authenticated session/party state, remaining API/session/QoS policy, original Live inputs and native/delivery qualification remain open.",
+  "rust_authorities": [
+    "Strict bounded JSON with duplicate decoded-key, nonfinite/trailing/invalid Unicode rejection at the native carrier/catalog boundary",
+    "Raw JSON catalog interpretation, policy/default normalization, named historical/native rules and original retail clock aliases",
+    "Catalog metadata registry and atomic complete replacement alongside queue policy state",
+    "Native version/continuation compatibility, common-map, guest, size and accepted-clan eligibility decisions over authenticated IO facts",
+    "Actual queue minimum-client/candidate compatibility guards",
+    "Public playlist payload/hidden-rank/clan presentation, requested public-rank IO plans and actual configured rank-store/display selection",
+    "Ticket/gathering/query/IO/proposal profile pins include catalog metadata and selected rank table identity; proposals retain complete profile/catalog material",
+    "Result skill configuration must match the same admitted catalog, not a mutable Python room or entry projection"
+  ],
+  "changed_ownership": {
+    "python_catalog_entries": "Immutable projections of the Rust registry; forced local snapshot edits cannot replace policy.",
+    "source_io": "Python still reads UTF8 file bytes and carries authenticated directory/party/seat/clan/storage facts. Catalog JSON interpretation and policy decisions run in Rust.",
+    "state_and_api": "Session bearer/local-seat/request/failure registries and much of the authenticated enqueue/poll/party/transport/world policy remain Python and require migration.",
+    "sql": "The same temporary generic SQLite executor handles public rank plans; Rust selects personal/clan/default-table or legacy display policy. A missing accepted clan returns no level without committing the caller transaction."
+  },
+  "regressions": [
+    "The initial enriched profile pin was not propagated through gathering/query contexts; actual HTTP Lab/couch/complete-option admission failed with Gathering IO retired. All owners now use the same pin, covered by Rust real-finalizer/IO and HTTP regressions.",
+    "Same-revision rank metadata change invalidates real ticket heartbeat/poll/reuse; cancel/requeue uses the new identity.",
+    "Invalid catalog replacement is rejected atomically while preserving the existing catalog/ticket.",
+    "Forced Python catalog snapshot edits cannot change public visibility/rank configuration or persisted selected policy.",
+    "Raw nested/escaped duplicate JSON keys, malformed policy fields and unrequested private level inputs are rejected."
+  ],
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 39,
+    "backend_tests": 444,
+    "backend_seconds": 102.199,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xjkfg9kh/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "5d387ee6c7acac7562c0ce4c315c6630fe13a8b15147f47d97e8cdbe8e46ae34",
+      "bytes": 1854624,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "report": "catalog-full-report.json",
+    "manifest": "catalog-full-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xjkfg9kh",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 17,
+    "backend_tests": 50,
+    "backend_seconds": 17.009,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "21b6e41782d342f9b79013a153b81325d1d55ab28cf5a74da4930432f3f95942",
+      "bytes": 1843912,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "report": "catalog-production-report.json",
+    "manifest": "catalog-production-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o",
+    "scratch_removed": true
+  },
+  "original_evidence": {
+    "new_original_executable_runs": false,
+    "prior_pinned_numerical_fixtures_replayed": true,
+    "limits": "Supplied JSON metadata and native eligibility/client/SQL policy are declared service contracts. No downloaded historical profile, original Live procedure, authenticated original inputs or physical/rendered/native gameplay evidence was recovered in this increment."
+  },
+  "cmake": {
+    "passed": true,
+    "jobs": 2,
+    "test_jobs": 1,
+    "report": "catalog-cmake-report.json",
+    "identity": "catalog-cmake-build-identity.json",
+    "target": "halo2_online_protocol_rust_build",
+    "ctest": "online_protocol_rust_build_helper",
+    "archive_sha256": "b5267da166170d49cdf664538c56d4051e71051be66c11a90458cd95a7340797",
+    "worker_sha256": "737fa731b2fc5120bc27a579dcfc935fecac650336216a4f5203492a93a1f4ed",
+    "lock_sha256": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd",
+    "source_scope": "Live-tree component build, not frozen native gameplay or delivered release; default ABI hashes are separately retained.",
+    "build_removed": true
+  },
+  "remaining": [
+    "Rust authenticated session/bearer/local-seat identity registry, party/clan consent and idempotent enqueue/request/failure state",
+    "Remaining endpoint interpretation, native match room/countdown/world continuity and QoS sensor/allocation policy",
+    "Original summary/capacity, comparison-skill/result producers, service ordering/arbitration and authenticated historical configuration",
+    "Native executable/map/profile/authority/expiry/namespace chain, pending-result recovery and concurrent dispute/SQL IO serialization",
+    "All seven families/39 built-ins/required historical variants and valid subjects/topologies through actual natural endings, return/requeue and delivered activation"
+  ],
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "872a88994d10fe839b468a1b272a2a414e0c00dd46a992c5a652dd98033fa70d",
+    "rust/online_protocol/src/matchmaking_model.rs": "1f7748b4ac71dfe8b6d7c3bb201fcb7569c4697cc2d513feff3607aee316e752",
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "0462f7d5831e7b584641d6bc4f0fbf024242ff9292816cadb395224ddef6c617",
+    "rust/online_protocol/src/matchmaking_results.rs": "4ebf95a5fd41f369ab705d97c2aa55cad5349bcf98bb9d3b88ecedb6d117570e",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "887a189a052536b3d7a327383e577d634d7cc5058d3444388ba88565a99a53e2",
+    "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+    "rust/online_protocol/src/lib.rs": "07a36be946ea598d77b86d8170151b4615061ef14ad156b83faf7ccefad67177",
+    "rust/online_protocol/Cargo.toml": "a3a45bbd6a01d1720255abad8fc5cce0a06a80b5ff98693dee6b30b79011174e",
+    "rust/online_protocol/Cargo.lock": "c89281b09a6fab9364260eb440e65e1a7e73876b2771dbe9a4bd6ca8fd19b1e4",
+    "rust/online_security_ffi/Cargo.lock": "12b3ed9a6b0afc4e46b0ef8119819c74648ace877451011435a6814c56226fee",
+    "rust/online_protocol_bridge/Cargo.lock": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "02884006cb7a0cda399f3a3f2d4121724e3a302baf65555c3f62238a4a47d0c4",
+    "multiplayer/master_server/matchmaking_http.py": "a868c0edce08c8b410f5194266449f806455e64b574cfb3abed88a6d4438a433",
+    "multiplayer/master_server/native_matchmaking.py": "16a6af81c36312f87d721f6762b402a7bf8d6cef7c23ac45bfd4f85c89bd8796",
+    "multiplayer/master_server/couch_players.py": "2d963d732d10c9ff93a00bca0abcf11e7bf29036420763c12b3a5a621607a36e",
+    "multiplayer/master_server/match_transport.py": "8be72310050b725665a507af844dc9ecb008abf3e167d09ae96cddb4a0513c2b",
+    "multiplayer/master_server/tests/test_catalog_owner_native.py": "93127323eb0816eab2264d29c6398df555da5c144a65ce15b6c1fccca4aa5a70"
+  },
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-5nx54k0g",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7s14e6tp",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8pu4i_a_",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-bz3ax3k6",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-k8mhwui5",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-nyi2csex",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xgihpv6u",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xjkfg9kh",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-y_433ynk",
+      "removed": true
+    }
+  ],
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false
+}

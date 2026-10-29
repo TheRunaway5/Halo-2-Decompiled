@@ -160,7 +160,9 @@ fn encode_anchors(e: &mut Encoder, m: &mut Models, anchors: &[(u32, u64)], base:
     let mut k = 0usize;
     while k < anchors.len() {
         let mut run = 0usize;
-        while let (Some(&(offset, key)), Some(&(base_offset, base_key))) = (anchors.get(k + run), base.anchors.get(cursor + run)) {
+        while let (Some(&(offset, key)), Some(&(base_offset, base_key))) =
+            (anchors.get(k + run), base.anchors.get(cursor + run))
+        {
             if key != base_key || i64::from(offset) != i64::from(base_offset) + shift {
                 break;
             }
@@ -208,7 +210,7 @@ fn decode_anchors(d: &mut Decoder<'_>, m: &mut Models, len: usize, base: &View) 
         .and_then(|n| n.checked_add(m.anchor_count.decode(d).ok()?))
         .and_then(|n| usize::try_from(n).ok())
         .ok_or(Error)?;
-    if count > len {
+    if count > len || !d.admits_metadata(count.saturating_mul(std::mem::size_of::<(u32, u64)>())) || d.exhausted() {
         return Err(Error);
     }
     let mut anchors: Vec<(u32, u64)> = Vec::with_capacity(count);
@@ -221,11 +223,17 @@ fn decode_anchors(d: &mut Decoder<'_>, m: &mut Models, len: usize, base: &View) 
         Ok(())
     };
     while anchors.len() < count {
+        if d.exhausted() {
+            return Err(Error);
+        }
         let run = usize::try_from(m.anchor_run.decode(d)?).map_err(|_| Error)?;
         if run > count - anchors.len() {
             return Err(Error);
         }
         for _ in 0..run {
+            if d.exhausted() {
+                return Err(Error);
+            }
             let &(base_offset, key) = base.anchors.get(cursor).ok_or(Error)?;
             let offset = u32::try_from(i64::from(base_offset) + shift).map_err(|_| Error)?;
             push(&mut anchors, offset, key)?;
@@ -312,7 +320,10 @@ impl Aligner<'_> {
             return Some(previous_offset);
         }
         let first = base.anchors.partition_point(|&(offset, _)| offset <= previous_offset);
-        base.anchors.get(first).filter(|&&(_, k)| k >> SECTION_SHIFT == section && k & SECTION_HEADER != SECTION_HEADER).map(|&(offset, _)| offset)
+        base.anchors
+            .get(first)
+            .filter(|&&(_, k)| k >> SECTION_SHIFT == section && k & SECTION_HEADER != SECTION_HEADER)
+            .map(|&(offset, _)| offset)
     }
 }
 
@@ -428,6 +439,11 @@ pub fn encode(e: &mut Encoder, input: &Input<'_>, base: &View, tick: u32) -> Vie
 }
 
 pub fn decode(d_in: &mut Decoder<'_>, len: usize, base: &View, tick: u32) -> Result<View, Error> {
+    // Reject length bombs before the output and bitsets are allocated. Even
+    // aliases to a baseline consume decoder work and count against this cap.
+    if !d_in.admits_len(len) {
+        return Err(Error);
+    }
     let mut m = Models::default();
     let anchors = decode_anchors(d_in, &mut m, len, base)?;
     let mut view = View {
@@ -445,9 +461,15 @@ pub fn decode(d_in: &mut Decoder<'_>, len: usize, base: &View, tick: u32) -> Res
     let mut d = 0i64;
     let (mut prev_changed, mut prev_float) = (false, false);
     while view.bytes.len() < len {
+        if d_in.exhausted() {
+            return Err(Error);
+        }
         aligner.advance(view.bytes.len(), base, &mut d);
         let run = m.run[usize::from(prev_changed)].decode(d_in)?;
         for _ in 0..run {
+            if d_in.exhausted() {
+                return Err(Error);
+            }
             if view.bytes.len() >= len {
                 return Err(Error);
             }
@@ -482,10 +504,8 @@ pub fn decode(d_in: &mut Decoder<'_>, len: usize, base: &View, tick: u32) -> Res
             changed = d_in.bit(&mut m.float_changed[usize::from(base_changed)][usize::from(prev_changed)]);
             let new = if changed {
                 let prediction = predict(base, j, tick);
-                let residual = m.residual[usize::from(prediction != 0)]
-                    .decode(d_in)?
-                    .checked_add(prediction)
-                    .ok_or(Error)?;
+                let residual =
+                    m.residual[usize::from(prediction != 0)].decode(d_in)?.checked_add(prediction).ok_or(Error)?;
                 if history {
                     view.residuals.push((i as u32, residual));
                     view.changed.set_range(i, 4);
@@ -514,6 +534,9 @@ pub fn decode(d_in: &mut Decoder<'_>, len: usize, base: &View, tick: u32) -> Res
         }
         prev_float = float;
         prev_changed = changed;
+    }
+    if d_in.exhausted() {
+        return Err(Error);
     }
     view.anchors = anchors;
     Ok(view)
@@ -550,7 +573,9 @@ pub(crate) mod tests {
                 tick: 100,
                 players: (0..players).map(|_| std::array::from_fn(|_| rng.unit() * 40.0 - 20.0)).collect(),
                 velocity: (0..players).map(|_| std::array::from_fn(|_| rng.unit() * 0.2 - 0.1)).collect(),
-                objects: (0..objects).map(|n| (0xE000_0000 | n as u32, std::array::from_fn(|_| rng.unit() * 50.0))).collect(),
+                objects: (0..objects)
+                    .map(|n| (0xE000_0000 | n as u32, std::array::from_fn(|_| rng.unit() * 50.0)))
+                    .collect(),
                 score: 0,
             }
         }
@@ -560,7 +585,8 @@ pub(crate) mod tests {
                 // Half the roster turns, so prediction is imperfect.
                 if n % 2 == 1 {
                     let (sin, cos) = 0.08f32.sin_cos();
-                    *velocity = [velocity[0] * cos - velocity[1] * sin, velocity[0] * sin + velocity[1] * cos, velocity[2]];
+                    *velocity =
+                        [velocity[0] * cos - velocity[1] * sin, velocity[0] * sin + velocity[1] * cos, velocity[2]];
                     player[3] += 0.08;
                 }
                 for axis in 0..3 {
@@ -627,7 +653,8 @@ pub(crate) mod tests {
 
     #[test]
     fn ordered_floats_are_monotone_and_exact() {
-        for bits in [0u32, 0x8000_0000, 1, 0x8000_0001, 0x3F80_0000, 0xBF80_0000, 0x7F7F_FFFF, 0xFF7F_FFFF, 0x7FC0_0000] {
+        for bits in [0u32, 0x8000_0000, 1, 0x8000_0001, 0x3F80_0000, 0xBF80_0000, 0x7F7F_FFFF, 0xFF7F_FFFF, 0x7FC0_0000]
+        {
             assert_eq!(unordered(ordered(bits)).unwrap(), bits);
         }
         assert!(ordered((-1.0f32).to_bits()) < ordered((-0.0f32).to_bits()));
@@ -646,7 +673,8 @@ pub(crate) mod tests {
         for _ in 0..120 {
             world.step(&mut rng);
             let (bytes, floats, anchors) = world.encode_anchored();
-            let (next, size) = round_trip(&Input { bytes: &bytes, floats: &floats, anchors: &anchors }, &base, world.tick);
+            let (next, size) =
+                round_trip(&Input { bytes: &bytes, floats: &floats, anchors: &anchors }, &base, world.tick);
             total += size;
             base = next;
         }
@@ -691,7 +719,9 @@ pub(crate) mod tests {
         let mut world = World::new(&mut rng, 8, 30);
         let mut history = Vec::new();
         let (bytes, floats, anchors) = world.encode_anchored();
-        history.push(round_trip(&Input { bytes: &bytes, floats: &floats, anchors: &anchors }, &View::default(), world.tick).0);
+        history.push(
+            round_trip(&Input { bytes: &bytes, floats: &floats, anchors: &anchors }, &View::default(), world.tick).0,
+        );
         for n in 0..60 {
             world.step(&mut rng);
             let (mut bytes, mut floats, mut anchors) = world.encode_anchored();

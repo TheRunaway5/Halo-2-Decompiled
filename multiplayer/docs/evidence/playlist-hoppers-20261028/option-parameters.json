@@ -1,0 +1,4116 @@
+{
+  "source_mainmenu_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+  "scope": "All112 original parameterIDs. Originalmainmenu sily metadata supplies canonical tag/title/choices where present; independently executed unchanged retail descriptorfunctions supply kind/offset/operand. MissingUI meanings remain unresolved. Choice existence does not prove historical downloaded variantbuffers.",
+  "parameters": [
+    {
+      "parameter": 0,
+      "name": "Match Round Setting",
+      "tag": "multiplayer\\game_variant_settings\\match\\number_of_rounds",
+      "file_offset": "038d51b0",
+      "serialized_value": 0,
+      "title": "Number of Rounds",
+      "choices": [
+        {
+          "value": 0,
+          "label": "1 Round"
+        },
+        {
+          "value": 1,
+          "label": "2 Rounds"
+        },
+        {
+          "value": 2,
+          "label": "4 Rounds"
+        },
+        {
+          "value": 3,
+          "label": "6 Rounds"
+        },
+        {
+          "value": 4,
+          "label": "First to 2"
+        },
+        {
+          "value": 5,
+          "label": "First to 3"
+        },
+        {
+          "value": 6,
+          "label": "First to 4"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236ae6",
+        "kind": 5,
+        "offset": 76,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4d6",
+        "kind": 5,
+        "offset": 76,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 1,
+      "name": "Match CTF Score To Win",
+      "tag": "multiplayer\\game_variant_settings\\ctf_match\\ctf_score_to_win",
+      "file_offset": "038d5ae0",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Unlimited"
+        },
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 2,
+          "label": "2"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 5,
+          "label": "5"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 2,
+      "name": "Match Slayer Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\slayer_match\\slayer_score_to_win",
+      "file_offset": "038d525c",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Unlimited"
+        },
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 5,
+          "label": "5"
+        },
+        {
+          "value": 10,
+          "label": "10"
+        },
+        {
+          "value": 15,
+          "label": "15"
+        },
+        {
+          "value": 20,
+          "label": "20"
+        },
+        {
+          "value": 25,
+          "label": "25"
+        },
+        {
+          "value": 50,
+          "label": "50"
+        },
+        {
+          "value": 100,
+          "label": "100"
+        },
+        {
+          "value": 250,
+          "label": "250"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 3,
+      "name": "Match Oddball Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\oddball_match\\oddball_score_to_win",
+      "file_offset": "038d6704",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        },
+        {
+          "value": 180,
+          "label": "3 Minutes"
+        },
+        {
+          "value": 300,
+          "label": "5 Minutes"
+        },
+        {
+          "value": 420,
+          "label": "7 Minutes"
+        },
+        {
+          "value": 600,
+          "label": "10 Minutes"
+        },
+        {
+          "value": 900,
+          "label": "15 Minutes"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 4,
+      "name": "Match King Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\king_match\\king_score_to_win",
+      "file_offset": "038d6970",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        },
+        {
+          "value": 180,
+          "label": "3 Minutes"
+        },
+        {
+          "value": 300,
+          "label": "5 Minutes"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 5,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 6,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 7,
+      "name": "Match Juggernaut Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_match\\juggernaut_score_to_win",
+      "file_offset": "038d6d7c",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Unlimited"
+        },
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 5,
+          "label": "5"
+        },
+        {
+          "value": 10,
+          "label": "10"
+        },
+        {
+          "value": 15,
+          "label": "15"
+        },
+        {
+          "value": 20,
+          "label": "20"
+        },
+        {
+          "value": 25,
+          "label": "25"
+        },
+        {
+          "value": 50,
+          "label": "50"
+        },
+        {
+          "value": 75,
+          "label": "75"
+        },
+        {
+          "value": 100,
+          "label": "100"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 8,
+      "name": "Match Territories Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\territories_match\\territories_score_to_win",
+      "file_offset": "038d6b64",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        },
+        {
+          "value": 180,
+          "label": "3 Minutes"
+        },
+        {
+          "value": 300,
+          "label": "5 Minutes"
+        },
+        {
+          "value": 420,
+          "label": "7 Minutes"
+        },
+        {
+          "value": 600,
+          "label": "10 Minutes"
+        },
+        {
+          "value": 900,
+          "label": "15 Minutes"
+        },
+        {
+          "value": 1200,
+          "label": "20 Minutes"
+        },
+        {
+          "value": 1800,
+          "label": "30 Minutes"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 9,
+      "name": "Match Assault Score To Win Round",
+      "tag": "multiplayer\\game_variant_settings\\assault_match\\assault_score_to_win",
+      "file_offset": "038d5eb8",
+      "serialized_value": 0,
+      "title": "Score to Win Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Unlimited"
+        },
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 2,
+          "label": "2"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 5,
+          "label": "5"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b0d",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d4fd",
+        "kind": 5,
+        "offset": 80,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 10,
+      "name": "Match Round Time Limit",
+      "tag": "multiplayer\\game_variant_settings\\match\\round_time_limit",
+      "file_offset": "038d5338",
+      "serialized_value": 0,
+      "title": "Round Time Limit",
+      "choices": [
+        {
+          "value": 0,
+          "label": "None"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        },
+        {
+          "value": 180,
+          "label": "3 Minutes"
+        },
+        {
+          "value": 240,
+          "label": "4 Minutes"
+        },
+        {
+          "value": 300,
+          "label": "5 Minutes"
+        },
+        {
+          "value": 360,
+          "label": "6 Minutes"
+        },
+        {
+          "value": 420,
+          "label": "7 Minutes"
+        },
+        {
+          "value": 480,
+          "label": "8 Minutes"
+        },
+        {
+          "value": 540,
+          "label": "9 Minutes"
+        },
+        {
+          "value": 600,
+          "label": "10 Minutes"
+        },
+        {
+          "value": 720,
+          "label": "12 Minutes"
+        },
+        {
+          "value": 900,
+          "label": "15 Minutes"
+        },
+        {
+          "value": 1200,
+          "label": "20 Minutes"
+        },
+        {
+          "value": 1800,
+          "label": "30 Minutes"
+        },
+        {
+          "value": 2700,
+          "label": "45 Minutes"
+        },
+        {
+          "value": 3600,
+          "label": "1 Hour"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b34",
+        "kind": 5,
+        "offset": 84,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d524",
+        "kind": 5,
+        "offset": 84,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 11,
+      "name": "Match Rounds Reset Map",
+      "tag": "multiplayer\\game_variant_settings\\match\\rounds_reset_map",
+      "file_offset": "038d5428",
+      "serialized_value": 0,
+      "title": "Rounds Reset Map",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b5b",
+        "kind": 1,
+        "offset": 72,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d54b",
+        "kind": 1,
+        "offset": 72,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 12,
+      "name": "Match Tie Resolution",
+      "tag": "multiplayer\\game_variant_settings\\match\\resolve_ties",
+      "file_offset": "038d5464",
+      "serialized_value": 0,
+      "title": "Resolve Ties",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236b7c",
+        "kind": 1,
+        "offset": 72,
+        "operand": 4
+      },
+      "tu15_descriptor": {
+        "address": "0x23d56c",
+        "kind": 1,
+        "offset": 72,
+        "operand": 4
+      }
+    },
+    {
+      "parameter": 13,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236b9d",
+        "kind": 1,
+        "offset": 72,
+        "operand": 5
+      },
+      "tu15_descriptor": {
+        "address": "0x23d58d",
+        "kind": 1,
+        "offset": 72,
+        "operand": 5
+      }
+    },
+    {
+      "parameter": 14,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236bbe",
+        "kind": 5,
+        "offset": 88,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d5ae",
+        "kind": 5,
+        "offset": 88,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 15,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236be5",
+        "kind": 5,
+        "offset": 116,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d5d5",
+        "kind": 5,
+        "offset": 116,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 16,
+      "name": "Lives Per Round",
+      "tag": "multiplayer\\game_variant_settings\\players\\lives_per_round",
+      "file_offset": "038d61c0",
+      "serialized_value": 0,
+      "title": "Lives Per Round",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Unlimited"
+        },
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 2,
+          "label": "2"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 7,
+          "label": "7"
+        },
+        {
+          "value": 9,
+          "label": "9"
+        },
+        {
+          "value": 99,
+          "label": "99"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236c33",
+        "kind": 5,
+        "offset": 124,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d623",
+        "kind": 5,
+        "offset": 124,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 17,
+      "name": "Respawn Time",
+      "tag": "multiplayer\\game_variant_settings\\players\\respawn_time",
+      "file_offset": "038d6238",
+      "serialized_value": 0,
+      "title": "Respawn Time",
+      "choices": [
+        {
+          "value": 3,
+          "label": "3 Seconds"
+        },
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 20,
+          "label": "20 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236c5a",
+        "kind": 5,
+        "offset": 128,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d64a",
+        "kind": 5,
+        "offset": 128,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 18,
+      "name": "Suicide Penalty",
+      "tag": "multiplayer\\game_variant_settings\\players\\suicide_penalty",
+      "file_offset": "038d62a4",
+      "serialized_value": 0,
+      "title": "Suicide Penalty",
+      "choices": [
+        {
+          "value": 0,
+          "label": "None"
+        },
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236c81",
+        "kind": 5,
+        "offset": 132,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d671",
+        "kind": 5,
+        "offset": 132,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 19,
+      "name": "Shields",
+      "tag": "multiplayer\\game_variant_settings\\players\\shield_type",
+      "file_offset": "038d62f8",
+      "serialized_value": 0,
+      "title": "Shield Type",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Normal Shields"
+        },
+        {
+          "value": 1,
+          "label": "No Shields"
+        },
+        {
+          "value": 2,
+          "label": "Overshields"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236ca8",
+        "kind": 5,
+        "offset": 136,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d698",
+        "kind": 5,
+        "offset": 136,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 20,
+      "name": "Motion Sensor",
+      "tag": "multiplayer\\game_variant_settings\\players\\motion_sensor",
+      "file_offset": "038d576c",
+      "serialized_value": 0,
+      "title": "Motion Sensor",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236ccf",
+        "kind": 1,
+        "offset": 72,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23d6bf",
+        "kind": 1,
+        "offset": 72,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 21,
+      "name": "Invisibility",
+      "tag": "multiplayer\\game_variant_settings\\players\\active_camo",
+      "file_offset": "038d6340",
+      "serialized_value": 0,
+      "title": "Active Camo",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236ceb",
+        "kind": 1,
+        "offset": 72,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d6db",
+        "kind": 1,
+        "offset": 72,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 22,
+      "name": "Team Changing",
+      "tag": "multiplayer\\game_variant_settings\\teams\\team_changing",
+      "file_offset": "038d644c",
+      "serialized_value": 0,
+      "title": "Team Changing",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236d0c",
+        "kind": 1,
+        "offset": 72,
+        "operand": 6
+      },
+      "tu15_descriptor": {
+        "address": "0x23d6fc",
+        "kind": 1,
+        "offset": 72,
+        "operand": 6
+      }
+    },
+    {
+      "parameter": 23,
+      "name": "Team Scoring",
+      "tag": "multiplayer\\game_variant_settings\\slayer_teams\\team_scoring",
+      "file_offset": "038d6404",
+      "serialized_value": 0,
+      "title": "Team Scoring",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Sum"
+        },
+        {
+          "value": 1,
+          "label": "Minimum"
+        },
+        {
+          "value": 2,
+          "label": "Maximum"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236d2d",
+        "kind": 5,
+        "offset": 164,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d71d",
+        "kind": 5,
+        "offset": 164,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 24,
+      "name": "Friendly Fire",
+      "tag": "multiplayer\\game_variant_settings\\teams\\friendly_fire",
+      "file_offset": "038d6470",
+      "serialized_value": 0,
+      "title": "Friendly Fire",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236d7b",
+        "kind": 1,
+        "offset": 72,
+        "operand": 7
+      },
+      "tu15_descriptor": {
+        "address": "0x23d76b",
+        "kind": 1,
+        "offset": 72,
+        "operand": 7
+      }
+    },
+    {
+      "parameter": 25,
+      "name": "Team Respawn Setting",
+      "tag": "multiplayer\\game_variant_settings\\teams\\respawn_time_modifier",
+      "file_offset": "038d6494",
+      "serialized_value": 0,
+      "title": "Respawn Time Modifier",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Inheritance"
+        },
+        {
+          "value": 1,
+          "label": "Cycling"
+        },
+        {
+          "value": 2,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236d54",
+        "kind": 5,
+        "offset": 168,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d744",
+        "kind": 5,
+        "offset": 168,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 26,
+      "name": "Betrayal Respawn Penalty",
+      "tag": "multiplayer\\game_variant_settings\\teams\\betrayal_penalty",
+      "file_offset": "038d64dc",
+      "serialized_value": 0,
+      "title": "Betrayal Penalty",
+      "choices": [
+        {
+          "value": 0,
+          "label": "None"
+        },
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236d9c",
+        "kind": 5,
+        "offset": 172,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d78c",
+        "kind": 5,
+        "offset": 172,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 27,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 28,
+      "name": "Slayer Bonus Points",
+      "tag": "multiplayer\\game_variant_settings\\slayer_game\\slayer_bonus_points",
+      "file_offset": "038d5488",
+      "serialized_value": 0,
+      "title": "Bonus Points",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23708e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": "0x23d816",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 29,
+      "name": "Slayer Suicide Point Loss",
+      "tag": "multiplayer\\game_variant_settings\\slayer_game\\suicide_point_loss",
+      "file_offset": "038d54f8",
+      "serialized_value": 0,
+      "title": "Suicide Point Loss",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 30,
+      "name": "Slayer Death Point Loss",
+      "tag": "multiplayer\\game_variant_settings\\slayer_game\\death_point_loss",
+      "file_offset": "038d551c",
+      "serialized_value": 0,
+      "title": "Death Point Loss",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 31,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 32,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 33,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 34,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 35,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 36,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 37,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 38,
+      "name": "King Uncontested Hill",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\uncontested_hill",
+      "file_offset": "038d6a10",
+      "serialized_value": 0,
+      "title": "Uncontested Hill",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23708e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": "0x23d816",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 39,
+      "name": "King Team Time Multiplier",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\team_time_multiplier",
+      "file_offset": "038d6ad4",
+      "serialized_value": 0,
+      "title": "Team Time Multiplier",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 40,
+      "name": "King Moving Hill",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\moving_hill",
+      "file_offset": "038d6a68",
+      "serialized_value": 0,
+      "title": "Moving Hill",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "1 Minute"
+        },
+        {
+          "value": 120,
+          "label": "2 Minutes"
+        },
+        {
+          "value": 180,
+          "label": "3 Minutes"
+        },
+        {
+          "value": 300,
+          "label": "5 Minutes"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370ac",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23daea",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 41,
+      "name": "King Extra Damage On Hill",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\extra_damage",
+      "file_offset": "038d6af8",
+      "serialized_value": 0,
+      "title": "Extra Damage",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 42,
+      "name": "King Dmg Resistance On Hill",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\damage_resistance",
+      "file_offset": "038d6b1c",
+      "serialized_value": 0,
+      "title": "Damage Resistance",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e6e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d87c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 43,
+      "name": "Oddball Ball Spawn Count",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_count",
+      "file_offset": "038d67c8",
+      "serialized_value": 0,
+      "title": "Ball Count",
+      "choices": [
+        {
+          "value": 1,
+          "label": "1 Ball"
+        },
+        {
+          "value": 2,
+          "label": "2 Balls"
+        },
+        {
+          "value": 3,
+          "label": "3 Balls"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370ac",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23daea",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 44,
+      "name": "Oddball Ball Hit Damage",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_hit_damage",
+      "file_offset": "038d6844",
+      "serialized_value": 0,
+      "title": "Ball Hit Damage",
+      "choices": [
+        {
+          "value": 1,
+          "label": "Normal"
+        },
+        {
+          "value": 0,
+          "label": "Massive"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236ffd",
+        "kind": 4,
+        "offset": 246,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23da0b",
+        "kind": 4,
+        "offset": 246,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 45,
+      "name": "Oddball Speed With Ball",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_speed",
+      "file_offset": "038d6868",
+      "serialized_value": 0,
+      "title": "Speed With Ball",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Slow"
+        },
+        {
+          "value": 1,
+          "label": "Normal"
+        },
+        {
+          "value": 2,
+          "label": "Fast"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237024",
+        "kind": 4,
+        "offset": 248,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23da32",
+        "kind": 4,
+        "offset": 248,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 46,
+      "name": "Oddball Driving Gunning With Ball",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\vehicle_operation",
+      "file_offset": "038d68f8",
+      "serialized_value": 0,
+      "title": "Vehicle Operation",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23708e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": "0x23d816",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 47,
+      "name": "Oddball Waypoint To Ball",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_waypoint",
+      "file_offset": "038d691c",
+      "serialized_value": 0,
+      "title": "Ball Indicator",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Always On"
+        },
+        {
+          "value": 1,
+          "label": "Dropped Ball"
+        },
+        {
+          "value": 2,
+          "label": "Team Control"
+        },
+        {
+          "value": 3,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23704b",
+        "kind": 4,
+        "offset": 250,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23da59",
+        "kind": 4,
+        "offset": 250,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 48,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 49,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": null,
+        "kind": -1,
+        "offset": 0,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 50,
+      "name": "CTF Game Type",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_type",
+      "file_offset": "038d5b74",
+      "serialized_value": 0,
+      "title": "Flag Type",
+      "choices": [
+        {
+          "value": 1,
+          "label": "Single Flag"
+        },
+        {
+          "value": 0,
+          "label": "Flag Per Team"
+        },
+        {
+          "value": 2,
+          "label": "Neutral Flag"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e47",
+        "kind": 5,
+        "offset": 260,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d855",
+        "kind": 5,
+        "offset": 260,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 51,
+      "name": "CTF Sudden Death",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_sudden_death",
+      "file_offset": "038d5bf0",
+      "serialized_value": 0,
+      "title": "Sudden Death",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 52,
+      "name": "CTF Flag May Be Returned",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_return",
+      "file_offset": "038d5c38",
+      "serialized_value": 0,
+      "title": "Flag Touch Return",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 53,
+      "name": "CTF Flag At Home To Score",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_at_home_to_score",
+      "file_offset": "038d5c14",
+      "serialized_value": 0,
+      "title": "Flag At Home To Score",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e6e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d87c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 54,
+      "name": "CTF Flag Reset Time",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_reset_time",
+      "file_offset": "038d5c5c",
+      "serialized_value": 0,
+      "title": "Flag Reset Time",
+      "choices": [
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 45,
+          "label": "45 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "60 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e8f",
+        "kind": 5,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d89d",
+        "kind": 5,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 55,
+      "name": "CTF Speed With Flag",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_slow_flag",
+      "file_offset": "038d5cc8",
+      "serialized_value": 0,
+      "title": "Slow With Flag",
+      "choices": [
+        {
+          "value": 0,
+          "label": "On"
+        },
+        {
+          "value": 1,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236eb6",
+        "kind": 5,
+        "offset": 248,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d8c4",
+        "kind": 5,
+        "offset": 248,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 56,
+      "name": "CTF Flag Hit Damage",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_damage",
+      "file_offset": "038d5d04",
+      "serialized_value": 0,
+      "title": "Flag Hit Damage",
+      "choices": [
+        {
+          "value": 1,
+          "label": "Normal"
+        },
+        {
+          "value": 0,
+          "label": "Massive"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236edd",
+        "kind": 5,
+        "offset": 252,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d8eb",
+        "kind": 5,
+        "offset": 252,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 57,
+      "name": "CTF Driving Gunning With Flag",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_flag_driving",
+      "file_offset": "038d5da0",
+      "serialized_value": 0,
+      "title": "Vehicle Operation",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f04",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      },
+      "tu15_descriptor": {
+        "address": "0x23d912",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      }
+    },
+    {
+      "parameter": 58,
+      "name": "CTF Waypoint To Own Flag",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_ownflag_waypoint",
+      "file_offset": "038d5dc4",
+      "serialized_value": 0,
+      "title": "Flag Indicator",
+      "choices": [
+        {
+          "value": 0,
+          "label": "When Uncontrolled"
+        },
+        {
+          "value": 1,
+          "label": "Always On"
+        },
+        {
+          "value": 2,
+          "label": "Away from Home"
+        },
+        {
+          "value": 3,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f25",
+        "kind": 5,
+        "offset": 256,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d933",
+        "kind": 5,
+        "offset": 256,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 59,
+      "name": "Assault Game Type",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_type",
+      "file_offset": "038d5f10",
+      "serialized_value": 0,
+      "title": "Bomb Type",
+      "choices": [
+        {
+          "value": 1,
+          "label": "Single Bomb"
+        },
+        {
+          "value": 0,
+          "label": "Bomb Per Team"
+        },
+        {
+          "value": 2,
+          "label": "Neutral Bomb"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e47",
+        "kind": 5,
+        "offset": 260,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d855",
+        "kind": 5,
+        "offset": 260,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 60,
+      "name": "Assault Sudden Death",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_sudden_death",
+      "file_offset": "038d5fe0",
+      "serialized_value": 0,
+      "title": "Sudden Death",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 61,
+      "name": "Assault Detonation Time",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_reset_time",
+      "file_offset": "038d6028",
+      "serialized_value": 0,
+      "title": "Bomb Reset Time",
+      "choices": [
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 20,
+          "label": "20 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        },
+        {
+          "value": 45,
+          "label": "45 Seconds"
+        },
+        {
+          "value": 60,
+          "label": "60 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e8f",
+        "kind": 5,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d89d",
+        "kind": 5,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 62,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236e6e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d87c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 63,
+      "name": "Assault Arming Time",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_arm_time",
+      "file_offset": "038d60a0",
+      "serialized_value": 0,
+      "title": "Bomb Arm Time",
+      "choices": [
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f8e",
+        "kind": 4,
+        "offset": 264,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d99c",
+        "kind": 4,
+        "offset": 264,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 64,
+      "name": "Assault Speed With Bomb",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_speed",
+      "file_offset": "038d610c",
+      "serialized_value": 0,
+      "title": "Slow With Bomb",
+      "choices": [
+        {
+          "value": 0,
+          "label": "On"
+        },
+        {
+          "value": 1,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236eb6",
+        "kind": 5,
+        "offset": 248,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d8c4",
+        "kind": 5,
+        "offset": 248,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 65,
+      "name": "Assault Bomb Hit Damage",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_damage",
+      "file_offset": "038d6130",
+      "serialized_value": 0,
+      "title": "Bomb Hit Damage",
+      "choices": [
+        {
+          "value": 1,
+          "label": "Normal"
+        },
+        {
+          "value": 0,
+          "label": "Massive"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236edd",
+        "kind": 5,
+        "offset": 252,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d8eb",
+        "kind": 5,
+        "offset": 252,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 66,
+      "name": "Assault Driving Gunning With Bomb",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_bomb_driving",
+      "file_offset": "038d619c",
+      "serialized_value": 0,
+      "title": "Vehicle Operation",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f04",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      },
+      "tu15_descriptor": {
+        "address": "0x23d912",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      }
+    },
+    {
+      "parameter": 67,
+      "name": "Assault Waypoint To Own Bomb",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_enemy_bomb_indicator",
+      "file_offset": "038d5f8c",
+      "serialized_value": 0,
+      "title": "Enemy Bomb Indicator",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Always On"
+        },
+        {
+          "value": 1,
+          "label": "When Dropped"
+        },
+        {
+          "value": 2,
+          "label": "When Armed"
+        },
+        {
+          "value": 3,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f25",
+        "kind": 5,
+        "offset": 256,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d933",
+        "kind": 5,
+        "offset": 256,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 68,
+      "name": "Juggernaut Betrayal Point Loss",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\betrayal_point_loss",
+      "file_offset": "038d6e58",
+      "serialized_value": 0,
+      "title": "Betrayal Point Loss",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e6e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d87c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 69,
+      "name": "Juggernaut Juggy Extra Damage",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_extra_damage",
+      "file_offset": "038d6eb0",
+      "serialized_value": 0,
+      "title": "Juggernaut Extra Damage",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f04",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      },
+      "tu15_descriptor": {
+        "address": "0x23d912",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      }
+    },
+    {
+      "parameter": 70,
+      "name": "Juggernaut Juggy Infinite Ammo",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_infinite_ammo",
+      "file_offset": "038d6ed4",
+      "serialized_value": 0,
+      "title": "Juggernaut Infinite Ammo",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236fdc",
+        "kind": 1,
+        "offset": 240,
+        "operand": 5
+      },
+      "tu15_descriptor": {
+        "address": "0x23d9ea",
+        "kind": 1,
+        "offset": 240,
+        "operand": 5
+      }
+    },
+    {
+      "parameter": 71,
+      "name": "Juggernaut Juggy Overshields",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_overshield",
+      "file_offset": "038d6ef8",
+      "serialized_value": 0,
+      "title": "Juggernaut Overshield",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 72,
+      "name": "Juggernaut Juggy Active Camo",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_active_camo",
+      "file_offset": "038d6f1c",
+      "serialized_value": 0,
+      "title": "Juggernaut Active Camo",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 73,
+      "name": "Juggernaut Juggy Motion Sensor",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_motion_sensor",
+      "file_offset": "038d6f40",
+      "serialized_value": 0,
+      "title": "Juggernaut Motion Sensor",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23708e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": "0x23d816",
+        "kind": 1,
+        "offset": 240,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 74,
+      "name": "Territories Territory Count",
+      "tag": "multiplayer\\game_variant_settings\\territories_game\\number_of_territories",
+      "file_offset": "038d6c34",
+      "serialized_value": 0,
+      "title": "Territory Count",
+      "choices": [
+        {
+          "value": 1,
+          "label": "1 Territory"
+        },
+        {
+          "value": 2,
+          "label": "2 Territories"
+        },
+        {
+          "value": 3,
+          "label": "3 Territories"
+        },
+        {
+          "value": 4,
+          "label": "4 Territories"
+        },
+        {
+          "value": 5,
+          "label": "5 Territories"
+        },
+        {
+          "value": 6,
+          "label": "6 Territories"
+        },
+        {
+          "value": 7,
+          "label": "7 Territories"
+        },
+        {
+          "value": 8,
+          "label": "8 Territories"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370d3",
+        "kind": 4,
+        "offset": 240,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23da9c",
+        "kind": 4,
+        "offset": 240,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 75,
+      "name": "Veh. Respawn",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\vehicle_respawn",
+      "file_offset": "038d65cc",
+      "serialized_value": 0,
+      "title": "Vehicle Respawn Time",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 3,
+          "label": "Half As Often"
+        },
+        {
+          "value": 1,
+          "label": "No Respawn"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237121",
+        "kind": 3,
+        "offset": 204,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23db11",
+        "kind": 3,
+        "offset": 204,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 76,
+      "name": "Veh. Primary Light Land",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\primary_land_vehicle",
+      "file_offset": "038d59d4",
+      "serialized_value": 0,
+      "title": "Primary Light Vehicle",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "Warthog"
+        },
+        {
+          "value": 2,
+          "label": "Gauss Warthog"
+        },
+        {
+          "value": 3,
+          "label": "Ghost"
+        },
+        {
+          "value": 5,
+          "label": "Spectre"
+        },
+        {
+          "value": 6,
+          "label": "Random"
+        },
+        {
+          "value": 7,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237148",
+        "kind": 3,
+        "offset": 205,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23db38",
+        "kind": 3,
+        "offset": 205,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 77,
+      "name": "Veh. Secondary Light Land",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\secondary_land_vehicle",
+      "file_offset": "038d6614",
+      "serialized_value": 0,
+      "title": "Secondary Light Vehicle",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "Warthog"
+        },
+        {
+          "value": 2,
+          "label": "Gauss Warthog"
+        },
+        {
+          "value": 3,
+          "label": "Ghost"
+        },
+        {
+          "value": 5,
+          "label": "Spectre"
+        },
+        {
+          "value": 6,
+          "label": "Random"
+        },
+        {
+          "value": 7,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23716f",
+        "kind": 3,
+        "offset": 206,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23db5f",
+        "kind": 3,
+        "offset": 206,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 78,
+      "name": "Veh. Primary Heavy Land",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\primary_heavy_vehicle",
+      "file_offset": "038d5a80",
+      "serialized_value": 0,
+      "title": "Primary Heavy Vehicle",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "Scorpion Tank"
+        },
+        {
+          "value": 2,
+          "label": "Wraith"
+        },
+        {
+          "value": 3,
+          "label": "Random"
+        },
+        {
+          "value": 4,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237196",
+        "kind": 3,
+        "offset": 207,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23db86",
+        "kind": 3,
+        "offset": 207,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 79,
+      "name": "Veh. Primary Flying",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\primary_flying_vehicle",
+      "file_offset": "038d6638",
+      "serialized_value": 0,
+      "title": "Banshee",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 4,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2371bd",
+        "kind": 3,
+        "offset": 208,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dbad",
+        "kind": 3,
+        "offset": 208,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 80,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x2371e4",
+        "kind": 3,
+        "offset": 209,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dbd4",
+        "kind": 3,
+        "offset": 209,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 81,
+      "name": "Veh. Primary Turret",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\primary_turret",
+      "file_offset": "038d6680",
+      "serialized_value": 0,
+      "title": "Primary Turret",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "Large Machine Gun"
+        },
+        {
+          "value": 4,
+          "label": "Large Plasma"
+        },
+        {
+          "value": 5,
+          "label": "Random"
+        },
+        {
+          "value": 6,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23720b",
+        "kind": 3,
+        "offset": 210,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dbfb",
+        "kind": 3,
+        "offset": 210,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 82,
+      "name": "Veh. Secondary Turret",
+      "tag": "multiplayer\\game_variant_settings\\vehicles\\secondary_turret",
+      "file_offset": "038d66e0",
+      "serialized_value": 0,
+      "title": "Secondary Turret",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "Large Machine Gun"
+        },
+        {
+          "value": 4,
+          "label": "Large Plasma"
+        },
+        {
+          "value": 5,
+          "label": "Random"
+        },
+        {
+          "value": 6,
+          "label": "None"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237232",
+        "kind": 3,
+        "offset": 211,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dc22",
+        "kind": 3,
+        "offset": 211,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 83,
+      "name": "Equip. Weapons On Map",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\weapons_on_map",
+      "file_offset": "038d5664",
+      "serialized_value": 0,
+      "title": "Weapons on Map",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "None"
+        },
+        {
+          "value": 2,
+          "label": "Rockets"
+        },
+        {
+          "value": 3,
+          "label": "Shotguns"
+        },
+        {
+          "value": 4,
+          "label": "Swords"
+        },
+        {
+          "value": 5,
+          "label": "Brute Shots"
+        },
+        {
+          "value": 6,
+          "label": "Halo Classic"
+        },
+        {
+          "value": 7,
+          "label": "New Classic"
+        },
+        {
+          "value": 8,
+          "label": "Heavy Weapons"
+        },
+        {
+          "value": 9,
+          "label": "All Duals"
+        },
+        {
+          "value": 10,
+          "label": "No Duals"
+        },
+        {
+          "value": 11,
+          "label": "Rifles"
+        },
+        {
+          "value": 12,
+          "label": "Sniping"
+        },
+        {
+          "value": 13,
+          "label": "No Sniping"
+        },
+        {
+          "value": 14,
+          "label": "Pistols"
+        },
+        {
+          "value": 15,
+          "label": "Plasma"
+        },
+        {
+          "value": 16,
+          "label": "Human"
+        },
+        {
+          "value": 17,
+          "label": "Covenant"
+        },
+        {
+          "value": 19,
+          "label": "Random Set"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237259",
+        "kind": 3,
+        "offset": 212,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dc49",
+        "kind": 3,
+        "offset": 212,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 84,
+      "name": "Equip. Overshields On Map",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\overshields",
+      "file_offset": "038d5e18",
+      "serialized_value": 0,
+      "title": "Overshields",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237280",
+        "kind": 1,
+        "offset": 72,
+        "operand": 8
+      },
+      "tu15_descriptor": {
+        "address": "0x23dc70",
+        "kind": 1,
+        "offset": 72,
+        "operand": 8
+      }
+    },
+    {
+      "parameter": 85,
+      "name": "Equip. Active Camo On Map",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\invis",
+      "file_offset": "038d5e3c",
+      "serialized_value": 0,
+      "title": "Active Camouflage",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2372a1",
+        "kind": 1,
+        "offset": 72,
+        "operand": 9
+      },
+      "tu15_descriptor": {
+        "address": "0x23dc91",
+        "kind": 1,
+        "offset": 72,
+        "operand": 9
+      }
+    },
+    {
+      "parameter": 86,
+      "name": "Equip. Grenades On Map",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\grenades_on_map",
+      "file_offset": "038d65a8",
+      "serialized_value": 0,
+      "title": "Grenades On Map",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2372c2",
+        "kind": 1,
+        "offset": 72,
+        "operand": 10
+      },
+      "tu15_descriptor": {
+        "address": "0x23dcb2",
+        "kind": 1,
+        "offset": 72,
+        "operand": 10
+      }
+    },
+    {
+      "parameter": 87,
+      "name": "Equip. Weapon Respawn Times",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\weapons_respawn",
+      "file_offset": "038d6554",
+      "serialized_value": 0,
+      "title": "Weapon Respawn Time",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "No Respawn"
+        },
+        {
+          "value": 2,
+          "label": "Half Time"
+        },
+        {
+          "value": 3,
+          "label": "Double Time"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2372e3",
+        "kind": 3,
+        "offset": 213,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dcd3",
+        "kind": 3,
+        "offset": 213,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 88,
+      "name": "Equip. Starting Grenades",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\starting_grenades",
+      "file_offset": "038d57dc",
+      "serialized_value": 0,
+      "title": "Starting Grenades",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23730a",
+        "kind": 1,
+        "offset": 72,
+        "operand": 11
+      },
+      "tu15_descriptor": {
+        "address": "0x23dcfa",
+        "kind": 1,
+        "offset": 72,
+        "operand": 11
+      }
+    },
+    {
+      "parameter": 89,
+      "name": "Equip. Primary Starting Equipment",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\starting_weapon",
+      "file_offset": "038d5540",
+      "serialized_value": 0,
+      "title": "Starting Weapon",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 2,
+          "label": "Random"
+        },
+        {
+          "value": 3,
+          "label": "Battle Rifle"
+        },
+        {
+          "value": 4,
+          "label": "Magnum"
+        },
+        {
+          "value": 5,
+          "label": "SMG"
+        },
+        {
+          "value": 6,
+          "label": "Plasma Pistol"
+        },
+        {
+          "value": 7,
+          "label": "Plasma Rifle"
+        },
+        {
+          "value": 18,
+          "label": "Brute Plasma Rifle"
+        },
+        {
+          "value": 8,
+          "label": "Rocket Launcher"
+        },
+        {
+          "value": 9,
+          "label": "Shotgun"
+        },
+        {
+          "value": 10,
+          "label": "Sniper Rifle"
+        },
+        {
+          "value": 11,
+          "label": "Brute Shot"
+        },
+        {
+          "value": 12,
+          "label": "Needler"
+        },
+        {
+          "value": 13,
+          "label": "Carbine"
+        },
+        {
+          "value": 14,
+          "label": "Beam Rifle"
+        },
+        {
+          "value": 17,
+          "label": "Energy Sword"
+        },
+        {
+          "value": 19,
+          "label": "Sentinel Beam"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x23732b",
+        "kind": 3,
+        "offset": 214,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dd1b",
+        "kind": 3,
+        "offset": 214,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 90,
+      "name": "UNS. Max. Living Players",
+      "tag": "multiplayer\\game_variant_settings\\players\\max_active_players",
+      "file_offset": "038d58fc",
+      "serialized_value": 0,
+      "title": "Max Active Players",
+      "choices": [
+        {
+          "value": 16,
+          "label": "16"
+        },
+        {
+          "value": 15,
+          "label": "15"
+        },
+        {
+          "value": 14,
+          "label": "14"
+        },
+        {
+          "value": 13,
+          "label": "13"
+        },
+        {
+          "value": 12,
+          "label": "12"
+        },
+        {
+          "value": 11,
+          "label": "11"
+        },
+        {
+          "value": 10,
+          "label": "10"
+        },
+        {
+          "value": 9,
+          "label": "9"
+        },
+        {
+          "value": 8,
+          "label": "8"
+        },
+        {
+          "value": 7,
+          "label": "7"
+        },
+        {
+          "value": 6,
+          "label": "6"
+        },
+        {
+          "value": 5,
+          "label": "5"
+        },
+        {
+          "value": 4,
+          "label": "4"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 2,
+          "label": "2"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236c0c",
+        "kind": 5,
+        "offset": 120,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d5fc",
+        "kind": 5,
+        "offset": 120,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 91,
+      "name": "UNS. Teams Enabled",
+      "tag": "multiplayer\\game_variant_settings\\slayer_teams\\team_play",
+      "file_offset": "038d63ac",
+      "serialized_value": 0,
+      "title": "Team Play",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237379",
+        "kind": 1,
+        "offset": 72,
+        "operand": 0
+      },
+      "tu15_descriptor": {
+        "address": "0x23dd69",
+        "kind": 1,
+        "offset": 72,
+        "operand": 0
+      }
+    },
+    {
+      "parameter": 92,
+      "name": "UNS. Assault Bomb May Be Returned",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_touch_return",
+      "file_offset": "038d6004",
+      "serialized_value": 0,
+      "title": "Bomb Touch Return",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 93,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x237397",
+        "kind": 5,
+        "offset": 180,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dd87",
+        "kind": 5,
+        "offset": 180,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 94,
+      "name": "UNS. Equip. Secondary Starting Equipment",
+      "tag": "multiplayer\\game_variant_settings\\equipment\\secondary_weapon",
+      "file_offset": "038d5800",
+      "serialized_value": 0,
+      "title": "Secondary Weapon",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Map Default"
+        },
+        {
+          "value": 1,
+          "label": "None"
+        },
+        {
+          "value": 2,
+          "label": "Random"
+        },
+        {
+          "value": 3,
+          "label": "Battle Rifle"
+        },
+        {
+          "value": 4,
+          "label": "Magnum"
+        },
+        {
+          "value": 5,
+          "label": "SMG"
+        },
+        {
+          "value": 6,
+          "label": "Plasma Pistol"
+        },
+        {
+          "value": 7,
+          "label": "Plasma Rifle"
+        },
+        {
+          "value": 18,
+          "label": "Brute Plasma Rifle"
+        },
+        {
+          "value": 8,
+          "label": "Rocket Launcher"
+        },
+        {
+          "value": 9,
+          "label": "Shotgun"
+        },
+        {
+          "value": 10,
+          "label": "Sniper Rifle"
+        },
+        {
+          "value": 11,
+          "label": "Brute Shot"
+        },
+        {
+          "value": 12,
+          "label": "Needler"
+        },
+        {
+          "value": 13,
+          "label": "Carbine"
+        },
+        {
+          "value": 14,
+          "label": "Beam Rifle"
+        },
+        {
+          "value": 17,
+          "label": "Energy Sword"
+        },
+        {
+          "value": 19,
+          "label": "Sentinel Beam"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237352",
+        "kind": 3,
+        "offset": 215,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dd42",
+        "kind": 3,
+        "offset": 215,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 95,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236fb5",
+        "kind": 4,
+        "offset": 266,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23d9c3",
+        "kind": 4,
+        "offset": 266,
+        "operand": 1065353216
+      },
+      "source_consumer_evidence": {
+        "meaning": "Planted-bomb fuse/countdown field; no original UI choice record",
+        "kind": "Source inspection, separate from executed descriptor proof",
+        "plant_source": "src/gameplay/multiplayer/objective_native/plant.hpp",
+        "plant_source_sha256": "43dc2a48edd6b928ca62be14b17e7da23fe94fa91f3a067812e4a1a47bcdec17",
+        "original_read_site": "0x24BFC0",
+        "game_options_offset": "0x246",
+        "variant_base_offset": "0x13C",
+        "original_countdown_write_site": "0x24BFCA",
+        "countdown_offset": "0x114",
+        "zero_setting_plant_fallback": 10,
+        "normalization_range": [
+          0,
+          15
+        ],
+        "separate_disarm_parameter_found": false
+      }
+    },
+    {
+      "parameter": 96,
+      "name": "UNS. Juggy Movement",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_movement",
+      "file_offset": "038d6f64",
+      "serialized_value": 0,
+      "title": "Juggernaut Movement",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Slow"
+        },
+        {
+          "value": 1,
+          "label": "Normal"
+        },
+        {
+          "value": 2,
+          "label": "Fast"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370ac",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23daea",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 97,
+      "name": "UNS. Sticky Fuse",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_sticky_arming",
+      "file_offset": "038d60e8",
+      "serialized_value": 0,
+      "title": "Sticky Arming",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236fdc",
+        "kind": 1,
+        "offset": 240,
+        "operand": 5
+      },
+      "tu15_descriptor": {
+        "address": "0x23d9ea",
+        "kind": 1,
+        "offset": 240,
+        "operand": 5
+      }
+    },
+    {
+      "parameter": 98,
+      "name": "UNS. Terr. Contest Time",
+      "tag": "multiplayer\\game_variant_settings\\territories_game\\contest_time",
+      "file_offset": "038d6cec",
+      "serialized_value": 0,
+      "title": "Contest Time",
+      "choices": [
+        {
+          "value": 3,
+          "label": "3 Seconds"
+        },
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 20,
+          "label": "20 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370fa",
+        "kind": 4,
+        "offset": 242,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23dac3",
+        "kind": 4,
+        "offset": 242,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 99,
+      "name": "UNS. Terr. Control Time",
+      "tag": "multiplayer\\game_variant_settings\\territories_game\\control_time",
+      "file_offset": "038d6d58",
+      "serialized_value": 0,
+      "title": "Control Time",
+      "choices": [
+        {
+          "value": 3,
+          "label": "3 Seconds"
+        },
+        {
+          "value": 5,
+          "label": "5 Seconds"
+        },
+        {
+          "value": 10,
+          "label": "10 Seconds"
+        },
+        {
+          "value": 15,
+          "label": "15 Seconds"
+        },
+        {
+          "value": 20,
+          "label": "20 Seconds"
+        },
+        {
+          "value": 30,
+          "label": "30 Seconds"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x2370ac",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      },
+      "tu15_descriptor": {
+        "address": "0x23daea",
+        "kind": 4,
+        "offset": 244,
+        "operand": 1065353216
+      }
+    },
+    {
+      "parameter": 100,
+      "name": "UNS. Oddb. Carr. Invis",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_camo",
+      "file_offset": "038d68d4",
+      "serialized_value": 0,
+      "title": "Active Camo With Ball",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x237072",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      },
+      "tu15_descriptor": {
+        "address": "0x23da80",
+        "kind": 1,
+        "offset": 240,
+        "operand": 1
+      }
+    },
+    {
+      "parameter": 101,
+      "name": "UNS. King Invis In Hill",
+      "tag": "multiplayer\\game_variant_settings\\king_game\\camo_on_hill",
+      "file_offset": "038d6b40",
+      "serialized_value": 0,
+      "title": "Active Camo On Hill",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f04",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      },
+      "tu15_descriptor": {
+        "address": "0x23d912",
+        "kind": 1,
+        "offset": 240,
+        "operand": 4
+      }
+    },
+    {
+      "parameter": 102,
+      "name": "UNS. Ball Carr. Dmg. Resis.",
+      "tag": "multiplayer\\game_variant_settings\\oddball_game\\ball_toughness",
+      "file_offset": "038d68b0",
+      "serialized_value": 0,
+      "title": "Toughness With Ball",
+      "choices": [
+        {
+          "value": 0,
+          "label": "Off"
+        },
+        {
+          "value": 1,
+          "label": "On"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e26",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      },
+      "tu15_descriptor": {
+        "address": "0x23d834",
+        "kind": 1,
+        "offset": 240,
+        "operand": 2
+      }
+    },
+    {
+      "parameter": 103,
+      "name": null,
+      "tag": null,
+      "file_offset": null,
+      "serialized_value": null,
+      "title": null,
+      "choices": [],
+      "ui_record_unavailable": true,
+      "original_descriptor": {
+        "address": "0x236e6e",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      },
+      "tu15_descriptor": {
+        "address": "0x23d87c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 3
+      }
+    },
+    {
+      "parameter": 104,
+      "name": "UNS. Players Ex. Dmg",
+      "tag": "multiplayer\\game_variant_settings\\players\\extra_damage",
+      "file_offset": "038d6364",
+      "serialized_value": 0,
+      "title": "Extra Damage",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236dc3",
+        "kind": 1,
+        "offset": 72,
+        "operand": 12
+      },
+      "tu15_descriptor": {
+        "address": "0x23d7b3",
+        "kind": 1,
+        "offset": 72,
+        "operand": 12
+      }
+    },
+    {
+      "parameter": 105,
+      "name": "UNS. Players Dmg. Resis.",
+      "tag": "multiplayer\\game_variant_settings\\players\\damage_resistance",
+      "file_offset": "038d6388",
+      "serialized_value": 0,
+      "title": "Damage Resistance",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236de4",
+        "kind": 1,
+        "offset": 72,
+        "operand": 13
+      },
+      "tu15_descriptor": {
+        "address": "0x23d7d4",
+        "kind": 1,
+        "offset": 72,
+        "operand": 13
+      }
+    },
+    {
+      "parameter": 106,
+      "name": "UNS. CTF Carr. Dmg. Resis.",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_damage_resistance",
+      "file_offset": "038d5d40",
+      "serialized_value": 0,
+      "title": "Damage Resistance",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f4c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      },
+      "tu15_descriptor": {
+        "address": "0x23d95a",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      }
+    },
+    {
+      "parameter": 107,
+      "name": "UNS. CTF Carr. Invis.",
+      "tag": "multiplayer\\game_variant_settings\\ctf_game\\ctf_active_camo",
+      "file_offset": "038d5d7c",
+      "serialized_value": 0,
+      "title": "Active Camo",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f6d",
+        "kind": 1,
+        "offset": 240,
+        "operand": 7
+      },
+      "tu15_descriptor": {
+        "address": "0x23d97b",
+        "kind": 1,
+        "offset": 240,
+        "operand": 7
+      }
+    },
+    {
+      "parameter": 108,
+      "name": "UNS. Juggy Dmg. Resis.",
+      "tag": "multiplayer\\game_variant_settings\\juggernaut_game\\jug_damage_resistance",
+      "file_offset": "038d6fac",
+      "serialized_value": 0,
+      "title": "Juggernaut Damage Resistance",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f4c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      },
+      "tu15_descriptor": {
+        "address": "0x23d95a",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      }
+    },
+    {
+      "parameter": 109,
+      "name": "UNS. Bomb Carr. Dmg. Resis.",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_damage_resistance",
+      "file_offset": "038d6154",
+      "serialized_value": 0,
+      "title": "Damage Resistance",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f4c",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      },
+      "tu15_descriptor": {
+        "address": "0x23d95a",
+        "kind": 1,
+        "offset": 240,
+        "operand": 6
+      }
+    },
+    {
+      "parameter": 110,
+      "name": "UNS. Bomb Carr. Invis.",
+      "tag": "multiplayer\\game_variant_settings\\assault_game\\assault_active_camo",
+      "file_offset": "038d6178",
+      "serialized_value": 0,
+      "title": "Active Camo",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236f6d",
+        "kind": 1,
+        "offset": 240,
+        "operand": 7
+      },
+      "tu15_descriptor": {
+        "address": "0x23d97b",
+        "kind": 1,
+        "offset": 240,
+        "operand": 7
+      }
+    },
+    {
+      "parameter": 111,
+      "name": "UNS. Force Even Teams",
+      "tag": "multiplayer\\game_variant_settings\\teams\\force_even_teams",
+      "file_offset": "038d5e60",
+      "serialized_value": 0,
+      "title": "Force Even Teams",
+      "choices": [
+        {
+          "value": 1,
+          "label": "On"
+        },
+        {
+          "value": 0,
+          "label": "Off"
+        }
+      ],
+      "original_descriptor": {
+        "address": "0x236e05",
+        "kind": 1,
+        "offset": 72,
+        "operand": 14
+      },
+      "tu15_descriptor": {
+        "address": "0x23d7f5",
+        "kind": 1,
+        "offset": 72,
+        "operand": 14
+      }
+    }
+  ],
+  "builtin_snipers": {
+    "index": 4,
+    "frontend_engine": 0,
+    "name": "Snipers",
+    "authored_title": "Snipers \ue008",
+    "writes": [
+      [
+        20,
+        0
+      ],
+      [
+        89,
+        10
+      ],
+      [
+        94,
+        4
+      ],
+      [
+        83,
+        12
+      ],
+      [
+        76,
+        7
+      ],
+      [
+        77,
+        7
+      ],
+      [
+        78,
+        4
+      ],
+      [
+        80,
+        4
+      ],
+      [
+        79,
+        4
+      ],
+      [
+        2,
+        15
+      ]
+    ],
+    "raw": "000000ff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000980f0000000000000f000000e00100000000000000000000000000000000000000000000000000000000000010000000100000000000000005000000050000000000000000000000000000000000000000000000000000000000000000000000020000000a0000000000000000000000000000000000000000000000000000000000000000070704040400000c000a0400000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "sha256": "bd3aa3c8c318ba446acb58c2071823b69eec010b70e56816a3bd4294ed7a1565",
+    "source_type": 2
+  },
+  "original_descriptors": {
+    "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "pointer_table": "0x470828",
+    "functions": 102,
+    "original_instructions": 477,
+    "instruction_trace_sha256": "6255c4b27627793441e898da5f45e9b2b837844c0a2fd512a5164d6db44b24bc",
+    "instruction_patches": [],
+    "replaced_callees": []
+  },
+  "scratch": "/tmp/halo2-test-m4c07ctc",
+  "scratch_retained": false,
+  "tu15_descriptors": {
+    "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "getter_owner": "0x23DEE0",
+    "pointer_table": "0x47CF40",
+    "functions": 102,
+    "original_instructions": 477,
+    "instruction_trace_sha256": "951aab1bafea80642ce369e3f6fa57ecd12d693a9aa0dfa2f36596eb48cd1437",
+    "all112_retail_contracts_equal": true,
+    "instruction_patches": [],
+    "replaced_callees": []
+  }
+}

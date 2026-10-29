@@ -15,6 +15,13 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/weapon_hand_feedback.hpp"
 #include "halo2/campaign_source_runtime.hpp"
+#include "halo2/native_campaign_ai_queries_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_area_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_behavior_reset_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_clump_retirement_tu15_binding.hpp"
+#include "halo2/native_campaign_camera_commands_tu15_binding.hpp"
+#include "halo2/native_campaign_camera_control_tu15_binding.hpp"
+#include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
 #include "halo2/source_campaign_player_queries_tu15.hpp"
 #include "halo2/script_clock_builtin.hpp"
 #include "halo2/source_script_rumble_tu15.hpp"
@@ -2501,6 +2508,11 @@ ScriptValue Simulation::host(const std::string &name,
     return name=="device_group_set"?ScriptValue::numeric(changed,5):ScriptValue{};
   }
   if(name=="ai_dialogue_enable") {arity(1);if(args[0].type!=5)throw FormatError("Invalid AI dialogue flag");ai_dialogue_enabled_=args[0].truth();return {};}
+  if(source_campaign_)if(const auto builtin=native_campaign_ai_query_builtin_tu15(name)) {
+    arity(1);
+    if(args[0].type!=19)throw FormatError("Campaign AI query requires its compiled AI reference");
+    return {builtin->return_type,source_campaign_->ai_query(args[0].bits,builtin->operation).value,{}};
+  }
   if(name=="ai_get_object" || name=="ai_get_unit") {
     arity(1);
     if(args[0].type!=19)throw FormatError("Unsupported AI actor reference");
@@ -2833,8 +2845,8 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if(name=="game_save" || name=="game_save_unsafe") {arity(0);request_checkpoint();return {};}
   if(name=="game_save_cancel") {arity(0);save_pending_=false;return {};}
-  if(name=="game_won" || name=="map_reset") {
-    arity(0);if(name=="game_won")level_finished_=true;else reset_requested_=true;
+  if(name=="game_won") {
+    arity(0);level_finished_=true;
     scripts_->suspend_tick();return {};
   }
   if (name == "game_save_cinematic_skip") {
@@ -2862,9 +2874,10 @@ ScriptValue Simulation::host(const std::string &name,
     // native residency changes or stand in for unimplemented prediction.
     return {};
   }
-  if (name == "time_code_reset") {
+  if (name == "time_code_reset" || name == "map_reset") {
     // Retail 2AB130 / TU1.5 2AC980 only complete the HS call with void.
-    // The release evaluator has no timer, game-clock or camera side effect.
+    // Both names share the release void evaluator. It does not restart a map
+    // or change the timer, game clock or camera.
     arity(0);
     return {};
   }
@@ -3336,6 +3349,20 @@ std::string Simulation::status() const {
       << " script_faults=" << scripts_->diagnostics().size();
   out << " checkpoint=" << bool(checkpoint_)
       << " reverts=" << checkpoint_restores_;
+  if(source_campaign_) {
+    const auto native_ai=native_campaign_ai_query_activity_tu15();
+    const auto native_camera=native_campaign_camera_command_activity_tu15();
+    out << " native_ai_threat=" << native_ai.threat
+        << " native_ai_reset=" << native_ai.reset
+        << " native_ai_area=" << native_campaign_ai_area_activity_tu15()
+        << " native_ai_behavior_reset=" << native_campaign_ai_behavior_reset_activity_tu15()
+        << " native_ai_clump_retire=" << native_campaign_ai_clump_retirement_activity_tu15()
+        << " native_camera_reset=" << native_camera.resets
+        << " native_camera_stop=" << native_camera.stops
+        << " native_camera_fov=" << native_camera.fovs
+        << " native_camera_control=" << native_campaign_camera_control_calls_tu15()
+        << " native_camera_director_reset=" << native_campaign_camera_reset_calls_tu15();
+  }
   if(const auto *state=cinematic_state();state && state->screen_active)
     out << " cinematic_clock=" << state->render_clock
         << " crossfade_pending=" << state->crossfade.pending

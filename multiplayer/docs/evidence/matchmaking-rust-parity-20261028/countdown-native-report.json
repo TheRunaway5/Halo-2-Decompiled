@@ -1,0 +1,60 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370/master-source/rust/online_protocol/Cargo.toml",
+        "--test",
+        "matchmaking_parties",
+        "--test",
+        "party_countdown_original"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_countdown_owner_native",
+        "multiplayer.master_server.tests.test_party_countdown"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "60f64a91f45d4b0c6879482390dc0abee9fae05c1afe45fc01e1e4a7a1fcb221",
+    "bytes": 2220192,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

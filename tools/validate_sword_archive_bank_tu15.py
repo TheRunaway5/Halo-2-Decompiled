@@ -387,7 +387,9 @@ def execute(args, owner, report):
             original = direct(overlay['source'])
         copied = work / ('overlay-' + str(index)) / original.name
         copied.parent.mkdir()
-        shutil.copy2(original, copied)
+        # Overlay sources are edited only in this owned tree. Frozen inputs
+        # may be read-only; inherit their bytes without their write denial.
+        shutil.copyfile(original, copied)
         overlay_pins[str(original)] = digest(original)
         receipt = dict(archive=str(archive), member=member, source=str(original),
                        source_sha256=overlay_pins[str(original)],
@@ -423,6 +425,7 @@ def execute(args, owner, report):
                 options.extend(line[len(prefix):].split(';'))
         member_path = '${CMAKE_CURRENT_BINARY_DIR}/members/' + str(index) + '/' + member
         lines.extend(['add_library(' + target + ' OBJECT ' + cmake_quote(copied) + ')',
+                      'target_include_directories(' + target + ' PRIVATE ' + cmake_quote(include_root) + ')',
                       # CMake de-duplicates standalone options; keep repeated
                       # option/argument pairs such as -isystem PATH together.
                       'target_compile_options(' + target + ' PRIVATE ' +

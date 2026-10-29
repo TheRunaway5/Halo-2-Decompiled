@@ -239,10 +239,21 @@ The later [network consumer follow-through](MP_CTF_ASSAULT_CONSUMERS.md)
 adds canonical asset-only remote waypoint inputs, exact source coverage bounds
 in protocol 106, and objective admission through the ONLINE rule/PCR/result
 owners. Its independent source/command/test receipts are under
-`build/ctf-assault-network-consumers-20261024`. System Link lobby/PCR return
-still requires its own retained native LAN session lifetime; the local offline
-owner is not substituted for remote membership. Physical parity, migration,
-broader option combinations and launcher delivery remain explicit gates.
+`build/ctf-assault-network-consumers-20261024`. The later
+[System Link return](MP_CTF_ASSAULT_SYSTEM_LINK_RETURN.md) implements its own
+retained native LAN session lifetime; the local offline owner is not substituted
+for remote membership. Its final source/test/cleanup receipt is tracked under
+`build/ctf-assault-system-link-20261025`. Physical parity, migration, broader
+option combinations and launcher delivery remain explicit gates.
+
+The later [rendered qualification](MP_CTF_ASSAULT_RENDERED_VALIDATION.md)
+passes all nine stock presets on the corrected prepared Lockout input: local
+starts, genuine remote waypoint rendering, natural original timed endings with
+direct font-ink checks, and native retained System Link returns. Its 22 selected
+tests pass with Vulkan validation enabled. A missing first-person dispatch now
+uses the existing native combat/action owner; the 57 objective rule kernels and
+all 32 implementation files remain unchanged. The broader all-map sky failures
+are recorded separately rather than included in this scoped qualification.
 
 ## Retained reference inputs and storage
 

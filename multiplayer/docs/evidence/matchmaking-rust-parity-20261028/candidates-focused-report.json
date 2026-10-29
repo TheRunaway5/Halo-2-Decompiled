@@ -1,0 +1,31 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yz_1347v/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_session_candidates",
+        "multiplayer.master_server.tests.test_gathering_sessions"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yz_1347v/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yz_1347v",
+  "source_frozen": true
+}

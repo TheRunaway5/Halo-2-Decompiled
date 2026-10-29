@@ -11,6 +11,76 @@ from mcc_content import MccCache, texture_resource
 TAG = r"scenarios\bitmaps\multi\zanzibar\massive_concrete_bump"
 SOURCE_MAP = "563bef8cc5f8f8cf28112eff44f4e1377e1f012b69f65e3e2e9a04484c497ca7"
 
+# Retained native PC policies authenticate the encoded map, including bitmap
+# addresses. Preserve the reviewed COW resource layout on fresh imports. The
+# old authored-preview allocations are an unused address reservation here;
+# their historical image bytes are not needed or reconstructed.
+CANONICAL_SOURCE_BYTES = 564824320
+CANONICAL_SOURCE_SHA = "d4c2a8aec0a83b8e00cc6aa7e4b2127b628c03e4e449aec75848b5e49fa9c98f"
+CANONICAL_V3_END = 566834112
+CANONICAL_V3_SHA = "27e5f17f9c317add135d44590b9aacce7c164281c1ae9cb33cae5925e750e324"
+PREVIEW_RESERVED_BYTES = 296250
+
+
+def allocate_partitions(staged, owners, bank_extent, *, preview_boundary=None):
+    """Return owner bindings and ordered writes, preserving canonical addresses.
+
+    A preview boundary selects the complete V7 layout. Identical native chains
+    share storage just as in its COW producer. Reserved bytes are never returned
+    as an image partition or assigned to a bitmap owner.
+    """
+    if preview_boundary is not None and not 0 < preview_boundary < len(staged):
+        raise FormatError("Canonical graphics resource cohort boundary differs")
+    partitions, writes, resources, pointer = [], [], {}, bank_extent
+    for index, (name, profile, pixels) in enumerate(staged):
+        if index == preview_boundary:
+            if pointer != CANONICAL_V3_END:
+                raise FormatError("Canonical graphics V3 resource boundary differs")
+            writes.append((pointer, bytes(PREVIEW_RESERVED_BYTES)))
+            pointer += PREVIEW_RESERVED_BYTES
+        native = bytearray(pixels)
+        if profile["encoding"] == "rgba8":
+            native[0::4], native[2::4] = pixels[2::4], pixels[0::4]
+        identity = (len(native), hashlib.sha256(native).hexdigest())
+        # Older, incomplete tool sets retain their existing allocation policy.
+        if preview_boundary is None or identity not in resources:
+            partition = struct.pack("<Ii", 1, -len(native)) + native
+            resources[identity] = pointer, partition
+            writes.append((pointer, partition))
+            pointer += len(partition)
+        address, partition = resources[identity]
+        if partition[8:] != native:
+            raise FormatError("Corrected MCC native resource identity collision")
+        if (preview_boundary is not None and address < CANONICAL_V3_END + PREVIEW_RESERVED_BYTES
+                and address + len(partition) > CANONICAL_V3_END):
+            raise FormatError("Corrected MCC resource overlaps reserved preview addresses")
+        partitions.append((name, profile, owners[(name, profile["tag"])][1],
+                           address, partition, native))
+    if pointer >= 0x40000000:
+        raise FormatError("Corrected MCC texture resource exceeds address capacity")
+    return partitions, writes, pointer
+
+
+def verify_canonical_prefix(bank_path, writes):
+    """Admit the exact source and V3 prefix before reserving any address space."""
+    digest = hashlib.sha256()
+    consumed = 0
+    with bank_path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+            consumed += len(block)
+    if consumed != CANONICAL_SOURCE_BYTES or digest.hexdigest() != CANONICAL_SOURCE_SHA:
+        raise FormatError("Canonical graphics texture source differs")
+    for address, data in writes:
+        if address >= CANONICAL_V3_END:
+            break
+        if address != consumed or consumed + len(data) > CANONICAL_V3_END:
+            raise FormatError("Canonical graphics V3 prefix allocation differs")
+        digest.update(data)
+        consumed += len(data)
+    if consumed != CANONICAL_V3_END or digest.hexdigest() != CANONICAL_V3_SHA:
+        raise FormatError("Canonical graphics V3 resource prefix differs")
+
 
 def export_profile(reference, reformation, comparison, output):
     from restore_mcc_zanzibar_bump import pixels, REFERENCE_MAP
@@ -110,6 +180,7 @@ def apply_selected(root, pack, *, tag_revisions=None):
     if destination.exists():
         raise FormatError("Graphics correction output already exists")
     caches, staged, bundles = {}, [], []
+    preview_boundary = None
     try:
         # Validate every selected map, local identity, complete mip chain and
         # delta snapshot before changing any map or resource bank.
@@ -155,26 +226,29 @@ def apply_selected(root, pack, *, tag_revisions=None):
                     donors[profile["tag"]]=donor
                 images,bundle_path,bundled,bundle_bytes=reconstruct(root,donors)
                 staged.extend((name,profile,pixels) for profile,pixels in images)
+                if bundle_path == root / BUNDLE_V3:
+                    preview_boundary = len(staged)
                 if not any(path == bundle_path for path,_,_ in bundles):
                     bundles.append((bundle_path,bundled,bundle_bytes))
         manifest_bytes=(json.dumps(dict(schema=f"H2_MCC_GRAPHICS_CORRECTIONS_V{version}",
                                        bundles=[manifest for _,manifest,_ in bundles],
                                        full_graphics_parity=False),indent=2)+"\n").encode()
-        partitions, pointer = [], bank_path.stat().st_size
-        for name, profile, pixels in staged:
-            native=bytearray(pixels)
-            if profile["encoding"]=="rgba8":
-                native[0::4],native[2::4]=pixels[2::4],pixels[0::4]
-            partition=struct.pack("<Ii",1,-len(native))+native
-            partitions.append((name,profile,owners[(name,profile["tag"])][1],pointer,partition,native))
-            pointer+=len(partition)
-        if pointer>=0x40000000:
-            raise FormatError("Corrected MCC texture resource exceeds address capacity")
+        canonical_layout = version == 7
+        if canonical_layout and (preview_boundary is None or not all(
+                (root / path).is_file() for path in (BUNDLE_V4, BUNDLE_V5, BUNDLE_V6))):
+            raise FormatError("Canonical graphics resource cohort is incomplete")
+        partitions, writes, pointer = allocate_partitions(staged, owners, bank_path.stat().st_size,
+            preview_boundary=preview_boundary if canonical_layout else None)
+        if canonical_layout:
+            verify_canonical_prefix(bank_path, writes)
         # Every identity, input mip, delta, target mip and output address is
         # validated above. The caller publishes this private pack transactionally.
         with bank_path.open("ab") as stream:
+            for address, data in writes:
+                if stream.tell() != address:
+                    raise FormatError("Corrected MCC resource allocation position differs")
+                stream.write(data)
             for name,profile,at,pointer,partition,native in partitions:
-                stream.write(partition)
                 struct.pack_into("<I",caches[name].data,at+56,pointer)
                 struct.pack_into("<I",caches[name].data,at+80,len(partition))
                 if "donor_width" in profile:
@@ -223,5 +297,12 @@ def apply_selected(root, pack, *, tag_revisions=None):
             profiles=[dict(map=name,tag=p["tag"],restored_mips=p["mip_count"],format=p["format"],
                            target_sha256=p["target_sha256"]) for name,p,_ in staged if (name,p["tag"]) in decal_owners],
             manifest_sha256=file_sha(root/DECAL_BUNDLE.with_suffix("")), full_graphics_parity=False)
+    if canonical_layout:
+        report["resource_layout"] = dict(schema="H2_MCC_CANONICAL_GRAPHICS_RESOURCE_LAYOUT_V1",
+            source_bytes=CANONICAL_SOURCE_BYTES, source_sha256=CANONICAL_SOURCE_SHA,
+            v3_prefix_bytes=CANONICAL_V3_END, v3_prefix_sha256=CANONICAL_V3_SHA,
+            reserved_ranges=[dict(offset=CANONICAL_V3_END, bytes=PREVIEW_RESERVED_BYTES,
+                purpose="unreferenced historical preview address space")],
+            native_content_deduplicated=True, historical_preview_images_reconstructed=False)
     (pack/"graphics-conversion.json").write_text(json.dumps(report,indent=2)+"\n")
     return report

@@ -41,7 +41,10 @@ if(BUILD_TESTING)
             "native_renderer_material_projection;test_project_native_material_fragments.py"
             "native_renderer_world_source_projection;test_project_native_world_sources.py"
             "native_renderer_raw_vertex_metadata;test_native_raw_vertex_metadata.py"
-            "native_renderer_cpu_vertex_lowering;test_native_cpu_vertex_kernel.py")
+            "native_renderer_cpu_vertex_lowering;test_native_cpu_vertex_kernel.py"
+            "native_shadow_ordered_position;test_source_world_depth_position.py"
+            "native_shadow_model_depth_position;test_source_model_depth_position.py"
+            "native_shadow_authored_cull;test_source_world_depth_raster.py")
         list(GET pair 0 test_name)
         list(GET pair 1 test_source)
         add_test(NAME ${test_name} COMMAND ${Python3_EXECUTABLE} -B -m unittest discover

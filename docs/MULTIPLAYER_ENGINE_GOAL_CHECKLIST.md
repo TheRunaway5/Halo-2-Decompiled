@@ -1033,9 +1033,27 @@ family-wide unchecked gates above retain their broader scope.
 - [x] Build the full native application and pass all eight focused CTests, plus
   16 service transport/result tests. Commands and exact source/report hashes are
   under `build/ctf-assault-network-consumers-20261024/acceptance.json`.
-- [ ] Retain a genuine System Link lobby/session across world teardown and
-  complete its PCR-to-lobby return. The current LAN transport borrows the match;
-  the local offline session is not an admissible substitute.
+- [x] Retain a genuine System Link lobby/session across world teardown and
+  complete PCR-to-lobby return for all nine stock CTF/Assault presets. The
+  [native System Link owner](MP_CTF_ASSAULT_SYSTEM_LINK_RETURN.md) preserves the
+  socket/key, actual profiles/teams and sparse player slots, uses the original
+  PCR/countdown kernels and admits another genuine source world. All nine
+  encrypted return/restart cases, late join/leave/preset change and the ordinary
+  runtime handoff pass; the offline session is not substituted for LAN members.
+
+The 2026-10-28 follow-through repeats all nine local and ONLINE result/lobby
+flows and records native rule-source continuity under
+`build/ctf-assault-system-link-20261025`. Its broader rendered remote-consumer
+rerun failed at the sky material semantic guard for every preset; that failure
+remains recorded. The later [rendered qualification](MP_CTF_ASSAULT_RENDERED_VALIDATION.md)
+selects the already corrected V7 cache and independently verifies Lockout's
+original Xbox sky geometry and all seven materials/textures. All 22 selected
+tests pass: all nine stock local starts, remote waypoint consumers, timed
+original endings with direct font-ink checks in both views, and retained native
+System Link returns. The missing first-person combat/action dispatch is fixed
+using its existing native owner. The 57 objective rule kernels remain unchanged;
+no executable instruction words are uploaded. Broader all-map sky diagnostics
+remain separate failures, not original-hardware parity proof.
 
 All edited rule combinations, cross-machine/physical Xbox comparisons, migration
 and launcher installation retain their own acceptance gates. The rendered

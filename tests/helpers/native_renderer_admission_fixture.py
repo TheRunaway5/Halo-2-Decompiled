@@ -18,3 +18,5 @@ if __name__ == '__main__' and '--verify-aot-package' in _fixture_sys.argv:
     raise SystemExit(1 if (_fixture_root/'reject-renderer-admission').exists() else 0)
 '''
     Path(destination).write_text(prefix + source.read_text())
+    Path(destination).with_name('file_identity.py').write_text(
+        (Path(repository) / 'tools/file_identity.py').read_text())

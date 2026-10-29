@@ -354,9 +354,12 @@ void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
     // cull in index bands on the worker pool when no two culled units share an
     // arena word. Every precondition the serial walk would reject keeps the
     // serial walk, which then rejects it in the same order.
-    // Banded execution stays opt-in (HALO2_NATIVE_BANDED_CULL=1) until a
-    // byte-identical frame capture has been recorded for it.
-    static const bool banded_cull=[]{const auto *p=std::getenv("HALO2_NATIVE_BANDED_CULL");return p && *p;}();
+    // The recorded corpus and full-resolution runtime captures qualify the
+    // normal banded route. =0 (or an empty value) restores the serial walk.
+    static const bool banded_cull=[]{
+        const auto *p=std::getenv("HALO2_NATIVE_BANDED_CULL");
+        return !p || (*p && !(p[0]=='0' && !p[1]));
+    }();
     const auto workers=native_parallel_workers();
     const bool requested=execution==SourceBspFrustumCullExecution::banded ||
         (execution==SourceBspFrustumCullExecution::automatic && banded_cull);

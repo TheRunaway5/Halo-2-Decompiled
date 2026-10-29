@@ -37,9 +37,12 @@ struct Owner {
     std::uint32_t result_seconds{};
     std::unique_ptr<MultiplayerObjectRuntime> world;std::unique_ptr<MultiplayerMatch> match;
     std::unique_ptr<SourceMatchAuthority> authority;FirstPersonBindingDefinition fp;
+    std::vector<unsigned> expected_views;
     Owner(const char *xbe,const char *map,std::span<const unsigned> locals,std::uint32_t time,
-        std::span<const OnlineAdmission> roster={},std::function<std::uint32_t()> result_clock={})
-        :cache(map,{},OriginalData::load_xbe(xbe)),content(cache.load_content(0,true)){
+        std::span<const OnlineAdmission> roster={},std::function<std::uint32_t()> result_clock={},
+        std::span<const unsigned> initial_slots={},bool no_initial_players=false)
+        :cache(map,{},OriginalData::load_xbe(xbe)),content(cache.load_content(0,true)),
+        expected_views(locals.begin(),locals.end()){
         clock->time=time;result_seconds=100000u+time/1000u;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
         UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);
         rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
@@ -51,16 +54,19 @@ struct Owner {
         const auto borrowed=std::shared_ptr<const Cache>(&cache,[](const Cache*){});
         match->configure_grenades(borrowed,*cache.original_data()->grenade_constants);
         match->configure_melee_animation(borrowed,*cache.original_data()->melee_constants);
-        for(unsigned id=0;id<player_count;++id){const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
+        for(unsigned id=0;id<player_count;++id){
+            if(no_initial_players)continue;
+            if(!initial_slots.empty()&&std::ranges::find(initial_slots,id)==initial_slots.end())continue;
+            const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
             std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
             check(roster.empty()||(roster.size()==player_count&&roster[id].slot==id),"Source fixture admission slots differ");
             const auto name=roster.empty()?"Rebind seat "+std::to_string(id):roster[id].name;
-            check(match->join(name,-1,native_selected_player_configuration(name,appearance,-1))==id,"Source roster admission failed");}
+            check(match->join(name,-1,native_selected_player_configuration(name,appearance,-1),id)==id,"Source roster admission failed");}
         fp=cache.load_first_person_binding(rules.weapon,2);
         match->configure_replicated_first_person(fp);match->configure_local_views(locals,fp);
         authority=std::make_unique<SourceMatchAuthority>(*match,*world);
     }
-    void local_views(std::span<const unsigned> ids){match->configure_local_views(ids,fp);}
+    void local_views(std::span<const unsigned> ids){match->configure_local_views(ids,fp);expected_views.assign(ids.begin(),ids.end());}
     // Independent scripted wall-clock seconds; restoring Match cannot move it.
     void step(const std::array<Controls,16> &input){clock->time+=33;++result_seconds;match->step(input);}
 };
@@ -73,19 +79,28 @@ bool bits(float a,float b){return std::bit_cast<std::uint32_t>(a)==std::bit_cast
 bool bits(Vec3 a,Vec3 b){return bits(a.x,b.x)&&bits(a.y,b.y)&&bits(a.z,b.z);}
 void local_views(Owner &owner,std::span<const unsigned> locals){
     const auto &bank=owner.world->memory();const auto census=word(bank,0x4f54f0u),pool=word(bank,0x4f54f4u);
+    unsigned expected_count{};
     for(unsigned view=0;view<4;++view){auto expected=null_datum;
         if(view<locals.size()&&!(owner.match->player(locals[view]).source_flags&2u))expected=owner.match->player(locals[view]).source_datum;
+        expected_count+=expected!=null_datum;
         check(word(bank,census+0xcu+view*4u)==expected,"Original local-view map did not rebind");
+        check(word(bank,census+0x1cu+view*4u)==expected,"Original logical input-user reverse map did not rebind");
         const auto unit=expected==null_datum?null_datum:owner.match->player(locals[view]).source_current_object;
         check(owner.world->first_person_view(view).unit==unit,"Original first-person unit did not follow the new local player");
     }
-    for(unsigned id=0;id<player_count;++id){const auto &p=owner.match->player(id);
-        const auto row=source_raw_datum_lookup(pool,p.source_datum,storage(bank));const auto at=std::ranges::find(locals,id);
+    check(word(bank,census+8u,2)==expected_count,"Original local-view census differs from admitted views");
+    check(word(bank,census+10u,2)==expected_count,"Original logical input-user census differs from admitted views");
+    for(unsigned id=0;id<multiplayer_capacity;++id){const auto &p=owner.match->player(id);
+        const auto at=std::ranges::find(locals,id);
+        if(p.source_datum==null_datum){check(at==locals.end(),"Original local view selected an unallocated player");continue;}
+        const auto row=source_raw_datum_lookup(pool,p.source_datum,storage(bank));check(row!=0,"Original allocated player local index lost its native row");
         const auto expected=at==locals.end()||(p.source_flags&2u)?std::int16_t(-1):std::int16_t(at-locals.begin());
         check(std::bit_cast<std::int16_t>(std::uint16_t(word(bank,row+0x28u,2)))==expected,"Original player local index did not rebind");
+        check(std::bit_cast<std::int32_t>(word(bank,row+0x24u))==expected,"Original player logical input user did not rebind");
     }
 }
 void same_gameplay(Owner &a,Owner &b){
+    local_views(a,a.expected_views);local_views(b,b.expected_views);
     const auto x=a.authority->checkpoint(binding),y=b.authority->checkpoint(binding);
     check(x.match.simulation.ticks==y.match.simulation.ticks&&x.match.simulation.random_state==y.match.simulation.random_state&&
         x.match.simulation.source_lifetimes==y.match.simulation.source_lifetimes&&x.match.simulation.scripts==y.match.simulation.scripts,
@@ -108,8 +123,17 @@ void same_gameplay(Owner &a,Owner &b){
         const auto ar=source_raw_datum_lookup(word(am,0x4f54f4u),p.source_datum,storage(am));
         const auto br=source_raw_datum_lookup(word(bm,0x4f54f4u),q.source_datum,storage(bm));
         const auto ab=am.view(ar,0x21c),bb=bm.view(br,0x21c);
-        for(unsigned n=0;n<ab.size();++n)if(n!=0x28&&n!=0x29&&ab[n]!=bb[n])
-            throw FormatError("Original player byte differs outside local index: slot "+std::to_string(id)+" offset "+std::to_string(n));
+        //151D30 and151C90 own the two process-local mappings. Their exact
+        // values and complete reverse tables were checked independently above;
+        // every record byte must still match its canonical recipient value.
+        auto expected=std::vector<std::byte>(ab.begin(),ab.end());
+        const auto selected=std::ranges::find(b.expected_views,id);
+        const auto index=selected==b.expected_views.end()||(q.source_flags&2u)?std::int32_t(-1):
+            std::int32_t(selected-b.expected_views.begin());
+        for(unsigned n=0;n<4;++n)expected[0x24u+n]=std::byte(std::uint32_t(index)>>(8u*n));
+        for(unsigned n=0;n<2;++n)expected[0x28u+n]=std::byte(std::uint32_t(index)>>(8u*n));
+        for(unsigned n=0;n<expected.size();++n)if(expected[n]!=bb[n])
+            throw FormatError("Original player byte differs from canonical recipient record: slot "+std::to_string(id)+" offset "+std::to_string(n));
     }
     const auto ao=a.world->live_objects(),bo=b.world->live_objects();check(ao.size()==bo.size(),"Rebinding changed live object census");
     for(unsigned i=0;i<ao.size();++i){check(ao[i].object==bo[i].object&&ao[i].definition==bo[i].definition&&ao[i].parent==bo[i].parent,

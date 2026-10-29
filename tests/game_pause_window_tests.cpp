@@ -13,13 +13,14 @@ struct ValidationLog {
   std::streambuf *previous=std::cerr.rdbuf(messages.rdbuf());
   ~ValidationLog(){std::cerr.rdbuf(previous);std::cerr<<messages.str();}
 };
-int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::path &map) {
+int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::path &map,bool online=false) {
   check(Cache(map,maps).is_mcc(),"Native MCC pause requires its actual gameplay cache");
   DesktopSession desktop;auto *window=desktop.window(960,720,true);Mesh mesh;
   bool rejected{};
   try{GamePauseMenu missing(maps,{},mesh,false);}catch(const FormatError&){rejected=true;}
   check(rejected,"Native MCC pause guessed a gameplay widget owner");
   GamePauseMenu menu(maps,{},mesh,false,{},{},map);mesh.vertices.resize(3);
+  menu.online_match(online);
   const bool validation=std::getenv("H2_TEST_VK_VALIDATION")&&std::string_view(std::getenv("H2_TEST_VK_VALIDATION"))=="1";
   Renderer renderer(window,mesh,validation);menu.bind(window,desktop,renderer);
   const auto key=[&](SDL_Keycode code){SDL_Event e{};e.type=SDL_KEYDOWN;e.key.windowID=SDL_GetWindowID(window);e.key.keysym.sym=code;return menu.event(e);};
@@ -40,6 +41,8 @@ int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::pa
   SDL_SetRelativeMouseMode(SDL_TRUE);
   check(key(SDLK_ESCAPE)&&menu.visible()&&!menu.pauses_game_time(),"Native MCC Escape did not open the multiplayer overlay");draw();
   check(!SDL_GetRelativeMouseMode(),"Native MCC pause retained relative mouse capture");
+  check(menu.state().frame().entries.at(2).label==(online?"Leave Match":"Quit"),
+      "Native MCC pause did not select the correct session exit action");
   choose(1);draw();
   check(menu.state().frame().screen==vista_menu(259)&&menu.state().frame().entries.size()==4,
       "Native MCC Escape omitted Controller, Keyboard, Sound or Video settings");
@@ -77,6 +80,10 @@ int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::pa
   check(menu.state().frame().entries.size()==3,"Native MCC Settings did not return to its multiplayer pause screen");
   choose(2);draw();
   check(menu.state().frame().selected==1&&!menu.quit_requested(),"Native MCC Quit confirmation did not default to Cancel");
+  if(online)check(menu.state().frame().title=="Leave Match" &&
+      menu.state().frame().entries.at(0).label=="Leave Match" &&
+      menu.state().frame().description=="Leave the current online match?",
+      "Native MCC Leave Match confirmation described a generic game quit");
   menu.state().back();check(key(SDLK_ESCAPE)&&!menu.visible(),"Native MCC pause did not resume");
   check(SDL_GetRelativeMouseMode(),"Native MCC Resume did not restore mouse capture");
   // The gameplay loop polls this after draining the dismissal event batch.
@@ -102,14 +109,19 @@ int native_mcc_pause(const std::filesystem::path &maps,const std::filesystem::pa
   check(key(SDLK_ESCAPE)&&!menu.visible(),"Native MCC Escape could not resume a controller-opened pause");
   check(!menu.captures_game_input(),"Native MCC keyboard takeover retained the dismissal barrier");
   check(key(SDLK_ESCAPE)&&menu.visible(),"Native MCC pause did not reopen");
+  check(menu.state().frame().entries.at(2).label==(online?"Leave Match":"Quit"),
+      "Native MCC reopening pause lost its session exit action");
   choose(2);choose(0);
   check(menu.quit_requested()&&!menu.visible()&&!SDL_GetRelativeMouseMode(),"Native MCC confirmed Quit did not release gameplay and the pointer");
   check(submitted>=4,"Native MCC pause did not submit real Vulkan frames");
-  std::cout<<"PASS actual cache-owned MCC Escape -> Controller/Keyboard/Sound/Video settings, live preferences, controller-to-keyboard takeover, Resume and confirmed Quit\n";return 0;
+  std::cout<<"PASS actual cache-owned MCC Escape -> Controller/Keyboard/Sound/Video settings, live preferences, controller-to-keyboard takeover, Resume and confirmed "<<(online?"Leave Match":"Quit")<<'\n';return 0;
 }
 }
 int main(int argc,char **argv)try {
-  if(argc==4&&std::string_view(argv[2])=="--native-mcc")return native_mcc_pause(argv[1],argv[3]);
+  if((argc==4||argc==5)&&std::string_view(argv[2])=="--native-mcc") {
+    check(argc==4||std::string_view(argv[4])=="--online","Unknown native pause test mode");
+    return native_mcc_pause(argv[1],argv[3],argc==5);
+  }
   if(argc!=3)return 77;
   ValidationLog validation;
   {

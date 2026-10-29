@@ -7,6 +7,7 @@
 #include "halo2/peer_prospective_role.hpp"
 #include "halo2/native_vehicle_camera.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
+#include "halo2/source_shadow_transport.hpp"
 #include "halo2/native_request_protocol.hpp"
 #include <memory>
 #include <chrono>
@@ -14,7 +15,7 @@ namespace halo2 {
 struct LanSessionDescription {
   std::uint64_t fingerprint{};
   UiVariant variant;
-  std::string map; // Authenticated scenario leaf when supplied by a retained LAN session.
+  std::string map; // Authenticated scenario leaf when supplied by the LAN host.
 };
 // Read the host's complete configuration before cold world/model preparation.
 // This query does not admit a player, allocate a body or start a peer timeout.
@@ -46,7 +47,7 @@ public:
   // TU1.5 peer-table operations run on their native world's executor. The
   // configuration I/O worker only exchanges immutable configuration/packets.
   LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint);
-  LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint,const UiVariant &);
+  LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint,const UiVariant &,std::string_view map={});
   LanHost(MultiplayerMatch &, std::shared_ptr<MultiplayerDatagrams>, std::uint64_t,
           std::vector<OnlineAdmission>);
   LanHost(MultiplayerMatch &, std::shared_ptr<MultiplayerDatagrams>, std::uint64_t,
@@ -58,6 +59,17 @@ public:
   std::string join_address(const std::string &host_address = "127.0.0.1",unsigned destination_port = 0) const;
   void receive(std::array<Controls, multiplayer_capacity> &);
   void broadcast();
+  // Dense presentation cuts use their own authenticated lane and native ACK.
+  // This authority must outlive the host. No recovery/migration owner changes.
+  void enable_shadow_lane(SourceMatchAuthority &,std::span<const unsigned> producer_views,
+      std::span<const OnlineAdmission> accepted_roster={});
+  bool shadow_publication_pending()const;
+  bool capture_shadow_state();
+  SourceShadowTransportStatistics shadow_transport_statistics()const;
+  // Codec implementation hook; install once on the host's native executor.
+  void bind_shadow_lane(std::unique_ptr<SourceShadowHostLane>);
+  void disable_shadow_lane();
+  void update_shadow_roster(std::span<const OnlineAdmission>);
   // Optional numeric-journal owner. Bind only on the actual admitted source
   // tick0 executor; the bank and native world outlive this host.
   void bind_admitted_cameras(std::shared_ptr<SourceAdmittedCameraBank>);
@@ -89,6 +101,7 @@ public:
   void service_system_link_lobby();
   void continue_system_link_lobby();
   void system_link_countdown(std::int32_t);
+  std::string change_system_link_team(unsigned slot,std::int16_t team);
   void resume_system_link_world(MultiplayerMatch&,std::uint64_t,const UiVariant&,std::string map);
   enum class PeerRemovalReason { authenticated_leave, idle_timeout };
   // Passive current-host diagnostics only. No address, cookie, nonce or player
@@ -171,6 +184,7 @@ public:
     std::optional<std::uint32_t> camera_tick;
     std::array<std::optional<NativeDeathCameraView>,4> vehicle_views,death_views;
     std::array<std::uint32_t,4> camera_jump_serial{};
+    std::array<std::optional<NativeDeathCameraView>,4> player_views;
   };
   struct HostLossResume {std::unique_ptr<LanHost> host;LocalContinuation local;};
   // Drain saved held controls and each pending pulse once on the native game
@@ -204,6 +218,7 @@ private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };
+struct TeamChangeResult {unsigned view{};std::int16_t team{};std::string error;};
 class LanClient {
 public:
   // Raw joins require ADDRESS:PORT#<64 hex host-key digits>, exchanged outside
@@ -226,13 +241,33 @@ public:
   void set_motion(unsigned view,std::optional<NativeMotionReport>);
   // Sequence the next send() will carry once connected.
   std::uint32_t next_input_sequence() const;
+  std::string request_team_change(unsigned view,std::int16_t team);
+  std::vector<TeamChangeResult> take_team_change_results();
   void send(std::span<const Controls>);
   void receive();
+  void enable_shadow_lane(std::shared_ptr<OnlineMatchSession> online={});
+  std::optional<AcceptedShadowCut> shadow_cut(const MultiplayerSnapshotOrigin &)const;
+  // Separate exact historical native bodies; borrowed until the next receive.
+  // These never advance/replace state(), state_origin() or gameplay batches.
+  std::span<const AcceptedShadowCut> received_shadow_cuts()const;
+  bool owns_shadow_cut(const AcceptedShadowCut &,const MultiplayerSnapshotOrigin &)const noexcept;
+  bool acknowledge_shadow_cut(const AcceptedShadowCut &);
+  bool acknowledged_shadow_cut(const AcceptedShadowCut &)const noexcept;
+  // Connection/order association only. Does not equate the historical body
+  // with latest gameplay values or grant candidate/recovery authority.
+  bool owns_native_render_pair(const AcceptedShadowCut &,const MultiplayerSnapshotOrigin &)const noexcept;
+  SourceShadowTransportStatistics shadow_transport_statistics()const;
+  void bind_shadow_lane(std::unique_ptr<SourceShadowClientLane>);
+  void disable_shadow_lane();
+  bool shadow_lane_enabled()const noexcept;
   const SystemLinkState* system_link_state() const;
   void confirm_system_link_results();
   void service_system_link_lobby();
   void resume_system_link_world();
   bool ready() const;
+  // Authenticated native socket/couch admission only, before a presentation
+  // cut may be ready. This is never native-world or migration readiness.
+  bool transport_ready() const;
   const MultiplayerState &state() const;
   // Raw look sample (yaw, pitch) the host consumed to produce this local
   // view's angles in state(). The original client owned its own look: draw

@@ -33,6 +33,9 @@ def main():
     Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     source = Source({'path': str(NEW_DEFAULT), 'pin': NEW_PIN, 'globals': 0x51d048})
     memory = source.g
+    def verify_instruction(uc, address, size, _context):
+        assert bytes(uc.mem_read(address,size)) == source.image.read(address,size)
+    memory.hook_add(UC_HOOK_CODE, verify_instruction)
     state, game, pool, task, blob, owner = 0x1100000, 0x1101000, 0x1120000, 0x1121000, 0x1122000, 0x1123000
     memory.mem_map(state, 0x40000)
 
@@ -204,6 +207,8 @@ def main():
                   original_xbe_sha256=NEW_PIN, scope=__doc__, readiness_controls=controls,
                   policy_controls=policy_controls, policy_producer_consumer_controls=policy_chain,
                   fresh_entry_clears_defer=True, caller_routes=routes, original_listings=listings,
+                  all_executed_instruction_bytes_verified=True,
+                  scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[],
                   executed_distinct_instructions=len(source.executed - {0x764af, 0x76543, 0x66ab8}),
                   conclusions=[
                       'The flag at start-match state+0x16 is a deferral result, not an ordinary instant-start policy.',

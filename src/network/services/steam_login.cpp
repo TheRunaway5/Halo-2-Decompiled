@@ -141,7 +141,12 @@ struct SteamLogin::Impl {
       }
       if(!browser_allowed){publish({});return;}
       const auto verifier=random_proof();
-      const auto started=http({base+"/v1/auth/steam/start",Json{{"challenge",digest(verifier)}}.dump(),{}},stop);
+      std::array<unsigned char,6> confirmation_bytes{};
+      require(RAND_bytes(confirmation_bytes.data(),int(confirmation_bytes.size()))==1);
+      std::string confirmation;constexpr char hex[]="0123456789ABCDEF";
+      for(auto byte:confirmation_bytes){confirmation+=hex[byte>>4];confirmation+=hex[byte&15];}
+      const auto started=http({base+"/v1/auth/steam/start",Json{{"challenge",digest(verifier)},
+          {"confirmation",digest(confirmation)}}.dump(),{}},stop);
       if(stop.stop_requested())return;
       if(started.status!=201)throw std::runtime_error("Steam sign-in is unavailable. Please try again.");
       const auto body=Json::parse(started.body);const auto device=body.at("device").get<std::string>();
@@ -150,7 +155,8 @@ struct SteamLogin::Impl {
       const auto url=login_url(base,device);require(body.at("url").get<std::string>()==url);
       const auto deadline=Clock::now()+std::min(options.timeout,std::chrono::milliseconds(lifetime*1000));
       if(!browser||!browser(url))throw std::runtime_error("Could not open your browser for Steam sign-in.");
-      publish({DiscordLoginStatus::Waiting,{},"Complete Steam sign-in in your browser. Press Back to cancel."});
+      const auto confirm_message="Enter this code in your browser after Steam sign-in: "+confirmation+". Press Back to cancel.";
+      publish({DiscordLoginStatus::Waiting,{},confirm_message});
       std::mutex wait_mutex;std::condition_variable_any wake;std::unique_lock wait_lock(wait_mutex);
       while(!stop.stop_requested()&&Clock::now()<deadline) {
         wake.wait_for(wait_lock,stop,std::chrono::seconds(interval),[]{return false;});
@@ -159,7 +165,8 @@ struct SteamLogin::Impl {
         if(stop.stop_requested())return;
         if(response.status!=200)throw std::runtime_error("Steam sign-in expired or was rejected. Please try again.");
         const auto result=Json::parse(response.body);const auto status=result.at("state").get<std::string>();
-        if(status=="pending"||status=="verifying") {
+        if(status=="pending"||status=="verifying"||status=="awaiting_confirmation") {
+          if(status=="awaiting_confirmation")publish({DiscordLoginStatus::Waiting,{},confirm_message});
           if(status=="verifying")publish({DiscordLoginStatus::Verifying,{},"Verifying your Steam identity..."});
           continue;
         }

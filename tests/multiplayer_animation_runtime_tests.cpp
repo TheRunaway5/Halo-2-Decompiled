@@ -132,10 +132,10 @@ int completed_pose_runtime(MultiplayerOptions options) {
     if(step==8)button(window_id,true);
     if(step==23)button(window_id,false);
     if(step==28)reload(window_id);
-    if(step==100)key(window_id,SDL_SCANCODE_F,true);
-    if(step==101)key(window_id,SDL_SCANCODE_F,false);
-    if(step==115)key(window_id,SDL_SCANCODE_LSHIFT,true);
-    if(step==135)key(window_id,SDL_SCANCODE_LSHIFT,false);
+    if(step==100)key(window_id,SDL_SCANCODE_Q,true);
+    if(step==101)key(window_id,SDL_SCANCODE_Q,false);
+    if(step==115)key(window_id,SDL_SCANCODE_LCTRL,true);
+    if(step==135)key(window_id,SDL_SCANCODE_LCTRL,false);
   };
   const auto same=[](std::span<const Transform> a,std::span<const Transform> b) {
     return a.size()==b.size() && !std::memcmp(a.data(),b.data(),a.size_bytes());
@@ -323,8 +323,8 @@ int main(int argc,char **argv) {
           <<" pitch="<<controls[0].pitch<<" tick="<<state.tick<<" connected="<<state.players[0].connected<<'\n';
       check(step<120 || held_start,"Animation test window never obtained actual SDL keyboard focus");
       if(held_start)check(SDL_GetKeyboardFocus()==window,"Animation test lost actual SDL keyboard focus during its stimulus");
-      if(held_start && step==*held_start+132)key(window_id,SDL_SCANCODE_F,true);
-      if(held_start && step==*held_start+133)key(window_id,SDL_SCANCODE_F,false);
+      if(held_start && step==*held_start+132)key(window_id,SDL_SCANCODE_Q,true);
+      if(held_start && step==*held_start+133)key(window_id,SDL_SCANCODE_Q,false);
       if(held_start && step==*held_start+6)button(window_id,true);
       if(held_start && step==*held_start+20)button(window_id,false);
       if(held_start && step==*held_start+24)reload(window_id);
@@ -332,22 +332,22 @@ int main(int argc,char **argv) {
       if(held_start && step==*held_start+7)key(window_id,SDL_SCANCODE_W,false);
       if(held_start && step==*held_start+10)key(window_id,SDL_SCANCODE_SPACE,true);
       if(held_start && step==*held_start+11)key(window_id,SDL_SCANCODE_SPACE,false);
-      if(held_start && step==*held_start+60)key(window_id,SDL_SCANCODE_LSHIFT,true);
-      if(held_start && step==*held_start+68)key(window_id,SDL_SCANCODE_LSHIFT,false);
+      if(held_start && step==*held_start+60)key(window_id,SDL_SCANCODE_LCTRL,true);
+      if(held_start && step==*held_start+68)key(window_id,SDL_SCANCODE_LCTRL,false);
       // Exercise moving throw after the stance/melee checks. This is a real
       // damaging grenade; an earlier throw can kill the LAN test participant
       // before those later inputs, which cannot establish animation playback.
       if(held_start && step==*held_start+345)key(window_id,SDL_SCANCODE_W,true);
-      if(held_start && step==*held_start+346)key(window_id,SDL_SCANCODE_Q,true);
-      if(held_start && step==*held_start+347)key(window_id,SDL_SCANCODE_Q,false);
+      if(held_start && step==*held_start+346)key(window_id,SDL_SCANCODE_F,true);
+      if(held_start && step==*held_start+347)key(window_id,SDL_SCANCODE_F,false);
       if(held_start && step==*held_start+355)key(window_id,SDL_SCANCODE_W,false);
-      if(held_start && step==*held_start+200)key(window_id,SDL_SCANCODE_LSHIFT,true);
+      if(held_start && step==*held_start+200)key(window_id,SDL_SCANCODE_LCTRL,true);
       if(held_start && step==*held_start+225)key(window_id,SDL_SCANCODE_W,true);
       if(held_start && step==*held_start+250){key(window_id,SDL_SCANCODE_W,false);key(window_id,SDL_SCANCODE_S,true);}
       if(held_start && step==*held_start+275){key(window_id,SDL_SCANCODE_S,false);key(window_id,SDL_SCANCODE_A,true);}
       if(held_start && step==*held_start+300){key(window_id,SDL_SCANCODE_A,false);key(window_id,SDL_SCANCODE_D,true);}
       if(held_start && step==*held_start+325)key(window_id,SDL_SCANCODE_D,false);
-      if(held_start && step==*held_start+340)key(window_id,SDL_SCANCODE_LSHIFT,false);
+      if(held_start && step==*held_start+340)key(window_id,SDL_SCANCODE_LCTRL,false);
       if(held_start && (step==*held_start+55 || step==*held_start+70)) {
         SDL_Event e{};e.type=SDL_MOUSEMOTION;e.motion.windowID=window_id;
         e.motion.yrel=step==*held_start+55?-300:600;push(e);

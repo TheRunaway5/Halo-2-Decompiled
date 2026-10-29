@@ -1,0 +1,181 @@
+{
+  "schema": "H2_RUST_COORDINATOR_VALIDATION_V1",
+  "updated_utc": "2026-10-28T17:36:23.112992+00:00",
+  "queue_authority_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Rust catalog/player validation, private queue/proposal ownership, structural gathering admission, native replacement scheduling/host ranking, original assignment/rating/draw calls and atomic reservation/readiness consumption through actual service ABI. All registry/API/results/native/delivery requirements remain open.",
+  "rust_authorities": [
+    "Complete admitted catalog and player model validation",
+    "Ticket membership, frozen profile hashes, leases and monotone clock",
+    "Queue and proposal maps plus exclusive ticket reservations",
+    "Measured connection leases, threshold eligibility and native host ranking",
+    "Optional legacy reciprocal rank stages and bounded subset assembly",
+    "Structural gathering fits and original team caller before proposal publication",
+    "Original hopper seed/draw stream and separate modern v2 scheduler/host stream",
+    "Pinned exact selected row and internal roster/profile/game binding",
+    "Membership before host refresh; readiness invalidation and exactly-once in-memory consumption"
+  ],
+  "modern_replacements": {
+    "scheduler_host_rng": "Native v2 LCG1664525/1013904223; separate from original hopper draw. Bootstrap entropy only enters through Python IO.",
+    "policies": "Central subset assembly, reciprocal legacy stage limits, route host comparator, native leases and structural admission remain explicit replacements; no original Live recovery claim.",
+    "binding": "Full validated profile hash plus exact admitted roster/game snapshot within Rust. End-to-end executable/map/epoch/authority/namespace/result envelope remains open."
+  },
+  "red_green_regression": {
+    "red_report": "coordinator-unauthorized-red-report.json",
+    "red_diagnostics": "coordinator-unauthorized-red.log",
+    "before": "An outsider acknowledgment selected a host before returning403.",
+    "after": "Rust validates admitted membership before host refresh, RNG or readiness mutation.",
+    "green_rust_test": "reservations_readiness_and_consumption_have_one_owner",
+    "green_service_test": "RustMatchmakingOwnerTests.test_catalog_row_binding_reservation_and_duplicate_acknowledgment"
+  },
+  "passing_frozen_cohort": {
+    "passed": true,
+    "rust_tests": 23,
+    "native_owner_tests": 5,
+    "prior_original_fixture_tests": 18,
+    "backend_tests": 430,
+    "backend_seconds": 111.202,
+    "report": "coordinator-backend-report.json",
+    "source_manifest": "coordinator-source-manifest.json",
+    "rust_log": "coordinator-rust-tests.log",
+    "backend_log": "coordinator-backend-tests.log",
+    "includes_concurrent_unrelated_work": true,
+    "drift_at_recording": []
+  },
+  "fixture_scope": {
+    "new_original_executable_runs_in_this_increment": false,
+    "existing_pinned_original_numerical_fixtures_reused": true,
+    "sha256": {
+      "tests/fixtures/matchmaking_assignment_original.json": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee",
+      "tests/fixtures/matchmaking_ratings_original.json": "1d03fce33b2e4a479155a98c989c6d549f52419435705f6298dc9e0b67124370",
+      "tests/fixtures/matchmaking_lifecycle_original.json": "3dd366025109302824808e07fa5feeb00ede43c6bfabcbd6bc91c190a3e138fc",
+      "multiplayer/master_server/tests/fixtures/retail-session-candidates.json.gz": "20ef2f951fdac45ebec6501c95dd3b372c706392961f89b36b51bf1acb8f649a"
+    },
+    "new_native_owner_inputs": "Declared synthetic service admissions; not authenticated original service captures."
+  },
+  "adapter_contract_tests": [
+    "Immutable Python snapshots cannot replace admitted rosters or ready state",
+    "Same-revision profile/settings changes reject lease/ready reuse",
+    "Forged selected rows and double reservation rejected before publication",
+    "Failed original assignment preserves hopper seed",
+    "Duplicate/unauthorized acknowledgments cannot double-consume or mutate admissions",
+    "Success/error/malformed/retired response paths release every returned Rust buffer",
+    "HTTP shutdown retires the private Rust owner",
+    "Appearance and session-renewal checks preserve complete ticket value and ID, without Python object-identity coupling",
+    "Four-team service tests now use real Rust admissions instead of fabricated Ticket records"
+  ],
+  "compiler_library": {
+    "updated_utc": "2026-10-28T17:33:06.964045+00:00",
+    "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2",
+    "git_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+    "library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ab3tgf49/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "474c3cc198a230896d0dfda5c9fe949d3203a0f7fc19b7147a72d34433c339f3",
+      "bytes": 1130016,
+      "retained": false
+    },
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ab3tgf49"
+  },
+  "source_sha256": {
+    "rust/online_protocol/src/matchmaking_model.rs": "af1253a23e14f4f90c5c357ad8d3a36abffb06b39f80ccc109839a7cfa03d0de",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "d5447ccac460084b4b965b5b0a3f80b6e23b20271fd307f7a96fc6120d7f69bc",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "fa3b2ff67cb57a699be9a36c7cc9504cfeb018f40892bc6bc0877fe58df82402",
+    "multiplayer/master_server/native_matchmaking.py": "67a56810f96c998a63e7ab88354b7c76901e569fda5c5272a677fe0fb7e7398d",
+    "multiplayer/master_server/matchmaking.py": "f636c69e8b3321cbbf27bc3a6aa16417ad397d7b8b98dc718263a370c6621a37",
+    "multiplayer/master_server/gathering_sessions.py": "dd59de2debef01d21158bc039b1133aa9b817189a61d58c39a50003712a18599",
+    "multiplayer/master_server/hopper_selection.py": "f8db65cb2552dae17a3fe573e1bec633dd064f45004c0e498c7681ba71a87d63",
+    "multiplayer/master_server/service.py": "9b40ecf314b37d2dbc93b033a7bbbe96622ebc4a74e4a0612537fd209b542e6e",
+    "rust/online_protocol/src/lib.rs": "2ff325c78f822805458a8a8cbda4ed05685d8cb442e32dd2d99e89a87191b37f",
+    "rust/online_security_ffi/src/lib.rs": "d0187f6a46188f81a8d44b1e588ad7c24667f5ae8708e37a123ab82f030a32b1",
+    "rust/online_protocol/tests/matchmaking_coordinator.rs": "4e66e94c47b2270d517df9867e81ba3ee648bff4905d35f62130fc2994b40914",
+    "multiplayer/master_server/tests/test_matchmaking_owner_native.py": "d04c46b979e118e77239640a0f4593175fed91685696e7edd3f1585223dcf291",
+    "multiplayer/master_server/tests/test_team_balance_native.py": "47ae16a568dc8cf347407a7d888517439b913ed7e3bb448f357dbda0bfaf5669",
+    "multiplayer/master_server/tests/test_matchmaking_appearance.py": "b9001cb175a1da3b51ae127b05430b23fad0d8f8c359d4916a660eccd0e3c8ad",
+    "multiplayer/master_server/tests/test_parties_http.py": "de2387ee0ab8d56b6223b86f2f8b856c2753aad0ef85224b6106a2852b576379"
+  },
+  "native_played_flow_qualified": false,
+  "installed_runtime_replaced": false,
+  "remote_service_replaced": false,
+  "remaining": [
+    "Whole gathering/query/advertisement and input producer ownership in Rust",
+    "API, physical/signed-local/guest/clan consent and membership authority",
+    "Session/host/world continuity, results, rank/XP and transactional persistence in Rust",
+    "Complete authenticated historical profiles and original service ordering/arbitration/RNG ownership",
+    "All53 original-owner requirements and all12 G01-G12 gates with genuine native/delivery acceptance"
+  ],
+  "owned_scratch_cleanup": [
+    {
+      "report": "build/test-results/matchmaking-coordinator-compile-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-omu05x3q",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-focused-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-qgi0viur",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-full-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-3y391ozq",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-full2-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2vnewzfa",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-full3-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ab3tgf49",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-integration-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7avcllnr",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-integration2-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-bd4pm1w1",
+      "removed": true
+    },
+    {
+      "report": "build/test-results/matchmaking-coordinator-unauthorized-red-20261028",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2a8xrl7q",
+      "removed": true
+    }
+  ],
+  "all_owned_scratch_removed": true,
+  "retained_reports": {
+    "coordinator-backend-report.json": {
+      "bytes": 1447,
+      "sha256": "de1974574f536ad63b053e3dd4469ff1f70e5ad6ce417d1911638e4154846296"
+    },
+    "coordinator-source-manifest.json": {
+      "bytes": 25097,
+      "sha256": "c27d8bda3c3857c8b79e70e7bc2a9b05a837f1f64c0755df802876ddd3b789c6"
+    },
+    "coordinator-rust-tests.log": {
+      "bytes": 4389,
+      "sha256": "c0b7be820fa25c10a64bb044add8fb0ed960d273cb377fa57a0eebb4ca8c6daf"
+    },
+    "coordinator-backend-tests.log": {
+      "bytes": 50698,
+      "sha256": "ea79361b1b9b8f10b6a398293ee55dc17bb04a8e436c23ac911b5865739a29ef"
+    },
+    "coordinator-toolchain-library.json": {
+      "bytes": 711,
+      "sha256": "37f74141efa522d8c733de89c53c283c8744ea1ff3b16d6bfbb244dae1ef4aba"
+    },
+    "coordinator-unauthorized-red-report.json": {
+      "bytes": 686,
+      "sha256": "bfe85d0f51b1a81f32fcc1cd15b2a619c2ec9f71c54c44e781ecee93e4229dc6"
+    },
+    "coordinator-unauthorized-red.log": {
+      "bytes": 2387,
+      "sha256": "192019e8fb00f78f0041ed116d9fd51574b2a81ca5641b5e255b0eaab346f178"
+    }
+  },
+  "retained_large_artifacts": []
+}

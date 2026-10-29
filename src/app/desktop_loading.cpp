@@ -7,6 +7,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <exception>
+#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -20,8 +21,8 @@ constexpr VistaLoadingFloatingPoint loading_fp{0x027f,0x1f80};
 // images and an independently owned loading draw bank cross that boundary.
 class DesktopLoadingBridge {
 public:
-  DesktopLoadingBridge(SDL_Window *window,const VistaLoadingAssets& assets)
-      :window_(window),presentation_(std::in_place,assets) {}
+  DesktopLoadingBridge(SDL_Window *window,const VistaLoadingAssets& assets,bool preserve_logo_proportions)
+      :window_(window),presentation_(std::in_place,assets,preserve_logo_proportions) {}
   DesktopLoadingBridge(SDL_Window *window,const GameplayFontSource& source)
       :window_(window),source_wait_presentation_(std::in_place,source) {}
   DesktopLoadingBridge(SDL_Window *window,std::shared_ptr<FrontendNetworkTransitionPainter> painter)
@@ -47,6 +48,7 @@ public:
   }
   void network_transition_status(FrontendNetworkTransitionStatus status) {
     std::lock_guard lock(mutex_);transition_status_=status;
+    if(transition_active_ && snapshot_.active)snapshot_.network_transition=status;
   }
 
   std::shared_ptr<Renderer> make_renderer(SDL_Window *window,Mesh& mesh,bool validation,
@@ -155,6 +157,7 @@ public:
     fade_={0,0,0x3f800000};
     const auto deadline=SDL_GetTicks();
     snapshot_={};snapshot_.active=true;snapshot_.clock_origin=SDL_GetTicks();
+    snapshot_.network_transition=transition;
     snapshot_.deadline=deadline;snapshot_.gain_bits=fade_.gain_bits;
     cancelled_=false;
     completion_started_=false;
@@ -162,6 +165,12 @@ public:
       //66BAAD precedes the original graphics-thread creation66BAB2..66BAC8.
       // Mark ownership first so a partially failed native admission is closed.
       if(!source_wait && audio_.begin){audio_active_=true;audio_.begin();}
+      if(transition && transition_audio_.begin) {
+        transition_audio_active_=true;transition_audio_.begin(transition_origin_);
+      }
+      if(transition)std::cout<<"Multiplayer loading: screen=231 status="
+          <<(*transition==FrontendNetworkTransitionStatus::LeavingGame?"network_leaving":
+             *transition==FrontendNetworkTransitionStatus::LoadingMap?"network_loading_map":"network_joining")<<'\n';
       worker_=std::thread([this,source_wait] {
         try {
           if(source_wait) {source_wait_loop();condition_.notify_all();return;}
@@ -214,6 +223,8 @@ public:
     //66A0AB shuts down the independent ambience after the graphics join,
     // including a native presentation failure. Preserve the first failure.
     try{end_audio();}catch(...){if(!failure_)failure_=std::current_exception();}
+    if(snapshot_.network_transition)std::cout<<"Multiplayer loading: graphics joined before first world draw; submitted_frames="
+        <<snapshot_.submitted_frames<<'\n';
     rethrow();
   }
 
@@ -262,6 +273,20 @@ public:
       throw FormatError("loading audio requires begin, gain and end owners");
     audio_=std::move(services);
   }
+  void transition_audio_services(DesktopNetworkTransitionAudioServices services) {
+    std::lock_guard lock(mutex_);rethrow();
+    if(snapshot_.active || worker_.joinable() || transition_audio_active_)
+      throw FormatError("Network transition audio must be bound before loading");
+    if(!services.begin || !services.update || !services.end)
+      throw FormatError("Network transition audio requires begin, update and end owners");
+    transition_audio_=std::move(services);
+  }
+  void update_service(std::function<void()> service) {
+    std::lock_guard lock(mutex_);rethrow();
+    if(snapshot_.active || worker_.joinable())
+      throw FormatError("Loading update service must be bound before loading");
+    update_=std::move(service);
+  }
 
 private:
   void start_completion_locked() {
@@ -272,6 +297,9 @@ private:
     snapshot_.fade_active=true;completion_started_=true;condition_.notify_all();
   }
   void end_audio() {
+    if(transition_audio_active_) {
+      transition_audio_active_=false;transition_audio_.end(SDL_GetTicks());
+    }
     if(!audio_active_)return;
     audio_active_=false;
     audio_.end();
@@ -287,6 +315,7 @@ private:
     // Literal source unsigned comparison, including its retained wrap behavior.
     if(now<snapshot_.deadline)return 1;
     snapshot_.deadline=now+33;
+    if(update_)update_();
     const auto update=vista_loading_fade_update(fade_,snapshot_.clock_origin,now,loading_fp);
     snapshot_.gain_bits=fade_.gain_bits;snapshot_.fade_complete=update.complete;
     // The original passes every active gain to782052, whose DirectSound owner
@@ -308,10 +337,14 @@ private:
   void source_wait_loop() {
     for(;;) {
       std::unique_lock lock(mutex_);
-      condition_.wait(lock,[this]{return cancelled_ || (current_ &&
+      // The admitted surface may be quiescent during first-frame bootstrap.
+      // Sound-class fades keep their independent wall clock in that interval.
+      condition_.wait_for(lock,std::chrono::milliseconds(16),[this]{return cancelled_ || (current_ &&
           (!source_wait_quiesced_ || source_completion_requested_));});
       if(cancelled_)throw LoadingCancelled{};
+      if(transition_audio_active_)transition_audio_.update(SDL_GetTicks());
       if(source_completion_requested_ && (source_ready_presented_ || source_surface_unavailable_))return;
+      if(!current_ || source_wait_quiesced_)continue;
       int width{},height{};SDL_Vulkan_GetDrawableSize(window_,&width,&height);
       if(source_wait_progress_==0x3f800000u && (width<=0 || height<=0 ||
           (SDL_GetWindowFlags(window_)&SDL_WINDOW_MINIMIZED))) {
@@ -365,6 +398,9 @@ private:
   std::filesystem::path capture_;
   DesktopLoadingAudioServices audio_;
   bool audio_active_{};
+  std::function<void()> update_;
+  DesktopNetworkTransitionAudioServices transition_audio_;
+  bool transition_audio_active_{};
   bool source_wait_active_{},source_completion_requested_{},source_ready_presented_{};
   bool source_wait_quiesced_{},source_surface_unavailable_{};
   std::uint32_t source_wait_progress_{};
@@ -378,9 +414,9 @@ void DesktopSession::configure_loading(const std::filesystem::path& directory) {
   const auto assets=load_vista_loading_assets(directory);
   configure_loading(assets);
 }
-void DesktopSession::configure_loading(const VistaLoadingAssets& assets) {
+void DesktopSession::configure_loading(const VistaLoadingAssets& assets,bool preserve_logo_proportions) {
   if(loading_)throw FormatError("Loading assets are already configured");
-  auto admitted=std::make_shared<DesktopLoadingBridge>(window_,assets);
+  auto admitted=std::make_shared<DesktopLoadingBridge>(window_,assets,preserve_logo_proportions);
   loading_=std::move(admitted);
 }
 void DesktopSession::configure_source_loading_wait(const GameplayFontSource& source) {
@@ -397,6 +433,11 @@ bool DesktopSession::network_transition_configured() const {
 void DesktopSession::begin_network_transition(FrontendNetworkTransitionStatus status) {
   if(!loading_)throw FormatError("Network transition dialog is not configured");
   loading_->begin(true,status);
+}
+void DesktopSession::begin_multiplayer_loading(FrontendNetworkTransitionStatus status) {
+  if(loading_active())return;
+  if(network_transition_configured())begin_network_transition(status);
+  else if(source_loading_wait_configured())begin_source_loading_wait();
 }
 void DesktopSession::network_transition_status(FrontendNetworkTransitionStatus status) {
   if(loading_)loading_->network_transition_status(status);
@@ -445,5 +486,13 @@ void DesktopSession::set_loading_gain_service(std::function<void(std::uint32_t)>
 void DesktopSession::set_loading_audio_services(DesktopLoadingAudioServices services) {
   if(!loading_)throw FormatError("Vista loading assets are not configured");
   loading_->audio_services(std::move(services));
+}
+void DesktopSession::set_network_transition_audio_services(DesktopNetworkTransitionAudioServices services) {
+  if(!loading_)throw FormatError("Network transition assets are not configured");
+  loading_->transition_audio_services(std::move(services));
+}
+void DesktopSession::set_loading_update_service(std::function<void()> service) {
+  if(!loading_)throw FormatError("Loading assets are not configured");
+  loading_->update_service(std::move(service));
 }
 } // namespace halo2

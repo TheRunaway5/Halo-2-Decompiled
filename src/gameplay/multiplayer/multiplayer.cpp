@@ -1493,9 +1493,27 @@ unsigned MultiplayerMatch::available_player_slots() const {
 }
 void MultiplayerMatch::leave(unsigned id) {
   if(simulation_.source_physics_movement_) {depart(id);return;}
-  // The older native-owned compatibility world has no original deferred
-  // departure owner yet. Keep its existing behavior isolated from TU1.5.
-  cancel_join(id);
+  NativeAuthorityBoundary::Call active(authority_calls_);
+  auto& player=players_.at(id);
+  if(!player.connected || (player.source_flags&2u))return;
+  ++authority_calls_.mutations;
+  // Keep an admitted participant's identity and statistics through GAME OVER.
+  // Deleting it here shrinks the FFA entrant count to one and makes the final
+  // ONLINE report disagree with the immutable admission roster. Failed joins
+  // still use cancel_join's allocation rollback.
+  auto& unit=unit_mutable(id);
+  drop_carried_weapons(unit);
+  unit.source_previous_player=unit.source_player;unit.source_player=null_datum;
+  player.source_current_object=player.source_previous_unit=null_datum;
+  player.source_current_unit=false;player.source_flags=std::uint16_t((player.source_flags|2u)&~1u);
+  player.death_counted=true;
+  // This compatibility world has no original deferred unowned-unit death.
+  // Retire its body without charging a kill, death, suicide or score.
+  unit.vitality.dead=true;unit.state=Unit::Dead;
+  retain_unit(unit);
+  if(native_first_person_registry_)native_first_person_registry_->retire(id);
+  native_presentation_controls_[id]={};
+  update_first_person_views();update_replicated_first_person_views();
 }
 bool MultiplayerMatch::depart(unsigned id) {
   SourceExecutionCallScope journal(source_object_world_?&source_object_world_->memory():nullptr,
@@ -1528,6 +1546,37 @@ bool MultiplayerMatch::depart(unsigned id) {
   native_presentation_controls_[id]={};
   update_first_person_views();update_replicated_first_person_views();
   return true;
+}
+std::string MultiplayerMatch::change_team(unsigned id,std::int16_t team) {
+  SourceExecutionCallScope journal(source_object_world_?&source_object_world_->memory():nullptr,
+      SourceExecutionCallKind::ChangeTeam,[&]{return source_execution_arguments(id,std::uint32_t(std::uint16_t(team)));});
+  NativeAuthorityBoundary::Call active(authority_calls_);
+  if(!rules_.team_mode || !source_engine_owned_)return "This match does not support team changes.";
+  if(!(rules_.player_flags&(1u<<6)))return "Team Changing is Off for this match.";
+  if(id>=players_.size() || !players_[id].connected || (players_[id].source_flags&2u))return "This player has left the match.";
+  if(finished_)return "The match has ended.";
+  if(team<0 || team>=8 || !(source_available_team_mask()&(1u<<team)))return "That team is unavailable in this match.";
+  auto &p=players_[id];
+  if(p.source_membership==team)return {};
+  if(!p.source_configuration)return "The player's source profile is unavailable.";
+  auto configuration=*p.source_configuration;configuration[0x7c]=std::uint8_t(team);
+  ++authority_calls_.mutations;
+  source_object_world_->publish_roster_team(id,std::int8_t(team));
+  p.source_configuration=source_object_world_->update_player_configuration(p.source_datum,configuration);
+  synchronize_source_engine(true);
+  if(p.source_membership!=team)throw FormatError("Original player configuration refused an available selected team");
+  if(!p.source_current_unit) {
+    p.death_counted=true;
+    if(native_first_person_registry_)native_first_person_registry_->retire(id);
+    auto &u=unit_mutable(id);
+    if(u.exists && u.source_datum!=null_datum) {
+      const auto body=source_object_world_->object_body(u.source_datum);auto &bank=source_object_world_->memory();
+      bank.read(body+0x13cu,std::as_writable_bytes(std::span(&u.source_player,1)));
+      bank.read(body+0x140u,std::as_writable_bytes(std::span(&u.source_previous_player,1)));
+    }
+  }
+  native_presentation_controls_[id]={};update_first_person_views();update_replicated_first_person_views();
+  return {};
 }
 void MultiplayerMatch::cancel_join(unsigned id) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
@@ -2516,7 +2565,7 @@ void MultiplayerMatch::step(
   }
   if(simulation_.source_physics_movement_)for(unsigned i=0;i<players_.size();++i) {
     auto &p=players_[i];auto &u=unit_mutable(i);
-    const bool departed=p.connected && (p.source_flags&2u) && u.exists && u.source_previous_player==p.source_datum;
+    const bool departed=p.connected && !p.source_current_unit && u.exists && u.source_previous_player==p.source_datum;
     const auto object=p.source_current_object!=null_datum?p.source_current_object:departed?u.source_datum:null_datum;
     if(!p.connected || object==null_datum)continue;
     if(simulation_.object_lifetimes_.header(object).empty()) {
@@ -2844,6 +2893,8 @@ MultiplayerState MultiplayerMatch::state() const {
     result.king=MultiplayerState::KingObjective{king_state_.hill,king_state_.occupants};
   result.finished = finished_;
   result.results_finalized = results_finalized_;
+  if(source_engine_owned_ && results_finalized_ && retained_recording_.enabled && retained_recording_.frozen)
+    result.result_accuracy=source_result_accuracy(retained_stats_);
   result.game_over_countdown=game_over_.countdown;
   result.game_over_fade_started=game_over_.fade_started;
   // Original15DDC0 also announces individual round winners. The public
@@ -2863,6 +2914,9 @@ MultiplayerState MultiplayerMatch::state() const {
   result.variant_name = rules_.name;
   result.netcode_mode = netcode_mode_;
   result.team_mode = rules_.team_mode;result.retained_team_mask = retained_team_mask_;
+  result.team_changing=source_engine_owned_ && rules_.team_mode && (rules_.player_flags&(1u<<6));
+  if(source_engine_owned_ && rules_.team_mode)
+    result.available_team_mask=std::uint8_t(source_object_world_->tu15_world().multiplayer_engine_state().available_teams);
   result.winner_team = finished_ ? winner_team_ : -1;result.team_scores = team_scores_;
   for(unsigned i=0;i<8;++i) {
     result.team_statistics[i]=end_stats_.teams[i].fields;
@@ -3076,6 +3130,14 @@ MultiplayerState MultiplayerMatch::state() const {
     if(source_object_world_) {
       const auto vitality=source_object_world_->object_vitality(object);
       corpse.health=vitality.body;corpse.shield=vitality.shield;corpse.damage_feedback=vitality.feedback;
+      // Whole BCD80: current colors follow the base bank, count=byte extent/24.
+      const auto body=source_object_world_->object_body(object);const auto &bank=source_object_world_->memory();
+      const auto layout=Bytes(bank.view(body+0x124u,4));
+      const auto extent=std::bit_cast<std::int16_t>(layout.u16(0)),offset=std::bit_cast<std::int16_t>(layout.u16(2));
+      if(extent>=4*24 && extent%24==0 && offset>=0) {
+        ObjectColors colors;bank.read(body+unsigned(offset)+unsigned(extent/24)*12u,std::as_writable_bytes(std::span(colors)));
+        corpse.colors=colors;
+      }
     }
     result.corpses.push_back(std::move(corpse));
   }
@@ -3096,13 +3158,17 @@ MultiplayerState MultiplayerMatch::state() const {
     for(auto &player:result.players)if(player.weapon_effect.serial==event.serial)player.weapon_effect=event;
   }
   if(source_object_world_) {
+    const auto publish_player_pose=[&](std::uint32_t object,std::vector<Transform> nodes) {
+      SourceWorldPose pose{object,std::move(nodes),source_object_world_->object_sphere(object)};
+      pose.model=SourceWorldPoseModel{source_object_world_->object_definition(object),
+          source_object_world_->object_model_regions(object).selection.permutations};
+      result.source_body_poses.push_back(std::move(pose));
+    };
     for(const auto &player:result.players)if(player.connected && !player.dead && player.source_unit!=null_datum)
-      result.source_body_poses.push_back({player.source_unit,source_object_world_->completed_body_world_nodes(player.source_unit),
-          source_object_world_->object_sphere(player.source_unit)});
+      publish_player_pose(player.source_unit,source_object_world_->completed_body_world_nodes(player.source_unit));
     for(const auto &player:result.players)if(player.connected && !player.dead)
       for(const auto weapon:{player.source_weapon,player.secondary_weapon.datum})if(weapon!=null_datum)
-        result.source_body_poses.push_back({weapon,source_object_world_->world_nodes(weapon),
-            source_object_world_->object_sphere(weapon)});
+        publish_player_pose(weapon,source_object_world_->world_nodes(weapon));
     for(const auto &corpse:result.corpses)
       result.source_body_poses.push_back({corpse.object,source_object_world_->world_nodes(corpse.object),
           source_object_world_->object_sphere(corpse.object)});

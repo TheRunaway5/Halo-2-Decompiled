@@ -175,12 +175,13 @@ void original_viewports(const std::filesystem::path &maps,const std::filesystem:
     unsigned flags,players,view,appearance;float left,top,right,bottom;
     std::istringstream row(line);row>>flags>>players>>view>>appearance>>left>>top>>right>>bottom;
     check(bool(row),"Original radar vertex fixture incomplete");
-    // Keep the user's current HUD safe area. Original flags8/9 select a
-    // different32/24-pixel overscan profile; it is captured for reference,
-    // but no desktop HUD option selects that profile today.
+    // Original flags8/9 select a different32/24-pixel overscan profile;
+    // keep those captures as references while translating the ordinary
+    // source profile to the desktop's per-cell corner padding.
     if(flags&8){++additional_video_cases;continue;}
     const bool wide=flags&1;const unsigned width=wide?1280:640,height=wide?720:480;
-    const auto cell=hud_viewport(players,view,wide).outer;
+    const auto reference=hud_viewport(players,view,wide);
+    const auto cell=reference.outer;
     const float scale=std::min(width/640.f,height/480.f);
     auto content=cache.load_hud(level.player_representations.at(appearance?3:2).biped.datum,
                                 cache.slayer_starting_weapon());
@@ -194,11 +195,10 @@ void original_viewports(const std::filesystem::path &maps,const std::filesystem:
     std::vector<Vertex> sensor;
     for(const auto &v:vertices)if(v.material==*hud.motion_sensor_material(view))sensor.push_back(v);
     check(sensor.size()==6,"Original radar fixture did not produce one quad");
-    // Current native widescreen layout expands each outer cell while keeping
-    // original pixel margins and uniform artwork scale. Compare that explicit
-    // transform of the original vertices, including the spanning third view.
-    auto x=[&](float value){return cell.left*width/640+(value-cell.left)*scale;};
-    auto y=[&](float value){return cell.top*height/480+(value-cell.top)*scale;};
+    // Radar keeps the captured quad's shape at the new lower-left anchor.
+    // Each cell uses the same eight-pixel inset, including exterior edges.
+    auto x=[&](float value){return cell.left*width/640+(8+value-reference.safe.left)*scale;};
+    auto y=[&](float value){return cell.bottom*height/480+(-8+value-reference.safe.bottom)*scale;};
     const std::array<Vec2,6> expected{{{x(left),y(top)},{x(right),y(top)},
       {x(left),y(bottom)},{x(right),y(top)},{x(right),y(bottom)},{x(left),y(bottom)}}};
     for(unsigned n=0;n<6;++n) {
@@ -214,7 +214,7 @@ void original_viewports(const std::filesystem::path &maps,const std::filesystem:
     ++cases;
   }
   check(cases==40 && additional_video_cases==40,"Original radar fixture lost a video/species/local-view case");
-  std::cout<<cases<<" original Xbox radar quads matched across every current local cell and aspect; "
+  std::cout<<cases<<" original Xbox radar quad shapes matched at desktop corner anchors across every local cell and aspect; "
            <<additional_video_cases<<" additional overscan-profile cases retained as reference\n";
 }
 }

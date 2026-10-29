@@ -113,21 +113,20 @@ class EosRoomIdentityTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_body_read_revalidates_revoked_capability_before_issuer_or_sdk(self):
         room, rows = await self.room(); identity = self.configure(); row = rows[0]
-        who = room.players[row['slot']][0]; saved = room.tokens[who]
+        who = room.players[row['slot']][0]
         original = self.api.directory.body
         async def revoke_after_body(request):
             body = await original(request)
-            room.tokens.pop(who, None)
+            room.room_call('room_wire_rotate', player=who)
             return body
         identity.token = Mock(wraps=identity.token); identity.verify = AsyncMock()
         with patch.object(self.api.directory, 'body', revoke_after_body):
             response = await self.client.post(self.route(row, 'eos-token'), headers=self.headers(row), json={})
             self.assertEqual(response.status, 401)
-            room.tokens[who] = saved
+            row = row | {'token':room.tokens[who]}
             response = await self.client.post(self.route(row, 'eos-proof'), headers=self.headers(row), json={'token': proof('1' * 32)})
             self.assertEqual(response.status, 401)
         identity.token.assert_not_called(); identity.verify.assert_not_awaited()
-        room.tokens[who] = saved
 
     async def test_owner_rate_limit_bounds_signing_and_survives_room_token_rotation(self):
         room, rows = await self.room(); identity = self.configure(); row = rows[0]
@@ -138,7 +137,8 @@ class EosRoomIdentityTests(unittest.IsolatedAsyncioTestCase):
         for suffix, body in [('eos-token', {}), ('eos-proof', {'token': proof('1' * 32)})]:
             response = await self.client.post(self.route(row, suffix), headers=self.headers(row), json=body)
             self.assertEqual(response.status, 429)
-        room.tokens[who] = 'rotated-room-bearer'; rotated = row | {'token': 'rotated-room-bearer'}
+        token = room.room_call('room_wire_rotate', player=who)['token']
+        rotated = row | {'token':token}
         response = await self.client.post(self.route(rotated, 'eos-token'), headers=self.headers(rotated), json={})
         self.assertEqual(response.status, 429)
         identity.token.assert_not_called(); identity.verify.assert_not_awaited()
@@ -170,33 +170,28 @@ class EosRoomIdentityTests(unittest.IsolatedAsyncioTestCase):
         identity.verify.assert_not_awaited()
 
     async def test_revoked_closed_expired_or_replaced_room_cannot_complete_late_proof(self):
-        room, rows = await self.room(); identity = self.configure(); a = rows[0]
-        who = room.players[a['slot']][0]; saved = room.tokens[who]
-        async def revoke(*_, **kwargs):
-            room.tokens.pop(who)
-            return who
-        identity.verify = revoke
-        self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 401)
-        room.tokens[who] = saved
-        async def expire(*_, **kwargs):
-            room.deadline = time.monotonic() - 1
-            return who
-        identity.verify = expire
-        self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 404)
-        room.deadline = time.monotonic() + 60
-        async def close(*_, **kwargs):
-            room.closed = True
-            return who
-        identity.verify = close
-        self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 404)
-        room.closed = False
-        async def replace(*_, **kwargs):
-            self.api.transport.rooms.pop(room.id)
-            return who
-        identity.verify = replace
-        self.assertEqual((await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token': proof('1' * 32)})).status, 404)
-        self.api.transport.rooms[room.id] = room
-        self.assertEqual(self.api.directory.store.db.execute('SELECT count(*) FROM eos_players').fetchone()[0], 0)
+        for case in ('revoked', 'expired', 'closed', 'replaced'):
+            room, rows = await self.room()
+            identity = self.configure()
+            a = rows[0]
+            who = room.players[a['slot']][0]
+            async def change(*_, **kwargs):
+                if case == 'revoked':
+                    room.retire_capability(who)
+                elif case == 'expired':
+                    expired = room.deadline + 1
+                    room.lifecycle_clock = lambda: expired
+                elif case == 'closed':
+                    await room.close()
+                else:
+                    self.api.transport.rooms.pop(room.id)
+                return who
+            identity.verify = change
+            response = await self.client.post(self.route(a, 'eos-proof'), headers=self.headers(a), json={'token':proof('1'*32)})
+            self.assertEqual(response.status, 401 if case == 'revoked' else 404, case)
+            self.api.transport.rooms[room.id] = room
+            await room.close()
+            self.assertEqual(self.api.directory.store.db.execute('SELECT count(*) FROM eos_players').fetchone()[0], 0)
 
     async def test_v14_signals_bind_verified_account_puid_and_never_peer_supplied_identity(self):
         room, rows = await self.room(); identity = self.configure()

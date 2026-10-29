@@ -144,10 +144,13 @@ across multiple heartbeat rounds and audio afterward through the actual proxy.
 To enable authenticated matchmaking, also add
 `compose.production-matchmaking.yaml` and set `MATCHMAKING_CATALOG` to the
 absolute host path of a reviewed catalog. The supplied
-`examples/matchmaking-lab.json` contains explicitly custom two-player test
-queues. It does not restore historical playlist rotations or provide gameplay
-transport, trusted connection probes, clans, or competitive rank progression.
-Use its Lab names when deploying it for an initial service check. The
+`examples/matchmaking-online.json` supplies the reviewed-source final-era
+reconstruction described in [the hopper runbook](playlist-hoppers-20261028.md).
+It requires the matching v16 native client and current Rust service library.
+The 2026-10-28 accuracy/hopper release activated all 14 playlists after client
+qualification; see the linked runbook for image, catalog and client pins. The separate
+`examples/matchmaking-development.json` contains small custom development queues.
+Its player-facing names describe the queue and mode. The
 coordinator's database and signing identity remain in the same named state
 volume across image rebuilds and catalog changes.
 

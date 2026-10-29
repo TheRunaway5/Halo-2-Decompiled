@@ -48,4 +48,22 @@ if(BUILD_TESTING)
     add_test(NAME native_multiplayer_scoreboard_controllers COMMAND multiplayer_scoreboard_controller_runtime_tests
         ${HALO2_DEATH_SCOREBOARD_MAPS}/lockout.map ${HALO2_DEATH_SCOREBOARD_MAPS} ${HALO2_DEATH_SCOREBOARD_XBE})
     set_tests_properties(native_multiplayer_scoreboard_controllers PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    if(HALO2_MCC_ONLINE_PRESENTATION_MAP)
+        get_filename_component(mcc_scoreboard_maps "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" DIRECTORY)
+        add_test(NAME native_mcc_default_input_runtime COMMAND multiplayer_kbm_runtime_tests
+            "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" "${mcc_scoreboard_maps}" native-mcc)
+        set_tests_properties(native_mcc_default_input_runtime PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE)
+        foreach(scoreboard_view single split4)
+            if(scoreboard_view STREQUAL "split4")
+                set(scoreboard_view_args --split4)
+            else()
+                set(scoreboard_view_args)
+            endif()
+            add_test(NAME native_mcc_scoreboard_tab_${scoreboard_view} COMMAND multiplayer_scoreboard_runtime_tests
+                "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" "${mcc_scoreboard_maps}" native-mcc ${scoreboard_view_args})
+            set_tests_properties(native_mcc_scoreboard_tab_${scoreboard_view} PROPERTIES
+                SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE)
+        endforeach()
+    endif()
 endif()

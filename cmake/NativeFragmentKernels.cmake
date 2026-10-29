@@ -29,6 +29,7 @@ file(GLOB_RECURSE native_fragment_sources CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.frag ${CMAKE_CURRENT_SOURCE_DIR}/shaders/*.glsl)
 list(FILTER native_fragment_sources EXCLUDE REGEX "/shaders/path_tracing/")
 add_custom_command(OUTPUT ${NATIVE_FRAGMENT_CATALOG_DIR}/compiled.json ${NATIVE_FRAGMENT_SPIRV}
+    COMMENT "Compiling native fragment kernels"
     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_native_fragment_kernels.py
         ${native_fragment_registry_args} --shader-root ${CMAKE_CURRENT_SOURCE_DIR}/shaders
         --shader-output-dir ${CMAKE_CURRENT_BINARY_DIR}/shaders

@@ -1,0 +1,5 @@
+if(NOT TARGET halo2_native_tu15_crc32)
+    add_library(halo2_native_tu15_crc32 STATIC src/core/native_tu15_crc32.cpp)
+    target_include_directories(halo2_native_tu15_crc32 PUBLIC include)
+    target_compile_features(halo2_native_tu15_crc32 PUBLIC cxx_std_20)
+endif()

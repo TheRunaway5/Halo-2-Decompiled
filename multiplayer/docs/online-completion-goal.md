@@ -1,5 +1,31 @@
 # Complete Halo 2 ONLINE
 
+## Current focused priority — playlist hoppers
+
+User-authorized resumption, 2026-10-28: complete the evidence-supported hopper
+catalog, map/mode options, selection frequencies and removal of development
+labels. The user approved documented project tuning where final-2010 values are
+missing. Track the [focused checklist and remaining release gates](playlist-hoppers-20261028.md).
+The source contains13 regular playlists/463 rows plus the user-requested Lab Test
+(96 rows, eight modes, twelve maps and a two-player minimum), all using original
+Rust selection and complete native option handoff. This subset does not check off full P01/P03,
+resume unrelated migration work, or close the security/EOS acceptance below.
+
+Release prerequisite added by the user: preserve actual native shot accuracy
+through accepted results and display it on website profiles, with hits/misses
+tooltips and compact large counts. Track the
+[accuracy delivery checklist](shot-accuracy-delivery-20261028.md) before the
+already authorized playlist deployment. Historical results without verified
+counts remain explicitly uncovered; guest personal statistics stay excluded.
+
+Focused release completed, 2026-10-28: the qualified v16 client is installed,
+all 14 hoppers/559 rows are active, and the accuracy API/profile tooltip with
+compact counts is live. Native counter/PCR/peer checks, launcher/frontend and
+one/two/four-player map smoke checks pass; production history is preserved.
+Owned temporary builds and failed packages were removed. The linked checklists
+retain all-playlist rendered-flow and historical-evidence gaps; this does not
+resume or close the broader security/EOS/migration goal below.
+
 ## First goal — P2P security and Rust migration
 
 User-requested priority change, 2026-10-21: **solve this security goal before
@@ -1396,6 +1422,10 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
   evidence-supported final Xbox Live rotations. Identify unrecovered downloaded
   configuration explicitly; obtain missing evidence or a user scope decision
   before claiming full historical restoration.
+  The [2026-10-28 reconstruction](playlist-hoppers-20261028.md) implements the
+  approved best-effort catalog with per-row provenance and exact frequencies.
+  Exact final-era downloads, eleven unadmitted published map/mode pairs and
+  installed/playable acceptance remain explicit open gates.
 - [ ] **P02 — Original matching behavior.** Finish unresolved service ordering,
   query pagination, party/team balancing and direct-path/QoS policy against
   recovered TU1.5 code and primary explanations, including Max Hoberman's.

@@ -1,6 +1,23 @@
 #include "runtime/source_authority_archive.hpp"
+#include "halo2/source_authority_delta.hpp"
 
 namespace halo2 {
+// Defined only beside the fresh owning Writer. No caller-visible raw span or
+// mutable pointer escapes before this private transfer seals its checksum.
+struct SourceAuthorityArchiveBuilderAccess {
+    static AuthorityArchiveImage seal(authority_archive::Writer&& writer,AuthorityDeltaLimits limits){
+        return AuthorityArchiveImage::from_unaliased_raw(std::move(writer.bytes),limits);
+    }
+};
+AuthorityArchiveImage encode_source_authority_image(const SourceMatchAuthority::Checkpoint &saved,
+    SourceAuthorityCodecLimits limits){
+    using namespace authority_archive;source_only(saved);Writer body(limits);body.add(saved);
+    AuthorityDeltaLimits image_limits;
+    image_limits.encoded_bytes=limits.encoded_bytes;image_limits.decoded_bytes=limits.decoded_bytes;
+    image_limits.patch_bytes=limits.decoded_bytes;image_limits.commands=limits.container_elements;
+    image_limits.working_bytes=limits.working_bytes?limits.working_bytes:4*limits.decoded_bytes;
+    return SourceAuthorityArchiveBuilderAccess::seal(std::move(body),image_limits);
+}
 std::vector<std::byte> encode_source_authority(const SourceMatchAuthority::Checkpoint &saved,SourceAuthorityCodecLimits limits){
     using namespace authority_archive;source_only(saved);Writer body(limits);body.add(saved);
     if(body.bytes.size()>std::numeric_limits<uLong>::max())throw FormatError("Authority archive exceeds compression extent");

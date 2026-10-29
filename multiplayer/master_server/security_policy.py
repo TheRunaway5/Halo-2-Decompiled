@@ -48,10 +48,17 @@ def local_listing_admission(owner, local, total):
     require(not status, 'Owner or local listing capacity reached', status or 503)
 
 
-def persistable_result(raw):
+def persistable_result(raw, *, accuracy_verified=False):
     source = ctypes.create_string_buffer(raw)
     result = ctypes.create_string_buffer(len(raw))
-    require(library().h2_result_projection(source, result, len(raw)), 'Invalid persistable result')
+    lib=library()
+    projection=lib.h2_result_projection
+    if accuracy_verified:
+        require(hasattr(lib,'h2_result_accuracy_projection'),'Accuracy projection requires a Rust library update',503)
+        projection=lib.h2_result_accuracy_projection
+        projection.argtypes=[ctypes.c_void_p,ctypes.c_void_p,ctypes.c_size_t]
+        projection.restype=ctypes.c_bool
+    require(projection(source, result, len(raw)), 'Invalid persistable result')
     return result.raw
 
 

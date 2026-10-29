@@ -90,7 +90,8 @@ function(halo2_add_online_protocol)
         list(APPEND arguments --offline)
     endif()
     file(GLOB_RECURSE inputs CONFIGURE_DEPENDS "${module}/src/*.rs"
-        "${root}/rust/online_protocol/src/*.rs" "${root}/rust/online_security_ffi/src/*.rs")
+        "${root}/rust/online_protocol/src/*.rs" "${root}/rust/online_security_ffi/src/*.rs"
+        "${root}/rust/online_protocol/data/*")
     list(APPEND inputs "${module}/Cargo.toml" "${module}/Cargo.lock" "${module}/build.rs"
         "${module}/src/eos_sdk.hpp" "${module}/src/eos_sdk.cpp"
         "${module}/rust-toolchain.toml" "${root}/rust/online_protocol/Cargo.toml"

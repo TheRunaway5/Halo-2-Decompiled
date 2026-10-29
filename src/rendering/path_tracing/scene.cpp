@@ -2,8 +2,10 @@
 #include "halo2/path_tracing/material_residency.hpp"
 #include "halo2/path_tracing/material_emission.hpp"
 #include "halo2/path_tracing/emission.hpp"
+#include "halo2/path_tracing/emitter_sampling.hpp"
 #include "halo2/path_tracing/surface.hpp"
 #include "halo2/path_tracing/material_surface.hpp"
+#include "halo2/path_tracing/color_guide.hpp"
 #include "halo2/pstencil/environment.hpp"
 #include "halo2/pstencil/combined_environment.hpp"
 #include "halo2/source_texture_filtering.hpp"
@@ -26,7 +28,6 @@ Vec3 mul(Vec3 a,float b){return {a.x*b,a.y*b,a.z*b};}
 float dot(Vec3 a,Vec3 b){return a.x*b.x+a.y*b.y+a.z*b.z;}
 Vec3 cross(Vec3 a,Vec3 b){return {a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x};}
 bool finite(Vec3 p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite(p.z);}
-Vec3 xyz(const ShaderVector &p){return {p[0],p[1],p[2]};}
 ShaderVector vec(Vec3 p){return {p.x,p.y,p.z,0};}
 float unit(float p){return std::isfinite(p)?std::clamp(p,0.f,1.f):0.f;}
 float positive(float p){return std::isfinite(p)?std::max(0.f,p):0.f;}
@@ -369,6 +370,7 @@ void refresh_emitters(Scene &scene) {
         const auto &emission=scene.materials[scene.triangles[n].metadata[0]].emission;
         if(std::bit_cast<std::uint32_t>(emission[3]) || emission[0]>0 || emission[1]>0 || emission[2]>0) {scene.pixels.push_back(n);++scene.emissive_count;}
     }
+    append_emitter_groups(scene);
 }
 bool alpha_pass(const Scene &scene,const GpuTriangle &triangle,float u,float v) {
     const auto &m=scene.materials[triangle.metadata[0]];
@@ -449,6 +451,7 @@ GpuMaterial material_response(const Material &material) {
         for(unsigned n=0;n<3;++n)result.emission[n]+=positive(pass.forward_diffuse[n]);
     };
     emission(material);for(const auto &pass:material.world_overlays_after)if(pass)emission(*pass);
+    result.color_guide=color_guide_material(material);
     return result;
 }
 GpuSceneUniform Scene::uniform(Vec3 environment) const {
@@ -577,6 +580,7 @@ void update_geometry(Scene &scene,std::span<const Vertex> vertices,std::span<con
         triangle.p0[3]=std::bit_cast<float>(std::uint32_t(scene.triangles.size()));
         triangle.n0=vec(a.normal);triangle.n1=vec(b.normal);triangle.n2=vec(c.normal);
         triangle.uv01={a.uv.x,a.uv.y,b.uv.x,b.uv.y};triangle.uv2={c.uv.x,c.uv.y,0,0};
+        triangle.color_guide=color_guide_triangle(a,b,c,scene.materials[a.material]);
         const bool unlit_white=(scene.materials[a.material].texture[3]&128u)!=0u;
         const auto color=[&](const Vertex &v) {
             const auto c=unlit_white || v.lightmap!=0 || v.bsp_cluster!=-1?Vec3{1,1,1}:v.color;
@@ -751,19 +755,33 @@ Vec3 material_emission(const Scene& scene,std::uint32_t material,Vec2 uv) {
 }
 bool intersect(const Scene &scene,Vec3 origin,Vec3 direction,float maximum,Hit &hit) {
     if(!finite(origin) || !finite(direction) || !std::isfinite(maximum) || maximum<=0 || scene.nodes.empty())return false;
+    // Same ray-aligned float32 edge evaluation as scene.glsl. Native BSPs
+    // contain needle triangles whose long-edge scalar triple products can
+    // report a positive self-hit from an origin already above the face.
+    const std::array d{direction.x,direction.y,direction.z};
+    unsigned kz=std::abs(d[0])>std::abs(d[1])?0u:1u;
+    if(std::abs(d[2])>std::abs(d[kz]))kz=2;
+    if(d[kz]==0.f)return false;
+    unsigned kx=(kz+1)%3,ky=(kx+1)%3;if(d[kz]<0.f)std::swap(kx,ky);
+    const float inverse_z=1.f/d[kz],sx=d[kx]*inverse_z,sy=d[ky]*inverse_z;
+    const auto project=[&](const ShaderVector& p){
+        const std::array v{p[0]-origin.x,p[1]-origin.y,p[2]-origin.z};
+        return std::array{v[kx]-sx*v[kz],v[ky]-sy*v[kz],v[kz]*inverse_z};
+    };
     std::array<std::uint32_t,64> stack{};unsigned size=1;stack[0]=0;bool found=false;float closest=maximum;
     while(size) {
         const auto &node=scene.nodes[stack[--size]];if(!node_hit(node,origin,direction,closest))continue;
         if(!node.children[2]) {stack[size++]=node.children[0];stack[size++]=node.children[1];continue;}
         for(unsigned n=0;n<node.children[1];++n) {
             const auto index=node.children[0]+n;const auto &triangle=scene.triangles[index];
-            const auto e1=sub(xyz(triangle.p1),xyz(triangle.p0)),e2=sub(xyz(triangle.p2),xyz(triangle.p0));
-            const auto p=cross(direction,e2);const auto det=dot(e1,p);if(std::abs(det)<1.e-9f)continue;
-            const auto t=sub(origin,xyz(triangle.p0));const float u=dot(t,p)/det;if(u<0 || u>1)continue;
-            const auto q=cross(t,e1);const float v=dot(direction,q)/det;if(v<0 || u+v>1)continue;
-            const float distance=dot(e2,q)/det;
-            if(distance<=1.e-4f || distance>=closest || !alpha_pass(scene,triangle,u,v))continue;
-            closest=distance;hit={distance,index,{1-u-v,u,v}};found=true;
+            const auto a=project(triangle.p0),b=project(triangle.p1),c=project(triangle.p2);
+            const float u=c[0]*b[1]-c[1]*b[0],v=a[0]*c[1]-a[1]*c[0],w=b[0]*a[1]-b[1]*a[0];
+            if(std::min({u,v,w})<0.f && std::max({u,v,w})>0.f)continue;
+            const float determinant=(u+v)+w;if(determinant==0.f)continue;
+            const float distance=a[2]+(v*(b[2]-a[2])+w*(c[2]-a[2]))/determinant;
+            const Vec3 barycentric{u/determinant,v/determinant,w/determinant};
+            if(!(distance>1.e-4f && distance<closest) || !alpha_pass(scene,triangle,barycentric.y,barycentric.z))continue;
+            closest=distance;hit={distance,index,barycentric};found=true;
         }
     }
     return found;

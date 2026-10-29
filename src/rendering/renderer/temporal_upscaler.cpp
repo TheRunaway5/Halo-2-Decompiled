@@ -13,11 +13,12 @@ float halton(unsigned i,unsigned base) {float value=0,f=1;while(i){f/=base;value
 struct Uniform {glm::mat4 inverse{1},previous{1},previous_foreground{1};glm::vec4 rectangle{},planes{},jitter{},size{};};
 struct MotionPush {glm::mat4 matrix;float depth_scale;unsigned foreground{};};
 struct MotionVertex {Vec3 current,previous;float valid{};};
-struct HistoryVertex {Vec3 position;unsigned material,source_section,source_part;};
+struct HistoryVertex {Vec3 position;unsigned material,source_section,source_part;TemporalVertexIdentity identity;};
 }
 struct TemporalUpscaler::Impl {
     VkPhysicalDevice physical{};VkDevice device{};VkExtent2D input{},output{};
     std::unique_ptr<NativeUpscaler> native;
+    InputObserver observer;
     struct Image {VkImage image{};VkImageView view{};VkDeviceMemory memory{};VkFormat format{};};
     Image color,motion,linear_depth,native_depth,reactive,result,history;
     VkImage raw_depth{};VkImageView raw_depth_view{};
@@ -64,7 +65,10 @@ struct TemporalUpscaler::Impl {
         create.extent={size.width,size.height,1};create.mipLevels=create.arrayLayers=1;create.samples=VK_SAMPLE_COUNT_1_BIT;
         create.tiling=VK_IMAGE_TILING_OPTIMAL;create.usage=VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_STORAGE_BIT|
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        if(format==VK_FORMAT_D32_SFLOAT)create.usage=VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        if(format==VK_FORMAT_D32_SFLOAT) {
+            create.usage=VK_IMAGE_USAGE_SAMPLED_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            if(observer)create.usage|=VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
         checked(vkCreateImage(device,&create,nullptr,&target.image),"create temporal image");
         VkMemoryRequirements requirements{};vkGetImageMemoryRequirements(device,target.image,&requirements);
         VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};allocate.allocationSize=requirements.size;
@@ -195,8 +199,9 @@ struct TemporalUpscaler::Impl {
     }
 };
 TemporalUpscaler::TemporalUpscaler(VkInstance instance,VkPhysicalDevice physical,VkDevice device,VkQueue queue,unsigned family,
-    VkExtent2D input,VkExtent2D output,Upscaler method,UpscalingQuality quality,const std::filesystem::path& shaders,VkImage depth,VkImageView view,std::unique_ptr<NativeUpscaler> prepared):impl_(std::make_unique<Impl>()) {
+    VkExtent2D input,VkExtent2D output,Upscaler method,UpscalingQuality quality,const std::filesystem::path& shaders,VkImage depth,VkImageView view,std::unique_ptr<NativeUpscaler> prepared,InputObserver observer):impl_(std::make_unique<Impl>()) {
     auto& p=*impl_;p.device=device;p.physical=physical;p.input=input;p.output=output;p.raw_depth=depth;p.raw_depth_view=view;
+    p.observer=std::move(observer);
     p.native=prepared?std::move(prepared):std::make_unique<NativeUpscaler>(instance,physical,device,queue,family,input,output,method,quality);
     p.initialize(shaders);
 }
@@ -229,6 +234,9 @@ void TemporalUpscaler::begin(VkCommandBuffer cmd) {
 }
 void TemporalUpscaler::view(VkCommandBuffer cmd,unsigned index,const TemporalView& view) {
     auto& p=*impl_;if(index>=p.slots.size()-1)throw std::runtime_error("Too many temporal views");
+    if((!view.identities.empty() && view.identities.size()!=view.vertices.size()) ||
+       (!view.foreground_identities.empty() && view.foreground_identities.size()!=view.foreground.size()))
+        throw std::runtime_error("Temporal source identity count differs from its vertex bank");
     p.views|=1u<<index;
     auto& slot=p.slots[index];
     float jump{};for(unsigned c=0;c<4;++c)for(unsigned r=0;r<4;++r)jump=std::max(jump,std::abs(view.matrix[c][r]-slot.previous[c][r]));
@@ -250,14 +258,23 @@ void TemporalUpscaler::view(VkCommandBuffer cmd,unsigned index,const TemporalVie
     if(count) {
         p.make_buffer(slot.vertices,count*sizeof(MotionVertex),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         auto* out=static_cast<MotionVertex*>(slot.vertices.mapped);
-        const auto append=[&](std::span<const Vertex> vertices,const std::vector<HistoryVertex>& previous,std::size_t first) {
+        const auto append=[&](std::span<const Vertex> vertices,std::span<const TemporalVertexIdentity> identities,
+                              const std::vector<HistoryVertex>& previous,std::size_t first) {
             const bool continuous=!discontinuity && previous.size()==vertices.size();
             for(std::size_t i=0;i<vertices.size();++i) {
-                const bool valid=continuous && previous[i].material==vertices[i].material && previous[i].source_section==vertices[i].source_section && previous[i].source_part==vertices[i].source_part;
+                const auto identity=identities.empty()?TemporalVertexIdentity{}:identities[i];
+                // A shared material/part does not identify a moving object.
+                // Unknown owners can still retain exact static WORLD samples;
+                // changed positions must reject history rather than invent motion.
+                const bool correspondence=continuous &&
+                    (identity.valid()?previous[i].identity.valid() && previous[i].identity==identity:
+                        !previous[i].identity.valid() && !std::memcmp(&previous[i].position,&vertices[i].position,sizeof(Vec3)));
+                const bool valid=correspondence && previous[i].material==vertices[i].material && previous[i].source_section==vertices[i].source_section && previous[i].source_part==vertices[i].source_part;
                 out[first+i]={vertices[i].position,valid?previous[i].position:vertices[i].position,valid?1.f:0.f};
             }
         };
-        append(view.vertices,slot.positions,0);append(view.foreground,slot.foreground,view.vertices.size());
+        append(view.vertices,view.identities,slot.positions,0);
+        append(view.foreground,view.foreground_identities,slot.foreground,view.vertices.size());
         for(auto* image:{&p.motion,&p.linear_depth,&p.reactive})p.barrier(cmd,image->image,VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_GENERAL);
         VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=p.motion_pass;begin.framebuffer=p.motion_framebuffer;begin.renderArea=view.rectangle;
         vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);
@@ -277,13 +294,18 @@ void TemporalUpscaler::view(VkCommandBuffer cmd,unsigned index,const TemporalVie
         vkCmdEndRenderPass(cmd);
     }
     p.barrier(cmd,p.raw_depth,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,depth_aspect);
-    const auto retain=[](std::vector<HistoryVertex>& history,std::span<const Vertex> vertices) {
+    const auto retain=[](std::vector<HistoryVertex>& history,std::span<const Vertex> vertices,
+                         std::span<const TemporalVertexIdentity> identities) {
         history.clear();history.reserve(vertices.size());
-        for(const auto& v:vertices)history.push_back({v.position,v.material,v.source_section,v.source_part});
+        for(std::size_t index=0;index<vertices.size();++index) {
+            const auto& vertex=vertices[index];history.push_back({vertex.position,vertex.material,vertex.source_section,vertex.source_part,
+                identities.empty()?TemporalVertexIdentity{}:identities[index]});
+        }
     };
-    retain(slot.positions,view.vertices);retain(slot.foreground,view.foreground);
+    retain(slot.positions,view.vertices,view.identities);retain(slot.foreground,view.foreground,view.foreground_identities);
     slot.previous=view.matrix;slot.previous_foreground=view.foreground_matrix;slot.last=p.frame;
     p.last_view=view;p.last_view.vertices={};p.last_view.foreground={};
+    p.last_view.identities={};p.last_view.foreground_identities={};
 }
 void TemporalUpscaler::present(VkCommandBuffer cmd,VkImage scene,VkImageView scene_view,VkImage destination,VkImageLayout scene_layout) {
     auto& p=*impl_;auto& slot=p.slots.back();
@@ -317,7 +339,8 @@ void TemporalUpscaler::present(VkCommandBuffer cmd,VkImage scene,VkImageView sce
     auto resource=[](Impl::Image& image){return UpscalingImage{image.image,image.view,image.format};};
     p.reset|=p.views!=p.previous_views;p.previous_views=p.views;
     const auto j=jitter();UpscalingDispatch dispatch{cmd,resource(p.color),resource(p.native_depth),resource(p.motion),resource(p.reactive),resource(p.result),
-        j.x,-j.y,p.delta,p.last_view.near_plane,p.last_view.far_plane,p.last_view.vertical_fov,p.reset};
+        j.x,j.y,p.delta,p.last_view.near_plane,p.last_view.far_plane,p.last_view.vertical_fov,p.reset};
+    if(p.observer)p.observer(dispatch);
     p.native->dispatch(dispatch);
     p.barrier(cmd,p.result.image,VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     p.barrier(cmd,destination,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

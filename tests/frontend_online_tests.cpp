@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
     std::filesystem::path maps(argv[1]), sampled, selected_menu_assets, captures;
     std::string matchmaking_url, account_url, capture_prefix;
     unsigned callback_port=42103;
-    bool party_run{}, gathering_run{}, party_render{}, rank_run{}, capture_validation=true;
+    bool party_run{}, gathering_run{}, party_render{}, rank_run{}, return_lobby_run{}, capture_validation=true;
     if(const auto validation=std::getenv("H2_TEST_VK_VALIDATION")) {
       check(std::string_view(validation)=="0" || std::string_view(validation)=="1",
             "H2_TEST_VK_VALIDATION must be 0 or 1");
@@ -222,6 +222,7 @@ int main(int argc, char **argv) {
       else if(option=="--party-url"){account_url=value.string();party_run=true;}
       else if(option=="--gathering-ui")gathering_run=value=="1";
       else if(option=="--rank-ui")rank_run=value=="1";
+      else if(option=="--return-lobby-ui")return_lobby_run=value=="1";
       else if(option=="--party-render")party_render=value=="1";
       else if(option=="--validation") {
         check(value=="0" || value=="1","Invalid Vulkan validation option");
@@ -1144,6 +1145,32 @@ int main(int argc, char **argv) {
         throw FormatError("Native matchmaking stage "+std::to_string(queue_stage)+" timed out, status="+std::to_string(unsigned(state.status))+": "+state.message+" screen="+std::to_string(menu.frame().screen)+" "+menu.frame().description+
             " party="+std::to_string(bool(party.party))+" busy="+std::to_string(party.busy)+" party_message="+party.party_message+" readiness="+readiness.dump());
       };
+      auto check_return_online_lobby=[&] {
+        // TU1.5 PCR Done (0x233792) returns party A to pregame lobby14 pane2.
+        const auto retained_playlist=menu.expand("\xee\x90\xba"); // Original E43A hopper name.
+        const auto retained_party=menu.online_party_observation();
+        const auto retained_profile=menu.signed_in_profile();
+        check(!retained_playlist.empty() && retained_party && !retained_party->members.empty(),
+            "ONLINE return control lost its real party/playlist input");
+        menu.return_online_lobby();
+        check(menu.frame().screen==14 && menu.stack().size()>=2,"Postgame return skipped the pregame lobby");
+        const auto returned_lobby=menu.lobby_view();
+        check(returned_lobby && returned_lobby->protocol==2 && returned_lobby->input.session_enum==6 &&
+            frontend_lobby_presentation(returned_lobby->input).pane==2 && !menu.launch,
+            "Left/abandoned ONLINE match did not return to the original matchmaking pregame pane");
+        check(menu.expand("\xee\x90\xba")==retained_playlist && menu.online_party_observation() &&
+            menu.online_party_observation()->leader==retained_party->leader &&
+            std::equal(menu.online_party_observation()->members.begin(),menu.online_party_observation()->members.end(),
+                retained_party->members.begin(),retained_party->members.end(),
+                [](const auto&a,const auto&b){return a.handle==b.handle;}) &&
+            menu.signed_in_profile()==retained_profile,
+            "ONLINE match return discarded its retained playlist, party or profile");
+        check(!painter.draw(menu,5,-1,10000).vertices.empty() && !has_logo(menu),
+            "Returned pregame lobby did not draw its original menu presentation");
+        menu.ui_clock(queue_clock+=60000);menu.update_online_matchmaking();
+        check(menu.frame().screen==14 && !menu.launch,"Returned pregame lobby relaunched an abandoned match");
+        std::cout<<"PASS left/abandoned ONLINE match -> original pregame lobby14 pane2 with retained party, playlist and profile\n";
+      };
       auto start_lobby_search=[&] {
         check(menu.frame().screen==14,"Search did not begin in the pregame lobby");
         wait_queue([&](const auto &s){
@@ -1208,6 +1235,14 @@ int main(int argc, char **argv) {
       start_lobby_search();
       wait_queue([](const auto &s) { return s.status == OnlineMatchmakingStatus::Searching; });
       check(matchmaking->snapshot().playlist_id == "ranked" && menu.frame().screen == 210 && !menu.launch, "Quickmatch did not use server default");
+      if(return_lobby_run) {
+        check_return_online_lobby();
+        wait_queue([](const auto &s){return s.playlist_id.empty() &&
+            (s.status==OnlineMatchmakingStatus::Ready || s.status==OnlineMatchmakingStatus::Idle);});
+        check(menu.frame().screen==14 && !menu.launch,"Abandoned queue publication replaced the returned lobby");
+        menu.set_online_matchmaking({});menu.set_online_account({});
+        return 0;
+      }
       auto check_ranks=[&](std::vector<unsigned> pages) {
         const auto draw=painter.draw(menu,5);
         std::vector<unsigned> found;
@@ -1477,9 +1512,7 @@ int main(int argc, char **argv) {
       check(!menu.launch,"Fresh retry bypassed connection/start admission");
       leave_matchmaking();
       std::cout<<"PASS real room failure -> original AB -> fresh pregame retry; actual cache-admission rejection -> original AC -> fresh pregame retry/cancel\n";
-      // TU1.5 PCR Done (0x233792) returns party A to pregame lobby14 pane2.
-      menu.return_online_lobby();
-      check(menu.frame().screen==14 && menu.stack().size()>=2,"Postgame return skipped the pregame lobby");
+      check_return_online_lobby();
       menu.return_online();
       menu.set_online_matchmaking({});menu.set_online_account(account);menu.update_online_login();
     }

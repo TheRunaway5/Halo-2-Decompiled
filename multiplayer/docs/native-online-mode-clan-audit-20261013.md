@@ -144,7 +144,7 @@ The bundled catalog is accurately labeled a custom validation rotation.
 Unsupported historical rows should be retained as unavailable evidence with
 their real blockers until whole runtime/settings admission exists; publishing a
 smaller pool under an original complete-playlist claim would lose source scope.
-[Current lab catalog](../master_server/examples/matchmaking-lab.json).
+[Historical development catalog](../master_server/examples/matchmaking-development.json).
 
 ## Clan role, competitive skill and artwork are separate
 

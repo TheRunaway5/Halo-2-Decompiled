@@ -6,6 +6,7 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <openssl/rand.h>
+#include <openssl/sha.h>
 #include <algorithm>
 #include <bit>
 #include <condition_variable>
@@ -212,9 +213,22 @@ void ticket(const Json &root, OnlineMatchmakingSnapshot &s) {
   if (state == "searching") { s.status = OnlineMatchmakingStatus::Searching; s.message = "Searching for players..."; require(root.at("match").is_null()); return; }
   require(state == "checking_connections" || state == "awaiting_transport");
   const auto &m = root.at("match");
-  require(m.is_object() && m.size() == 3);
+  require(m.is_object() && m.size() == (m.contains("game_id")?6u:3u));
   OnlineMatch match;
   match.map = text(m, "map"); match.variant = text(m, "variant");
+  if(m.contains("game_id")) {
+    match.game_id=text(m,"game_id");
+    if(!m.at("settings").is_null()) {
+      const auto encoded=text(m,"settings",608);
+      require(encoded.size()==608&&encoded.find_first_not_of("0123456789abcdef")==std::string::npos);
+      match.settings.emplace();
+      for(unsigned i=0;i<304;++i)match.settings->bytes[i]=std::uint8_t(std::stoul(encoded.substr(i*2,2),nullptr,16));
+      std::array<unsigned char,32> digest{};SHA256(match.settings->bytes.data(),304,digest.data());
+      constexpr char hex[]="0123456789abcdef";std::string expected;
+      for(auto byte:digest){expected+=hex[byte>>4];expected+=hex[byte&15];}
+      require(text(m,"settings_sha256",64)==expected&&source_game_variant_valid(*match.settings));
+    }else require(m.at("settings_sha256").is_null());
+  }
   const auto &players = m.at("players");
   require(players.is_array() && players.size() >= 2 && players.size() <= 16);
   unsigned selves = 0;
@@ -245,7 +259,7 @@ OnlineMatchmakingOptions online_matchmaking_environment(const std::filesystem::p
   if (const auto *url = std::getenv("H2_MATCHMAKING_URL")) result.endpoint = url;
   else result.endpoint = default_online_origin;
   if(online_protocol_bridge::eos_runtime_options().transport)
-    result.compatibility="halo2-native-queue-v14";
+    result.compatibility="halo2-native-queue-v16";
   if (const auto *http = std::getenv("H2_MATCHMAKING_ALLOW_LOOPBACK_HTTP")) result.allow_loopback_http = std::string(http) == "1";
   std::error_code error;
   for (std::filesystem::directory_iterator it(maps, error), end; !error && it != end; it.increment(error))
@@ -386,7 +400,7 @@ struct OnlineMatchmaking::Impl {
         text(Json{{"name", screen_name}}, "name");
         auto session_body=Json{{"screen_name",screen_name},{"maps",options.maps},{"compatibility",options.compatibility}};
         if(selected_appearance)session_body["appearance"]=encoded_appearance(*selected_appearance);
-        const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
+        const bool direct=options.compatibility=="halo2-native-queue-v12"||options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14"||options.compatibility=="halo2-native-queue-v15"||options.compatibility=="halo2-native-queue-v16";
         const bool gathering=options.compatibility=="halo2-native-queue-v8" || options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct;
         if(gathering)session_body["language"]=options.language;
         require(additional.size()<=3);
@@ -479,7 +493,7 @@ struct OnlineMatchmaking::Impl {
           bool missing; { std::lock_guard guard(mutex); missing=!match_session; }
           if(missing) {
             const auto descriptor=call("GET","/v1/matchmaking/transport");
-            const bool eos=options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14";
+            const bool eos=options.compatibility=="halo2-native-queue-v13"||options.compatibility=="halo2-native-queue-v14"||options.compatibility=="halo2-native-queue-v15"||options.compatibility=="halo2-native-queue-v16";
             const bool direct=options.compatibility=="halo2-native-queue-v12"||eos;
             const bool couch=descriptor.contains("local_slots");
             require(descriptor.is_object() && descriptor.size()==(direct?7u:couch?(options.compatibility=="halo2-native-queue-v10"?6u:5u):4u));
@@ -493,7 +507,7 @@ struct OnlineMatchmaking::Impl {
                 require(value.is_object()&&value.size()==4&&text(value,"kind")=="eos-p2p-v1"&&
                     value.at("peers").is_array()&&value.at("peers").size()<=15);
                 OnlineEosOptions config;config.socket=text(value,"socket",32);
-                config.account_login=options.compatibility=="halo2-native-queue-v14";
+                config.account_login=options.compatibility=="halo2-native-queue-v14"||options.compatibility=="halo2-native-queue-v15"||options.compatibility=="halo2-native-queue-v16";
                 const auto &session=value.at("session");require(session.is_object()&&session.size()==4);
                 config.sessions=true;config.playlist=text(session,"playlist");config.revision=text(session,"revision");
                 config.map=text(session,"map");config.variant=text(session,"variant");

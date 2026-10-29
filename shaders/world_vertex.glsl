@@ -54,6 +54,9 @@ layout(set=0,binding=7,std140) uniform VertexBank {
 // Authored programs are supplied only by the AOT generator. The ordinary
 // wrapper is the fixed procedural/no-program kernel and contains no VM.
 #define H2_NATIVE_VERTEX_PROGRAM
+#ifdef H2_SOURCE_WORLD_DEPTH
+#define H2_VERTEX_XEMU_ARITHMETIC
+#endif
 #include "vertex_program.glsl"
 #include "source_cpu_skin_outputs.glsl"
 #include "source_water_reflection_projection.glsl"

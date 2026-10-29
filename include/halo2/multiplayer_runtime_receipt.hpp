@@ -9,6 +9,7 @@
 #include "halo2/multiplayer_hud_continuity.hpp"
 #include "halo2/multiplayer_locomotion_continuity.hpp"
 #include "halo2/sound_classes.hpp"
+#include "halo2/multiplayer_event_messages_tu15.hpp"
 #include <map>
 #include <set>
 
@@ -32,6 +33,7 @@ struct MultiplayerRuntimeReceiptValues {
     std::uint32_t client_effect_serial{},world_weapon_effect_serial{};
     std::uint32_t objective_audio_serial{};
     std::optional<std::uint32_t> objective_audio_tick;
+    MultiplayerEventMessageStateTu15 event_messages;
     bool world_effect_baseline{},client_effect_baseline{},client_prop_effect_baseline{};
     NativeDeviceEventCursor device_events{false};
     std::set<std::uint32_t> heard_prop_effects,attached_effect_objects;

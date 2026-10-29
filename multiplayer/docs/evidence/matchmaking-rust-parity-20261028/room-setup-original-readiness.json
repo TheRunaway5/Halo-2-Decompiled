@@ -1,0 +1,255 @@
+{
+  "passed": true,
+  "tool_sha256": "5d252f39860b5b3a601350026c3dcab31b6ae903aecad9cfeba507dde7ce9b16",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "scope": "Original TU1.5 start-match host eligibility and deferral controls.\n\nRequires tools/run_test.py ownership. Complete original readiness, connected\nteam counting, local host-policy test and cached logon-task lookup execute on\nsynthetic data. No instruction/callee stubs or native implementation imports.\nThe initial host-leave transaction, policy download/validation and\nmode-change publication remain outside these controls.\n",
+  "readiness_controls": [
+    {
+      "name": "two_connected_teams",
+      "inputs": {},
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "one_connected_team",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ]
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "no_valid_second_team",
+      "inputs": {
+        "teams": [
+          0,
+          -1
+        ]
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "second_team_peer_incomplete",
+      "inputs": {
+        "second_connected": false
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "solo_hopper_does_not_require_teams",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "team_required": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "team_check_disabled_by_configuration",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "debug_policy": 1
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_host_policy_bit31",
+      "inputs": {
+        "local_flag": 2147483648
+      },
+      "ready": false,
+      "defer": true
+    },
+    {
+      "name": "local_policy_requires_successful_logon",
+      "inputs": {
+        "local_flag": 2147483648,
+        "logon": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_policy_check_argument_off",
+      "inputs": {
+        "local_flag": 2147483648,
+        "local_check": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "local_check_disabled_by_configuration",
+      "inputs": {
+        "local_flag": 2147483648,
+        "debug_policy": 256
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "offline_ignores_online_eligibility_checks",
+      "inputs": {
+        "teams": [
+          0,
+          0
+        ],
+        "local_flag": 2147483648,
+        "online": 0
+      },
+      "ready": true,
+      "defer": false
+    },
+    {
+      "name": "current_peer_exception",
+      "inputs": {
+        "current_peer": 1,
+        "second_connected": false
+      },
+      "ready": true,
+      "defer": false
+    }
+  ],
+  "policy_controls": [
+    {
+      "record_flags": 0,
+      "local_host_policy": 0,
+      "other_policy_bit0": 0
+    },
+    {
+      "record_flags": 1,
+      "local_host_policy": 0,
+      "other_policy_bit0": 1
+    },
+    {
+      "record_flags": 2,
+      "local_host_policy": 1,
+      "other_policy_bit0": 0
+    },
+    {
+      "record_flags": 3,
+      "local_host_policy": 1,
+      "other_policy_bit0": 1
+    }
+  ],
+  "policy_producer_consumer_controls": [
+    {
+      "record_flags": 0,
+      "published_member_flags": "00001234",
+      "ready": true,
+      "defer": false
+    },
+    {
+      "record_flags": 1,
+      "published_member_flags": "00001234",
+      "ready": true,
+      "defer": false
+    },
+    {
+      "record_flags": 2,
+      "published_member_flags": "80001234",
+      "ready": false,
+      "defer": true
+    },
+    {
+      "record_flags": 3,
+      "published_member_flags": "80001234",
+      "ready": false,
+      "defer": true
+    }
+  ],
+  "fresh_entry_clears_defer": true,
+  "caller_routes": [
+    {
+      "name": "two_connected_teams",
+      "branch": "0x764af",
+      "session_mode_request": null,
+      "start_clock": 1000
+    },
+    {
+      "name": "one_connected_team",
+      "branch": "0x76543",
+      "session_mode_request": 6,
+      "start_clock": 0
+    },
+    {
+      "name": "no_valid_second_team",
+      "branch": "0x76543",
+      "session_mode_request": 6,
+      "start_clock": 0
+    },
+    {
+      "name": "second_team_peer_incomplete",
+      "branch": "0x76543",
+      "session_mode_request": 6,
+      "start_clock": 0
+    },
+    {
+      "name": "solo_hopper_does_not_require_teams",
+      "branch": "0x764af",
+      "session_mode_request": null,
+      "start_clock": 1000
+    },
+    {
+      "name": "team_check_disabled_by_configuration",
+      "branch": "0x764af",
+      "session_mode_request": null,
+      "start_clock": 1000
+    },
+    {
+      "name": "local_host_policy_bit31",
+      "branch": "0x76543",
+      "session_mode_request": 6,
+      "start_clock": 0
+    },
+    {
+      "name": "local_policy_requires_successful_logon",
+      "branch": "0x764af",
+      "session_mode_request": null,
+      "start_clock": 1000
+    },
+    {
+      "name": "local_policy_check_argument_off",
+      "branch": "0x76543",
+      "session_mode_request": 6,
+      "start_clock": 0
+    },
+    {
+      "name": "local_check_disabled_by_configuration",
+      "branch": "0x764af",
+      "session_mode_request": null,
+      "start_clock": 1000
+    }
+  ],
+  "original_listings": {
+    "000720d0": "000720d0 51 push ecx\n000720d1 53 push ebx\n000720d2 8ad8 mov bl, al\n000720d4 8b861c740000 mov eax, dword ptr [esi + 0x741c]\n000720da 83f805 cmp eax, 5\n000720dd 741d je 0x720fc\n000720df 83f806 cmp eax, 6\n000720e2 7418 je 0x720fc\n000720e4 83f807 cmp eax, 7\n000720e7 7413 je 0x720fc\n000720e9 83f808 cmp eax, 8\n000720ec 740e je 0x720fc\n000720ee 89442410 mov dword ptr [esp + 0x10], eax\n000720f2 c60200 mov byte ptr [edx], 0\n000720f5 32c0 xor al, al\n000720f7 5b pop ebx\n000720f8 59 pop ecx\n000720f9 c20800 ret 8\n000720fc 8b0d3cc04d00 mov ecx, dword ptr [0x4dc03c]\n00072102 84ed test ch, ch\n00072104 7405 je 0x7210b\n00072106 c644241000 mov byte ptr [esp + 0x10], 0\n0007210b 84c9 test cl, cl\n0007210d 7402 je 0x72111\n0007210f 32db xor bl, bl\n00072111 8a0dbcc54d00 mov cl, byte ptr [0x4dc5bc]\n00072117 84c9 test cl, cl\n00072119 0f8487000000 je 0x721a6\n0007211f 83f807 cmp eax, 7\n00072122 750a jne 0x7212e\n00072124 8a8e20740000 mov cl, byte ptr [esi + 0x7420]\n0007212a 84c9 test cl, cl\n0007212c 74c7 je 0x720f5\n0007212e 83f805 cmp eax, 5\n00072131 75c2 jne 0x720f5\n00072133 803a00 cmp byte ptr [edx], 0\n00072136 751e jne 0x72156\n00072138 8a07 mov al, byte ptr [edi]\n0007213a 88442404 mov byte ptr [esp + 4], al\n0007213e 8b4c2404 mov ecx, dword ptr [esp + 4]\n00072142 51 push ecx\n00072143 c60700 mov byte ptr [edi], 0\n00072146 6aff push -1\n00072148 8bc6 mov eax, esi\n0007214a c60201 mov byte ptr [edx], 1\n0007214d e80e9afeff call 0x5bb60\n00072152 84c0 test al, al\n00072154 759f jne 0x720f5\n00072156 84db test bl, bl\n00072158 740f je 0x72169\n0007215a 8bc6 mov eax, esi\n0007215c e84f000000 call 0x721b0\n00072161 84c0 test al, al\n00072163 7504 jne 0x72169\n00072165 b301 mov bl, 1\n00072167 eb02 jmp 0x7216b\n00072169 32db xor bl, bl\n0007216b 8a442410 mov al, byte ptr [esp + 0x10]\n0007216f 84c0 test al, al\n00072171 740b je 0x7217e\n00072173 8bd6 mov edx, esi\n00072175 e8f60bffff call 0x62d70\n0007217a 84c0 test al, al\n0007217c 7516 jne 0x72194\n0007217e 84db test bl, bl\n00072180 7512 jne 0x72194\n00072182 8b4c240c mov ecx, dword ptr [esp + 0xc]\n00072186 b001 mov al, 1\n00072188 84c0 test al, al\n0007218a 0f94c2 sete dl\n0007218d 8811 mov byte ptr [ecx], dl\n0007218f 5b pop ebx\n00072190 59 pop ecx\n00072191 c20800 ret 8\n00072194 8b4c240c mov ecx, dword ptr [esp + 0xc]\n00072198 32c0 xor al, al\n0007219a 84c0 test al, al\n0007219c 0f94c2 sete dl\n0007219f 8811 mov byte ptr [ecx], dl\n000721a1 5b pop ebx\n000721a2 59 pop ecx\n000721a3 c20800 ret 8\n000721a6 b001 mov al, 1\n000721a8 5b pop ebx\n000721a9 59 pop ecx\n000721aa c20800 ret 8\n",
+    "000721b0": "000721b0 83ec20 sub esp, 0x20\n000721b3 53 push ebx\n000721b4 56 push esi\n000721b5 8bf0 mov esi, eax\n000721b7 32db xor bl, bl\n000721b9 e8220cffff call 0x62de0\n000721be 85c0 test eax, eax\n000721c0 0f8482010000 je 0x72348\n000721c6 8b9e1c110000 mov ebx, dword ptr [esi + 0x111c]\n000721cc 33c9 xor ecx, ecx\n000721ce 894c240a mov dword ptr [esp + 0xa], ecx\n000721d2 894c240e mov dword ptr [esp + 0xe], ecx\n000721d6 894c2412 mov dword ptr [esp + 0x12], ecx\n000721da 894c2416 mov dword ptr [esp + 0x16], ecx\n000721de 894c241a mov dword ptr [esp + 0x1a], ecx\n000721e2 894c241e mov dword ptr [esp + 0x1e], ecx\n000721e6 55 push ebp\n000721e7 894c2426 mov dword ptr [esp + 0x26], ecx\n000721eb 57 push edi\n000721ec 66c74424100000 mov word ptr [esp + 0x10], 0\n000721f3 66894c242e mov word ptr [esp + 0x2e], cx\n000721f8 bf02000000 mov edi, 2\n000721fd 8d962c110000 lea edx, [esi + 0x112c]\n00072203 8d4ffe lea ecx, [edi - 2]\n00072206 be01000000 mov esi, 1\n0007220b d3e6 shl esi, cl\n0007220d 85f3 test ebx, esi\n0007220f 742b je 0x7223c\n00072211 8b0a mov ecx, dword ptr [edx]\n00072213 be01000000 mov esi, 1\n00072218 d3e6 shl esi, cl\n0007221a 85f0 test eax, esi\n0007221c 741e je 0x7223c\n0007221e 0fbeb218010000 movsx esi, byte ptr [edx + 0x118]\n00072225 85f6 test esi, esi\n00072227 7c13 jl 0x7223c\n00072229 83fe10 cmp esi, 0x10\n0007222c 7d0e jge 0x7223c\n0007222e bd01000000 mov ebp, 1\n00072233 d3e5 shl ebp, cl\n00072235 8d747410 lea esi, [esp + esi*2 + 0x10]\n00072239 66092e or word ptr [esi], bp\n0007223c 8d4fff lea ecx, [edi - 1]\n0007223f be01000000 mov esi, 1\n00072244 d3e6 shl esi, cl\n00072246 85f3 test ebx, esi\n00072248 742f je 0x72279\n0007224a 8b8a3c010000 mov ecx, dword ptr [edx + 0x13c]\n00072250 be01000000 mov esi, 1\n00072255 d3e6 shl esi, cl\n00072257 85f0 test eax, esi\n00072259 741e je 0x72279\n0007225b 0fbeb254020000 movsx esi, byte ptr [edx + 0x254]\n00072262 85f6 test esi, esi\n00072264 7c13 jl 0x72279\n00072266 83fe10 cmp esi, 0x10\n00072269 7d0e jge 0x72279\n0007226b bd01000000 mov ebp, 1\n00072270 d3e5 shl ebp, cl\n00072272 8d747410 lea esi, [esp + esi*2 + 0x10]\n00072276 66092e or word ptr [esi], bp\n00072279 be01000000 mov esi, 1\n0007227e 8bcf mov ecx, edi\n00072280 d3e6 shl esi, cl\n00072282 85f3 test ebx, esi\n00072284 742f je 0x722b5\n00072286 8b8a78020000 mov ecx, dword ptr [edx + 0x278]\n0007228c be01000000 mov esi, 1\n00072291 d3e6 shl esi, cl\n00072293 85f0 test eax, esi\n00072295 741e je 0x722b5\n00072297 0fbeb290030000 movsx esi, byte ptr [edx + 0x390]\n0007229e 85f6 test esi, esi\n000722a0 7c13 jl 0x722b5\n000722a2 83fe10 cmp esi, 0x10\n000722a5 7d0e jge 0x722b5\n000722a7 bd01000000 mov ebp, 1\n000722ac d3e5 shl ebp, cl\n000722ae 8d747410 lea esi, [esp + esi*2 + 0x10]\n000722b2 66092e or word ptr [esi], bp\n000722b5 8d4f01 lea ecx, [edi + 1]\n000722b8 be01000000 mov esi, 1\n000722bd d3e6 shl esi, cl\n000722bf 85f3 test ebx, esi\n000722c1 742f je 0x722f2\n000722c3 8b8ab4030000 mov ecx, dword ptr [edx + 0x3b4]\n000722c9 be01000000 mov esi, 1\n000722ce d3e6 shl esi, cl\n000722d0 85f0 test eax, esi\n000722d2 741e je 0x722f2\n000722d4 0fbeb2cc040000 movsx esi, byte ptr [edx + 0x4cc]\n000722db 85f6 test esi, esi\n000722dd 7c13 jl 0x722f2\n000722df 83fe10 cmp esi, 0x10\n000722e2 7d0e jge 0x722f2\n000722e4 bd01000000 mov ebp, 1\n000722e9 d3e5 shl ebp, cl\n000722eb 8d747410 lea esi, [esp + esi*2 + 0x10]\n000722ef 66092e or word ptr [esi], bp\n000722f2 83c704 add edi, 4\n000722f5 8d4ffe lea ecx, [edi - 2]\n000722f8 81c2f0040000 add edx, 0x4f0\n000722fe 83f910 cmp ecx, 0x10\n00072301 0f8cfcfeffff jl 0x72203\n00072307 5f pop edi\n00072308 33c9 xor ecx, ecx\n0007230a 33c0 xor eax, eax\n0007230c 5d pop ebp\n0007230d 8d4900 lea ecx, [ecx]\n00072310 66837c440800 cmp word ptr [esp + eax*2 + 8], 0\n00072316 7401 je 0x72319\n00072318 41 inc ecx\n00072319 66837c440a00 cmp word ptr [esp + eax*2 + 0xa], 0\n0007231f 7401 je 0x72322\n00072321 41 inc ecx\n00072322 66837c440c00 cmp word ptr [esp + eax*2 + 0xc], 0\n00072328 7401 je 0x7232b\n0007232a 41 inc ecx\n0007232b 66837c440e00 cmp word ptr [esp + eax*2 + 0xe], 0\n00072331 7401 je 0x72334\n00072333 41 inc ecx\n00072334 83c004 add eax, 4\n00072337 83f810 cmp eax, 0x10\n0007233a 7cd4 jl 0x72310\n0007233c 83f902 cmp ecx, 2\n0007233f 5e pop esi\n00072340 0f9dc0 setge al\n00072343 5b pop ebx\n00072344 83c420 add esp, 0x20\n00072347 c3 ret \n00072348 5e pop esi\n00072349 8ac3 mov al, bl\n0007234b 5b pop ebx\n0007234c 83c420 add esp, 0x20\n0007234f c3 ret \n",
+    "00062de0": "00062de0 56 push esi\n00062de1 57 push edi\n00062de2 8bf8 mov edi, eax\n00062de4 8b8fd8720000 mov ecx, dword ptr [edi + 0x72d8]\n00062dea 8b7754 mov esi, dword ptr [edi + 0x54]\n00062ded b801000000 mov eax, 1\n00062df2 d3e0 shl eax, cl\n00062df4 33d2 xor edx, edx\n00062df6 85f6 test esi, esi\n00062df8 7e32 jle 0x62e2c\n00062dfa 53 push ebx\n00062dfb bb01000000 mov ebx, 1\n00062e00 8bce mov ecx, esi\n00062e02 d3e3 shl ebx, cl\n00062e04 55 push ebp\n00062e05 4b dec ebx\n00062e06 81c7f4000000 add edi, 0xf4\n00062e0c 8d642400 lea esp, [esp]\n00062e10 391f cmp dword ptr [edi], ebx\n00062e12 750b jne 0x62e1f\n00062e14 bd01000000 mov ebp, 1\n00062e19 8bca mov ecx, edx\n00062e1b d3e5 shl ebp, cl\n00062e1d 0bc5 or eax, ebp\n00062e1f 42 inc edx\n00062e20 81c70c010000 add edi, 0x10c\n00062e26 3bd6 cmp edx, esi\n00062e28 7ce6 jl 0x62e10\n00062e2a 5d pop ebp\n00062e2b 5b pop ebx\n00062e2c 5f pop edi\n00062e2d 5e pop esi\n00062e2e c3 ret \n",
+    "00062d70": "00062d70 51 push ecx\n00062d71 8b8a1c740000 mov ecx, dword ptr [edx + 0x741c]\n00062d77 32c0 xor al, al\n00062d79 83f905 cmp ecx, 5\n00062d7c 7414 je 0x62d92\n00062d7e 83f906 cmp ecx, 6\n00062d81 740f je 0x62d92\n00062d83 83f907 cmp ecx, 7\n00062d86 740a je 0x62d92\n00062d88 83f908 cmp ecx, 8\n00062d8b 7405 je 0x62d92\n00062d8d 890c24 mov dword ptr [esp], ecx\n00062d90 59 pop ecx\n00062d91 c3 ret \n00062d92 83f902 cmp ecx, 2\n00062d95 7e3b jle 0x62dd2\n00062d97 83f908 cmp ecx, 8\n00062d9a 7f36 jg 0x62dd2\n00062d9c 8b82d8720000 mov eax, dword ptr [edx + 0x72d8]\n00062da2 69c00c010000 imul eax, eax, 0x10c\n00062da8 53 push ebx\n00062da9 56 push esi\n00062daa 8bb410ec000000 mov esi, dword ptr [eax + edx + 0xec]\n00062db1 a1a0364700 mov eax, dword ptr [0x4736a0]\n00062db6 32db xor bl, bl\n00062db8 83f8ff cmp eax, -1\n00062dbb 7411 je 0x62dce\n00062dbd e87e28ffff call 0x55640\n00062dc2 48 dec eax\n00062dc3 7509 jne 0x62dce\n00062dc5 f7c600000080 test esi, 0x80000000\n00062dcb 0f95c3 setne bl\n00062dce 5e pop esi\n00062dcf 8ac3 mov al, bl\n00062dd1 5b pop ebx\n00062dd2 59 pop ecx\n00062dd3 c3 ret \n",
+    "0025dcb6": "0025dcb6 55 push ebp\n0025dcb7 8bec mov ebp, esp\n0025dcb9 817d0808000600 cmp dword ptr [ebp + 8], 0x60008\n0025dcc0 56 push esi\n0025dcc1 8bf1 mov esi, ecx\n0025dcc3 7c37 jl 0x25dcfc\n0025dcc5 894508 mov dword ptr [ebp + 8], eax\n0025dcc8 8d4508 lea eax, [ebp + 8]\n0025dccb e8757f0600 call 0x2c5c45\n0025dcd0 84c0 test al, al\n0025dcd2 7428 je 0x25dcfc\n0025dcd4 ffb6240c0000 push dword ptr [esi + 0xc24]\n0025dcda ffb6200c0000 push dword ptr [esi + 0xc20]\n0025dce0 8d7508 lea esi, [ebp + 8]\n0025dce3 e8a47f0600 call 0x2c5c8c\n0025dce8 8ac8 mov cl, al\n0025dcea 80e101 and cl, 1\n0025dced d1e8 shr eax, 1\n0025dcef 2401 and al, 1\n0025dcf1 880daead4f00 mov byte ptr [0x4fadae], cl\n0025dcf7 a218a14d00 mov byte ptr [0x4da118], al\n0025dcfc b001 mov al, 1\n0025dcfe 5e pop esi\n0025dcff 5d pop ebp\n0025dd00 c20400 ret 4\n",
+    "000669a0": "000669a0 55 push ebp\n000669a1 8bec mov ebp, esp\n000669a3 83e4f8 and esp, 0xfffffff8\n000669a6 81ecd4000000 sub esp, 0xd4\n000669ac 53 push ebx\n000669ad 8bd8 mov ebx, eax\n000669af a048d05100 mov al, byte ptr [0x51d048]\n000669b4 84c0 test al, al\n000669b6 56 push esi\n000669b7 8b7310 mov esi, dword ptr [ebx + 0x10]\n000669ba 57 push edi\n000669bb 8b3cb574a44d00 mov edi, dword ptr [esi*4 + 0x4da474]\n000669c2 89742414 mov dword ptr [esp + 0x14], esi\n000669c6 7407 je 0x669cf\n000669c8 a14cd05100 mov eax, dword ptr [0x51d04c]\n000669cd eb05 jmp 0x669d4\n000669cf e8bc4b2d00 call 0x33b590\n000669d4 8b0d48b54d00 mov ecx, dword ptr [0x4db548]\n000669da 2bc7 sub eax, edi\n000669dc 3bc1 cmp eax, ecx\n000669de 0f8ca2010000 jl 0x66b86\n000669e4 33c0 xor eax, eax\n000669e6 b932000000 mov ecx, 0x32\n000669eb 8d7c2418 lea edi, [esp + 0x18]\n000669ef 6a0f push 0xf\n000669f1 f3ab rep stosd dword ptr es:[edi], eax\n000669f3 8d44241c lea eax, [esp + 0x1c]\n000669f7 688aa04d00 push 0x4da08a\n000669fc 50 push eax\n000669fd e8eb3e2c00 call 0x32a8ed\n00066a02 6a1f push 0x1f\n00066a04 8d4c2448 lea ecx, [esp + 0x48]\n00066a08 68aaa04d00 push 0x4da0aa\n00066a0d 33ff xor edi, edi\n00066a0f 51 push ecx\n00066a10 66897c244e mov word ptr [esp + 0x4e], di\n00066a15 e8d33e2c00 call 0x32a8ed\n00066a1a 83c418 add esp, 0x18\n00066a1d 8d94248c000000 lea edx, [esp + 0x8c]\n00066a24 52 push edx\n00066a25 66897c247a mov word ptr [esp + 0x7a], di\n00066a2a 89bc2484000000 mov dword ptr [esp + 0x84], edi\n00066a31 89bc2488000000 mov dword ptr [esp + 0x88], edi\n00066a38 89bc248c000000 mov dword ptr [esp + 0x8c], edi\n00066a3f e8bceaffff call 0x65500\n00066a44 a0eaa04d00 mov al, byte ptr [0x4da0ea]\n00066a49 84c0 test al, al\n00066a4b 7419 je 0x66a66\n00066a4d a100a14d00 mov eax, dword ptr [0x4da100]\n00066a52 8b0d0ca14d00 mov ecx, dword ptr [0x4da10c]\n00066a58 89842480000000 mov dword ptr [esp + 0x80], eax\n00066a5f 898c2488000000 mov dword ptr [esp + 0x88], ecx\n00066a66 a1c8c54d00 mov eax, dword ptr [0x4dc5c8]\n00066a6b 8a1518a14d00 mov dl, byte ptr [0x4da118]\n00066a71 89842484000000 mov dword ptr [esp + 0x84], eax\n00066a78 8bf8 mov edi, eax\n00066a7a a1a0364700 mov eax, dword ptr [0x4736a0]\n00066a7f 83f8ff cmp eax, -1\n00066a82 88542410 mov byte ptr [esp + 0x10], dl\n00066a86 741e je 0x66aa6\n00066a88 e8b3ebfeff call 0x55640\n00066a8d 48 dec eax\n00066a8e 7516 jne 0x66aa6\n00066a90 8a442410 mov al, byte ptr [esp + 0x10]\n00066a94 84c0 test al, al\n00066a96 7408 je 0x66aa0\n00066a98 81cf00000080 or edi, 0x80000000\n00066a9e eb06 jmp 0x66aa6\n00066aa0 81e7ffffff7f and edi, 0x7fffffff\n00066aa6 a11ca14d00 mov eax, dword ptr [0x4da11c]\n00066aab 8b0d20a14d00 mov ecx, dword ptr [0x4da120]\n00066ab1 89bc2484000000 mov dword ptr [esp + 0x84], edi\n00066ab8 89442478 mov dword ptr [esp + 0x78], eax\n00066abc 894c247c mov dword ptr [esp + 0x7c], ecx\n00066ac0 33ff xor edi, edi\n00066ac2 e839231300 call 0x198e00\n00066ac7 8984bc9c000000 mov dword ptr [esp + edi*4 + 0x9c], eax\n00066ace 47 inc edi\n00066acf 83ff10 cmp edi, 0x10\n00066ad2 7cee jl 0x66ac2\n00066ad4 8b831c740000 mov eax, dword ptr [ebx + 0x741c]\n00066ada 33c9 xor ecx, ecx\n00066adc 83f802 cmp eax, 2\n00066adf 7e45 jle 0x66b26\n00066ae1 83f808 cmp eax, 8\n00066ae4 7f40 jg 0x66b26\n00066ae6 8a83e8490000 mov al, byte ptr [ebx + 0x49e8]\n00066aec 84c0 test al, al\n00066aee 7436 je 0x66b26\n00066af0 8b8bf0490000 mov ecx, dword ptr [ebx + 0x49f0]\n00066af6 8b3d20d05100 mov edi, dword ptr [0x51d020]\n00066afc 8b93f4490000 mov edx, dword ptr [ebx + 0x49f4]\n00066b02 33c0 xor eax, eax\n00066b04 3bf9 cmp edi, ecx\n00066b06 751c jne 0x66b24\n00066b08 8b0d24d05100 mov ecx, dword ptr [0x51d024]\n00066b0e 3bca cmp ecx, edx\n00066b10 7512 jne 0x66b24\n00066b12 8b1544d05100 mov edx, dword ptr [0x51d044]\n00066b18 a140d05100 mov eax, dword ptr [0x51d040]\n00066b1d 52 push edx\n00066b1e 50 push eax\n00066b1f e82c0e0100 call 0x77950\n00066b24 8bc8 mov ecx, eax\n00066b26 8b4508 mov eax, dword ptr [ebp + 8]\n00066b29 898c24dc000000 mov dword ptr [esp + 0xdc], ecx\n00066b30 8a4824 mov cl, byte ptr [eax + 0x24]\n00066b33 84c9 test cl, cl\n00066b35 7416 je 0x66b4d\n00066b37 b932000000 mov ecx, 0x32\n00066b3c 8d7c2418 lea edi, [esp + 0x18]\n00066b40 8d7028 lea esi, [eax + 0x28]\n00066b43 33d2 xor edx, edx\n00066b45 f3a7 repe cmpsd dword ptr [esi], dword ptr es:[edi]\n00066b47 743d je 0x66b86\n00066b49 8b742414 mov esi, dword ptr [esp + 0x14]\n00066b4d 8d442418 lea eax, [esp + 0x18]\n00066b51 8bd3 mov edx, ebx\n00066b53 e8e848ffff call 0x5b440\n00066b58 84c0 test al, al\n00066b5a 742a je 0x66b86\n00066b5c a048d05100 mov al, byte ptr [0x51d048]\n00066b61 84c0 test al, al\n00066b63 7415 je 0x66b7a\n00066b65 a14cd05100 mov eax, dword ptr [0x51d04c]\n00066b6a 8904b574a44d00 mov dword ptr [esi*4 + 0x4da474], eax\n00066b71 5f pop edi\n00066b72 5e pop esi\n00066b73 5b pop ebx\n00066b74 8be5 mov esp, ebp\n00066b76 5d pop ebp\n00066b77 c20400 ret 4\n00066b7a e8114a2d00 call 0x33b590\n00066b7f 8904b574a44d00 mov dword ptr [esi*4 + 0x4da474], eax\n00066b86 5f pop edi\n00066b87 5e pop esi\n00066b88 5b pop ebx\n00066b89 8be5 mov esp, ebp\n00066b8b 5d pop ebp\n00066b8c c20400 ret 4\n"
+  },
+  "all_executed_instruction_bytes_verified": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-n726_7sr",
+  "retained_large_artifacts": [],
+  "executed_distinct_instructions": 498,
+  "conclusions": [
+    "The flag at start-match state+0x16 is a deferral result, not an ordinary instant-start policy.",
+    "The online host requires two distinct valid player teams on fully-connected peers when its hopper requires teams.",
+    "A successful-logon local peer policy bit31 also causes deferral; the local publisher sources it from per-user policy record bit1.",
+    "A fresh deferral result returns false, clears the start clock and requests B session mode6; mode4 is not reached.",
+    "The deferral check is reachable in online matchmade team hoppers; it cannot be excluded as a custom-game-only path."
+  ]
+}

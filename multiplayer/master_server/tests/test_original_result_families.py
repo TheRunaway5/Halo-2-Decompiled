@@ -46,21 +46,58 @@ class OriginalResultFamilyTests(unittest.IsolatedAsyncioTestCase):
                 for slot,(_,_,team) in enumerate(room.players):
                     raw[0x370+slot*0x94+0x88]=team if teams else 255
                     if teams:raw[0xcb0+team*0x18]=1
-                self.assertEqual(self.api.results.validate(room,raw.hex())[0],raw)
+                self.assertEqual(self.api.results._validate_fixture(room,raw.hex())[0],raw)
                 wrong=raw.copy();struct.pack_into("<I",wrong,0x64,3 if engine==2 else 2)
-                with self.assertRaises(Problem):self.api.results.validate(room,wrong.hex())
+                with self.assertRaises(Problem):self.api.results._validate_fixture(room,wrong.hex())
                 for at in (0,0x11,0x13,0x68,0x370+2,0x370+0x88):
                     wrong=raw.copy();wrong[at]^=1
-                    with self.assertRaises(Problem):self.api.results.validate(room,wrong.hex())
+                    with self.assertRaises(Problem):self.api.results._validate_fixture(room,wrong.hex())
                 if engine!=2:
                     room.team_mode=not teams;wrong=raw.copy();wrong[0x13]=wrong[0x68]=int(not teams)
-                    with self.assertRaises(Problem):self.api.results.validate(room,wrong.hex())
+                    with self.assertRaises(Problem):self.api.results._validate_fixture(room,wrong.hex())
                     room.team_mode=teams
 
-    async def test_unknown_custom_names_remain_slayer_only(self):
+    async def test_unknown_names_require_complete_settings_and_bind_every_byte(self):
         _,descriptors,_,_,_=await self.pair();room=self.api.transport.rooms[descriptors[0]["id"]]
-        room.proposal=replace(room.proposal,game=replace(room.proposal.game,variant="Custom named Slayer"))
-        raw=self.report(descriptors);self.assertEqual(self.api.results.validate(room,raw.hex())[0],raw)
-        for engine in (1,3,4,7,8,9):
-            struct.pack_into("<I",raw,0x64,engine)
-            with self.assertRaises(Problem):self.api.results.validate(room,raw.hex())
+        path=Path(__file__).resolve().parents[3]/"tests/fixtures/multiplayer_engines_original_tu15.json"
+        variants=json.loads(path.read_text())["variants"]
+        room.proposal=replace(room.proposal, game=replace(room.proposal.game,variant="Custom named Slayer"))
+        with self.assertRaises(Problem):
+            self.api.results._validate_fixture(room, self.report(descriptors).hex())
+        for engine in (1,2,3,4,7,8,9):
+            original=next(v for v in variants if v['source_type']==engine)
+            options=bytes.fromhex(original['raw']);teams=bool(options[0x48]&1)
+            room.proposal=replace(room.proposal,game=replace(room.proposal.game,
+                variant="Explicit custom variant",settings=options.hex()))
+            room.team_mode=teams
+            raw=self.report(descriptors);raw[0x20:0x150]=options
+            raw[0x13]=int(teams)
+            for slot,(_,_,team) in enumerate(room.players):
+                raw[0x370+slot*0x94+0x88]=team if teams else 255
+                if teams:raw[0xcb0+team*0x18]=1
+            self.assertEqual(self.api.results._validate_fixture(room,raw.hex())[0],raw)
+            for offset in range(304):
+                changed=raw.copy();changed[0x20+offset]^=1
+                with self.assertRaises(Problem):self.api.results._validate_fixture(room,changed.hex())
+
+    async def test_team_changing_uses_final_membership_and_retained_team_history(self):
+        _,descriptors,_,_,_=await self.pair();room=self.api.transport.rooms[descriptors[0]["id"]]
+        fixture=json.loads((Path(__file__).resolve().parents[3]/"tests/fixtures/multiplayer_engines_original_tu15.json").read_text())
+        options=bytearray.fromhex(next(v for v in fixture["variants"] if v["source_type"]==2)["raw"])
+        options[0x48]|=0x41
+        room.proposal=replace(room.proposal,game=replace(room.proposal.game,variant="Team changes",settings=options.hex()))
+        room.team_mode=True
+        raw=self.report(descriptors);raw[0x20:0x150]=options;raw[0x13]=1
+        for slot,(_,_,team) in enumerate(room.players):
+            raw[0x370+slot*0x94+0x88]=slot+2
+            raw[0xcb0+team*0x18]=1
+            raw[0xcb0+(slot+2)*0x18]=1
+        raw[0xcb0+7*0x18]=1  # An original retained team visited earlier.
+        self.assertEqual(self.api.results._validate_fixture(room,raw.hex())[0],raw)
+        for at,value in ((0x370+0x88,8),(0xcb0+2*0x18,0),(0xcb0+7*0x18,2)):
+            wrong=raw.copy();wrong[at]=value
+            with self.assertRaises(Problem):self.api.results._validate_fixture(room,wrong.hex())
+        options[0x48]&=~0x40
+        room.proposal=replace(room.proposal,game=replace(room.proposal.game,settings=options.hex()))
+        raw[0x20:0x150]=options
+        with self.assertRaises(Problem):self.api.results._validate_fixture(room,raw.hex())

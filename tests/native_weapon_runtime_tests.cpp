@@ -209,8 +209,8 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     {std::lock_guard lock(host.mutex);report["authority_body_manager_context"]=host.body_manager_context;}
     const auto advance=[&](Stage next){stage=next;stage_tick=state.tick;};
     if(stage==Stage::pickup) {
-      hold_key(window_id,SDL_SCANCODE_X,true);
-      if(weapons[1]!=null_datum){hold_key(window_id,SDL_SCANCODE_X,false);advance(Stage::ready);}
+      hold_key(window_id,SDL_SCANCODE_C,true);
+      if(weapons[1]!=null_datum){hold_key(window_id,SDL_SCANCODE_C,false);advance(Stage::ready);}
     }else if(stage==Stage::ready && state.tick-stage_tick>=20) {
       check(player.first_person_clock.present && player.secondary_weapon.clock.present,
           "Joining-client dual authority did not publish both native pose channels");
@@ -638,17 +638,17 @@ int main(int argc,char **argv){HistoryReport history;try {
           "Held map pickup still has a world owner");
       map_pickup=true;carried_at=tick;hold_key(window_id,SDL_SCANCODE_E,false);
     }
-    if(carried_at && tick==*carried_at+10)key(window_id,SDL_SCANCODE_TAB);
+    if(carried_at && tick==*carried_at+10)key(window_id,SDL_SCANCODE_1);
     if(carried_at && tick>*carried_at+10 && !dual_requested && p.source_weapon==starting_datum) {
       switched=true;dual_requested=true;
       Spawn at;at.position=location;at.position.x-=.2f;at.bsp=0;at.facing=0;
-      diagnostic_pose=at;place(at);hold_key(window_id,SDL_SCANCODE_X,true);
+      diagnostic_pose=at;place(at);hold_key(window_id,SDL_SCANCODE_C,true);
     }
     if(diagnostic_pose)place(*diagnostic_pose);
     if(p.secondary_weapon.datum!=null_datum) {
       if(offhand_datum==null_datum)offhand_datum=p.secondary_weapon.datum;
       check(offhand_datum==p.secondary_weapon.datum,"Dual history changed its full offhand datum");
-      dual=true;if(!dual_at){dual_at=tick;hold_key(window_id,SDL_SCANCODE_X,false);}
+      dual=true;if(!dual_at){dual_at=tick;hold_key(window_id,SDL_SCANCODE_C,false);}
       if(previous_ammunition) {
         fired_rounds+=unsigned(std::max(0,(*previous_ammunition)[0]-p.loaded));
         fired_rounds+=unsigned(std::max(0,(*previous_ammunition)[1]-p.secondary_weapon.loaded));
@@ -669,7 +669,7 @@ int main(int argc,char **argv){HistoryReport history;try {
       if(elapsed==32){trigger(window_id,SDL_BUTTON_LEFT,false);trigger(window_id,SDL_BUTTON_RIGHT,false);}
       if(elapsed==40)key(window_id,SDL_SCANCODE_R);
       if(reloaded && !(p.source_action_word&1u) && !grenade_at && argc!=5)grenade_at=tick;
-      if(grenade_at && tick==*grenade_at)key(window_id,SDL_SCANCODE_Q);
+      if(grenade_at && tick==*grenade_at)key(window_id,SDL_SCANCODE_F);
       if(grenade_at && tick>*grenade_at && p.grenade_action.animation_active)thrown=true;
       if(grenade_at && tick>*grenade_at && (p.grenade_action.phase()==1 || p.grenade_action.phase()==2)) {
         check(!p.motion_sensor_control,"SDL grenade request published a weapon trigger bit");

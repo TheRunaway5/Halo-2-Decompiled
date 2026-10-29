@@ -49,7 +49,11 @@ int main(int argc, char **argv) {
     SDL_SetMainReady();
     MultiplayerOptions options;
     options.map = argv[1]; options.shared_maps = argv[2];
-    if (argc == 4) options.gameplay_xbe = argv[3];
+    if (argc == 4) {
+      if(std::string_view(argv[3])=="native-mcc")
+        check(Cache(options.map,options.shared_maps).is_mcc(),"native-mcc requires an imported MCC cache");
+      else options.gameplay_xbe = argv[3];
+    }
     options.width = 640; options.height = 480; options.local_players = 1;
     options.starting_weapon = 5; options.mute = true;
     options.validation = std::getenv("HALO2_KBM_VALIDATION");
@@ -105,13 +109,13 @@ int main(int argc, char **argv) {
       case 9: key(window_id, SDL_SCANCODE_S, false); key(window_id, SDL_SCANCODE_A, true); break;
       case 14: key(window_id, SDL_SCANCODE_A, false); key(window_id, SDL_SCANCODE_D, true); break;
       case 19: key(window_id, SDL_SCANCODE_D, false); break;
-      case 21: key(window_id, SDL_SCANCODE_LSHIFT, true); break;
+      case 21: key(window_id, SDL_SCANCODE_LCTRL, true); break;
       case 28:
-        key(window_id, SDL_SCANCODE_LSHIFT, false);
+        key(window_id, SDL_SCANCODE_LCTRL, false);
         key(window_id, SDL_SCANCODE_SPACE, true); key(window_id, SDL_SCANCODE_SPACE, false);
         break;
       case 39: mouse(window_id, true); break;
-      case 55: mouse(window_id, false); key(window_id, SDL_SCANCODE_F, true); key(window_id, SDL_SCANCODE_F, false); break;
+      case 55: mouse(window_id, false); key(window_id, SDL_SCANCODE_Q, true); key(window_id, SDL_SCANCODE_Q, false); break;
       case 60: key(window_id, SDL_SCANCODE_R, true); key(window_id, SDL_SCANCODE_R, false); break;
       case 113: key(window_id, SDL_SCANCODE_W, true); mouse(window_id, true); break;
       case 115: focus(window_id, false); break;
@@ -174,7 +178,7 @@ int main(int argc, char **argv) {
     check(movement.x * movement.x + movement.y * movement.y > 0,
           "W input never moved the actual match player");
     check(sample(25).controls.crouch && sample(28).player.crouch > sample(21).player.crouch,
-          "Shift did not reach live crouch gameplay");
+          "MCC Ctrl did not reach live crouch gameplay");
     unsigned jump_taps{};
     for (unsigned tick = 29; tick < 39; ++tick) jump_taps += sample(tick).controls.jump;
     check(jump_taps == 1, "Short Space tap was lost or repeated across simulation ticks");
@@ -184,7 +188,7 @@ int main(int argc, char **argv) {
     check(sample(50).controls.fire && sample(55).player.loaded < sample(39).player.loaded,
           "LMB did not expend ammunition in the actual match");
     for (unsigned tick = 56; tick < 61; ++tick)
-      check(!sample(tick).controls.reload, "F still triggers live reload");
+      check(!sample(tick).controls.reload, "MCC Q melee also triggered live reload");
     unsigned reload_taps{};
     bool reloaded{};
     const auto &before_reload=sample(60).player;
@@ -241,7 +245,7 @@ int main(int argc, char **argv) {
     SDL_GameControllerClose(controller); SDL_JoystickClose(joystick);
     check(SDL_JoystickDetachVirtual(device) == 0, "Virtual controller did not detach");
     std::cout << "PASS: actual rendered multiplayer, 188+ observed simulation ticks, idle attached controller, "
-                 "WASD movement, Shift crouch, single Space/R taps, LMB ammunition, R reload, mouse look, focus reset, "
+                 "WASD movement, Ctrl crouch, single Space/R taps, LMB ammunition, R reload, mouse look, focus reset, "
                  "inert F1, all four held Space/WASD and virtual Xbox A/stick directions, and normal held-input release\n";
     std::cout << "LIMIT: Banshee maneuver movement and scope/switch/scoreboard/melee/grenade gameplay handlers are not validated by this probe\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }

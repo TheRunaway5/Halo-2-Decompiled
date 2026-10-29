@@ -1,6 +1,29 @@
 #include "source_match_rebind_fixture.hpp"
 #include <thread>
 namespace {
+void dedicated(const char *xbe,const char *map){
+    const std::array<unsigned,4> recipient_views{4,5,6,7};
+    Owner producer(xbe,map,{},1000),recipient(xbe,map,recipient_views,900000),workspace(xbe,map,{},500000);
+    for(unsigned tick=0;tick<8;++tick)producer.step({});
+    const std::array<unsigned,8> slots{0,1,2,3,4,5,6,7};
+    const auto roster=producer.authority->player_admissions(slots);
+    const auto admitted=admissions(producer,recipient_views);
+    const auto cut=producer.authority->checkpoint(binding);
+    local_views(producer,{});local_views(workspace,{});
+    // A logical input user is a separate original151D30 owner. Prove the
+    // zero-view producer check rejects it even while151C90 still has no user.
+    producer.world->tu15_world().set_player_input_user(producer.match->player(4).source_datum,0);
+    rejects([&]{local_views(producer,{});});
+    producer.world->tu15_world().set_player_input_user(producer.match->player(4).source_datum,-1);
+    local_views(producer,{});
+    for(unsigned repeat=0;repeat<2;++repeat){
+        auto prepared=recipient.authority->prepare_with_local_views(cut,binding,admitted,*workspace.authority,roster,{});
+        check(recipient.authority->commit(std::move(prepared)),"Dedicated zero-view producer did not publish to admitted recipient views");
+        local_views(producer,{});local_views(recipient,recipient_views);same_gameplay(producer,recipient);
+    }
+    for(unsigned tick=0;tick<4;++tick){producer.step({});recipient.step({});same_gameplay(producer,recipient);}
+    std::cout<<"PASS genuine dedicated zero-producer-view cut rebound to four admitted recipient views without a synthetic producer user\n";
+}
 void run(const char *xbe,const char *map){
     const std::array<unsigned,4> al{0,1,2,3},bl{4,5,6,7};Owner a(xbe,map,al,1000),b(xbe,map,bl,900000),workspace(xbe,map,al,500000);
     for(unsigned tick=0;tick<20;++tick){std::array<Controls,16> input{};for(unsigned id=0;id<player_count;++id)input[id].yaw=a.match->unit(id).yaw;
@@ -75,10 +98,10 @@ void run(const char *xbe,const char *map){
     for(unsigned tick=0;tick<5;++tick){std::array<Controls,16> input{};for(unsigned id=0;id<player_count;++id)input[id].yaw=a.match->unit(id).yaw;
         a.step(input);b.step(input);same_gameplay(a,b);}
     check(a.match->unit(0).vitality.dead&&b.match->unit(0).vitality.dead&&!b.match->finished(),"Rebound pending departure did not retain a surviving match");
-    std::cout<<"PASS actual TU1.5 eight-player Match rebind four local views 0/1/2/3 -> 4/5/6/7 -> 0/1/2/3, explicit admitted source identities independent of prototype identities, cancellation without publication, forty future matching complete live object bodies, original player bytes except local index, and pending local departure continued for five source ticks\n";
+    std::cout<<"PASS actual TU1.5 eight-player Match rebind four local views 0/1/2/3 -> 4/5/6/7 -> 0/1/2/3, explicit admitted source identities independent of prototype identities, cancellation without publication, forty future matching complete live object bodies, every original player byte against canonical per-PC151D30/151C90 mappings with exact reverse tables/census, and pending local departure continued for five source ticks\n";
 }
 }
 int main(int argc,char **argv)try{
     std::cout<<std::unitbuf;if(argc!=3||!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[2]))return 77;
-    run(argv[1],argv[2]);return 0;
+    dedicated(argv[1],argv[2]);run(argv[1],argv[2]);return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

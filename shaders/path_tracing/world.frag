@@ -9,6 +9,9 @@ layout(location=4) in vec2 titleDepth;
 layout(location=5) flat in uint stippleLevel;
 layout(location=6) in vec3 traceTint;
 layout(location=8) flat in uint sourceDepthRaw;
+layout(location=9) in vec2 traceLightmapUV;
+layout(location=10) flat in uint traceLightmapIndex;
+layout(location=11) in vec3 traceVertexRadiance;
 layout(set=1,binding=6,std430) restrict buffer TraceVisibility {
     uvec4 extent;
     uvec4 temporal;
@@ -47,7 +50,11 @@ void main() {
         if(gl_FragDepth>uintBitsToFloat(traceVisibility.words[at.y*traceVisibility.extent.x+at.x]))discard;
     }
     vec3 incoming=traceNormalize(traceWorld-camera.eyePosition.xyz,-normal);
-    if(dot(normal,incoming)>0.0)normal=-normal;
+    // Orient the surface from its actual face. A smooth authored normal can
+    // cross the view horizon at grazing angles without becoming a back face;
+    // flipping it toward the eye sends its whole light hemisphere underground.
+    if(dot(geometric,incoming)>0.0)geometric=-geometric;
+    if(dot(normal,geometric)<0.0)normal=-normal;
     vec3 sourceTint=(material.texture.w&128u)!=0u?vec3(1):traceTint;
     vec3 albedo=(material.texture.w&32u)!=0u?vec3(0):clamp(sourceColor.rgb*sourceTint,0.0,1.0);
     uvec2 at=uvec2(gl_FragCoord.xy);uint phase=uint(camera.viewport.z);
@@ -64,24 +71,27 @@ void main() {
         record=traceLightingRecord(at/max(traceVisibility.extent.w,1u));
         if(!traceLightingClaim(record,traceMaterialIndex))discard;
     }
+    vec4 colorGuide=tracePrimaryColorGuide(material,traceLightmapIndex,traceLightmapUV,traceVertexRadiance);
     uint frameSeed=phase>=2u?traceHash(traceVisibility.temporal.x+0x93d765ddu):0u;
     uint state=traceHash(uint(gl_FragCoord.x)+uint(gl_FragCoord.y)*65537u+traceMaterialIndex*8191u+frameSeed);
-    diffuseLight=vec3(0);specularLight=vec3(0);
+    diffuseLight=vec3(0);specularLight=vec3(0);vec3 currentDirect=vec3(0);
     const uint samples=uint(clamp(camera.viewport.x,1.0,2.0));
     [[dont_unroll]] for(uint sampleIndex=0u;sampleIndex<samples;++sampleIndex) {
-        vec3 diffuseSample,specularSample;
-        traceLighting(traceWorld,normal,incoming,material,albedo,state,diffuseSample,specularSample);
+        vec3 diffuseSample,specularSample,directSample;
+        traceLighting(traceWorld,normal,geometric,incoming,material,albedo,colorGuide,state,diffuseSample,specularSample,directSample);
         diffuseLight+=diffuseSample;specularLight+=specularSample;
+        currentDirect+=directSample;
     }
-    diffuseLight/=float(samples);specularLight/=float(samples);
+    diffuseLight/=float(samples);specularLight/=float(samples);currentDirect/=float(samples);
     if(phase==2u) {
-        traceLightingStore(record,diffuseLight,specularLight,traceWorld,normal,incoming,
-                           traceMaterialIndex,material.response.x,max(length(dx),length(dy)));
+        traceLightingStore(record,diffuseLight,specularLight,currentDirect,traceWorld,normal,geometric,incoming,
+                           traceMaterialIndex,material.response.x,max(length(dx),length(dy)),
+                           max(material.response.y,material.response.z)>0.0);
         return;
     }
     // Thin silhouettes with no compatible grid sample retain a single normal
     // bounded trace. The ordinary resolve path performs no ray queries.
-    vec3 radiance=albedo*diffuseLight+specularLight;
+    vec3 radiance=albedo*(diffuseLight+currentDirect)+specularLight;
     if((material.texture.w&32u)!=0u)radiance+=traceEmission(material,traceTexcoord,sourceTint);
     if(any(isnan(radiance)) || any(isinf(radiance)))radiance=vec3(0);
     // Same scene transfer as Original: no automatic white clear-coat or global

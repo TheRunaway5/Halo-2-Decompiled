@@ -37,6 +37,7 @@
 #include "halo2/residency.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/multiplayer.hpp"
+#include "halo2/multiplayer_world.hpp"
 #include "halo2/native_action_prompt_hud.hpp"
 #include "halo2/native_weapon_hud.hpp"
 #include "halo2/campaign_source_runtime.hpp"
@@ -46,9 +47,11 @@
 #include "halo2/native_weapon_inventory.hpp"
 #include "halo2/unit_scope_camera.hpp"
 #include "halo2/multiplayer_outcome.hpp"
+#include "halo2/multiplayer_departure.hpp"
 #include "halo2/native_vista_flow.hpp"
 #include "halo2/mcc_loading_inputs.hpp"
 #include "halo2/mcc_loading_presentation.hpp"
+#include "halo2/frontend_audio.hpp"
 #include "halo2/online_postgame.hpp"
 #include "halo2/source_terminal_recovery.hpp"
 #include "halo2/system_link_session.hpp"
@@ -262,6 +265,12 @@ int main(int argc, char **argv) {
     halo2::FrontendOptions frontend;
     halo2::MultiplayerOptions multiplayer_options;
     const auto desktop = std::make_shared<halo2::DesktopSession>();
+    // Join loading callbacks while their retained frontend/audio owner is
+    // still alive, including exceptions during campaign resource preparation.
+    struct LoadingExit {
+      halo2::DesktopSession& desktop;
+      ~LoadingExit(){desktop.cancel_loading();}
+    } loading_exit{*desktop};
     bool multiplayer=false,mcc_preview=false,map_supplied=false;
     std::size_t bsp = 0;
     unsigned frame_limit = 0;
@@ -669,17 +678,21 @@ int main(int argc, char **argv) {
       frame_limit = 3;
     std::optional<halo2::LanSessionDescription> requested_link_join;
     std::string requested_link_address;
-    // Interactive objective joins first choose real local profiles/teams. The
+    // Interactive LAN joins first choose real local profiles/teams. The
     // authenticated host configuration supplies map/rules, never membership.
     if(!menu && multiplayer && !multiplayer_options.join.empty() && !frame_limit && !simulate && !multiplayer_options.dedicated) {
       auto description=halo2::query_lan_session(multiplayer_options.join);
       const auto engine=halo2::source_game_variant_type(halo2::source_game_variant(description.variant));
-      if(engine==1 || engine==9) {
+      if(engine==1 || engine==2 || engine==3 || engine==4 || engine==7 || engine==8 || engine==9) {
         requested_link_address=multiplayer_options.join;requested_link_join=std::move(description);
         frontend.maps=multiplayer_options.shared_maps.empty()?std::filesystem::absolute(map).parent_path():multiplayer_options.shared_maps;
         menu=true;
       }
     }
+    // Each map owns its cache, World, audio and renderer registrations. Keep
+    // the desktop/options outside this scope so authored campaign completion
+    // can retire the entire previous scene before constructing the next one.
+    for (;;) {
     if (menu) {
       // The logo/sweep loading screen uses the original art and ambience that
       // setup staged from the installed H2EK; without a kit, MCC V3 remains.
@@ -699,6 +712,12 @@ int main(int argc, char **argv) {
       // Retain configuration/content; actual source lifecycle and UI factories
       // own each subsequent screen, never an implicit old-stack resume.
       frontend.session = std::make_shared<halo2::FrontendSession>();
+      multiplayer_options.menu_audio_update=[session=frontend.session]{session->world_audio_update();};
+      if(desktop->vista_loading_configured()) {
+        const std::weak_ptr<halo2::FrontendSession> owner=frontend.session;
+        desktop->set_loading_update_service([owner]{if(auto session=owner.lock())
+          session->audio_state().world_update(session->ui_clock());});
+      }
       frontend.desktop = desktop;
       frontend.frames = frame_limit;
       frontend.screenshot = screenshot;
@@ -719,18 +738,42 @@ int main(int argc, char **argv) {
       runtime_defaults.screenshot=screenshot;runtime_defaults.width=viewport_width;
       runtime_defaults.height=viewport_height;runtime_defaults.hidden=hidden;
       runtime_defaults.validation=validation;runtime_defaults.mute=mute;
-      runtime_defaults.menu_audio_update=[session=frontend.session]{session->world_audio_update();};
       frontend.session_update=[&](halo2::MenuState& state,std::uint32_t clock,
           const std::function<void(halo2::FrontendUiSound)>& sound) {
         if(!online_return_message.empty()) {
           state.return_online_lobby(std::move(online_return_message));online_return_message.clear();
+        }
+        if(requested_link_join && requested_link_stage && !system_link &&
+            (state.frame().screen==6 || state.signed_in_profile().empty() ||
+             (state.launch && (!state.launch->multiplayer || state.launch->campaign ||
+               state.launch->online_match || !state.launch->host_port)))) {
+          requested_link_join.reset();requested_link_address.clear();requested_link_stage=0;
+          multiplayer_options.join.clear();runtime_defaults.join.clear();multiplayer=false;
         }
         if(requested_link_join && requested_link_stage==0 && state.frame().screen==6 && !state.signed_in_profile().empty()) {
           state.select(3);state.accept();requested_link_stage=1;
         }
         if(requested_link_join && requested_link_stage==1 && state.frame().screen==14) {
           state.adopt_system_link_configuration(requested_link_join->map.empty()?map.stem().string():requested_link_join->map,requested_link_join->variant);
-          system_link=std::make_shared<halo2::SystemLinkSession>(false);requested_link_stage=2;
+          if(halo2::custom_slayer(requested_link_join->variant)==halo2::CustomSlayer::none &&
+              !halo2::bomb_defusal_variant(requested_link_join->variant))
+            system_link=std::make_shared<halo2::SystemLinkSession>(false);
+          requested_link_stage=2;
+        }
+        if(requested_link_join && requested_link_stage==2 && !system_link && state.launch) {
+          const auto host_map=requested_link_join->map.empty()?map.stem().string():requested_link_join->map;
+          const auto &host_variant=requested_link_join->variant;
+          if(state.launch->map.stem()!=host_map || state.launch->variant.engine!=host_variant.engine ||
+              state.launch->variant.values!=host_variant.values ||
+              halo2::source_game_variant(state.launch->variant).bytes!=halo2::source_game_variant(host_variant).bytes) {
+            state.launch.reset();state.adopt_system_link_configuration(host_map,host_variant);
+            state.system_link_configuration_error("The LAN host controls the map and match settings. Its configuration has been restored; choose Start to join.");
+          } else {
+            // Native custom modes use a fresh authenticated client rather than
+            // the retained stock lobby/PCR owner. Keep the real local roster.
+            state.launch->host_port=0;
+            multiplayer_options.join=requested_link_address;
+          }
         }
         if(system_link) {
           system_link->update_frontend(state,clock,sound);
@@ -740,7 +783,7 @@ int main(int argc, char **argv) {
             frontend.session->content().vista &&
             halo2::NativeVistaOfflineFlow::supports(*state.launch))
           vista_flow=std::make_unique<halo2::NativeVistaOfflineFlow>(*frontend.session,frontend.maps,
-              runtime_defaults,[&]{desktop->begin_loading();});
+              runtime_defaults,[&]{desktop->begin_multiplayer_loading();});
         if(vista_flow) {
           vista_flow->update_frontend(state,clock,sound);
           // A disposed match session must not observe later title/profile
@@ -763,7 +806,9 @@ int main(int argc, char **argv) {
         if(launch && launch->multiplayer && !launch->campaign && !launch->online_match && !frame_limit && !simulate &&
             (launch->host_port || system_link)) {
           const auto engine=halo2::source_game_variant_type(halo2::source_game_variant(launch->variant));
-          if(engine==1 || engine==9) {
+          if(halo2::custom_slayer(launch->variant)==halo2::CustomSlayer::none &&
+              !halo2::bomb_defusal_variant(launch->variant) &&
+              (engine==1 || engine==2 || engine==3 || engine==4 || engine==7 || engine==8 || engine==9)) {
             if(!system_link)system_link=std::make_shared<halo2::SystemLinkSession>(true);
             vista_flow.reset();frontend.session->state().launch.reset();
             auto runtime=runtime_defaults;runtime.map=launch->map;runtime.local_players=launch->local_players;
@@ -773,6 +818,10 @@ int main(int argc, char **argv) {
             runtime.selected_profiles=launch->selected_profiles;runtime.selected_teams=launch->selected_teams;
             runtime.input_instances=launch->input_instances;runtime.system_link_session=system_link;
             halo2::MultiplayerRuntimeOutcome outcome;const auto result=halo2::run_multiplayer(runtime,outcome);
+            if(outcome.state && outcome.state->team_mode) {
+              std::vector<std::int8_t> teams;for(auto slot:outcome.local_slots)teams.push_back(outcome.state->players.at(slot).source_membership);
+              frontend.session->state().adopt_gameplay_teams(teams);
+            }
             if(result || outcome.reason==halo2::MultiplayerExitReason::window_quit)return result;
             if(outcome.reason==halo2::MultiplayerExitReason::system_link_postgame) {
               frontend.postgame_report=system_link->report(*frontend.session);
@@ -795,6 +844,7 @@ int main(int argc, char **argv) {
           runtime.map=launch->map;runtime.local_players=launch->local_players;
           if(!launch->shared_maps.empty())runtime.shared_maps=launch->shared_maps;
           runtime.variant=launch->variant;runtime.selected_profiles=launch->selected_profiles;
+          halo2::select_multiplayer_mode_authority(runtime);
           runtime.selected_teams=launch->selected_teams;runtime.input_instances=launch->input_instances;runtime.online_match=launch->online_match;
           runtime.match_voice=launch->match_voice;
           runtime.party_notice=[session=frontend.session] {
@@ -828,6 +878,14 @@ int main(int argc, char **argv) {
               terminal_state=std::move(terminal_outcome.state);
             }catch(const std::exception &error){std::cerr<<"Terminal source recovery unavailable: "<<error.what()<<'\n';}
           }
+          bool departure_game_over=false;
+          if(outcome.reason==halo2::MultiplayerExitReason::online_disconnected && !terminal_report &&
+              outcome.authority==halo2::MultiplayerOutcomeAuthority::client_snapshot && outcome.state) {
+            const auto ending=halo2::run_multiplayer_departure_game_over(runtime,*outcome.state,
+                launch->online_match->departed_players());
+            if(ending==halo2::MultiplayerDepartureReturn::window_quit)return 0;
+            departure_game_over=ending==halo2::MultiplayerDepartureReturn::completed;
+          }
           if(outcome.reason==halo2::MultiplayerExitReason::online_postgame) {
             frontend.postgame_report=halo2::online_postgame_screen(*frontend.session,launch->online_match,
                 [&]{frontend.session->state().return_online_lobby();});
@@ -837,7 +895,10 @@ int main(int argc, char **argv) {
                 launch->online_match->roster(),[&]{frontend.session->state().return_online_lobby();});
             frontend.entry=halo2::FrontendOptions::Entry::postgame_report;
           } else {
-            if(outcome.reason==halo2::MultiplayerExitReason::online_disconnected) {
+            if(departure_game_over) {
+              online_return_message.clear();
+              launch->online_match->close_postgame();
+            } else if(outcome.reason==halo2::MultiplayerExitReason::online_disconnected) {
               online_return_message=launch->online_match->error();
               if(online_return_message.empty())online_return_message="Match connection failed. Search again.";
             }
@@ -852,6 +913,7 @@ int main(int argc, char **argv) {
         runtime.map=launch->map;runtime.local_players=launch->local_players;
         if(!launch->shared_maps.empty())runtime.shared_maps=launch->shared_maps;
         runtime.variant=launch->variant;runtime.selected_profiles=launch->selected_profiles;
+        halo2::select_multiplayer_mode_authority(runtime);
         runtime.selected_teams=launch->selected_teams;runtime.input_instances=launch->input_instances;
         runtime.prepared_world=vista_flow->prepared_world();
         runtime.session_random_seed=runtime.prepared_world->rules.random_seed;
@@ -861,6 +923,10 @@ int main(int argc, char **argv) {
         runtime.session_audio_update=[&](float volume,const auto& gains){vista_flow->world_audio_update(volume,gains);};
         halo2::MultiplayerRuntimeOutcome outcome;
         const auto result=halo2::run_multiplayer(runtime,outcome);
+        if(outcome.state && outcome.state->team_mode) {
+          std::vector<std::int8_t> teams;for(auto slot:outcome.local_slots)teams.push_back(outcome.state->players.at(slot).source_membership);
+          frontend.session->state().adopt_gameplay_teams(teams);
+        }
         if(result || outcome.reason!=halo2::MultiplayerExitReason::session_world_close)return result;
         runtime.prepared_world.reset();vista_flow->world_unloaded();
         frontend.entry=halo2::FrontendOptions::Entry::session_return;
@@ -878,6 +944,7 @@ int main(int argc, char **argv) {
         if(!launch->shared_maps.empty())multiplayer_options.shared_maps=launch->shared_maps;
         multiplayer=true;multiplayer_options.local_players=launch->local_players;
         multiplayer_options.host_port=launch->host_port;multiplayer_options.variant=launch->variant;
+        halo2::select_multiplayer_mode_authority(multiplayer_options);
         multiplayer_options.selected_teams=launch->selected_teams;
         multiplayer_options.selected_profiles=launch->selected_profiles;
         multiplayer_options.input_instances=launch->input_instances;
@@ -940,6 +1007,25 @@ int main(int argc, char **argv) {
     halo2::NativeResidency residency(cache);
     std::optional<halo2::LevelContent> content;
     std::unique_ptr<halo2::Simulation> simulation;
+    const auto continue_campaign=[&] {
+      if(!campaign || !simulation || !simulation->level_finished() ||
+          !simulation->scripts().diagnostics().empty())return false;
+      auto *source=simulation->campaign_source();
+      if(!source)return false;
+      const auto scenario=source->objects().tu15_world().next_campaign_scenario();
+      if(!scenario)return false;
+      const auto slash=scenario->find_last_of("\\/");
+      const auto leaf=scenario->substr(slash==std::string::npos?0:slash+1);
+      if(leaf.empty())throw halo2::FormatError("Next campaign scenario has no cache name");
+      map=cache.path().parent_path()/(leaf+".map");
+      bsp=0;menu=false;play=true;
+      weapon_name.clear();squad_name.clear();script_name.clear();
+      camera_graph.clear();camera_track.clear();camera_anchor=-1;
+      first_person_action.clear();bsp_replay.reset();
+      std::cout<<"Campaign next scenario: "<<*scenario<<" difficulty="<<menu_difficulty<<'\n';
+      desktop->begin_loading();
+      return true;
+    };
     // Rendering resources survive checkpoint restores for the same campaign
     // World. A scene's material registration is rebuilt separately below.
     std::map<std::size_t,std::unique_ptr<halo2::SourceCampaignWaterWeatherTu15>> campaign_families;
@@ -1045,6 +1131,10 @@ int main(int argc, char **argv) {
       }
       if (campaign)
         simulation->start_level();
+      if(campaign)
+        std::cout<<"Campaign scenario started: "<<cache.scenario()
+            <<" difficulty="<<menu_difficulty<<' '<<simulation->status()
+            <<" level_finished="<<simulation->level_finished()<<'\n'<<std::flush;
       if (!camera_graph.empty()) {
         const auto graph = cache.query_tag({.group=halo2::tag_groups::model_animation_graph, .name=camera_graph});
         if (!graph)
@@ -1078,24 +1168,30 @@ int main(int argc, char **argv) {
         halo2::Controls input;
         input.yaw = spawns.front().facing;
         const auto report_simulation=[&] {
-          std::cout << simulation->status() << '\n';
+          std::cout << simulation->status() << " level_finished=" << simulation->level_finished() << '\n';
           for (const auto &fault : simulation->scripts().diagnostics())
             std::cerr << "Script fault: " << fault << '\n';
         };
         try {
-          for (unsigned i = 0; i < simulate; ++i) {
+          unsigned completed{};
+          for (; completed < simulate; ++completed) {
             const auto before=simulation->ticks();
             simulation->step(input);
-            // Headless simulation has one native outer iteration per requested
-            // game tick. Advance retained effect owners without a GPU consumer.
-            if(auto *source=simulation->campaign_source())
-              source->objects().advance_effect_frame(simulation->ticks()==before+1u?halo2::tick_seconds:0.f);
+            // Headless simulation has one outer frame per requested tick.
+            // Keep authored screen/effect/director clocks on the same accepted
+            // timeline as the ordinary frame loop, including checkpoint jumps.
+            simulation->advance_cinematic_render_time(halo2::tick_seconds,1,
+                simulation->ticks()==before+1u?1:0);
+            simulation->advance_cinematic_camera(halo2::tick_seconds);
+            if(simulation->level_finished()) {++completed;break;}
           }
+          simulate-=completed;
         } catch (...) {
           report_simulation();
           throw;
         }
         report_simulation();
+        if(simulate && continue_campaign())continue;
         return simulation->scripts().diagnostics().empty() ? 0 : 1;
       }
       play = true;
@@ -2031,6 +2127,7 @@ int main(int argc, char **argv) {
       throw halo2::FormatError("Campaign reference source startup fault: "+simulation->scripts().diagnostics().front());
     reference_state("before_frames");
     while (running && (!frame_limit || frames < frame_limit)) {
+      if(multiplayer_options.menu_audio_update)multiplayer_options.menu_audio_update();
       reference_state("frame_begin");
       if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","frame_begin"},{"frame",frames}});
       const auto now = Clock::now();
@@ -2075,7 +2172,7 @@ int main(int argc, char **argv) {
             play = !play;
           if (event.key.keysym.sym == SDLK_r && !play)
             camera = overview(mesh);
-          if (event.key.keysym.sym == SDLK_TAB) {
+          if (event.key.keysym.sym == SDLK_TAB && !play) {
             if (!spawns.empty())
               spawn_index = (spawn_index + 1) % spawns.size();
             spawn_camera();
@@ -2144,9 +2241,11 @@ int main(int argc, char **argv) {
       gameplay_keyboard.settings(desktop->keyboard_settings);
       if(menu_capture)gameplay_keyboard.release();
       const auto host_snapshot=gameplay_keyboard.snapshot(camera.yaw,camera.pitch);
-      const auto &host_input=host_snapshot.controls;
+      const bool host_seated=simulation && simulation->player().source_parent!=halo2::null_datum;
+      const auto host_input=host_seated?host_snapshot.gameplay_controls(false,true,false):host_snapshot.controls;
       if(audio) {audio->paused(game_paused);audio->master_volume(float(desktop->display_settings.volume)/10.f);}
       auto pad_input=menu_capture?halo2::ControllerInput{}:halo2::controller_input(halo2::sample_controller(controller.get()),desktop->controller_settings);
+      if(host_seated)pad_input.crouch|=pad_input.secondary;
       const auto pad_now=SDL_GetTicks();
       if(menu_capture){pad_pickup_hold={};pad_dual_hold={};pad_previous={};pad_pending={};}
       pad_pickup_hold.set(pad_input.pickup,pad_now);pad_dual_hold.set(pad_input.dual_wield,pad_now);
@@ -2290,6 +2389,14 @@ int main(int argc, char **argv) {
             camera.yaw=input.yaw=simulation->player().yaw;camera.pitch=input.pitch=simulation->player_pitch();
           }
           gameplay_keyboard.consume(camera.yaw,camera.pitch);
+          // A released trick chord belongs to the first delivered tick only.
+          // Subsequent catch-up ticks sample the remaining physical holds.
+          if(host_seated && host_snapshot.vehicle_evasion_direction) {
+            const auto next_host=gameplay_keyboard.snapshot(camera.yaw,camera.pitch).controls;
+            input.forward=menu_capture?0:next_host.forward+pad_input.forward;
+            input.right=menu_capture?0:next_host.right+pad_input.right;
+            input.jump=!menu_capture && (next_host.jump||pad_input.jump);
+          }
           pad_pending={};pad_pickup_hold.consume();pad_dual_hold.consume();
           input.switch_weapon=input.grenade=input.melee=input.flashlight=input.switch_grenade=false;
           if (observed_restores != simulation->checkpoint_restores()) {
@@ -3666,9 +3773,17 @@ int main(int argc, char **argv) {
       std::cout << "Audio mixed_frames=" << audio->mixed_frames()
                 << " peak=" << audio->peak() << '\n';
     if(scripted_audio)std::cout<<"Authored scripted audio mixed_frames="<<scripted_audio->mixed_frames()<<'\n';
+    // A finite capture retains its declared frame budget across map loads.
+    // Resolve the next path from this World's genuine campaign catalog before
+    // leaving its scope; the next iteration creates all per-map owners afresh.
+    if(!reference_capture && (!frame_limit || frames<frame_limit) && continue_campaign()) {
+      if(frame_limit)frame_limit-=frames;
+      continue;
+    }
     return simulation && !simulation->scripts().diagnostics().empty()
                ? EXIT_FAILURE
                : EXIT_SUCCESS;
+    }
   } catch (const std::exception &error) {
     std::cerr << "error: " << error.what() << '\n';
     return EXIT_FAILURE;

@@ -161,9 +161,18 @@ int main(int argc,char**argv)try {
    memory.read(rng,rng_before);memory.read(clock,clock_before);memory.read(0x4f0418u,resources_before);
    for(unsigned h=0;h<2;++h)memory.read(view+0xcu+h*0x1010u+0x1008u,sounds_before[h]);
    nlohmann::json map_rejections=nlohmann::json::array();
-   struct MapAttack {std::string name;unsigned offset;std::uint32_t value;};
-   for(unsigned hand=0;hand<2;++hand)if(identity.weapons[hand]!=null_datum) {
+   struct MapAttack {std::string name;unsigned offset;std::uint32_t value;bool saved_local{};};
+   for(unsigned hand=0;hand<2;++hand) {
     const Bytes actual(temporal.hands[hand].control);std::vector<MapAttack> attacks;
+    if(identity.weapons[hand]==null_datum) {
+     need(!(actual.u32(0)&7u) && temporal.hands[hand].saved_locals.empty(),
+         "Actual empty hand retained active/completeness bits or transition locals");
+     for(unsigned bit:{1u,2u,4u})attacks.push_back({"empty-active-completeness-"+std::to_string(bit),0u,actual.u32(0)|bit});
+     attacks.push_back({"empty-weapon-full-datum",4u,identity.weapons[0]});
+     attacks.push_back({"empty-weapon-count65",0xf4u,65u});
+     attacks.push_back({"empty-arms-count65",0xf8u,65u});
+     attacks.push_back({"empty-saved-local",0u,actual.u32(0),true});
+    } else {
     for(const auto [name,count_at,map_at]:
         {std::tuple{"weapon",0xf4u,0xfcu},std::tuple{"arms",0xf8u,0x1fcu}}) {
      const auto count=actual.u32(count_at);
@@ -177,9 +186,12 @@ int main(int argc,char**argv)try {
     }
     attacks.push_back({"graph-full-datum",8u,actual.u32(8u)^0x10000u});
     attacks.push_back({"weapon-full-datum",4u,actual.u32(4u)^0x10000u});
+    }
     for(bool pre:{false,true})for(const auto &attack:attacks) {
      auto invalid_post=temporal,invalid_pre=sampling_inputs;
-     control_word((pre?invalid_pre:invalid_post).hands[hand],attack.offset,attack.value);
+     auto &invalid_hand=(pre?invalid_pre:invalid_post).hands[hand];
+     control_word(invalid_hand,attack.offset,attack.value);
+     if(attack.saved_local)invalid_hand.saved_locals.resize(1);
      SourceRuntimeWriteSerial writes(memory);std::uint64_t topology{};
      source_runtime_register_topology_observer(memory,&topology,[&](auto,auto){++topology;});
      struct TopologyUnobserve {
@@ -204,6 +216,19 @@ int main(int argc,char**argv)try {
      std::ofstream(argv[3])<<report.dump(2)<<'\n';
      need(rejected && !admission_error.empty() && !writes.load() && !topology && !native_calls && !operands &&
          transcript_error.empty(),"Malformed live-map/scalar input was not rejected before World writes and native calls");
+     if(identity.weapons[hand]==null_datum) {
+      SourceRuntimeWriteSerial receiver_writes(memory);bool receiver_rejected{},receiver_consumed{};
+      try {restored.with_sampling_inputs(memory,caller,pre?invalid_pre:invalid_post,
+          [&](const auto &){receiver_consumed=true;});}
+      catch(const FormatError &){receiver_rejected=true;}
+      map_rejections.back()["receiver_rejected"]=receiver_rejected;
+      map_rejections.back()["receiver_consumer_entered"]=receiver_consumed;
+      map_rejections.back()["receiver_world_writes"]=receiver_writes.load();
+      report["map_domain_rejections"][std::to_string(rep)+(dual?"-dual":"-single")]=map_rejections;
+      std::ofstream(argv[3])<<report.dump(2)<<'\n';
+      need(receiver_rejected && !receiver_consumed && !receiver_writes.load(),
+          "Malformed empty-hand receiver input reached its consumer or changed borrowed source bytes");
+     }
     }
    }
    SourceFirstPersonContextTu15::install_local(*world.cache,native,0,temporal,sampling_inputs);
@@ -225,10 +250,21 @@ int main(int argc,char**argv)try {
    // declared bytes must survive installation while all live nodes remain the
    // actual native prefix. The separate unchanged registry fixture owns the
    // real SMG-to-smaller-model historical-tail reproduction.
-   auto tail_post=temporal,tail_pre=sampling_inputs;unsigned changed_tails{};
+   auto tail_post=temporal,tail_pre=sampling_inputs;unsigned changed_tails{},historical_empty_hands{};
+   // Declared inactive-history control, complementing the Registry case's
+   // genuine dual-to-empty history. NONE never rebuilds its earlier graph or
+   // either map, so these bytes need not equal a freshly constructed hand.
+   for(unsigned hand=0;hand<2;++hand)if(identity.weapons[hand]==null_datum) {
+    for(auto *trial:{&tail_post,&tail_pre}) {
+     const auto &bound=trial->hands[0];auto &empty=trial->hands[hand];
+     control_word(empty,8u,Bytes(bound.control).u32(8u));
+     std::copy(bound.control.begin()+0xf4u,bound.control.begin()+0x2fcu,empty.control.begin()+0xf4u);
+    }
+    ++historical_empty_hands;
+   }
    for(unsigned hand=0;hand<2;++hand)for(const auto [count_at,map_at]:
        {std::pair{0xf4u,0xfcu},std::pair{0xf8u,0x1fcu}}) {
-    const auto count=Bytes(temporal.hands[hand].control).u32(count_at);
+    const auto count=Bytes(tail_post.hands[hand].control).u32(count_at);
     need(count<=64,"Actual map-tail trial escaped native fixed-bank capacity");
     if(count<64) {
      const auto at=map_at+count*4u;
@@ -276,6 +312,7 @@ int main(int argc,char**argv)try {
       {"map_domain_attacks_rejected",map_rejections.size()},{"map_rejections_before_world_writes_or_native_calls",true},
       {"full_post_control_bytes_preserved",true},{"original_unused_map_tail_bytes_compared",original_tail_bytes},
       {"declared_unused_tail_dwords_changed",changed_tails},{"declared_unused_tail_bytes_compared",declared_tail_bytes},
+      {"declared_inactive_historical_hands_preserved",historical_empty_hands},
       {"declared_unused_tail_post_bytes_preserved",true},{"declared_unused_tail_max_matrix_error",tail_error},
       {"declared_unused_tail_receiver_max_matrix_error",receiver_tail_error},{"original_post_restored_after_tail_trial",true},
       {"pre_composition_feedback_differs_from_continuation",sampling_inputs.view_feedback!=temporal.view_feedback},

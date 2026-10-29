@@ -4,6 +4,7 @@
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/model.hpp"
 #include "halo2/model_skin_submission.hpp"
+#include "model_skin_vertices.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -40,8 +41,10 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     const SourceDynamicModelShaders& shaders,std::span<const Transform> nodes,
     const SourceModelShaderView& view,const SourceLiveModelPoseProviderTu15& provide_pose,
     std::shared_ptr<const ModelSkinGeometry>* deferred_skin,
-    const SourceLiveModelDeferredPoseProviderTu15& provide_deferred) {
+    const SourceLiveModelDeferredPoseProviderTu15& provide_deferred,
+    std::vector<std::uint32_t>* source_ordinals) {
     if(deferred_skin)deferred_skin->reset();
+    if(source_ordinals)source_ordinals->clear();
     if(draws.empty() || nodes.empty())return std::nullopt;
     std::shared_ptr<ModelSkinGeometry> gpu;
     std::vector<Vertex> owned_pose;
@@ -90,14 +93,17 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
         std::vector<std::uint32_t> ordinals;
         for(std::size_t n=0;n<posed.size();++n)if(posed[n].source_section==section) {
             vertices.push_back(posed[n]);
-            if(gpu)ordinals.push_back(std::uint32_t(n));
+            if(gpu || source_ordinals)ordinals.push_back(std::uint32_t(n));
         }
         if(vertices.empty())return std::nullopt;
-        if(gpu)shaders.select_indexed(vertices,ordinals,SourceModelShaderCollector{0,draw.coverage},view);
+        if(gpu || source_ordinals)shaders.select_indexed(vertices,ordinals,SourceModelShaderCollector{0,draw.coverage},view);
         else shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
+        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        for(auto& vertex:vertices)vertex.source_stipple_level=stipple;
         if(gpu)for(const auto ordinal:ordinals) {
             gpu->source_vertices.push_back(ordinal);gpu->bindings.push_back(model.skin.at(ordinal));
         }
+        if(source_ordinals)source_ordinals->insert(source_ordinals->end(),ordinals.begin(),ordinals.end());
         result.insert(result.end(),vertices.begin(),vertices.end());
     }
     if(result.empty())return std::nullopt;
@@ -126,6 +132,83 @@ struct Reader {
         return word(model+0x28u)+index*92u;
     }
 };
+}
+std::vector<Vertex> source_live_model_collector_vertices_tu15(PhysicsLiveWorldTu15& world,
+    const SourceObjectDrawCollector& collector,unsigned ordinal,const RenderModel& model) {
+    const Bytes c(collector.bytes);const auto count=std::bit_cast<std::int16_t>(c.u16(0x166u));
+    if(count<0 || count>5 || ordinal>=unsigned(count) || c.u16(0x168u)>=6 ||
+        std::to_integer<unsigned>(c.slice(0x16cu,1).front()))
+        throw FormatError("Secondary native palette requires a completed WORLD collector row");
+    const auto regions=c.u32(0x18u+ordinal*4u);
+    if(regions>16 || model.skin.size()!=model.mesh.vertices.size())
+        throw FormatError("Secondary native palette lost its prepared region/skin bank");
+    const Reader r{world.memory()};std::vector<Vertex> result;
+    for(unsigned region=0;region<regions;++region) {
+        const auto section=std::to_integer<unsigned>(c.slice(0x75u+ordinal*16u+region,1).front());
+        if(section==255)continue;
+        SourceCullDrawUnit unit;unit.words[1]=c.u32(0x5cu+ordinal*4u);
+        unit.words[2]=c.u32(4u+ordinal*4u);unit.words[3]=(section<<9u)|region;
+        const auto classification=r.get<std::int16_t>(r.section(r.model(unit),unit));
+        if(classification<0 || classification>3)
+            throw FormatError("Secondary native palette has an unsupported source vertex classification");
+        unit.words[3]|=unsigned(classification)<<29u;
+        const auto geometry=source_live_model_command_geometry_tu15(world,unit);
+        const auto& palette=geometry.palette;
+        if(!geometry.geometry.resident || region>=palette.regions.size() ||
+            palette.base_count>palette.matrices.size())
+            throw FormatError("Secondary native palette lost its current resident geometry");
+        std::vector<std::array<float,12>> logical;
+        if(classification==0) {
+            // The native WORLD-space VP consumes no c50 matrix.
+        } else if(classification==1) {
+            // Native rigid VP consumes c50's first uploaded matrix. Its
+            // current rigid-node branch, not mapped(0) or a reconstructed
+            // WORLD root, selects that exact matrix.
+            const auto upload=source_live_model_palette_rows_tu15(world,unit,geometry);
+            if(upload.empty())throw FormatError("Secondary native rigid palette has no current matrix upload");
+            logical.push_back(upload.front());
+        } else if(!(geometry.model_flags&4u)) {
+            logical.assign(palette.matrices.begin(),palette.matrices.begin()+palette.base_count);
+        } else {
+            // RenderModel bindings retain global node identities. Compact
+            // native palettes keep only matrix0 plus each region's current
+            // remapped upload, so restore the logical lookup from those
+            // literal resident map bytes, independently for every region.
+            logical.resize(256);const auto range=palette.regions[region];
+            const auto resident=r.word(r.section(r.model(unit),unit)+0x34u);
+            const auto count=r.word(resident+0x64u),map=r.word(resident+0x68u);
+            if(count>256 || range.first>palette.matrices.size() ||
+                range.count>palette.matrices.size()-range.first || (count && count!=range.count))
+                throw FormatError("Secondary native compact palette has an invalid current region map");
+            std::array<bool,256> present{};
+            for(unsigned n=0;n<range.count;++n) {
+                const auto node=count?r.get<std::uint8_t>(map+n):n;
+                if(node>=logical.size())throw FormatError("Secondary native compact node escapes its logical bank");
+                logical[node]=palette.matrices[range.first+n];present[node]=true;
+            }
+            for(std::size_t n=0;n<model.mesh.vertices.size();++n)if(model.mesh.vertices[n].source_section==section)
+                for(unsigned influence=0;influence<4;++influence)if(model.skin[n].weights[influence]!=0 &&
+                    (model.skin[n].bones[influence]>=present.size() || !present[model.skin[n].bones[influence]]))
+                    throw FormatError("Secondary native compact palette omitted an active authored node");
+        }
+        std::vector<Vertex> vertices;std::vector<SkinBinding> bindings;
+        for(std::size_t n=0;n<model.mesh.vertices.size();++n)if(model.mesh.vertices[n].source_section==section) {
+            vertices.push_back(model.mesh.vertices[n]);bindings.push_back(model.skin[n]);
+            if(classification==1) {bindings.back().bones={0,0,0,0};bindings.back().weights={1,0,0,0};}
+        }
+        if(vertices.empty())throw FormatError("Secondary native palette selected an unprepared original section");
+        const auto* scalar=std::getenv("HALO2_REFERENCE_SCALAR_SKINNING");
+        const auto* verify=std::getenv("HALO2_VERIFY_SIMD_SKINNING");
+        auto expected=verify && *verify?vertices:std::vector<Vertex>{};
+        skin_model_vertices(vertices,bindings,logical,!(scalar && *scalar));
+        if(verify && *verify) {
+            skin_model_vertices_scalar(expected,bindings,logical);
+            if(std::memcmp(vertices.data(),expected.data(),vertices.size()*sizeof(Vertex)))
+                throw FormatError("Secondary native palette SIMD skin differs from its scalar source control");
+        }
+        result.insert(result.end(),vertices.begin(),vertices.end());
+    }
+    return result;
 }
 void SourceLiveModelBaseSelectionTu15::remember(const SourceObjectDrawCollector& collector) {
     const Bytes c(collector.bytes);

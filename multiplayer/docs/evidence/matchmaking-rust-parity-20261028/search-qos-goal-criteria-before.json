@@ -1,0 +1,301 @@
+{
+  "schema": "H2_SEARCH_QOS_GOAL_CRITERIA_BEFORE_V1",
+  "sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "criteria": {
+    "gap_criteria": [
+      {
+        "id": "GAP-01",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Implement the actual ordered caller in Rust: FFA, original hopper options, count feasibility and allowed imbalance, weighted optimized assignment, and type-3-only individual retry. Preserve raw weights, grouping/traversal order, failure transitions and clan admission. Replay complete callers and real dispatch, not just a `>2` branch edit."
+      },
+      {
+        "id": "GAP-02",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Give Rust distinct raw, effective, previous and public-rank types/fields. Trace and replay original producers/consumers for remote parties, independently signed local accounts, guests and clans. Distinguish `F(H)` from the decompiled double-inverse error. Do not guess a universal adjustment."
+      },
+      {
+        "id": "GAP-03",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Verify genuine admission, exact variant, ordinary actions and natural endings through results, public/hidden/clan progression, PCR, party return and requeue for every applicable profile/variant. Include local/remote ownership, ties, departures and migration. Keep shortened/component tests labeled."
+      },
+      {
+        "id": "GAP-04",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Preserve and parse legitimate original/default and downloaded inputs separately. Recover complete dated hopper/network data, weights and variant buffers, including the historical inventory and Team Carnage/HBO checkpoint. Record provenance and unresolved cells/fields. Never synthesize historical values."
+      },
+      {
+        "id": "GAP-05",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Move the replacement policy into an explicitly named Rust provider boundary. Preserve ordered banks into the client decision core. Seek distinguishing original request/response evidence or procedure definitions; keep original-service parity open until recovered."
+      },
+      {
+        "id": "GAP-06",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Implement Rust validation/finalization and an explicit authority/dispute/quarantine policy. Test absent, late, duplicate, conflicting and disconnected reports plus couch ownership and restart/retry. Preserve security; label modern arbitration until original title-specific evidence exists."
+      },
+      {
+        "id": "GAP-07",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Put matchmaking host/session decisions in Rust. Trace original eligibility, generations, clocks, QoS units and caller state. Prove actual existing-world continuity under graceful/abrupt host loss and ordinary departures for all families, including meaningful objective/role/fuse state. Keep route-measurement differences explicit."
+      },
+      {
+        "id": "GAP-08",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Implement original ordered LCG draw and full-row selection in Rust, with explicit RNG ownership/call order, duplicate rows, map predicates, clamps, output/failure behavior and complete 304-byte settings. Replay signed-short boundary behavior before extending the demonstrated safe domain. Do not use a random distribution approximation."
+      },
+      {
+        "id": "GAP-09",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Build repeatable original/Rust comparisons with binary, runner, fixture, config, compiler and instruction identities. Use existing genuine inputs. Regenerate missing fixtures from originals rather than the implementation under test. Preserve rejected/failing cases and declare synthetic inputs."
+      },
+      {
+        "id": "GAP-10",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Bind Rust source/build/library, actual selected client, server, catalog, profile and feature identities to acceptance receipts. Verify production-equivalent flow, config changes during an outstanding match, restart, rollback and installed delivery. A matching local binary digest alone does not close this row."
+      },
+      {
+        "id": "GAP-11",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Introduce an immutable Rust admission/result envelope binding complete settings, executable/profile/catalog/map/rank identities, roster and authority generations, expiry and replay identity. Verify every upstream/downstream consumer and transactional player/clan namespace. Reject unfamiliar objective variants with missing authenticated settings rather than treating them as Slayer."
+      },
+      {
+        "id": "GAP-12",
+        "status": "open",
+        "required": true,
+        "closure_criteria": "Update operational docs from actual selected routes and fresh receipts. Keep historical notes identified, distinguish source/component/live/deployed evidence, and maintain the intentional-deviation ledger. Do not replace accurate seven-family implementation with old Slayer-only claims."
+      }
+    ],
+    "algorithm_index": {
+      "source": "PDF section 12.2, IDs only; expanded companion contracts were not supplied",
+      "matching_or_certification_claim": false,
+      "ids": [
+        "ALG-RANK-INIT",
+        "ALG-RANK-PAIR",
+        "ALG-RANK-PLAYER",
+        "ALG-RANK-CLAN",
+        "ALG-RANK-LEVEL",
+        "ALG-RANK-DISPLAY",
+        "ALG-PARTY-AVERAGE",
+        "ALG-PARTY-SUMMARY",
+        "ALG-HOPPER-INVERSE",
+        "ALG-HOPPER-GETTERS",
+        "ALG-SEARCH-INIT",
+        "ALG-SEARCH-QUERY",
+        "ALG-SEARCH-EXPAND",
+        "ALG-SEARCH-SERVICE",
+        "ALG-CAND-ADMIT",
+        "ALG-CAND-SCORE",
+        "ALG-CAND-SORT",
+        "ALG-CAND-SELECT",
+        "ALG-QOS-INPUTS",
+        "ALG-TEAMS-CALLER",
+        "ALG-TEAMS-KERNEL",
+        "ALG-TEAMS-COUNT",
+        "ALG-TEAMS-CAPACITY",
+        "ALG-TEAMS-ADAPTER",
+        "ALG-MAP-WEIGHTED",
+        "ALG-RNG-STEP",
+        "ALG-HOPPER-FALLBACK",
+        "ALG-VARIANT-PRESETS",
+        "ALG-COUNTDOWN-GATHER",
+        "ALG-COUNTDOWN-START",
+        "ALG-HOST-CHOICE",
+        "ALG-HOST-ELECTION",
+        "ALG-HOST-REESTABLISH",
+        "ALG-WORLD-PROMOTE",
+        "ALG-RESULT-PLACE",
+        "ALG-RESULT-WIRE",
+        "ALG-RESULT-PCR",
+        "ALG-RESULT-NATIVE",
+        "ALG-RESULT-ARBITRATION",
+        "ALG-UI-FLOW",
+        "ALG-ENGINE-FRAME",
+        "ALG-ENGINE-NEWPLAYER",
+        "ALG-MODE-CTF",
+        "ALG-MODE-SLAYER",
+        "ALG-MODE-ODDBALL",
+        "ALG-MODE-KING",
+        "ALG-MODE-JUGGERNAUT",
+        "ALG-MODE-TERRITORIES",
+        "ALG-MODE-ASSAULT",
+        "ALG-CLAN-IDENTITY",
+        "ALG-HISTORY-EPOCH",
+        "ALG-MODERN-TRANSPORT",
+        "ALG-CERTIFICATION"
+      ]
+    },
+    "acceptance_gates": {
+      "source": "Master PDF section11.2, printed pages19-20; complete requirements retained without closure claims",
+      "gates": [
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G01",
+          "title": "Target and provenance",
+          "required_completion_evidence": "Pinned original/native identities, dated profile scope, input units and caller layouts.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G02",
+          "title": "Algorithm ownership",
+          "required_completion_evidence": "Every relevant registry entry has a verified caller, implementation route and reproducible receipt.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G03",
+          "title": "Rank",
+          "required_completion_evidence": "All valid raw pairs/outcomes; absent/tied records; player/clan aggregation; thresholds, midpoint and maximum-XP edges.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G04",
+          "title": "Search and candidates",
+          "required_completion_evidence": "All forward/inverse inputs; query exhaustion; original bank sort/readiness; authentic measurement fields and pool ordering boundary.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+          ],
+          "unclosed_boundary": "Original input producers/service ordering/full lifecycle, TU1.5 correspondence and native/delivered flow remain unqualified."
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G05",
+          "title": "Teams",
+          "required_completion_evidence": "Original caller options and kernel outputs for every original-valid topology, including two teams, guests, significant parties, failures and casual fallback."
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G06",
+          "title": "Catalog and draw",
+          "required_completion_evidence": "Complete full-buffer map/variant rows, duplicates, eligibility, weights, RNG state and numeric edge cases.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G07",
+          "title": "Modes",
+          "required_completion_evidence": "Every required variant reaches its actual source engine and natural outcome; component-only or edited-limit runs are identified."
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G08",
+          "title": "Session continuity",
+          "required_completion_evidence": "Search/gather/launch/cancel, graceful/abrupt host changes, nonhost departures and retained running-world state.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G09",
+          "title": "Results",
+          "required_completion_evidence": "Original standings, ties and departed records; actual finalization/disputes; exactly-once personal/clan XP and history projection.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G10",
+          "title": "Historical profile",
+          "required_completion_evidence": "Authenticated dated inputs or a clearly bounded executable-default claim; complete included inventory without silent exclusions.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G11",
+          "title": "Modern boundaries",
+          "required_completion_evidence": "Steam/security/relay changes isolated, intentional deviations recorded, custom/LAN/offline XP isolation proven.",
+          "partial_receipts": [
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+            "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+          ]
+        },
+        {
+          "status": "open",
+          "certified": false,
+          "id": "G12",
+          "title": "Deployed release",
+          "required_completion_evidence": "Tested binary/library/server/catalog/feature hashes match the actual running release and its smoke/acceptance traces."
+        }
+      ]
+    },
+    "reference": {
+      "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+      "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+      "bytes": 639228,
+      "pages": 42,
+      "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+      "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+      "expanded_companion_registry_supplied": false
+    },
+    "scope": {
+      "mode_families": [
+        "Slayer",
+        "Capture the Flag",
+        "Assault",
+        "Oddball",
+        "King of the Hill",
+        "Territories",
+        "Juggernaut"
+      ],
+      "builtin_preset_count": 39,
+      "historical_variants_required": true,
+      "profile_epochs_separate": true,
+      "all_original_valid_topologies_and_subjects_required": true,
+      "natural_full_match_and_continuity_acceptance_required": true,
+      "deployment_identity_required": true,
+      "no_guessed_historical_or_service_values": true
+    },
+    "certified": false,
+    "goal_complete": false
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-ogrrakx5"
+}

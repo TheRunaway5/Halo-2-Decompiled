@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import unittest
 
-from multiplayer.master_server.matchmaking import Coordinator, Player, Ticket
+from multiplayer.master_server.matchmaking import Coordinator, Player
 from multiplayer.master_server.team_balance import native
 from multiplayer.master_server.tests.test_matchmaking import policy
 
@@ -14,13 +14,59 @@ def multi_policy():
                    minimum_players=12,maximum_players=12,maximum_party=12,party_balance=None)
 
 
-def ticket(index,count):
+def ticket(core,index,count):
     players=tuple(Player(f'p{index}-{seat}','Same Pilot',1,frozenset({'lockout'}),raw_rank=0)
                   for seat in range(count))
-    return Ticket(f't{index}',f'a{index}','multi-team-native','lab-v1-not-retail','test',players,0,100)
+    return core.enqueue(f'a{index}','multi-team-native','test',players)
 
 
 class OriginalNativeTeamBalance(unittest.TestCase):
+    def test_actual_gathering_finalizer_uses_original_two_team_caller(self):
+        from fractions import Fraction
+        import random
+        from types import SimpleNamespace
+        from multiplayer.master_server.gathering_sessions import GatheringSessions,Gathering
+        from multiplayer.master_server.matchmaking import SearchStage
+        from multiplayer.master_server.search_lifecycle import GatheringConfiguration,GatheringClock
+        rules=replace(policy('original-two-team',radius=49),party_balance=None,
+            stages=(SearchStage(0,Fraction(1),0),),candidate_selection='retail-candidates-native-relay-v1',
+            gathering=GatheringConfiguration((0,)*16,10000,'Declared finalization inputs'))
+        core=Coordinator((rules,),clock=lambda:100.,rng=random.Random(2))
+        ranks=(24,24,22,22,22,22,20,20)
+        tickets=tuple(core.enqueue('party-'+str(i),rules.id,'synthetic-test',
+            (Player('player-'+str(i),'P'+str(i),rank+1,frozenset(('lockout','ascension')),rank),))
+            for i,rank in enumerate(ranks))
+        owner=GatheringSessions(SimpleNamespace(core=core,search_qos=None),seed=1)
+        gathering=Gathering('declared-gathering',tuple(t.id for t in tickets),100,
+            tickets[0].players[0].id,0,rules.games[0],GatheringClock(100000,100000))
+        gathering=owner._restore_fixture(gathering)
+        proposal=owner.proposal(rules,gathering)
+        self.assertIsNotNone(proposal)
+        weights={p.id:p.raw_rank for t in tickets for p in t.players}
+        self.assertEqual([[24,22,22,20]]*2,
+            [sorted((weights[p] for p in team),reverse=True) for team in proposal.teams])
+
+    def test_original_hopper_caller_fixture_through_service_abi(self):
+        import struct
+        fixture=json.loads((Path(__file__).resolve().parents[3]/'tests/fixtures/matchmaking_assignment_original.json').read_text())
+        lib=native()
+        for case in fixture['cases']:
+            with self.subTest(case=case):
+                header=bytearray(0x614)
+                kind,teams,minimum,maximum,imbalance,flag,flag_min,flag_max=case['fields']
+                struct.pack_into('<i',header,0,kind)
+                struct.pack_into('<4i',header,0x5ec,teams,minimum,maximum,imbalance)
+                header[0x604]=flag
+                struct.pack_into('<2i',header,0x608,flag_min,flag_max)
+                raw=ctypes.create_string_buffer(bytes(header))
+                count=len(case['parties'])
+                ids=(ctypes.c_int32*count)(*case['parties'])
+                weights=(ctypes.c_int32*count)(*case['raw_weights'])
+                output=(ctypes.c_int32*count)(*([777]*count))
+                success=lib.h2_original_hopper_assignment(raw,len(header),count,ids,weights,output)
+                self.assertEqual(bool(success),case['assignments'] is not None)
+                self.assertEqual(list(output),case['assignments'] if success else [777]*count)
+
     def test_unchanged_tu15_fixture_through_actual_service_abi(self):
         fixture=json.loads((Path(__file__).resolve().parents[3]/'tests/fixtures/team_balance_tu15_original.json').read_text())
         self.assertEqual(fixture['original_sha256'],'21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd')
@@ -42,14 +88,14 @@ class OriginalNativeTeamBalance(unittest.TestCase):
 
     def test_four_whole_three_player_parties(self):
         rules=multi_policy();core=Coordinator((rules,),clock=lambda:0)
-        group=tuple(ticket(i,3) for i in range(4))
+        group=tuple(ticket(core,i,3) for i in range(4))
         teams=core._teams(rules,group)
         self.assertEqual(tuple(map(len,teams)),(3,3,3,3))
         self.assertEqual({frozenset(p.id for p in t.players) for t in group},{frozenset(t) for t in teams})
 
     def test_casual_twelve_player_party_uses_original_split_fallback(self):
         rules=multi_policy();core=Coordinator((rules,),clock=lambda:0)
-        group=(ticket(0,12),)
+        group=(ticket(core,0,12),)
         teams=core._teams(rules,group)
         self.assertEqual(tuple(map(len,teams)),(3,3,3,3))
         self.assertEqual({p.id for p in group[0].players},{p for team in teams for p in team})
@@ -58,10 +104,13 @@ class OriginalNativeTeamBalance(unittest.TestCase):
         from multiplayer.master_server.gathering_sessions import GatheringSessions
         rules=multi_policy();gathering=object.__new__(GatheringSessions)
         gathering.core=Coordinator((rules,),clock=lambda:0)
-        self.assertTrue(gathering.fits(rules,(ticket(0,3),),ticket(1,3)))
-        self.assertTrue(gathering.fits(rules,(ticket(0,3),ticket(1,3)),ticket(2,3)))
-        self.assertTrue(gathering.fits(rules,(),ticket(0,12)))
-        self.assertFalse(gathering.fits(rules,(ticket(0,12),),ticket(1,1)))
+        core=gathering.core
+        a,b,c=(ticket(core,i,3) for i in range(3))
+        full,extra=ticket(core,30,12),ticket(core,40,1)
+        self.assertTrue(gathering.fits(rules,(a,),b))
+        self.assertTrue(gathering.fits(rules,(a,b),c))
+        self.assertTrue(gathering.fits(rules,(),full))
+        self.assertFalse(gathering.fits(rules,(full,),extra))
 
     def test_invalid_ffi_bounds_do_not_write_or_panic(self):
         lib=native();ids=(ctypes.c_int32*1)(0x7fffffff);weights=(ctypes.c_int32*1)(0);output=(ctypes.c_int32*1)(777)

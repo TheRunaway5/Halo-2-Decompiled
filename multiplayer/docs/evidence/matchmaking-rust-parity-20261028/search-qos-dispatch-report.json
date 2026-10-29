@@ -1,0 +1,61 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-t7nqm59u/master-source/rust/online_protocol/Cargo.toml",
+        "--lib",
+        "--test",
+        "matchmaking_sessions"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-t7nqm59u/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_search_qos_owner_native",
+        "multiplayer.master_server.tests.test_search_qos",
+        "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+        "multiplayer.master_server.tests.test_sessions_owner_native"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-t7nqm59u/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-t7nqm59u",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-t7nqm59u/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "482c9f964902a5b73e596cedb85498a8de9cf2ee3ed741c5baacd81595a8345b",
+    "bytes": 3434144,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

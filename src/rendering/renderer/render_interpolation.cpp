@@ -181,7 +181,8 @@ void validate_source_world_poses(std::span<const SourceWorldPose> poses) {
 void SourceWorldInterpolation::reset(std::uint64_t tick,std::span<const SourceWorldPose> poses) {
     validate_source_world_poses(poses);
     auto next=std::vector<SourceWorldPose>(poses.begin(),poses.end());
-    current_=std::move(next);previous_.clear();tick_=tick;initialized_=true;paired_=false;
+    current_=std::move(next);previous_.clear();tick_=tick;previous_tick_=tick;
+    initialized_=true;paired_=false;native_pair_=false;
 }
 void SourceWorldInterpolation::capture(std::uint64_t tick,std::span<const SourceWorldPose> poses) {
     capture(tick,poses,{});
@@ -191,10 +192,25 @@ void SourceWorldInterpolation::capture(std::uint64_t tick,std::span<const Source
     if(!initialized_ || tick<=tick_ || tick-tick_!=1){reset(tick,poses);return;}
     validate_source_world_poses(poses);
     auto next=std::vector<SourceWorldPose>(poses.begin(),poses.end());
-    previous_=std::move(current_);current_=std::move(next);tick_=tick;paired_=true;
+    previous_=std::move(current_);current_=std::move(next);previous_tick_=tick_;tick_=tick;paired_=true;native_pair_=false;
     std::erase_if(previous_,[&](const auto &pose) {
         return std::find(discontinuities.begin(),discontinuities.end(),pose.object)!=discontinuities.end();
     });
+}
+void SourceWorldInterpolation::capture_native_cut(const SourceNativeCutPermit &permit,
+    std::span<const SourceWorldPose> poses,std::span<const std::uint32_t> discontinuities) {
+    if(!initialized_ || tick_!=permit.before_ || permit.after_<=permit.before_ || permit.after_-permit.before_>120)
+        throw FormatError("Native WORLD pair lost its actual completed tick owners");
+    validate_source_world_poses(poses);
+    auto next=std::vector<SourceWorldPose>(poses.begin(),poses.end());
+    auto before=current_;
+    std::erase_if(before,[&](const auto &old) {
+        const auto now=std::find_if(next.begin(),next.end(),[&](const auto &pose){return pose.object==old.object;});
+        return now==next.end() || now->nodes.size()!=old.nodes.size() || !same_world_attachment(old,*now) ||
+            old.model!=now->model || std::find(discontinuities.begin(),discontinuities.end(),old.object)!=discontinuities.end();
+    });
+    previous_=std::move(before);current_=std::move(next);previous_tick_=permit.before_;tick_=permit.after_;
+    paired_=native_pair_=true;presented_.clear();predicted_.clear();
 }
 namespace {
 const Transform *presented_motion(const std::vector<std::pair<std::uint32_t,Transform>> &motions,std::uint32_t object) {
@@ -313,8 +329,13 @@ std::vector<Transform> SourceWorldInterpolation::sample_ordinary(std::uint32_t o
     const auto old=std::find_if(previous_.begin(),previous_.end(),[&](const auto &pose){return pose.object==object;});
     const bool paired=paired_ && old!=previous_.end() && old->nodes.size()==now->nodes.size() && same_world_attachment(*old,*now);
     ModelNodeInterpolation history;
-    if(paired)history.capture(tick_-1u,old->nodes,old->attachment->parent_frame);
-    history.capture(tick_,now->nodes,now->attachment->parent_frame);
+    if(native_pair_) {
+        if(paired)history.capture_render(previous_tick_,old->nodes,old->attachment->parent_frame);
+        history.capture_render(tick_,now->nodes,now->attachment->parent_frame);
+    }else {
+        if(paired)history.capture(previous_tick_,old->nodes,old->attachment->parent_frame);
+        history.capture(tick_,now->nodes,now->attachment->parent_frame);
+    }
     if(now->attachment->parent_frame && !shown_parent) {
         if(std::any_of(current_.begin(),current_.end(),[&](const auto &pose) {
             return pose.object==now->attachment->parent;
@@ -371,6 +392,27 @@ void SceneInterpolation::capture(std::uint64_t tick,std::span<const SceneObjects
     if(!initialized_ || tick<=tick_ || tick-tick_!=1){reset(tick,objects);return;}
     previous_.swap(current_);current_.assign(objects.begin(),objects.end());
     tick_=tick;paired_=true;
+}
+void SceneInterpolation::capture_native_cut(const SourceNativeCutPermit &permit,
+    std::span<const SceneObjects::Object> objects) {
+    if(!initialized_ || tick_!=permit.before_ || permit.after_<=permit.before_ || permit.after_-permit.before_>120)
+        throw FormatError("Native scene pair lost its actual completed tick owners");
+    auto next=std::vector<SceneObjects::Object>(objects.begin(),objects.end());
+    auto before=current_;
+    std::erase_if(before,[&](const auto &old) {
+        const auto now=std::find_if(next.begin(),next.end(),[&](const auto &o){return o.handle==old.handle;});
+        if(now==next.end() || old.placement!=now->placement || old.created_tick!=now->created_tick ||
+            old.bsp!=now->bsp || old.attachment_parent!=now->attachment_parent ||
+            old.inventory_attached!=now->inventory_attached || old.visible!=now->visible ||
+            old.bsp_hidden!=now->bsp_hidden || old.script_hidden!=now->script_hidden ||
+            old.source_model_regions.has_value()!=now->source_model_regions.has_value())return true;
+        if(!old.source_model_regions)return false;
+        return old.source_model_regions->selection.variant_index!=now->source_model_regions->selection.variant_index ||
+            old.source_model_regions->selection.permutations!=now->source_model_regions->selection.permutations ||
+            old.source_model_regions->selection.states!=now->source_model_regions->selection.states ||
+            old.source_model_regions->selection.unresolved_rng_regions!=now->source_model_regions->selection.unresolved_rng_regions;
+    });
+    previous_=std::move(before);current_=std::move(next);tick_=permit.after_;paired_=true;presented_.clear();
 }
 void SceneInterpolation::refresh(std::uint64_t tick,std::span<const SceneObjects::Object> objects) {
     if(!initialized_ || tick!=tick_)throw FormatError("Scene refresh requires the current completed tick");

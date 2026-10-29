@@ -50,6 +50,9 @@ struct MenuWorldNativeDrawInput {
   // Complete CPU-side identity. GPU uniforms carry only completed colors;
   // this key selects immutable compiled fragment arithmetic.
   std::array<std::uint32_t,60> fragment_program{};
+  // Native temporal raster extension, in physical pixels after the original
+  // viewport conversion. Zero retains the original fragment/layout path.
+  std::array<float,2> raster_offset{};
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,
@@ -64,7 +67,8 @@ struct MenuWorldNativeDrawInput {
 // record() is legal inside compatible subpass0; the caller establishes a
 // positive-height viewport and matching scissor. It binds both sets (only the
 // material offset is dynamic), raw streams/indices, then draws indexed. It
-// changes bindings: the caller MUST rebind ordinary vertex buffer/pipeline/sets
+// Changes bindings; the optional temporal variant also writes its fragment
+// push tail at112. The caller MUST rebind ordinary vertex buffer/pipeline/sets
 // before the next packed CPU draw. No viewport, pass, queue, wait or submission
 // is performed here. Its112B vertex push range preserves existing layout state.
 //

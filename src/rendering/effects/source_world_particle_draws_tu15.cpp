@@ -6,6 +6,9 @@
 #include "halo2/particle_vertex.hpp"
 #include "halo2/particle_view.hpp"
 #include "halo2/particle_model.hpp"
+#include "halo2/particle_resource_error.hpp"
+#include "halo2/particle_material_validation.hpp"
+#include "halo2/particle_draw_resource_validation.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include <algorithm>
 #include <bit>
@@ -32,11 +35,16 @@ Bytes particle_system_rows(const Cache &cache,std::uint32_t owner,std::uint32_t 
     const auto tag=cache.query_tag({.handle=TagHandle{owner},.require_address=true});
     if(!tag)throw FormatError("Live particle parent has no actual Cache identity");
     const auto metadata=cache.load_source_tag_metadata(owner);
-    if(tag->group=="prt3" && event==none) {
-        // Original13A6CA selects48603C; slots18/1C (22AC90/22ACA0)
-        // read this parent's +84/+88 child-system descriptor, stride38.
-        const Bytes root(metadata.bytes_at(metadata.source_address(),0x8c));
-        return block(cache,root,0x84,0x38);
+    if((tag->group=="prt3" || tag->group=="PRTM") && event==none) {
+        // Original13A6B0 selects sprite48603C or model486048. Their
+        // distinct18/1C methods read+84/+88 or+78/+7C, stride38.
+        const auto offset=tag->group=="PRTM"?0x78u:0x84u;
+        const Bytes root(metadata.bytes_at(metadata.source_address(),offset+8));
+        return block(cache,root,offset,0x38);
+    }
+    if(tag->group=="bsdt" && event==none) {
+        const Bytes root(metadata.bytes_at(metadata.source_address(),0x1c));
+        return block(cache,root,0x14,0x38);
     }
     if(tag->group=="effe") {
         const Bytes root(metadata.bytes_at(metadata.source_address(),0x1c));
@@ -81,7 +89,7 @@ LiveParticleCensus live_particle_census(const SourceRuntimeMemory &m){
             const auto tag=word(m,0x4f0414u)+(definition&65535u)*16u;
             const auto group=definition==none?0u:word(m,tag);
             const bool typed=group==0x65666665u ||
-                (global==0x51df74u && group==0x70727433u && word(m,body+0x14u)==none);
+                (global==0x51df74u && (group==0x70727433u || group==0x5052544du || group==0x62736474u) && word(m,body+0x14u)==none);
             if(definition==none || !typed || word(m,tag+4u)!=definition) {
                 std::ostringstream message;
                 message<<"Live particle resource census lost its full authored effect identity"
@@ -110,124 +118,204 @@ struct SourceWorldParticleDrawsTu15::Impl {
         std::shared_ptr<const ParticleModelDefinition> model;
         std::shared_ptr<const ParticleMaterial> material;
     };
+    using System=std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>;
+    using FailureKey=std::pair<std::uint32_t,ResourcePhase>;
+    struct Plan {std::vector<std::pair<System,std::uint32_t>> systems;bool lens{};};
     bool lens_requests{};
     const Cache &cache;
+    MaterialValidator material_validator;
     std::set<std::uint32_t> effects;
     std::set<std::uint32_t> preloaded_world_effects;
     std::set<std::uint32_t> inspected_world_effects;
-    std::set<std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>> systems;
+    std::set<System> systems;
     std::set<std::uint32_t> first_person_effects;
-    std::set<std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>> first_person_systems;
+    std::set<System> first_person_systems;
     std::map<std::uint32_t,Resource> resources;
+    std::map<FailureKey,std::string> rejected;
+    std::vector<ResourceFailure> failures;
+
+    std::string description(std::uint32_t id)const {
+        const auto* tag=cache.query_tag({.handle=TagHandle{id}});
+        return tag?tag->name+" ["+std::to_string(id)+"]":std::to_string(id);
+    }
+    void reject(std::uint32_t id,ResourcePhase phase,const ParticleResourceError& error) {
+        const auto key=FailureKey{id,phase};
+        if(rejected.contains(key))return;
+        const std::string reason=std::string(error.what()).substr(0,512);
+        rejected.emplace(key,reason);
+        if(failures.size()<64)failures.push_back({id,phase,reason});
+    }
     Resource load_resource(std::uint32_t datum) {
-        const auto tag=cache.query_tag({.handle=TagHandle{datum},.require_address=true});
-        if(!tag)throw FormatError("Source particle resource lost its actual Cache identity");
         Resource resource;
-        if(tag->group=="PRTM") {
-            resource.model=std::make_shared<const ParticleModelDefinition>(load_particle_model(cache,datum));
-        }else {
-            resource.sprite=cache.load_particle_sprite(datum);
-            const auto context=source_particle_sprite_context(cache,datum,resource.sprite);
-            if(!context)throw FormatError("Source particle has no admitted bitmap data");
-            resource.context=*context;
-            if(!context->has_bitmap)resource.sprite.bitmap_type=-1;
+        try {
+            const auto tag=cache.query_tag({.handle=TagHandle{datum},.require_address=true});
+            if(!tag)throw FormatError("Particle resource lost its Cache identity");
+            if(tag->group=="PRTM") {
+                resource.model=std::make_shared<const ParticleModelDefinition>(load_particle_model(cache,datum));
+                validate_particle_draw_resource(*resource.model);
+            }else {
+                resource.sprite=cache.load_particle_sprite(datum);
+                const auto context=source_particle_sprite_context(cache,datum,resource.sprite);
+                if(!context)throw FormatError("Particle has no admitted bitmap data");
+                resource.context=*context;
+                if(!context->has_bitmap)resource.sprite.bitmap_type=-1;
+                validate_particle_draw_resource(resource.sprite,resource.context);
+            }
+            resource.material=std::make_shared<const ParticleMaterial>(
+                cache.load_particle_material(datum,15,0,resource.model?1:0));
+            const auto type=resource.material->vertex.classification;
+            if(resource.model?type!=1:type!=7 && type!=8 && type!=9)
+                throw FormatError("Particle requires its supported vertex owner");
+            (void)validate_particle_material(*resource.material);
+        }catch(const FormatError& error) {
+            // This boundary owns immutable Cache content, not live pools,
+            // renderer/device calls, allocation failures or native execution.
+            throw ParticleResourceError(description(datum)+": "+error.what());
         }
-        resource.material=std::make_shared<const ParticleMaterial>(
-            cache.load_particle_material(datum,15,0,resource.model?1:0));
-        const auto type=resource.material->vertex.classification;
-        if(resource.model ? type!=1 : type!=7 && type!=8 && type!=9)
-            throw FormatError("Source particle requires its original vertex owner");
+        // A caller may supply a stricter CPU resource validator. Keep it out
+        // of the FormatError conversion above so device/system errors cannot
+        // accidentally become a recoverable authored-content rejection.
+        if(material_validator)material_validator(resource.material);
         return resource;
     }
-    bool preload(std::uint32_t effect,bool first_person) {
-        auto &admitted_effects=first_person?first_person_effects:effects;
-        auto &admitted_systems=first_person?first_person_systems:systems;
-        if(first_person && first_person_effects.contains(effect))return true;
-        if(!first_person && inspected_world_effects.contains(effect))
-            return preloaded_world_effects.contains(effect);
-        const auto tag=cache.query_tag({.handle=TagHandle{effect},.require_address=true});
-        if(!tag || (tag->group!="effe" && tag->group!="prt3"))return false;
-        const auto packet=cache.load_source_tag_metadata(effect);
-        bool admitted=false;
-        const auto admit_rows=[&](std::uint32_t event,const Bytes &rows) {
-            for(unsigned system=0;system<rows.size()/0x38;++system) {
-                // World-only camera2 cannot submit in the FP pass, nor
-                // FP-only camera1 in WORLD. Original
-                // creation/render owners still decide actual environment and
-                // view eligibility; resource admission supplies no particles.
-                const auto camera=rows.u16(system*0x38+0x12);
-                if(camera==(first_person?2:1))continue;
-                const auto render=cache.load_particle_system_render_definition(effect,event,system);
-                if(!resources.contains(render.particle_datum))
-                    resources.emplace(render.particle_datum,load_resource(render.particle_datum));
-                admitted_systems.emplace(effect,event,std::uint16_t(system));admitted=true;
-            }
-        };
-        if(tag->group=="prt3") {
-            admit_rows(none,particle_system_rows(cache,effect,none));
-        }else {
-            const Bytes definition(packet.bytes_at(packet.source_address(),0x1c));
-            const auto events=block(cache,definition,0x14,0x38);
-            for(unsigned event=0;event<definition.u32(0x14);++event) {
-                if(!first_person) {
-                    const auto parts=block(cache,events,event*0x38+0x18,0x38);
-                    for(unsigned part=0;part<events.u32(event*0x38+0x18);++part)
-                        if(parts.u32(part*0x38+8)==0x6c656e73u && parts.u32(part*0x38+0x10)!=none)
-                            lens_requests=true;
-                }
-                admit_rows(event,block(cache,events,event*0x38+0x30,0x38));
-            }
-        }
-        if(admitted) {
-            admitted_effects.insert(effect);
-            if(!first_person)preloaded_world_effects.insert(effect);
-        }
-        if(!first_person)inspected_world_effects.insert(effect);
-        return admitted;
-    }
-    explicit Impl(const Cache &c,std::span<const ScenarioObject> objects):cache(c) {
-        std::set<std::uint32_t> inspected;
-        for(const auto &object:objects) {
-            if(object.definition==none || (object.type!=6 && object.type!=7 && object.type!=11))continue;
-            const auto metadata=c.load_source_tag_metadata(object.definition);
-            const Bytes root(metadata.bytes_at(metadata.source_address(),0x9c));
-            const auto attachments=block(c,root,0x94,24);
-            for(unsigned a=0;a<root.u32(0x94);++a) {
-                const auto effect=attachments.u32(a*24+4);
-                if(effect==none || !inspected.insert(effect).second)continue;
-                const auto tag=c.query_tag({.handle=TagHandle{effect},.require_address=true});
-                if(!tag || tag->group!="effe")continue;
-                const auto packet=c.load_source_tag_metadata(effect);
-                const Bytes definition(packet.bytes_at(packet.source_address(),0x1c));
-                const auto events=block(c,definition,0x14,0x38);
-                for(unsigned event=0;event<definition.u32(0x14);++event) {
-                    const auto parts=block(c,events,event*0x38+0x18,0x38);
-                    for(unsigned part=0;part<events.u32(event*0x38+0x18);++part)
-                        if(parts.u32(part*0x38+8)==0x6c656e73u && parts.u32(part*0x38+0x10)!=none)
-                            lens_requests=true;
-                    const auto systems=block(c,events,event*0x38+0x30,0x38);
-                    for(unsigned system=0;system<events.u32(event*0x38+0x30);++system) {
-                        const auto at=system*0x38;const auto emitters=block(c,systems,at+0x30,0xb8);bool swarm{};
-                        for(unsigned e=0;e<systems.u32(at+0x30);++e) {
+    Plan plan(std::uint32_t effect,bool first_person,bool swarm_only)const {
+        Plan result;
+        try {
+            const auto tag=cache.query_tag({.handle=TagHandle{effect},.require_address=true});
+            if(!tag)throw FormatError("Particle effect lost its Cache identity");
+            const auto packet=cache.load_source_tag_metadata(effect);
+            const auto admit_rows=[&](std::uint32_t event,const Bytes& rows) {
+                for(unsigned system=0;system<rows.size()/0x38;++system) {
+                    const auto at=system*0x38;
+                    const auto camera=rows.u16(at+0x12);
+                    if(camera==(first_person?2:1))continue;
+                    if(swarm_only) {
+                        const auto emitters=block(cache,rows,at+0x30,0xb8);bool swarm{};
+                        for(unsigned e=0;e<rows.u32(at+0x30);++e) {
                             const auto movement=emitters.u32(e*0xb8+4);if(movement==none)continue;
-                            const auto controllers=load_particle_movement_definition(c,movement);
+                            const auto controllers=load_particle_movement_definition(cache,movement);
                             swarm|=std::any_of(controllers.controllers.begin(),controllers.controllers.end(),
-                                [](const auto &v){return v.type==2;});
+                                [](const auto& value){return value.type==2;});
                         }
                         if(!swarm)continue;
-                        const auto render=c.load_particle_system_render_definition(effect,event,system);
-                        if(!resources.contains(render.particle_datum))
-                            resources.emplace(render.particle_datum,load_resource(render.particle_datum));
-                        effects.insert(effect);
-                        this->systems.emplace(effect,event,std::uint16_t(system));
                     }
+                    const auto render=cache.load_particle_system_render_definition(effect,event,system);
+                    validate_particle_draw_resource(render);
+                    result.systems.push_back({{effect,event,std::uint16_t(system)},render.particle_datum});
+                }
+            };
+            if(tag->group!="effe")admit_rows(none,particle_system_rows(cache,effect,none));
+            else {
+                const Bytes definition(packet.bytes_at(packet.source_address(),0x1c));
+                const auto events=block(cache,definition,0x14,0x38);
+                for(unsigned event=0;event<definition.u32(0x14);++event) {
+                    if(!first_person) {
+                        const auto parts=block(cache,events,event*0x38+0x18,0x38);
+                        for(unsigned part=0;part<events.u32(event*0x38+0x18);++part)
+                            result.lens|=parts.u32(part*0x38+8)==0x6c656e73u && parts.u32(part*0x38+0x10)!=none;
+                    }
+                    admit_rows(event,block(cache,events,event*0x38+0x30,0x38));
                 }
             }
+        }catch(const FormatError& error) {
+            throw ParticleResourceError(description(effect)+": "+error.what());
+        }
+        return result;
+    }
+    bool preload(std::uint32_t effect,bool first_person,bool swarm_only=false,bool honor_rejected=false) {
+        if(first_person && first_person_effects.contains(effect))return true;
+        if(!first_person && !swarm_only && inspected_world_effects.contains(effect))
+            return preloaded_world_effects.contains(effect);
+        const auto tag=cache.query_tag({.handle=TagHandle{effect},.require_address=true});
+        if(!tag || (tag->group!="effe" && tag->group!="prt3" && tag->group!="PRTM" && tag->group!="bsdt"))return false;
+        const auto pending=plan(effect,first_person,swarm_only);
+        std::map<std::uint32_t,Resource> staged_resources;
+        std::set<System> staged_systems;
+        for(const auto& [system,datum]:pending.systems) {
+            if(!resources.contains(datum) && !staged_resources.contains(datum)) {
+                const auto failed=rejected.find({datum,ResourcePhase::catalog});
+                if(honor_rejected && failed!=rejected.end())throw ParticleResourceError(failed->second);
+                staged_resources.emplace(datum,load_resource(datum));
+            }
+            staged_systems.insert(system);
+        }
+        const bool admitted=!staged_systems.empty();
+        // Allocate every publication node before changing resident state.
+        // Node merges then commit the complete effect without copying large
+        // bitmap banks or leaving earlier systems behind after a later error.
+        std::set<std::uint32_t> staged_effects,staged_preloaded,staged_inspected;
+        if(admitted)staged_effects.insert(effect);
+        if(!first_person && !swarm_only) {
+            if(admitted)staged_preloaded.insert(effect);
+            staged_inspected.insert(effect);
+        }
+        resources.merge(staged_resources);
+        for(const auto& [system,datum]:pending.systems){(void)system;rejected.erase({datum,ResourcePhase::catalog});}
+        (first_person?first_person_systems:systems).merge(staged_systems);
+        (first_person?first_person_effects:effects).merge(staged_effects);
+        preloaded_world_effects.merge(staged_preloaded);
+        inspected_world_effects.merge(staged_inspected);
+        lens_requests|=pending.lens;
+        rejected.erase({effect,first_person?ResourcePhase::first_person:ResourcePhase::world});
+        return admitted;
+    }
+    bool try_preload(std::uint32_t effect,bool first_person,bool swarm_only=false) {
+        const auto phase=first_person?ResourcePhase::first_person:ResourcePhase::world;
+        if(rejected.contains({effect,phase}))return false;
+        if(effect==none)return false;
+        if(!cache.query_tag({.handle=TagHandle{effect},.require_address=true})) {
+            reject(effect,phase,ParticleResourceError(description(effect)+": Particle effect lost its Cache identity"));
+            return false;
+        }
+        try {return preload(effect,first_person,swarm_only,true);}
+        catch(const ParticleResourceError& error){reject(effect,phase,error);return false;}
+    }
+    CatalogAdmission preload_catalog() {
+        CatalogAdmission result;
+        for(const auto& tag:cache.tags()) {
+            if(!tag.address || (tag.group!="prt3" && tag.group!="PRTM"))continue;
+            ++result.requested;
+            if(resources.contains(tag.datum)){++result.admitted;continue;}
+            if(rejected.contains({tag.datum,ResourcePhase::catalog})){++result.rejected;continue;}
+            try {
+                std::map<std::uint32_t,Resource> staged;
+                staged.emplace(tag.datum,load_resource(tag.datum));resources.merge(staged);
+                ++result.admitted;
+            }catch(const ParticleResourceError& error) {
+                reject(tag.datum,ResourcePhase::catalog,error);++result.rejected;
+            }
+        }
+        return result;
+    }
+    explicit Impl(const Cache &c,std::span<const ScenarioObject> objects,MaterialValidator validator)
+        :cache(c),material_validator(std::move(validator)) {
+        std::set<std::uint32_t> inspected;
+        for(const auto& object:objects) {
+            if(object.definition==none || (object.type!=6 && object.type!=7 && object.type!=11))continue;
+            std::vector<std::uint32_t> attached;
+            try {
+                const auto metadata=c.load_source_tag_metadata(object.definition);
+                const Bytes root(metadata.bytes_at(metadata.source_address(),0x9c));
+                const auto attachments=block(c,root,0x94,24);
+                for(unsigned a=0;a<root.u32(0x94);++a) {
+                    const auto effect=attachments.u32(a*24+4);
+                    if(effect==none || !inspected.insert(effect).second)continue;
+                    const auto* tag=c.query_tag({.handle=TagHandle{effect},.require_address=true});
+                    if(tag && tag->group=="effe")attached.push_back(effect);
+                }
+            }catch(const FormatError& error) {
+                reject(object.definition,ResourcePhase::world,
+                    ParticleResourceError(description(object.definition)+": "+error.what()));
+                continue;
+            }
+            // Keep callbacks outside the Cache-format boundary above. A
+            // system/device failure from a caller's validator stays fatal.
+            for(auto effect:attached)try_preload(effect,false,true);
         }
     }
 };
-SourceWorldParticleDrawsTu15::SourceWorldParticleDrawsTu15(const Cache &c,std::span<const ScenarioObject> objects)
-    :impl_(std::make_unique<Impl>(c,objects)){}
+SourceWorldParticleDrawsTu15::SourceWorldParticleDrawsTu15(const Cache &c,std::span<const ScenarioObject> objects,
+    MaterialValidator validator):impl_(std::make_unique<Impl>(c,objects,std::move(validator))){}
 SourceWorldParticleDrawsTu15::~SourceWorldParticleDrawsTu15()=default;
 bool SourceWorldParticleDrawsTu15::active()const{return impl_->lens_requests || !impl_->effects.empty() || !impl_->first_person_effects.empty();}
 const Cache &SourceWorldParticleDrawsTu15::resident_cache()const noexcept{return impl_->cache;}
@@ -238,11 +326,25 @@ bool SourceWorldParticleDrawsTu15::preload_first_person(std::uint32_t effect){re
 bool SourceWorldParticleDrawsTu15::first_person_effect(std::uint32_t effect)const{return impl_->first_person_effects.contains(effect);}
 bool SourceWorldParticleDrawsTu15::preload_world(std::uint32_t effect){return impl_->preload(effect,false);}
 bool SourceWorldParticleDrawsTu15::world_effect(std::uint32_t effect)const{return impl_->preloaded_world_effects.contains(effect);}
+bool SourceWorldParticleDrawsTu15::try_preload_first_person(std::uint32_t effect){return impl_->try_preload(effect,true);}
+bool SourceWorldParticleDrawsTu15::try_preload_world(std::uint32_t effect){return impl_->try_preload(effect,false);}
+SourceWorldParticleDrawsTu15::CatalogAdmission SourceWorldParticleDrawsTu15::preload_catalog() {
+    return impl_->preload_catalog();
+}
+std::vector<std::shared_ptr<const ParticleMaterial>> SourceWorldParticleDrawsTu15::resident_materials()const {
+    std::vector<std::shared_ptr<const ParticleMaterial>> result;result.reserve(impl_->resources.size());
+    for(const auto& [datum,resource]:impl_->resources){(void)datum;result.push_back(resource.material);}
+    return result;
+}
+std::span<const SourceWorldParticleDrawsTu15::ResourceFailure> SourceWorldParticleDrawsTu15::resource_failures()const noexcept {
+    return impl_->failures;
+}
+std::size_t SourceWorldParticleDrawsTu15::resource_failure_count()const noexcept{return impl_->rejected.size();}
 std::vector<std::uint32_t> SourceWorldParticleDrawsTu15::preload_live_world(const SourceRuntimeMemory &m) {
     const auto live=live_particle_census(m);
     for(const auto definition:live.definitions) {
-        (void)impl_->preload(definition,false);
-        (void)impl_->preload(definition,true);
+        (void)impl_->try_preload(definition,false);
+        (void)impl_->try_preload(definition,true);
     }
     return {live.definitions.begin(),live.definitions.end()};
 }
@@ -252,6 +354,7 @@ std::vector<std::uint32_t> SourceWorldParticleDrawsTu15::require_live_world_resi
         const auto rows=particle_system_rows(impl_->cache,effect,event);
         if(system>=rows.size()/0x38)throw FormatError("Live particle system has no authored system");
         const auto camera=rows.u16(system*0x38+0x12);
+        if(impl_->rejected.contains({effect,camera==1?ResourcePhase::first_person:ResourcePhase::world}))continue;
         const auto &admitted=camera==1?impl_->first_person_systems:impl_->systems;
         if(!admitted.contains({effect,event,system}))throw FormatError("Live particle system was not resident before renderer upload");
         const auto render=impl_->cache.load_particle_system_render_definition(effect,event,system);
@@ -369,6 +472,7 @@ std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw_pass(PhysicsLiveWor
         const auto state=source_particle_render_state_tu15(impl_->cache,m,
             identity(m,0x51df74u,s,84),identity(m,0x52d71cu,l,52),{view.position,view.forward,view.up,{}});
         const auto &resource=impl_->resources.at(state.definition.particle_datum);
+        if(!resource.model && !resource.context.has_bitmap)continue;
         ParticleRenderValueCache values;
         if(!resource.model) {
             values.system_identity=state.state.system_identity;values.location_identity=state.state.location_identity;

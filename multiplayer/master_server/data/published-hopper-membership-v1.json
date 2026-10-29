@@ -1,0 +1,5567 @@
+{
+  "schema": "H2_PUBLISHED_HOPPER_MEMBERSHIP_V1",
+  "research_date": "2026-10-28",
+  "scope": "Factual original Bungie published map/variant membership only, directly reparsed from retained primaryHTML; not runnable hoppers, numeric weights, full option buffers or final2010 provenance.",
+  "sources": [
+    {
+      "content_updated": "2004-11-30",
+      "capture": "20050406005054",
+      "source": {
+        "path": ".local/online-rank-research-20261011/bungie-playlists-20050406005054.html",
+        "bytes": 32352,
+        "sha256": "36e81813249fe092a91322337c7d7ca119911e488c73f1914d3edbde740c0851",
+        "url": "https://web.archive.org/web/20050406005054/http://www.bungie.net/Stats/page.aspx?section=FAQInfo&subsection=playlists&page=1"
+      },
+      "playlists": [
+        {
+          "name": "Rumble Pit",
+          "source_line": 154,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "4",
+            "maximum_players": "8",
+            "teams": "N/A",
+            "minimum_party": "1",
+            "maximum_party": "1"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Slayer",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 165
+            },
+            {
+              "ordinal": 1,
+              "variant": "Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 169
+            },
+            {
+              "ordinal": 2,
+              "variant": "Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 173
+            },
+            {
+              "ordinal": 3,
+              "variant": "Slayer",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 177
+            },
+            {
+              "ordinal": 4,
+              "variant": "Slayer",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 181
+            },
+            {
+              "ordinal": 5,
+              "variant": "Slayer",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 185
+            },
+            {
+              "ordinal": 6,
+              "variant": "Slayer",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 189
+            },
+            {
+              "ordinal": 7,
+              "variant": "Rockets",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 193
+            },
+            {
+              "ordinal": 8,
+              "variant": "Shotguns",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 197
+            },
+            {
+              "ordinal": 9,
+              "variant": "Shotguns",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 201
+            },
+            {
+              "ordinal": 10,
+              "variant": "Rockets",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 205
+            },
+            {
+              "ordinal": 11,
+              "variant": "Rockets",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 209
+            },
+            {
+              "ordinal": 12,
+              "variant": "Swords",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 213
+            },
+            {
+              "ordinal": 13,
+              "variant": "Swords",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 217
+            },
+            {
+              "ordinal": 14,
+              "variant": "Fiesta Ball",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 221
+            },
+            {
+              "ordinal": 15,
+              "variant": "Oddball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 225
+            },
+            {
+              "ordinal": 16,
+              "variant": "Crazy King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 229
+            },
+            {
+              "ordinal": 17,
+              "variant": "King",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 233
+            },
+            {
+              "ordinal": 18,
+              "variant": "Phantom King",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 237
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Skirmish",
+          "source_line": 246,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "Yes"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 258
+            },
+            {
+              "ordinal": 1,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 262
+            },
+            {
+              "ordinal": 2,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 266
+            },
+            {
+              "ordinal": 3,
+              "variant": "Assault",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 270
+            },
+            {
+              "ordinal": 4,
+              "variant": "Assault",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 274
+            },
+            {
+              "ordinal": 5,
+              "variant": "Rapid Assault",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 278
+            },
+            {
+              "ordinal": 6,
+              "variant": "Neutral Assault",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 282
+            },
+            {
+              "ordinal": 7,
+              "variant": "Multi Flag CTF",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 286
+            },
+            {
+              "ordinal": 8,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 290
+            },
+            {
+              "ordinal": 9,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 294
+            },
+            {
+              "ordinal": 10,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 298
+            },
+            {
+              "ordinal": 11,
+              "variant": "Classic CTF",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 302
+            },
+            {
+              "ordinal": 12,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 306
+            },
+            {
+              "ordinal": 13,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 310
+            },
+            {
+              "ordinal": 14,
+              "variant": "Shotgun CTF",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 314
+            },
+            {
+              "ordinal": 15,
+              "variant": "3 Plots",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 318
+            },
+            {
+              "ordinal": 16,
+              "variant": "Team Ball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 322
+            },
+            {
+              "ordinal": 17,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 326
+            },
+            {
+              "ordinal": 18,
+              "variant": "3 Plots",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 330
+            },
+            {
+              "ordinal": 19,
+              "variant": "3 Plots",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 334
+            },
+            {
+              "ordinal": 20,
+              "variant": "Team Ball",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 338
+            },
+            {
+              "ordinal": 21,
+              "variant": "Team Ball",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 342
+            },
+            {
+              "ordinal": 22,
+              "variant": "Team Ball",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 346
+            },
+            {
+              "ordinal": 23,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 350
+            },
+            {
+              "ordinal": 24,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 354
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Slayer",
+          "source_line": 362,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "Yes"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Team Slayer",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 374
+            },
+            {
+              "ordinal": 1,
+              "variant": "Team Slayer",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 378
+            },
+            {
+              "ordinal": 2,
+              "variant": "Team Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 382
+            },
+            {
+              "ordinal": 3,
+              "variant": "Team Slayer",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 386
+            },
+            {
+              "ordinal": 4,
+              "variant": "Team Slayer",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 390
+            },
+            {
+              "ordinal": 5,
+              "variant": "Team Slayer",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 394
+            },
+            {
+              "ordinal": 6,
+              "variant": "Team Slayer",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 398
+            },
+            {
+              "ordinal": 7,
+              "variant": "Team Slayer",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 402
+            },
+            {
+              "ordinal": 8,
+              "variant": "Team Slayer",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 406
+            },
+            {
+              "ordinal": 9,
+              "variant": "Fiesta Team Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 410
+            },
+            {
+              "ordinal": 10,
+              "variant": "Fiesta Team Slayer",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 414
+            },
+            {
+              "ordinal": 11,
+              "variant": "Team Rockets",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 418
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Swords",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 422
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Swords",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 426
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Shotguns",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 430
+            },
+            {
+              "ordinal": 15,
+              "variant": "Team Phantoms",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 434
+            },
+            {
+              "ordinal": 16,
+              "variant": "Team Phantoms",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 438
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Head to Head",
+          "source_line": 447,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "2",
+            "maximum_players": "2",
+            "teams": "N/A",
+            "minimum_party": "1",
+            "maximum_party": "1"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Slayer Duel",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 458
+            },
+            {
+              "ordinal": 1,
+              "variant": "Slayer Duel",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 462
+            },
+            {
+              "ordinal": 2,
+              "variant": "Slayer Duel",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 466
+            },
+            {
+              "ordinal": 3,
+              "variant": "Slayer Duel",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 470
+            },
+            {
+              "ordinal": 4,
+              "variant": "Slayer Duel",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 474
+            },
+            {
+              "ordinal": 5,
+              "variant": "Rifle Duel",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 478
+            },
+            {
+              "ordinal": 6,
+              "variant": "Sword Duel",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 482
+            },
+            {
+              "ordinal": 7,
+              "variant": "Sword Duel",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 486
+            },
+            {
+              "ordinal": 8,
+              "variant": "Sword Duel",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 490
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Big Team Battle",
+          "source_line": 499,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "10",
+            "maximum_players": "16",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "8",
+            "maximum_team_imbalance": "1",
+            "big_party_restrictions": "No"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 512
+            },
+            {
+              "ordinal": 1,
+              "variant": "Assault",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 516
+            },
+            {
+              "ordinal": 2,
+              "variant": "Neutral Bomb",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 520
+            },
+            {
+              "ordinal": 3,
+              "variant": "Multi Flag",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 524
+            },
+            {
+              "ordinal": 4,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 528
+            },
+            {
+              "ordinal": 5,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 532
+            },
+            {
+              "ordinal": 6,
+              "variant": "CTF Wraiths",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 536
+            },
+            {
+              "ordinal": 7,
+              "variant": "CTF Wraiths",
+              "maps": [
+                "Coagualation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 540
+            },
+            {
+              "ordinal": 8,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 544
+            },
+            {
+              "ordinal": 9,
+              "variant": "Assault",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 548
+            },
+            {
+              "ordinal": 10,
+              "variant": "Neutral Bomb",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 552
+            },
+            {
+              "ordinal": 11,
+              "variant": "Multi Flag",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 556
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Slayer",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 560
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Slayer",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 564
+            },
+            {
+              "ordinal": 14,
+              "variant": "Multi Bomb",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 568
+            },
+            {
+              "ordinal": 15,
+              "variant": "Multi Bomb",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 572
+            },
+            {
+              "ordinal": 16,
+              "variant": "Land Grab",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 576
+            },
+            {
+              "ordinal": 17,
+              "variant": "Land Grab",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 580
+            },
+            {
+              "ordinal": 18,
+              "variant": "Land Grab",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 584
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Minor Clan Match",
+          "source_line": 592,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4"
+          },
+          "rows": [],
+          "inherits_membership_from": [
+            "Team Skirmish",
+            "Team Slayer"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Major Clan Match",
+          "source_line": 605,
+          "published_metadata": {
+            "ranked": "Yes",
+            "minimum_players": "12",
+            "maximum_players": "16",
+            "teams": "2",
+            "minimum_party": "5",
+            "maximum_party": "8"
+          },
+          "rows": [],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Rumble Training",
+          "source_line": 619,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "N/A",
+            "minimum_party": "2",
+            "maximum_party": "8"
+          },
+          "rows": [],
+          "inherits_membership_from": [
+            "Team Skirmish",
+            "Team Slayer"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Training",
+          "source_line": 636,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2"
+          },
+          "rows": [],
+          "inherits_membership_from": [
+            "Team Skirmish",
+            "Team Slayer"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        }
+      ]
+    },
+    {
+      "content_updated": "2005-12-02",
+      "capture": "20051212093137",
+      "source": {
+        "path": ".local/online-rank-research-20261011/bungie-playlists-20051212093137.html",
+        "bytes": 80044,
+        "sha256": "6c803fec527645d066bf93deb34e9a707cc5d216289cdf3f9804405577145ece",
+        "url": "https://web.archive.org/web/20051212093137/http://www.bungie.net/Stats/page.aspx?section=FAQInfo&subsection=playlists&page=1"
+      },
+      "playlists": [
+        {
+          "name": "Rumble Pit",
+          "source_line": 156,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "4",
+            "maximum_players": "8",
+            "teams": "N/A",
+            "minimum_party": "1",
+            "maximum_party": "1"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Slayer",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 167
+            },
+            {
+              "ordinal": 1,
+              "variant": "Slayer",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 171
+            },
+            {
+              "ordinal": 2,
+              "variant": "Slayer",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 175
+            },
+            {
+              "ordinal": 3,
+              "variant": "Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 179
+            },
+            {
+              "ordinal": 4,
+              "variant": "Slayer",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 183
+            },
+            {
+              "ordinal": 5,
+              "variant": "Slayer",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 187
+            },
+            {
+              "ordinal": 6,
+              "variant": "Slayer",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 191
+            },
+            {
+              "ordinal": 7,
+              "variant": "Duals",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 195
+            },
+            {
+              "ordinal": 8,
+              "variant": "Duals",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 199
+            },
+            {
+              "ordinal": 9,
+              "variant": "Rifles",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 203
+            },
+            {
+              "ordinal": 10,
+              "variant": "Rifles",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 207
+            },
+            {
+              "ordinal": 11,
+              "variant": "Rifles",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 211
+            },
+            {
+              "ordinal": 12,
+              "variant": "Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 215
+            },
+            {
+              "ordinal": 13,
+              "variant": "Slayer BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 219
+            },
+            {
+              "ordinal": 14,
+              "variant": "Slayer BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 223
+            },
+            {
+              "ordinal": 15,
+              "variant": "Slayer",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 227
+            },
+            {
+              "ordinal": 16,
+              "variant": "Slayer BR",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 231
+            },
+            {
+              "ordinal": 17,
+              "variant": "Slayer Covenant",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 235
+            },
+            {
+              "ordinal": 18,
+              "variant": "Snipers",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 239
+            },
+            {
+              "ordinal": 19,
+              "variant": "Snipers",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 243
+            },
+            {
+              "ordinal": 20,
+              "variant": "Snipers",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 247
+            },
+            {
+              "ordinal": 21,
+              "variant": "Snipers",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 251
+            },
+            {
+              "ordinal": 22,
+              "variant": "Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 255
+            },
+            {
+              "ordinal": 23,
+              "variant": "Rockets",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 259
+            },
+            {
+              "ordinal": 24,
+              "variant": "Rockets",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 263
+            },
+            {
+              "ordinal": 25,
+              "variant": "Rockets",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 267
+            },
+            {
+              "ordinal": 26,
+              "variant": "Rockets",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 271
+            },
+            {
+              "ordinal": 27,
+              "variant": "Rockets",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 275
+            },
+            {
+              "ordinal": 28,
+              "variant": "Rockets",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 279
+            },
+            {
+              "ordinal": 29,
+              "variant": "Crazy King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 283
+            },
+            {
+              "ordinal": 30,
+              "variant": "Crazy King",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 287
+            },
+            {
+              "ordinal": 31,
+              "variant": "Crazy King",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 291
+            },
+            {
+              "ordinal": 32,
+              "variant": "Crazy King",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 295
+            },
+            {
+              "ordinal": 33,
+              "variant": "Crazy King",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 299
+            },
+            {
+              "ordinal": 34,
+              "variant": "Crazy King",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 303
+            },
+            {
+              "ordinal": 35,
+              "variant": "King",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 307
+            },
+            {
+              "ordinal": 36,
+              "variant": "King",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 311
+            },
+            {
+              "ordinal": 37,
+              "variant": "Oddball",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 315
+            },
+            {
+              "ordinal": 38,
+              "variant": "Oddball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 319
+            },
+            {
+              "ordinal": 39,
+              "variant": "Oddball",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 323
+            },
+            {
+              "ordinal": 40,
+              "variant": "Oddball",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 327
+            },
+            {
+              "ordinal": 41,
+              "variant": "Oddball",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 331
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Rumble Training",
+          "source_line": 340,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "4",
+            "maximum_players": "8",
+            "teams": "N/A",
+            "minimum_party": "1",
+            "maximum_party": "8"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Slayer Pro",
+              "maps": [
+                "Ascension",
+                "Backwash",
+                "Beaver Creek",
+                "Gemini",
+                "Ivory Tower",
+                "Lockout",
+                "Sanctuary",
+                "Terminal",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 355
+            },
+            {
+              "ordinal": 1,
+              "variant": "SWAT",
+              "maps": [
+                "Elongation",
+                "Ivory Tower",
+                "Lockout",
+                "Sanctuary",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 359
+            },
+            {
+              "ordinal": 2,
+              "variant": "Fiesta",
+              "maps": [
+                "Backwash",
+                "Beaver Creek",
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 363
+            },
+            {
+              "ordinal": 3,
+              "variant": "Brutes",
+              "maps": [
+                "Elongation",
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 367
+            },
+            {
+              "ordinal": 4,
+              "variant": "Pistols",
+              "maps": [
+                "Gemini",
+                "Lockout",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 371
+            },
+            {
+              "ordinal": 5,
+              "variant": "Shotguns",
+              "maps": [
+                "Beaver Creek",
+                "Gemini",
+                "Lockout",
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 375
+            },
+            {
+              "ordinal": 6,
+              "variant": "Showers",
+              "maps": [
+                "Backwash",
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 379
+            },
+            {
+              "ordinal": 7,
+              "variant": "Swords",
+              "maps": [
+                "Backwash",
+                "Beaver Creek",
+                "Gemini",
+                "Lockout",
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 383
+            }
+          ],
+          "inherits_membership_from": [
+            "Rumble Pit"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Double Team",
+          "source_line": 391,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "4",
+            "maximum_players": "4",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "2"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "2v2 Duals Only",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 402
+            },
+            {
+              "ordinal": 1,
+              "variant": "2v2 Duals Only",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 406
+            },
+            {
+              "ordinal": 2,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 410
+            },
+            {
+              "ordinal": 3,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 414
+            },
+            {
+              "ordinal": 4,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 418
+            },
+            {
+              "ordinal": 5,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 422
+            },
+            {
+              "ordinal": 6,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 426
+            },
+            {
+              "ordinal": 7,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 430
+            },
+            {
+              "ordinal": 8,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 434
+            },
+            {
+              "ordinal": 9,
+              "variant": "CTF Classic",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 438
+            },
+            {
+              "ordinal": 10,
+              "variant": "CTF Classic",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 442
+            },
+            {
+              "ordinal": 11,
+              "variant": "CTF Classic",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 446
+            },
+            {
+              "ordinal": 12,
+              "variant": "2v2 Duals Only",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 450
+            },
+            {
+              "ordinal": 13,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 454
+            },
+            {
+              "ordinal": 14,
+              "variant": "2v2 Slayer",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 458
+            },
+            {
+              "ordinal": 15,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 462
+            },
+            {
+              "ordinal": 16,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 466
+            },
+            {
+              "ordinal": 17,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 470
+            },
+            {
+              "ordinal": 18,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 474
+            },
+            {
+              "ordinal": 19,
+              "variant": "CTF Human",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 478
+            },
+            {
+              "ordinal": 20,
+              "variant": "2v2 Rifles",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 482
+            },
+            {
+              "ordinal": 21,
+              "variant": "2v2 Rifles",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 486
+            },
+            {
+              "ordinal": 22,
+              "variant": "2v2 Rifles",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 490
+            },
+            {
+              "ordinal": 23,
+              "variant": "2v2 Rifles",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 494
+            },
+            {
+              "ordinal": 24,
+              "variant": "2v2 Pistols",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 498
+            },
+            {
+              "ordinal": 25,
+              "variant": "2v2 Rockets",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 502
+            },
+            {
+              "ordinal": 26,
+              "variant": "2v2 Rockets",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 506
+            },
+            {
+              "ordinal": 27,
+              "variant": "2v2 Rockets",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 510
+            },
+            {
+              "ordinal": 28,
+              "variant": "Team Ball",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 514
+            },
+            {
+              "ordinal": 29,
+              "variant": "Team Ball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 518
+            },
+            {
+              "ordinal": 30,
+              "variant": "Team Ball",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 522
+            },
+            {
+              "ordinal": 31,
+              "variant": "Team Ball",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 526
+            },
+            {
+              "ordinal": 32,
+              "variant": "Team Ball",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 530
+            },
+            {
+              "ordinal": 33,
+              "variant": "Team Ball",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 535
+            },
+            {
+              "ordinal": 34,
+              "variant": "Team King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 540
+            },
+            {
+              "ordinal": 35,
+              "variant": "Team King",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 545
+            },
+            {
+              "ordinal": 36,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 549
+            },
+            {
+              "ordinal": 37,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 553
+            },
+            {
+              "ordinal": 38,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 557
+            },
+            {
+              "ordinal": 39,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 561
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Slayer",
+          "source_line": 570,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Team Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 582
+            },
+            {
+              "ordinal": 1,
+              "variant": "Team Slayer",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 586
+            },
+            {
+              "ordinal": 2,
+              "variant": "Team Slayer",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 590
+            },
+            {
+              "ordinal": 3,
+              "variant": "Team Slayer",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 594
+            },
+            {
+              "ordinal": 4,
+              "variant": "Team Slayer",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 598
+            },
+            {
+              "ordinal": 5,
+              "variant": "Team Duals",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 602
+            },
+            {
+              "ordinal": 6,
+              "variant": "Team Duals",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 606
+            },
+            {
+              "ordinal": 7,
+              "variant": "Team Duals",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 610
+            },
+            {
+              "ordinal": 8,
+              "variant": "Team Slayer",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 614
+            },
+            {
+              "ordinal": 9,
+              "variant": "Team Slayer",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 618
+            },
+            {
+              "ordinal": 10,
+              "variant": "Team Slayer",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 622
+            },
+            {
+              "ordinal": 11,
+              "variant": "Team Slayer",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 626
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 630
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 634
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 638
+            },
+            {
+              "ordinal": 15,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 642
+            },
+            {
+              "ordinal": 16,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 646
+            },
+            {
+              "ordinal": 17,
+              "variant": "Team Rifles",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 650
+            },
+            {
+              "ordinal": 18,
+              "variant": "Team Rifles",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 654
+            },
+            {
+              "ordinal": 19,
+              "variant": "Team Snipers",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 658
+            },
+            {
+              "ordinal": 20,
+              "variant": "Team Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 662
+            },
+            {
+              "ordinal": 21,
+              "variant": "Team Snipers",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 666
+            },
+            {
+              "ordinal": 22,
+              "variant": "Team Rockets",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 670
+            },
+            {
+              "ordinal": 23,
+              "variant": "Team Rockets",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 674
+            },
+            {
+              "ordinal": 24,
+              "variant": "Team Rockets",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 678
+            },
+            {
+              "ordinal": 25,
+              "variant": "Team Snipers",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 682
+            },
+            {
+              "ordinal": 26,
+              "variant": "Team Snipers",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 686
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Skirmish",
+          "source_line": 694,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 706
+            },
+            {
+              "ordinal": 1,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 710
+            },
+            {
+              "ordinal": 2,
+              "variant": "Assault",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 714
+            },
+            {
+              "ordinal": 3,
+              "variant": "Assault",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 718
+            },
+            {
+              "ordinal": 4,
+              "variant": "Assault BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 722
+            },
+            {
+              "ordinal": 5,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 726
+            },
+            {
+              "ordinal": 6,
+              "variant": "1 Flag CTF BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 730
+            },
+            {
+              "ordinal": 7,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 734
+            },
+            {
+              "ordinal": 8,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 738
+            },
+            {
+              "ordinal": 9,
+              "variant": "1 Flag CTF Fast",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 742
+            },
+            {
+              "ordinal": 10,
+              "variant": "3 Plots",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 746
+            },
+            {
+              "ordinal": 11,
+              "variant": "Multi Flag CTF",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 750
+            },
+            {
+              "ordinal": 12,
+              "variant": "Multi Flag CTF Human",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 754
+            },
+            {
+              "ordinal": 13,
+              "variant": "Multi Flag CTF Human",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 758
+            },
+            {
+              "ordinal": 14,
+              "variant": "Neutral Bomb BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 762
+            },
+            {
+              "ordinal": 15,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 766
+            },
+            {
+              "ordinal": 16,
+              "variant": "Rapid Assault",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 770
+            },
+            {
+              "ordinal": 17,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 774
+            },
+            {
+              "ordinal": 18,
+              "variant": "Assault",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 778
+            },
+            {
+              "ordinal": 19,
+              "variant": "Assault",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 782
+            },
+            {
+              "ordinal": 20,
+              "variant": "Neutral Flag",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 786
+            },
+            {
+              "ordinal": 21,
+              "variant": "Neutral Flag",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 790
+            },
+            {
+              "ordinal": 22,
+              "variant": "Neutral Flag",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 794
+            },
+            {
+              "ordinal": 23,
+              "variant": "Rapid Assault",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 798
+            },
+            {
+              "ordinal": 24,
+              "variant": "1 Flag CTF Covenant",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 802
+            },
+            {
+              "ordinal": 25,
+              "variant": "CTF Classic",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 806
+            },
+            {
+              "ordinal": 26,
+              "variant": "CTF Classic",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 810
+            },
+            {
+              "ordinal": 27,
+              "variant": "CTF Classic",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 814
+            },
+            {
+              "ordinal": 28,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 818
+            },
+            {
+              "ordinal": 29,
+              "variant": "3 Plots",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 822
+            },
+            {
+              "ordinal": 30,
+              "variant": "3 Plots",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 826
+            },
+            {
+              "ordinal": 31,
+              "variant": "3 Plots",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 830
+            },
+            {
+              "ordinal": 32,
+              "variant": "Rapid Assault",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 834
+            },
+            {
+              "ordinal": 33,
+              "variant": "Neutral Bomb Fast",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 838
+            },
+            {
+              "ordinal": 34,
+              "variant": "Team Ball",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 842
+            },
+            {
+              "ordinal": 35,
+              "variant": "Team Ball",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 846
+            },
+            {
+              "ordinal": 36,
+              "variant": "Team Ball",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 850
+            },
+            {
+              "ordinal": 37,
+              "variant": "Team Ball",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 854
+            },
+            {
+              "ordinal": 38,
+              "variant": "Team Ball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 858
+            },
+            {
+              "ordinal": 39,
+              "variant": "Team Ball",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 862
+            },
+            {
+              "ordinal": 40,
+              "variant": "Team Ball",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 866
+            },
+            {
+              "ordinal": 41,
+              "variant": "3 Plots",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 870
+            },
+            {
+              "ordinal": 42,
+              "variant": "Shotgun CTF",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 874
+            },
+            {
+              "ordinal": 43,
+              "variant": "Shotgun CTF",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 878
+            },
+            {
+              "ordinal": 44,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 882
+            },
+            {
+              "ordinal": 45,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 886
+            },
+            {
+              "ordinal": 46,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 890
+            },
+            {
+              "ordinal": 47,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 894
+            },
+            {
+              "ordinal": 48,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 898
+            },
+            {
+              "ordinal": 49,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 902
+            },
+            {
+              "ordinal": 50,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 906
+            },
+            {
+              "ordinal": 51,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 910
+            },
+            {
+              "ordinal": 52,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 914
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Training",
+          "source_line": 921,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "4",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "8"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Team SWAT",
+              "maps": [
+                "Elongation",
+                "Ivory Tower",
+                "Lockout",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 936
+            },
+            {
+              "ordinal": 1,
+              "variant": "Team Plasma Wars",
+              "maps": [
+                "Backwash",
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 940
+            },
+            {
+              "ordinal": 2,
+              "variant": "Team Slayer Pro",
+              "maps": [
+                "Beaver Creek",
+                "Elongation",
+                "Ivory Tower",
+                "Lockout",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 944
+            },
+            {
+              "ordinal": 3,
+              "variant": "Team Brutes",
+              "maps": [
+                "Elongation",
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 948
+            },
+            {
+              "ordinal": 4,
+              "variant": "Fiesta Team Slayer",
+              "maps": [
+                "Ascension",
+                "Ivory Tower",
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 952
+            },
+            {
+              "ordinal": 5,
+              "variant": "Team Shotguns",
+              "maps": [
+                "Midship",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 956
+            },
+            {
+              "ordinal": 6,
+              "variant": "Team Swords",
+              "maps": [
+                "Beaver Creek",
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 960
+            },
+            {
+              "ordinal": 7,
+              "variant": "Team Showers",
+              "maps": [
+                "Backwash",
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 964
+            }
+          ],
+          "inherits_membership_from": [
+            "Team Skirmish",
+            "Team Slayer"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Snipers",
+          "source_line": 972,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Team Snipers",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 984
+            },
+            {
+              "ordinal": 1,
+              "variant": "Team Snipers",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 988
+            },
+            {
+              "ordinal": 2,
+              "variant": "Team Snipers",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 992
+            },
+            {
+              "ordinal": 3,
+              "variant": "Team Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 996
+            },
+            {
+              "ordinal": 4,
+              "variant": "Team Snipers",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1000
+            },
+            {
+              "ordinal": 5,
+              "variant": "Team Snipers",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1004
+            },
+            {
+              "ordinal": 6,
+              "variant": "Team Snipers",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1008
+            },
+            {
+              "ordinal": 7,
+              "variant": "Team Snipers",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1012
+            },
+            {
+              "ordinal": 8,
+              "variant": "Team Snipers",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1016
+            },
+            {
+              "ordinal": 9,
+              "variant": "Team Snipers",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1020
+            },
+            {
+              "ordinal": 10,
+              "variant": "Team Snipers",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1024
+            },
+            {
+              "ordinal": 11,
+              "variant": "Team Snipers",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1028
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Snipers",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1032
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Snipers",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1036
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Snipers",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1040
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team Hardcore",
+          "source_line": 1047,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "4",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Pro CTF Classic 5",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1059
+            },
+            {
+              "ordinal": 1,
+              "variant": "Pro Team Slayer",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1063
+            },
+            {
+              "ordinal": 2,
+              "variant": "Pro Team Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1067
+            },
+            {
+              "ordinal": 3,
+              "variant": "Pro CTF Classic 3",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1071
+            },
+            {
+              "ordinal": 4,
+              "variant": "Pro CTF Classic 5",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1075
+            },
+            {
+              "ordinal": 5,
+              "variant": "Pro Team Ball",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1079
+            },
+            {
+              "ordinal": 6,
+              "variant": "Pro Team Ball",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1083
+            },
+            {
+              "ordinal": 7,
+              "variant": "Pro CTF Classic 3",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1087
+            },
+            {
+              "ordinal": 8,
+              "variant": "Pro Team Slayer",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1091
+            },
+            {
+              "ordinal": 9,
+              "variant": "Pro Team Slayer Cov",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1095
+            },
+            {
+              "ordinal": 10,
+              "variant": "Pro Neutral Bomb",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1099
+            },
+            {
+              "ordinal": 11,
+              "variant": "Pro Team Rifles",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1103
+            },
+            {
+              "ordinal": 12,
+              "variant": "Pro Team Snipers",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1107
+            },
+            {
+              "ordinal": 13,
+              "variant": "Pro Team Snipers",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1111
+            },
+            {
+              "ordinal": 14,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1115
+            },
+            {
+              "ordinal": 15,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1119
+            },
+            {
+              "ordinal": 16,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1123
+            },
+            {
+              "ordinal": 17,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1127
+            },
+            {
+              "ordinal": 18,
+              "variant": "Pro Neutral Bomb",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1131
+            },
+            {
+              "ordinal": 19,
+              "variant": "Pro Team Snipers",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1135
+            },
+            {
+              "ordinal": 20,
+              "variant": "Pro Team Snipers",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1139
+            },
+            {
+              "ordinal": 21,
+              "variant": "Pro CTF Classic 3",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1143
+            },
+            {
+              "ordinal": 22,
+              "variant": "Pro Multi-Flag CTF",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1147
+            },
+            {
+              "ordinal": 23,
+              "variant": "Pro Team Ball",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1151
+            },
+            {
+              "ordinal": 24,
+              "variant": "Pro Team Ball",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1155
+            },
+            {
+              "ordinal": 25,
+              "variant": "Pro Team Ball",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1159
+            },
+            {
+              "ordinal": 26,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1163
+            },
+            {
+              "ordinal": 27,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1167
+            },
+            {
+              "ordinal": 28,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1171
+            },
+            {
+              "ordinal": 29,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1175
+            },
+            {
+              "ordinal": 30,
+              "variant": "Pro Team Rifles",
+              "maps": [
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1179
+            },
+            {
+              "ordinal": 31,
+              "variant": "Pro Team Rifles",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1183
+            },
+            {
+              "ordinal": 32,
+              "variant": "Pro Team Crazy King",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1187
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Multi-Team",
+          "source_line": 1196,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "12",
+            "maximum_players": "12",
+            "teams": "4",
+            "minimum_party": "1",
+            "maximum_party": "12"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "CTF Classic",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1207
+            },
+            {
+              "ordinal": 1,
+              "variant": "Neutral Flag",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1211
+            },
+            {
+              "ordinal": 2,
+              "variant": "Neutral Bomb",
+              "maps": [
+                "Foundation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1215
+            },
+            {
+              "ordinal": 3,
+              "variant": "Team Slayer",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1219
+            },
+            {
+              "ordinal": 4,
+              "variant": "Team Slayer",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1223
+            },
+            {
+              "ordinal": 5,
+              "variant": "Team Slayer",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1227
+            },
+            {
+              "ordinal": 6,
+              "variant": "Team Slayer",
+              "maps": [
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1231
+            },
+            {
+              "ordinal": 7,
+              "variant": "Team Slayer Human BR",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1235
+            },
+            {
+              "ordinal": 8,
+              "variant": "Team Gulch Wars",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1239
+            },
+            {
+              "ordinal": 9,
+              "variant": "Team Gulch Wars",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1243
+            },
+            {
+              "ordinal": 10,
+              "variant": "Team Gulch Wars",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1247
+            },
+            {
+              "ordinal": 11,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1251
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1255
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1259
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1263
+            },
+            {
+              "ordinal": 15,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1267
+            },
+            {
+              "ordinal": 16,
+              "variant": "Team Slayer Pro",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1271
+            },
+            {
+              "ordinal": 17,
+              "variant": "Team Slayer Pro",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1275
+            },
+            {
+              "ordinal": 18,
+              "variant": "Team Duals",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1279
+            },
+            {
+              "ordinal": 19,
+              "variant": "Team Duals",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1283
+            },
+            {
+              "ordinal": 20,
+              "variant": "Team Duals",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1287
+            },
+            {
+              "ordinal": 21,
+              "variant": "Team Multiballs",
+              "maps": [
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1291
+            },
+            {
+              "ordinal": 22,
+              "variant": "Team Multiballs",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1295
+            },
+            {
+              "ordinal": 23,
+              "variant": "Team Multiballs",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1299
+            },
+            {
+              "ordinal": 24,
+              "variant": "Team Plasma Wars",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1303
+            },
+            {
+              "ordinal": 25,
+              "variant": "Team Plasma Wars",
+              "maps": [
+                "Gemini"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1307
+            },
+            {
+              "ordinal": 26,
+              "variant": "3 Plots BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1311
+            },
+            {
+              "ordinal": 27,
+              "variant": "3 Plots",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1315
+            },
+            {
+              "ordinal": 28,
+              "variant": "3 Plots BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1319
+            },
+            {
+              "ordinal": 29,
+              "variant": "3 Plots",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1323
+            },
+            {
+              "ordinal": 30,
+              "variant": "Land Grab BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1327
+            },
+            {
+              "ordinal": 31,
+              "variant": "Land Grab",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1331
+            },
+            {
+              "ordinal": 32,
+              "variant": "Land Grab BR",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1335
+            },
+            {
+              "ordinal": 33,
+              "variant": "Team Snipers",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1339
+            },
+            {
+              "ordinal": 34,
+              "variant": "Team Snipers",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1343
+            },
+            {
+              "ordinal": 35,
+              "variant": "Team Snipers",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1347
+            },
+            {
+              "ordinal": 36,
+              "variant": "Team Snipers",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1351
+            },
+            {
+              "ordinal": 37,
+              "variant": "Team Snipers",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1355
+            },
+            {
+              "ordinal": 38,
+              "variant": "Team Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1359
+            },
+            {
+              "ordinal": 39,
+              "variant": "Team Snipers",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1363
+            },
+            {
+              "ordinal": 40,
+              "variant": "Team Ball",
+              "maps": [
+                "Backwash"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1367
+            },
+            {
+              "ordinal": 41,
+              "variant": "Team Ball",
+              "maps": [
+                "Elongation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1371
+            },
+            {
+              "ordinal": 42,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Ascension"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1375
+            },
+            {
+              "ordinal": 43,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Sacntuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1379
+            },
+            {
+              "ordinal": 44,
+              "variant": "Team Crazy King BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1383
+            },
+            {
+              "ordinal": 45,
+              "variant": "Team Crazy King",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1387
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "6v6 Team Battle",
+          "source_line": 1395,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "10",
+            "maximum_players": "12",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "6",
+            "maximum_team_imbalance": "0",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1408
+            },
+            {
+              "ordinal": 1,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1412
+            },
+            {
+              "ordinal": 2,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1416
+            },
+            {
+              "ordinal": 3,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1420
+            },
+            {
+              "ordinal": 4,
+              "variant": "3 Plots",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1424
+            },
+            {
+              "ordinal": 5,
+              "variant": "Assault",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1428
+            },
+            {
+              "ordinal": 6,
+              "variant": "Assault",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1432
+            },
+            {
+              "ordinal": 7,
+              "variant": "Assault",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1436
+            },
+            {
+              "ordinal": 8,
+              "variant": "Neutral Bomb BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1440
+            },
+            {
+              "ordinal": 9,
+              "variant": "Team Rifles",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1444
+            },
+            {
+              "ordinal": 10,
+              "variant": "Team Slayer",
+              "maps": [
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1448
+            },
+            {
+              "ordinal": 11,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1452
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1456
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1460
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1464
+            },
+            {
+              "ordinal": 15,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1468
+            },
+            {
+              "ordinal": 16,
+              "variant": "1 Flag CTF BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1472
+            },
+            {
+              "ordinal": 17,
+              "variant": "Assault BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1476
+            },
+            {
+              "ordinal": 18,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1480
+            },
+            {
+              "ordinal": 19,
+              "variant": "Team Slayer",
+              "maps": [
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1484
+            },
+            {
+              "ordinal": 20,
+              "variant": "Team Slayer",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1488
+            },
+            {
+              "ordinal": 21,
+              "variant": "Assault",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1492
+            },
+            {
+              "ordinal": 22,
+              "variant": "Multi Bomb BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1496
+            },
+            {
+              "ordinal": 23,
+              "variant": "Multi Flag CTF",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1500
+            },
+            {
+              "ordinal": 24,
+              "variant": "Multi Flag CTF BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1504
+            },
+            {
+              "ordinal": 25,
+              "variant": "3 Plots",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1508
+            },
+            {
+              "ordinal": 26,
+              "variant": "Multi Bomb",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1512
+            },
+            {
+              "ordinal": 27,
+              "variant": "Multi Bomb BR",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1516
+            },
+            {
+              "ordinal": 28,
+              "variant": "Multi Flag CTF BR",
+              "maps": [
+                "Colossus"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1520
+            },
+            {
+              "ordinal": 29,
+              "variant": "1 Flag CTF Covenant",
+              "maps": [
+                "Zanzibar"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1524
+            },
+            {
+              "ordinal": 30,
+              "variant": "Neutral Flag",
+              "maps": [
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1528
+            },
+            {
+              "ordinal": 31,
+              "variant": "Team Snipers",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1532
+            },
+            {
+              "ordinal": 32,
+              "variant": "Team Snipers",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1536
+            },
+            {
+              "ordinal": 33,
+              "variant": "Team Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1540
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Big Team Battle",
+          "source_line": 1548,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "14",
+            "maximum_players": "16",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "8",
+            "maximum_team_imbalance": "0",
+            "big_party_restrictions": "YES"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1561
+            },
+            {
+              "ordinal": 1,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1565
+            },
+            {
+              "ordinal": 2,
+              "variant": "1 Flag CTF",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1569
+            },
+            {
+              "ordinal": 3,
+              "variant": "Assault",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1573
+            },
+            {
+              "ordinal": 4,
+              "variant": "Assault",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1577
+            },
+            {
+              "ordinal": 5,
+              "variant": "Multi Bomb",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1581
+            },
+            {
+              "ordinal": 6,
+              "variant": "Multi Flag CTF",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1585
+            },
+            {
+              "ordinal": 7,
+              "variant": "Multi Flag CTF",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1589
+            },
+            {
+              "ordinal": 8,
+              "variant": "Neutral Bomb BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1593
+            },
+            {
+              "ordinal": 9,
+              "variant": "1 Flag CTF BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1597
+            },
+            {
+              "ordinal": 10,
+              "variant": "3 Plots",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1601
+            },
+            {
+              "ordinal": 11,
+              "variant": "Assault BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1605
+            },
+            {
+              "ordinal": 12,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1609
+            },
+            {
+              "ordinal": 13,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1613
+            },
+            {
+              "ordinal": 14,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1617
+            },
+            {
+              "ordinal": 15,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1621
+            },
+            {
+              "ordinal": 16,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1625
+            },
+            {
+              "ordinal": 17,
+              "variant": "Multi Bomb",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1629
+            },
+            {
+              "ordinal": 18,
+              "variant": "Neutral Bomb",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1633
+            },
+            {
+              "ordinal": 19,
+              "variant": "Assault",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1637
+            },
+            {
+              "ordinal": 20,
+              "variant": "Team Slayer BR",
+              "maps": [
+                "Burial Mounds"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1641
+            },
+            {
+              "ordinal": 21,
+              "variant": "Neutral Bomb",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1645
+            },
+            {
+              "ordinal": 22,
+              "variant": "1 Flag CTF Covenant",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1649
+            },
+            {
+              "ordinal": 23,
+              "variant": "Assault Covenant",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1653
+            },
+            {
+              "ordinal": 24,
+              "variant": "Multi Bomb BR",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1657
+            },
+            {
+              "ordinal": 25,
+              "variant": "Multi Flag CTF Cov Carbine",
+              "maps": [
+                "Coagulation"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1661
+            },
+            {
+              "ordinal": 26,
+              "variant": "Multi Flag CTF Covenant",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1665
+            },
+            {
+              "ordinal": 27,
+              "variant": "Team Snipers",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1669
+            },
+            {
+              "ordinal": 28,
+              "variant": "Team Snipers",
+              "maps": [
+                "Terminal"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1673
+            },
+            {
+              "ordinal": 29,
+              "variant": "Team Snipers",
+              "maps": [
+                "Waterworks"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1677
+            },
+            {
+              "ordinal": 30,
+              "variant": "Land Grab",
+              "maps": [
+                "Containment"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1681
+            },
+            {
+              "ordinal": 31,
+              "variant": "Land Grab",
+              "maps": [
+                "Headlong"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1685
+            },
+            {
+              "ordinal": 32,
+              "variant": "Land Grab",
+              "maps": [
+                "Relic"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1689
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Clanmatch",
+          "source_line": 1697,
+          "published_metadata": {
+            "ranked": "YES",
+            "minimum_players": "8",
+            "maximum_players": "10",
+            "teams": "2",
+            "minimum_party": "4",
+            "maximum_party": "5"
+          },
+          "rows": [],
+          "inherits_membership_from": [
+            "Team Skirmish",
+            "Team Slayer"
+          ],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Team ActionSack",
+          "source_line": 1710,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "6",
+            "maximum_players": "8",
+            "teams": "2",
+            "minimum_party": "1",
+            "maximum_party": "8"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Ninja Assault",
+              "maps": [
+                "Beaver Creek",
+                "Midship",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1721
+            },
+            {
+              "ordinal": 1,
+              "variant": "Shotgun Assault",
+              "maps": [
+                "Beaver Creek",
+                "Midship",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1725
+            },
+            {
+              "ordinal": 2,
+              "variant": "Rocket CTF",
+              "maps": [
+                "Elongation",
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1729
+            },
+            {
+              "ordinal": 3,
+              "variant": "Neutral Snipers",
+              "maps": [
+                "Colossus",
+                "Foundation",
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1733
+            },
+            {
+              "ordinal": 4,
+              "variant": "Shotgun CTF",
+              "maps": [
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1737
+            },
+            {
+              "ordinal": 5,
+              "variant": "Shwatgun CTF",
+              "maps": [
+                "Beaver Creek"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1741
+            },
+            {
+              "ordinal": 6,
+              "variant": "KOTH Snipers",
+              "maps": [
+                "Ascension",
+                "Beaver Creek",
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1745
+            },
+            {
+              "ordinal": 7,
+              "variant": "KOTH Tactics",
+              "maps": [
+                "Lockout",
+                "Turf",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1749
+            },
+            {
+              "ordinal": 8,
+              "variant": "Pit of Joy",
+              "maps": [
+                "Foundation",
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1753
+            },
+            {
+              "ordinal": 9,
+              "variant": "Balltacular",
+              "maps": [
+                "Elongation",
+                "Foundation",
+                "Midship"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1757
+            },
+            {
+              "ordinal": 10,
+              "variant": "Dodgeball",
+              "maps": [
+                "Backwash",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1761
+            },
+            {
+              "ordinal": 11,
+              "variant": "Invisiball",
+              "maps": [
+                "Ascension",
+                "Ivory Tower",
+                "Lockout"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1765
+            },
+            {
+              "ordinal": 12,
+              "variant": "Lowball",
+              "maps": [
+                "Gemini",
+                "Turf",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1769
+            },
+            {
+              "ordinal": 13,
+              "variant": "Brutality",
+              "maps": [
+                "Backwash",
+                "Lockout",
+                "Midship",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1773
+            },
+            {
+              "ordinal": 14,
+              "variant": "Combo Training",
+              "maps": [
+                "Beaver Creek",
+                "Foundation",
+                "Gemini",
+                "Lockout",
+                "Midship",
+                "Sanctuary",
+                "Turf",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1777
+            },
+            {
+              "ordinal": 15,
+              "variant": "Laser Blasters",
+              "maps": [
+                "Backwash",
+                "Beaver Creek",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1781
+            },
+            {
+              "ordinal": 16,
+              "variant": "Phantom Fiesta",
+              "maps": [
+                "Foundation",
+                "Gemini",
+                "Lockout",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1785
+            },
+            {
+              "ordinal": 17,
+              "variant": "Plasma Punchout",
+              "maps": [
+                "Elongation",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1789
+            },
+            {
+              "ordinal": 18,
+              "variant": "Shwatguns",
+              "maps": [
+                "Beaver Creek",
+                "Ivory Tower",
+                "Lockout",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1793
+            },
+            {
+              "ordinal": 19,
+              "variant": "SWAT Fiesta",
+              "maps": [
+                "Ascension",
+                "Beaver Creek",
+                "Gemini",
+                "Ivory Tower"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1797
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        },
+        {
+          "name": "Rumble Armory",
+          "source_line": 1805,
+          "published_metadata": {
+            "ranked": "NO",
+            "minimum_players": "4",
+            "maximum_players": "8",
+            "teams": "N/A",
+            "minimum_party": "1",
+            "maximum_party": "8"
+          },
+          "rows": [
+            {
+              "ordinal": 0,
+              "variant": "Brutes",
+              "maps": [
+                "Elongation",
+                "Foundation",
+                "Gemini",
+                "Midship",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1816
+            },
+            {
+              "ordinal": 1,
+              "variant": "Needlers",
+              "maps": [
+                "Beaver Creek",
+                "Gemini",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1820
+            },
+            {
+              "ordinal": 2,
+              "variant": "Pistols",
+              "maps": [
+                "Elongation",
+                "Lockout",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1824
+            },
+            {
+              "ordinal": 3,
+              "variant": "Plasma Rifles",
+              "maps": [
+                "Beaver Creek",
+                "Gemini",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1828
+            },
+            {
+              "ordinal": 4,
+              "variant": "Rifles",
+              "maps": [
+                "Ascension",
+                "Backwash",
+                "Colossus",
+                "Elongation",
+                "Ivory Tower",
+                "Lockout",
+                "Sanctuary",
+                "Turf"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1832
+            },
+            {
+              "ordinal": 5,
+              "variant": "Rockets",
+              "maps": [
+                "Backwash",
+                "Beaver Creek",
+                "Colossus",
+                "Elongation",
+                "Gemini",
+                "Ivory Tower",
+                "Lockout",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1836
+            },
+            {
+              "ordinal": 6,
+              "variant": "Sentinel Beams",
+              "maps": [
+                "Backwash",
+                "Gemini",
+                "Lockout",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1840
+            },
+            {
+              "ordinal": 7,
+              "variant": "Shotguns",
+              "maps": [
+                "Beaver Creek",
+                "Elongation",
+                "Lockout",
+                "Midship",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1844
+            },
+            {
+              "ordinal": 8,
+              "variant": "Snipers",
+              "maps": [
+                "Ascension",
+                "Burial Mounds",
+                "Colossus",
+                "Lockout",
+                "Sanctuary"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1848
+            },
+            {
+              "ordinal": 9,
+              "variant": "Swords",
+              "maps": [
+                "Backwash",
+                "Beaver Creek",
+                "Gemini",
+                "Lockout",
+                "Midship",
+                "Sanctuary",
+                "Warlock"
+              ],
+              "numeric_weight": null,
+              "complete_variant_settings": null,
+              "source_line": 1852
+            }
+          ],
+          "inherits_membership_from": [],
+          "published_order": "descending weight; numeric values not published",
+          "downloaded_settings_recovered": false
+        }
+      ]
+    }
+  ],
+  "late_catalog_identities": {
+    "publication": "2007-05-09T17:18:00-07:00",
+    "author": "Sketch",
+    "source_url": "https://bnetarchive.haloman30.com/News/Bloge04e.html?dfilter=date112007&mode=&page=7&tag=",
+    "corroboration_url": "https://www.bungie.net/en/Forums/Post/58025564",
+    "playlists": [
+      {
+        "name": "Rumble Pit",
+        "ranked": false,
+        "new_maps_required": true
+      },
+      {
+        "name": "Double Team",
+        "ranked": true,
+        "new_maps_required": false
+      },
+      {
+        "name": "Team Slayer",
+        "ranked": true,
+        "new_maps_required": true
+      },
+      {
+        "name": "Team Skirmish",
+        "ranked": true,
+        "new_maps_required": true
+      },
+      {
+        "name": "Team Training",
+        "ranked": false,
+        "new_maps_required": false
+      },
+      {
+        "name": "Team Snipers",
+        "ranked": true,
+        "new_maps_required": true
+      },
+      {
+        "name": "Team Hardcore",
+        "ranked": true,
+        "new_maps_required": false
+      },
+      {
+        "name": "Team SWAT",
+        "ranked": false,
+        "new_maps_required": true
+      },
+      {
+        "name": "Big Team Battle",
+        "ranked": false,
+        "new_maps_required": false
+      }
+    ],
+    "map_variant_rows_recovered": false,
+    "numeric_weights_recovered": false
+  },
+  "target_lookup": [
+    {
+      "name": "Rumble Pit",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Elongation",
+        "Gemini",
+        "Ivory Tower",
+        "Lockout",
+        "Sanctuary",
+        "Turf",
+        "Warlock",
+        "Beaver Creek",
+        "Midship",
+        "Burial Mounds",
+        "Colossus",
+        "Terminal",
+        "Ascension",
+        "Relic",
+        "Foundation",
+        "Backwash"
+      ],
+      "variants": [
+        "Slayer",
+        "Duals",
+        "Rifles",
+        "Slayer BR",
+        "Slayer Covenant",
+        "Snipers",
+        "Rockets",
+        "Crazy King",
+        "King",
+        "Oddball"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Double Team",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Beaver Creek",
+        "Midship",
+        "Elongation",
+        "Gemini",
+        "Ivory Tower",
+        "Lockout",
+        "Sanctuary",
+        "Turf",
+        "Warlock",
+        "Foundation",
+        "Ascension",
+        "Backwash"
+      ],
+      "variants": [
+        "2v2 Duals Only",
+        "2v2 Slayer",
+        "CTF Classic",
+        "1 Flag CTF",
+        "CTF Human",
+        "2v2 Rifles",
+        "2v2 Pistols",
+        "2v2 Rockets",
+        "Team Ball",
+        "Team King",
+        "Team Crazy King"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team Slayer",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Lockout",
+        "Midship",
+        "Sanctuary",
+        "Turf",
+        "Warlock",
+        "Beaver Creek",
+        "Foundation",
+        "Gemini",
+        "Colossus",
+        "Elongation",
+        "Ivory Tower",
+        "Zanzibar",
+        "Ascension",
+        "Backwash",
+        "Burial Mounds",
+        "Relic",
+        "Terminal"
+      ],
+      "variants": [
+        "Team Slayer",
+        "Team Duals",
+        "Team Slayer BR",
+        "Team Rifles",
+        "Team Snipers",
+        "Team Rockets"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team Skirmish",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Terminal",
+        "Zanzibar",
+        "Burial Mounds",
+        "Relic",
+        "Ivory Tower",
+        "Lockout",
+        "Turf",
+        "Sanctuary",
+        "Beaver Creek",
+        "Colossus",
+        "Coagulation",
+        "Warlock",
+        "Ascension",
+        "Backwash",
+        "Elongation",
+        "Midship",
+        "Foundation",
+        "Gemini"
+      ],
+      "variants": [
+        "1 Flag CTF",
+        "Assault",
+        "Assault BR",
+        "1 Flag CTF BR",
+        "1 Flag CTF Fast",
+        "3 Plots",
+        "Multi Flag CTF",
+        "Multi Flag CTF Human",
+        "Neutral Bomb BR",
+        "Neutral Bomb Fast",
+        "Rapid Assault",
+        "Neutral Flag",
+        "1 Flag CTF Covenant",
+        "CTF Classic",
+        "Team Ball",
+        "Shotgun CTF",
+        "Team Crazy King"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team Training",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [
+        "Team Skirmish",
+        "Team Slayer"
+      ],
+      "map_membership": [
+        "Terminal",
+        "Zanzibar",
+        "Burial Mounds",
+        "Relic",
+        "Ivory Tower",
+        "Lockout",
+        "Turf",
+        "Sanctuary",
+        "Beaver Creek",
+        "Colossus",
+        "Coagulation",
+        "Warlock",
+        "Ascension",
+        "Backwash",
+        "Elongation",
+        "Midship",
+        "Foundation",
+        "Gemini"
+      ],
+      "variants": [
+        "1 Flag CTF",
+        "Assault",
+        "Assault BR",
+        "1 Flag CTF BR",
+        "1 Flag CTF Fast",
+        "3 Plots",
+        "Multi Flag CTF",
+        "Multi Flag CTF Human",
+        "Neutral Bomb BR",
+        "Neutral Bomb Fast",
+        "Rapid Assault",
+        "Neutral Flag",
+        "1 Flag CTF Covenant",
+        "CTF Classic",
+        "Team Ball",
+        "Shotgun CTF",
+        "Team Crazy King",
+        "Team Slayer",
+        "Team Duals",
+        "Team Slayer BR",
+        "Team Rifles",
+        "Team Snipers",
+        "Team Rockets",
+        "Team SWAT",
+        "Team Plasma Wars",
+        "Team Slayer Pro",
+        "Team Brutes",
+        "Fiesta Team Slayer",
+        "Team Shotguns",
+        "Team Swords",
+        "Team Showers"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team Snipers",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Burial Mounds",
+        "Headlong",
+        "Relic",
+        "Terminal",
+        "Zanzibar",
+        "Sanctuary",
+        "Ascension",
+        "Containment",
+        "Lockout",
+        "Ivory Tower",
+        "Turf",
+        "Waterworks",
+        "Backwash",
+        "Beaver Creek",
+        "Elongation"
+      ],
+      "variants": [
+        "Team Snipers"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team Hardcore",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Midship",
+        "Beaver Creek",
+        "Lockout",
+        "Warlock",
+        "Elongation",
+        "Backwash",
+        "Colossus",
+        "Sanctuary",
+        "Ivory Tower",
+        "Gemini"
+      ],
+      "variants": [
+        "Pro CTF Classic 5",
+        "Pro Team Slayer",
+        "Pro CTF Classic 3",
+        "Pro Team Ball",
+        "Pro Team Slayer Cov",
+        "Pro Neutral Bomb",
+        "Pro Team Rifles",
+        "Pro Team Snipers",
+        "Pro Team Crazy King",
+        "Pro Multi-Flag CTF"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Team SWAT",
+      "dedicated_playlist_membership_recovered": false,
+      "dated_variant_occurrences": [
+        {
+          "playlist": "Team Training",
+          "ordinal": 0,
+          "variant": "Team SWAT",
+          "maps": [
+            "Elongation",
+            "Ivory Tower",
+            "Lockout",
+            "Turf"
+          ]
+        }
+      ],
+      "note": "Dedicated playlist appears in May2007 identities; these4 maps belong to the older Dec2005 TeamTraining variant, not proof of the later dedicated pool.",
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    },
+    {
+      "name": "Big Team Battle",
+      "dated_profile": "2005-12-02",
+      "dedicated_playlist_membership_recovered": true,
+      "inherits_membership_from": [],
+      "map_membership": [
+        "Headlong",
+        "Relic",
+        "Terminal",
+        "Containment",
+        "Waterworks",
+        "Coagulation",
+        "Burial Mounds"
+      ],
+      "variants": [
+        "1 Flag CTF",
+        "Assault",
+        "Multi Bomb",
+        "Multi Flag CTF",
+        "Neutral Bomb BR",
+        "1 Flag CTF BR",
+        "3 Plots",
+        "Assault BR",
+        "Team Slayer BR",
+        "Neutral Bomb",
+        "1 Flag CTF Covenant",
+        "Assault Covenant",
+        "Multi Bomb BR",
+        "Multi Flag CTF Cov Carbine",
+        "Multi Flag CTF Covenant",
+        "Team Snipers",
+        "Land Grab"
+      ],
+      "numeric_weights_recovered": false,
+      "complete_downloaded_variant_options_recovered": false,
+      "final_2010_membership_verified": false
+    }
+  ],
+  "limits": [
+    "Original published order is preserved; it gives weight ordering, not numerical frequencies.",
+    "Comma-separated source map cells remain grouped; row ordinal does not imply equal map weights.",
+    "Inherited Training/Clan membership references expand source membership only, not a numerical weighting contract.",
+    "Same-name built-ins are not proof of missing downloaded per-map overrides.",
+    "All final2010 membership, hidden weights and unrecovered option bytes remain unresolved.",
+    "No Epic portal configuration supplies the retired Halo2 service catalogs."
+  ]
+}

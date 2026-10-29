@@ -12,6 +12,15 @@ packages include it; no separate variant download is needed. The definition is
 also retained under `data/tags/variants` in the prepared cache. Original map
 bytes are unchanged.
 
+LAN and split-screen editors expose the plant window, player limit, friendly
+fire and supported damage settings. **Change Rules → Mode Settings** adds
+Bomb Fuse, Plant Time and Defuse Time. The fuse must exceed the defuse time;
+the picker offers valid choices and preserves an existing valid custom value.
+One-life rounds, first to 13, side switching, loadouts and map equipment remain
+fixed. Split-screen Start requires real local players on Red and Blue; use
+Change Team to select a side. A fresh LAN host may wait for remote opposition.
+Starting this mode from a retained stock-game lobby requires a new LAN session.
+
 This implements Counter-Strike's bomb objective and round structure with Halo 2
 combat and newly authored timings. It uses Halo weapons, shields, movement and
 grenades. There is no money, buy menu, defuse kit or equipment economy.

@@ -14,6 +14,7 @@
 #include "halo2/reference_player.hpp"
 #include "gameplay/objects/source_object_geometry.hpp"
 #include "halo2/render_interpolation.hpp"
+#include "halo2/source_live_model_geometry_tu15.hpp"
 #include <map>
 #include <algorithm>
 #include <set>
@@ -23,6 +24,9 @@
 
 namespace halo2 {
 struct SourceMachineScene::Impl {
+    struct SourceSection {unsigned lod{};std::vector<Vertex> vertices;std::vector<std::uint32_t> ordinals;
+        ObjectColors colors;bool ordinary{};std::vector<SourcePrtMaterialBank> prt;};
+    struct SourceView {std::vector<SourceSection> sections;bool submitted{};};
     struct Machine {
         std::size_t source_object{};
         unsigned authored_placement{};
@@ -50,6 +54,8 @@ struct SourceMachineScene::Impl {
         std::vector<Transform> world_nodes;
         ObjectLightingCache light;
         ShadowCasterSphere sphere;
+        ObjectColors initial_colors;
+        std::array<std::optional<SourceView>,4> source_views;
     };
     const Cache &cache;
     const CollisionWorld &collision;
@@ -80,17 +86,19 @@ struct SourceMachineScene::Impl {
         ObjectLightingCache light;
         ShadowCasterSphere sphere;
         SourceObjectGeometry::PresentationState geometry;
+        std::array<std::optional<SourceView>,4> source_views;
         explicit MachinePresentation(const Machine &m):reference(m.reference),handle(m.handle),advanced_tick(m.advanced_tick),created_tick(m.created_tick),
             active(m.active),visible(m.visible),simulation_owned(m.simulation_owned),solved_nodes(m.solved_nodes),object(m.object),
             position(m.position),power(m.power),scale(m.scale),group_position(m.group_position),presentation(m.presentation),
             device_flags(m.device_flags),runtime_flags(m.runtime_flags),permutations(m.active_permutations),world_nodes(m.world_nodes),
-            light(m.light),sphere(m.sphere),geometry(m.geometry.capture_presentation()){}
+            light(m.light),sphere(m.sphere),geometry(m.geometry.capture_presentation()),source_views(m.source_views){}
         void exchange(Machine &m)noexcept {
             using std::swap;swap(reference,m.reference);swap(handle,m.handle);swap(advanced_tick,m.advanced_tick);swap(created_tick,m.created_tick);
             swap(active,m.active);swap(visible,m.visible);swap(simulation_owned,m.simulation_owned);swap(solved_nodes,m.solved_nodes);swap(object,m.object);
             swap(position,m.position);swap(power,m.power);swap(scale,m.scale);swap(group_position,m.group_position);swap(presentation,m.presentation);
             swap(device_flags,m.device_flags);swap(runtime_flags,m.runtime_flags);permutations.swap(m.active_permutations);
             world_nodes.swap(m.world_nodes);swap(light,m.light);swap(sphere,m.sphere);m.geometry.exchange_presentation(geometry);
+            source_views.swap(m.source_views);
         }
     };
     struct SavedState {
@@ -164,6 +172,7 @@ struct SourceMachineScene::Impl {
             m.geometry.load(cache,object,initial_definition,initial_selection,m.definition.render_model);
             pose(m);
             const auto colors=cache.load_object_colors(object.definition,object.variant);
+            m.initial_colors=colors;
             const auto material_base=mesh.materials.size();
             try {
                 const auto resident=m.geometry.prepare(cache,colors,m.world_nodes,sh,mesh);
@@ -318,6 +327,7 @@ struct SourceMachineScene::Impl {
             const auto&object=at->second;
             m.solved_nodes=object.nodes?*object.nodes:std::optional<std::vector<Transform>>{};
             if(m.handle!=object.handle){
+                m.source_views={};
                 if(!devices && (m.handle!=0xffffffffu || object.created_tick!=0) &&
                     (m.placement.power_group!=-1 || m.placement.position_group!=-1))
                     throw FormatError("machine recreation requires current source named groups: "+m.definition.name);
@@ -513,7 +523,7 @@ void SourceMachineScene::reset_lifetimes() noexcept {
         m.handle=0xffffffffu;m.created_tick=m.advanced_tick=0;
         m.active=m.visible=m.simulation_owned=false;m.presentation.reset();
         m.solved_nodes.reset();m.world_nodes.clear();m.device_flags=0;m.group_position=0;
-        m.light={};m.geometry.reset_history();
+        m.light={};m.geometry.reset_history();m.source_views={};
     }
 }
 void SourceMachineScene::set_reference_devices(std::span<const ReferenceDeviceState> devices,Mesh&mesh){
@@ -529,6 +539,10 @@ void SourceMachineScene::append_view(std::vector<Vertex>&out,std::vector<ObjectL
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
     Impl::Mutation mutation(*impl_);impl_->require_mesh(impl_->mesh_owner);
     for(auto&m:impl_->state.machines)if(m.active && m.visible){
+        if(const auto& source=m.source_views.at(view.view_index);source) {
+            if(!source->submitted)throw FormatError("Retained native MACH draw was not submitted");
+            continue;
+        }
         const auto sphere=view.source_bound?view.source_bound(m.handle):m.sphere;
         if(view.source_visible && !view.source_visible(m.handle,sphere))continue;
         if(view.in_frustum && !view.in_frustum(sphere.center,sphere.radius))continue;
@@ -544,6 +558,57 @@ void SourceMachineScene::append_view(std::vector<Vertex>&out,std::vector<ObjectL
     }
 }
 const SourceMachineSceneStats&SourceMachineScene::stats()const{impl_->own();return impl_->counts;}
+std::vector<std::uint32_t> SourceMachineScene::source_render_models()const {
+    impl_->own();std::set<std::uint32_t> roots;
+    for(const auto& m:impl_->state.machines)if(!m.resource_error && m.definition.render_model!=~0u)roots.insert(m.definition.render_model);
+    return {roots.begin(),roots.end()};
+}
+void SourceMachineScene::begin_source_frame() {
+    Impl::Mutation mutation(*impl_);for(auto& m:impl_->state.machines)for(auto& view:m.source_views)view.reset();
+}
+bool SourceMachineScene::retain_source_view(unsigned view,std::span<const SourceLiveModelBaseDrawTu15> draws,
+    std::span<const Transform> nodes,const SourceModelShaderView& shader,PhysicsLiveWorldTu15& world) {
+    Impl::Mutation mutation(*impl_);if(view>=4)throw FormatError("Native MACH view exceeds four players");
+    if(draws.empty())return false;
+    const auto at=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),[&](const auto& m){return m.active&&m.visible&&m.handle==draws.front().object;});
+    if(at==impl_->state.machines.end())return false;auto& machine=*at;Impl::require_resources(machine);
+    if(machine.source_views[view])throw FormatError("Native MACH owner was retained twice");
+    Impl::SourceView retained;
+    for(const auto& draw:draws) {
+        if(draw.object!=machine.handle || draw.definition!=machine.definition_datum || draw.unit.words[1]!=machine.definition.render_model || draw.lod>=6)
+            throw FormatError("Native MACH draw lost its actual object/definition/model/LOD");
+        if(draw.override_slot!=255 || (draw.lighting_class!=2 && draw.lighting_class!=3))return false;
+        const auto section=(draw.unit.words[3]>>9)&511u;
+        auto selected=machine.geometry.selected_section_world(draw.lod,section,{0,draw.coverage},shader,nodes);
+        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        for(auto& vertex:selected.vertices)vertex.source_stipple_level=stipple;
+        std::vector<SourcePrtMaterialBank> banks;
+        if(selected.prt_lighting) {
+            const auto definition=machine.geometry.prt_definition();
+            if(!definition)throw FormatError("Native MACH PRT selection lost its prepared definition");
+            banks=machine.geometry.selected_prt_banks(draw.lod,section,source_live_model_prt_bank_tu15(world,draw.unit,*definition));
+        }
+        retained.sections.push_back({draw.lod,std::move(selected.vertices),std::move(selected.ordinals),
+            source_live_model_base_colors_tu15(draw,machine.initial_colors),selected.ordinary_lighting,std::move(banks)});
+    }
+    machine.source_views[view]=std::move(retained);return true;
+}
+void SourceMachineScene::append_source_models(std::vector<ModelObjectDraw>& output,const SourceObjectViewLod& view) {
+    Impl::Mutation mutation(*impl_);
+    for(auto& machine:impl_->state.machines)if(machine.active&&machine.visible) {
+        auto& source=machine.source_views.at(view.view_index);if(!source)continue;
+        if(source->submitted || !view.input)throw FormatError("Native MACH submission lost its unique lighting owner");
+        const auto sphere=view.source_bound?view.source_bound(machine.handle):machine.sphere;
+        const auto input=view.input(machine.source_object,machine.handle,sphere.center,sphere.radius);
+        impl_->query_lighting(machine,impl_->state.render_frame,input.draw_metric);
+        for(const auto& section:source->sections)if(!section.vertices.empty()) {
+            output.push_back({section.vertices,section.ordinary?std::optional{machine.light.lighting}:std::nullopt,section.colors,{},section.prt});
+            output.back().source_model_selection=SourceModelDepthSelection{machine.handle,machine.definition_datum,
+                machine.definition.render_model,section.lod,&machine.geometry.at(section.lod).model,0,section.ordinals};
+        }
+        source->submitted=true;
+    }
+}
 std::span<const SourceMachineResourceBoundary>SourceMachineScene::deferred_resource_owners()const{impl_->own();return impl_->deferred_resources;}
 std::vector<SourceMachinePortalState> SourceMachineScene::portal_owners()const{
     impl_->own();if(!impl_->state.lifetimes_bound)throw FormatError("Machine portal snapshot requires synchronized source lifetimes");

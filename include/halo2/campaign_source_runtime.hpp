@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/multiplayer.hpp"
+#include "halo2/native_campaign_ai_query_tu15.hpp"
 namespace halo2 {
 class PhysicsLiveWorldTu15;
 enum class CampaignRenderBspLifecycle { activation,checkpoint_restore };
@@ -39,6 +40,11 @@ public:
       std::optional<std::int16_t> count={});
   // Return the source actor unit datum for the unmodified AI reference.
   std::uint32_t ai_object(std::uint32_t reference);
+  // Typed TU1.5 query of the same retained AI banks, returning SHORT bits.
+  // Return explicit FP status; the complete shared native HS FP/checkpoint
+  // authority is a separate integration gate, not a per-query shadow bank.
+  NativeCampaignAiLivingCountResult ai_living_count(std::uint32_t reference);
+  NativeCampaignAiQueryResult ai_query(std::uint32_t reference,NativeCampaignAiQuery);
   std::size_t place_squad(Simulation &,std::size_t);
   MultiplayerState::Player hud_player(const Simulation &);
   MultiplayerObjectRuntime &objects(){return *objects_;}

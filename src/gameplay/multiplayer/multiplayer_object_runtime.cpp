@@ -974,6 +974,9 @@ MultiplayerSourceMotion MultiplayerObjectRuntime::biped_motion(std::uint32_t obj
       word(bank,body+0x134u),std::to_integer<std::uint8_t>(bank.view(body+0x10au,1)[0]),
       std::uint16_t(word(bank,body+0x348u)&0xffffu)};
 }
+SourcePlayerConfiguration MultiplayerObjectRuntime::update_player_configuration(std::uint32_t p,const SourcePlayerConfiguration &c) {
+  return tu15_world().update_player_configuration(p,c);
+}
 void MultiplayerObjectRuntime::construct_player(std::uint32_t player,unsigned user,
     const SourcePlayerConfiguration &configuration) {Continuation::PublicCall active(*continuation_);
   if(tu15_)tu15_->construct_player(player,user,configuration,native_machine_identity());
@@ -1604,6 +1607,13 @@ void MultiplayerObjectRuntime::completed_main_camera_observer(SourceCompletedMai
   Continuation::PublicCall active(*continuation_,false);
   tu15_->completed_main_camera_observer(std::move(observer));
 }
+SourceCompletedMainCameraObserverScopeTu15 MultiplayerObjectRuntime::scoped_completed_main_camera_observer(SourceCompletedMainCameraObserverTu15 observer) {
+  std::unique_lock lock(continuation_->gate,std::try_to_lock);continuation_->require_executor();
+  if(!lock.owns_lock() || continuation_->calls || !tu15_ || continuation_->fault)
+    throw FormatError("Scoped main camera observer requires its completed actual TU1.5 owner");
+  Continuation::PublicCall active(*continuation_,false);
+  return tu15_->scoped_completed_main_camera_observer(std::move(observer));
+}
 void MultiplayerObjectRuntime::inspect_render_memory(const SourceRenderMemoryInspectorTu15& inspect) const {
   std::unique_lock lock(continuation_->gate,std::try_to_lock);continuation_->require_executor();
   if(!lock.owns_lock() || continuation_->calls || continuation_->fault || !tu15_ || !inspect)
@@ -1745,6 +1755,21 @@ const SourceRuntimeMemory &MultiplayerObjectRuntime::PreparedAuthority::replacem
 SourcePhysicsWorldRuntimeAbi MultiplayerObjectRuntime::PreparedAuthority::replacement_caller() const {
   if(!impl_)throw FormatError("Native object authority preparation has no staged caller owner");
   return impl_->world->replacement_caller();
+}
+void MultiplayerObjectRuntime::PreparedAuthority::retain_live_multiplayer_render_history() {
+  if(!impl_ || !impl_->world)throw FormatError("Native object render retention has no prepared world");
+  impl_->world->retain_live_multiplayer_render_history();
+}
+void MultiplayerObjectRuntime::PreparedAuthority::retain_live_multiplayer_render_history_from(
+    const MultiplayerObjectRuntime &source) {
+  if(!impl_ || !impl_->world || &impl_->owner==&source || !source.tu15_)
+    throw FormatError("Native multiplayer presentation history requires a distinct actual source world");
+  std::unique_lock gate(source.continuation_->gate,std::try_to_lock);
+  source.continuation_->require_executor();
+  if(!gate.owns_lock() || source.continuation_->calls || source.continuation_->staging ||
+      source.continuation_->fault || source.continuation_->publication_held.load(std::memory_order_acquire))
+    throw FormatError("Native presentation history source is not a completed unborrowed owner");
+  impl_->world->retain_live_multiplayer_render_history_from(*source.tu15_);
 }
 MultiplayerObjectRuntime::PreparedAuthority MultiplayerObjectRuntime::prepare_authority(const AuthorityCheckpoint &saved) {
   PreparedAuthority prepared;prepared.impl_=std::make_unique<PreparedAuthority::Impl>(*this,saved);return prepared;

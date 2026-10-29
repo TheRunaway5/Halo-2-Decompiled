@@ -1,4 +1,7 @@
 #include "halo2/particle_vertex.hpp"
+#include "halo2/mcc_particle_alpha_multiply_add.hpp"
+#include "halo2/mcc_particle_pc_projection.hpp"
+#include "halo2/compiled_particle_vertex_signature.hpp"
 #include <algorithm>
 
 namespace halo2 {
@@ -54,12 +57,49 @@ ParticleVertexSelection Cache::load_particle_vertex_selection(std::uint32_t datu
   const auto &pass=find(result.pass_datum,"spas");
   const auto processed=metadata_block(metadata_offset(pass.address,0x24)+0x1c, 88);
   if(!processed.count)throw FormatError("original particle pass definition missing");
-  const auto implementations=metadata_block(processed.offset, 306);
+  const bool pc_pass=is_mcc() && !is_preserved_native_shader(pass);
+  // MCC keeps an additional24-byte D3D pixel descriptor tail. Only the first
+  //306 bytes share the native field layout; implementation1 begins at330.
+  const unsigned implementation_stride=pc_pass?330:306;
+  const auto implementations=metadata_block(processed.offset,implementation_stride);
   if(!implementations.count)throw FormatError("original particle implementation missing");
   // 23EA80 obtains the declaration from the first pass implementation before
   // the style-specific override. Pixel implementation choice is separate.
   if(model && implementations.count<2)throw FormatError("Particle model requires authored implementation1");
-  result.vertex_datum=b.u32(implementations.offset+(model?306:0)+256);
+  result.vertex_datum=b.u32(implementations.offset+(model?implementation_stride:0)+256);
+  if(pc_pass && mcc_particle_pc_projection_names(stem.name,pass.name,model?1:0)) {
+    if(layer!=15 || layer_pass!=0)throw FormatError("MCC particle custom projection requires its authored effect pass");
+    const auto& pc=find(result.vertex_datum,"vrtx");
+    const auto program=mcc_particle_pc_vertex_signature(stem.name,pass.name,model?1:0,
+        result.classification,pc.name,b.u32(metadata_offset(pc.address,0x18)));
+    result.vertex_datum=0xffffffffu;
+    result.program.assign(program.begin(),program.end());
+    return result;
+  }
+  if(is_mcc() && !model && !is_preserved_native_shader(pass) &&
+      mcc_particle_alpha_multiply_add_names(stem.name,pass.name)) {
+    // This PC-only pass retains a D3D vertex reference. Its sprite stream uses
+    // the same already-compiled custom Vulkan particle program as the other
+    // particle passes; its separate pixel/raster projection is qualified by
+    // load_particle_material. Never relabel the PC bytes as Xbox microcode.
+    const auto &pc=find(result.vertex_datum,"vrtx");
+    if(layer!=15 || layer_pass!=0 || result.classification<7 || result.classification>9 ||
+       pc.name!="rasterizer\\vertex_shaders_dx9\\particle" ||
+       b.u16(metadata_offset(pc.address,12))!=12)
+      throw FormatError("MCC alpha-multiply-add particle vertex contract differs");
+    const auto* native=query_tag({.group=tag_groups::vertex_shader,
+        .name="rasterizer\\vertex_shaders_xbox\\particle",.require_address=true});
+    if(native && is_preserved_native_shader(*native))result.vertex_datum=native->datum;
+    else {
+      // PC-only levels have no preserved vertex-tag namespace. The custom
+      // Vulkan kernel still has its built-in validation signature. A null
+      // datum records that no source tag/declaration owner was fabricated.
+      result.vertex_datum=0xffffffffu;
+      const auto signature=compiled_particle_vertex_signature(result.classification);
+      result.program.assign(signature.begin(),signature.end());
+      return result;
+    }
+  }
   result.program=load_vertex_shader_code(result.vertex_datum,result.classification);
   if(result.program.empty())throw FormatError("original particle vertex classification is not resident");
   return result;

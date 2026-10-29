@@ -62,6 +62,23 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def loading_owner(cache):
+    """Pin the bank main.cpp actually selects, with an admission witness."""
+    from native_gameplay_test import (FRONTEND_LOADING_PROFILE, FRONTEND_H2EK_LOADING_PROFILE,
+                                     FRONTEND_H2EK_LOADING_FILES)
+    import h2ek_loading_ambience as h2ek
+    if (cache / h2ek.BANK).exists() or (cache / h2ek.BANK).is_symlink():
+        report = json.loads((cache / 'provenance.json').read_bytes())
+        if not h2ek.verify(cache, report.get('h2ek_loading_ambience')):
+            raise ValueError('Selected H2EK loading bank has no completed onboarding owner')
+        return dict(profile=FRONTEND_H2EK_LOADING_PROFILE, original=True,
+            files=sorted(FRONTEND_H2EK_LOADING_FILES),
+            witness='Original loading: H2EK logo/sweep art and four-voice ambience admitted')
+    return dict(profile=FRONTEND_LOADING_PROFILE, original=False,
+        files=['presentation/loading-v3/' + name for name in ('manifest.json', 'glow-mask.dds', 'loading.wav')],
+        witness='MCC V3 loading: genuine PCM and reconstructed artwork admitted')
+
+
 def _readmit_frontend_owner(root, runtime, cache, sidecar, receipt, capability):
     from native_gameplay_test import NativeTestOwnerChanged, _check
 
@@ -123,7 +140,8 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         validate_eos_worker(runtime, eos_worker)
     resources = [maps/name for name in ('shared.map', 'textures.dat', 'sounds_neutral.dat')]
     resources += [p for p in (cache/'halo2/h2_fonts').rglob('*') if p.is_file()]
-    resources += [cache/'presentation/loading-v3'/name for name in ('manifest.json','glow-mask.dds','loading.wav')]
+    loading = loading_owner(cache)
+    resources += [cache/name for name in loading['files']]
     if (cache/'frontend-map-bindings.json').exists():
         resources.append(cache/'frontend-map-bindings.json')
     # Match the frontend reader: loose reference pages are not an active pack.
@@ -160,6 +178,8 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
             exit_code, failure = None, 'Frontend capture exceeded its 180-second process budget'
         (output/(name+'.log')).write_text(stdout[-65536:])
         passed = exit_code == 0 and image.is_file() and 'Rendered 4 frontend frames' in stdout
+        if exit_code == 0 and loading['witness'] not in stdout:
+            passed, failure = False, 'Runtime did not admit the declared loading presentation'
         if name == 'intro': passed = passed and 'Frontend movie:' in stdout
         row = dict(name=name,passed=passed,exit_code=exit_code,seconds=time.monotonic()-started,command=command)
         if wait_intro and passed:
@@ -190,8 +210,8 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         shaders=dict(binding='compiled-default',directory=str(shaders),**shader_proof),
         map=dict(path=FRONTEND_MAP,sha256=digest(cache/FRONTEND_MAP)),resources=pins,
         validation=dict(passed=True,scope=FRONTEND_SCOPE,report_sha256=digest(receipt),
-            mcc_loading_presentation_profile='mcc-logo-glow-mcc-track-oneshot-v1',
-            mcc_prompt_font_profile='mcc-native-control-fonts-v1',original_loading_ambience=False,
+            mcc_loading_presentation_profile=loading['profile'],
+            mcc_prompt_font_profile='mcc-native-control-fonts-v1',original_loading_ambience=loading['original'],
             frontend_capture_policy='source-map-intro-clear-v1',
             full_game_parity=False,limits=report['limits']))
     if eos_worker is not None:

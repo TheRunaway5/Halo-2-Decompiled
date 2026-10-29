@@ -5,6 +5,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <string_view>
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -108,6 +109,16 @@ public:
   // omitted. Borrowed spans remain valid only during the synchronous callback.
   void visit_committed(const std::function<void(std::uint32_t,
       std::span<const std::byte>)> &) const;
+  struct RegionMetadata {
+    std::uint32_t address;
+    Access access;
+    std::string_view owner;
+    std::size_t bytes,page_bytes,committed_pages;
+  };
+  // Validate the complete owned topology without capturing payload bytes.
+  // Metadata borrows this bank only during the synchronous callback; callers
+  // must hold their ordinary quiescent boundary and cannot mutate topology.
+  void visit_region_metadata(const std::function<void(const RegionMetadata&)>&) const;
   // Complete memory-owner checkpoint, including reservation holes and access
   // policy. This is one subowner of a world continuation, not a process or
   // physics-world save. The caller must quiesce execution and rebind all

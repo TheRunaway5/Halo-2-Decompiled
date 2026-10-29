@@ -238,10 +238,18 @@ int main(int argc, char **argv) try {
     require(matched == 1, "Original logical widget count differs: " + name);
   };
   nlohmann::json branding_checks = nlohmann::json::array();
+  std::ifstream branding_reference(std::filesystem::path(argv[2]) / "resources/branding/title-forever.json");
+  require(bool(branding_reference), "Missing website FOREVER artwork reference");
+  const auto branding_artwork = nlohmann::json::parse(branding_reference);
+  require(branding_artwork.at("font") == "Arial Regular 7.00" &&
+          branding_artwork.at("text") == "F O R E V E R" &&
+          branding_artwork.at("css").at("font_size") == 12 &&
+          branding_artwork.at("css").at("letter_spacing") == 8,
+          "Title branding no longer uses the website's Arial/CSS reference");
   const auto branding = [&](const MenuState &state, const UiDraw &output,
                             std::array<unsigned, 2> viewport) {
     const auto subtitle_vertex = [&](const Vertex &vertex) {
-      return mesh.materials.at(vertex.material).name.starts_with("font/") &&
+      return mesh.materials.at(vertex.material).name == "ui/branding/forever" &&
           std::abs(vertex.color.x - 182.f / 255) < .00001f &&
           std::abs(vertex.color.y - 217.f / 255) < .00001f &&
           std::abs(vertex.color.z - 247.f / 255) < .00001f;
@@ -267,14 +275,22 @@ int main(int argc, char **argv) try {
         ++subtitle_vertices;
       }
     }
-    require(logo_vertices == 6 && subtitle_vertices == 7 * 6,
-            "Title branding lost its logo or seven FOREVER glyphs on screen " +
+    require(logo_vertices == 6 && subtitle_vertices == 6,
+            "Title branding lost its logo or frozen Arial FOREVER artwork on screen " +
                 std::to_string(state.frame().screen));
+    const float scale = (logo[2] - logo[0]) / 365.f;
+    const float left = branding_artwork.at("logical_left").get<float>();
+    const float top = branding_artwork.at("logical_top_after_logo").get<float>();
+    const float width = branding_artwork.at("width").get<float>() / 8.f;
+    const float height = branding_artwork.at("height").get<float>() / 8.f;
     require(subtitle[0] > logo[0] && subtitle[2] < logo[2] &&
-            std::abs((subtitle[0] + subtitle[2]) - (logo[0] + logo[2])) < .01f &&
+            std::abs(subtitle[0] - (logo[0] + left * scale)) < .01f &&
+            std::abs(subtitle[1] - (logo[3] + top * scale)) < .01f &&
+            std::abs(subtitle[2] - subtitle[0] - width * scale) < .01f &&
+            std::abs(subtitle[3] - subtitle[1] - height * scale) < .01f &&
             subtitle[1] > logo[3] && subtitle[3] < 480 &&
             std::abs(logo_alpha - subtitle_alpha) < .00001f,
-            "FOREVER subtitle is not centered below its animated logo");
+            "FOREVER subtitle differs from the website's measured Arial layout");
     float following_text = 480;
     for (const auto &vertex : output.vertices)
       if (!subtitle_vertex(vertex) &&

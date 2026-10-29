@@ -1,0 +1,249 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_RESULT_SKILL_VALIDATION_V1",
+  "updated_utc": "2026-10-28T19:05:58.907970+00:00",
+  "result_skill_transaction_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Rust XP arithmetic, immutable admitted result/consent/quarantine authority and SQL transaction policy through temporary typed IO. Original result producers/arbitration, Rust authenticated API and native/delivered full scope remain open.",
+  "rust_authorities": [
+    "Authenticated embedded retail/TU1.5 default tables; signed pair/player/clan XP, clipping, midpoint hysteresis and display domains",
+    "Result admission frozen from the actual Rust proposal/profile/roster, physical owners, guest/clan identity, trusted stored skill snapshots and configured namespace",
+    "Fresh native opaque presentation IDs; all304 selected option bytes when present; engine/team/name/identity/placement bounds",
+    "Original admitted physical-owner electorate; duplicate votes/retries, departure vote retention and conflicting-report/digest quarantine",
+    "Skill/schema/legacy migration policy, generated SQL and private continuation frames",
+    "Atomic exactly-once ledger, immutable admission/envelope receipts, player/clan XP, guest-filtered PCR summary/approved accuracy and outbox updates"
+  ],
+  "original_replay": {
+    "receipt": "results-original.json",
+    "controls": 1910,
+    "calls": 1912,
+    "policies": [
+      {
+        "policy": "retail-launch-2004",
+        "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+        "table_sha256": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+        "calls": 956,
+        "unique_original_instructions": 1266,
+        "original_executed_bytes_sha256": "88e36532ff15875130a72bf79e9cdb83c82701d3a0529ea188636460b66f925a",
+        "controls": 955
+      },
+      {
+        "policy": "title-update-1.5-defaults",
+        "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+        "table_sha256": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+        "calls": 956,
+        "unique_original_instructions": 1356,
+        "original_executed_bytes_sha256": "ce300da9be2a4dbe0bbaa94ba842b5709e43d90218e03239a120ffb5013732b8",
+        "controls": 955
+      }
+    ],
+    "fixture": {
+      "path": "tests/fixtures/matchmaking_skill_original.json",
+      "bytes": 411945,
+      "sha256": "9db7c0f343db8490528918bff5a07583014aa723e846be5ee8c71cd2f74e2403"
+    },
+    "no_original_instruction_or_callee_replaced": true,
+    "all_executed_instruction_bytes_verified_unchanged": true,
+    "comparison_input_provenance": "Explicit synthetic result records and rank operands. The original effective-skill-to-result producer is still unclosed."
+  },
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 32,
+    "backend_tests": 440,
+    "backend_seconds": 97.021,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-uhq6wzzd/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "84887ba8e45d5e54ca32cc199e36dc8a7c74287f347f69269d2b2237937a2bd9",
+      "bytes": 1757200,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "report": "results-full-report.json",
+    "manifest": "results-full-source-manifest.json",
+    "drift_during_freeze": [],
+    "current_source_drift": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-uhq6wzzd",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 11,
+    "backend_tests": 35,
+    "backend_seconds": 12.297,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xxzln4um/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "3810725de63574497abf866464e5c815ecc3ff1b40e8d23e415a98bff3ee8fec",
+      "bytes": 1743872,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "report": "results-production-report.json",
+    "manifest": "results-production-source-manifest.json",
+    "drift_during_freeze": [],
+    "current_source_drift": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xxzln4um",
+    "scratch_removed": true
+  },
+  "default_abi": {
+    "diagnostic_feature_enabled": false,
+    "fixture_admission_and_accuracy_override_rejection_proven": true,
+    "production_container_and_cmake_do_not_enable_fixture_inputs": true
+  },
+  "transactional_evidence": [
+    "Two real SQLite connections complete one frozen digest concurrently: one new ledger and one idempotent response, identical public/envelope IDs, one XP/outbox update",
+    "SQL trigger failure after XP writes rolls back ledger/admission/XP/history/outbox together",
+    "DDL authorizer failure rolls back every new schema table; retry succeeds",
+    "Current player/clan skill/configuration mismatch rejects the complete transaction",
+    "Original survivor-policy schema receipts preserved through migration/restart without relabeling",
+    "Python room field mutations cannot rewrite admitted roster/game/rank/guest/accuracy facts or manufacture votes"
+  ],
+  "exact_variant_tests": {
+    "synthetic_family_coverage": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9
+    ],
+    "every_selected_byte_mutated_and_rejected": true,
+    "original_builtin_registry_count": 39,
+    "unknown_name_without_complete_settings_rejected": true,
+    "declared_native_asset_compatibility": [
+      "Fiesta Slayer",
+      "Infection Slayer"
+    ],
+    "native_asset_limits": "These exact existing native assets are separately declared legacy extensions, not added to original preset metadata. Their complete extension settings/executable attestation remain open."
+  },
+  "modern_replacements": [
+    "Native unanimous result agreement and quarantine; no retired Live arbitration or independent cheat/simulation authority",
+    "Native persistent raw XP comparison input policy; source effective-to-result provenance remains explicit and unclosed",
+    "Opaque per-room presentation IDs, generated SQL continuation protocol and private native-matchmaking-v1 namespace"
+  ],
+  "remaining": [
+    "Authenticated Rust catalog/API, matching-related signed seats/guests/parties/clans, QoS IO policy and gameplay room/world transitions",
+    "Complete executable/map/authority/expiry/namespace chain through native gameplay; full native engine/result/return/requeue and delivered acceptance",
+    "Original result comparison-skill/standing/wire producers and original Live server/arbitration evidence",
+    "All required historical profiles/variants/topologies and original-only proof; pending-result recovery after process restart",
+    "Temporary Python generic SQLite executor and public history read API remain; this is not a wholly Rust service"
+  ],
+  "concurrency_boundary": "SQL data races use the shared SQLite ledger lock and CAS guards. Result control and the whole synchronous transaction pump run on the existing single event loop. Frozen consent is captured at database-owner creation; concurrent/distributed dispute mutation during IO is not qualified and must be addressed when replacing the API/executor.",
+  "cmake": {
+    "passed": true,
+    "report": "results-cmake-report.json",
+    "target": "halo2_online_protocol_rust_build",
+    "ctest": "online_protocol_rust_build_helper",
+    "jobs": 2,
+    "test_jobs": 1,
+    "embedded_data_in_build_dependencies": true,
+    "build_removed": true,
+    "scope": "Live-tree component build/helper test only. No native played flow, selected runtime, service install or activation."
+  },
+  "source_sha256": {
+    "cmake/OnlineProtocolRust.cmake": "c12300ff6b3fcde2b54b6ec446f97fca56daae00f2547786fc830b0370fb5314",
+    "multiplayer/master_server/carnage_history.py": "599af8faaeef7a38f74c0fa486084ab2c515aa31f78f098cf6d77826dadbfcdd",
+    "multiplayer/master_server/clan_skill.py": "ec871d357e76e5e3c426444df69e5f1c2a7e1ebb305c463571bb6764c139cb5c",
+    "multiplayer/master_server/match_results.py": "7e0f9b2d3c7470dd7478cfb51a339917c97005a422ba315fde97f4cd1498ca90",
+    "multiplayer/master_server/match_transport.py": "01f2bb3447045dcc4128e124fea1ff4a2fe99e419f670f4ca272c78b547bc892",
+    "multiplayer/master_server/native_database.py": "024a2670ee82c038dc4d0c0020b6e82e18d1ee46c3644bcee62eb57433efbf93",
+    "multiplayer/master_server/playlist_skill.py": "b1c9eb6fb2b5afda0e8d4dc22db14fd9d843dc732748129c43285aeb0a9ee894",
+    "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+    "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+    "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+    "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+    "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+    "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+    "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+    "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "ac96738687866b8b4ac33207ccb7750935c8eb37ce25fef8b07b82694dacc881",
+    "rust/online_protocol/src/matchmaking_model.rs": "5a04c9d637da8c763b48c6084e335e1e05ed4669c913d918568de0a6ac24f0d6",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "e8356d7b8b5df816ffc69ef56d0ec65eaad81d226cfd87bdb347cf8d348c2ad6",
+    "rust/online_protocol/src/matchmaking_results.rs": "80b9330ff6ddd95abcdaf1c198022ebe70f3a483d61e8e668b327a2875745c5f",
+    "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "470da98e75fe1441e68a58501337201055e1dfcbe57c47706f622ac92b65352b",
+    "tools/oracle_matchmaking_skill.py": "af76c2585c66adba15922c3c921eedbbd60fec8c86713fc81fa1728d1cfcb6b6",
+    "tools/test_master_server.py": "0f4a47b8c60aa08fb1fd351433d318cf3efb49414d2c1ce0d09ab38a8d652daa"
+  },
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0wt168zk",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-2z7kuawu",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-92hw6wqa",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-b0p66ahp",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-dc11ty77",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-eqovs28h",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hcuph1ke",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-lex3unr3",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-qpm3f3ut",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-sr111xou",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-tb583kza",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-u5apqd5c",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-uhq6wzzd",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xxzln4um",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-zkqk22_w",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-46bm_8qh",
+      "removed": true
+    }
+  ],
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false
+}

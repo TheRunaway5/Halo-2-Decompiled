@@ -10,6 +10,7 @@ struct SystemLinkState {
   std::uint32_t revision=1,generation=1;
   std::uint64_t fingerprint{};
   std::uint16_t active_players{};
+  std::uint8_t available_team_mask{};
   std::int32_t countdown=-1;
   // Host's netcode mode for the published world (protocol 113); lobby read point.
   NetcodeMode netcode_mode=NetcodeMode::original;

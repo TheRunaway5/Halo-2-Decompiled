@@ -6,8 +6,17 @@
 namespace {
 void equal(Owner &a,Owner &b){check(encode_source_authority(a.authority->checkpoint(binding))==
     encode_source_authority(b.authority->checkpoint(binding)),"Shadow-storage replay changed the complete coupled world");}
-void restore(Owner &a,Owner &b){auto prepared=b.authority->prepare(a.authority->checkpoint(binding),binding);
-    check(b.authority->commit(std::move(prepared)),"Shadow-storage replay repair failed");equal(a,b);}
+void restore(Owner &a,Owner &b){
+    auto &world=b.world->tu15_world();const auto revision=world.authority_backing_revision();
+    const auto saved=a.authority->checkpoint(binding);
+    {auto cancelled=b.authority->prepare(saved,binding);
+        check(world.authority_backing_revision()==revision,"Unpublished preparation changed the backing revision");}
+    check(world.authority_backing_revision()==revision,"Cancelled preparation changed the backing revision");
+    auto prepared=b.authority->prepare(saved,binding);
+    check(b.authority->commit(std::move(prepared)),"Shadow-storage replay repair failed");
+    check(world.authority_backing_revision()==revision+1,"Successful native bank publication did not retire renderer bindings");
+    equal(a,b);
+}
 }
 int main(int argc,char **argv)try {
     if(argc!=3||!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[2]))return 77;
@@ -19,10 +28,13 @@ int main(int argc,char **argv)try {
     host.clock->cycle_stride=replica.clock->cycle_stride=0;restore(host,replica);
     SourceLiveShadowStorageTu15 retained;
     for(unsigned activation=0;activation<2;++activation){
+        const auto revision=host.world->tu15_world().authority_backing_revision();
         const auto phase=host.authority->capture_execution_phase([&]{
             retained=source_live_shadow_storage_activate_tu15(host.world->tu15_world());
             source_live_shadow_storage_validate_tu15(host.world->tu15_world(),retained);
         });
+        check(host.world->tu15_world().authority_backing_revision()==revision,
+            "Native shadow activation changed its independent backing-publication identity");
         check(!phase.calls.empty(),"Actual shadow activation lost its source operations");
         const auto encoded=encode_source_execution_phase(phase);
         replica.authority->replay_execution_phase(decode_source_execution_phase(encoded));equal(host,replica);

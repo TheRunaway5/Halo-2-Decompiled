@@ -1,0 +1,183 @@
+{
+  "additional_entries_sha256": "e1443af6649d1e1e6e7dc2b7b8aeeec0e329af3855e4d3c9dd75f0952ad84192",
+  "complete_native_entries": [
+    "000b3350"
+  ],
+  "correspondence_sha256": "720de4e2829ca2fd8cd1ecf004e9790d90d71ccda77b7c75d12a040dfc6162a8",
+  "dispatch_targets": {},
+  "external_owners": {
+    "000b336d": {
+      "full_guest_abi": true,
+      "target": "0xb1900"
+    },
+    "000b337a": {
+      "full_guest_abi": true,
+      "target": "0xb18b0"
+    },
+    "000b33a7": {
+      "full_guest_abi": true,
+      "target": "0xb8050"
+    }
+  },
+  "full_x87_environment_required": {},
+  "generated_cpp_sha256": "b7802b4e8bff5d56f9afb0051ad241697feb354404be974019da2cbe92071170",
+  "generator_sha256": "c0597a34e620656c31182830b3bd6480ad8b9ed657360ee1c2e23e62962a9ad3",
+  "later_original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "lowered_instructions": {
+    "000b3350": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "000b3351": {
+      "mnemonic": "mov",
+      "source_bytes": "a118324f00"
+    },
+    "000b3356": {
+      "mnemonic": "cmp",
+      "source_bytes": "80780c04"
+    },
+    "000b335a": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4c2408"
+    },
+    "000b335e": {
+      "mnemonic": "mov",
+      "source_bytes": "c70424ffffffff"
+    },
+    "000b3365": {
+      "mnemonic": "je",
+      "source_bytes": "7410"
+    },
+    "000b3367": {
+      "mnemonic": "lea",
+      "source_bytes": "8d1424"
+    },
+    "000b336a": {
+      "mnemonic": "push",
+      "source_bytes": "52"
+    },
+    "000b336b": {
+      "mnemonic": "push",
+      "source_bytes": "6a00"
+    },
+    "000b336d": {
+      "mnemonic": "call",
+      "source_bytes": "e88ee5ffff"
+    },
+    "000b3372": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0c24"
+    },
+    "000b3375": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb0f"
+    },
+    "000b3377": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "000b3378": {
+      "mnemonic": "xor",
+      "source_bytes": "33d2"
+    },
+    "000b337a": {
+      "mnemonic": "call",
+      "source_bytes": "e831e5ffff"
+    },
+    "000b337f": {
+      "mnemonic": "or",
+      "source_bytes": "83c9ff"
+    },
+    "000b3382": {
+      "mnemonic": "test",
+      "source_bytes": "84c0"
+    },
+    "000b3384": {
+      "mnemonic": "je",
+      "source_bytes": "7426"
+    },
+    "000b3386": {
+      "mnemonic": "mov",
+      "source_bytes": "8b44240c"
+    },
+    "000b338a": {
+      "mnemonic": "mov",
+      "source_bytes": "8b158cb74d00"
+    },
+    "000b3390": {
+      "mnemonic": "push",
+      "source_bytes": "52"
+    },
+    "000b3391": {
+      "mnemonic": "mov",
+      "source_bytes": "89442410"
+    },
+    "000b3395": {
+      "mnemonic": "lea",
+      "source_bytes": "8d442410"
+    },
+    "000b3399": {
+      "mnemonic": "push",
+      "source_bytes": "50"
+    },
+    "000b339a": {
+      "mnemonic": "push",
+      "source_bytes": "6a04"
+    },
+    "000b339c": {
+      "mnemonic": "lea",
+      "source_bytes": "8d542414"
+    },
+    "000b33a0": {
+      "mnemonic": "push",
+      "source_bytes": "52"
+    },
+    "000b33a1": {
+      "mnemonic": "push",
+      "source_bytes": "6a01"
+    },
+    "000b33a3": {
+      "mnemonic": "push",
+      "source_bytes": "6a14"
+    },
+    "000b33a5": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc1"
+    },
+    "000b33a7": {
+      "mnemonic": "call",
+      "source_bytes": "e8a44c0000"
+    },
+    "000b33ac": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "000b33ad": {
+      "mnemonic": "ret",
+      "source_bytes": "c20800"
+    }
+  },
+  "native_model_lookup": null,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "production_opcode_decoder": false,
+  "production_original_code_execution": false,
+  "schema": 1,
+  "selected_addresses": {
+    "000b3350": 734032,
+    "000b3372": 734066,
+    "000b337f": 734079,
+    "000b33ac": 734124
+  },
+  "reached_native_call": {
+    "site": "000f6de1",
+    "target": "000b3350",
+    "return": "000f6de6",
+    "instruction_hex": "e86ac5fbff"
+  },
+  "existing_native_callees": [
+    "000b18b0",
+    "000b1900",
+    "000b8050"
+  ],
+  "boundary": "Complete English TU1.5 evasion event producer; admission and event delivery retain their original native ABI. No fabricated event or physics result, runtime opcode decoder or emulation."
+}

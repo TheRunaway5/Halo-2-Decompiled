@@ -1,6 +1,6 @@
 # MCC-only native gameplay goal checklist
 
-Updated: 2026-10-21. This checklist owns the remaining scope; detailed evidence
+Updated: 2026-10-28. This checklist owns the remaining scope; detailed evidence
 stays in [MCC_GAMEPLAY_CONVERSION.md](MCC_GAMEPLAY_CONVERSION.md).
 Check a box only after its stated acceptance test passes. Component proofs do
 not complete an integration, gameplay, visual or audio acceptance gate.
@@ -18,6 +18,70 @@ This requirement applies to work completed by the primary agent and subagents.
 Saving that checklist update is a required part of completing each task; do
 not defer it until the end of a session. For subagent work, the primary agent
 records the verified result here before starting dependent work.
+
+## October28 particle resource crash correction
+
+Runtime content imports in this slice are MCC/H2EK. Rendering uses the custom
+faithful Vulkan kernels; imported PC pass metadata qualifies their interfaces.
+
+- [x] Reproduce partial publication through an actual MCC multi-system effect,
+  then verify whole-effect rollback, strict retry, idempotence, cached content
+  rejection and admission of unrelated effects. Device/system exceptions and
+  missing native pools still propagate. The catalog prepares immutable visual
+  resources without admitting source systems or effects.
+  [Focused regression](../build/test-results/particle-admission-20261028/transaction-green/report.json).
+- [x] Complete the resident sprite/model and authored effect dependency inventory
+  across all40 prepared MCC maps, including cooked template-default bitmaps and
+  model child systems:7,677 resident resources,30,138 owners and65,538 systems;
+  zero resource, dependency, metadata or map-initialization failures. The107
+  scene-feedback material occurrences still require actual frame/GPU owners.
+  [Current-source CPU inventory](../build/test-results/particle-admission-20261028/all-map-resource-inventory-current/inventory.json).
+- [x] Verify all60,276 WORLD/first-person preload plans across those40 maps:
+  41,063 admitted,19,213 authored empty passes and zero content rejections,
+  including156 breakable-surface and16 model-child passes. The40 actual running
+  executable identities matched the pinned binary throughout validation.
+  [Whole-plan result](../build/test-results/particle-admission-20261028/all-map-source-plans-final.json).
+- [x] Check the menu catalog independently:49 resources,81 owners and99 systems,
+  zero resource/dependency/metadata failures; one additional material requires
+  actual scene feedback.
+  [Menu CPU inventory](../build/test-results/particle-admission-20261028/mainmenu-resource-inventory/inventory.json).
+- [x] Verify transactional GPU admission for7,677 gameplay-map materials plus49
+  menu materials, all five vertex programs and11 gameplay fragment kernels:
+  zero content rejections and Vulkan validation errors. Failure repair, inactive
+  draw ordering, capability checks, bounded diagnostics and OOM retry controls
+  pass. All108 scene-feedback material occurrences admit their resources;
+  absent/invalid frame owners remain inactive. This does not establish their
+  rendered pixels or full gameplay parity.
+  [GPU catalog and controls](../build/test-results/particle-admission-20261028/all-map-gpu-admission-early/report.json).
+- [x] Correct the model-depth join to accept same-winding cyclic triangle
+  identities while rejecting reversal and incorrect owners. Load actual fixture
+  materials only for submitted geometry. The full integrated build passes25
+  checks, including258 actual model vertices and11 strict rejection controls.
+  [Integrated validation](../build/test-results/particle-admission-20261028/integrated-final-v3/report.json).
+- [x] Preserve complete native animation-resource owners when restoring a
+  temporary presented pose. Reproduce the old split-journal cache corruption,
+  then pass1,000 actual Dune resource loads and488 native evictions with512
+  coherent live rows,64 restored spatial bytes and five strict owner controls.
+  The corrected production main also completes four Dune frames and ten ticks
+  in a private probe. Launcher qualification remains a separate gate.
+  [Native regression and presentation controls](../build/test-results/particle-admission-20261028/resource-rollback-final-v2/report.json),
+  [Dune runtime probe](../build/test-results/particle-admission-20261028/dune-private-rollback-green/report.json).
+- [x] Guard all five compiled native model-palette entry copies against cached
+  authority poses during a temporary presentation frame. The actual native
+  control previously bypassed the guarded C++ route; the unchanged rejection
+  control now passes alongside root/sphere restoration and palette equality.
+  [Guard coverage](../build/test-results/particle-admission-20261028/presentation-native-guard-refresh.json),
+  [Two passing native tests](../build/test-results/particle-admission-20261028/resource-rollback-final-v2/tests.log).
+- [x] Qualify and deliver a launcher runtime containing the corrected loading,
+  material admission, pose-resource ownership and runtime failure handling.
+  Both ROOT launchers select `4bf0c86b3c41485193b431cf4f7da756`:15 launcher/loading
+  checks,13 Original-mode map/player cases and four frontend checks pass. The
+  tested frozen cohort preserves the prior selected Path Tracing additions;
+  unrelated concurrent working-tree edits remain outside this qualification.
+  No exact grenade/Warthog gameplay replay or complete visual parity is claimed.
+  [Published runtime](../build/test-results/particle-admission-20261028/launcher-final-v3/report.json),
+  [Launcher verification](../build/test-results/particle-admission-20261028/launcher-info-verification.json),
+  [Acceptance and cleanup](../build/test-results/particle-admission-20261028/acceptance.json).
 
 ## Working rules
 
@@ -8196,3 +8260,16 @@ Weapon goal checkpoint: V35 actual MCC original-source Sword strike renders22
 advancing poses; owned audio remains red. V36 checks shared CRT dispatch after
 a private copy preempted the complete owner. See
 [weapon checklist](WEAPONS_TU15_GOAL_CHECKLIST.md). All63 weapons remain open.
+
+
+### LAN/split-screen custom-mode settings and launch milestone (2026-10-28)
+
+- [x] Verify Fiesta, Infection and Bomb Defusal normal menu settings/Starts with fixed defining rules, ordered native extensions and complete source settings; copied/reopened variants, native Defusal timer constraints, real local team selection and pointer reachability. The pinned cohort passes 11/11 focused CTests, including 429 metadata checks and 564 custom edited Starts per original/MCC catalog. All 92 stock parameters still pass 4,146 edited Starts per catalog.
+- [x] Verify 12 actual MCC custom native cases with two/four local players in LAN/split-screen, authenticated loopback configuration/map/admission/snapshots, three real three-tick headless launches, and three real two-frame/two-view rendered launches. Defusal stays out of stock objective presentation and retains its custom site/rules data. Private source/build/probes were removed; no large artifacts retained.
+
+Evidence: [custom-mode acceptance](../build/test-results/custom-mode-cohort-20261028/acceptance.json), with effective pinned hashes, declared source refreshes, failed-attempt diagnostics and final native/render reports. [Settings scope](MATCH_CUSTOMIZATIONS_LAN_SPLITSCREEN.md). Unrelated CMake/network/runtime work advanced after the source freeze; this does not qualify those concurrent edits or rebuild/promote a launcher runtime. Actual graphical LAN-client interaction, cross-machine play and full gameplay/visual/audio parity remain open. Retained stock LAN lobbies require a fresh session for these custom modes.
+
+### October28 native campaign engine implementation
+
+- [x] Bounded semantic component work is tracked in the [native campaign engine checklist](CAMPAIGN_NATIVE_ENGINE_GOAL_CHECKLIST.md). Its checked milestones link independent original comparisons, meaningful mutants, compiler/sanitizer checks and owned-storage cleanup. The [sixth evidence checkpoint](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-6.json) records48 passed reports; later completed components retain their own linked receipts until the next aggregate.
+- [ ] Full campaign native-only engine closure remains open. Actual v5 Marine/Grunt behavior278460 and Johnson navigation1C9F10 still require complete parent composition; full HS/script scheduling, orders/action begin, speech/presentation, map/save lifecycle, co-op, missions and launcher qualification remain open. Imported tags/scripts consume native engine behavior; they do not replace missing algorithms. No selected runtime is promoted by component proof.

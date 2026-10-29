@@ -4,6 +4,8 @@
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/cinematic_crossfade.hpp"
 namespace halo2 {
+// Compatibility entry names dispatch the four semantic native screen kernels.
+// The production graph contains no generated/lifted screen implementation.
 bool source_campaign_screen_tu15_owns_entry(std::uint32_t);
 void source_run_campaign_screen_tu15(SourcePhysicsContactMemory &,std::uint32_t,
     SourcePhysicsWorldRuntimeAbi &,SourcePhysicsFactoryFloatingPoint,

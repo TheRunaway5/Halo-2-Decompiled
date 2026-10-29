@@ -17,12 +17,14 @@ struct alignas(16) GpuNode {
 struct alignas(16) GpuTriangle {
     ShaderVector p0{},p1{},p2{},n0{},n1{},n2{},uv01{},uv2{};
     std::array<std::uint32_t,4> metadata{}; // material slot, packed RGBA8 vertex colors0..2.
+    ShaderVector color_guide{}; // Packed source lightmap UVs or proven RGB; w: image index/kind.
 };
 struct alignas(16) GpuMaterial {
     ShaderVector base{1,1,1,1},emission{},response{}; // base RGB: authored reflection tint.
     // offset,width,height,flags: alpha test/clamp U/clamp V/alpha kill/excluded.
     std::array<std::uint32_t,4> texture{};
     ShaderVector transform{1,1,0,0};
+    std::array<std::uint32_t,4> color_guide{}; // Source owner kind, sampler, border, reserved.
 };
 struct alignas(16) GpuLight {
     ShaderVector position_radius{},color_intensity{};
@@ -41,8 +43,8 @@ struct alignas(16) GpuSceneUniform {
     std::array<std::uint32_t,4> counts{};
     ShaderVector environment{}; // Source sky RGB; w: uintBitsToFloat(emissive index offset).
 };
-static_assert(sizeof(GpuNode)==48 && sizeof(GpuTriangle)==144);
-static_assert(sizeof(GpuMaterial)==80 && sizeof(GpuLight)==128 && sizeof(GpuSceneUniform)==32);
+static_assert(sizeof(GpuNode)==48 && sizeof(GpuTriangle)==160);
+static_assert(sizeof(GpuMaterial)==96 && sizeof(GpuLight)==128 && sizeof(GpuSceneUniform)==32);
 struct Scene {
     std::vector<GpuNode> nodes;
     std::vector<GpuTriangle> triangles;
@@ -55,6 +57,10 @@ struct Scene {
     // only with the optional active scene and never own source asset bytes.
     std::vector<std::array<std::uint64_t,2>> material_image_keys;
     std::vector<std::uint32_t> material_texel_capacities;
+    // Optional source baked COLOR data. Its magnitude never enters transport.
+    // This bounded atlas exists only with the active optional RT Scene.
+    std::vector<std::uint32_t> color_guide_pixels{0,0,0,0};
+    std::vector<std::array<std::uint64_t,2>> color_guide_image_keys;
     GpuSceneUniform uniform(Vec3 source_environment={}) const;
 };
 // Frame-local source geometry must already be posed into WORLD coordinates.

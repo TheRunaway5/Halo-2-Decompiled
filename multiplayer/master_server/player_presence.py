@@ -3,8 +3,6 @@
 Only recent authenticated requests or a live, challenged match connection may
 publish presence. Account admission by itself is not a fifteen-minute heartbeat.
 """
-import time
-
 ACTIVITY_SECONDS = 30
 
 
@@ -19,16 +17,14 @@ def recent_sessions(directory):
 def connected_seats(directory):
     """A connection owns its verified couch seats, including transient guests."""
     transport = getattr(directory, "match_transport", None)
-    now = time.monotonic()
     for room in transport.rooms.values() if transport else ():
-        if room.closed or now >= room.deadline:
+        if room.closed:
             continue
         for who, peer in room.peers.items():
-            if peer.socket.closed or (peer.challenge and now - peer.sent > 15):
+            if peer.socket.closed:
                 continue
-            for player, owner in room.owners.items():
-                if owner == who:
-                    yield room, player, player in room.guests
+            for seat in room.connected_seats(who,peer):
+                yield room, seat['player'], seat['guest']
 
 
 def observed(directory):

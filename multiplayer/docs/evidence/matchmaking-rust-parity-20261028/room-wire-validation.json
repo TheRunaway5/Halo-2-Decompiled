@@ -1,0 +1,426 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_ROOM_WIRE_VALIDATION_V1",
+  "updated_utc": "2026-10-28T23:32:12.840597+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "room_wire_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust-owned native room capabilities, descriptor interpretation, connection generations, EOS room proof/identity and bounded signaling. HTTP/SDK/IO controls use declared fixtures. No original Xbox authentication/wire, actual engine/world, played/delivered or service activation claim.",
+  "reproduced_gap": {
+    "trigger": "An expired room is accessed over its otherwise valid signal bearer before the writer cleanup task closes it.",
+    "before": "The WebSocket upgrade succeeded. The fresh red HTTP test observed no handshake rejection.",
+    "after": "Rust checks the actual room lease before upgrade and revalidates admission after the upgrade await; the expired room receives404.",
+    "red_report": "room-wire-red-report.json",
+    "red_log": "room-wire-red-step-1.log"
+  },
+  "rust_authorities": [
+    "Opaque256-bit room bearer generation, trusted native rotation, revisions, active physical capability checks and retirement",
+    "Native upgrade/route/duplicate/reconnect policy, checked connection generations, post-await capability revalidation and stale-reader detach fences",
+    "Immutable public descriptor roster/names/teams/slots/guests/identities/protocol and selected session fields from frozen admission",
+    "Native EOS socket/pair material, trusted verified-provider account/PUID guards, immutable room proof and announced identity uniqueness",
+    "Physical signaling destination, source stamping, stage/direction/protocol/payload checks and native socket-feature grants",
+    "Per-pair65-message/single-SDP and per-owner512-pending limits; failed validation/capacity observations do not partly consume counters or identity",
+    "Retired source/destination cleanup, count-only pending snapshots and at most16 frames per authenticated drain; no snapshot installation path"
+  ],
+  "checks": [
+    "Actual expired WebSocket rejection before upgrade, duplicate connecting rejection and native bearer rotation invalidating old authorization",
+    "Native two-preflight attach race, checked generation replacement, old detach/current/signal rejection and source-state atomicity",
+    "Real HTTP direct reconnect/signaling, EOS late body/provider revalidation, owner rate buckets surviving native rotation and immutable global/room identity binding",
+    "EOS signal denial before committed room proof; wrong account/PUID reuse rejection and descriptor/session admission binding",
+    "65-message exact counter boundary, malformed bool/extra source/wrong direction controls and one-time native pending drain",
+    "Full16-seat fixture queues maximum escaped SDP payloads, removes retired sender traffic, keeps snapshots small and bounds drain responses below the private envelope",
+    "Full frozen250-file cohort, independent production ABI, CMake build/helper, master hash and all full goal criteria preserved"
+  ],
+  "cohorts": {
+    "integration": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 250,
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_room_wire.rs",
+        "rust/online_protocol/tests/matchmaking_room_setup.rs",
+        "multiplayer/master_server/match_transport.py",
+        "multiplayer/master_server/tests/test_room_wire_owner_native.py"
+      ],
+      "rust_unit_passed": 0,
+      "rust_integration_passed": 9,
+      "rust_checks_passed": 9,
+      "rust_ignored": 0,
+      "backend_tests": 31,
+      "backend_seconds": 12.347,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-tc304r7b/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "be134e980a3393831ed957b41c779ffcbe2e17a0fb4fcb2bc11a9da439d180a2",
+        "bytes": 2979480,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-wire-integration-report.json",
+      "source_manifest": "room-wire-integration-source-manifest.json"
+    },
+    "focused": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 250,
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_room_wire.rs",
+        "rust/online_protocol/tests/matchmaking_room_setup.rs",
+        "multiplayer/master_server/match_transport.py"
+      ],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 24,
+      "rust_checks_passed": 184,
+      "rust_ignored": 2,
+      "backend_tests": 45,
+      "backend_seconds": 16.052,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-apa3y3lf/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "c81bfb285dbc986ac50b63992f03502190ab6d12374bf4032f48cb84068d017c",
+        "bytes": 2979488,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-wire-focused-report.json",
+      "source_manifest": "room-wire-focused-source-manifest.json"
+    },
+    "full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 250,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 84,
+      "rust_checks_passed": 244,
+      "rust_ignored": 2,
+      "backend_tests": 479,
+      "backend_seconds": 121.061,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-hyxhspnk/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "7048729916dd8c2942d4fb835d536a0386871d4728d5f37597099f5cfef5aa6e",
+        "bytes": 2984608,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-wire-full-report.json",
+      "source_manifest": "room-wire-full-source-manifest.json"
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 250,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 160,
+      "rust_integration_passed": 62,
+      "rust_checks_passed": 222,
+      "rust_ignored": 2,
+      "backend_tests": 215,
+      "backend_seconds": 57.171,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-xge7r2i7/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "78fd6c7ed98c74d97e28406c2c8dfcb7072e3103384d2c25a17497515f0f7b35",
+        "bytes": 2970832,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-wire-production-report.json",
+      "source_manifest": "room-wire-production-source-manifest.json"
+    }
+  },
+  "ignored_rust_tests": [
+    "netcode::stream::tests::captured_corpus_payload",
+    "netcode::stream::tests::encode_cost_for_large_mostly_static_bodies"
+  ],
+  "intermediate_diagnostics": {
+    "first": "The new sibling wire owner needed the lifecycle deadline visibility widened within the private setup module.",
+    "buffered": "The new16-seat fixture retained the two-seat gathering host name; corrected to its actually admitted physical owner.",
+    "integration_and_focused": "Passed before final pending snapshot/count and paged-drain changes; full/production are the matching current250-file sources."
+  },
+  "native_client_source_observation": {
+    "path": "src/network/online_matchmaking.cpp",
+    "sha256": "cc5b8ef4469cca2bf0a0f081313de1175ff2e6222f578d1ac98aa6371a29bab9",
+    "bounds": "Descriptor token is parsed with the existing128-character limit; generated64-hex bearers fit. Source inspection only, not delivered/native runtime qualification."
+  },
+  "original_evidence": {
+    "new_original_execution": false,
+    "reference": {
+      "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+      "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+      "bytes": 639228,
+      "pages": 42,
+      "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+      "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+      "expanded_companion_registry_supplied": false
+    },
+    "reuse": "Prior unchanged-original fixtures replayed by the Rust/backend suites. Modern capabilities, connection generations, EOS and signaling remain explicit native policies."
+  },
+  "cmake": {
+    "passed": true,
+    "source_frozen": false,
+    "scope": "Current-tree Rust static/CXX/security/SDK-worker build plus helper CTest, not native game or selected-runtime acceptance",
+    "jobs": 2,
+    "test_jobs": 1,
+    "report": "room-wire-cmake-report.json",
+    "identity": "room-wire-cmake-identity.json"
+  },
+  "remaining_boundaries": [
+    "Accepted social/party/clan membership and invitation/privacy/activity CRUD plus remaining party HTTP request/idempotency/presentation policy",
+    "Retirement/transaction-retry notification acknowledgement and crash recovery across countdown SQL/native publication commits; pregame countdown state/rules now belong to Rust",
+    "Remaining packet/voice policy, generic abuse budgets, crypto/provider/socket IO and full service/endpoint replacement; Rust owns room descriptors, bearers/connection revisions, EOS room proofs and signaling as well as room lifecycle/setup/QoS and v11 continuity; actual engine/world acceptance remains open",
+    "Search QoS sensors/allocation and raw authenticated network timestamp/challenge/room observations; legacy v11 authority/world-proof coordination now belongs to Rust; full original/native world continuity remains open",
+    "Trusted directory/account/clan/room facts and temporary HTTP/file/provider/shared-identity/SQLite IO; future parallel/distributed fact/SQL/queue coordination",
+    "Full native client-visible profile/capability identity and public history readers"
+  ],
+  "goal_scope_preserved": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "full_gap_criteria_unchanged": true,
+    "acceptance_gates_unchanged": true,
+    "all_full_gaps_open": true
+  },
+  "cleanup": {
+    "named_private_trees": [
+      {
+        "run": "red",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0jx_qi8p",
+        "removed": true
+      },
+      {
+        "run": "first",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-snzqz2b3",
+        "removed": true
+      },
+      {
+        "run": "integration",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-tc304r7b",
+        "removed": true
+      },
+      {
+        "run": "focused",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-apa3y3lf",
+        "removed": true
+      },
+      {
+        "run": "buffered",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0v4_xspj",
+        "removed": true
+      },
+      {
+        "run": "full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-hyxhspnk",
+        "removed": true
+      },
+      {
+        "run": "production",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-xge7r2i7",
+        "removed": true
+      },
+      {
+        "run": "cmake",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-jrc2cdir",
+        "removed": true
+      }
+    ],
+    "owned_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port",
+    "owned_parent_empty": true,
+    "unnamed_owned_format_runs": 6,
+    "generated_large_artifacts_retained": []
+  },
+  "activation": {
+    "service_restarted": false,
+    "runtime_selected": false,
+    "installed": false,
+    "deployed": false,
+    "committed_or_pushed": false
+  },
+  "retained_small_reports": {
+    "room-wire-red-gaps-before.json": {
+      "source": "build/test-results/matchmaking-room-wire-red-20261028/gaps-before.json",
+      "bytes": 96717,
+      "sha256": "563ef063112d1e2b3efc447f581fe3f941a2526d57be9444308caa9a798ea015"
+    },
+    "room-wire-red-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-red-20261028/report.json",
+      "bytes": 1492,
+      "sha256": "cd693d69a156222350f518fadca06af6e433ad70729593fc8320c22cfae93b30"
+    },
+    "room-wire-red-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-red-20261028/source-manifest.json",
+      "bytes": 31629,
+      "sha256": "217764a706bba18ef93ef7bba9904b71fbbc55f080e815a599724ca64176bcc1"
+    },
+    "room-wire-red-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-red-20261028/step-0.log",
+      "bytes": 1430,
+      "sha256": "15e1ca4c66bee085e4d6a226af97d6ba485890d4b4196104d6ad60187f193f93"
+    },
+    "room-wire-red-step-1.log": {
+      "source": "build/test-results/matchmaking-room-wire-red-20261028/step-1.log",
+      "bytes": 1203,
+      "sha256": "2bf08e58e6f4f6ad73b78955adce8c99788db8b0e606dd03660496f9f27f4a5f"
+    },
+    "room-wire-first-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-first-20261028/report.json",
+      "bytes": 1028,
+      "sha256": "495e50a8bbe2a44e3f3a01add38ef6808bcc30e4a7828b15eff54c4993f5c36d"
+    },
+    "room-wire-first-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-first-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "6b6cdff1253cdf0f5f542ef9fa5c7c9acffb39130a6ef9082fb9f4f64ba16225"
+    },
+    "room-wire-first-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-first-20261028/step-0.log",
+      "bytes": 1594,
+      "sha256": "c412bf8d859e979f24559f3d3f2c6ff9a181bfa94691caa974ad2ab67a6eb1a3"
+    },
+    "room-wire-integration-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-integration-20261028/report.json",
+      "bytes": 2016,
+      "sha256": "dc1950f384d1f92c42662d1d727e7ae03df694846a119f155ef5ff6f5c5436b7"
+    },
+    "room-wire-integration-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-integration-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "35a764c8a918fbd3ef1e34967aa5f51982a81354e1e13bb36a99c5880b809db5"
+    },
+    "room-wire-integration-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-integration-20261028/step-0.log",
+      "bytes": 2323,
+      "sha256": "e16b1b3826aaca2a3777bd7248a2852fc84d8024b9af2ce75d8e82e8924d1543"
+    },
+    "room-wire-integration-step-1.log": {
+      "source": "build/test-results/matchmaking-room-wire-integration-20261028/step-1.log",
+      "bytes": 1431,
+      "sha256": "3bb68c92b2b4b2eaac15438335de9aba67225b0654a7c09916ee549141e69c41"
+    },
+    "room-wire-integration-step-2.log": {
+      "source": "build/test-results/matchmaking-room-wire-integration-20261028/step-2.log",
+      "bytes": 7312,
+      "sha256": "435aa5513d06494efd19d728a3a1fae5ff8975582fb3d48df4995de102966321"
+    },
+    "room-wire-focused-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-focused-20261028/report.json",
+      "bytes": 2280,
+      "sha256": "ac8872c7504e88dfe084d2daa9418d941fa65d8ab9ebc98b63ce44f588fde4e5"
+    },
+    "room-wire-focused-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-focused-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "7ee59ba31e26d676cef4348b6433ac3f64d2117d7989baf6fe2943bfe48cbba0"
+    },
+    "room-wire-focused-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-focused-20261028/step-0.log",
+      "bytes": 19796,
+      "sha256": "08bf376f616281008919a6cbf6bf646ab0ad387fe418ab1b38e750708d427b97"
+    },
+    "room-wire-focused-step-1.log": {
+      "source": "build/test-results/matchmaking-room-wire-focused-20261028/step-1.log",
+      "bytes": 1430,
+      "sha256": "eb9c82430bb22ff9ffb20b54ecf0218054243670eaf581a8335a4727bfaa310c"
+    },
+    "room-wire-focused-step-2.log": {
+      "source": "build/test-results/matchmaking-room-wire-focused-20261028/step-2.log",
+      "bytes": 1498,
+      "sha256": "8857e4124f02d73555b5d279674a96d14ad148d5d25f122129b853702205156b"
+    },
+    "room-wire-buffered-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-buffered-20261028/report.json",
+      "bytes": 1045,
+      "sha256": "051b08e005ca62c045363c0183093d7ad77f5dbf4696ea02c75207b514fb4c3e"
+    },
+    "room-wire-buffered-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-buffered-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "ced9724e05e464a172501d0b82e31f368483e3c005f188bdd194456b5127b6e7"
+    },
+    "room-wire-buffered-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-buffered-20261028/step-0.log",
+      "bytes": 18839,
+      "sha256": "b7f63cde0ac7b01015f6d70d75a900740402305f154c42de50beaa01a0a1db8a"
+    },
+    "room-wire-full-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-full-20261028/report.json",
+      "bytes": 2780,
+      "sha256": "a095fb76f1fd550b2157d655ff3440f018f00220fe3588ba6ca51c33c1055232"
+    },
+    "room-wire-full-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-full-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "3e885265ad014caa4b6758ac5b0a1e842103c4a62d7d62282fd4776d05cd74ee"
+    },
+    "room-wire-full-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-full-20261028/step-0.log",
+      "bytes": 28170,
+      "sha256": "ed106d38be8c18cca30d8df1c6673c0775f7b1360c4a102abe1d1fb99b807b66"
+    },
+    "room-wire-full-step-1.log": {
+      "source": "build/test-results/matchmaking-room-wire-full-20261028/step-1.log",
+      "bytes": 1430,
+      "sha256": "4214b92a699f8f85a8da4f5972afeb62be28ac44f62f585e6a084186fa5fb6d6"
+    },
+    "room-wire-full-step-2.log": {
+      "source": "build/test-results/matchmaking-room-wire-full-20261028/step-2.log",
+      "bytes": 12818,
+      "sha256": "93cac9fe95be40e9e632a1d58cc31b550f52fdcd82fa55ee74255245ca78a129"
+    },
+    "room-wire-production-invocation.json": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/invocation.json",
+      "bytes": 3291,
+      "sha256": "ff5981a323a70c7b788d05cfe5e2490cb3f0ab18cb62d72d2b4da071176e1afd"
+    },
+    "room-wire-production-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/report.json",
+      "bytes": 5031,
+      "sha256": "4afad03e04aba0748e7fca1032f25e5ae8d715f9a4ac0da90415e72ae87407c2"
+    },
+    "room-wire-production-source-manifest.json": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/source-manifest.json",
+      "bytes": 31754,
+      "sha256": "4350d6a97da55064fe5811fb9ba1c34d527bced76adf1fdb249de24b150bf515"
+    },
+    "room-wire-production-step-0.log": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/step-0.log",
+      "bytes": 24680,
+      "sha256": "e5947e4fd28ad998284df3715300c3f6cade13c833cffa9ca5c10ff8e1e9e70a"
+    },
+    "room-wire-production-step-1.log": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/step-1.log",
+      "bytes": 1431,
+      "sha256": "0ceb8b6edeaf8bea6bb894d95bfce87e85a39129151fc950f962a1ffea7fb95d"
+    },
+    "room-wire-production-step-2.log": {
+      "source": "build/test-results/matchmaking-room-wire-production-20261028/step-2.log",
+      "bytes": 4274,
+      "sha256": "2c30ac7994f4e42cb50ea1580cd5787b502b492c64c8c9f8b4feee9ce50ab92c"
+    },
+    "room-wire-cmake-build.log": {
+      "source": "build/test-results/matchmaking-room-wire-cmake-20261028/build.log",
+      "bytes": 6784,
+      "sha256": "1d69212ccce670547d7a332ced490befdb780581d8b700b1f72c1fef0951768d"
+    },
+    "room-wire-cmake-configure.log": {
+      "source": "build/test-results/matchmaking-room-wire-cmake-20261028/configure.log",
+      "bytes": 4637,
+      "sha256": "7d75f5a8c13b1594d7bc958df4673ed3075a422e207a7d0064a75877dd6e383b"
+    },
+    "room-wire-cmake-report.json": {
+      "source": "build/test-results/matchmaking-room-wire-cmake-20261028/report.json",
+      "bytes": 2492,
+      "sha256": "e5d69925783669afdacc43985e88618c4b5507ad780266cbdb413a1cc704829b"
+    },
+    "room-wire-cmake-tests.log": {
+      "source": "build/test-results/matchmaking-room-wire-cmake-20261028/tests.log",
+      "bytes": 299,
+      "sha256": "c63e549b77edb0a4d9f168c0c3e13e68ccdd2730989933915a3b2a1346ffed8a"
+    },
+    "room-wire-cmake-identity.json": {
+      "source": "build/test-results/matchmaking-room-wire-cmake-20261028/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1865,
+      "sha256": "e56ac552b5d97991c083db6bccd89f7c197e2f875d0070f0594a83a5cc646847"
+    }
+  }
+}

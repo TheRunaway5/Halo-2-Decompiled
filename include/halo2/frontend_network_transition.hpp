@@ -11,16 +11,18 @@
 namespace halo2 {
 struct FrontendContent;
 // TU1.5 0x19481B status strings shown by the network transition dialog.
-// The native loader maps its world preparation to network_loading_map,
-// first-frame/network setup to network_joining and a departure to leaving.
+// Resident imported-map preparation uses network_joining through the first
+// gameplay draw. network_loading_map is reserved for a blocking map copy;
+// departures use network_leaving.
 enum class FrontendNetworkTransitionStatus : std::uint8_t { LoadingMap, SettingUpGame, LeavingGame };
 
 // Original screen231 network_transition_progress ("PLEASE WAIT"). The same
 // frontend pane owner paints its authored bitmaps, animation and text from
-// the selected menu content; only the materials it actually uses are kept,
+// the selected MCC pixels and fonts with authenticated TU1.5 logical geometry;
+// only the materials it actually uses are kept,
 // so the loading bridge can present it after the frontend has departed.
-// TU1.5 0x229C50 draws this UI over a black clear, without the shell
-// background; 0x258605 replaces pane text0 with the status every frame.
+// TU1.5 0x23B971 supplies the authored full-window blue overlay before
+// the panel; 0x258605 replaces pane text0 with the status every frame.
 class FrontendNetworkTransitionPainter {
 public:
   FrontendNetworkTransitionPainter(const FrontendContent &,const std::filesystem::path &fonts,

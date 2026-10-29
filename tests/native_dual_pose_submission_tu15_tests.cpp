@@ -63,7 +63,7 @@ unsigned unused_udp_port() {
 }
 void hold(Uint32 window,bool down) {
     SDL_Event event{};event.type=down?SDL_KEYDOWN:SDL_KEYUP;event.key.windowID=window;
-    event.key.keysym.scancode=SDL_SCANCODE_X;event.key.state=down?SDL_PRESSED:SDL_RELEASED;
+    event.key.keysym.scancode=SDL_SCANCODE_C;event.key.state=down?SDL_PRESSED:SDL_RELEASED;
     need(SDL_PushEvent(&event)==1,"Queue actual native dual-pickup SDL input");
 }
 std::uint32_t fixture_weapon(const MultiplayerPreparedWorld &world) {

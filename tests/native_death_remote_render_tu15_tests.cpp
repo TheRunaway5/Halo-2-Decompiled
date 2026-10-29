@@ -1,6 +1,7 @@
 #define SDL_MAIN_HANDLED
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/multiplayer_world.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_scoreboard.hpp"
@@ -499,19 +500,26 @@ int main(int argc,char **argv)try {
     bool published{};
     try {
       // Construct and run every source physics/observer owner on this thread.
-      Cache host_cache(argv[2],{},original);const auto host_content=host_cache.load_content(0,true);
-      auto source_owner=native_mcc?std::make_unique<MultiplayerObjectRuntime>(host_cache,0,files.path):
-          std::make_unique<MultiplayerObjectRuntime>(source_image,host_cache,0,files.path);
-      auto &source=*source_owner;
-      source.configure_session(source_game_variant(variant),1,30,rules.random_seed);
-      MultiplayerMatch match(host_content,0,host_cache.spawns(),rules,{}, {},&source);
-      check(match.source_engine_owned(),"Remote death fixture bypassed the canonical source engine");match.join("Shooter");
+      MultiplayerOptions host_options;host_options.map=argv[2];host_options.gameplay_xbe=source_image;
+      host_options.variant=variant;host_options.starting_weapon=5;host_options.local_players=1;
+      host_options.session_random_seed=rules.random_seed;host_options.source_object_world=true;
+      host_options.source_object_savegame_directory=files.path;host_options.mute=true;
+      // Use the production owner to register the immutable Cache, local view,
+      // native birth and recipient packet phase together before joining.
+      MultiplayerPreparedWorld host_world(host_options);auto &match=host_world.match;
+      check(host_world.source_objects && host_world.source_objects->owns_physics(),
+          "Remote death authority lacks its actual source world");
+      auto &source=*host_world.source_objects;const auto &host_cache=*host_world.cache;
+      const auto &host_content=host_world.content;
+      check(match.source_engine_owned(),"Remote death fixture bypassed the canonical source engine");
+      check(host_world.local_slots.size()==1 && host_world.local_slots.front()==0 &&
+          match.player(0).connected && !match.player(1).connected,
+          "Remote death authority must begin with exactly its one genuine local player");
       check(bool(match.session_configuration()),"Remote death authority lost its admitted configuration");
       const auto &configuration=*match.session_configuration();
       // Match the ordinary loading handshake: MCC identifies the admitted
       // selector, before native player birth can choose a live weapon tag.
-      const auto weapon_identity=native_mcc?
-          std::uint32_t(source_game_variant_get(source_game_variant(configuration),89)):rules.weapon;
+      const auto weapon_identity=host_world.network_starting_weapon_identity();
       const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(argv[2],
           host_cache.shared_directory(),0,weapon_identity,source_image),configuration);
       LanHost host(match,0,fingerprint,configuration);port.set_value(host.join_address());published=true;

@@ -147,6 +147,26 @@ struct FractionalGripProbe {
             endpoint_error<=1e-4f && weapon_error<=1e-4f && old_independent_weapon_error>1e-4f}};
   }
 };
+// The production presentation owner cuts both carried weapons when inventory
+// changes and cuts the life/attachment family at player or teleport boundaries.
+// The independent ModelNodeInterpolation reference must use that same completed
+// endpoint lifetime, rather than bridge the genuine native pickup discontinuity.
+// Each cut is also tested against the old, deliberately continuous counterfactual.
+bool budget_reference_discontinuity(const MultiplayerState &previous,const MultiplayerState &current,
+    std::uint32_t owner) {
+  if(previous.source_body_poses_authoritative!=current.source_body_poses_authoritative)return true;
+  for(unsigned slot=0;slot<current.players.size();++slot) {
+    const auto &a=previous.players[slot],&b=current.players[slot];
+    const bool weapon=owner==a.source_weapon || owner==b.source_weapon ||
+        owner==a.secondary_weapon.datum || owner==b.secondary_weapon.datum;
+    if(weapon && (a.source_weapon!=b.source_weapon || a.secondary_weapon.datum!=b.secondary_weapon.datum))return true;
+    const bool same_lifetime=a.connected==b.connected && a.dead==b.dead && a.source_player==b.source_player &&
+        a.source_unit==b.source_unit && a.source_parent==b.source_parent && a.source_seat==b.source_seat &&
+        a.source_teleport_serial==b.source_teleport_serial && length(a.position-b.position)<5;
+    if(!same_lifetime && (weapon || owner==a.source_unit || owner==b.source_unit))return true;
+  }
+  return false;
+}
 struct NativeBudgetProbe {
   // pose.rs: positions are rounded at1/1024WU; rigid rotations keep three
   // quaternion components at1/4096 and accept native orthogonality within.002.
@@ -161,6 +181,10 @@ struct NativeBudgetProbe {
   unsigned inputs{},delivered{},dropped{},fragments{},provenance{},older_frames{},fractional{},binding_changes{},births{};
   unsigned sequence{};
   float max_root_coordinate{},max_root_basis{},max_policy_error{},max_current_articulation_error{};
+  unsigned continuous_policy_samples{},cut_policy_samples{},wrong_continuous_cut_samples{};
+  float max_continuous_policy_error{},max_cut_policy_error{},max_wrong_continuous_cut_error{};
+  std::uint32_t initial_budget_bps{},last_budget_bps{};
+  nlohmann::json adaptive_budget_transitions=nlohmann::json::array();
   explicit NativeBudgetProbe(std::string name):profile(std::move(name)) {
     const auto *prior=std::getenv("H2_NET_PROFILE");const std::optional<std::string> saved=prior?std::optional(std::string(prior)):std::nullopt;
     const auto set=[](const char *value) {
@@ -180,6 +204,7 @@ struct NativeBudgetProbe {
 #endif
     }
     need(sender->stats().budget_bps==(profile=="original"?30720u:262144u),"Actual Rust sender did not select its finite profile");
+    initial_budget_bps=last_budget_bps=sender->stats().budget_bps;
   }
   static bool binding_equal(const SourceWorldPoseAttachment &a,const SourceWorldPoseAttachment &b) {
     return a.parent==b.parent && a.parent_node==b.parent_node &&
@@ -250,15 +275,36 @@ struct NativeBudgetProbe {
         if(old==previous->source_body_poses.end() || !old->attachment ||
             old->attachment->parent!=now.attachment->parent || old->attachment->parent_node!=now.attachment->parent_node)continue;
         const auto *model=hierarchy(now.object);need(model,"Actual budgeted child has no admitted model hierarchy");
-        ModelNodeInterpolation reference;reference.capture(previous->tick,old->nodes,old->attachment->parent_frame);
+        const bool pair=!budget_reference_discontinuity(*previous,value,now.object) &&
+            old->nodes.size()==now.nodes.size() &&
+            old->attachment->parent_frame.has_value()==now.attachment->parent_frame.has_value();
+        ModelNodeInterpolation reference;
+        if(pair)reference.capture(previous->tick,old->nodes,old->attachment->parent_frame);
         reference.capture(value.tick,now.nodes,now.attachment->parent_frame);
+        ModelNodeInterpolation wrong_continuous;
+        if(!pair) {
+          wrong_continuous.capture(previous->tick,old->nodes,old->attachment->parent_frame);
+          wrong_continuous.capture(value.tick,now.nodes,now.attachment->parent_frame);
+        }
         for(const auto fraction:{.25f,.5f,.75f}) {
           const auto parent_nodes=history.sample(now.attachment->parent,fraction,hierarchy);
           need(now.attachment->parent_node<parent_nodes.size(),"Budgeted child lost its actual shown parent node");
           const auto expected=reference.sample(*model,fraction,parent_nodes[now.attachment->parent_node]);
           const auto shown=history.sample(now.object,fraction,hierarchy);
           need(shown.size()==expected.size(),"Budgeted child changed its model-order bank");
-          for(unsigned node=0;node<shown.size();++node)max_policy_error=std::max(max_policy_error,difference(shown[node],expected[node]));
+          float policy_error{};
+          for(unsigned node=0;node<shown.size();++node)policy_error=std::max(policy_error,difference(shown[node],expected[node]));
+          max_policy_error=std::max(max_policy_error,policy_error);
+          if(pair) {
+            ++continuous_policy_samples;max_continuous_policy_error=std::max(max_continuous_policy_error,policy_error);
+          } else {
+            ++cut_policy_samples;max_cut_policy_error=std::max(max_cut_policy_error,policy_error);
+            const auto wrong=wrong_continuous.sample(*model,fraction,parent_nodes[now.attachment->parent_node]);
+            float counterfactual_error{};
+            for(unsigned node=0;node<shown.size();++node)counterfactual_error=std::max(counterfactual_error,difference(shown[node],wrong.at(node)));
+            max_wrong_continuous_cut_error=std::max(max_wrong_continuous_cut_error,counterfactual_error);
+            wrong_continuous_cut_samples+=counterfactual_error>1e-5f;
+          }
           ++fractional;
         }
       }
@@ -303,12 +349,20 @@ struct NativeBudgetProbe {
         }
       }
       sender->ack(receiver.ack(),now+1u);
+      const auto current_budget=sender->stats().budget_bps;
+      if(current_budget!=last_budget_bps) {
+        need(adaptive_budget_transitions.size()<16u,"Bound actual finite budget transition evidence");
+        adaptive_budget_transitions.push_back({{"input",inputs},{"tick",state.tick},{"now_ms",now},
+            {"before_bps",last_budget_bps},{"after_bps",current_budget}});
+        last_budget_bps=current_budget;
+      }
     }catch(const std::exception &failure){error=failure.what();}
   }
   nlohmann::json report()const {
     const auto sent=sender->stats();const auto received=receiver.stats();
     return {{"profile",profile},{"inputs",inputs},{"delivered",delivered},{"declared_lost_messages",dropped},
         {"fragments",fragments},{"budget_bps",sent.budget_bps},{"full_refreshes",sent.full_refreshes},
+        {"initial_budget_bps",initial_budget_bps},{"adaptive_budget_transitions",adaptive_budget_transitions},
         {"forced_full_refreshes",sent.forced_refreshes},{"root_updates",sent.root_updates},{"dirty_held_refreshes",sent.held_refreshes},
         {"receiver_held_or_root_materializations",received.held_poses},{"receiver_missing_poses",received.missing_poses},
         {"receiver_failures",received.failures},{"over_budget",sent.over_budget},{"retired",sent.retired},
@@ -320,10 +374,16 @@ struct NativeBudgetProbe {
         {"codec_node_zero_is_not_object_root",true},
         {"max_codec_root_coordinate_error",max_root_coordinate},{"max_codec_root_basis_error",max_root_basis},
         {"max_internal_parent_frame_policy_error",max_policy_error},
+        {"continuous_policy_samples",continuous_policy_samples},{"cut_policy_samples",cut_policy_samples},
+        {"wrong_continuous_cut_samples",wrong_continuous_cut_samples},
+        {"max_continuous_policy_error",max_continuous_policy_error},{"max_cut_policy_error",max_cut_policy_error},
+        {"max_wrong_continuous_cut_error",max_wrong_continuous_cut_error},
+        {"presentation_discontinuity_policy","Independent model reference resets at the actual source player/inventory/teleport lifetime boundary; the old continuous counterfactual must differ"},
         {"max_current_articulation_position_difference_world_units",max_current_articulation_error},
         {"articulation_limit","Budgeted articulated banks may be older; the finite profile is not lossless native-pose parity"},
         {"path_observability","Sender counters classify full/root/dirty deferral globally; receiver held counter also includes roots. No per-entry Rust trace is inferred."},
         {"error",error},{"passed",error.empty() && inputs>=180u && delivered>=150u && provenance && fractional &&
+            continuous_policy_samples && cut_policy_samples && wrong_continuous_cut_samples && max_wrong_continuous_cut_error>1e-5f &&
             sent.budget_bps<std::numeric_limits<std::uint32_t>::max() && !sent.retired && !received.failures &&
             !received.missing_poses && max_policy_error<=1e-5f}};
   }

@@ -96,7 +96,7 @@ class FriendsApi:
         fields(body,("request_id","action","tag" if action=="search" else "target"))
         if action=="search":
             target = friend_tags.resolve(self.db,body["tag"])
-            require(target!=who and not self.blocked(who,target),"Player not found",404)
+            require(target!=who,"Player not found",404)
             return web.json_response(dict(**self.view(who,party=request.query.get("party")=="1"),search_result=self.public_player(target)),headers={"Cache-Control":"no-store"})
         payload = canonical(body).decode()
         with self.db:

@@ -142,6 +142,10 @@ int main(int argc, char **argv) {
                                       0x12345678);
           isolated.spawn(e.effect, e.projectile, e.tick, frame);
           isolated.advance(e.tick, tick_seconds);
+          auto isolated_fork_random=isolated.checkpoint().random()[0];
+          auto silent_fork=isolated.fork({isolated_fork_random,isolated_fork_random},{});
+          check(!isolated.take_sounds().empty() && silent_fork->take_sounds().empty(),
+                "Visual fork copied queued authored grenade audio or consumed its predecessor's requests");
           const auto lights=isolated.lights();
           check(lights.size()==1 && lights[0].definition==0xe63a04c5 && lights[0].owner==null_datum && lights[0].effect_owner==e.projectile && lights[0].tick==e.tick && lights[0].state.brightness==4,
                 "Actual frag lost its authored light/owner/birth brightness");
@@ -280,6 +284,28 @@ int main(int argc, char **argv) {
           auto obsolete=std::make_shared<int>(0);std::weak_ptr<int> retired=obsolete;
           effects.collision_query([obsolete](auto,auto,auto)->std::optional<ParticleCollisionHit>{return {};});
           const auto cut=effects.checkpoint();const auto random=cut.random();
+          std::uint32_t fork_random=random[0];
+          auto fork=effects.fork({fork_random,fork_random},{});
+          check(fork->checkpoint().tick()==cut.tick() && fork->take_sounds().empty(),
+              "Independent visual timeline changed its starting tick or replayed queued audio");
+          const auto fork_draws=fork->draw(view,0,tick_seconds);
+          check(fork_draws.size()==draws.size() && fork->lights().size()==d.lights,
+              "Independent visual timeline lost active particles or light owners");
+          for(unsigned n=0;n<fork_draws.size();++n)check(
+              fork_draws[n].material==draws[n].material &&
+              fork_draws[n].vertex.attributes==draws[n].vertex.attributes &&
+              fork_draws[n].vertex.constants==draws[n].vertex.constants,
+              "Independent visual timeline changed resident material identity or posed output");
+          bool cross_owner=false;
+          try{(void)fork->prepare_restore(cut,{fork_random,fork_random},{});}catch(const FormatError&){cross_owner=true;}
+          check(cross_owner,"Fork accepted its predecessor's checkpoint publication token");
+          bool shared_rng=false;
+          try{(void)effects.fork({shared_visual,shared_visual},{});}catch(const FormatError&){shared_rng=true;}
+          check(shared_rng,"Independent visual timeline retained the gameplay RNG owner");
+          fork->advance(state.tick+3,tick_seconds);
+          check(effects.checkpoint().tick()==cut.tick() && shared_visual==random[0] &&
+              effects.diagnostics().particles==d.particles && effects.lights().size()==d.lights,
+              "Independent visual advancement changed gameplay particles, lights, tick or RNG");
 #if defined(__GLIBC__)
           // Explicit normal-build allocator probe. Keep a full history of
           // actual active-light cuts alive at once; no source state or

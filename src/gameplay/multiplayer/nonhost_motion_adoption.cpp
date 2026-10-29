@@ -5,6 +5,7 @@
 #include "halo2/native_tu15_object_motion.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstdlib>
 #include <stdexcept>
@@ -32,6 +33,66 @@ NonHostMotionAdopter::NonHostMotionAdopter(NonHostMotionDefinition bounds, float
     throw std::invalid_argument("Non-host motion adoption requires the biped radius");
   for (auto &peer : peers_)
     peer.adoption.budget = limits_.budget_burst;
+}
+
+std::array<std::uint32_t,41> NonHostMotionAdopter::checkpoint_configuration() const {
+  std::array<std::uint32_t,41> result{};
+  std::size_t next{};
+  const auto scalar=[&](float value){result[next++]=std::bit_cast<std::uint32_t>(value);};
+  const auto &m=bounds_.movement;
+  for(float value:{m.forward,m.backward,m.sideways,m.acceleration,m.crouch_forward,
+      m.crouch_backward,m.crouch_sideways,m.crouch_acceleration,m.air_acceleration,m.limited_speed,
+      bounds_.height,bounds_.crouch_height,bounds_.crouch_velocity,bounds_.jump_velocity})scalar(value);
+  result[next++]=bounds_.physics_flags;
+  const auto &s=bounds_.slope;
+  const auto &l=bounds_.landing;
+  for(float value:{s.downhill_scale,s.uphill_scale,s.downhill_full,s.downhill_start,s.uphill_start,s.uphill_full,
+      l.soft_seconds,l.hard_seconds,l.soft_speed,l.hard_speed,l.maximum_speed})scalar(value);
+  result[next++]=bounds_.locomotion_deadzone_bits.has_value();
+  result[next++]=bounds_.locomotion_deadzone_bits.value_or(0);
+  result[next++]=bounds_.source_control;result[next++]=bounds_.source_facing;
+  scalar(bounds_.origin_height);scalar(radius_);
+  for(float value:{limits_.reject_distance,limits_.teleport_distance,limits_.velocity_deadband_squared,
+      limits_.nudge_scale,limits_.nudge_limit})scalar(value);
+  result[next++]=limits_.anti_cheat;
+  for(float value:{limits_.speed_tolerance,limits_.budget_rate,limits_.budget_burst})scalar(value);
+  return result;
+}
+NonHostMotionAdopter::Checkpoint NonHostMotionAdopter::checkpoint() const {
+  Checkpoint result{checkpoint_configuration(),peers_};
+  validate_checkpoint(result);
+  return result;
+}
+void NonHostMotionAdopter::validate_checkpoint(const Checkpoint &checkpoint) {
+  const auto &configuration=checkpoint.configuration;
+  for(unsigned n=0;n<configuration.size();++n) {
+    if(n==14 || n==26 || n==27 || n==28 || n==29 || n==37)continue;
+    if(!std::isfinite(std::bit_cast<float>(configuration[n])))
+      throw std::invalid_argument("Non-host motion checkpoint has a nonfinite configuration");
+  }
+  for(unsigned n:{26u,28u,29u,37u})if(configuration[n]>1)
+    throw std::invalid_argument("Non-host motion checkpoint has a noncanonical configuration flag");
+  if((!configuration[26] && configuration[27]) ||
+      (configuration[26] && !std::isfinite(std::bit_cast<float>(configuration[27]))) ||
+      !(std::bit_cast<float>(configuration[31])>0))
+    throw std::invalid_argument("Non-host motion checkpoint has invalid authored operands");
+  for(unsigned n=32;n<configuration.size();++n)
+    if(n!=37 && std::bit_cast<float>(configuration[n])<0)
+      throw std::invalid_argument("Non-host motion checkpoint has invalid adoption limits");
+  const float burst=std::bit_cast<float>(configuration[40]);
+  for(const auto &peer:checkpoint.peers) {
+    if(!std::isfinite(peer.velocity.x) || !std::isfinite(peer.velocity.y) || !std::isfinite(peer.velocity.z) ||
+        !std::isfinite(peer.adoption.budget) || peer.adoption.budget<0 || peer.adoption.budget>burst ||
+        unsigned(peer.forced)>unsigned(NonHostForcedMotion::unexplained_velocity) ||
+        (peer.forced!=NonHostForcedMotion::none && !peer.adoption.forced_sequence))
+      throw std::invalid_argument("Non-host motion checkpoint has invalid peer state");
+  }
+}
+void NonHostMotionAdopter::restore(const Checkpoint &checkpoint) {
+  validate_checkpoint(checkpoint);
+  if(checkpoint.configuration!=checkpoint_configuration())
+    throw std::invalid_argument("Non-host motion checkpoint configuration differs from its fresh owner");
+  peers_=checkpoint.peers;
 }
 
 namespace {

@@ -8,6 +8,9 @@ static_assert(static_cast<unsigned>(Kind::DepartPlayer)==14&&static_cast<unsigne
   static_cast<unsigned>(Kind::PlayerCamera)==25&&static_cast<unsigned>(Kind::ParticleCollision)==29&&
   static_cast<unsigned>(Kind::MatchStepViews)==32,
   "Update the Rust network capability policy when the call wire enum changes");
+static_assert(static_cast<unsigned>(Kind::BeginPresentedModelPoses)==35 &&
+  static_cast<unsigned>(Kind::EndPresentedModelPoses)==36,
+  "Update the presented-pose network capability policy when the call wire enum changes");
 void validate_source_network_replay_calls(std::span<const SourceExecutionCall> calls){
   for(const auto &call:calls)
     if(!online_protocol_bridge::network_replay_call(static_cast<std::uint8_t>(call.kind)))

@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "oracle_sha256": "9e5194a8edaa6f840c2ef7917bb783039d10776b8d50e6f1f1a21932eb243401",
+  "fixture_sha256": "3dd366025109302824808e07fa5feeb00ede43c6bfabcbd6bc91c190a3e138fc",
+  "fixture_bytes": 206883,
+  "scope": "Record unchanged retail lifecycle outputs with declared synthetic operands.\n\nWhole 70190, 75890, 193C70/getters, 91290/912D0 and prepared 70EA0 run\nunchanged. Role entries, growth/countdown/timeout blocks, successful initializer\ntail and query resubmission stop at explicit boundaries before platform/launch\nwork. No instruction, allocator, callback, NAT or Live callee is substituted.\nRun through tools/run_test.py. Only bounded numerical reference JSON is retained.\n",
+  "counts": {
+    "jitter": 68,
+    "elapsed": 37,
+    "roles": 72,
+    "progress": 199,
+    "growth": 578,
+    "hoppers": 7,
+    "countdown_gates": 49,
+    "gather_timeouts": 63,
+    "search_timeouts": 12,
+    "seen": 154,
+    "seen_final": 150,
+    "seen_lookups": 7
+  },
+  "original_instructions": 2236,
+  "executed_instruction_sha256": "9397749daed613032d1233b6ae73f705c4ce3120d19d1f1306bc126ee88c7c07",
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hftljwuf",
+  "scratch_retained": false,
+  "whole_session_or_live_flow_qualified": false
+}

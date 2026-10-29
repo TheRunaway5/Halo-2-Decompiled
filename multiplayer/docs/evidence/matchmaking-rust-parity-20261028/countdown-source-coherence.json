@@ -1,0 +1,18 @@
+{
+  "source_checks": [
+    {
+      "cohort": "full-final",
+      "files": 234,
+      "drift": [],
+      "drift_during_freeze": []
+    },
+    {
+      "cohort": "production-final",
+      "files": 234,
+      "drift": [],
+      "drift_during_freeze": []
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-9genzfct",
+  "retained_large_artifacts": []
+}

@@ -41,9 +41,13 @@ enum class SourceExecutionCallKind:std::uint8_t {
     AdmittedCamera=31,
     // MatchStep with the producer's rewind mode and remote displayed views
     // (lag-compensated hitscan, NETCODE_ENHANCED_GOAL item 2).
-    MatchStepViews=32
+    MatchStepViews=32,
+    // Semantic native cinematic lifecycle calls. They have no operands or
+    // return bytes; their results are persistent world state publications.
+    StopCampaignScreen=33,AcknowledgeCampaignScreenCapture=34,
+    BeginPresentedModelPoses=35,EndPresentedModelPoses=36,ChangeTeam=37
 };
-inline constexpr SourceExecutionCallKind source_execution_call_kind_last=SourceExecutionCallKind::MatchStepViews;
+inline constexpr SourceExecutionCallKind source_execution_call_kind_last=SourceExecutionCallKind::ChangeTeam;
 constexpr bool source_execution_call_has_result(SourceExecutionCallKind kind)noexcept {
     return (kind>=SourceExecutionCallKind::PrepareSourceCall&&kind<=SourceExecutionCallKind::RenderGeometry)||
         kind==SourceExecutionCallKind::MatchState||kind==SourceExecutionCallKind::PlayerCamera||
@@ -103,6 +107,7 @@ private:
     friend class SourceExecutionInputBinding;
     friend class SourceExecutionCallScope;
     friend class SourceExecutionObserverScope;
+    friend class SourceExecutionFailedCleanupScope;
     const std::thread::id executor_=std::this_thread::get_id();
     const SourceRuntimeMemory *bound_memory_{};
     std::vector<SourceExecutionInput> entries_;
@@ -172,6 +177,17 @@ public:
 private:
     SourceExecutionInputs *inputs_{};
     std::array<std::uint64_t,2> before_{};
+};
+// Failure-only undo of already admitted temporary native inputs. This never
+// records a successful operation: the tape is permanently failed. Ordinary
+// memory/resource permissions remain active, and no external value is supplied.
+class SourceExecutionFailedCleanupScope {
+public:
+    explicit SourceExecutionFailedCleanupScope(const SourceRuntimeMemory &);
+    ~SourceExecutionFailedCleanupScope();
+    SourceExecutionFailedCleanupScope(const SourceExecutionFailedCleanupScope &)=delete;
+private:
+    SourceExecutionInputs *inputs_{};
 };
 // Binding and mutable tape stay on one executor. A sealed owning entry vector
 // may later cross threads; no live native owner or callback is in those values.

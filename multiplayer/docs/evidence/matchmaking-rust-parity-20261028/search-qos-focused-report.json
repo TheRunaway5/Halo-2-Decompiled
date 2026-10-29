@@ -1,0 +1,65 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-vhp1nyz1/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--lib",
+        "--test",
+        "matchmaking_sessions"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-vhp1nyz1/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_search_qos_owner_native",
+        "multiplayer.master_server.tests.test_search_qos",
+        "multiplayer.master_server.tests.test_gathering_sessions",
+        "multiplayer.master_server.tests.test_gathering_owner_native"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-vhp1nyz1/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-vhp1nyz1",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/search-qos-port/halo2-test-vhp1nyz1/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "b88bc4020454211b0af1cc2dbe6be64da9b06748fc8c6a29d75fd542d86d8fbd",
+    "bytes": 3431992,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

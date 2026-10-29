@@ -10,7 +10,8 @@ struct MultiplayerState;
 VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch&,
     const UiVariant&,std::span<const OnlineAdmission>);
 // Check the admitted roster, source variant, scores, original placement and
-// the four retained public statistics against the final native snapshot.
+// the four retained public statistics and original weapon accuracy counters
+// against the final native snapshot before a result may be confirmed.
 void online_postgame_validate(const MultiplayerState&,const UiVariant&,
     std::span<const OnlineAdmission>,std::span<const std::byte> consumed_report);
 std::shared_ptr<const VistaPcrScreenOwner> online_postgame_screen(

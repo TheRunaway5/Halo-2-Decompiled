@@ -37,7 +37,8 @@ template<class T>void put(SourceRuntimeMemory& memory,std::uint32_t address,cons
 Json controls=Json::array();
 template<class F>void reject(const char* name,F fn,const char* expected) {
     try{fn();}catch(const std::exception& error) {
-        check(std::string(error.what()).find(expected)!=std::string::npos,"negative control hit an unrelated rejection");
+        if(std::string(error.what()).find(expected)==std::string::npos)
+            throw std::runtime_error(std::string("negative control '")+name+"' expected '"+expected+"', received: "+error.what());
         controls.push_back({{"name",name},{"rejected",true},{"reason",error.what()}});return;
     }
     throw std::runtime_error(std::string("unsupported live phase control admitted: ")+name);
@@ -88,8 +89,11 @@ std::size_t file_offset(std::span<const std::byte> raw,std::uint32_t address) {
 }
 int run(int argc,char** argv) {
     check(argc==7,"usage: test map actual640-bank actual960-bank actual-v21-descriptors shader-directory output-directory");
+    for(unsigned n=1;n<=4;++n)if(!std::filesystem::is_regular_file(argv[n])) {
+        std::cout<<"SKIP unavailable original phase-owner reference: "<<argv[n]<<'\n';return 77;
+    }
     const std::filesystem::path output=argv[6];check(!std::filesystem::exists(output),"fresh probe output required");std::filesystem::create_directories(output);
-    auto memory=snapshot(argv[2]);auto unsupported=snapshot(argv[3]);Cache cache(argv[1]);auto passes=selected(cache,argv[4]);
+    auto memory=snapshot(argv[2]);auto wide_memory=snapshot(argv[3]);Cache cache(argv[1]);auto passes=selected(cache,argv[4]);
     SDL_SetMainReady();check(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());struct Sdl{~Sdl(){SDL_Quit();}} sdl;
     auto window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("Actual TU1.5 shadow phase owner",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);
     check(bool(window),SDL_GetError());Mesh mesh;Material material;material.diffuse={1,1,11,{std::byte{64},std::byte{96},std::byte{128},std::byte{255}}, {}};mesh.materials.push_back(material);
@@ -100,17 +104,33 @@ int run(int argc,char** argv) {
     for(unsigned i=0;i<residue.constants.size();++i)for(unsigned lane=0;lane<4;++lane)residue.constants[i][lane]=float(1000+i*4+lane);
     residue.fog_parameters={.25f,.125f}; //Explicit UNUSED residue, not sourceSDK1,1.
     auto owner=source_live_shadow_phase_inputs_tu15(memory,use,residue);
-    reject("actual960 source against genuine640 attachment",[&]{(void)source_live_shadow_phase_inputs_tu15(unsupported,use,residue);},"full640x480");
+    reject("actual960 source against genuine640 attachment without logical surface",[&]{
+        (void)source_live_shadow_phase_inputs_tu15(wide_memory,use,residue);
+    },"full unsplit");
+    const auto logical_owner=source_live_shadow_phase_inputs_tu15(wide_memory,use,residue,{960,540});
+    const auto logical_camera=logical_owner.camera(use);
+    check(logical_camera==source_view_shader_bank(get<SourceViewProjectionBank>(wide_memory,0x4c6634u),
+        get<float>(wide_memory,0x491e7cu),get<Vec3>(wide_memory,0x491e38u),{0,0,960,540},false),
+        "temporal input attachment changed the actual logical source camera");
+    for(const auto& selected:passes) {
+        const bool apply=selected.phase==SourceShadowPhase::Apply;
+        const auto& phase=logical_owner.phase(use,cache,selected.phase,selected.pass,selected.vertex_class,selected.material);
+        check(phase.surface_size==(apply?std::array<float,2>{960,540}:std::array<float,2>{128,128}),
+            "temporal phase changed its source surface before physical renderer mapping");
+    }
+    for(const auto size:std::array<std::array<std::uint32_t,2>,3>{{{0,480},{640,0},{32768,480}}})
+        reject("invalid explicit logical surface",[&]{(void)source_live_shadow_phase_inputs_tu15(memory,use,residue,size);},"signed-short");
     const auto camera=owner.camera(use);const auto projection=get<SourceViewProjectionBank>(memory,0x4c6634u);
     const auto expected=source_view_shader_bank(projection,get<float>(memory,0x491e7cu),get<Vec3>(memory,0x491e38u),{0,0,640,480},false);
     check(std::memcmp(camera.data(),expected.data(),sizeof(camera))==0,"actual main camera composition changed");
-    Json report{{"authority","OG Xbox TU1.5"},{"actual640_bank",argv[2]},{"actual960_negative_bank",argv[3]},
+    Json report{{"authority","OG Xbox TU1.5"},{"actual640_bank",argv[2]},{"actual960_bank",argv[3]},
         {"native_device",use.device_address().value},{"generation",bank.generation},{"color_format",bank.color.front().format},
         {"depth_format",bank.depth_stencil.format},{"depth_samples",bank.depth_stencil.samples},{"selected_records",passes.size()},
         {"timed_effect_source",get<std::uint32_t>(memory,0x515ec0u)},
         {"timed_effect_native",memory.native_address(get<std::uint32_t>(memory,0x515ec0u),0x3fc).value},
         {"camera_words",Json::array()},{"phases",Json::array()},{"live_gpu_submission",false},
-        {"reference_framebuffer_parity",false},{"phase_field_patching_in_positive",false}};
+        {"reference_framebuffer_parity",false},{"phase_field_patching_in_positive",false},
+        {"logical_surface_attachment_mapping",true}};
     for(const auto& vector:camera)for(float value:vector)report["camera_words"].push_back(std::bit_cast<std::uint32_t>(value));
     for(unsigned n=0;n<passes.size();++n) {
         const auto& selected=passes[n];const bool apply=selected.phase==SourceShadowPhase::Apply;
@@ -135,9 +155,9 @@ int run(int argc,char** argv) {
         put(memory,address,previous);
     };
     change("nonordinary mode",0x491e22u,std::int16_t(1),"ordinary unscaled");change("scaled view",0x491e27u,std::uint8_t(1),"ordinary unscaled");
-    change("global viewport alias changed",0x4c65f0u,std::array<std::int16_t,4>{0,0,480,639},"full640x480");
-    change("submitting viewport alias changed",0x491e68u,std::array<std::int16_t,4>{0,0,240,640},"full640x480");
-    change("split players",0x4c686cu,std::int32_t(2),"full640x480");
+    change("global viewport alias changed",0x4c65f0u,std::array<std::int16_t,4>{0,0,480,639},"full unsplit");
+    change("submitting viewport alias changed",0x491e68u,std::array<std::int16_t,4>{0,0,240,640},"full unsplit");
+    change("split players",0x4c686cu,std::int32_t(2),"full unsplit");
     change("submitting eye alias changed",0x491e38u,Vec3{},"aliases differ");
     change("global near alias changed",0x4c6600u,0.f,"aliases differ");
     change("config far alias changed",0x4922f8u,512.f,"aliases differ");
@@ -185,8 +205,10 @@ int run(int argc,char** argv) {
             controls.back()["declared_asset_file_offset"]=physical;controls.back()["original_state"]=std::to_integer<unsigned>(original_map[physical]);controls.back()["declared_state"]=state;
         }
     }
-    //Mutate a real consumed constant index in the actual selected program,
-    //leaving all instruction opcodes/outputs and metadata ownership intact.
+    //Mutate a real consumed constant index in the actual selected program.
+    //The fixed native catalog rejects this new token identity before the
+    //phase can inspect its constant reads. Do not manufacture catalog entries
+    //merely to reach a later guard with unauthenticated instructions.
     const auto program=cache.load_vertex_shader_code(first.pass.vertex_shader(),first.vertex_class);
     const auto decoded=decode_vertex_program(program);unsigned instruction=decoded.count;
     for(unsigned n=0;n<decoded.count;++n) {
@@ -202,7 +224,7 @@ int run(int argc,char** argv) {
             const auto at=std::size_t(it-bytes.begin())+4+instruction*16+4;auto word=Bytes(bytes).u32(at);word=(word&~(255u<<13))|(constant<<13);std::memcpy(bytes.data()+at,&word,4);it+=program.size();++replacements;
         }check(replacements>0,"negative program does not resolve in actual map file");file_bytes(negative_map,bytes);
         Cache negative(negative_map,cache.shared_directory());auto negative_passes=selected(negative,argv[4]);const auto& p=negative_passes.front();
-        reject("actual program consumes unowned residue",[&]{(void)owner.phase(use,negative,p.phase,p.pass,p.vertex_class,p.material);},"unowned constant residue");
+        reject("actual program mutation violates immutable native metadata",[&]{(void)owner.phase(use,negative,p.phase,p.pass,p.vertex_class,p.material);},"no immutable native metadata");
         controls.back()["declared_constant"]=constant;controls.back()["modified_program_copies"]=replacements;
     }
     const auto saved=get<std::uint32_t>(memory,0x4117e4u);put(memory,0x4117e4u,std::uint32_t(2));
@@ -214,12 +236,32 @@ int run(int argc,char** argv) {
     SDL_SetWindowSize(window.get(),960,540);SDL_PumpEvents();renderer->resized();
     for(unsigned n=0;n<5 && use.valid();++n)(void)renderer->draw(Camera{});
     check(!use.valid(),"actual attachment generation did not retire");auto wide=targets.acquire();
-    reject("actual960 attachments",[&]{(void)source_live_shadow_phase_inputs_tu15(memory,wide,residue);},"single-sample640x480");
+    const auto wide_owner=source_live_shadow_phase_inputs_tu15(wide_memory,wide,residue);
+    const auto wide_camera=wide_owner.camera(wide);
+    const auto wide_projection=get<SourceViewProjectionBank>(wide_memory,0x4c6634u);
+    const auto wide_expected=source_view_shader_bank(wide_projection,get<float>(wide_memory,0x491e7cu),
+        get<Vec3>(wide_memory,0x491e38u),{0,0,960,540},false);
+    check(wide_camera==wide_expected,"actual960 source camera was replaced by a canonical viewport");
+    for(const auto& selected:passes) {
+        const bool apply=selected.phase==SourceShadowPhase::Apply;
+        const auto& phase=wide_owner.phase(wide,cache,selected.phase,selected.pass,selected.vertex_class,selected.material);
+        check(phase.controls.surface_clip==(apply?std::array<std::uint32_t,4>{0,0,960,540}:
+            std::array<std::uint32_t,4>{0,0,128,128}),"actual960 source phase clip differs from the real target");
+        check(phase.surface_size==(apply?std::array<float,2>{960,540}:std::array<float,2>{128,128}),
+            "actual960 source phase surface differs from the real target");
+        const std::array<std::int32_t,4> region=apply?std::array<std::int32_t,4>{0,0,961,541}:
+            std::array<std::int32_t,4>{0,0,129,129};
+        for(const auto& r:phase.raster.regions)check(r==region,"actual960 inclusive source raster window changed");
+        check(phase.clip_range==std::array<float,4>{0,16777215,255.99998474121094f,16777215},
+            "actual960 changed the original dimension-independent W/D24 clip arithmetic");
+    }
+    report["actual960_bank"]=argv[3];report["actual960_descriptors"]=passes.size();
+    reject("640 source against genuine960 attachments",[&]{(void)source_live_shadow_phase_inputs_tu15(memory,wide,residue);},"full unsplit");
     reject("retired640 attachment lease",[&]{(void)owner.camera(use);},"live native Renderer");
     renderer.reset();reject("retired native Renderer",[&]{(void)source_live_shadow_phase_inputs_tu15(memory,wide,residue);},"live native Renderer");
     report["rejection_controls"]=controls;report["passed"]=true;
     std::ofstream json(output/"probe.json");json<<report.dump(2)<<'\n';
-    std::cout<<"PASS actual retained640 source bank + genuine native Renderer lease;18 actual selected descriptors;"<<controls.size()<<" rejection controls; no phase-field patching, sourceSDKdevice, liveGPU activation or framebuffer parity claim\n";
+    std::cout<<"PASS actual retained640/960 source banks + genuine native Renderer leases;18 actual selected descriptors at both sizes and logical temporal input mapping;"<<controls.size()<<" rejection controls; no phase-field patching, sourceSDKdevice, liveGPU activation or framebuffer parity claim\n";
     return 0;
 }
 }

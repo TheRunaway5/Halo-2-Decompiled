@@ -36,6 +36,8 @@ int main(int argc,char **argv)try {
   const auto original=cache.original_data();auto content=cache.load_content(0,true);
   const std::string mode=std::getenv("HALO2_TU15_TEST_DAMAGE")?std::getenv("HALO2_TU15_TEST_DAMAGE"):"direct";
   const bool canonical_voice=std::getenv("HALO2_TU15_TEST_DAMAGE_VOICE")!=nullptr;
+  const bool player_eye=std::getenv("HALO2_TU15_TEST_PLAYER_EYE")!=nullptr;
+  const bool canonical_source=canonical_voice || player_eye;
   check(!canonical_voice || mode=="direct","Canonical damage voice acceptance requires the actual direct weapon route");
   const bool automatic_spectate=std::getenv("HALO2_TU15_TEST_AUTO_SPECTATE")!=nullptr;
   const auto respawn_seconds=automatic_spectate?20:5;
@@ -78,8 +80,8 @@ int main(int argc,char **argv)try {
   source.configure_session(variant,1,30,0x12345678u);
   auto rules=slayer_rules({"Slayer",0,{{89,5},{17,respawn_seconds}}});rules.weapon=cache.slayer_starting_weapon(5);
   rules.score_limit=rules.time_ticks=0;
-  MultiplayerMatch match(content,0,canonical_voice?std::span<const Spawn>(cache.spawns()):std::span<const Spawn>(selected),rules,{}, {},&source);
-  if(canonical_voice)check(match.source_engine_owned(),"Damage voice fixture bypassed the canonical source engine");
+  MultiplayerMatch match(content,0,canonical_source?std::span<const Spawn>(cache.spawns()):std::span<const Spawn>(selected),rules,{}, {},&source);
+  if(canonical_source)check(match.source_engine_owned(),"Native presentation fixture bypassed the canonical source engine");
   const auto resident=std::shared_ptr<const Cache>(&cache,[](const Cache*){});
   if(mode=="melee")match.configure_melee_animation(resident,*original->melee_constants);
   match.join("Shooter");
@@ -101,9 +103,9 @@ int main(int argc,char **argv)try {
     match.step(input);
     if(host){host->broadcast();client->receive();check(client->error().empty(),"Source UDP snapshot rejected");}
   };
-  bool positioned=!canonical_voice;
+  bool positioned=!canonical_source;
   const auto aim_canonical=[&] {
-    if(!canonical_voice || !positioned || match.player(0).source_current_object==null_datum || match.player(1).source_current_object==null_datum)return;
+    if(!canonical_source || !positioned || match.player(0).source_current_object==null_datum || match.player(1).source_current_object==null_datum)return;
     const auto look=source.player_look(match.player(0).source_datum,match.player(0).source_current_object);if(!look)return;
     const auto &shooter=match.unit(0),&target=match.unit(1);
     const auto eye=ordinary_unit_eye(shooter.body.position,shooter.definition.camera_height,shooter.definition.crouch_camera_height,shooter.crouch);
@@ -122,6 +124,32 @@ int main(int argc,char **argv)try {
   }
   check(positioned,"Canonical source factory never birthed the damage witness pair");
   check(!match.unit(0).vitality.dead && !match.unit(1).vitality.dead,"Authored warmup killed a participant");
+  if(client) {
+    // The real LanHost::respond path must carry its completed ordinary
+    // NativeVehicleCamera observer, independently of vehicle admission.
+    const auto& received=client->state();const auto& player=received.players[1];
+    check(player.source_player_camera.has_value(),"Actual native UDP host omitted the ordinary player eye/head correction");
+    check(!received.players[0].source_player_camera,"Actual native UDP host leaked another player's ordinary camera");
+    check(player.source_player_camera->camera_mode==0 && !player.source_vehicle_camera && !player.source_death_camera,
+        "Actual native UDP ordinary observer acquired a vehicle/death mode");
+    check(std::isfinite(player.source_player_camera->position.z),"Actual native UDP ordinary eye was not finite");
+    for(const auto object:{player.source_unit,player.source_weapon,player.secondary_weapon.datum})if(object!=null_datum) {
+      const auto pose=std::find_if(received.source_body_poses.begin(),received.source_body_poses.end(),
+          [&](const auto &p){return p.object==object;});
+      check(pose!=received.source_body_poses.end() && pose->model.has_value(),
+          "Actual native UDP omitted the full player/held-weapon model region owner");
+      check(pose->model->definition==source.object_definition(object) &&
+          pose->model->permutations==source.object_model_regions(object).selection.permutations,
+          "Actual native UDP changed the completed native model definition/region choices");
+    }
+    std::cout<<"Actual native UDP ordinary player eye: "<<player.source_player_camera->position.x<<','
+        <<player.source_player_camera->position.y<<','<<player.source_player_camera->position.z<<'\n';
+  }
+  if(player_eye) {
+    check(client!=nullptr,"Native peer-eye witness requires actual UDP transport");
+    std::cout<<"PASS actual native UDP ordinary eye, recipient isolation and current unit/held-weapon model regions\n";
+    return 0;
+  }
   const auto victim=match.unit(1).source_datum,owner=match.player(1).source_datum;
   std::uint32_t random=0x12345678u;NativeDeathCamera camera(source,*original,random);
   Mesh mesh;MultiplayerScoreboard board(cache,gameplay_font_directory(cache),mesh,{"Slayer",0,{{89,5}}});
@@ -199,6 +227,9 @@ int main(int argc,char **argv)try {
       check(state.players[1].source_death_camera.has_value()==state.players[1].dead,
           "Remote source camera missing during death or retained after respawn");
       check(!state.players[0].source_death_camera,"Remote snapshot leaked another peer's camera");
+      check(!state.players[0].source_player_camera,"Remote snapshot leaked another peer's ordinary camera");
+      if(state.players[1].dead)
+        check(!state.players[1].source_player_camera,"Remote death retained the ordinary player eye");
     }
     const auto corpse=std::find_if(state.corpses.begin(),state.corpses.end(),[&](const auto &c){return c.object==victim;});
     if(long_lifetime && tick>=150 && corpse==state.corpses.end()) {

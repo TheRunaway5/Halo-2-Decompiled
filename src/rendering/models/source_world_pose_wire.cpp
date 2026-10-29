@@ -128,4 +128,44 @@ SourceWorldPoseBank decode_source_world_poses(std::span<const std::byte> bytes,
     }
     validate(bank.authoritative,bank.poses,owners,format);return bank;
 }
+std::vector<std::byte> encode_source_world_pose_models(std::span<const SourceWorldPose> poses) {
+    if(poses.size()>maximum_bodies)throw FormatError("Native WORLD model metadata exceeds object capacity");
+    std::vector<std::byte> result;unsigned count{};std::set<std::uint32_t> owners;
+    for(const auto &pose:poses)if(pose.model)++count;
+    const auto put=[&](std::uint32_t value,unsigned bytes) {
+        for(unsigned n=0;n<bytes;++n)result.push_back(std::byte(value>>(n*8u)));
+    };
+    put(count,2);
+    for(const auto &pose:poses)if(pose.model) {
+        const auto &model=*pose.model;
+        if(pose.object==0xffffffffu || !(pose.object>>16) || (pose.object&65535u)>=maximum_bodies ||
+            !owners.insert(pose.object).second || model.definition==0xffffffffu || model.permutations.size()>16)
+            throw FormatError("Native WORLD model metadata has invalid owner/definition/region extent");
+        put(pose.object,4);put(model.definition,4);put(unsigned(model.permutations.size()),1);
+        for(auto permutation:model.permutations)put(permutation,1);
+    }
+    return result;
+}
+std::size_t decode_source_world_pose_models(std::span<const std::byte> bytes,std::span<SourceWorldPose> poses) {
+    std::size_t consumed{};
+    const auto get=[&](unsigned size) {
+        if(size>bytes.size()-consumed)throw FormatError("Truncated native WORLD model metadata");
+        std::uint32_t value{};
+        for(unsigned n=0;n<size;++n)value|=std::to_integer<std::uint32_t>(bytes[consumed++])<<(n*8u);
+        return value;
+    };
+    const auto count=get(2);
+    if(count>maximum_bodies || count>poses.size())throw FormatError("Native WORLD model metadata exceeds its pose bank");
+    std::set<std::uint32_t> owners;
+    for(auto &pose:poses)pose.model.reset();
+    for(unsigned n=0;n<count;++n) {
+        const auto owner=get(4);SourceWorldPoseModel model;model.definition=get(4);const auto regions=get(1);
+        const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==owner;});
+        if(!owners.insert(owner).second || pose==poses.end() || model.definition==0xffffffffu || regions>16)
+            throw FormatError("Native WORLD model metadata lost its accepted full owner/definition/region extent");
+        for(unsigned region=0;region<regions;++region)model.permutations.push_back(std::uint8_t(get(1)));
+        pose->model=std::move(model);
+    }
+    return consumed;
+}
 }

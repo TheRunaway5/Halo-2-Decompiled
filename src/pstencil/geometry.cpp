@@ -56,13 +56,14 @@ bool finite(Vec3 p){return std::isfinite(p.x)&&std::isfinite(p.y)&&std::isfinite
 void execute_native_position_prefix(const VertexProgram& program,VertexProgramState& state) {
     position_kernel(program).run(state);
 }
-std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding) {
+namespace {
+std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding,bool complete) {
     const auto& program=position_kernel(binding.program());
     std::vector<Vec3> out(binding.draw().geometry->vertex_count());
     std::vector<bool> used(out.size());
-    for(const auto index:binding.draw().indices()) {
+    const auto calculate=[&](unsigned index) {
         if(index>=out.size())throw FormatError("pStencil raw index escapes vertex bank");
-        if(used[index])continue;
+        if(used[index])return;
         VertexProgramState state;state.constants=binding.constants();
         for(auto& attribute:state.attributes)attribute={0,0,0,1};
         for(unsigned input=0;input<binding.inputs().size();++input)
@@ -71,9 +72,17 @@ std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding) {
         const auto& position=state.outputs[9];out[index]={position[0],position[1],position[2]};
         if(!finite(out[index]))throw FormatError("pStencil source position is nonfinite");
         used[index]=true;
+    };
+    if(complete) {
+        auto authored=binding.draw();authored.range.reset();
+        for(const auto index:authored.indices())calculate(index);
     }
+    else for(const auto index:binding.draw().indices())calculate(index);
     return out;
 }
+}
+std::vector<Vec3> world_positions(const MenuWorldSourceBinding& binding) {return world_positions(binding,false);}
+std::vector<Vec3> complete_world_positions(const MenuWorldSourceBinding& binding) {return world_positions(binding,true);}
 void append_volume(std::vector<ShadowVertex>& output,const MenuWorldSourceBinding& binding,Vec3 light,unsigned stipple_level) {
     const auto points=world_positions(binding);
     std::vector<std::array<std::uint16_t,3>> triangles;

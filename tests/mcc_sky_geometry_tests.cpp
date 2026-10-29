@@ -102,8 +102,18 @@ int main(int argc,char** argv) {
             Mesh actual_materials;actual_materials.materials=actual.mesh.materials;prepare_forward_materials(target,actual_materials);
             for(unsigned slot=0;slot<actual_materials.materials.size();++slot) {
                 const auto authority_slot=profile.at("materials").at(slot).value("native_authority_material_index",slot);
-                need(authority_slot<native.mesh.materials.size()&&sky_audit::semantic_digest(native.mesh.materials[authority_slot],*material_owner)==
-                    sky_audit::semantic_digest(actual_materials.materials[slot],target),"Native material semantics differ from the independent original Xbox authority");
+                need(authority_slot<native.mesh.materials.size(),"Original sky material authority slot is unavailable");
+                const auto expected_semantic=sky_audit::complete_semantic(native.mesh.materials[authority_slot],*material_owner);
+                const auto actual_semantic=sky_audit::complete_semantic(actual_materials.materials[slot],target);
+                if(sky_audit::semantic_digest(native.mesh.materials[authority_slot],*material_owner)!=
+                    sky_audit::semantic_digest(actual_materials.materials[slot],target)) {
+                    auto ordinary=material_owner->load_model(material_model,true);prepare_forward_materials(*material_owner,ordinary.mesh);
+                    throw FormatError("Native material semantics differ from the independent original Xbox authority: "+
+                        Json({{"map",target_file},{"slot",slot},{"authority_slot",authority_slot},
+                            {"ordinary_original_matches",authority_slot<ordinary.mesh.materials.size() &&
+                                sky_audit::complete_semantic(ordinary.mesh.materials[authority_slot],*material_owner)==actual_semantic},
+                            {"differences",Json::diff(expected_semantic,actual_semantic)}}).dump());
+                }
             }
             auto restored=input(target,target_model,true);need(restore_mcc_sky_geometry_profile(target,target_model,restored,true,profile.dump()),"Exact sky profile was not admitted");
             need(encode_mcc_sky_geometry(expected)==encode_mcc_sky_geometry(restored),"Explicit native sky projection differs from original source words");

@@ -3391,8 +3391,8 @@ int main(int argc,char **argv) try {
     if(!player_rearm_test&&!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test&&!conveyor_test) switch(elapsed) {
       case 25:focus(window);key(window_id,SDL_SCANCODE_W,true);break;
       case 40:key(window_id,SDL_SCANCODE_W,false);break;
-      case 50:key(window_id,SDL_SCANCODE_LSHIFT,true);break;
-      case 65:key(window_id,SDL_SCANCODE_LSHIFT,false);break;
+      case 50:key(window_id,SDL_SCANCODE_LCTRL,true);break;
+      case 65:key(window_id,SDL_SCANCODE_LCTRL,false);break;
       case 85:focus(window);key(window_id,SDL_SCANCODE_SPACE,true);key(window_id,SDL_SCANCODE_SPACE,false);break;
     }
     if(vehicle && !vehicle_blast_test && vehicle_exited && exit_camera_frames>=40 && ordinary_after_exit_frames>0)quit();

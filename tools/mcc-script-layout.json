@@ -3364,6 +3364,23 @@
       ]
     },
     {
+      "mcc_opcode": 329,
+      "name": "ai_living_fraction",
+      "return_type": 6,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 327,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b249c0",
+      "mcc_evaluator": "0x180786b90",
+      "xbox_descriptor": "0x458494",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
       "mcc_opcode": 330,
       "name": "ai_strength",
       "return_type": 6,

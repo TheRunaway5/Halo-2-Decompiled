@@ -156,13 +156,14 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         before = (await self.view(self.a))["party"]
         old_token = headers[0]["Authorization"][7:]
         session = self.queue.sessions[hashlib.sha256(old_token.encode()).hexdigest()]
-        session.expires = self.queue.clock() + 1
+        renewed_at = self.queue.clock() + 1
+        self.queue.clock = lambda: renewed_at
         ticket = self.queue.ticket(session.player)
         response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"},
             json=dict(screen_name="Same Pilot", maps=["lockout"], compatibility="test-v1", renew_session=old_token))
         self.assertEqual(response.status, 201, await response.text())
         self.assertEqual((await response.json())["token"], old_token)
-        self.assertIs(self.queue.ticket(session.player), ticket)
+        self.assertEqual(self.queue.ticket(session.player), ticket)
         self.assertIn(session, self.queue.sessions.values())
         self.assertGreater(session.expires, self.queue.clock() + 899)
         self.assertEqual((await self.view(self.a))["party"], before)
@@ -236,8 +237,6 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
             closed = False
 
         class Peer:
-            challenge, sent = None, 0.0
-
             def __init__(self):
                 self.socket = Socket()
 
@@ -246,6 +245,11 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self, peers):
                 self.peers, self.owners = peers, {who: who for who in peers}
+
+            def connected_seats(self, who, peer):
+                # A declared native presence projection; challenge/lease
+                # admission is qualified by the real Rust/HTTP room tests.
+                return [dict(player=who, guest=False)]
 
         class Transport:
             rooms = {}

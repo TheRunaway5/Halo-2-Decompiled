@@ -16,7 +16,7 @@ struct ParticlePreparedViewBounds {VkViewport viewport;VkRect2D scissor;};
 class ParticleRenderer {
 public:
   ParticleRenderer(VkPhysicalDevice,VkDevice,VkQueue,unsigned queue_family,
-    VkRenderPass,const std::filesystem::path &shader_directory);
+    VkRenderPass,const std::filesystem::path &shader_directory,bool mirror_clamp_enabled=false);
   ~ParticleRenderer();
   ParticleRenderer(const ParticleRenderer&)=delete;
   ParticleRenderer &operator=(const ParticleRenderer&)=delete;
@@ -25,6 +25,11 @@ public:
   void prepare_views(std::span<const RendererParticleViewInput>,unsigned,unsigned);
   void publish_view(std::size_t,std::span<const ShaderVector,12>,ShaderVector);
   RendererParticleProgramConfiguration program(std::shared_ptr<const ParticleMaterial>);
+  // Content rejection is recoverable; Vulkan device/allocation failures keep
+  // their strict exception path. A failed admission never publishes a cache entry.
+  std::optional<RendererParticleProgramConfiguration> try_program(
+    std::shared_ptr<const ParticleMaterial>,std::string &diagnostic);
+  std::vector<std::string> take_resource_diagnostics();
   RendererParticleViewState view_inputs(std::size_t) const;
   std::uint64_t view_revision() const;
   bool reads_scene_texture(std::size_t index) const;

@@ -1,0 +1,54 @@
+{
+  "toolchain": "1.96.0",
+  "capture_after_build": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yh2xkjp4",
+  "scratch_retained": false,
+  "retained_large_artifacts": [],
+  "passed": true,
+  "commands": [
+    {
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "stdout": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "cargo",
+        "-Vv"
+      ],
+      "stdout": "cargo 1.96.0 (30a34c682 2026-05-25)\nrelease: 1.96.0\ncommit-hash: 30a34c6821b57de0aaec83a901aca39f88f6778c\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nlibgit2: 1.9.2 (sys:0.20.4 vendored)\nlibcurl: 8.19.0-DEV (sys:0.4.87+curl-8.19.0 vendored ssl:OpenSSL/3.5.4)\nssl: OpenSSL 3.5.4 30 Sep 2025\nos: CachyOS Linux Rolling Release [64-bit]\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "rustup",
+        "which",
+        "--toolchain",
+        "1.96.0",
+        "rustc"
+      ],
+      "stdout": "/home/eric/.rustup/toolchains/1.96.0-x86_64-unknown-linux-gnu/bin/rustc\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+        "-B",
+        "-c",
+        "import capstone,json,sys,unicorn; print(json.dumps(dict(python=sys.version,capstone=capstone.__version__,unicorn=unicorn.__version__,optimized=sys.flags.optimize)))"
+      ],
+      "stdout": "{\"python\": \"3.14.8 (main, Oct 13 2026, 10:43:33) [GCC 16.2.1 20260810]\", \"capstone\": \"5.0.6\", \"unicorn\": \"2.1.4\", \"optimized\": 0}\n",
+      "stderr": ""
+    }
+  ],
+  "rustc_binary_sha256": "ba4b837efb6612dfa8d941c5a72b8a50d1d03a0f36216743b173949aa8d9eb75",
+  "source_dependencies_sha256": {
+    "tools/oracle_matchmaking_lifecycle.py": "9e5194a8edaa6f840c2ef7917bb783039d10776b8d50e6f1f1a21932eb243401",
+    "tools/oracle_game_variants.py": "2d54af7da610281922ae008977bc2d34a46b94ee3847ae17de393deafb6a497e",
+    "tools/reference/halo2-decompiled/tools/xbe.py": "3bc3717d8a78450690ad9efa9eabf9ffa45a68e1207dde554a820c4cd80413d4",
+    "tools/inspect_multiplayer.py": "0d7c915dc938739b283ed2b1344c9dbfaab0d3787558414055ba7ba00c43e849"
+  }
+}

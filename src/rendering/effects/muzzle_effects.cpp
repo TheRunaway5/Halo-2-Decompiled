@@ -1,6 +1,8 @@
 #include "halo2/muzzle_effects.hpp"
 #include "halo2/source_particle_sprite_context.hpp"
 #include "halo2/particle_presentation.hpp"
+#include "halo2/particle_material_validation.hpp"
+#include "halo2/particle_draw_resource_validation.hpp"
 #include "halo2/particle_effect_color.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_tag_metadata.hpp"
@@ -17,7 +19,7 @@
 #include <cmath>
 
 namespace halo2 {
-AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
+AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const try {
     const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::effect, .require_address=true});
     if(!tag)throw FormatError("muzzle owner requires authored effe definition");
     const Bytes b(cache_bytes());const auto root=metadata_offset(tag->address,0x1c);
@@ -64,6 +66,7 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
           throw FormatError("muzzle system requires original location/environment admission");
         const auto marker=b.u32(offset(b.u32(root+0x10)+b.u32(at+8)*4,4));
         auto system=load_particle_system_render_definition(datum,event,n);
+        validate_particle_draw_resource(system);
         if((system.coordinates!=0 && system.coordinates!=1) || (system.flags&~0x50u))
           throw FormatError("muzzle system requires additional coordinate/lifecycle owner");
         std::vector<ParticleMovementDefinition> movement;
@@ -76,7 +79,10 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
           movement.push_back(std::move(definition));
         }
         auto sprite=load_particle_sprite(system.particle_datum);
+        if(const auto context=source_particle_sprite_context(*this,system.particle_datum,sprite))
+          validate_particle_draw_resource(sprite,*context);
         auto material=std::make_shared<const ParticleMaterial>(load_particle_material(system.particle_datum,15,0,0));
+        validate_particle_material(*material);
         // 224DB0 selects billboard style+7. The renderer already executes
         // the original perpendicular (style2/class9) vertex program too.
         if(material->vertex.classification!=7 && material->vertex.classification!=8 &&
@@ -104,6 +110,9 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
     }
     if(d.systems.empty())throw FormatError("effect has no authored first-person muzzle system");
     return d;
+}catch(const ParticleResourceError&){throw;}
+catch(const FormatError& error){
+    throw ParticleResourceError("Muzzle resource "+std::to_string(datum)+": "+error.what());
 }
 struct NativeMuzzleEffects::Impl {
   const Cache &cache;
@@ -166,13 +175,19 @@ struct NativeMuzzleEffects::Impl {
   Definition &definition(std::uint32_t datum) {
     if(auto i=definitions.find(datum);i!=definitions.end())return i->second;
     auto loaded=cache.load_muzzle_effect(datum);
+    decltype(sprite_contexts) staged_contexts;
     for(auto &system:loaded.systems) {
-      const auto [context,inserted]=sprite_contexts.try_emplace(system.definition.particle_datum,
-          source_particle_sprite_context(cache,system.definition.particle_datum,system.sprite));
-      (void)inserted;
-      if(context->second && !context->second->has_bitmap)system.sprite.bitmap_type=-1;
+      const auto id=system.definition.particle_datum;
+      const auto old=sprite_contexts.find(id);
+      const auto& context=old!=sprite_contexts.end()?old->second:
+          staged_contexts.try_emplace(id,source_particle_sprite_context(cache,id,system.sprite)).first->second;
+      if(context)validate_particle_draw_resource(system.sprite,*context);
+      if(context && !context->has_bitmap)system.sprite.bitmap_type=-1;
     }
-    return definitions.emplace(datum,std::move(loaded)).first->second;
+    decltype(definitions) staged;
+    staged.emplace(datum,std::move(loaded));
+    sprite_contexts.merge(staged_contexts);definitions.merge(staged);
+    return definitions.at(datum);
   }
   ParticleValueSources sources(const Effect &effect,const System &s,const Location &location,const MuzzleEffectView &view,std::uint32_t tick,float seconds) {
     ParticleValueSources out;
@@ -510,7 +525,7 @@ std::vector<ParticleDraw> NativeMuzzleEffects::draw(std::uint32_t weapon,const M
       }
       ParticleRenderValueCache values; // Re-evaluate actual interpolated render state each frame.
       const auto &context=i.sprite_contexts.at(a.definition.particle_datum);
-      if(!context)continue;
+      if(!context || !context->has_bitmap)continue;
       values.system_identity=state.system_identity;
       values.location_identity=state.location_identity;
       complete_particle_values(values.values,a.sprite.required_values&0x107f0u,state.sources);

@@ -20,6 +20,15 @@ game-world graphics choice.
 - `include/halo2/path_tracing/emission.hpp`, `material_emission.hpp` and
   `shaders/path_tracing/emission.glsl`: exact admitted self-illumination
   expressions, independent authored mask images, UV transforms and samplers.
+- `emitter_sampling.cpp`, `include/halo2/path_tracing/emitter_sampling.hpp` and
+  `shaders/path_tracing/emitter_sampling.glsl`: bounded source-group sphere
+  proposals and the primary diffuse BSDF/cone mixture. The small proposal
+  table follows the emissive triangle index list; it never changes radiance.
+- `color_guide.cpp` and `shaders/path_tracing/color_guide.glsl`: cached authored
+  lighting hue from source lightmap UVs or qualified static vertex radiance.
+- `include/halo2/path_tracing/surface_ray.hpp` and
+  `shaders/path_tracing/surface_ray.glsl`: starting-surface exclusion for
+  smooth diffuse receivers, with a matching CPU intersection check.
 - `include/halo2/path_tracing/surface.hpp`, `material_surface.hpp`,
   `unlit_uv.hpp` and `shaders/path_tracing/surface.glsl`: source-qualified
   terrain texture blends, foliage coverage, native chained UV transforms and
@@ -32,13 +41,16 @@ game-world graphics choice.
   released when Path Tracing is disabled.
 - `render.cpp`: Vulkan resource ownership, descriptors, uploads, quality bounds,
   graphics pipelines, the private visibility depth image/buffer and the native
-  sky environment cubemap. Resources live only while the optional mode is active.
+  sky environment cubemap. It also snapshots previous lighting history on the
+  GPU into immutable storage binding9. Resources live only while the optional
+  mode is active.
 - `shaders/path_tracing/world.vert`, `world.frag`, `scene.glsl`: primary surface
   rasterization, BVH traversal, shadow any-hit, diffuse transport and reflection.
 - `shaders/path_tracing/depth.frag`: source-W visibility prepass with the same
   primary alpha/stipple rejection, without ray traversal.
 - `shaders/path_tracing/lighting_filter.glsl`: HDR lighting records and guided
-  resolve. `world.frag` also compiles as the colorless `lighting.frag.spv` write
+  resolve, world-space history reprojection and camera-attached foreground
+  guides. `world.frag` also compiles as the colorless `lighting.frag.spv` write
   variant; both roles are included in production shader qualification.
 - `cmake/PathTracing.cmake` and `tests/path_tracing/`: build and CPU/GPU checks.
 - `src/rendering/renderer/renderer.cpp`: the existing renderer's narrow handoff
@@ -57,14 +69,30 @@ reflection continuation per bounce. A primary direct-light shadow query and at
 most one closest-hit plus one direct-light shadow query per bounce bound the
 work to `samples * (1 + 2 * bounces)` BVH queries per shaded fragment: at most three
 at the default 1/1, or ten at the maximum 2/2. Misses and zero throughput can
-terminate earlier. Source lights, emissive triangles and the native sky share
-one next-event shadow query per surface. Cosine-sampled sky illumination at the
-last hit lets a canyon wall reflect its authored color at one bounce. Diffuse
-continuation misses omit that already-sampled environment contribution;
-specular misses retain it. World and foreground phases, or equal-depth draws, can shade
+terminate earlier. The primary surface samples the authored light bank directly;
+its existing continuation samples sky misses and emissive hits. This avoids
+alternating bright sunlight, blue sky and dark emitter samples at one sample
+per pixel. The primary diffuse continuation mixes its cosine hemisphere with
+a cone enclosing a nearby authored emitter group. Both analytic PDFs determine
+the transport weight, so all sources remain reachable without adding a ray.
+At most eight groups are considered, and views inside the chosen source sphere
+retain cosine sampling. Secondary surfaces share one next-event query between source lights,
+emissive triangles and sky. Cosine-sampled sky illumination at the last hit lets
+a canyon wall reflect its authored color at one bounce. Later diffuse
+continuation misses omit the environment contribution already covered by
+next-event sampling; specular misses retain it. World and foreground phases, or equal-depth draws, can shade
 the same framebuffer coordinate more than once. This does not require Vulkan
 hardware ray tracing extensions.
 Frame-varying ray seeds converge through bounded temporal lighting histories.
+When the scene has one authored light, its deterministic primary direct lighting
+uses current-frame visibility outside that history. Moving casters therefore
+update their direct shadow immediately while indirect lighting retains its
+noise reduction. Multiple sampled lights still use temporal accumulation.
+Primary and secondary shading normals follow the geometric face toward the
+incoming ray. An authored smooth normal may cross the view horizon on a
+front-facing surface; it must not independently flip underneath the terrain.
+This preserves grazing-angle sunlight and bounce lighting without changing
+light energy, ray budgets, or occluder visibility.
 A separate HDR lighting pass
 stores diffuse irradiance and specular radiance on a bounded grid, normally
 one sample location per 2x2 pixels. A 5x5 spatial filter rejects incompatible
@@ -72,15 +100,48 @@ materials, normals, surface positions and roughness before applying the
 full-resolution authored albedo and primary emission. The display clamp runs
 after filtering. Thin surfaces without a compatible grid sample retain their
 own bounded trace. World and foreground retain separate histories; the sample
-count caps at 16 and later frames use a 1/16 update weight. Material, normal, world position, roughness,
-view direction and consecutive-frame checks reject stale surface history;
-source, resolution, ray-budget and direct-light changes reset it. Native
+count caps at 16 and later frames use a 1/16 update weight. Current records and
+histories are written through storage binding6. Before those camera phases
+overwrite history, a GPU copy snapshots the previous world/foreground records
+into a separate read-only buffer at `set=1, binding=9`. Its header retains the
+previous view-projection matrices and actual Vulkan viewports, including
+temporal-upscaler jitter. World positions reproject through that previous
+matrix and viewport; the shader checks at most four previous grid candidates
+and selects one compatible record. This adds no ray queries and prevents
+current fragment execution order from changing the history being read.
+
+Foreground positions, shading/geometric normals and incoming directions use
+camera-attached guides instead of fixed WORLD positions. Foreground history
+uses the current projection with the previous viewport, rejecting projection
+scale changes. Material, roughness, consecutive-frame, shading/geometric-normal,
+position-distance and surface-plane checks reject incompatible or disoccluded
+history. Reflective surfaces also require compatible incoming directions;
+matte diffuse history does not restart solely because the view direction
+changes. Source, resolution, ray-budget and direct-light changes reset history.
+The deterministic single-light direct shadow remains current-frame lighting
+outside the accumulated stochastic history. Native
 emissive program animation updates every frame; its indirect contribution uses
 the bounded temporal mean. Program identity, emitter membership and constant
 fallback emission changes reset history. Authored texture and primary emission
 are applied after temporal and spatial filtering.
+This denoising runs with upscaling disabled as well. Temporal upscalers receive
+the same exact posed WORLD geometry as the raster/RT handoff, retained source
+object/vertex identities, rotational sky motion and the applied viewport jitter.
+Unknown moving geometry rejects correspondence instead of inheriting another
+object's motion merely because it shares a material and section.
 
-Lightmap images and baked BSP vertex radiance are excluded from traced shading.
+Lightmap intensity and baked shadow darkness are excluded from traced shading.
+`color_guide.cpp` and `color_guide.glsl` retain only the authored lighting RGB
+chromaticity: actual cluster/instance lightmap palettes and UVs, or proven
+static per-vertex radiance. Static sky/sun diffuse events take that hue at their
+traced brightness (`.299 R + .587 G + .114 B`), with visibility supplied by RT.
+Scaling a positive baked sample does not change the result; zero or missing
+samples leave RT color unchanged. An actual gray sample deliberately gives a
+gray lighting hue. Local and emissive colored sources, material albedo, and
+specular/visor reflections retain their independent RGB. Primary and secondary
+hits share this policy, so colored source surfaces can light subsequent hits.
+The cached base-level source guide atlas is bounded to64MiB, exists only with
+the active optional Scene/Render, and requires no additional ray queries.
 The selected source sky's D1A30 incident direction and radiosity supply its
 directional emitter. The source query casts toward that incident vector;
 Path Tracing uses the same orientation with BVH shadow rays and retains outdoor
@@ -170,6 +231,7 @@ type.
 
 Original and pStencil retain no RT pipelines, descriptors, GPU scene buffers,
 private visibility image/framebuffer/pass, visibility storage buffer, CPU BVHs,
+immutable previous-history buffer,
 decoded RT texture atlas, RT light banks, environment cubemap/depth target, or
 sky alias uniform/descriptor banks. There is no RT worker,
 scene construction, image refresh or ray dispatch in those modes. The renderer
@@ -203,6 +265,21 @@ low-energy mixed point/emissive-light check also compares their combined mean
 against the separate contributions. These checks establish component behavior;
 native gameplay timing and launcher-selected runtime qualification remain
 separate checks.
+
+`path_tracing_grazing_normal` and `path_tracing_grazing_secondary` isolate that
+normal-orientation boundary for a primary receiver and a deterministic mirror
+continuation. Both compare the authored sun cosine with a geometric-normal
+control and retain a real opaque blocker.
+
+For native-resolution denoising checks, configure
+`HALO2_PATH_TRACING_NATIVE_DENOISE_TESTS=ON` and run
+`path_tracing_native_denoise` and `path_tracing_native_fence_denoise`.
+These checks use 2560x1388 output with upscaling off and the default ray budget.
+The WORLD-scale fence case runs sixteen stationary frames without intermediate
+color readbacks or history diagnostics, then checks noise, lighting energy,
+history accumulation and Vulkan synchronization validation. The lighting
+render pass synchronizes its depth attachment store even though its pipeline
+does not write depth during fragment shading.
 
 The source shader's complete detail/bump, gel/gobo and multi-pass combiner
 responses are not reconstructed as a physically based BSDF by this adapter.

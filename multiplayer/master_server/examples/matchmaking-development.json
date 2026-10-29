@@ -1,0 +1,387 @@
+{
+  "version": 1,
+  "playlists": [
+    {
+      "revision": "development-3-gathering-1",
+      "description": "Two-player Lockout Slayer with recovered retail skill search and XP. Custom validation rotation.",
+      "team_size": 0,
+      "minimum_players": 2,
+      "maximum_players": 2,
+      "maximum_party": 1,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "ranked",
+      "name": "Head to Head",
+      "ranked": true,
+      "quickmatch": true,
+      "skill": {
+        "kind": "bungie-2007",
+        "high_rank_radius": 14
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 2
+      }
+    },
+    {
+      "revision": "casual-development-4-gathering-1",
+      "description": "Two-player Lockout Slayer with hidden skill and recovered query-driven casual widening. Custom validation rotation.",
+      "team_size": 0,
+      "minimum_players": 2,
+      "maximum_players": 2,
+      "maximum_party": 1,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "casual",
+      "name": "Slayer",
+      "ranked": false,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 2
+      }
+    },
+    {
+      "revision": "party-development-2-gathering-1",
+      "description": "Four-player Lockout Team Slayer with recovered retail skill search and XP. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
+      "team_size": 2,
+      "minimum_players": 4,
+      "maximum_players": 4,
+      "maximum_party": 2,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "ranked-party",
+      "name": "Double Team",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "bungie-2007",
+        "high_rank_radius": 14
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native four-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    },
+    {
+      "revision": "casual-party-development-3-gathering-1",
+      "description": "Four-player Lockout Team Slayer with hidden skill and recovered query-driven casual widening. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
+      "team_size": 2,
+      "minimum_players": 4,
+      "maximum_players": 4,
+      "maximum_party": 2,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "casual-party",
+      "name": "Team Doubles",
+      "ranked": false,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native four-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    },
+    {
+      "revision": "clan-development-1-gathering-1",
+      "description": "Two clan parties of 3 or 4; equal opposing sizes. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
+      "team_size": 4,
+      "minimum_players": 6,
+      "maximum_players": 8,
+      "maximum_party": 4,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "minor-clan",
+      "name": "Minor Clan Match",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "clan_match": "minor-retail-launch-2004",
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 4
+      }
+    },
+    {
+      "revision": "clan-development-1-gathering-1",
+      "description": "Two clan parties of 6 to 8; opposing sizes differ by at most two. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
+      "team_size": 8,
+      "minimum_players": 12,
+      "maximum_players": 16,
+      "maximum_party": 8,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "major-clan",
+      "name": "Major Clan Match",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "clan_match": "major-retail-launch-2004",
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 5
+      }
+    },
+    {
+      "revision": "couch-team-development-1",
+      "description": "Eight-player Lockout Team Slayer. Up to four local players stay on one team. Guests welcome; guest personal stats are not saved. Custom validation rotation with recovered retail skill search.",
+      "team_size": 4,
+      "minimum_players": 8,
+      "maximum_players": 8,
+      "maximum_party": 4,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "casual-team",
+      "name": "Casual Team Slayer",
+      "ranked": false,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native eight-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    },
+    {
+      "revision": "couch-team-development-1",
+      "description": "Eight-player Lockout Team Slayer. Up to four local players stay on one team. Every local player must sign in with Discord. Custom validation rotation with recovered retail skill search.",
+      "team_size": 4,
+      "minimum_players": 8,
+      "maximum_players": 8,
+      "maximum_party": 4,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Development rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "ranked-team",
+      "name": "Ranked Team Slayer",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "bungie-2007",
+        "high_rank_radius": 14
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native eight-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    }
+  ]
+}

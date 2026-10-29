@@ -1,0 +1,29 @@
+{
+  "schema": "H2_WEBSITE_FOREVER_ARTWORK_V1",
+  "text": "F O R E V E R",
+  "font": "Arial Regular 7.00",
+  "font_sha256": "c9b76220a5be42ead4733611e417cd65c5fd8aeaa33eb56576ac378a37d130a1",
+  "density": 8,
+  "css": {
+    "font_size": 12,
+    "letter_spacing": 8,
+    "line_height": 1.65,
+    "margin_top": 12,
+    "color": "#b6d9f7"
+  },
+  "browser_metrics": {
+    "logo_width": 365,
+    "logo_height": 45.625,
+    "span_width": 365,
+    "span_height": 19.796875,
+    "span_gap": 12,
+    "font": "TitleArial"
+  },
+  "logical_left": 92.125,
+  "logical_top_after_logo": 17.0,
+  "width": 1388,
+  "height": 75,
+  "alpha_sha256": "c65ba40d2c3de9cc9cd569516a1123186c29196fc567ab75395596ee264cbc35",
+  "compressed_bytes": 3413,
+  "font_file_included": false
+}

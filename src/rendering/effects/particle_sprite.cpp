@@ -1,4 +1,5 @@
 #include "halo2/particle_sprite.hpp"
+#include "halo2/particle_sprite_bitmap_selection.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -26,6 +27,19 @@ std::array<float,4> uv(const std::array<float,4> &b,unsigned flip) {
   return {flip&1?b[1]:b[0],flip&2?b[3]:b[2],
     flip&1?b[0]-b[1]:b[1]-b[0],flip&2?b[2]-b[3]:b[3]-b[2]};
 }
+}
+std::uint32_t particle_sprite_default_bitmap(std::span<const std::byte> selectors,
+    std::span<const std::byte> bitmaps,const std::function<bool(std::uint32_t)>& resident_bitmap) {
+  if(selectors.empty() || selectors.size()%2 || selectors.size()/2>65536 ||
+     bitmaps.empty() || bitmaps.size()%12 || bitmaps.size()/12>65536)
+    throw FormatError("particle default bitmap selector banks are incomplete");
+  const auto selected=std::bit_cast<std::int16_t>(Bytes(selectors).u16(0));
+  if(selected<0 || unsigned(selected)>=bitmaps.size()/12)
+    throw FormatError("particle default bitmap selector escapes its cooked bitmap bank");
+  const auto datum=Bytes(bitmaps).u32(unsigned(selected)*12);
+  if(datum==0xffffffffu || !resident_bitmap || !resident_bitmap(datum))
+    throw FormatError("particle default bitmap has no resident full-salt bitmap owner");
+  return datum;
 }
 ParticleSpriteDefinition Cache::load_particle_sprite(std::uint32_t datum) const {
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::particle, .require_address=true});
@@ -59,8 +73,8 @@ ParticleSpriteDefinition Cache::load_particle_sprite(std::uint32_t datum) const 
   // example E22900B4). Its tag-reference group is also bitm, but type is 1
   // and the datum is NONE. Select the actual type-0 bitmap parameter.
   const auto parameter_count=b.u32(root+0x14);
-  if(!parameter_count || parameter_count>65536)throw FormatError("particle sprite shader parameters missing");
-  const auto parameters=metadata_offset(b.u32(root+0x18),std::size_t(parameter_count)*0x28);
+  if(parameter_count>65536)throw FormatError("particle sprite shader parameters exceed bounds");
+  const auto parameters=parameter_count?metadata_offset(b.u32(root+0x18),std::size_t(parameter_count)*0x28):0;
   bool found_bitmap=false;
   for(unsigned i=0;i<parameter_count;++i) {
     const auto parameter=parameters+i*0x28;
@@ -68,6 +82,20 @@ ParticleSpriteDefinition Cache::load_particle_sprite(std::uint32_t datum) const 
     if(found_bitmap || b.u32(parameter+8)!=0x6269746d || b.u32(parameter+0xc)==0xffffffffu)
       throw FormatError("particle sprite requires one explicit bitmap parameter");
     d.bitmap=b.u32(parameter+0xc);found_bitmap=true;
+  }
+  if(!parameter_count) {
+    // MCC can omit the authoring parameter when its template default is used.
+    // Original22AE16 still obtains the bitmap from the actual compiled selector;
+    // retain that imported handle instead of inventing a white/default image.
+    const auto definitions=metadata_block(root+0x8c,124);
+    if(!definitions.count)throw FormatError("particle default bitmap has no shader definition");
+    const auto bitmaps=metadata_block(definitions.offset+4,12);
+    const auto selectors=metadata_block(definitions.offset+0x5c,2);
+    d.bitmap=particle_sprite_default_bitmap(b.slice(selectors.offset,selectors.count*2),
+        b.slice(bitmaps.offset,bitmaps.count*12),[&](std::uint32_t id) {
+          return query_tag({.handle=TagHandle{id},.group=tag_groups::bitmap,.require_address=true})!=nullptr;
+        });
+    found_bitmap=true;
   }
   if(!found_bitmap)throw FormatError("particle diffuse bitmap missing");
   const auto bitmap=query_tag({.handle=TagHandle{d.bitmap}, .group=tag_groups::bitmap, .require_address=true});

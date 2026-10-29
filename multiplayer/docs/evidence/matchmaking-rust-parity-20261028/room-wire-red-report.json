@@ -1,0 +1,42 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0jx_qi8p/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_room_wire_owner_native"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0jx_qi8p/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0jx_qi8p",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-wire-port/halo2-test-0jx_qi8p/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "2388a7e567a5658b888093aef01dfe96bd2fd43c30102c3f96aaa85556c31a9b",
+    "bytes": 2775352,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

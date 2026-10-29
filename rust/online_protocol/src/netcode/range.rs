@@ -139,14 +139,18 @@ impl Encoder {
         self.out.len() + self.pending as usize + 4
     }
 
-    pub fn finish(mut self) -> Vec<u8> {
+    pub fn finish(self) -> Vec<u8> {
+        let mut out = self.finish_physical();
+        while out.last() == Some(&0) {
+            out.pop();
+        }
+        out
+    }
+    pub fn finish_physical(mut self) -> Vec<u8> {
         for _ in 0..5 {
             self.shift_low();
         }
-        // The decoder reads zeros beyond the end, so trailing zeros are implied.
-        while self.out.last() == Some(&0) {
-            self.out.pop();
-        }
+        // Keep the terminator physically present for bounded untrusted decode.
         self.out
     }
 }
@@ -156,15 +160,26 @@ pub struct Decoder<'a> {
     at: usize,
     range: u32,
     code: u32,
+    operations: usize,
+    bounded: bool,
 }
 
 impl<'a> Decoder<'a> {
     pub fn new(data: &'a [u8]) -> Self {
-        let mut decoder = Self { data, at: 0, range: u32::MAX, code: 0 };
+        let mut decoder = Self { data, at: 0, range: u32::MAX, code: 0, operations: 0, bounded: false };
         for _ in 0..4 {
             decoder.code = (decoder.code << 8) | u32::from(decoder.next());
         }
         decoder
+    }
+    pub fn bounded(data: &'a [u8]) -> Self {
+        Self { bounded: true, ..Self::new(data) }
+    }
+    pub fn admits_len(&self, len: usize) -> bool {
+        !self.bounded || len <= self.data.len().saturating_mul(128).saturating_add(4096)
+    }
+    pub fn admits_metadata(&self, bytes: usize) -> bool {
+        !self.bounded || (bytes <= 8 * 1024 * 1024 && self.admits_len(bytes))
     }
 
     fn next(&mut self) -> u8 {
@@ -181,6 +196,7 @@ impl<'a> Decoder<'a> {
     }
 
     pub fn bit(&mut self, model: &mut Bit) -> bool {
+        self.operations = self.operations.saturating_add(1);
         let bound = (self.range >> PROB_BITS) * u32::from(model.0);
         let bit = self.code >= bound;
         if bit {
@@ -195,6 +211,7 @@ impl<'a> Decoder<'a> {
     }
 
     pub fn direct(&mut self, count: u32) -> u64 {
+        self.operations = self.operations.saturating_add(count as usize);
         let mut value = 0u64;
         for _ in 0..count {
             self.range >>= 1;
@@ -212,6 +229,17 @@ impl<'a> Decoder<'a> {
     /// bound work by declared lengths and verify the reconstructed digest.
     pub fn consumed(&self) -> usize {
         self.at
+    }
+    pub fn input_len(&self) -> usize {
+        self.data.len()
+    }
+    pub fn exhausted(&self) -> bool {
+        // Encoder::finish removes trailing zeros; at most four arithmetic
+        // lookahead bytes are admitted. A physical stream cannot fund an
+        // unlimited sequence of implicit zeros or arithmetic operations.
+        self.bounded
+            && (self.at > self.data.len().saturating_add(4)
+                || self.operations > self.data.len().saturating_mul(1024).saturating_add(65536))
     }
 }
 
@@ -352,7 +380,8 @@ mod tests {
                 (rng.next().is_multiple_of(16) as u8, magnitude, signed, rng.next() as u8)
             })
             .collect();
-        let (mut flag, mut uint, mut int, mut byte) = (Bit::default(), Uint::default(), Int::default(), Byte::default());
+        let (mut flag, mut uint, mut int, mut byte) =
+            (Bit::default(), Uint::default(), Int::default(), Byte::default());
         let mut e = Encoder::default();
         for &(f, u, i, b) in &values {
             e.bit(&mut flag, f != 0);
@@ -362,7 +391,8 @@ mod tests {
             e.direct(u64::from(b), 8);
         }
         let bytes = e.finish();
-        let (mut flag, mut uint, mut int, mut byte) = (Bit::default(), Uint::default(), Int::default(), Byte::default());
+        let (mut flag, mut uint, mut int, mut byte) =
+            (Bit::default(), Uint::default(), Int::default(), Byte::default());
         let mut d = Decoder::new(&bytes);
         for &(f, u, i, b) in &values {
             assert_eq!(d.bit(&mut flag), f != 0);

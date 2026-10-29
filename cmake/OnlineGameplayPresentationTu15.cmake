@@ -16,6 +16,11 @@ if(BUILD_TESTING)
     add_test(NAME source_world_attachment_interpolation COMMAND source_world_attachment_interpolation_tests)
     set_tests_properties(source_world_attachment_interpolation PROPERTIES TIMEOUT 30
         LABELS "online-presentation;native-component")
+    add_executable(source_native_render_timeline_tests tests/source_native_render_timeline_tests.cpp)
+    target_link_libraries(source_native_render_timeline_tests PRIVATE halo2_systems)
+    add_test(NAME source_native_render_continuity COMMAND source_native_render_timeline_tests)
+    set_tests_properties(source_native_render_continuity PROPERTIES TIMEOUT 30
+        LABELS "online-presentation;native-component")
     add_executable(source_first_person_packet_transport_tests
         tests/source_first_person_packet_transport_tests.cpp)
     target_link_libraries(source_first_person_packet_transport_tests PRIVATE
@@ -23,6 +28,11 @@ if(BUILD_TESTING)
     add_test(NAME native_first_person_packet_transport COMMAND source_first_person_packet_transport_tests
         "${CMAKE_CURRENT_BINARY_DIR}/native-first-person-packet-transport.json")
     set_tests_properties(native_first_person_packet_transport PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE
+        LABELS "online-presentation;native-component;network")
+    add_executable(native_player_camera_transport_tests tests/native_player_camera_transport_tests.cpp)
+    target_link_libraries(native_player_camera_transport_tests PRIVATE halo2_systems)
+    add_test(NAME native_player_camera_transport COMMAND native_player_camera_transport_tests)
+    set_tests_properties(native_player_camera_transport PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE
         LABELS "online-presentation;native-component;network")
     add_executable(source_object_loop_emitter_transport_tests
         tests/source_object_loop_emitter_transport_tests.cpp)
@@ -262,6 +272,12 @@ if(BUILD_TESTING AND HALO2_MCC_ONLINE_PRESENTATION_MAP)
             endif()
         endif()
     endforeach()
+    halo2_online_presentation_test(native_mcc_player_eye_joined native_death_match_tu15_tests
+        native-mcc "${HALO2_MCC_ONLINE_PRESENTATION_MAP}")
+    if(TEST native_mcc_player_eye_joined)
+        set_property(TEST native_mcc_player_eye_joined APPEND PROPERTY
+            ENVIRONMENT "HALO2_TU15_TEST_NETWORK=1" "HALO2_TU15_TEST_PLAYER_EYE=1")
+    endif()
     halo2_online_presentation_test(native_mcc_death_pose_rate native_death_remote_render_tu15_tests
         native-mcc "${HALO2_MCC_ONLINE_PRESENTATION_MAP}")
     if(TEST native_mcc_death_pose_rate)

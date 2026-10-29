@@ -97,7 +97,8 @@ class FriendsHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.view(self.a))['friends'],[])
         self.assertEqual((await self.view(self.b))['friends'][0]['state'],'blocked')
         await self.command(self.a,'request',404,target=b['id'])
-        await self.command(self.a,'search',404,tag=b['friend_tag'])
+        found=await self.command(self.a,'search',tag=b['friend_tag'])
+        self.assertEqual(found['search_result'], b)
         friends=self.api.directory.friends
         self.assertFalse(self.api.directory.voice_blocks.allowed(friends.target(a['id']),friends.target(b['id'])))
         await self.client.close()
@@ -108,6 +109,14 @@ class FriendsHttpTests(unittest.IsolatedAsyncioTestCase):
         await self.command(self.b,'unblock',target=a['id'])
         self.assertEqual((await self.view(self.b))['friends'],[])
         await self.command(self.a,'request',target=b['id'])
+
+    async def test_public_tag_search_is_identical_in_both_block_directions(self):
+        a=await self.find(self.b,self.a);b=await self.find(self.a,self.b)
+        for actor,target,headers in ((a,b,self.a),(b,a,self.b)):
+            await self.command(headers,'block',target=target['id'])
+            self.assertEqual((await self.command(self.a,'search',tag=b['friend_tag']))['search_result'],b)
+            self.assertEqual((await self.command(self.b,'search',tag=a['friend_tag']))['search_result'],a)
+            await self.command(headers,'unblock',target=target['id'])
 
     async def test_commands_are_authorized_idempotent_and_reject_forged_fields(self):
         self.assertEqual((await self.client.get('/v1/friends')).status,401)

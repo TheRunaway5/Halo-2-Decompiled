@@ -37,7 +37,17 @@ class FrameModelSkinPlan {
     std::vector<ModelSkinGpuRecord> records_;
     std::vector<DestinationRange> destinations_;
     std::size_t expected_{},mapped_{};
-    bool appending_{};
+    bool appending_{},frame_active_{};
+    void clear_frame(std::size_t retain_limit)noexcept {
+        // Release every borrowed source and shared owner, including rejected
+        // frames. Only empty vector storage can cross a frame boundary.
+        sources_.clear();palettes_.clear();palette_.clear();records_.clear();destinations_.clear();
+        expected_=mapped_=0;appending_=false;
+        if(retained_bytes()>retain_limit) {
+            decltype(sources_){}.swap(sources_);decltype(palette_){}.swap(palette_);
+            decltype(records_){}.swap(records_);decltype(destinations_){}.swap(destinations_);
+        }
+    }
 
     static AddressRange address(std::span<const Vertex> vertices) {
         if(vertices.empty())return {};
@@ -101,6 +111,38 @@ class FrameModelSkinPlan {
         }
     }
 public:
+    static constexpr std::size_t retained_capacity_limit=8u*1024u*1024u;
+    // Exact bytes of the vector capacities retained after a frame closes.
+    // Source.mapped buffers and every map node are released by clear_frame;
+    // temporary per-append run vectors never outlive their append call.
+    std::size_t retained_bytes()const noexcept {
+        std::size_t bytes{};
+        const auto add=[&](std::size_t count,std::size_t size) {
+            const auto maximum=std::numeric_limits<std::size_t>::max();
+            if(count>(maximum-bytes)/size)bytes=maximum;else bytes+=count*size;
+        };
+        add(sources_.capacity(),sizeof(Source));add(palette_.capacity(),sizeof(palette_[0]));
+        add(records_.capacity(),sizeof(records_[0]));add(destinations_.capacity(),sizeof(DestinationRange));
+        return bytes;
+    }
+    class FrameScope {
+        FrameModelSkinPlan &plan_;
+        std::size_t limit_;
+    public:
+        explicit FrameScope(FrameModelSkinPlan &plan,std::size_t limit):plan_(plan),
+            limit_(std::min(limit,retained_capacity_limit)) {
+            if(plan_.frame_active_)throw FormatError("frame model skin scratch is already borrowed");
+            plan_.clear_frame(limit_);plan_.frame_active_=true;
+        }
+        ~FrameScope() {plan_.clear_frame(limit_);plan_.frame_active_=false;}
+        FrameScope(const FrameScope&)=delete;
+        FrameScope& operator=(const FrameScope&)=delete;
+    };
+    // A smaller retention limit supports low-memory callers; no caller can
+    // raise the per-planner 8 MiB cap. Clearing/retirement performs no FP math.
+    FrameScope frame_scope(std::size_t retain_limit=retained_capacity_limit) {
+        return FrameScope(*this,retain_limit);
+    }
     void add_bank(std::span<const Vertex> vertices,std::span<const ModelSkinSubmission> submissions,unsigned view=0) {
         if(appending_)throw FormatError("frame model skin bank registered after append began");
         address(vertices);

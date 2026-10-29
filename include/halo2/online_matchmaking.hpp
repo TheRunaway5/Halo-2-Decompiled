@@ -2,6 +2,7 @@
 #include "halo2/discord_login.hpp"
 #include "halo2/online_match_session.hpp"
 #include "halo2/frontend_appearance.hpp"
+#include "halo2/source_game_variant.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <vector>
@@ -15,7 +16,12 @@ struct OnlinePlaylist {
   bool clan_match{};
 };
 struct OnlineMatchPlayer { std::string name; unsigned team{}; bool self{}; std::optional<unsigned> level{}; std::optional<FrontendAppearance> appearance; };
-struct OnlineMatch { std::string map, variant; std::vector<OnlineMatchPlayer> players; };
+struct OnlineMatch {
+  std::string map, variant;
+  std::vector<OnlineMatchPlayer> players;
+  std::string game_id;
+  std::optional<SourceGameVariant> settings;
+};
 struct OnlineGatheringPlayer { std::string name; bool self{}; std::optional<unsigned> level{}; std::optional<FrontendAppearance> appearance; };
 struct OnlineGatheringProgress {
   std::vector<OnlineGatheringPlayer> players;

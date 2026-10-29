@@ -39,7 +39,7 @@ struct GameVoiceFrame {
   // Local delivery stamp, never serialized on the peer wire. A session tags
   // decoded incoming frames; the microphone worker tags outgoing frames.
   std::uint64_t delivery_generation{};
-  // End-to-end microphone origin proof, preserved when the host mixes gains.
+  // Microphone proof bound to the intended encrypted peer recipient.
   std::optional<std::array<std::byte,64>> origin_signature;
 };
 struct GameVoiceSnapshot {

@@ -55,13 +55,19 @@ using SourceLiveModelDeferredPoseProviderTu15=std::function<ModelSkinWorldPoseVi
 std::vector<Vertex> source_live_model_selected_vertices_tu15(std::uint32_t owner,unsigned lod,
     const RenderModel&,std::span<const Transform>,std::span<const unsigned> sections,
     const SourceLiveModelPoseProviderTu15& = {});
+// Materialize the completed collector's actual current1D690 palette before
+// another native query reuses its arena. This also owns the cache-reuse path,
+// which does not execute137800 or publish another WORLD-node observation.
+std::vector<Vertex> source_live_model_collector_vertices_tu15(PhysicsLiveWorldTu15&,
+    const SourceObjectDrawCollector&,unsigned ordinal,const RenderModel&);
 std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
     std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
     std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,
     const SourceDynamicModelShaders&,std::span<const Transform>,const SourceModelShaderView&,
     const SourceLiveModelPoseProviderTu15& = {},
     std::shared_ptr<const ModelSkinGeometry>* deferred_skin = nullptr,
-    const SourceLiveModelDeferredPoseProviderTu15& = {});
+    const SourceLiveModelDeferredPoseProviderTu15& = {},
+    std::vector<std::uint32_t>* source_ordinals = nullptr);
 class SourceLiveModelBaseSelectionTu15 {
 public:
     // Observe each completed4B5D0 output, including recursively built children.

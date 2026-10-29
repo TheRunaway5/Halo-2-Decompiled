@@ -35,7 +35,23 @@ SEPARATE_COMPONENTS = {
     'src/audio/dsp/sound_gp_dma_tu15.cpp': 'GP DMA requires its actual platform consumer',
     'src/audio/source_sound_configuration_tu15_generated.cpp': 'Sound configuration requires original output/policy admission',
     'src/audio/native_tu15_sound_configuration_data.cpp': 'Sound configuration component data',
+    # source_campaign_screen_tu15.hpp and K12 of the native engine checklist
+    # name the semantic replacement; linking both duplicates its entry points.
+    'src/campaign/source_campaign_screen_tu15_generated.cpp': 'Superseded generated screen reference; production uses semantic lifecycle/timed kernels through source_campaign_screen_native_tu15.cpp',
     'src/physics/native_tu15_motion_pose.cpp': 'Standalone native pose component; actual integrate_pose retains the original production virtual owner',
+    'src/gameplay/vehicles/native_tu15_seat_look.cpp': 'Standalone typed seat-look component without an admitted production camera caller',
+    'src/physics/native_tu15_activation_agents.cpp': 'Standalone typed activation-agent composition without an admitted production activation caller',
+    'src/physics/native_tu15_cached_motion.cpp': 'Qualified typed cached-motion component; live world activation remains a separate gate',
+    'src/physics/native_tu15_compound_process.cpp': 'Standalone typed compound processing without an admitted production collision caller',
+    'src/physics/native_tu15_contact_agent_dispatch.cpp': 'Offline typed contact-agent service composition; native factory and live creation coverage remain open',
+    'src/physics/native_tu15_contact_agent_factory.cpp': 'Standalone typed contact-agent factory without an admitted production creation caller',
+    'src/physics/native_tu15_contact_buffers.cpp': 'Standalone typed contact-buffer ownership without an admitted production contact caller',
+    'src/physics/native_tu15_contact_candidate_buffers.cpp': 'Standalone typed candidate-buffer ownership without an admitted production candidate caller',
+    'src/physics/native_tu15_contact_candidates.cpp': 'Typed candidate-update source review and live binding remain open',
+    'src/physics/native_tu15_contact_producer.cpp': 'Standalone typed contact producer without an admitted production collision caller',
+    'src/physics/native_tu15_contact_records.cpp': 'Standalone typed contact records without an admitted production producer caller',
+    'src/physics/native_tu15_inverse_geometry.cpp': 'Qualified inverse-affine geometry component; native candidate-update integration remains open',
+    'src/physics/native_tu15_island_activation.cpp': 'Standalone typed island activation without an admitted production world caller',
     'src/physics/native_tu15_array_allocator.cpp': 'Standalone typed array allocator requires the actual production allocator virtual owners',
     'src/physics/native_tu15_array_growth.cpp': 'Standalone typed array growth requires the actual production allocator virtual owners',
     'src/physics/native_tu15_array_reserve.cpp': 'Standalone typed array reserve requires its actual production allocator virtual owners',
@@ -94,6 +110,8 @@ def source_hashes(root):
                      and 'target' not in p.relative_to(root / name).parts)
     files.extend(p for p in (root / 'tools').rglob('*') if p.is_file() and
                  tool_source_path(p.relative_to(root/'tools')))
+    files.extend(p for p in (root / 'multiplayer/master_server').rglob('*') if p.is_file() and
+                 tool_source_path(p.relative_to(root/'multiplayer/master_server')))
     return {p.relative_to(root).as_posix(): digest(p) for p in sorted(files)}
 
 
@@ -115,7 +133,20 @@ def freeze_source(root, destination):
             shutil.copy2(path, tests / path.name)
         elif path.is_dir() and path.name != '__pycache__':
             (tests / path.name).symlink_to(path, target_is_directory=True)
-    for name in ('assets', 'resources', 'multiplayer', 'analysis', '.tools', 'Halo 2 Vista installer'):
+    # Native ONLINE validation executes this Python service with the frozen
+    # Rust coordinator. Borrowing its code could mix two protocol revisions.
+    multiplayer = root / 'multiplayer'
+    if multiplayer.is_dir():
+        (destination / 'multiplayer').mkdir()
+        for path in multiplayer.iterdir():
+            if path.name == 'master_server' and path.is_dir():
+                shutil.copytree(path, destination / 'multiplayer/master_server',
+                    ignore=shutil.ignore_patterns('__pycache__', '.pytest_cache', '.git', 'target'))
+            elif path.is_file():
+                shutil.copy2(path, destination / 'multiplayer' / path.name)
+            elif path.is_dir() and path.name != '__pycache__':
+                (destination / 'multiplayer' / path.name).symlink_to(path, target_is_directory=True)
+    for name in ('assets', 'resources', 'analysis', '.tools', 'Halo 2 Vista installer'):
         if (root / name).exists():
             (destination / name).symlink_to(root / name, target_is_directory=True)
     if source_hashes(destination) != before or source_hashes(root) != before:
@@ -208,21 +239,32 @@ def wiring(graph, root):
                 scope='Transitive library links and direct object-source ownership; separate components require real callers before runtime acceptance')
 
 
+def runtime_environment(scratch):
+    # Qualification exercises the executable's production defaults. Diagnostic,
+    # feature and artifact-retention overrides from a developer's shell must
+    # not silently change either role. Callers add only their explicit owned
+    # paths and declared controls; unrelated SDK/display settings remain.
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith('HALO2_')}
+    environment['HALO2_TEST_SCRATCH'] = str(scratch)
+    return environment
+
+
 def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_driver=''):
     log = scratch / f'{Path(name).stem}-{players}.log'
-    command = [str(runtime), '--multiplayer', '--map', str(maps / name),
+    preferences = scratch / 'smoke-preferences' / uuid.uuid4().hex
+    command = [str(runtime), '--multiplayer', '--graphics-mode', 'Original', '--map', str(maps / name),
                '--shared-maps', str(maps), '--local-players', str(players),
                '--frames', '4', '--mute', '--viewport', '640', '480']
     # Exercise ordinary SDL/Vulkan frame submission, with no Xbox input,
     # synthetic runtime backing, or imported UI overrides.
-    environment = dict(os.environ)
-    for key in tuple(environment):
-        if key.startswith(('HALO2_REFERENCE_', 'HALO2_CAPTURE_')) or (
-                key.startswith('HALO2_TEST_') and key != 'HALO2_TEST_SCRATCH'):
-            environment.pop(key)
+    environment = runtime_environment(scratch)
     environment.update(HALO2_PIPELINE_CACHE_DIRECTORY=str(scratch / 'vulkan-cache'),
                        MESA_SHADER_CACHE_DIR=str(scratch / 'mesa-cache'),
-                       __GL_SHADER_DISK_CACHE_PATH=str(scratch / 'nvidia-cache'))
+                       __GL_SHADER_DISK_CACHE_PATH=str(scratch / 'nvidia-cache'),
+                       XDG_DATA_HOME=str(preferences / 'data'),
+                       XDG_CONFIG_HOME=str(preferences / 'config'),
+                       XDG_CACHE_HOME=str(preferences / 'cache'))
     if video_driver:
         environment.setdefault('SDL_VIDEODRIVER', video_driver)
     with log.open('wb') as stream:
@@ -242,6 +284,109 @@ def smoke(runtime, maps, name, players, scratch, timeout, root=ROOT, video_drive
                 simulation_ticks=int(submitted[2]) if submitted else 0,
                 session_joined=bool(int(submitted[4])) if submitted else False,
                 peak_players=int(submitted[5]) if submitted else 0, log_tail=tail)
+
+
+RENDERER_4K_CASES = ('4:90:0:0', '4:150:10:110', '1:150:10:110', '2:150:10:110')
+
+
+def renderer_reference_controls(assignments):
+    controls = {}
+    for assignment in assignments:
+        name, separator, value = assignment.partition('=')
+        if (not separator or not re.fullmatch(r'HALO2_REFERENCE_[A-Z0-9_]+', name) or
+                not value or any(c in value for c in ',@\r\n\0') or name in controls):
+            raise ValueError('Renderer 4K reference controls require unique HALO2_REFERENCE_NAME=VALUE assignments without comma/@/line breaks')
+        controls[name] = value
+    return controls
+
+
+def renderer_4k_qualification(source, runtime, maps, output, scratch, controls):
+    """Compare the exact packaged executable before publishing its selection.
+
+    This is submitted-frame equality, not a performance or all-map gate. The
+    frozen parity driver owns capture processes, private preferences and raw
+    frames. Only its bounded report and driver-log tail leave scratch.
+    """
+    source, runtime, maps = source.resolve(), runtime.resolve(strict=True), maps.resolve(strict=True)
+    output.mkdir(parents=True, exist_ok=True)
+    helper = source / 'tools/perf_4k60/parity.py'
+    map_path = maps / 'coagulation.map'
+    parity_report = output / 'parity.json'
+    parity_report.unlink(missing_ok=True)
+    log = scratch / 'renderer-4k-parity.log'
+    receipt = dict(passed=False, scope='Original/Off 3840x2160 submitted-frame equality; no 4K60 claim',
+                   runtime=str(runtime), reference_controls=controls, cases=list(RENDERER_4K_CASES),
+                   parity_report=str(parity_report), timeout_seconds=6600)
+    try:
+        pins = dict(runtime_sha256=digest(runtime), helper_sha256=digest(helper), map_sha256=digest(map_path))
+        receipt.update(pins)
+        assignments = ','.join(f'{name}={value}' for name, value in sorted(controls.items()))
+        command = [sys.executable, '-B', str(source / 'tools/run_test.py'),
+                   '--scratch-root', str(scratch / 'renderer-4k-captures'), '--',
+                   sys.executable, '-B', str(helper), str(parity_report),
+                   assignments + '@' + str(runtime), str(runtime), *RENDERER_4K_CASES,
+                   '--maps', str(maps)]
+        receipt['command'] = command
+        environment = runtime_environment(scratch)
+        environment.update(H2_MAP='coagulation', H2_REPEAT_CANDIDATE='1')
+        print('Checking exact packaged renderer: Original/Off 4K, four parity cases and repeats…', flush=True)
+        with log.open('wb') as stream:
+            result = subprocess.run(command, cwd=runtime.parent, env=environment,
+                                    stdout=stream, stderr=subprocess.STDOUT, timeout=6600)
+        receipt['exit_code'] = result.returncode
+        if result.returncode:
+            raise RuntimeError('Packaged renderer 4K parity process failed')
+        if (parity_report.is_symlink() or not parity_report.is_file() or
+                not 0 < parity_report.stat().st_size <= 1024 * 1024):
+            raise RuntimeError('Packaged renderer 4K parity has no bounded direct report')
+        data = json.loads(parity_report.read_text())
+        if (data.get('passed') is not True or data.get('reference') != str(runtime) or
+                data.get('candidate') != str(runtime) or data.get('reference_env') != controls or
+                data.get('candidate_env') != {} or data.get('maps') != str(maps) or
+                data.get('map') != 'coagulation' or data.get('map_path') != str(map_path) or
+                data.get('native_size') != [3840, 2160] or
+                any(data.get(name) != value for name, value in pins.items() if name != 'runtime_sha256') or
+                data.get('reference_sha256') != pins['runtime_sha256'] or
+                data.get('candidate_sha256') != pins['runtime_sha256']):
+            raise RuntimeError('Packaged renderer 4K report does not qualify this executable/helper/map/control cohort')
+        cases = data.get('cases', [])
+        if (not isinstance(cases, list) or any(not isinstance(case, dict) for case in cases) or
+                [case.get('case') for case in cases] != list(RENDERER_4K_CASES)):
+            raise RuntimeError('Packaged renderer 4K parity did not complete the four required cases')
+        expected_bytes = 3840 * 2160 * 3 + len(b'P6\n3840 2160\n255\n')
+        for index, case in enumerate(cases):
+            roles = ['reference', 'reference-repeat', 'candidate', 'candidate-repeat'] if index == 0 else ['reference', 'candidate']
+            runs = case.get('runs', [])
+            if not isinstance(runs, list) or any(not isinstance(run, dict) for run in runs):
+                raise RuntimeError('Packaged renderer 4K capture records are malformed')
+            hashes = [run.get('sha256') for run in runs]
+            if (case.get('passed') is not True or case.get('captures_valid') is not True or
+                    case.get('identical') is not True or [run.get('role') for run in runs] != roles or
+                    not hashes or any(not isinstance(pin, str) or not re.fullmatch('[0-9a-f]{64}', pin) for pin in hashes) or
+                    len(set(hashes)) != 1 or
+                    any(run.get('valid') is not True or type(run.get('exit_code')) is not int or
+                        run['exit_code'] != 0 or run.get('timed_out') or run.get('bytes') != expected_bytes
+                        for run in runs) or
+                    (index == 0 and (case.get('reference_deterministic') is not True or
+                                     case.get('candidate_deterministic') is not True))):
+                raise RuntimeError('Packaged renderer 4K parity has invalid, differing or incomplete captures/repeats')
+        if pins != dict(runtime_sha256=digest(runtime), helper_sha256=digest(helper), map_sha256=digest(map_path)):
+            raise RuntimeError('Packaged renderer 4K executable/helper/map changed during qualification')
+        receipt.update(passed=True, parity_report_sha256=digest(parity_report))
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, subprocess.TimeoutExpired) as error:
+        receipt['error'] = str(error)[-1500:]
+    finally:
+        if (not parity_report.is_symlink() and parity_report.is_file() and
+                parity_report.stat().st_size > 1024 * 1024):
+            receipt['discarded_oversized_report_bytes'] = parity_report.stat().st_size
+            parity_report.unlink()
+        if log.is_file():
+            with log.open('rb') as stream:
+                stream.seek(max(0, log.stat().st_size - 16384))
+                tail = stream.read()
+            (output / 'driver.log').write_bytes(tail)
+        atomic_json(output / 'report.json', receipt)
+    return receipt
 
 
 def atomic_json(path, value):
@@ -432,6 +577,7 @@ def worker(args):
     root = args.root.resolve(strict=True)
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
     prepare_only = getattr(args, 'prepare_only', False)
+    renderer_controls = renderer_reference_controls(getattr(args, 'renderer_4k_reference_control', []))
     # Preserve the exact existing selection if another task promotes a runtime
     # while this build is in flight.
     selection = root / SELECTION
@@ -445,7 +591,9 @@ def worker(args):
     publication_baseline = {} if prepare_only else {
         name: publication_identity(root / name) for name in
         publication_names}
-    prior = selected_gameplay_runtime(root)
+    baseline_selection = getattr(args, 'baseline_selection', None)
+    prior = (selected_gameplay_runtime(root, selection_name=baseline_selection) if baseline_selection
+             else selected_gameplay_runtime(root))
     if cache_candidate is None:
         cache = selected(root)
     else:
@@ -548,6 +696,18 @@ def worker(args):
                    '--cmake-arg=-DHALO2_LAUNCHER_RUNTIME_DIR=' + str(destination),
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
                    '--retain-report', 'engine-targets.txt']
+        # A present kit bank changes the actual loading path. Require its
+        # submitted-frame handoffs and the fresh/reuse onboarding regressions
+        # before a candidate can replace either selected launcher runtime.
+        if (cache[0] / 'presentation/original-loading-v2/manifest.json').is_file():
+            command.extend(['--target', 'original_loading_gpu_tests',
+                '--target', 'native_loading_presentation_tests',
+                '--target', 'bundled_loading_ambience_tests', '--target', 'vista_loading_tests',
+                '--target', 'vista_loading_thread_tests',
+                '--cmake-arg=-DHALO2_ORIGINAL_LOADING_CACHE=' + str(cache[0])])
+            at = command.index('--filter') + 1
+            command[at] = command[at][:-2] + ('|original_loading_gpu|original_loading_gpu_4_3|native_vista_loading_adapter|h2ek_loading_onboarding|'
+                'bundled_loading_ambience|original_vista_loading|original_vista_loading_thread)$')
         if audio_image:
             command.extend(['--target', 'multiplayer_audio_runtime_tests',
                             '--target', 'multiplayer_audio_tests', '--target', 'mcc_sound_rate_tests',
@@ -560,13 +720,57 @@ def worker(args):
         client_config = getattr(args, 'eos_client_config', None)
         if client_config:
             command.append('--cmake-arg=-DHALO2_EOS_CLIENT_CONFIG=' + str(client_config.resolve(strict=True)))
-        # The official runner retains its bounded configure/build/test logs.
-        result = subprocess.run(command, cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+        # The executables/tests bind their compiled default to the canonical
+        # candidate shader bank. Build first without claiming validation, then
+        # make that bank available before any required submitted-frame tests.
+        build_command=command.copy()
+        build_output=output/'build-only'
+        build_command[build_command.index('--output')+1]=str(build_output)
+        build_command.append('--build-only')
+        result = subprocess.run(build_command, cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
         if result.returncode:
-            raise RuntimeError('Engine build or launcher checks failed; see ' + str(output / 'validation'))
+            raise RuntimeError('Engine build failed; see ' + str(build_output))
+        build_report=json.loads((build_output/'report.json').read_text())
+        if (build_report.get('status')!='built' or build_report.get('passed')is not False or
+                build_report.get('validation_not_run')is not True):
+            raise RuntimeError('Engine build-only receipt must not claim test acceptance')
         if source_hashes(source) != pins:
             raise RuntimeError('Frozen engine source changed during the build')
         build = scratch / 'build'
+        destination.mkdir(parents=True,exist_ok=False)
+        from stage_native_renderer_shaders import stage_production_shaders
+        from native_renderer_shaders import validate_native_package
+        shader_package=stage_production_shaders(build,destination/'shaders')
+        staged_shader_proof=validate_native_package(destination/'shaders',executable=build/'halo2_native')
+        executable_pin=digest(build/'halo2_native')
+        report['native_renderer_shader_package']={
+            'passed':shader_package['passed'],
+            'module_count':shader_package['module_count'],
+            'inventory_sha256':shader_package['inventory_sha256'],
+            'report':str((destination/'shaders/production-shaders.json').relative_to(root)),
+            'report_sha256':staged_shader_proof['package']['sha256']}
+        print('Checking the complete qualification suite against the staged production shader bank…',flush=True)
+        result=subprocess.run(command,cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+        if result.returncode:
+            raise RuntimeError('Engine launcher or loading checks failed; see '+str(output/'validation'))
+        validation_report=json.loads((output/'validation/report.json').read_text())
+        if (validation_report.get('passed')is not True or validation_report.get('status')!='passed' or
+                validation_report.get('validation_not_run')is not False or
+                not any(step.get('name')=='tests' and step.get('exit_code')==0
+                        for step in validation_report.get('steps',[]))):
+            raise RuntimeError('Engine qualification requires completed passing CTest checks')
+        if source_hashes(source)!=pins:
+            raise RuntimeError('Frozen engine source changed during qualification')
+        if digest(build/'halo2_native')!=executable_pin:
+            raise RuntimeError('Engine executable changed after its shader bank was staged')
+        if validate_native_package(destination/'shaders',
+                expected_sha256=staged_shader_proof['package']['sha256'],
+                executable=build/'halo2_native')!=staged_shader_proof:
+            raise RuntimeError('Staged production shader bank changed during qualification')
+        report['validation']=dict(passed=True,report=str(output/'validation/report.json'),
+            report_sha256=digest(output/'validation/report.json'),
+            build_only_report=str(build_output/'report.json'),
+            build_only_report_sha256=digest(build_output/'report.json'))
         # An active frozen cohort can predate CMake's custom-source target.
         # Asset delivery has its own current, pinned owner, so stage it through
         # this coordinator even when that older build did not create a bank.
@@ -577,7 +781,6 @@ def worker(args):
         if not report['wiring']['passed']:
             raise RuntimeError('Engine sources are missing from the runtime link graph: ' +
                                ', '.join(report['wiring']['unexpected_unwired_sources']))
-        destination.mkdir(parents=True, exist_ok=False)
         for name in ('halo2_native', 'Halo2-Launcher', 'Halo2-Title-Launcher', 'eos_sdk_worker'):
             shutil.copy2(build / name, destination / name)
         for name in ('libEOSSDK-Linux-Shipping.so', 'eos-client.env'):
@@ -585,19 +788,9 @@ def worker(args):
                 shutil.copy2(build / name, destination / name)
         if client_config and not all((destination / name).is_file() for name in ('libEOSSDK-Linux-Shipping.so', 'eos-client.env')):
             raise RuntimeError('EOS runtime library or packaged game configuration was not delivered')
-        for name in ('shaders', 'data', 'upscalers', 'lib'):
+        for name in ('data', 'upscalers', 'lib'):
             if (build / name).is_dir():
-                if name == 'shaders':
-                    from stage_native_renderer_shaders import stage_production_shaders
-                    shader_package = stage_production_shaders(build, destination / name)
-                    report['native_renderer_shader_package'] = {
-                        'passed': shader_package['passed'],
-                        'module_count': shader_package['module_count'],
-                        'inventory_sha256': shader_package['inventory_sha256'],
-                        'report': str((destination / name / 'production-shaders.json').relative_to(root)),
-                        'report_sha256': digest(destination / name / 'production-shaders.json')}
-                else:
-                    shutil.copytree(build / name, destination / name)
+                shutil.copytree(build / name, destination / name)
         custom_assets = install_custom_assets(build / 'custom-assets', destination / 'custom-assets')
         if custom_assets['files'] != asset_pins:
             raise RuntimeError('Custom assets changed during the engine build; existing runtime retained')
@@ -642,6 +835,14 @@ def worker(args):
                                       report['eos_worker'])
             atomic_json(destination / 'frontend-selection.json', frontend_record)
             report['frontend'] = dict(passed=True, runtime=frontend_record['runtime'])
+        if renderer_controls:
+            report['renderer_4k'] = dict(passed=False, report=str(output / 'renderer-4k/report.json'))
+            report['renderer_4k'].update(renderer_4k_qualification(
+                source, runtime, maps, output / 'renderer-4k', scratch, renderer_controls))
+            if report['renderer_4k'].get('passed') is not True:
+                raise RuntimeError('Packaged renderer 4K frame qualification failed; existing launcher selection retained')
+            if digest(runtime) != executable_pin:
+                raise RuntimeError('Packaged renderer executable changed after its compiled shader qualification')
         if (source_hashes(source) != pins or custom_asset_inventory(root) != asset_pins or
                 any(digest(maps / name) != pin for name, pin in map_pins.items())):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
@@ -651,10 +852,12 @@ def worker(args):
             raise RuntimeError('Another task changed the frontend selection during validation; its selection retained')
         atomic_json(destination / 'source-hashes.json', pins)
         validate_eos_worker(runtime, report['eos_worker'])
+        if digest(runtime) != executable_pin:
+            raise RuntimeError('Packaged renderer executable changed before final qualification sealing')
         inventory = {p.relative_to(destination).as_posix(): dict(sha256=digest(p), bytes=p.stat().st_size)
                      for p in destination.rglob('*') if p.is_file()}
         atomic_json(destination / 'runtime-files.json', inventory)
-        report.update(passed=True, status='prepared', qualified_candidate=True, runtime_sha256=digest(runtime),
+        report.update(passed=True, status='prepared', qualified_candidate=True, runtime_sha256=executable_pin,
                       retained_bytes=sum(p.stat().st_size for p in destination.rglob('*') if p.is_file()))
         atomic_json(destination / 'qualification.json', report)
         record = dict(schema='H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1', runtime=report['runtime'],
@@ -728,17 +931,27 @@ def main():
                              'the failure is recorded as accepted in the qualification')
     parser.add_argument('--prepare-only', action='store_true',
                         help='Qualify and retain a candidate without publishing ROOT launchers or selections')
+    parser.add_argument('--baseline-selection',
+                        help='Validate this project-relative qualified selection as the preparation baseline; requires --prepare-only')
     parser.add_argument('--cache-candidate', type=Path,
                         help='Qualify this verified private MCC cache without selecting it during preparation')
+    parser.add_argument('--renderer-4k-reference-control', action='append', default=[], metavar='NAME=VALUE',
+                        help='Require four Original/Off 4K parity cases on this exact packaged runtime versus these reference environment controls before publication (repeatable)')
     args = parser.parse_args()
     if args.reuse_owned_build and (not args.worker or not os.environ.get('HALO2_TEST_SCRATCH')):
         parser.error('--reuse-owned-build requires --worker inside an active run_test.py coordinator')
+    if args.baseline_selection and not args.prepare_only:
+        parser.error('--baseline-selection requires --prepare-only')
     if args.status:
         if args.runtime and (args.root / 'CMakeLists.txt').is_file():
             print(source_status(args.root, args.runtime))
         return 0
     if args.jobs < 1 or not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error('Positive build jobs and a finite positive smoke timeout are required')
+    try:
+        renderer_reference_controls(args.renderer_4k_reference_control)
+    except ValueError as error:
+        parser.error(str(error))
     if sys.platform != 'linux':
         parser.error('Source engine promotion currently supports Linux only')
     if not args.worker:

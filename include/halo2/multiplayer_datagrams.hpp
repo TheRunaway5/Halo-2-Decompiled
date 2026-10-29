@@ -95,7 +95,13 @@ namespace halo2 {
 // 117 carries source-qualified WORLD attachment frames. Older body codecs
 // remain explicit legacy formats; peers still require the current header and
 // the matching source-cohort fingerprint.
-inline constexpr unsigned native_multiplayer_protocol = 117;
+//120 carries the recipient's completed ordinary player camera/head correction.
+//110..119 body codecs omit that optional bank; live peers require the same
+//current header before interpreting a snapshot or authenticated request.
+//121 adds terminal native shot/hit observations for checked PCR accuracy.
+//122 carries current native player/held-weapon region choices beside their
+//WORLD bank for full-body secondary rays. The matrix codec remains H2WP1.
+inline constexpr unsigned native_multiplayer_protocol = 123;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

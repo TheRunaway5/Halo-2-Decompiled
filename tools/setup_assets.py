@@ -7,7 +7,6 @@ from contextlib import ExitStack, contextmanager
 import json
 import mmap
 import os
-import select
 import signal
 from pathlib import Path, PurePosixPath
 import shutil
@@ -19,11 +18,12 @@ import threading
 import uuid
 import zipfile
 
-from audit_rendering import Cache, FormatError, file_sha
+from audit_rendering import Cache, FormatError, file_sha, ImportBudget, donor_inventory
 from disc import Disc, inspect_xbe
 from archive_io import copy_exact, stream_command
 from export_vista_menu_ui import dds_image, expand_resource, mip_shapes, safe_asset_path
 from prepare_vista_loading import prepare as prepare_loading
+from setup_pipe import read_available
 
 SCHEMA = "H2_ASSET_SOURCES_V1"
 VISTA_BUILD = "11081.07.04.30.0934.main"
@@ -47,6 +47,7 @@ class VistaUiCache(Cache):
     reader does not decode geometry or execute shader programs.
     """
     def __init__(self, path):
+        self.parse_budget = ImportBudget()
         self.path = Path(path)
         self.file = self.path.open("rb")
         self.data = None
@@ -62,6 +63,7 @@ class VistaUiCache(Cache):
             count = self.u32(index + 24)
             if not 0 < count <= 65536 or count != self.u32(716):
                 raise FormatError("invalid Vista directory count")
+            self.parse_budget.charge(count)
             table = self.pointer(self.u32(index + 8), -index, count * 16)
             self.magic = self.u32(32) - index
             names, size, offsets = self.u32(720), self.u32(724), self.u32(728)
@@ -186,10 +188,13 @@ def _extract_vista(source, target, progress=print, *, gameplay=False, loading_on
         if (base / "maps/mainmenu.map").is_file() or (loading_only and (source / "loading.bin").is_file()):
             if loading_only and (source / "loading.bin").is_file():
                 base = source
-            selected = [] if loading_only else ([regular(p) for p in sorted((base / "maps").glob("*.map"))] if gameplay else
+            inventory = donor_inventory(base / "maps", members=VISTA_MAX_MEMBERS) if not loading_only else []
+            selected = [] if loading_only else ([regular(base / "maps" / p) for p, _, directory in inventory
+                        if not directory and len(p.parts) == 1 and p.suffix == ".map"] if gameplay else
                         [regular(base / "maps" / name) for name in ("mainmenu.map", "shared.map")])
             if not loading_only:
-                selected += [regular(p) for p in sorted((base / "maps/fonts").iterdir())]
+                selected += [regular(base / "maps" / p) for p, _, directory in inventory
+                             if not directory and len(p.parts) == 2 and p.parts[0] == "fonts"]
             selected += [regular(base / name) for name in ("loading.bin", "halo2.exe") if (base / name).exists()]
             selected = [(path, path.stat().st_size) for path in selected]
             vista_budget([(str(path), size, None) for path, size in selected], shutil.disk_usage(target).free)
@@ -324,14 +329,17 @@ def effective_sequences(cache, at, frames):
             first, count = cache.u16(p + 32), cache.u16(p + 34)
             if first + count > len(frames):
                 raise FormatError("UI sequence outside bank")
+            cache.parse_budget.charge(count)
             sprites = [(i, struct.pack("<6f", 0, 1, 0, 1, 0, 0)) for i in range(first, first + count)]
         out.append(sprites)
     return out
 
 
-def banks(cache, prefix="ui\\"):
+def banks(cache, prefix="ui\\", budget=None):
+    cache.parse_budget = budget or ImportBudget()
     result = {}
     for tag in cache.tags.values():
+        cache.parse_budget.charge()
         if tag["group"] != "bitm" or not tag["address"] or not tag["name"].startswith(prefix):
             continue
         _, at = cache.tag(tag["datum"], "bitm")
@@ -400,9 +408,11 @@ def resource(cache, p):
 
 
 def export_pack(xbox, vista, output, manifest, prefix, names=None):
-    original, sampled = banks(xbox, prefix), banks(vista, prefix)
+    budget = ImportBudget()
+    original, sampled = banks(xbox, prefix, budget), banks(vista, prefix, budget)
     lines = ["H2UI_SAMPLING_PACK_V2"]
     included, excluded = [], {}
+    admitted, output_bytes, files = [], 0, 0
     for name, bank in sorted(original.items()):
         if names is not None and name not in names:
             continue
@@ -420,15 +430,26 @@ def export_pack(xbox, vista, output, manifest, prefix, names=None):
         for frame, (a, b) in enumerate(zip(bank[0], sampled[name][0])):
             w, h, fmt, mips = vista.u16(b + 4), vista.u16(b + 6), vista.u16(b + 12), vista.u16(b + 20)
             levels = mip_shapes(w, h, mips, fmt)
-            payload = expand_resource(resource(vista, b), sum(x["bytes"] for x in levels))
-            dds, _ = dds_image(w, h, mips, fmt, payload)
-            relative = Path("bitmaps") / manifest.removesuffix(".tsv") / safe_asset_path(name) / f"{frame:04d}.dds"
-            destination = output / relative
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(dds)
-            lines.append("\t".join((name, str(frame), str(len(bank[0])), str(xbox.u16(a + 4)),
-                str(xbox.u16(a + 6)), relative.as_posix())))
+            if sum(x["bytes"] for x in levels) > 128 * 1024**2:
+                raise FormatError("UI decoder byte budget exceeded")
+            output_bytes += sum(x["bytes"] for x in levels) + 148
+            files += 1
+            if files > 65536 or output_bytes > VISTA_MAX_OUTPUT:
+                raise FormatError("Aggregate UI export budget exceeded")
+            budget.charge()
+            admitted.append((name, bank, frame, a, b, w, h, fmt, mips, levels))
         included.append(name)
+    if shutil.disk_usage(output).free < output_bytes:
+        raise FormatError("Insufficient free space for UI export")
+    for name, bank, frame, a, b, w, h, fmt, mips, levels in admitted:
+        payload = expand_resource(resource(vista, b), sum(x["bytes"] for x in levels))
+        dds, _ = dds_image(w, h, mips, fmt, payload)
+        relative = Path("bitmaps") / manifest.removesuffix(".tsv") / safe_asset_path(name) / f"{frame:04d}.dds"
+        destination = output / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(dds)
+        lines.append("\t".join((name, str(frame), str(len(bank[0])), str(xbox.u16(a + 4)),
+            str(xbox.u16(a + 6)), relative.as_posix())))
     if not included:
         raise FormatError(f"No compatible Vista images for {manifest}")
     (output / manifest).write_text("\n".join(lines) + "\n")
@@ -705,16 +726,22 @@ def _gui_owner(enabled):
     def watch():
         try:
             while not stop.is_set():
-                if select.select([fd], [], [], .05)[0]:
+                if read_available(fd, 1, .05) is not None:
                     # The GUI writes no input. EOF or unexpected input means
                     # ownership ended; all cache cleanup stays in main.
-                    os.read(fd, 1)
                     break
         except OSError:
             pass
         if not stop.is_set():
-            os.kill(os.getpid(), signal.SIGTERM)
-    if select.select([fd], [], [], 0)[0]:
+            if os.name == "nt":
+                # os.kill(SIGTERM) uses TerminateProcess on Windows and skips
+                # the main thread's journal/finally cleanup. Queue the Python
+                # handler installed by _cancellation instead.
+                import _thread
+                _thread.interrupt_main(signal.SIGTERM)
+            else:
+                os.kill(os.getpid(), signal.SIGTERM)
+    if read_available(fd, 1, 0) is not None:
         raise SystemExit(143)
     reader = threading.Thread(target=watch, daemon=True)
     reader.start()

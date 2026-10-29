@@ -88,7 +88,9 @@ class LinkedRunningRoomTests(unittest.IsolatedAsyncioTestCase):
         async def verify(token):
             return ('steam', 'linked') if token == 'alias' else await original(token)
         self.api.directory.verify_identity = verify
-        self.api.sessions = {key: session for key, session in self.api.sessions.items() if session.player != player}
+        for key, session in tuple(self.api.sessions.items()):
+            if session.player == player:
+                self.api.remove_session(key)
         response = await self.request(('one', 'two', 'three')[host],
                                       [{'screen_name': 'Alias', 'identity_token': 'alias'}])
         self.assertEqual(response.status, 409, await response.text())

@@ -1,0 +1,9 @@
+# Native object marker transforms
+
+Semantic native kernels cover TU1.5 model-marker lookup1E11B0, authored variant/node enumeration1E1200, quaternion basis144910 and transform composition145560. They consume actual tag rows, node maps, quaternion data and live node transforms, with original signed indices, thresholds, arithmetic association, publication order and capacity refusal. No source CPU/register machine, executable-backed gameplay, synthetic stack storage or supplied successful transform is used.
+
+[Proof](../analysis/campaign-native-object-markers-20261028/proof.json) records362 complete physical-original calls and323 memory fault prefixes, all280 original sites,29,764 ordered reads and13,137 stores. It includes numerical exceptions and controls, marker variants, nullable maps, signed nodes, source/destination aliases and partial publication. GCC, Clang and actual core ASan/UBSan pass; seven compiled mutations are rejected. The physical original independently repeats byte for byte. The semantic core passed without algorithm changes during qualification.
+
+The first test exposed incorrect offline Capstone metadata for four0F17 MOVHPS memory destinations. Actual retained original bytes proved they were stores. Their metadata was corrected to write-only eight-byte operands; the rejected attempt's diagnostics remain and its newly generated unqualified payload was removed. Original instruction bytes were never modified.
+
+The853,748-byte canonical compressed original observation fixture is a required input. All reference ELF, object, raw-bank and private build trees are removed. The production module is included. WholeBAD60/perception-point composition, private-value output APIs, original numeric ABI transport and complete campaign/runtime/launcher qualification remain open.

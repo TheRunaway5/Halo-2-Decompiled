@@ -45,7 +45,13 @@ The manifest lists those prerequisite DLLs separately from bundled DLLs;
 see [Microsoft's supported runtimes](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
 Use
 `Run-Halo2.cmd` with the native engine arguments and a prepared MCC cache.
-Windows launcher setup needs Windows Python and source setup resources.
+Windows onboarding includes the shared Linux setup and home UI, native
+Python/Tk/Pillow, setup tools and the port-owned setup resources. Both
+`Halo2-Launcher.exe` and `onboarding/Halo2-Launcher.exe` use the relocatable
+onboarding executable. Its interpreter, DLL closure and resources are recorded
+in `windows-package.json`; a separate Python installation is unnecessary.
+MCC discovery/import and runtime availability retain the Linux admission rules.
+Packaging does not grant frontend or gameplay qualification.
 
 `linux-arm64`, `windows-arm64` and `macos-arm64` remain reserved platform
 identifiers whose local output staging is skipped.

@@ -5,7 +5,8 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,122>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,123>{{
+                {0x4117e0u,8u},
                 {0x4c6894u,192u},{0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
                 {0x474c8cu,4u},{0x44ab6cu,12u},{0x44ab4cu,12u},
@@ -20,6 +21,14 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
             if(std::uint64_t(r.address)<std::uint64_t(address)+bytes&&
                std::uint64_t(r.address)+r.bytes.size()>address)
                 throw std::invalid_argument("Renderer constructor data conflicts with its exact owner");
+    // Exact file-backed zero words in the authenticated TU1.5 D3D section
+    // (flags7).3FFB40/3FFB70 own later main/offscreen requested-AA writes;
+    //406B1E initializes the main request from actual CreateDevice options.
+    // Retain only these mutable inputs. No SDK device or initialized flag is
+    // supplied; a native draw separately requires its actual single-sample
+    // Renderer attachments and the completed source camera/phase authority.
+    m.mount(0x4117e0u,std::array<std::byte,8>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 file-backed main/offscreen requested-AA inputs");
     // Complete30E10 bounds this original writable request list to16
     // entries of object/marker/radius. The counter4C6954 already has an owner.
     m.mount(0x4c6894u,std::array<std::byte,16u*12u>{},SourceRuntimeMemory::Access::ReadWrite,

@@ -76,6 +76,11 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
            a.source_teleport_serial!=b.source_teleport_serial ||
            a.source_parent!=b.source_parent || a.source_seat!=b.source_seat || length(a.position-b.position)>=5)continue;
         out.position=render_lerp(a.position,b.position,fraction);
+        // Across packet loss the observer basis/lens keep their completed
+        // endpoint. Carry its measured eye displacement with the interpolated
+        // local root instead of leaving only the eye at the newer host root.
+        if(current.tick-previous.tick!=1 && b.source_player_camera && fraction!=1)
+            out.source_player_camera->position=b.source_player_camera->position+(out.position-b.position);
         out.yaw=render_angle(a.yaw,b.yaw,fraction);
         out.pitch=std::lerp(a.pitch,b.pitch,fraction);out.crouch=std::lerp(a.crouch,b.crouch,fraction);
         if(current.tick-previous.tick==1) {
@@ -145,5 +150,17 @@ ShadowCasterSphere predicted_body_sphere(std::span<const SourceWorldPredictedRoo
         return moved;
     }
     return current;
+}
+void present_first_person_body_nodes(std::span<Transform> nodes,const MultiplayerState &previous,
+    const MultiplayerState &current,const MultiplayerState &shown,unsigned slot,bool paired,float fraction) {
+    validate_render_fraction(fraction);
+    const auto &before=previous.players.at(slot),&after=current.players.at(slot),&displayed=shown.players.at(slot);
+    if(displayed.source_unit!=after.source_unit || displayed.source_unit==null_datum || displayed.dead ||
+        displayed.source_parent!=null_datum || displayed.source_seat!=-1)
+        throw FormatError("First-person body presentation lost its actual on-foot unit root");
+    const auto source=paired?render_lerp(before.position,after.position,fraction):after.position;
+    const auto delta=displayed.position-source;
+    if(delta.x==0 && delta.y==0 && delta.z==0)return;
+    for(auto &node:nodes)node.position=node.position+delta;
 }
 }

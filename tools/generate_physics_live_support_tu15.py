@@ -495,6 +495,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 if table not in tables:continue
                 targets.update(table_targets(table,old))
         lines=[f'static void run_{entry:x}(WorldState &s) {{']
+        if entry==0x3ddc0:
+            lines.append('if(source_has_presented_model_pose_tu15(s.memory))source_validate_presented_model_frame_tu15(s.memory,r(s.memory,s.gp[4]+4u,4),r(s.memory,0x4c6854u,4));')
         if entry==0xd91d0:
             lines.append('SourcePhysicsEntryObservation area_diagnostic(s.memory,0xd91d0u,[&]{return s.save();});')
         if entry==0x21f590:
@@ -1073,6 +1075,9 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     # unused definition or unrelated declarations into every recovered module:
     # that makes unchanged modules drift whenever this owner is extended.
     body_source='\n\n'.join(bodies)
+    if 0x3ddc0 in ENTRIES:
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_presented_model_pose_tu15.hpp"')
     if 'SourceFirstPersonActionObserverTu15::entry(' in body_source:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_first_person_action_tu15.hpp"')

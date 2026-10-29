@@ -1,9 +1,10 @@
 # Native in-game pause menu
 
 Escape or controller Start opens the pause overlay. Continue, Escape at the
-root, or Start resumes play. Keyboard arrows/Enter, the mouse, controller D-pad
-and left stick navigate it; B or right click goes back. Quit requires a
-confirmation with Cancel selected initially.
+root, or Start resumes play. Controller Select/Back remains the scoreboard
+button. Keyboard arrows/Enter, the mouse, controller D-pad and left stick
+navigate it; B or right click goes back. Quit and online Leave Match require
+a confirmation with Cancel selected initially.
 
 The overlay imports the selected Vista installation's
 `maps/01a_tutorial.map` gameplay UI bank. Vista `mainmenu.map` does not contain
@@ -46,13 +47,21 @@ Checkpoint restore retains training state. Training-text drawing, automatic
 training events and the full mission's other script/AI services remain open.
 See [pause settings status](PAUSE_SETTINGS_STATUS.md) for the precise scope.
 
-The native multiplayer root currently offers Continue, Settings and Quit
-using the Vista pause widget. The original Vista multiplayer pause owner has
+The native multiplayer root offers Continue, Settings and Quit for offline
+matches, or Leave Match for online matches. The original Vista multiplayer pause owner has
 additional session-gated rows, which are not reproduced here. Campaign Quit
 does not claim durable saving: its label is Quit and its confirmation warns
 that unsaved progress will be lost. Offline games launched through the current
-workbench exit that workbench on Quit. Online matches use their existing return
-lifecycle.
+workbench exit that workbench on Quit. Confirmed online Leave Match enters the
+TU1.5 screen231 `PLEASE WAIT` / `Leaving game...` presentation before retiring
+the match renderer. The transition stays active through menu preparation and
+joins at the returned menu's first draw. The retained ONLINE session returns
+to pregame lobby14, matchmaking pane2, with its party, playlist and signed-in
+profile. It cancels the abandoned search intent so the match cannot relaunch.
+The original owners are `0x19430A -> 0x1959C7` for the transition and
+`0x19B1C9` / `0x24FF0A` for the pregame lobby and pane. See
+[loading presentation](MCC_LOADING_PRESENTATION.md) for rendering and audio
+ownership and its validation limits.
 
 ## Evidence and verification
 

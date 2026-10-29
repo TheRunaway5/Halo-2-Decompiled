@@ -124,6 +124,7 @@ inline std::uint32_t playback_row(const M &m,std::uint32_t definition) {
 // registers the original clobbers (and EFLAGS) are not part of it.
 struct Contract {
     std::uint8_t gp_full=0xff,gp_low16=0,xmm=0xff;
+    std::uint8_t gp_low8=0;
 };
 using Services=SourcePhysicsContactRuntimeServices;
 struct Kernel {

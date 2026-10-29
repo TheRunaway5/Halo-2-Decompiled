@@ -171,11 +171,11 @@ fn decode_parent_frame(
     }
     let mut frame = [0u32; 13];
     for (n, word) in frame.iter_mut().enumerate() {
-        if let Some(base) = base {
-            if d.bit(&mut m.frame_word_same) {
-                *word = base[n];
-                continue;
-            }
+        if let Some(base) = base
+            && d.bit(&mut m.frame_word_same)
+        {
+            *word = base[n];
+            continue;
         }
         *word = d.direct(32) as u32;
     }
@@ -246,6 +246,9 @@ fn decode_layout(
     let mut keys = Vec::with_capacity(count);
     let mut cursor = 0usize;
     for _ in 0..count {
+        if d.exhausted() {
+            return Err(Error);
+        }
         if d.bit(&mut m.same_key) {
             keys.push(*base.get(cursor).ok_or(Error)?);
             cursor += 1;
@@ -727,7 +730,10 @@ impl Sender {
         let mut ge = Encoder::default();
         let input = generic::Input { bytes: generic_bytes, floats, anchors };
         let view = generic::encode(&mut ge, &input, base_view, frame.tick);
-        let generic_stream = ge.finish();
+        let mut generic_stream = ge.finish_physical();
+        // Highly repetitive legitimate snapshots still carry enough physical
+        // bytes to fund their decoded-size budget at the receiver.
+        generic_stream.resize(generic_stream.len().max(view.bytes.len().saturating_sub(4096).div_ceil(128)), 0);
 
         let mut header = Vec::with_capacity(32);
         let mut flags = 0u8;
@@ -810,16 +816,16 @@ impl Sender {
         }
         for (n, entry) in entries.iter_mut().enumerate() {
             if let Some(object) = self.objects.get_mut(&entry.key) {
-                if entry.key.binding.is_some() {
-                    if let Some(full) = &entry.full {
-                        let shape = FullRootShape::of(full).ok_or(Error)?;
-                        if object.last_full_shape != Some(shape) {
-                            self.next_full_shape_generation += 1; // Overflow was checked before committing anything.
-                            object.full_shape_generation = Some(self.next_full_shape_generation);
-                            object.last_full_shape = Some(shape);
-                        }
-                        entry.full_shape_generation = object.full_shape_generation;
+                if entry.key.binding.is_some()
+                    && let Some(full) = &entry.full
+                {
+                    let shape = FullRootShape::of(full).ok_or(Error)?;
+                    if object.last_full_shape != Some(shape) {
+                        self.next_full_shape_generation += 1; // Overflow was checked before committing anything.
+                        object.full_shape_generation = Some(self.next_full_shape_generation);
+                        object.last_full_shape = Some(shape);
                     }
+                    entry.full_shape_generation = object.full_shape_generation;
                 }
                 object.pending.push(Stored {
                     seq: frame.sequence,
@@ -999,7 +1005,7 @@ impl Sender {
             }
         }
         e.bit(&mut sm.more, false);
-        (e.finish(), entries)
+        (e.finish_physical(), entries)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1190,6 +1196,9 @@ pub struct Receiver {
     keyframe_needed: bool,
     pending: Option<Pending>,
     stats: ReceiverStats,
+    consecutive_failures: u8,
+    decode_window_ms: u64,
+    decoded_bytes: usize,
 }
 
 impl Receiver {
@@ -1203,6 +1212,9 @@ impl Receiver {
             keyframe_needed: false,
             pending: None,
             stats: ReceiverStats::default(),
+            consecutive_failures: 0,
+            decode_window_ms: 0,
+            decoded_bytes: 0,
         }
     }
 
@@ -1227,6 +1239,7 @@ impl Receiver {
 
     fn fail(&mut self) {
         self.stats.failures += 1;
+        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
         self.keyframe_needed = true;
         self.ring.clear();
         self.cache.clear();
@@ -1256,6 +1269,15 @@ impl Receiver {
     /// Accepts one fragment. A completed message is decoded but stays
     /// uncommitted until the native decoder accepts or rejects its body.
     pub fn push(&mut self, packet: &[u8], now_ms: u64) -> Result<Option<Delivered>, Error> {
+        // Quarantine repeated expansion/schema failures until the session
+        // explicitly resets for a new authenticated host generation.
+        if self.consecutive_failures >= 8 {
+            return Err(Error);
+        }
+        if now_ms.saturating_sub(self.decode_window_ms) >= 33 {
+            self.decode_window_ms = now_ms;
+            self.decoded_bytes = 0;
+        }
         let mut cursor = Cursor { bytes: packet, at: 0 };
         let seq = cursor.u32()?;
         let index = u16::from_le_bytes([cursor.u8()?, cursor.u8()?]);
@@ -1342,6 +1364,10 @@ impl Receiver {
         if generic_len > MAX_BODY {
             return Err(Error);
         }
+        if generic_len > MAX_BODY.saturating_sub(self.decoded_bytes) {
+            return Err(Error);
+        }
+        self.decoded_bytes += generic_len;
         let offset = if flags & FLAG_POSES != 0 {
             let offset = usize::try_from(cursor.varint()?).map_err(|_| Error)?;
             if offset > generic_len {
@@ -1360,21 +1386,35 @@ impl Receiver {
         let base =
             if base_age == 0 { None } else { Some(self.find(seq.wrapping_sub(u32::from(base_age))).ok_or(Error)?) };
         let empty = View::default();
-        let view =
-            generic::decode(&mut Decoder::new(generic_stream), generic_len, base.map_or(&empty, |m| &m.view), tick)?;
+        let view = generic::decode(
+            &mut Decoder::bounded(generic_stream),
+            generic_len,
+            base.map_or(&empty, |m| &m.view),
+            tick,
+        )?;
         let base_layout: &[Key] = base.map_or(&[], |m| &m.layout);
         let mut layout = Vec::new();
         let mut entries: Vec<Entry> = Vec::new();
         let mut authoritative = 0u8;
         if offset.is_some() {
-            let mut d = Decoder::new(pose_stream);
+            let mut d = Decoder::bounded(pose_stream);
             let mut sm = StreamModels::default();
             let mut pm = pose::Models::default();
             let (auth, keys) = decode_layout(&mut d, &mut sm, base_layout, pose_format)?;
+            let pose_bytes = pose::bank_len(pose_format, &keys);
+            if pose_bytes > MAX_BODY.saturating_sub(view.bytes.len())
+                || pose_bytes > MAX_BODY.saturating_sub(self.decoded_bytes)
+            {
+                return Err(Error);
+            }
+            self.decoded_bytes += pose_bytes;
             authoritative = auth;
             layout = keys;
             let mut seen = HashSet::new();
             while d.bit(&mut sm.more) {
+                if d.exhausted() {
+                    return Err(Error);
+                }
                 if entries.len() >= 2 * layout.len() {
                     return Err(Error);
                 }
@@ -1563,6 +1603,7 @@ impl Receiver {
             self.keyframe_needed = false;
         }
         self.latest = Some(seq);
+        self.consecutive_failures = 0;
         self.ring.push_back(message);
         while self.ring.front().is_some_and(|m| seq.wrapping_sub(m.seq) >= RING) {
             self.ring.pop_front();
@@ -1580,6 +1621,29 @@ impl Receiver {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn tiny_stream_cannot_allocate_maximum_snapshot_and_failures_quarantine() {
+        let mut d = Decoder::bounded(&[]);
+        assert!(generic::decode(&mut d, MAX_BODY, &View::default(), 1).is_err());
+        assert_eq!(d.consumed(), 4);
+        let mut receiver = Receiver::new(1400);
+        let mut body = vec![FLAG_KEYFRAME];
+        body.extend_from_slice(&1u32.to_le_bytes());
+        body.push(0);
+        body.extend_from_slice(&[0; 4]);
+        put_varint(&mut body, MAX_BODY as u64);
+        put_varint(&mut body, 0);
+        for seq in 1u32..=8 {
+            let mut packet = seq.to_le_bytes().to_vec();
+            packet.extend_from_slice(&[0, 0, 1, 0]);
+            packet.extend_from_slice(&body);
+            assert!(receiver.push(&packet, 0).is_err());
+        }
+        assert_eq!(receiver.consecutive_failures, 8);
+        assert!(receiver.push(&[], 0).is_err());
+        receiver.reset();
+        assert_eq!(receiver.consecutive_failures, 0);
+    }
     use super::*;
     use crate::netcode::generic::tests::{Lcg, World};
     use crate::netcode::pose::tests::body;
@@ -2146,8 +2210,8 @@ mod tests {
             let decoded = pose::parse(&got.body).unwrap();
             let node = &decoded.poses[0].nodes[0];
             assert_eq!(node[0], current.nodes[0][0]);
-            for component in 1..10 {
-                assert!((node[component] - current.nodes[0][component]).abs() < 0.002);
+            for (value, expected) in node[1..10].iter().zip(&current.nodes[0][1..10]) {
+                assert!((value - expected).abs() < 0.002);
             }
             assert_eq!(decoded.poses[0].parent_frame, current.parent_frame);
             assert!(sender.objects[&first.key].root_shape_is_confirmed(&pose::quantize(&current)));

@@ -89,6 +89,19 @@ AuthorityArchiveImage::AuthorityArchiveImage(std::shared_ptr<const Data> data):d
 AuthorityArchiveDigest AuthorityArchiveImage::digest()const{need(bool(data_));return data_->digest;}
 std::uint64_t AuthorityArchiveImage::decoded_size()const{need(bool(data_));return data_->raw.size();}
 std::span<const std::byte> AuthorityArchiveImage::raw()const{need(bool(data_));return data_->raw;}
+AuthorityArchiveImage AuthorityArchiveImage::from_raw(Bytes raw,AuthorityDeltaLimits limits){
+    limits_ok(limits);need(!raw.empty()&&raw.size()<=limits.decoded_bytes&&raw.capacity()<=limits.decoded_bytes);
+    budget(limits,{raw.capacity(),raw.size(),sizeof(Data),128*1024});
+    Bytes sealed(raw.begin(),raw.end());need(sealed.capacity()<=limits.decoded_bytes);
+    budget(limits,{raw.capacity(),sealed.capacity(),sizeof(Data),128*1024});
+    return from_unaliased_raw(std::move(sealed),limits);
+}
+AuthorityArchiveImage AuthorityArchiveImage::from_unaliased_raw(Bytes raw,AuthorityDeltaLimits limits){
+    limits_ok(limits);need(!raw.empty()&&raw.size()<=limits.decoded_bytes&&raw.capacity()<=limits.decoded_bytes);
+    budget(limits,{raw.capacity(),sizeof(Data),128*1024});
+    auto data=std::make_shared<Data>();data->digest=hash(raw);data->raw=std::move(raw);
+    return AuthorityArchiveImage(std::move(data));
+}
 AuthorityArchiveImage AuthorityArchiveImage::read(std::span<const std::byte> encoded,AuthorityDeltaLimits limits){
     limits_ok(limits);need(encoded.size()>=source_header&&encoded.size()<=limits.encoded_bytes);Reader r{encoded};
     need(std::ranges::equal(r.raw(8),source_magic)&&r.get(4)==1&&r.get(4)==0);

@@ -184,17 +184,17 @@ int main(int argc,char **argv){try {
   if(age==201 || age==266 || age==351)fire(window_id,false);
   if(age==260)key(window_id,SDL_SCANCODE_SPACE,true);
   if(age==261)key(window_id,SDL_SCANCODE_SPACE,false);
-  if(age==320)key(window_id,SDL_SCANCODE_LSHIFT,true);
-  if(age==390)key(window_id,SDL_SCANCODE_LSHIFT,false);
+  if(age==320)key(window_id,SDL_SCANCODE_LCTRL,true);
+  if(age==390)key(window_id,SDL_SCANCODE_LCTRL,false);
   picked_up|=p.weapon==sword->first;
   if(picked_up && !returned_from_pickup) {
    test::place_player(options.prepared_world->match,0,safe_spawn);returned_from_pickup=true;
   }
-  if(melee_key){key(window_id,SDL_SCANCODE_F,false);melee_key=false;}
+  if(melee_key){key(window_id,SDL_SCANCODE_Q,false);melee_key=false;}
   else if(age>=420 && ordinary_requests<3 &&
       (ordinary_requests==0 || (p.melee_action.active() && p.melee_action.recovery>=0 &&
        p.melee_action.progress>=p.melee_action.recovery))) {
-   key(window_id,SDL_SCANCODE_F,true);melee_key=true;++ordinary_requests;
+   key(window_id,SDL_SCANCODE_Q,true);melee_key=true;++ordinary_requests;
   }
   ground_special|=p.melee_action.activity==0x0b0005b2u;air_special|=p.melee_action.activity==0x140005b3u;
   up|=p.pitch>.25f;down|=p.pitch<-.25f;

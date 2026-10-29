@@ -38,6 +38,29 @@ std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player(unsigned
     std::optional<NativeDeathCameraView> *completed) {
   return update_player_impl(index,player,flags,seconds,cycle_pressed,nullptr,completed);
 }
+std::array<std::byte,0x5c> NativeVehicleCamera::collect_player_input(unsigned index,
+    std::uint32_t player,float frame_seconds,float game_seconds) {
+  if(index>=views_.size() || player==0xffffffffu)
+    throw FormatError("Native input requires a live local player/view");
+  const auto players=source_death_camera_players(runtime_.memory(),runtime_.player_pool());
+  const auto own=std::find_if(players.begin(),players.end(),[&](const auto&p){return p.datum==player;});
+  if(own==players.end())throw FormatError("Native input lost its full source player identity");
+  auto&view=views_[index];
+  if(view.player!=player) {
+    view=View{};view.player=player;
+    // Before the first normal post-frame camera phase the genuine157EB0
+    // default remains mode4.1AD4F0 must see that state, including rejection.
+    view.controller=runtime_.tu15_world().original_camera_seed().controller_;
+    const auto rows=word(runtime_.memory(),word(runtime_.memory(),0x4f54f4u)+0x44u);
+    const auto flags=word(runtime_.memory(),rows+(player&0xffffu)*0x21cu);
+    const auto frame=runtime_.observer_world_frame(std::int32_t(index),own->current_unit,
+        std::uint16_t(flags>>16),saved_clusters_);
+    source_observer_reset(view.observer,std::int16_t(frame.bsp),*data_.observer_constants,
+        *data_.observer_world_constants);
+  }
+  return runtime_.tu15_world().collect_native_input(player,index,frame_seconds,game_seconds,
+      view.controller,view.observer);
+}
 std::optional<NativeDeathCameraView> NativeVehicleCamera::update_player_impl(unsigned index,
     std::uint32_t player,std::uint16_t flags,float seconds,bool cycle_pressed,const SourceOriginalCameraSeed *seed,
     std::optional<NativeDeathCameraView> *completed) {

@@ -32,6 +32,8 @@ public:
     SourceCharacterShaders(const Cache&,RenderModel&,std::uint32_t unit_definition);
     void select(std::vector<Vertex>&,ShadowCasterSphere,const SourceModelShaderView&)const;
     void select(std::vector<Vertex>&,const SourceModelShaderCollector&,const SourceModelShaderView&)const;
+    void select_indexed(std::vector<Vertex>&,std::vector<std::uint32_t>&,
+        const SourceModelShaderCollector&,const SourceModelShaderView&)const;
 private:
     std::unique_ptr<SourceDynamicModelShaders> resident_;
 };

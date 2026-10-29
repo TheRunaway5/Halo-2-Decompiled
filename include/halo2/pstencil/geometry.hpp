@@ -13,6 +13,11 @@ static_assert(sizeof(ShadowVertex)==20);
 // adapter executes the authored program's actual position/skin prefix. It
 // neither chooses a pose nor welds unrelated source vertices.
 std::vector<Vec3> world_positions(const MenuWorldSourceBinding&);
+// The ordinary model draw can contain triangles omitted by Apply's spatial
+// range filter. Its same immutable section/current native palette still owns
+// every original part vertex. This computes that bank without changing the
+// binding's actual submitted range or constructing additional draw packets.
+std::vector<Vec3> complete_world_positions(const MenuWorldSourceBinding&);
 // Offline arithmetic-reference boundary reconstruction; test-only linkage.
 VertexProgram position_prefix(const VertexProgram&);
 // Complete source identity selects a fixed AOT C++ prefix function. This is

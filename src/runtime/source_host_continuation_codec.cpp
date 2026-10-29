@@ -8,9 +8,10 @@ namespace halo2 {
 namespace {
 using namespace continuation_wire;
 constexpr std::size_t host_limit=512*1024;
-// Revision 3 retains authenticated optional matchmaking levels in every
-// admission. Older envelopes lack those bytes and are rejected explicitly.
-constexpr std::string_view host_magic="H2HOST03";
+// Revision5 retains accepted queued/consumed inputs and native motion-adoption
+// history alongside the completed ordinary/vehicle/death observers. Earlier
+// envelopes cannot reproduce the current input receipts and are rejected.
+constexpr std::string_view host_magic="H2HOST05";
 void valid_binding(const LanHost::ContinuationBinding &b){
   need(b.context.host<16&&(b.context.peers&(1u<<b.context.host))&&
       std::ranges::any_of(b.context.session,[](auto v){return v!=std::byte{};})&&b.world.id&&b.world.bytes&&
@@ -54,6 +55,70 @@ Controls controls(Reader &r){
   c.look_stick=r.real();c.vehicle_interaction_target=intent(r);
   need(std::abs(c.forward)<=1&&std::abs(c.right)<=1&&std::abs(c.yaw)<=10000&&std::abs(c.pitch)<=10000);return c;
 }
+void view_time(Writer& w,const std::optional<NetcodeViewTime>& value){
+  w.boolean(value.has_value());if(value){need(value->fraction!=netcode_view_absent_fraction);
+    w.u(value->tick_low,2);w.u(value->fraction,1);}
+}
+auto view_time(Reader& r){std::optional<NetcodeViewTime> value;if(r.boolean()){
+  value=NetcodeViewTime{std::uint16_t(r.u(2)),std::uint8_t(r.u(1))};
+  need(value->fraction!=netcode_view_absent_fraction);}return value;
+}
+void motion_report(Writer& w,const std::optional<NativeMotionReport>& value){
+  w.boolean(value.has_value());if(value){w.boolean(value->grounded);w.boolean(value->crouching);w.u(value->baseline_age,1);
+    for(auto p:value->position){need(p>=-native_motion_position_limit-1 && p<=native_motion_position_limit);w.i32(p);}
+    for(auto v:value->velocity)w.u(std::bit_cast<std::uint16_t>(v),2);}
+}
+auto motion_report(Reader& r){std::optional<NativeMotionReport> value;if(r.boolean()){
+  auto& v=value.emplace();v.grounded=r.boolean();v.crouching=r.boolean();v.baseline_age=r.u(1);
+  for(auto& p:v.position){p=r.i32();need(p>=-native_motion_position_limit-1 && p<=native_motion_position_limit);}
+  for(auto& velocity:v.velocity)velocity=std::bit_cast<std::int16_t>(std::uint16_t(r.u(2)));}return value;
+}
+void queued_inputs(Writer& w,const auto& p){
+  view_time(w,p.view);for(const auto& bank:p.latest_presses)for(auto serial:bank)w.u(serial,4);
+  w.u(p.pending.size(),1);for(const auto& q:p.pending){w.u(q.sequence,4);
+    for(const auto& c:q.controls)controls(w,c);for(const auto& v:q.motion)motion_report(w,v);view_time(w,q.view);
+    for(const auto& bank:q.presses)for(auto serial:bank)w.u(serial,4);
+    for(const auto& bank:q.completed)for(auto duration:bank)w.u(duration,2);
+    for(const auto& v:q.completed_vehicle)intent(w,v);
+  }
+  w.boolean(p.consumed_known);w.u(p.consumed,4);for(const auto& v:p.consumed_motion)motion_report(w,v);
+  for(auto steps:p.report_steps)w.u(steps,4);
+  w.u(p.consumed_inputs,8);w.u(p.skipped_inputs,8);w.u(p.repeated_ticks,8);
+}
+void queued_inputs(Reader& r,auto& p){
+  p.view=view_time(r);for(auto& bank:p.latest_presses)for(auto& serial:bank)serial=r.u(4);
+  const auto count=r.u(1);need(count<=3);for(unsigned n=0;n<count;++n){auto& q=p.pending.emplace_back();q.sequence=r.u(4);
+    for(auto& c:q.controls)c=controls(r);for(auto& v:q.motion)v=motion_report(r);q.view=view_time(r);
+    for(auto& bank:q.presses)for(auto& serial:bank)serial=r.u(4);
+    for(auto& bank:q.completed)for(auto& duration:bank)duration=r.u(2);
+    for(auto& v:q.completed_vehicle)v=intent(r);
+  }
+  p.consumed_known=r.boolean();p.consumed=r.u(4);for(auto& v:p.consumed_motion)v=motion_report(r);
+  for(auto& steps:p.report_steps)steps=r.u(4);
+  p.consumed_inputs=r.u(8);p.skipped_inputs=r.u(8);p.repeated_ticks=r.u(8);
+}
+void motion_adoption(Writer& w,const std::optional<NonHostMotionAdopter::Checkpoint>& value){
+  w.boolean(value.has_value());if(!value)return;
+  for(auto word:value->configuration)w.u(word,4);
+  for(const auto& p:value->peers){w.boolean(p.seen);w.u(p.unit,4);w.u(p.teleport_serial,4);
+    w.u(p.damage_serial,8);w.u(p.impulse_serial,4);
+    for(float v:{p.velocity.x,p.velocity.y,p.velocity.z})w.real(v);
+    w.real(p.adoption.budget);w.boolean(p.adoption.forced_sequence.has_value());
+    if(p.adoption.forced_sequence)w.u(*p.adoption.forced_sequence,4);
+    w.boolean(p.adoption.last_sequence.has_value());if(p.adoption.last_sequence)w.u(*p.adoption.last_sequence,4);
+    w.u(unsigned(p.forced),1);
+  }
+}
+auto motion_adoption(Reader& r){std::optional<NonHostMotionAdopter::Checkpoint> value;
+  if(r.boolean()){
+    auto& c=value.emplace();for(auto& word:c.configuration)word=r.u(4);
+    for(auto& p:c.peers){p.seen=r.boolean();p.unit=r.u(4);p.teleport_serial=r.u(4);
+      p.damage_serial=r.u(8);p.impulse_serial=r.u(4);p.velocity={r.real(),r.real(),r.real()};
+      p.adoption.budget=r.real();if(r.boolean())p.adoption.forced_sequence=r.u(4);
+      if(r.boolean())p.adoption.last_sequence=r.u(4);p.forced=NonHostForcedMotion(r.u(1));
+    }
+  }return value;
+}
 void camera_view(Writer &w,const std::optional<NativeDeathCameraView> &v){
   static_assert(boost::pfr::tuple_size_v<NativeDeathCameraView> ==6);
   w.boolean(v.has_value());if(v){for(float f:{v->position.x,v->position.y,v->position.z,v->forward.x,v->forward.y,v->forward.z,
@@ -88,6 +153,8 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
   valid_binding(b);need(s.binding==source_authority_binding(b.context)&&s.tick==b.world.tick&&
       s.configuration.size()>=10&&s.configuration.size()<=65536&&s.admissions.size()<=16&&!s.admissions.empty()&&s.peers.size()<=16);
   need(native_roster(s.roster)==s.roster);std::uint16_t seats{},local{},endpoints{},remote{};
+  if(s.motion_adoption){try{NonHostMotionAdopter::validate_checkpoint(*s.motion_adoption);}
+    catch(const std::invalid_argument&){need(false);}}
   for(const auto &p:s.admissions){const auto owner=online_admission_peer(p);
     // Admission/PCR rows outlive active transport membership. A departed host
     // remains an independently accepted report identity in the complete cut.
@@ -106,6 +173,7 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
   for(const auto &p:s.peers){need(p.endpoint<16&&p.endpoint!=b.context.host&&(b.context.peers&(1u<<p.endpoint))&&
       !(endpoints&(1u<<p.endpoint))&&!p.ids.empty()&&p.ids.size()<=4&&p.selected_teams.size()==p.ids.size()&&p.profiles.size()==p.ids.size());
     endpoints|=std::uint16_t(1u<<p.endpoint);std::vector<unsigned> ids;
+    validate_source_host_input_continuation(p);
     if(p.last_snapshot){const auto &v=*p.last_snapshot;
       need(v.fingerprint==s.fingerprint&&v.nonce==p.nonce&&v.cookie==p.cookie&&v.sequence==p.snapshot_sequence&&
           v.tick<=s.tick&&v.bytes>0&&v.bytes<=8u*1024u*1024u);}
@@ -115,10 +183,12 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
       remote|=std::uint16_t(1u<<slot);need(p.selected_teams[i]>=-1&&p.selected_teams[i]<=7);}
     for(unsigned view=0;view<4;++view){
       need(!(p.vehicle_views[view]&&p.death_views[view]));
+      need(!(p.player_views[view]&&(p.vehicle_views[view]||p.death_views[view])));
+      if(p.player_views[view])need(p.player_views[view]->camera_mode==0);
       if(p.vehicle_views[view])need(p.vehicle_views[view]->camera_mode==0||p.vehicle_views[view]->camera_mode==1||p.vehicle_views[view]->camera_mode==3);
-      if(view>=p.ids.size())need(!p.vehicle_views[view]&&!p.death_views[view]);
+      if(view>=p.ids.size())need(!p.player_views[view]&&!p.vehicle_views[view]&&!p.death_views[view]);
     }
-    if(!p.camera){need(!p.camera_tick);for(unsigned i=0;i<4;++i)need(!p.vehicle_views[i]&&!p.death_views[i]);}
+    if(!p.camera){need(!p.camera_tick);for(unsigned i=0;i<4;++i)need(!p.player_views[i]&&!p.vehicle_views[i]&&!p.death_views[i]);}
   }
 }
 auto idle_nanoseconds(std::chrono::nanoseconds value){
@@ -131,8 +201,18 @@ auto idle_duration(std::uint64_t count){
 }
 std::vector<std::byte> LanHost::encode_continuation(const Continuation &cut,const ContinuationBinding &bound){
   using namespace continuation_wire;need(bool(cut.data_));const auto &s=*cut.data_;valid_data(s,bound);
-  static_assert(boost::pfr::tuple_size_v<Continuation::Data> ==8);
-  static_assert(boost::pfr::tuple_size_v<Continuation::Data::Peer> ==21);
+  static_assert(boost::pfr::tuple_size_v<Continuation::Data> ==9);
+  static_assert(boost::pfr::tuple_size_v<Continuation::Data::Peer> ==32);
+  static_assert(boost::pfr::tuple_size_v<Continuation::Data::QueuedInput> ==7);
+  static_assert(boost::pfr::tuple_size_v<NonHostMotionAdopter::Checkpoint> ==2);
+  static_assert(boost::pfr::tuple_size_v<NonHostMotionAdopter::PeerState> ==8);
+  static_assert(boost::pfr::tuple_size_v<NonHostAdoptionState> ==3);
+  static_assert(boost::pfr::tuple_size_v<NativeMotionReport> ==5);
+  static_assert(boost::pfr::tuple_size_v<NetcodeViewTime> ==2);
+  static_assert(std::tuple_size_v<decltype(NonHostMotionAdopter::Checkpoint{}.configuration)> ==41);
+  static_assert(std::tuple_size_v<decltype(NonHostMotionAdopter::Checkpoint{}.peers)> ==16);
+  static_assert(std::tuple_size_v<decltype(Continuation::Data::Peer{}.latest_presses)> ==4);
+  static_assert(std::tuple_size_v<typename decltype(Continuation::Data::Peer{}.latest_presses)::value_type> ==10);
   static_assert(boost::pfr::tuple_size_v<MultiplayerSnapshotStamp> ==7);
   static_assert(boost::pfr::tuple_size_v<OnlineAdmission> ==7&&boost::pfr::tuple_size_v<SourcePlayerAdmission> ==3);
   Writer w{host_limit,{}};w.u(native_multiplayer_protocol,2);binding(w,bound);w.octets(s.binding);w.u(s.fingerprint,8);w.u(s.tick,8);
@@ -156,8 +236,11 @@ std::vector<std::byte> LanHost::encode_continuation(const Continuation &cut,cons
     w.boolean(p.camera.has_value());if(p.camera)w.blob(NativeVehicleCamera::encode_checkpoint(*p.camera),8192);
     w.boolean(p.camera_tick.has_value());if(p.camera_tick)w.u(*p.camera_tick,4);
     for(const auto &v:p.vehicle_views)camera_view(w,v);for(const auto &v:p.death_views)camera_view(w,v);
+    for(const auto &v:p.player_views)camera_view(w,v);
     for(auto serial:p.camera_jump_serial)w.u(serial,4);
+    queued_inputs(w,p);
   }
+  motion_adoption(w,s.motion_adoption);
   return frame(host_magic,w.bytes,host_limit);
 }
 LanHost::Continuation LanHost::decode_continuation(std::span<const std::byte> bytes,const ContinuationBinding &expected,
@@ -191,8 +274,11 @@ LanHost::Continuation LanHost::decode_continuation(std::span<const std::byte> by
     if(r.boolean())p.camera=NativeVehicleCamera::decode_checkpoint(r.blob(8192),s->binding,std::uint32_t(s->tick),view_admissions(*s,p));
     if(r.boolean())p.camera_tick=r.u(4);
     for(auto &v:p.vehicle_views)v=camera_view(r);for(auto &v:p.death_views)v=camera_view(r);
+    for(auto &v:p.player_views)v=camera_view(r);
     for(auto &serial:p.camera_jump_serial)serial=r.u(4);
+    queued_inputs(r,p);
   }
+  s->motion_adoption=motion_adoption(r);
   r.end();valid_data(*s,expected);Continuation result;result.data_=std::move(s);return result;
 }
 }

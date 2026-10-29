@@ -37,7 +37,10 @@ class MatchmakingAppearanceTests(unittest.IsolatedAsyncioTestCase):
         body['renew_session']=token;body['local_players'][1]['appearance']=changed
         response=await self.client.post('/v1/matchmaking/session',headers={'Authorization':'Bearer one'},json=body)
         self.assertEqual(response.status,201,await response.text());self.assertEqual((await response.json())['token'],token)
-        self.assertEqual(tuple(p.player for p in first.seats()),old_ids);self.assertIs(self.api.ticket(first.player),old_ticket)
+        self.assertEqual(tuple(p.player for p in first.seats()),old_ids)
+        # Rust snapshots preserve the whole immutable admission, including its
+        # identity; Python object identity is no longer the queue authority.
+        self.assertEqual(self.api.ticket(first.player),old_ticket)
         self.assertEqual(first.seats()[2].appearance,bytes.fromhex(changed));self.assertEqual(self.verified.count('three'),2)
         self.assertEqual(self.api.player_appearance(old_ids[2]),changed)
         self.assertIsNone(self.api.player_appearance(old_ids[3]))

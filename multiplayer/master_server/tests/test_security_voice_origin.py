@@ -3,7 +3,6 @@ import json
 import unittest
 from dataclasses import replace
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from multiplayer.master_server.voice_origin import voice_message
 from . import test_match_transport as match
 from . import test_couch_online as couch
 from .voice_signing import sign_voice
@@ -46,23 +45,24 @@ class VoiceOriginTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(await asyncio.wait_for(queues[b].get(), 2))
         self.assertTrue(room.closed)
 
-    async def test_valid_origin_survives_host_forwarding_and_gain_mixing(self):
+    async def test_direct_recipient_delivery_cannot_be_redistributed_by_host(self):
         room, descriptors, sockets, queues, h, a, b = await self.running()
-        packet = sign_voice(room, self.body(descriptors[a]['slot']))
-        await sockets[a].send_bytes(bytes([descriptors[h]['slot']]) + packet)
-        self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[a]['slot']]) + packet)
-        mixed = bytearray(packet)
-        mixed[14:18] = b'\0\0\0\0'
-        await sockets[h].send_bytes(bytes([descriptors[b]['slot']]) + mixed)
-        self.assertEqual(await asyncio.wait_for(queues[b].get(), 2), bytes([descriptors[h]['slot']]) + mixed)
-        self.assertFalse(room.closed)
+        target = descriptors[b]['slot']
+        packet = sign_voice(room, self.body(descriptors[a]['slot']), recipient=target)
+        await sockets[a].send_bytes(bytes([target]) + packet)
+        self.assertEqual(await asyncio.wait_for(queues[b].get(), 2), bytes([descriptors[a]['slot']]) + packet)
+        with self.assertRaises(asyncio.TimeoutError):
+            await asyncio.wait_for(queues[h].get(), .05)
+        await sockets[h].send_bytes(bytes([descriptors[a]['slot']]) + packet)
+        self.assertIsNone(await asyncio.wait_for(queues[a].get(), 2))
+        self.assertTrue(room.closed)
 
     async def test_other_room_signature_cannot_be_replayed(self):
         room, descriptors, sockets, queues, h, a, b = await self.running()
         body = self.body(descriptors[a]['slot'])
         owner = room.owners[room.players[descriptors[a]['slot']][0]]
-        packet = body + room.voice_keys[owner].sign(voice_message('00000000-0000-0000-0000-000000000000', 0, body))
-        await sockets[h].send_bytes(bytes([descriptors[b]['slot']]) + packet)
+        packet = sign_voice(room, body, owner=owner, recipient=descriptors[b]['slot'], room_id='00000000-0000-0000-0000-000000000000')
+        await sockets[a].send_bytes(bytes([descriptors[b]['slot']]) + packet)
         self.assertIsNone(await asyncio.wait_for(queues[b].get(), 2))
 
     async def test_connection_receives_only_its_own_room_signing_seed(self):
@@ -99,9 +99,9 @@ class CouchVoiceOriginTests(unittest.IsolatedAsyncioTestCase):
         packet = sign_voice(room, body)
         await sockets[sender].send_bytes(bytes([host]) + packet)
         self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[sender]['slot']]) + packet)
-        self.assertEqual(len(room.voice_keys), 2)
         owner = room.owners[room.players[slot][0]]
         auth = json.loads(room.voice_auth(owner))['voice_auth']
+        self.assertEqual(len(set(auth['keys'])), 2)
         self.assertEqual(auth['keys'][slot], auth['keys'][descriptors[sender]['slot']])
         forged = sign_voice(room, body, owner=room.players[host][0])
         await sockets[h].send_bytes(bytes([descriptors[sender]['slot']]) + forged)

@@ -1,6 +1,8 @@
 #include "rendering/renderer/frame_model_skin_plan.hpp"
 #include <array>
 #include <bit>
+#include <cerrno>
+#include <cfenv>
 #include <cstring>
 #include <cstdlib>
 #include <iostream>
@@ -332,13 +334,108 @@ void mapped_owner_witness() {
     need(observations==4 && world_views==2 && vertices==plan.records().size() && weighted==10,
         "GPU owner witness differs from actual grouped record coverage");
 }
+void retained_frame_scratch() {
+    auto pose=geometry(3000),other=geometry(3000,2,.25f);
+    for(auto *owner:{pose.get(),other.get()}) {
+        for(auto &binding:owner->bindings)binding.weights[0]=.5f;
+        owner->arithmetic_admitted=true;
+    }
+    const auto a=pose->vertices,b=other->vertices;
+    const auto populate=[&](FrameModelSkinPlan &plan,unsigned variant) {
+        plan.add_bank(a,submission(0,pose),0);plan.add_bank(b,submission(0,other),3);
+        std::size_t destination=100;
+        const auto append=[&](std::span<const Vertex> bank) {
+            const std::size_t run=variant%3==0?31:variant%3==1?127:2050;
+            for(std::size_t first=0;first<bank.size();) {
+                const auto part=bank.subspan(first,std::min(run,bank.size()-first));
+                plan.append(part,destination);first+=part.size();destination+=part.size();
+            }
+        };
+        // Renderer grouping can reorder sources and repeat a selected range.
+        if(variant&1){append(b);append(a);}else{append(a);append(b);}
+        plan.append(std::span{a}.first(5),destination);plan.validate_complete();
+    };
+    FrameModelSkinPlan retained;
+    need(!retained.retained_bytes(),"Empty planner retained unexpected storage");
+    std::fenv_t saved;std::fegetenv(&saved);const auto saved_errno=errno;
+    for(unsigned frame=0;frame<12;++frame) {
+        FrameModelSkinPlan fresh;
+        populate(fresh,frame);
+        const auto old_rounding=std::fegetround(),old_flags=std::fetestexcept(FE_ALL_EXCEPT);
+        errno=EDOM;
+        {
+            const auto scope=retained.frame_scope();
+            need(!retained.expected_vertices()&&!retained.mapped_vertices()&&retained.records().empty()&&
+                retained.palette().empty()&&!retained.contains(a),"New scratch frame retained a prior identity or count");
+            populate(retained,frame);
+            need(retained.records().size()==fresh.records().size()&&retained.palette().size()==fresh.palette().size()&&
+                !std::memcmp(retained.records().data(),fresh.records().data(),retained.records().size_bytes())&&
+                !std::memcmp(retained.palette().data(),fresh.palette().data(),retained.palette().size_bytes()),
+                "Retained planner changed complete ordered GPU records or palette bytes");
+            rejects([&]{const auto nested=retained.frame_scope();},"A second frame scope invalidated a live planner");
+            retained.validate_complete();
+        }
+        need(std::fegetround()==old_rounding&&std::fetestexcept(FE_ALL_EXCEPT)==old_flags&&errno==EDOM,
+            "Scratch reset changed FP or errno state");
+        need(retained.records().empty()&&retained.palette().empty()&&!retained.expected_vertices()&&
+            !retained.mapped_vertices()&&!retained.contains(a),"Completed scratch frame retained a live source");
+        need(retained.retained_bytes()&&retained.retained_bytes()<=FrameModelSkinPlan::retained_capacity_limit,
+            "Completed scratch frame lost its capacity or exceeded its8MiB bound");
+    }
+    const auto measure=[&](bool reuse) {
+        allocated_bytes=0;count_allocations=true;
+        try {
+            for(unsigned frame=0;frame<3;++frame) {
+                if(reuse){const auto scope=retained.frame_scope();populate(retained,frame);}
+                else {FrameModelSkinPlan fresh;populate(fresh,frame);}
+            }
+        }catch(...){count_allocations=false;throw;}
+        count_allocations=false;return allocated_bytes;
+    };
+    const auto fresh_bytes=measure(false),reused_bytes=measure(true);
+    need(reused_bytes<fresh_bytes/2,"Warmed scratch did not remove repeated planner growth allocations");
+    // An append can fail after earlier runs committed. The frame scope must
+    // retire the whole frame on unwind, without carrying those aliases on.
+    rejects([&] {
+        const auto scope=retained.frame_scope();
+        retained.add_bank(a,submission(0,pose));retained.append(std::span{a}.first(100),0);
+        retained.append(std::span{a}.subspan(100,100),50);
+    },"Scratch frame accepted an overlapping GPU destination");
+    need(retained.records().empty()&&!retained.contains(a)&&!retained.expected_vertices(),
+        "Rejected frame retained records or source aliases");
+    {
+        const auto scope=retained.frame_scope();populate(retained,7);
+    }
+    // Small retention budgets exercise the same trim path as an oversized
+    // production frame without allocating an oversized test vertex bank.
+    rejects([&] {
+        const auto scope=retained.frame_scope(128);
+        populate(retained,0);
+        retained.append(a,std::numeric_limits<std::size_t>::max());
+    },"Scratch frame accepted an overflowing GPU destination");
+    need(!retained.retained_bytes()&&retained.records().empty()&&!retained.contains(a),
+        "Oversized rejected scratch frame did not release all retained capacity");
+    std::weak_ptr<const ModelSkinGeometry> weak;
+    {
+        const auto scope=retained.frame_scope();
+        auto owner=geometry(3);weak=owner;const auto bank=owner->vertices;
+        retained.add_bank(bank,submission(0,owner));retained.append(bank,0);owner.reset();
+        need(!weak.expired(),"Frame scratch released an owner before frame completion");
+    }
+    need(weak.expired(),"Frame scratch retained immutable geometry across frame completion");
+    {const auto scope=retained.frame_scope(0);}
+    need(!retained.retained_bytes(),"Empty low-memory frame retained idle storage");
+    std::fesetenv(&saved);errno=saved_errno;
+    std::cout<<"PASS retained planner: cold/repeated ordered differential, source retirement, failure/overflow cleanup, "
+        <<"bounded capacity, FP/errno; allocated "<<fresh_bytes<<" -> "<<reused_bytes<<" bytes for 3 frames\n";
+}
 int main()try {
     empty_and_bounds();grouped_parts_and_repeated_copies();owner_identity_and_source_aliases();
     foreground_post_modes_and_lifetime();
     section_duplicates_completion_and_failures();
     fragmented_ranges_and_atomic_aliases();dense_and_sparse_ordinal_bindings();
     shared_packet_geometry_and_bank_validation();bounded_fragmented_storage_growth();
-    empty_submissions_preserve_registered_plan();banded_local_mismatch();mapped_owner_witness();
+    empty_submissions_preserve_registered_plan();banded_local_mismatch();mapped_owner_witness();retained_frame_scratch();
     std::cout<<"PASS frame model skin source/owner/grouped destination provenance and rejection gates\n";
     return 0;
 }catch(const std::exception &error) {std::cerr<<error.what()<<'\n';return 1;}

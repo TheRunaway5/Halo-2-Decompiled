@@ -91,6 +91,36 @@ class LoadingAmbience(unittest.TestCase):
         self.assertGreater(ambience.required_bytes(self.root), 36)
         self.assertFalse(any(name.endswith('.exe') for name in ambience.inventory(self.root)))
 
+    def test_onboarding_cache_selection_imports_loading_sound_before_publication(self):
+        import mcc_onboarding as onboarding
+        report = json.loads(self.provenance.read_bytes())
+        with patch.object(onboarding, 'private_cache', return_value=(self.cache, report)), \
+             patch('custom_map_assets.compatible', return_value=True), \
+             patch('custom_ui_assets.repair', side_effect=lambda root, cache, **kw: (cache, report)), \
+             patch('native_variant_assets.install'):
+            cache, updated = onboarding.select(self.root, self.cache, verify=False, progress=lambda _: None)
+        self.assertEqual(cache, self.cache)
+        self.assertTrue(ambience.verify(cache, updated.get('h2ek_loading_ambience')))
+        self.assertEqual((cache / ambience.BANK / ambience.TONE).read_bytes(), bytes(36))
+        self.assertEqual(updated['native_loading_presentation'], report['native_loading_presentation'])
+        self.assertTrue((self.root / onboarding.REGISTRY).is_file())
+
+    def test_frontend_loading_contract_pins_the_bank_the_runtime_uses(self):
+        from qualify_frontend_runtime import loading_owner
+        from native_gameplay_test import _frontend_contract, FRONTEND_PROMPT_FONT_PROFILE
+        ambience.repair(self.root, self.cache, progress=lambda _: None)
+        owner = loading_owner(self.cache)
+        self.assertEqual(owner['profile'], 'h2ek-logo-sweep-four-voice-v2')
+        self.assertTrue(owner['original'])
+        report = dict(validation=dict(mcc_loading_presentation_profile='h2ek-logo-sweep-four-voice-v2',
+            mcc_prompt_font_profile=FRONTEND_PROMPT_FONT_PROFILE, original_loading_ambience=True))
+        contract = _frontend_contract(report)
+        expected = {ambience.BANK + '/' + name for name in
+            ('manifest.json', ambience.TONE, *(f'loading-{slot:02d}.dds' for slot in ambience.TEXTURE_SLOTS))}
+        self.assertEqual(contract['loading_files'], expected)
+        self.assertEqual(contract['allowed_presentation'], expected)
+        self.assertEqual(set(owner['files']), expected)
+
     def test_prepare_exact_read_only_data_and_repair_missing_defaults(self):
         executable = self.kit / 'guerilla.exe'
         before = (executable.read_bytes(), executable.stat().st_mtime_ns)

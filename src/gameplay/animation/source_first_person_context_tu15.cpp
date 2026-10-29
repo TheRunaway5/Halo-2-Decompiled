@@ -1,5 +1,7 @@
 #include "halo2/source_first_person_context_tu15.hpp"
+#include "source_first_person_context_memory.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
+#include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_weapon_animation_query_symbols_tu15.hpp"
@@ -16,14 +18,14 @@
 #include "halo2/source_first_person_effect_retirement_tu15.hpp"
 #include "halo2/source_first_person_vector_pack_tu15.hpp"
 #include "halo2/unit_animation_graph_metadata.hpp"
+#include "halo2/source_unit_animation_graph_header.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include <algorithm>
 #include <bit>
-#include <bitset>
 #include <cstring>
+#include <cstdlib>
 #include <limits>
 #include <map>
-#include <sstream>
 #include <x86intrin.h>
 namespace halo2 {
 namespace {
@@ -41,6 +43,20 @@ bool same_native_first_person_map_prefixes(std::span<const std::byte,0x300> auth
     }
     return true;
 }
+bool same_native_first_person_hand_binding(std::span<const std::byte,0x300> authored,
+    std::span<const std::byte,0x300> received,std::uint32_t weapon) {
+    const Bytes native(authored),control(received);
+    if(control.u32(4)!=weapon || native.u32(4)!=weapon ||
+        control.u32(0xf4)>64u || control.u32(0xf8)>64u ||
+        native.u32(0xf4)>64u || native.u32(0xf8)>64u)return false;
+    //16AD45 clears active/completeness bits0..2 and16B1F5 writes NONE,
+    // then the NONE branch skips the graph/map builders. An empty hand's
+    // earlier graph/counts/maps are opaque continuation bytes, unlike the
+    // cleared bank of a fresh168BC5 context. They cannot authorize sampling.
+    if(weapon==0xffffffffu)return !(control.u32(0)&7u) && !(native.u32(0)&7u);
+    return control.u32(8)==native.u32(8) &&
+        same_native_first_person_map_prefixes(authored,received);
+}
 std::uint32_t datum_row(const SourcePhysicsContactMemory &memory,std::uint32_t pool,
     std::uint32_t datum,std::uint32_t stride) {
     std::array<std::byte,4> storage;
@@ -55,85 +71,7 @@ std::uint32_t datum_row(const SourcePhysicsContactMemory &memory,std::uint32_t p
     if(!row)throw FormatError("Native FP context requires a live full-salt datum");
     return row;
 }
-class ContextMemory final:public SourcePhysicsContactMemory {
-    static constexpr std::uint32_t page_bytes=4096;
-    struct Page {std::array<std::byte,page_bytes> bytes;std::bitset<page_bytes> written;};
-    const SourcePhysicsContactMemory *source_{};
-    std::map<std::uint32_t,Page> pages_;
-    static void extent(std::uint32_t at,std::size_t bytes) {
-        if(bytes>std::uint64_t(std::numeric_limits<std::uint32_t>::max())+1u-at)
-            throw FormatError("Native FP pose operand wraps its input address space");
-    }
-public:
-    void borrow(const SourcePhysicsContactMemory *source) {source_=source;}
-    void clear() {pages_.clear();}
-    void read(std::uint32_t at,std::span<std::byte> bytes)const override {
-        extent(at,bytes.size());
-        if(!source_)throw FormatError("Native FP context has no borrowed input owner");
-        std::size_t n{};
-        while(n<bytes.size()) {
-            const auto address=at+std::uint32_t(n),page=address/page_bytes;
-            const auto offset=address%page_bytes;
-            const auto count=std::min<std::size_t>(bytes.size()-n,page_bytes-offset);
-            const auto found=pages_.find(page);
-            if(found==pages_.end()) {
-                source_->read(address,bytes.subspan(n,count));
-                n+=count;continue;
-            }
-            const auto &owned=found->second;
-            std::size_t done{};
-            while(done<count) {
-                if(owned.written[offset+done]) {
-                    bytes[n+done]=owned.bytes[offset+done];++done;continue;
-                }
-                const auto begin=done++;
-                while(done<count && !owned.written[offset+done])++done;
-                source_->read(address+std::uint32_t(begin),bytes.subspan(n+begin,done-begin));
-            }
-            n+=count;
-        }
-    }
-    void write(std::uint32_t at,std::span<const std::byte> bytes)override {
-        extent(at,bytes.size());
-        std::size_t n{};
-        while(n<bytes.size()) {
-            const auto address=at+std::uint32_t(n),offset=address%page_bytes;
-            const auto count=std::min<std::size_t>(bytes.size()-n,page_bytes-offset);
-            auto &owned=pages_[address/page_bytes];
-            std::memcpy(owned.bytes.data()+offset,bytes.data()+n,count);
-            for(std::size_t k=0;k<count;++k)owned.written.set(offset+k);
-            n+=count;
-        }
-    }
-    bool owns(std::uint32_t at)const {
-        const auto page=pages_.find(at/page_bytes);
-        return page!=pages_.end() && page->second.written[at%page_bytes];
-    }
-    void relinquish(std::uint32_t at) {
-        const auto page=pages_.find(at/page_bytes);
-        if(page==pages_.end())return;
-        page->second.written.reset(at%page_bytes);
-        if(page->second.written.none())pages_.erase(page);
-    }
-    std::vector<SourceFirstPersonContextTu15::PrivateRange> ranges()const {
-        std::vector<SourceFirstPersonContextTu15::PrivateRange> result;
-        for(const auto &[page,owned]:pages_)for(std::uint32_t n=0;n<page_bytes;) {
-            if(!owned.written[n]){++n;continue;}
-            const auto begin=n++;while(n<page_bytes && owned.written[n])++n;
-            const auto address=page*page_bytes+begin;
-            if(!result.empty() && std::uint64_t(result.back().address)+result.back().bytes.size()==address)
-                result.back().bytes.insert(result.back().bytes.end(),owned.bytes.begin()+begin,owned.bytes.begin()+n);
-            else result.push_back({address,std::vector<std::byte>(owned.bytes.begin()+begin,owned.bytes.begin()+n)});
-        }
-        return result;
-    }
-    std::uint32_t word(std::uint32_t at)const {
-        std::array<std::byte,4> bytes;read(at,bytes);return Bytes(bytes).u32(0);
-    }
-    void put(std::uint32_t at,std::uint32_t value) {
-        write(at,std::as_bytes(std::span(&value,1)));
-    }
-};
+using first_person_context_detail::ContextMemory;
 }
 struct SourceFirstPersonContextTu15::Impl {
     const Cache &cache;
@@ -176,8 +114,7 @@ struct SourceFirstPersonContextTu15::Impl {
         ~Borrow(){owner.memory.borrow(nullptr);}
     };
     void pin_range(std::uint32_t at,std::uint32_t bytes) {
-        if(!at || !bytes)throw FormatError("Native FP cache owner has an empty native extent");
-        std::vector<std::byte> copy(bytes);memory.read(at,copy);memory.write(at,copy);
+        memory.pin_range(at,bytes);
     }
     void pin_pool(std::uint32_t pool,std::uint32_t capacity,std::uint32_t stride) {
         if(memory.word(pool+0x20u)!=capacity || memory.word(pool+0x24u)!=stride ||
@@ -186,6 +123,14 @@ struct SourceFirstPersonContextTu15::Impl {
         pin_range(pool,0x4cu);
         pin_range(memory.word(pool+0x44u),capacity*stride);
         pin_range(memory.word(pool+0x48u),((capacity+31u)/32u)*4u);
+    }
+    std::array<std::byte,0xc4> animation_graph_header(std::uint32_t graph) const {
+        static const bool copy_graph=[]{const auto *p=std::getenv("HALO2_REFERENCE_COPY_FP_GRAPH_METADATA");return p && *p;}();
+        if(!copy_graph)return load_source_unit_animation_graph_header(cache,graph);
+        const auto metadata=cache.load_source_unit_animation_graph_metadata(graph);
+        std::array<std::byte,0xc4> header;
+        std::copy(metadata.header().begin(),metadata.header().end(),header.begin());
+        return header;
     }
     void pin_animation_cache() {
         // These are the complete native owners constructed by125C90/125D40.
@@ -225,8 +170,8 @@ struct SourceFirstPersonContextTu15::Impl {
             const auto root=memory.word(table+(tag.datum&65535u)*16u+8u);
             if(!root)continue;
             const auto count=memory.word(root+0xacu);
-            const auto metadata=cache.load_source_unit_animation_graph_metadata(tag.datum);
-            if(count!=Bytes(metadata.header()).u32(0xac))
+            const auto metadata=animation_graph_header(tag.datum);
+            if(count!=Bytes(metadata).u32(0xac))
                 throw FormatError("Native FP resource descriptors differ from their admitted Cache graph");
             if(count)pin_range(memory.word(root+0xb0u),count*20u);
         }
@@ -262,7 +207,8 @@ struct SourceFirstPersonContextTu15::Impl {
                 {source_vehicle_director_tu15_owns_entry,source_run_vehicle_director_tu15},
                 {source_campaign_camera_tu15_owns_entry,source_run_campaign_camera_tu15},
                 {source_map_world_support_tu15_owns_entry,source_run_map_world_support_tu15},
-                {source_effect_light_view_tu15_owns_entry,source_run_effect_light_view_tu15}};
+                {source_effect_light_view_tu15_owns_entry,source_run_effect_light_view_tu15},
+                {source_combat_action_tu15_owns_entry,source_run_combat_action_tu15}};
             for(const auto &[owns,run]:owners)if(owns(call.target)) {
                 run(bank,call.target,abi,control,nested,stores);return;
             }
@@ -285,8 +231,8 @@ struct SourceFirstPersonContextTu15::Impl {
             if(descriptor<first || std::uint64_t(descriptor)-first>=std::uint64_t(count)*20u ||
                 (descriptor-first)%20u)continue;
             const auto index=(descriptor-first)/20u;
-            const auto metadata=cache.load_source_unit_animation_graph_metadata(tag.datum);
-            const Bytes header(metadata.header());
+            const auto metadata=animation_graph_header(tag.datum);
+            const Bytes header(metadata);
             if(header.u32(0xac)!=count)throw FormatError("Native FP resource group count differs from its Cache");
             const auto resource=cache.load_source_runtime_animation_image(header.u32(0xb0)+index*20u);
             std::array<std::byte,12> current;memory.read(descriptor,current);
@@ -669,11 +615,9 @@ void SourceFirstPersonContextTu15::with_sampling_inputs(const SourcePhysicsConta
         if(control.u32(4)!=state.identity.weapons[hand])
             throw FormatError("Native FP receiver hand differs from the declared owner");
         std::array<std::byte,0x300> authored;memory.read(h,authored);const Bytes actual(authored);
-        // Graph/counts and both live render-node map prefixes come only from
-        // the native local binding. Opaque tails remain exact temporal bytes.
-        if(control.u32(8)!=actual.u32(8) || control.u32(0xf4)!=actual.u32(0xf4) ||
-            control.u32(0xf8)!=actual.u32(0xf8) ||
-            !same_native_first_person_map_prefixes(authored,received.control))
+        // Bound graph/maps come only from the native local binding. Empty
+        // hands retain their inactive historical bank without composing it.
+        if(!same_native_first_person_hand_binding(authored,received.control,state.identity.weapons[hand]))
             throw FormatError("Native FP receiver controls differ from the admitted authored binding");
         unsigned nodes{};
         if(state.identity.weapons[hand]!=0xffffffffu) {
@@ -998,7 +942,7 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
         if(job.identity<0xf8000001u || job.identity>=saved.next_job || !job.bytes || job.bytes>0x400000u ||
             !owner.jobs.emplace(job.identity,Impl::ReadJob{job.graph,job.index,job.descriptor,job.destination,job.bytes}).second)
             throw FormatError("Native FP continuation animation read-job identities differ");
-        const auto metadata=owner.cache.load_source_unit_animation_graph_metadata(job.graph);const Bytes header(metadata.header());
+        const auto metadata=owner.animation_graph_header(job.graph);const Bytes header(metadata);
         if(job.index>=header.u32(0xac))throw FormatError("Native FP continuation job escaped its authored graph groups");
         const auto table=fresh_word(0x4f0414u),native_graph=fresh_word(table+(job.graph&65535u)*16u+8u);
         if(job.descriptor!=fresh_word(native_graph+0xb0u)+job.index*20u ||
@@ -1056,34 +1000,11 @@ void SourceFirstPersonContextTu15::install_local(const Cache &cache,PhysicsLiveW
     for(const auto *state:{&continuation,&sampling_inputs})for(unsigned hand=0;hand<2;++hand) {
         const auto h=at+0xcu+hand*0x1010u;const auto &received=state->hands[hand];
         std::array<std::byte,0x300> authored;input.read(h,authored);
-        const Bytes native(authored),control(received.control);
-        const bool maps_match=same_native_first_person_map_prefixes(authored,received.control);
-        if(control.u32(4)!=identity.weapons[hand] || control.u32(4)!=native.u32(4) ||
-            control.u32(8)!=native.u32(8) || control.u32(0xf4)!=native.u32(0xf4) ||
-            control.u32(0xf8)!=native.u32(0xf8) ||
-            !maps_match) {
-            std::ostringstream message;
-            message<<"Native FP local continuation differs from its authored hand binding"
-                <<" [DEBUG-native-fp-install-binding-r8] view="<<view<<" hand="<<hand
-                <<" state="<<(state==&continuation?"POST":"PRE")
-                <<" live_map_prefixes_equal="<<maps_match<<std::hex
-                <<" identity_weapon=0x"<<identity.weapons[hand]
-                <<" received_weapon=0x"<<control.u32(4)<<" native_weapon=0x"<<native.u32(4)
-                <<" received_graph=0x"<<control.u32(8)<<" native_graph=0x"<<native.u32(8)
-                <<" received_F4=0x"<<control.u32(0xf4)<<" native_F4=0x"<<native.u32(0xf4)
-                <<" received_F8=0x"<<control.u32(0xf8)<<" native_F8=0x"<<native.u32(0xf8);
-            const auto different=std::mismatch(authored.begin()+0xfc,authored.begin()+0x2fc,
-                received.control.begin()+0xfc);
-            if(different.first!=authored.begin()+0x2fc) {
-                const auto offset=std::size_t(different.first-authored.begin()),word_offset=offset&~std::size_t(3);
-                message<<" map_first_offset=0x"<<offset
-                    <<" map_received_byte=0x"<<std::to_integer<unsigned>(*different.second)
-                    <<" map_native_byte=0x"<<std::to_integer<unsigned>(*different.first)
-                    <<" map_word_offset=0x"<<word_offset
-                    <<" map_received_word=0x"<<control.u32(word_offset)
-                    <<" map_native_word=0x"<<native.u32(word_offset);
-            }else message<<" map_first_offset=none";
-            throw FormatError(message.str());
+        const Bytes native(authored);
+        if(!same_native_first_person_hand_binding(authored,received.control,identity.weapons[hand])) {
+            throw FormatError("Native FP local continuation differs from its authored hand binding: view="+
+                std::to_string(view)+" hand="+std::to_string(hand)+
+                " state="+(state==&continuation?"POST":"PRE"));
         }
         unsigned nodes{};
         if(identity.weapons[hand]!=0xffffffffu) {

@@ -8,6 +8,8 @@
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_lens_query_gpu.hpp"
 #include "halo2/source_admitted_camera.hpp"
+#include "halo2/source_execution_campaign_screen.hpp"
+#include "halo2/source_presented_model_pose_tu15.hpp"
 #include <boost/pfr/core.hpp>
 #include <openssl/evp.h>
 #include <algorithm>
@@ -31,6 +33,7 @@ static_assert(boost::pfr::tuple_size_v<SourceLiveModelDrawContextTu15> == 8);
 static_assert(boost::pfr::tuple_size_v<SourceExecutionModelInputTu15> == 7);
 static_assert(boost::pfr::tuple_size_v<SourceBspPartCommandState> == 5);
 static_assert(boost::pfr::tuple_size_v<SourcePlayerCameraCall> == 7);
+static_assert(boost::pfr::tuple_size_v<SourcePresentedModelPoseTu15> == 6);
 static_assert(boost::pfr::tuple_size_v<SourceLensQueryRollback> == 3);
 static_assert(boost::pfr::tuple_size_v<SourceLensDeviceRegion> == 2);
 static_assert(boost::pfr::tuple_size_v<ParticleCollisionHit> == 6);
@@ -68,7 +71,9 @@ void validate_abi(const Abi &abi){
             throw FormatError("Invalid or unsupported native ABI floating-point controls");}
 }
 template<class T>constexpr std::size_t sequence_bound(){
-    if constexpr(std::is_same_v<T,std::vector<SourceFrustumCamera>>)return 6;
+    if constexpr(std::is_same_v<T,std::vector<SourcePresentedModelPoseTu15>>)return source_presented_model_owner_capacity_tu15;
+    else if constexpr(std::is_same_v<T,std::vector<Transform>>)return source_presented_model_node_capacity_tu15;
+    else if constexpr(std::is_same_v<T,std::vector<SourceFrustumCamera>>)return 6;
     else if constexpr(std::is_same_v<T,std::vector<SourceCameraFrustum>>)return 512;
     else if constexpr(std::is_same_v<T,std::vector<SourceClusterFrustumRanges>>||std::is_same_v<T,std::vector<std::uint32_t>>)return 128;
     else if constexpr(std::is_same_v<T,std::vector<SourceBspAdmissionRecord>>)return source_object_main_queue_capacity;
@@ -172,10 +177,24 @@ void write_native_arguments(Writer &out,std::span<const std::uint32_t> args){
     out.put(std::uint32_t(args.size()));for(auto arg:args)out.put(arg);
 }
 void complete_arguments(const Reader &in){if(in.at!=in.bytes.size())throw FormatError("Trailing native ABI arguments");}
-void process(const SourceExecutionCall &call,MultiplayerMatch *match,MultiplayerObjectRuntime *world){
+void process(const SourceExecutionCall &call,MultiplayerMatch *match,MultiplayerObjectRuntime *world,
+    std::unique_ptr<SourcePresentedModelPoseScopeTu15> *presented=nullptr){
     using K=SourceExecutionCallKind;
     if(!source_execution_call_has_result(call.kind)&&!call.result.empty())throw FormatError("Unexpected result for a void native call");
     switch(call.kind){
+    case K::BeginPresentedModelPoses:{
+        auto [poses]=decode<std::vector<SourcePresentedModelPoseTu15>>(call.arguments);
+        validate_source_presented_model_poses_tu15(poses);
+        if(world){if(!presented || *presented)throw FormatError("Native presented WORLD scope is already active");
+            *presented=std::make_unique<SourcePresentedModelPoseScopeTu15>(world->tu15_world(),poses);}break;}
+    case K::EndPresentedModelPoses:{
+        decode<>(call.arguments);
+        if(world){if(!presented || !*presented)throw FormatError("Native presented WORLD scope has no matching begin");
+            delete presented->release();}break;}
+    case K::StopCampaignScreen:case K::AcknowledgeCampaignScreenCapture:
+        (void)source_execution_campaign_screen_call(call,{
+            [&]{if(world)world->tu15_world().stop_campaign_screen();},
+            [&]{if(world)world->tu15_world().acknowledge_campaign_screen_capture();}});break;
     case K::MatchStep:{auto [controls]=decode<std::array<Controls,16>>(call.arguments);
         // The producer stepped without remote displayed views (or without a
         // rewind owner): none may survive from an earlier replayed step.
@@ -240,6 +259,9 @@ void process(const SourceExecutionCall &call,MultiplayerMatch *match,Multiplayer
     case K::TakeSounds:decode<>(call.arguments);if(match)(void)match->take_sounds();break;
     case K::TakePropEvents:decode<>(call.arguments);if(match)(void)match->take_prop_events();break;
     case K::TakeGrenadeEvents:decode<>(call.arguments);if(match)(void)match->take_grenade_events();break;
+    case K::ChangeTeam:{auto [slot,team]=decode<std::uint32_t,std::uint32_t>(call.arguments);
+        if(team>0xffffu)throw FormatError("Invalid recorded team change");
+        if(match)(void)match->change_team(slot,std::bit_cast<std::int16_t>(std::uint16_t(team)));break;}
     case K::DepartPlayer:{auto [slot]=decode<unsigned>(call.arguments);if(match)(void)match->depart(slot);break;}
     case K::WriteSourceCallInput:{
         Reader in{call.arguments};const auto address=in.get<std::uint32_t>(),n=in.get<std::uint32_t>();
@@ -273,6 +295,9 @@ void process(const SourceExecutionCall &call,MultiplayerMatch *match,Multiplayer
 }
 }
 std::vector<std::byte> source_execution_arguments(const std::array<Controls,16> &v){return arguments(v);}
+std::vector<std::byte> source_execution_arguments(std::span<const SourcePresentedModelPoseTu15> v){
+    validate_source_presented_model_poses_tu15(v);return arguments(std::vector<SourcePresentedModelPoseTu15>(v.begin(),v.end()));
+}
 std::vector<std::byte> source_execution_arguments(const std::array<Controls,16> &v,NetcodeMode mode,
     const std::array<std::optional<NetcodeViewTime>,16> &views){return arguments(v,mode,views);}
 std::vector<std::byte> source_execution_arguments(float v){return arguments(v);}
@@ -373,20 +398,32 @@ std::vector<std::byte> source_execution_admitted_camera_result(const std::option
 }
 void validate_source_execution_calls(std::span<const SourceExecutionCall> calls){
     if(calls.size()>SourceExecutionInputs::maximum_calls)throw FormatError("Native call count exceeds its bound");
+    bool presented=false;
     std::size_t total{};for(const auto &call:calls){
+        if(presented && (call.kind==SourceExecutionCallKind::MatchStep ||
+            call.kind==SourceExecutionCallKind::MatchStepViews || call.kind==SourceExecutionCallKind::DepartPlayer || call.kind==SourceExecutionCallKind::ChangeTeam))
+            throw FormatError("Gameplay mutation cannot run inside temporary presented WORLD inputs");
+        if(call.kind==SourceExecutionCallKind::BeginPresentedModelPoses){
+            if(presented)throw FormatError("Nested native presented WORLD scopes are not admitted");presented=true;
+        }else if(call.kind==SourceExecutionCallKind::EndPresentedModelPoses){
+            if(!presented)throw FormatError("Native presented WORLD scope ends before it begins");presented=false;
+        }
         if(call.arguments.size()>SourceExecutionInputs::maximum_call_bytes-total)throw FormatError("Native call arguments exceed the phase budget");
         total+=call.arguments.size();
         if(call.result.size()>SourceExecutionInputs::maximum_call_bytes-total)throw FormatError("Native call results exceed the phase budget");
         total+=call.result.size();process(call,nullptr,nullptr);
     }
+    if(presented)throw FormatError("Native presented WORLD scope has no end");
 }
 void replay_source_execution_calls(MultiplayerMatch &match,MultiplayerObjectRuntime &world,std::span<const SourceExecutionCall> calls){
+    validate_source_execution_calls(calls);
     // Validate every numeric selection before executing any earlier world call.
     // A generic trusted tape alone cannot manufacture a camera instance.
     for(const auto &call:calls)if(call.kind==SourceExecutionCallKind::AdmittedCamera){
         auto [input]=decode<SourceAdmittedCameraInput>(call.arguments);
         SourceAdmittedCameraBank::bound(world).validate(input.owner,input.view,input.seconds);
     }
-    for(const auto &call:calls)process(call,&match,&world);
+    std::unique_ptr<SourcePresentedModelPoseScopeTu15> presented;
+    for(const auto &call:calls)process(call,&match,&world,&presented);
 }
 }

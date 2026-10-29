@@ -261,6 +261,39 @@ void flow(FrontendContent &content, const std::filesystem::path &maps) {
   }
   std::cout<<"PASS all eight committed profile teams through normal Split Screen/System Link Start, actual Lockout spawn/90 ticks and native UDP delivery\n";
 }
+void couch(const FrontendContent &content) {
+  const auto team=std::find_if(content.variants.begin(),content.variants.end(),
+      [](const auto &variant){return variant.name.starts_with("Team Slayer ");});
+  check(team!=content.variants.end(),"Original couch Team Slayer row missing");
+  for(bool lan:{false,true}) {
+    auto menu=selected(content,unsigned(team-content.variants.begin()),lan);
+    check(menu.controller_slot(101,true)==0,"Couch team picker lost its host controller");
+    for(unsigned player=1;player<4;++player) {
+      check(menu.controller_slot(101+player,true)==player && menu.frame().screen==10,
+          "Couch team picker could not sign in another controller");
+      choose(menu,0,167);menu.text("Team Couch "+std::to_string(player));menu.commit_text();menu.back();
+      check(menu.frame().screen==14,"Couch profile did not return to the team lobby");
+      check(menu.local_team_event(player,5,2),"Guest X did not open its own team picker");
+      for(unsigned n=0;n<player+2;++n)check(menu.local_team_event(player,4,0),"Guest team cycle was not consumed");
+      const auto preview=menu.lobby_view();
+      check(preview && preview->local_team_edits[player].valid &&
+          preview->local_team_edits[player].team==int(player+2) && menu.local_players()[player].team==0,
+          "Guest team preview committed early or changed the host");
+      check(menu.local_team_event(player,5,0) && menu.local_players()[player].team==int(player+2) &&
+          menu.local_players()[0].team==0,"Guest A did not commit only its own team");
+    }
+    check(menu.local_team_event(2,5,2) && menu.local_team_event(2,4,0) && menu.local_team_event(2,5,1) &&
+        menu.local_players()[2].team==4,"Guest B did not cancel its preview");
+    menu.select(0);menu.accept();
+    check(menu.launch && menu.launch->selected_teams==std::vector<std::int8_t>{0,3,4,5},
+        "Four-player Start did not carry every committed team");
+    const std::array<std::int8_t,4> returned{1,2,6,7};menu.adopt_gameplay_teams(returned);
+    const auto players=menu.local_players();
+    for(unsigned i=0;i<players.size();++i)check(players[i].team==returned[i],
+        "Returning from a match lost an accepted couch team change");
+  }
+  std::cout<<"PASS four independent local team previews/commit/cancel, Split Screen/System Link launch and accepted match return\n";
+}
 }
 int main(int argc, char **argv) {
   try {
@@ -268,6 +301,6 @@ int main(int argc, char **argv) {
     const std::filesystem::path maps(argv[1]);
     if (!std::filesystem::exists(maps / "mainmenu.map")) return 77;
     Cache cache(maps / "mainmenu.map"); auto content = cache.load_frontend();
-    oracle(content, argv[2]); flow(content, maps); return 0;
+    oracle(content, argv[2]); flow(content, maps); couch(content); return 0;
   } catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; }
 }

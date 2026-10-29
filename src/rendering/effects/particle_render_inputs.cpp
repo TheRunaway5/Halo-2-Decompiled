@@ -68,6 +68,10 @@ ParticleSystemRenderDefinition Cache::load_particle_system_render_definition(std
   }else if(tag->group=="prt3" && event==0xffffffffu) {
     // 1751D0's parent-definition virtual v7 (224240, elements88).
     at=select(metadata_offset(tag->address,0x8c)+0x84,0x38,system);
+  }else if(tag->group=="PRTM" && event==0xffffffffu) {
+    // Actual13A6B0 selects486048; model virtual22B710 reads+7C with
+    // this same38-byte stride. Its companion22AC80 reads the+78 count.
+    at=select(metadata_offset(tag->address,0x80)+0x78,0x38,system);
   }else if(tag->group=="bsdt" && event==0xffffffffu) {
     at=select(metadata_offset(tag->address,0x1c)+0x14,0x38,system);
   }else throw FormatError("particle system definition owner group requires original dispatch");

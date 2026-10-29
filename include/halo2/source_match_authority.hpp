@@ -57,12 +57,16 @@ public:
   // Export actual allocated source identities at a completed native boundary,
   // independently of any received cut. Slots come from the accepted roster.
   std::vector<SourcePlayerAdmission> player_admissions(std::span<const unsigned>)const;
+  // Complete live native allocation census, independent of any incoming cut.
+  std::vector<SourcePlayerAdmission> allocated_player_admissions()const;
   class Prepared {
   public:
     ~Prepared();
     Prepared(Prepared &&) noexcept;
     Prepared &operator=(Prepared &&) noexcept;
     bool for_owner(const SourceMatchAuthority &)const noexcept;
+    void retain_live_multiplayer_render_history();
+    void retain_live_multiplayer_render_history_from(const SourceMatchAuthority &);
   private:
     friend class SourceMatchAuthority;
     Prepared();
@@ -103,6 +107,12 @@ public:
   bool commit(Prepared &&)noexcept;
 private:
   friend class SourceNativePublication;
+  friend class SourceShadowPresentationOwner;
+  // Only the double-buffered presentation owner may consume this private
+  // staging world. A failure can alter staging, never the displayed owner.
+  void import_presentation(const Checkpoint &,AuthorityDigest,
+      std::span<const LocalPlayerAdmission>,std::span<const SourcePlayerAdmission>,
+      std::span<const unsigned> producer_views,SourceMatchAuthority &displayed);
   // Only the coupled publication owner borrows these genuine counters, after
   // validating the complete native boundary and before taking exclusion.
   std::array<const std::uint64_t *,2> publication_call_counters()const {

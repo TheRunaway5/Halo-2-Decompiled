@@ -1,55 +1,25 @@
-"""Native gathering allocator feeding the recovered retail candidate selector.
+"""Temporary transport IO and immutable views for Rust-owned gatherings.
 
-This translates the recovered client lifecycle onto an explicit native query
-service and relay, without claiming Xbox Live transport parity. A gathering has its own
-identity, host, birth wall-clock and current admitted whole parties. Selection
-uses its actual advertisement and a server-measured native relay-route probe.
-No completed central subset, ticket age or normalized relay score is substituted
-for those original scorer inputs. See ../docs/matchmaking.md.
+Rust owns registries, advertisement production, provider order, query caches,
+roles, clocks, probe failure/seen transitions, admission and finalization.
+The adapter reads requested QoS facts and executes Rust-issued probe requests.
+The relay probe and native provider remain explicit modern replacements.
 """
-from dataclasses import dataclass, field
-import hashlib
-import struct
+from collections.abc import Mapping
+from dataclasses import dataclass
 import secrets
 import time
-import uuid
 
-from .matchmaking import Game, Proposal, party_rank
-from .session_candidates import BANK_SIZE, STRIDE, Candidates, Search, threshold
-from .search_lifecycle import GatheringClock, SearchProgress, SeenSessions, elapsed, jitter, role
-
-
-RETAIL_RANK_LIMITS = tuple(min(127, rank+(5 if rank <= 5 else 6 if rank <= 15 else
-    7 if rank <= 25 else 8 if rank <= 30 else 9 if rank <= 35 else 10)) for rank in range(128))
-
-
-def mapped_minimum(minimum, maximum):
-    """0x73530 floor using matched0x1931A0 and launch0x1936E0 table."""
-    if type(minimum) is not int or type(maximum) is not int or not 0 <= minimum <= maximum <= 127:
-        raise ValueError("Invalid trusted gathering ranks")
-    lower = maximum
-    while lower > 0 and RETAIL_RANK_LIMITS[lower-1] >= maximum:
-        lower -= 1
-    return max(minimum, lower)
+from .matchmaking import Game
+from .native_matchmaking import native, value, project, _construct
+from .protocol import Problem, require
+from .search_lifecycle import PartyState
+from .session_candidates import Search
+from .matchmaking_ratings import (RETAIL_RANK_LIMITS, rank_window,
+                                 advertised_minimum as mapped_minimum)
 
 
-def rank_window(minimum, maximum, radius=None):
-    """Original0x90880 initialization and0x90B30 bound arithmetic.
-
-    The caller owns query/radius scheduling. None requests the full window.
-    """
-    base = mapped_minimum(minimum, maximum)
-    floor = mapped_minimum(0, maximum)
-    ceiling = RETAIL_RANK_LIMITS[base]
-    maximum_radius = max(base-floor, ceiling-maximum)
-    if radius is None:
-        radius = maximum_radius
-    if type(radius) is not int or not 0 <= radius <= maximum_radius:
-        raise ValueError("Invalid gathering search radius")
-    return maximum_radius, max(base-radius, floor), min(maximum+radius, ceiling)
-
-
-@dataclass
+@dataclass(frozen=True)
 class Gathering:
     id: str
     tickets: tuple[str, ...]
@@ -57,339 +27,202 @@ class Gathering:
     host: str
     language: int
     game: Game | None = None
-    clock: GatheringClock | None = None
+    clock: object | None = None
 
 
-@dataclass
-class PartyState:
-    mode: str = "choose"
-    search_start: int = 0
-    gather_start: int = 0
-    search_offset: int = 0
-    gather_offset: int = 0
-    progress: SearchProgress | None = None
-    seen: SeenSessions = field(default_factory=SeenSessions)
-
-
-@dataclass
+@dataclass(frozen=True)
 class Query:
     ids: tuple[str, ...]
     started: float
-    selector: Candidates
-    attempted: set[str] = field(default_factory=set)
-    finished: set[str] = field(default_factory=set)
+    selector: object
+    attempted: frozenset[str]
+    finished: frozenset[str]
+    generation: int
+
+
+class _Clock:
+    def __init__(self, owner, identity):
+        self.owner, self.identity = owner, identity
+
+    def snapshot(self):
+        return self.owner._call('gather_clock', id=self.identity)
+
+    @property
+    def started(self): return self.snapshot()['started']
+    @property
+    def growth(self): return self.snapshot()['growth']
+    @property
+    def peak(self): return self.snapshot()['peak']
+
+    def observe(self, now, players):
+        return self.owner._fixture('clock', id=self.identity,
+                                   command=dict(op='clock_observe', now=now, players=players))
+
+    @growth.setter
+    def growth(self, value):
+        self.owner._fixture('clock', id=self.identity, command=dict(op='clock_growth', growth=value))
+
+
+class _StateOwner:
+    def __init__(self, owner, ticket):
+        self.owner, self.ticket = owner, ticket
+
+    def call(self, op, **values):
+        return self.owner._call('gather_state_command', ticket=self.ticket, command=dict(op=op, **values))
+
+    def snapshot(self): return self.call('snapshot')
+
+
+class _Selector:
+    def __init__(self, owner, ticket, generation):
+        self.owner, self.ticket, self.generation = owner, ticket, generation
+
+    @property
+    def bank(self):
+        return bytes.fromhex(self.owner._call('gather_query_bank', ticket=self.ticket, generation=self.generation))
+
+
+class _Map(Mapping):
+    def __init__(self, owner, name):
+        self.owner, self.name = owner, name
+
+    def __iter__(self):
+        return iter(()) if self.owner.core is None else iter(self.owner._call('gather_keys', map=self.name))
+
+    def __len__(self): return len(tuple(iter(self)))
+
+    def __getitem__(self, key):
+        try:
+            data = self.owner._call('gather_get', map=self.name, key=key)
+        except Problem as error:
+            if error.status == 404:
+                raise KeyError(key) from None
+            raise
+        if self.name == 'sessions':
+            return self.owner._gathering(data)
+        if self.name == 'states':
+            return self.owner._state_view(key)
+        return Query(tuple(data['ids']), data['started'], _Selector(self.owner, key, data['generation']),
+                     frozenset(data['attempted']), frozenset(data['finished']), data['generation'])
 
 
 class GatheringSessions:
     def __init__(self, api, *, wall_clock=time.time, seed=None):
         self.api, self.core, self.qos = api, api.core, api.search_qos
         self.wall_clock = wall_clock
-        self.seed = secrets.randbits(32) if seed is None else seed
-        self.sessions, self.queries, self.states = {}, {}, {}
+        self.sessions, self.queries, self.states = (_Map(self, name) for name in ('sessions', 'queries', 'states'))
+        if self.core is not None:
+            self._call('gather_init', seed=secrets.randbits(32) if seed is None else seed)
+
+    def _call(self, op, **values):
+        require(self.core is not None, 'Gathering playlists are not configured', 503)
+        return self.core._call(op, **values)
+
+    def _gathering(self, data):
+        if data is None:
+            return None
+        return Gathering(data['id'], tuple(data['tickets']), data['born'], data['host'], data['language'],
+                         project('games', data['game']), None if data['clock'] is None else _Clock(self, data['id']))
+
+    def _state_view(self, ticket):
+        result = object.__new__(PartyState)
+        result._owner = _StateOwner(self, ticket)
+        return result
+
+    def _pump(self, event):
+        while event['kind'] == 'io':
+            frame = event['frame']
+            try:
+                if event['action'] == 'facts':
+                    result = dict(ready=[bool(self.qos.ready(p)) for p in event['players']], pairs=[])
+                    for a, b in event['pairs']:
+                        measured = self.qos.measurement(a, b)
+                        result['pairs'].append(dict(milliseconds=None if measured is None else measured.milliseconds,
+                                                    pending=bool(self.qos.pending(a, b))))
+                else:
+                    require(event['action'] == 'request', 'Unknown Rust transport request', 503)
+                    result = [bool(self.qos.request(a, b)) for a, b in event['pairs']]
+                event = self._call('gather_resume', frame=frame, result=result)
+            except BaseException:
+                # Retire only this unfinished IO continuation. Previously sent
+                # real probes remain owned by the transport until completion.
+                try:
+                    self._call('gather_abort', frame=frame)
+                except Problem:
+                    pass
+                raise
+        require(event['kind'] == 'done', 'Invalid Rust gathering response', 503)
+        return event['value']
+
+    @property
+    def seed(self): return self._call('gather_seed')
+
+    @staticmethod
+    def tick(now): return value('gather_tick', value=now)
 
     def cleanup(self):
-        if self.core is None:
-            return
-        self.core.cleanup()
-        reserved = {key for p in self.core.proposals.values() for key in p.tickets}
-        available = set(self.core.tickets)-reserved
-        for key, gathering in tuple(self.sessions.items()):
-            # Native immutable-party admission: any queue withdrawal destroys
-            # this gathering. Surviving parties can enter a newly born one.
-            if not set(gathering.tickets) <= available:
-                self.withdraw(gathering)
-        self.states = {k:v for k,v in self.states.items() if k in available}
-        self.queries = {k: v for k, v in self.queries.items() if k in available}
+        if self.core is not None:
+            self.core.cleanup()
+            self._call('gather_cleanup')
 
     def group(self, gathering):
-        return tuple(self.core.tickets[key] for key in gathering.tickets)
+        return tuple(project('tickets', t) for t in self._call('gather_group', id=gathering.id))
 
     def progress(self, ticket, viewer):
-        """Public display only: read the admitted gathering's existing clock.
-
-        Do not advance a search, sample teams/RNG, observe a new peak, expose
-        candidate ranks or return private gathering/host/player identities.
-        """
         if ticket is None:
             return None
-        gathering = next((g for g in self.sessions.values() if ticket.id in g.tickets),None)
-        if gathering is None:
-            return None
-        policy = self.core.playlists[ticket.playlist]
-        players = tuple(p for t in self.group(gathering) for p in t.players)
-        count = len(players)
-        countdown = None
-        if policy.minimum_players <= count <= policy.maximum_players and gathering.clock is not None:
-            remaining = policy.gathering.delay(count,policy.minimum_players,policy.maximum_players)-elapsed(
-                self.tick(self.core.now()),gathering.clock.growth)
-            if remaining > 0:
-                countdown = remaining
-        return {"players":count,"minimum_players":policy.minimum_players,
-                "maximum_players":policy.maximum_players,"wait_ms":countdown,
-                "roster":[{"name":p.screen_name,"self":p.id == viewer} for p in players]}
+        return self._call('gather_progress', ticket=ticket.id, viewer=viewer)
 
-    def fits(self, policy, group, ticket):
-        if any(not self.core._compatible(policy, t, ticket) for t in group):
-            return False
-        sizes = [len(t.players) for t in (*group, ticket)]
-        if sum(sizes) > policy.maximum_players:
-            return False
-        if policy.clan_match:
-            return len(sizes) == 2
-        if not policy.team_size:
-            return True
-        if policy.team_count>2:
-            from .team_balance import can_add
-            parties=[index for index,size in enumerate(sizes) for _ in range(size)]
-            return any(can_add(policy.team_count,policy.team_size,parties,use_parties=preserve)
-                       for preserve in (True,False))
-        # Keep every admitted party intact. A partial gathering must still fit
-        # two teams; requiring a complete central subset here would recreate
-        # the old assembly-before-selection behavior.
-        possible = {0}
-        for size in sizes:
-            possible |= {n+size for n in tuple(possible) if n+size <= policy.team_size}
-        return any(sum(sizes)-n <= policy.team_size for n in possible)
+    def fits(self, policy, group, ticket, game=None):
+        return self.core.fits(policy, group, ticket, game)
 
-    @staticmethod
-    def leader(ticket):
-        return ticket.leader or ticket.players[0].id
-
-    @staticmethod
-    def clan(value):
-        return hashlib.sha256(value.encode()).digest()[:12] if value else None
+    def leader(self, ticket): return self._call('gather_leader', ticket=ticket.id)
 
     def state(self, ticket):
-        if ticket.id not in self.states:
-            self.seed, search_offset, gather_offset = jitter(self.seed)
-            self.states[ticket.id] = PartyState(search_offset=search_offset, gather_offset=gather_offset)
-        return self.states[ticket.id]
-
-    @staticmethod
-    def tick(now):
-        return int(now*1000) & 0xffffffff
+        self._call('gather_state', ticket=ticket.id)
+        return self._state_view(ticket.id)
 
     def start_search(self, policy, ticket, state, tick):
-        ranks = [ticket.clan_rank] if ticket.clan else [p.search_rank for p in ticket.players]
-        state.mode, state.search_start = "search", tick
-        state.progress = SearchProgress(rank_window(min(ranks),max(ranks))[0], policy.ranked)
-        # This is a fresh successful search initialization (0x90A4F), not
-        # merely a role transition. Radius/same-radius retries retain the bank.
-        state.seen.clear()
-        self.queries.pop(ticket.id,None)
+        self._call('gather_start_search', ticket=ticket.id, tick=tick)
 
-    def withdraw(self, gathering):
-        self.sessions.pop(gathering.id,None)
-        # Native reservation work is serialized and atomic. There is no Xbox
-        # member connection to drain here; do not fake a platform acknowledgment.
-        for index, key in enumerate(gathering.tickets):
-            self.queries.pop(key,None)
-            ticket, state = self.core.tickets.get(key), self.states.get(key)
-            if ticket is not None and state is not None:
-                if index == 0:
-                    state.mode = "choose"
-                else:
-                    self.start_search(self.core.playlists[ticket.playlist],ticket,state,self.tick(self.core.now()))
+    def withdraw(self, gathering): self._call('gather_withdraw', id=gathering.id)
 
     def search(self, policy, ticket, progress=None):
-        average = ticket.clan_rank if ticket.clan else party_rank(policy, ticket.players)
-        ranks = [ticket.clan_rank] if ticket.clan else [p.search_rank for p in ticket.players]
-        maximum = rank_window(min(ranks),max(ranks))[0]
-        radius = progress.radius if progress is not None else 0
-        bounds = (None,None) if radius == -1 else rank_window(min(ranks),max(ranks),radius)[1:]
-        # Fresh/unmeasured quality is legitimately (0,-1). Operational fallback
-        # bandwidth is never advertised as a measured capacity.
-        return Search(len(ticket.players), average, ticket.language, 0, -1,
-                      *bounds, clan=self.clan(ticket.clan)), threshold(radius,maximum)
+        data = self._call('gather_search', playlist=policy.id, ticket=ticket.id,
+                          progress=None if progress is None else progress.snapshot())
+        search = data['search']
+        for name in ('clan', 'own_address'):
+            if search[name] is not None:
+                search[name] = bytes.fromhex(search[name])
+        return _construct(Search, search), data['threshold']
 
     def bank(self, policy, ticket, gatherings, excluded=()):
-        bank = bytearray(BANK_SIZE)
-        for index, gathering in enumerate(gatherings):
-            group = self.group(gathering)
-            players = tuple(p for t in group for p in t.players)
-            ranks = ([t.clan_rank for t in group for _ in t.players] if policy.clan_match else
-                     [p.search_rank for p in players])
-            average = sum(ranks)//len(ranks)
-            minimum = mapped_minimum(min(ranks), max(ranks))
-            space = policy.maximum_players-len(players)
-            mask = (1 << min(space, policy.maximum_party))-1
-            age = int(self.wall_clock())-gathering.born
-            measured = self.qos.measurement(self.leader(ticket), gathering.host)
-            row = memoryview(bank)[index*STRIDE:(index+1)*STRIDE]
-            row[0] = 1
-            row[1] = int(gathering.id not in excluded and
-                         gathering.id not in (self.states[ticket.id].seen if ticket.id in self.states else ()))
-            row[0x24:0x48] = gathering.id.encode("ascii")
-            def put(offset, value):
-                struct.pack_into("<i", row, offset, value)
-            # Brief service attributes exist while the full route/description
-            # is pending. Only the successful probe installs a ready detail.
-            for offset, value in ((0x5C, average), (0x60, space), (0x64, minimum),
-                                  (0x68, max(ranks)), (0x6C, age), (0x70, mask)):
-                put(offset, value)
-            if measured is not None:
-                row[0x74] = row[0xA4] = 1
-                # Original type/version fields are an internal compatibility
-                # translation after exact native playlist/revision/protocol
-                # admission. These bytes are never a public Xbox protocol.
-                for offset, value in ((0x90, measured.milliseconds), (0xAC, 4), (0xB0, 0x2651),
-                                      (0xB4, 0x2651), (0xB8, gathering.language), (0xF8, 0), (0xFC, -1),
-                                      (0x10C, space), (0x110, mask), (0x11C, age), (0x120, average),
-                                      (0x124, max(ranks)), (0x12C, minimum)):
-                    put(offset, value)
-                clans = tuple(dict.fromkeys(t.clan for t in group if t.clan))
-                put(0x130, len(clans))
-                for i, clan in enumerate(clans):
-                    row[0x134+i*12:0x140+i*12] = self.clan(clan)
-        return bytes(bank)
+        return bytes.fromhex(self._pump(self._call('gather_bank', playlist=policy.id, ticket=ticket.id,
+            ids=tuple(g.id for g in gatherings), excluded=tuple(excluded), wall=self.wall_clock())))
 
     def found(self, policy, ticket, state, now):
-        tick = self.tick(now)
-        state.mode, state.gather_start = "gather", tick
-        game = self.core.rng.choices(policy.games, weights=[g.weight for g in policy.games],k=1)[0]
-        gathering = Gathering(str(uuid.uuid4()),(ticket.id,),int(self.wall_clock()),
-                              self.leader(ticket),ticket.language,game,GatheringClock(tick,tick))
-        gathering.clock.observe(tick,len(ticket.players))
-        self.sessions[gathering.id] = gathering
-        self.queries.pop(ticket.id,None)
-        return gathering
+        return self._gathering(self._call('gather_found', playlist=policy.id, ticket=ticket.id, wall=self.wall_clock()))
 
     def proposal(self, policy, gathering):
-        group = self.group(gathering)
-        count = sum(len(t.players) for t in group)
-        tick = self.tick(self.core.now())
-        if gathering.clock is None:
-            gathering.clock = GatheringClock(tick,tick)
-        waited = gathering.clock.observe(tick,count)
-        if (not policy.minimum_players <= count <= policy.maximum_players or
-                policy.gathering.delay(count,policy.minimum_players,policy.maximum_players) > waited):
-            return None
-        teams = self.core._teams(policy,group)
-        if teams is None:
-            return None
-        game = gathering.game or self.core.rng.choices(policy.games,weights=[g.weight for g in policy.games],k=1)[0]
-        proposal = Proposal(str(uuid.uuid4()),policy.id,policy.revision,gathering.tickets,
-                            teams,None,game,self.core.now()+self.core.proposal_lease,gathering.host)
-        self.core.proposals[proposal.id] = proposal
-        self.core.ready[proposal.id] = set()
-        del self.sessions[gathering.id]
-        return proposal
+        return project('proposals', self._call('gather_proposal', playlist=policy.id, id=gathering.id))
 
     def query(self, policy, ticket, state, now):
-        search, minimum = self.search(policy,ticket,state.progress)
-        query = self.queries.get(ticket.id)
-        if query is None:
-            # The missing Live procedure is replaced explicitly: current
-            # structurally compatible sessions ordered by birth/private ID,
-            # at most50. Synchronous completion permits bounded empty-query
-            # progress in this request, rather than a fabricated timer/task.
-            candidates = sorted((g for g in self.sessions.values()
-                if self.fits(policy,self.group(g),ticket)),key=lambda g:(g.born,g.id))[:50]
-            query = Query(tuple(g.id for g in candidates),now,Candidates(search))
-            self.queries[ticket.id] = query
-        candidates = [self.sessions[k] for k in query.ids if k in self.sessions and
-                      self.fits(policy,self.group(self.sessions[k]),ticket)]
-        query.selector.update(self.bank(policy,ticket,candidates,query.finished))
-        pending = False
-        for index in range(50):
-            row = query.selector.bank[index*STRIDE:(index+1)*STRIDE]
-            if not row[0] or not row[1] or row[0x74]:
-                continue
-            key = row[0x24:0x48].decode("ascii")
-            gathering = self.sessions[key]
-            if key in query.finished:
-                continue
-            if not all(self.qos.ready(p.id) for t in self.group(gathering) for p in t.players):
-                query.finished.add(key)
-                state.seen.reject(key)
-                continue
-            a,b = self.leader(ticket),gathering.host
-            if key in query.attempted and not self.qos.pending(a,b):
-                query.finished.add(key)
-                state.seen.reject(key)
-                continue
-            if self.qos.request(a,b):
-                query.attempted.add(key)
-            if key not in query.attempted and now-query.started >= 12:
-                # Native bounded allocation wait, distinct from an original
-                # query cadence or a claimed XNet QoS timeout.
-                query.finished.add(key)
-                state.seen.reject(key)
-            else:
-                pending = True
-        if query.finished:
-            # Completed failed targets are ineligible and remembered across
-            # subsequent radius queries, as in0x905A0/0x90650.
-            query.selector.update(self.bank(policy,ticket,candidates,query.finished))
-        selected = query.selector.select(minimum,int((now-query.started)*1000))
-        if selected is not None:
-            gathering = self.sessions[selected[0x24:0x48].decode("ascii")]
-            gathering.tickets += (ticket.id,)
-            state.mode = "joined"
-            self.queries.pop(ticket.id,None)
-            return False,gathering
-        if pending:
-            return False,None
-        again = state.progress.complete(len(query.ids))
-        self.queries.pop(ticket.id,None)
-        if not again:
-            state.mode = "choose"
-        return True,None
+        result = self._pump(self._call('gather_query', playlist=policy.id, ticket=ticket.id, wall=self.wall_clock()))
+        return result['again'], self._gathering(result['gathering'])
 
     def advance(self, playlist):
-        self.cleanup()
-        policy, now = self.core.playlists[playlist],self.core.now()
-        if policy.gathering is None:
-            raise ValueError("Gathering configuration required")
-        tick = self.tick(now)
-        # Existing gatherers launch or exhaust before new advertisements are
-        # considered. A new high count resets only the growth/countdown clock.
-        for gathering in tuple(self.sessions.values()):
-            if self.group(gathering)[0].playlist != playlist:
-                continue
-            proposal = self.proposal(policy,gathering)
-            if proposal:
-                return proposal
-            founder = self.core.tickets[gathering.tickets[0]]
-            state = self.state(founder)
-            if gathering.clock.expired(tick,policy.gathering,state.gather_offset):
-                self.withdraw(gathering)
-        reserved = {key for p in self.core.proposals.values() for key in p.tickets}
-        queue = sorted((t for t in self.core.tickets.values() if t.playlist == playlist and t.id not in reserved),
-                       key=lambda t:(t.joined_at,t.id))
-        budget = self.core.search_budget
-        for ticket in queue:
-            if any(ticket.id in g.tickets for g in self.sessions.values()):
-                continue
-            if not all(self.qos.ready(p.id) for p in ticket.players):
-                continue
-            state = self.state(ticket)
-            while budget:
-                query = self.queries.get(ticket.id)
-                cost = max(1,len(query.ids) if query is not None else min(50,len(self.sessions)))
-                if budget < cost:
-                    break
-                budget -= cost
-                if state.mode == "choose":
-                    if role(tick,state.search_start,state.gather_start,policy.maximum_players) == "search":
-                        self.start_search(policy,ticket,state,tick)
-                    else:
-                        gathering = self.found(policy,ticket,state,now)
-                        proposal = self.proposal(policy,gathering)
-                        if proposal:
-                            return proposal
-                        break
-                if state.mode != "search":
-                    break
-                if elapsed(tick,state.search_start) > 240000+state.search_offset:
-                    self.queries.pop(ticket.id,None)
-                    state.mode = "choose"
-                    continue
-                again,gathering = self.query(policy,ticket,state,now)
-                if gathering:
-                    proposal = self.proposal(policy,gathering)
-                    if proposal:
-                        return proposal
-                if not again:
-                    break
-        return None
+        return project('proposals', self._pump(self._call('gather_advance', playlist=playlist, wall=self.wall_clock())))
+
+    def _fixture(self, action, **values):
+        """Explicit synthetic inputs, absent from the production Rust build."""
+        require(native().h2_matchmaking_test_inputs_enabled(), 'Diagnostic gathering inputs are not compiled', 503)
+        return self._call('gather_fixture', action=action, **values)
+
+    def _restore_fixture(self, gathering):
+        data = dict(id=gathering.id, tickets=gathering.tickets, born=gathering.born, host=gathering.host,
+                    language=gathering.language, game=gathering.game,
+                    clock=None if gathering.clock is None else gathering.clock.snapshot())
+        return self._gathering(self._fixture('insert', value=data))
+
+    def _fixture_members(self, gathering, tickets):
+        return self._gathering(self._fixture('members', id=gathering.id, tickets=tickets))

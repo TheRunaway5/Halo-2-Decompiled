@@ -86,6 +86,7 @@ SourceObjectGeometry::ViewDraw SourceObjectGeometry::active_draw(unsigned lod)co
     for(const auto &run:active_runs(lod)){
         const auto vertices=std::span(g.vertices).subspan(run.first,run.count);
         result.vertices.insert(result.vertices.end(),vertices.begin(),vertices.end());
+        for(std::size_t n=run.first;n<run.first+run.count;++n)result.ordinals.push_back(std::uint32_t(n));
         result.ordinary_lighting|=parts[lod].at(run.part).ordinary.at(0);
     }
     return result;
@@ -209,6 +210,15 @@ void SourceObjectGeometry::pose_world_lod(unsigned lod,const std::function<Model
     if(!g.vertex_materials.empty())
         for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
 }
+void SourceObjectGeometry::pose_world_lod_view(unsigned lod,const std::function<ModelSkinWorldPoseView(const RenderModel&)>&pose){
+    invalidate_views();
+    auto&g=lods.at(lod);const auto posed=pose(g.model);
+    if(posed.vertices.size()!=g.model.mesh.vertices.size())throw FormatError("resident WORLD pose changed source vertex order");
+    g.vertices.assign(posed.vertices.begin(),posed.vertices.end());
+    g.palette.assign(posed.palette.begin(),posed.palette.end());g.deferred=posed.gpu;
+    if(!g.vertex_materials.empty())
+        for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
+}
 std::shared_ptr<ModelSkinGeometry> SourceObjectGeometry::view_skin(unsigned view_index,std::uint32_t owner,
     std::uint32_t definition,std::uint32_t render_model)const{
     const auto &retained=view_selection.at(view_index);const auto &draw=views.at(view_index);
@@ -300,6 +310,7 @@ SourceObjectGeometry::ViewDraw SourceObjectGeometry::selected_section_vertices(u
         const auto selected=unsigned(choice.index);const auto first=result.vertices.size();
         const auto source=vertices.subspan(run.first,run.count);
         result.vertices.insert(result.vertices.end(),source.begin(),source.end());
+        for(std::size_t n=run.first;n<run.first+run.count;++n)result.ordinals.push_back(std::uint32_t(n));
         for(auto n=first;n<result.vertices.size();++n)result.vertices[n].material=part.materials.at(selected);
         result.ordinary_lighting|=part.ordinary.at(selected);
         result.prt_lighting|=std::any_of(slots.begin(),slots.end(),[&](const auto& slot){return slot.material==part.materials.at(selected) && slot.prt;});
@@ -380,7 +391,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
                     const auto &part=parts[lod].at(part_index);
                     auto vertex=geometry.vertices[i];vertex.material=part.materials.at(shader_lod);
                     draw.vertices.push_back(vertex);draw.ordinary_lighting=draw.ordinary_lighting || part.ordinary.at(shader_lod);
-                    if(geometry.deferred)draw.ordinals.push_back(std::uint32_t(i));
+                    draw.ordinals.push_back(std::uint32_t(i));
                 }
             } else for(const auto &run:active_runs(lod)) {
                 const auto shader_lod=selected.at(run.part);if(shader_lod==0xffffffffu)continue;
@@ -388,7 +399,7 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
                 const auto first=draw.vertices.size();const auto source=std::span{geometry.vertices}.subspan(run.first,run.count);
                 draw.vertices.insert(draw.vertices.end(),source.begin(),source.end());
                 for(std::size_t i=first;i<draw.vertices.size();++i)draw.vertices[i].material=material;
-                if(geometry.deferred)for(std::size_t i=run.first;i<run.first+run.count;++i)draw.ordinals.push_back(std::uint32_t(i));
+                for(std::size_t i=run.first;i<run.first+run.count;++i)draw.ordinals.push_back(std::uint32_t(i));
                 draw.ordinary_lighting=draw.ordinary_lighting || part.ordinary.at(shader_lod);
             }
         }

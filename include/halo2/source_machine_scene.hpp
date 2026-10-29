@@ -11,6 +11,9 @@ class CollisionWorld;
 class SceneObjects;
 class SourceDeviceWorld;
 struct ObjectLightingBinding;
+struct ModelObjectDraw;
+struct SourceLiveModelBaseDrawTu15;
+class PhysicsLiveWorldTu15;
 struct ReferenceDeviceState;
 // Prepared-resource census; synchronize separately owns live draw admission.
 struct SourceMachineSceneStats {
@@ -112,6 +115,11 @@ public:
     void append(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &) const;
     void append_view(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &,
                      const SourceObjectViewLod &,std::vector<SourceObjectViewSelection> * = nullptr);
+    std::vector<std::uint32_t> source_render_models()const;
+    void begin_source_frame();
+    bool retain_source_view(unsigned,std::span<const SourceLiveModelBaseDrawTu15>,
+        std::span<const Transform>,const SourceModelShaderView&,PhysicsLiveWorldTu15&);
+    void append_source_models(std::vector<ModelObjectDraw>&,const SourceObjectViewLod&);
     // Actual synchronized lifetimes, including hidden owners. A bound
     // simulation supplies current group/channel/device state. Unbound finite
     // diagnostics retain explicit initialization/private gear state. This

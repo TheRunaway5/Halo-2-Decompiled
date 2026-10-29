@@ -16,7 +16,7 @@ import struct
 import sys
 import uuid
 
-from audit_rendering import FormatError, file_sha
+from audit_rendering import FormatError, file_sha, ImportBudget, donor_inventory
 from mcc_content import MccCache, directory, discover, texture_resource
 from mcc_conversion_coverage import validate as validate_conversion_coverage
 from mcc_multiplayer_catalog import apply_catalog_plan, plan_catalog
@@ -28,6 +28,8 @@ from vista_tag_conversion import TagGraph, TU15_SHA256, apply_combat, apply_netg
 PROFILE = "H2_MCC_TU15_PREPARATION_V1"
 MAX_BITMAP_BYTES = 32 * 1024**3
 MAX_BITMAP_PARTITIONS = 65536
+# Fixed-size keys, SHA-256 text, integer extents and dictionary/tuple overhead.
+BITMAP_PLAN_ENTRY_BYTES = 512
 BITMAP_DISK_RESERVE = 64 * 1024**2
 EXCLUDED_SUFFIXES = {".dll", ".exe", ".xbe", ".iso", ".flt", ".pdb", ".spv", ".cso", ".fxo"}
 BLOCKERS = [
@@ -46,42 +48,34 @@ def excluded(relative):
     return relative.parts[:2] == ("prebuild", "shaders_2_cache") or relative.suffix.lower() in EXCLUDED_SUFFIXES
 
 
-def source_files(source):
+def source_files(source, inventory=None):
     selected, omitted = [], []
-    for path in sorted(source.rglob("*")):
-        relative = path.relative_to(source)
-        if path.is_symlink():
-            raise FormatError(f"Symlink in MCC asset source: {relative}")
-        if path.is_dir():
+    for relative, info, directory in (donor_inventory(source) if inventory is None else inventory):
+        if directory:
             continue
-        if not path.is_file():
-            raise FormatError(f"Nonregular MCC asset source: {relative}")
         if excluded(relative):
             omitted.append(relative.as_posix())
         else:
-            selected.append((relative, path.stat()))
+            selected.append((relative, info))
     if not selected:
         raise FormatError("Empty MCC asset installation")
     return selected, omitted
 
 
-def source_directories(source):
+def source_directories(source, inventory=None):
     """Retain authored relative directories, including empty tags/data trees."""
     result=[]
-    for path in sorted(source.rglob("*")):
-        relative=path.relative_to(source)
-        if path.is_symlink():
-            raise FormatError(f"Symlink in MCC asset source: {relative}")
-        if path.is_dir() and relative.parts[:2] != ("prebuild", "shaders_2_cache"):
+    for relative, _, directory in (donor_inventory(source) if inventory is None else inventory):
+        if directory and relative.parts[:2] != ("prebuild", "shaders_2_cache"):
             result.append(relative)
     return result
 
 
-def copy_verified(source, target, files, progress):
+def copy_verified(source, target, files, progress, directories=None):
     records = {}
     # Source-format folders retain their relative names/case. In particular a
     # loose-tag donor's tags/ and data/ trees are not content-addressed blobs.
-    for relative in source_directories(source):
+    for relative in (source_directories(source) if directories is None else directories):
         (target/relative).mkdir(parents=True,exist_ok=True)
     total = sum(stat.st_size for _, stat in files)
     progress(f"Copying {len(files)} MCC asset files ({total / 1024**3:.2f} GiB) to the private PC-port cache…")
@@ -128,6 +122,7 @@ def save_changed_cache(cache):
 def bitmap_partitions(cache):
     """Walk bounded bitmap records without decoding their pixel partitions."""
     for tag in cache.tags.values():
+        cache.parse_budget.charge()
         if tag["group"] != "bitm" or tag["offset"] is None:
             continue
         low, high = tag["offset"], tag["offset"] + tag["size"]
@@ -142,13 +137,14 @@ def bitmap_partitions(cache):
                     yield pointer, size
 
 
-def plan_bitmaps(paths, textures, progress):
+def plan_bitmaps(paths, textures, progress, budget=None):
     # Decode one partition at a time to measure compressed resources exactly.
     # Retain only sizes/hashes; repeated references are charged once.
     plan, total = {}, 0
+    budget = budget or ImportBudget()
     for path in paths:
         progress(f"Checking aggregate MCC bitmap budget: {path.name}")
-        cache = MccCache(path)
+        cache = MccCache(path, budget)
         try:
             for pointer, size in bitmap_partitions(cache):
                 key = f"{pointer & 0x3fffffff:08x}-{size:08x}"
@@ -156,6 +152,7 @@ def plan_bitmaps(paths, textures, progress):
                     continue
                 if len(plan) >= MAX_BITMAP_PARTITIONS:
                     raise FormatError("Excessive MCC bitmap partition count")
+                budget.charge(1, BITMAP_PLAN_ENTRY_BYTES)
                 payload = texture_resource(textures, pointer, size, decoded_limit=MAX_BITMAP_BYTES - total)
                 total += len(payload)
                 plan[key] = (len(payload), hashlib.sha256(payload).hexdigest())
@@ -182,8 +179,13 @@ def prepare_maps(maps, output, progress):
         catalog_projection["serialized_decoded_sha256"] = hashlib.sha256(menu.data).hexdigest()
     finally:
         menu.close()
+    budget = ImportBudget()
     with (maps / "textures.dat").open("rb") as textures:
-        bitmap_plan, bitmap_bytes = plan_bitmaps(paths, textures, progress)
+        bitmap_plan, bitmap_bytes = plan_bitmaps(paths, textures, progress, budget)
+    # Preflight cache/parser objects have retired. Only the bounded partition
+    # plan survives into conversion; keep its memory charged without counting
+    # released parser metadata as live. The shared work counter never resets.
+    budget.begin_retained_phase(carried_bytes=len(bitmap_plan) * BITMAP_PLAN_ENTRY_BYTES)
     if shutil.disk_usage(output).free < bitmap_bytes + BITMAP_DISK_RESERVE:
         raise FormatError("Insufficient free space for aggregate decoded MCC bitmaps")
     shared = MccCache(maps / "shared.map")
@@ -195,6 +197,7 @@ def prepare_maps(maps, output, progress):
             for path in paths:
                 progress(f"Reading MCC Classic tags, textures and bump resources: {path.name}")
                 cache = shared if path.name == "shared.map" else MccCache(path)
+                cache.parse_budget = budget
                 try:
                     stores = list(catalog_projection["stores"]) if path.name == "mainmenu.map" else []
                     charge_plan = plan_instant_charge(cache)
@@ -206,6 +209,7 @@ def prepare_maps(maps, output, progress):
                             tag=tag["name"], address=tag["address"], file_offset=charge_plan.offset,
                             tag_offset=0, before=charge_plan.before.hex(), after=charge_plan.after.hex(),
                             operation="whole-qualified-original-instant-charge-flags"))
+                    budget.charge(len(cache.tags), 1024)
                     inventory.append(dict(map=path.name, groups=dict(Counter(t["group"] for t in cache.tags.values())),
                         resident_tags=sum(bool(t["address"] and t["size"]) for t in cache.tags.values()),
                         tags=[dict(datum=f'{t["datum"]:08x}', group=t["group"], name=t["name"],
@@ -219,6 +223,7 @@ def prepare_maps(maps, output, progress):
                         frames = cache.block(low + 68, 168)
                         row = dict(map=path.name, datum=f'{tag["datum"]:08x}', tag=tag["name"], frames=[])
                         for at in frames:
+                            budget.charge(4, 512)
                             if not low <= at <= at + 168 <= high:
                                 raise FormatError(f"MCC bitmap frame escapes tag: {tag['name']}")
                             dimensions = list(struct.unpack_from("<2HB", cache.data, at + 4))
@@ -309,8 +314,9 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
     # Reject importing from inside our own output or recursively copying it.
     if source == imports or source in imports.parents or imports in source.parents:
         raise FormatError("MCC source and PC-port import directory must be separate")
-    files, omitted = source_files(source)
-    directories=source_directories(source)
+    inventory = donor_inventory(source)
+    files, omitted = source_files(source, inventory)
+    directories=source_directories(source, inventory)
     presentation_bytes = mcc_presentation.required_bytes(root, presentation)
     import controller_prompt_assets
     presentation_bytes += controller_prompt_assets.required_bytes(root)
@@ -336,7 +342,7 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
     try:
         stage.mkdir()
         progress(f"Found MCC Halo 2: {source}")
-        record = copy_verified(source, stage / "halo2", files, progress)
+        record = copy_verified(source, stage / "halo2", files, progress, directories)
         summary = prepare_maps(stage / "halo2/h2_maps_win64_dx11", stage, progress)
         from mcc_menu_inventory import verify as verify_menu_inventory
         menu_inventory = verify_menu_inventory(stage / "halo2", progress=progress,
@@ -367,9 +373,10 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
         write_json(stage / "player-screen-flashes.json", flashes)
         # Refuse to publish an inconsistent mixed-version snapshot after a Steam
         # update changes the set, size or timestamp of any selected source file.
-        now, omitted_now = source_files(source)
+        current_inventory = donor_inventory(source)
+        now, omitted_now = source_files(source, current_inventory)
         identity = lambda rows: [(p.as_posix(), s.st_size, s.st_mtime_ns, s.st_ino) for p, s in rows]
-        if identity(now) != identity(files) or omitted_now != omitted or source_directories(source)!=directories:
+        if identity(now) != identity(files) or omitted_now != omitted or source_directories(source, current_inventory)!=directories:
             raise FormatError("MCC installation changed during preparation; retry after Steam finishes updating")
         # A successful copy is insufficient: every stock map must retain one
         # source-bound conversion result, even if that map needed no stores.

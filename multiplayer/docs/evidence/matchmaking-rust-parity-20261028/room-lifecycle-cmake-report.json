@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ckuv0c2j/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ckuv0c2j/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-room-lifecycle-cmake-20261028/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ckuv0c2j/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "halo2_online_protocol_rust_build"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-room-lifecycle-cmake-20261028/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-lifecycle-port/halo2-test-ckuv0c2j/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^online_protocol_rust_build_helper$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-room-lifecycle-cmake-20261028/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1880,
+      "sha256": "bc5bf058ed03143c5455b372dd3605b34f17a22c3fcab9e528361d105baecfc4",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-room-lifecycle-cmake-20261028/evidence/online-protocol/Release/build-report.json"
+    }
+  ]
+}

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <limits>
@@ -56,6 +57,8 @@ std::uint64_t temporal_lighting_key(const Scene& scene,const GpuSceneUniform& un
         for(const auto byte:value){key^=std::to_integer<unsigned>(byte);key*=1099511628211ull;}
     };
     add(bytes(scene.lights));
+    add(bytes(scene.color_guide_image_keys));
+    for(const auto& material:scene.materials)add(std::as_bytes(std::span(material.color_guide)));
     add(std::as_bytes(std::span(uniform.counts).subspan(2,2)));
     add(std::as_bytes(std::span(uniform.environment).first(3)));
     // Only actual admitted emitters participate. Unused UI/transparent roots
@@ -136,7 +139,22 @@ struct Render::Impl {
     VkFramebuffer visibility_framebuffer{};
     VkFramebuffer lighting_framebuffer{};
     VkExtent2D visibility_extent{};
-    std::array<Buffer,7> buffers;
+    std::array<Buffer,9> buffers;
+    // Binding9 is an immutable previous-frame snapshot. Keeping its read bank
+    // separate avoids races when several current pixels reproject to the same
+    // old cell. Only the two bounded16-word histories are copied on the GPU.
+    struct alignas(16) HistoryCamera {
+        std::array<std::array<float,16>,2> matrix{};
+        std::array<std::array<float,4>,2> viewport{};
+    };
+    static_assert(sizeof(HistoryCamera)==160);
+    HistoryCamera current_history_camera{},previous_history_camera{};
+    std::array<float,2> current_history_eye{},previous_history_eye{};
+    std::uint32_t current_history_camera_mask{},previous_history_camera_mask{};
+    VkViewport visibility_viewport{};
+    bool previous_history_prepared{};
+    const Scene* uploaded_color_guide_source{};
+    std::vector<std::array<std::uint64_t,2>> uploaded_color_guide_keys;
     bool uploaded{},visibility_ready{},visibility_recording{},lighting_ready{},lighting_recording{};
     bool history_reset_pending=true,lighting_key_valid{};
     std::uint32_t frame_serial{};
@@ -178,6 +196,8 @@ struct Render::Impl {
         visibility_depth=VK_NULL_HANDLE;visibility_memory=VK_NULL_HANDLE;
         visibility_allocation_bytes=0;visibility_extent={};visibility_ready=lighting_ready=false;
         history_reset_pending=true;
+        current_history_camera_mask=previous_history_camera_mask=0;
+        previous_history_prepared=false;
     }
     ~Impl() {
         clear_environment();
@@ -238,10 +258,10 @@ struct Render::Impl {
             throw FormatError("Path Tracing requires a device, render pass, and material descriptor layout");
         vkGetPhysicalDeviceProperties(context.physical,&properties);
         vkGetPhysicalDeviceMemoryProperties(context.physical,&memory_properties);
-        if(properties.limits.maxPerStageDescriptorStorageBuffers<6 || properties.limits.maxDescriptorSetStorageBuffers<6 ||
+        if(properties.limits.maxPerStageDescriptorStorageBuffers<8 || properties.limits.maxDescriptorSetStorageBuffers<8 ||
            properties.limits.maxPushConstantsSize<camera_bytes)
             throw FormatError("Path Tracing scene resources exceed this Vulkan device's descriptor or push-constant limits");
-        std::array<VkDescriptorSetLayoutBinding,8> bindings{};
+        std::array<VkDescriptorSetLayoutBinding,10> bindings{};
         for(unsigned i=0;i<bindings.size();++i) {
             bindings[i].binding=i;bindings[i].descriptorCount=1;bindings[i].stageFlags=VK_SHADER_STAGE_FRAGMENT_BIT;
             bindings[i].descriptorType=i==7?VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
@@ -255,7 +275,7 @@ struct Render::Impl {
         VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         layout.setLayoutCount=layouts.size();layout.pSetLayouts=layouts.data();layout.pushConstantRangeCount=1;layout.pPushConstantRanges=&push;
         check(vkCreatePipelineLayout(context.device,&layout,nullptr,&pipeline_layout),"create pipeline layout");
-        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,6},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},
+        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,8},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},
             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1}};
         VkDescriptorPoolCreateInfo descriptor_pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         descriptor_pool.maxSets=1;descriptor_pool.poolSizeCount=3;descriptor_pool.pPoolSizes=sizes;
@@ -281,7 +301,8 @@ struct Render::Impl {
             {4,0,VK_FORMAT_R32_UINT,offsetof(Vertex,material)},
             {5,0,VK_FORMAT_R32_UINT,offsetof(Vertex,source_stipple_level)},
             {6,0,VK_FORMAT_R32_UINT,offsetof(Vertex,lightmap)},
-            {7,0,VK_FORMAT_R32_SINT,offsetof(Vertex,bsp_cluster)}};
+            {7,0,VK_FORMAT_R32_SINT,offsetof(Vertex,bsp_cluster)},
+            {8,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,lightmap_uv)}};
         VkPipelineVertexInputStateCreateInfo input{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
         input.vertexBindingDescriptionCount=1;input.pVertexBindingDescriptions=&binding;
         input.vertexAttributeDescriptionCount=std::size(attributes);input.pVertexAttributeDescriptions=attributes;
@@ -423,6 +444,14 @@ struct Render::Impl {
         // records and separate16-word world/foreground history records.
         return lighting_offset()+lighting_cells(visibility_extent,lighting_scale)*(12+2*16)*sizeof(std::uint32_t);
     }
+    VkDeviceSize history_offset()const {return lighting_offset()+lighting_bytes();}
+    VkDeviceSize history_bytes()const {
+        return lighting_cells(visibility_extent,lighting_scale)*2*16*sizeof(std::uint32_t);
+    }
+    void write_previous_history_mask() {
+        const auto mask=history_reset_pending?0u:previous_history_camera_mask;
+        std::memcpy(static_cast<std::byte*>(buffers[6].mapped)+6*sizeof(std::uint32_t),&mask,sizeof(mask));
+    }
     bool environment_nee_available()const {
         return environment_source_available || environment_fallback_available;
     }
@@ -431,17 +460,69 @@ struct Render::Impl {
         if(size>properties.limits.maxStorageBufferRange)
             throw FormatError("Path Tracing visibility exceeds maxStorageBufferRange");
         auto& buffer=buffers[6];
-        allocate(buffer,size,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        allocate(buffer,size,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT|VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                  properties.limits.maxStorageBufferRange);
         const std::array<std::uint32_t,8> dimensions{visibility_extent.width,visibility_extent.height,
             visibility_extent.width*visibility_extent.height,lighting_scale,frame_serial,
-            environment_nee_available()?1u:0u,0,0};
+            environment_nee_available()?1u:0u,history_reset_pending?0u:previous_history_camera_mask,0};
         std::memcpy(buffer.mapped,dimensions.data(),sizeof(dimensions));buffer.populated=sizeof(dimensions);
-        const VkDescriptorBufferInfo info{buffer.buffer,0,size};
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.dstSet=descriptor;write.dstBinding=6;write.descriptorCount=1;
-        write.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;write.pBufferInfo=&info;
-        vkUpdateDescriptorSets(context.device,1,&write,0,nullptr);
+        const auto previous_size=sizeof(HistoryCamera)+history_bytes();
+        if(previous_size>properties.limits.maxStorageBufferRange)
+            throw FormatError("Path Tracing previous history exceeds maxStorageBufferRange");
+        auto& previous=buffers[8];
+        allocate(previous,previous_size,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                 properties.limits.maxStorageBufferRange);
+        std::memcpy(previous.mapped,&previous_history_camera,sizeof(previous_history_camera));
+        previous.populated=previous_size;
+        const VkDescriptorBufferInfo infos[]{{buffer.buffer,0,size},{previous.buffer,0,previous_size}};
+        std::array<VkWriteDescriptorSet,2> writes{};
+        for(unsigned i=0;i<writes.size();++i) {
+            auto& write=writes[i];write.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet=descriptor;write.dstBinding=i?9:6;write.descriptorCount=1;
+            write.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;write.pBufferInfo=&infos[i];
+        }
+        vkUpdateDescriptorSets(context.device,writes.size(),writes.data(),0,nullptr);
+    }
+    void snapshot_previous_history(VkCommandBuffer command) {
+        if(previous_history_prepared)return;
+        previous_history_prepared=true;
+        if(history_reset_pending)previous_history_camera_mask=0;
+        write_previous_history_mask();
+        if(!previous_history_camera_mask || !history_bytes())return;
+        std::array<VkBufferMemoryBarrier,2> barriers{};
+        for(auto& barrier:barriers) {
+            barrier.sType=VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+            barrier.size=history_bytes();
+        }
+        barriers[0].buffer=buffers[6].buffer;barriers[0].offset=history_offset();
+        barriers[0].srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
+        barriers[0].dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+        barriers[1].buffer=buffers[8].buffer;barriers[1].offset=sizeof(HistoryCamera);
+        barriers[1].srcAccessMask=VK_ACCESS_SHADER_READ_BIT;barriers[1].dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,barriers.size(),barriers.data(),0,nullptr);
+        const VkBufferCopy copy{history_offset(),sizeof(HistoryCamera),history_bytes()};
+        vkCmdCopyBuffer(command,buffers[6].buffer,buffers[8].buffer,1,&copy);
+        barriers[0].srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+        barriers[0].dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
+        barriers[1].srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;barriers[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
+        vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,0,nullptr,barriers.size(),barriers.data(),0,nullptr);
+    }
+    void capture_history_camera(std::span<const std::byte> camera) {
+        float eye;std::memcpy(&eye,camera.data()+23*sizeof(float),sizeof(eye));
+        const unsigned role=eye==2.f?1:0;const auto bit=1u<<role;
+        if((previous_history_camera_mask&bit) &&
+           std::bit_cast<std::uint32_t>(eye)!=std::bit_cast<std::uint32_t>(previous_history_eye[role])) {
+            previous_history_camera_mask&=~bit;
+            write_previous_history_mask();
+        }
+        std::memcpy(current_history_camera.matrix[role].data(),camera.data(),16*sizeof(float));
+        current_history_camera.viewport[role]={visibility_viewport.x,visibility_viewport.y,
+            visibility_viewport.width,visibility_viewport.height};
+        current_history_eye[role]=eye;current_history_camera_mask|=bit;
     }
     void prepare_visibility(VkExtent2D extent) {
         if(visibility_recording || lighting_recording)throw FormatError("Path Tracing visibility cannot resize while recording");
@@ -507,13 +588,17 @@ struct Render::Impl {
             dependencies[0].dstStageMask=VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT|
                 VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             dependencies[0].srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT|VK_ACCESS_TRANSFER_WRITE_BIT;
-            dependencies[0].dstAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|
+            // STORE still writes the attachment when the lighting pipeline
+            // disables depth writes. Order that store and its final layout
+            // transition as well as the depth tests and HDR storage writes.
+            dependencies[0].dstAccessMask=VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT|
                 VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_SHADER_WRITE_BIT;
             dependencies[1].srcSubpass=0;dependencies[1].dstSubpass=VK_SUBPASS_EXTERNAL;
             dependencies[1].srcStageMask=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|
                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
             dependencies[1].dstStageMask=VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT;
-            dependencies[1].srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+            dependencies[1].srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|
+                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
             dependencies[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_TRANSFER_READ_BIT;
             VkRenderPassCreateInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
             pass.attachmentCount=1;pass.pAttachments=&attachment;pass.subpassCount=1;pass.pSubpasses=&subpass;
@@ -547,12 +632,13 @@ struct Render::Impl {
         visibility_extent=extent;update_visibility_binding();
     }
     void bind(VkCommandBuffer command,VkDescriptorSet material,std::uint32_t dynamic_bank_offset,
-              std::span<const std::byte> camera,std::uint32_t material_index,bool visibility,bool lighting=false)const {
+              std::span<const std::byte> camera,std::uint32_t material_index,bool visibility,bool lighting=false) {
         if(!uploaded)throw FormatError("Path Tracing scene must be uploaded before binding");
         if(camera.size()!=camera_bytes || (material_index!=~0u && material_index>=0x80000000u))
             throw FormatError("Path Tracing draw lost its camera or material identity");
         if(visibility!=visibility_recording || lighting!=lighting_recording || (visibility && lighting))
             throw FormatError("Path Tracing material pipeline does not match the visibility phase");
+        if(visibility || lighting)capture_history_camera(camera);
         std::array<std::byte,camera_bytes> push;std::copy(camera.begin(),camera.end(),push.begin());
         const std::array<float,2> quality{float(samples),float(bounces)};
         std::memcpy(push.data()+camera_bytes-4*sizeof(float),quality.data(),sizeof(quality));
@@ -654,29 +740,39 @@ void Render::upload(const Scene& scene) {
 void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
     auto& p=*impl_;
     if(p.visibility_recording || p.lighting_recording)throw FormatError("Path Tracing scene cannot upload during screen-pass recording");
+    p.previous_history_camera=p.current_history_camera;
+    p.previous_history_eye=p.current_history_eye;
+    p.previous_history_camera_mask=p.current_history_camera_mask;
+    p.current_history_camera_mask=0;p.previous_history_prepared=false;
     p.visibility_ready=p.lighting_ready=false;
-    const std::array<std::span<const std::byte>,6> input{
+    const std::array<std::span<const std::byte>,7> input{
         bytes(scene.nodes),bytes(scene.triangles),bytes(scene.materials),bytes(scene.lights),bytes(scene.pixels),
-        std::as_bytes(std::span(&uniform,1))};
+        std::as_bytes(std::span(&uniform,1)),bytes(scene.color_guide_pixels)};
     // Validate the complete upload before replacing any resource. Vulkan never
     // receives an empty descriptor, including a scene with no lights or rays.
     for(unsigned i=0;i<input.size();++i) {
-        const auto limit=i<5?p.properties.limits.maxStorageBufferRange:p.properties.limits.maxUniformBufferRange;
+        const auto limit=i==5?p.properties.limits.maxUniformBufferRange:p.properties.limits.maxStorageBufferRange;
         if(std::max<std::size_t>(16,input[i].size())>limit)
             throw FormatError("Path Tracing scene bank "+std::to_string(i)+" exceeds maxStorageBufferRange or maxUniformBufferRange");
     }
     p.uploaded=false;
-    std::array<VkDescriptorBufferInfo,6> infos{};
-    std::array<VkWriteDescriptorSet,6> writes{};
+    std::array<VkDescriptorBufferInfo,7> infos{};
+    std::array<VkWriteDescriptorSet,7> writes{};
     for(unsigned i=0;i<input.size();++i) {
-        const auto usage=i<5?VK_BUFFER_USAGE_STORAGE_BUFFER_BIT:VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-        const auto limit=i<5?p.properties.limits.maxStorageBufferRange:p.properties.limits.maxUniformBufferRange;
-        auto& buffer=p.buffers[i];
+        const auto usage=i==5?VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT:VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        const auto limit=i==5?p.properties.limits.maxUniformBufferRange:p.properties.limits.maxStorageBufferRange;
+        auto& buffer=p.buffers[i==6?7:i];
         p.allocate(buffer,std::max<std::size_t>(16,input[i].size()),usage,limit);
         // Only cached host memory is suitable for a CPU read/compare. Reading
         // an uncached mapped VRAM bank back over PCIe can cost more than
         // uploading the CPU-owned scene again, so use write-only copies there.
-        if(input[i].empty()) {
+        const bool immutable_guide=i==6 && !scene.color_guide_image_keys.empty() &&
+            p.uploaded_color_guide_source==&scene && p.uploaded_color_guide_keys==scene.color_guide_image_keys &&
+            buffer.populated==input[i].size();
+        if(immutable_guide) {
+            // The source fingerprint proves this atlas is unchanged. Do not
+            // read uncached VRAM or resend megabytes of immutable map data.
+        } else if(input[i].empty()) {
             std::memset(buffer.mapped,0,16);
             buffer.populated=16;
         } else {
@@ -687,11 +783,12 @@ void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
         }
         infos[i]={buffer.buffer,0,std::max<std::size_t>(16,input[i].size())};
         auto& write=writes[i];write.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet=p.descriptor;write.dstBinding=i;write.descriptorCount=1;
-        write.descriptorType=i<5?VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.dstSet=p.descriptor;write.dstBinding=i==6?8:i;write.descriptorCount=1;
+        write.descriptorType=i==5?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.pBufferInfo=&infos[i];
     }
     vkUpdateDescriptorSets(p.context.device,writes.size(),writes.data(),0,nullptr);
+    p.uploaded_color_guide_source=&scene;p.uploaded_color_guide_keys=scene.color_guide_image_keys;
     p.environment_fallback_available=uniform.environment[0]>0 || uniform.environment[1]>0 || uniform.environment[2]>0;
     const auto key=temporal_lighting_key(scene,uniform);
     if(p.uploaded_source!=&scene || !p.lighting_key_valid || p.lighting_key!=key)p.history_reset_pending=true;
@@ -699,12 +796,22 @@ void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
     if(++p.frame_serial==0)p.history_reset_pending=true;
     p.update_visibility_binding();p.uploaded=true;
 }
-void Render::prepare_visibility(VkExtent2D extent) {impl_->prepare_visibility(extent);}
+void Render::prepare_visibility(VkExtent2D extent) {
+    prepare_visibility(extent,VkViewport{0,0,float(extent.width),float(extent.height),0,1});
+}
+void Render::prepare_visibility(VkExtent2D extent,const VkViewport& viewport) {
+    const std::array values{viewport.x,viewport.y,viewport.width,viewport.height,viewport.minDepth,viewport.maxDepth};
+    if(!std::all_of(values.begin(),values.end(),[](float value){return std::isfinite(value);}) ||
+       viewport.width<=0 || viewport.height==0)
+        throw FormatError("Path Tracing history requires its actual finite nonempty viewport");
+    impl_->prepare_visibility(extent);impl_->visibility_viewport=viewport;
+}
 void Render::disable_visibility()noexcept {impl_->visibility_ready=impl_->lighting_ready=false;}
 void Render::begin_visibility(VkCommandBuffer command) {
     auto& p=*impl_;
     if(!p.uploaded || !p.visibility_framebuffer || p.visibility_recording || p.lighting_recording)
         throw FormatError("Path Tracing visibility needs an uploaded scene and prepared target");
+    p.snapshot_previous_history(command);
     p.visibility_ready=p.lighting_ready=false;
     VkClearValue clear{};clear.depthStencil={1.f,0};
     VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};

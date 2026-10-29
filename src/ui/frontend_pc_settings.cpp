@@ -120,11 +120,21 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
   switch (local) {
   case 7: case 8: break;
   case 18:
+    if(context==team_game_pause_context) {
+      f.title="CHANGE TEAM";
+      if(game_pause_teams_)for(unsigned team=0;team<8;++team)if(game_pause_teams_->available&(1u<<team)) {
+        if(team==game_pause_teams_->current)f.selected=f.entries.size();
+        f.entries.push_back({game_pause_teams_->names[team],-115,int(team)});
+      }
+      break;
+    }
     add(0x144,-100);
-    if(context) {add(0x2ea,-101);add(0x2eb,-102);}
+    if(context==campaign_game_pause_context) {add(0x2ea,-101);add(0x2eb,-102);}
     add(0x2ef,vista_menu(259));
+    if(context!=campaign_game_pause_context && game_pause_teams_)f.entries.push_back({"Change Team",-114,0});
     // The native runtime has no durable campaign-save owner.
     add(0x2ed,-103);
+    if(context==online_game_pause_context)f.entries.back().label="Leave Match";
     break;
   case 259:
     add(0x2ef,vista_menu(200));add(0x7c2,vista_menu(260));
@@ -394,8 +404,11 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
     if(index==5)return low_string(*content_.vista, content_.screen(vista_menu(183)),c.vibration?0x182:0x183);
   }
   if (is_vista_settings(f.screen, 258)) {
-    if (index == 0)
+    if (index == 0) {
+      const PcKeyboardSettings defaults;
+      if(k.bindings==defaults.bindings && k.secondary==defaults.secondary)return "MCC Default";
       return low_string(*content_.vista, content_.screen(content_.gameplay_overlay?vista_menu(244):f.screen), 0x844);
+    }
     if (index == 1)
       return std::to_string(k.sensitivity);
     if (index == 2)

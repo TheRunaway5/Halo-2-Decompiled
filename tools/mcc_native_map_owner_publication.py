@@ -19,6 +19,7 @@ import uuid
 from audit_rendering import FormatError
 import mcc_native_map_owners as owners
 from native_shader_bundle import TABLE_SHA, fingerprint
+from file_identity import descriptor_identity, path_identity
 
 INDEX = "native-shaders/map-owners.json"
 POLICIES = Path(__file__).resolve().parent / "data"
@@ -90,7 +91,7 @@ def _path(root, name, *, directory=False, missing=False):
 def _stamp(path):
     value = path.lstat()
     _require(stat.S_ISREG(value.st_mode), "file lost regular private owner")
-    return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+    return path_identity(path)
 
 
 def _read(root, name, pins, *, payload=False):
@@ -100,8 +101,8 @@ def _read(root, name, pins, *, payload=False):
     descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0))
     digest, data, consumed = hashlib.sha256(), bytearray(), 0
     with os.fdopen(descriptor, "rb") as stream:
-        first = os.fstat(stream.fileno())
-        _require((first.st_dev, first.st_ino, first.st_size, first.st_mtime_ns, first.st_ctime_ns) == before,
+        first = descriptor_identity(stream.fileno())
+        _require(first == before,
                  "owner changed while opening")
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
@@ -109,8 +110,8 @@ def _read(root, name, pins, *, payload=False):
             if not payload:
                 data.extend(block)
                 _require(len(data) <= METADATA_LIMIT, "metadata grew beyond finite bound")
-        after = os.fstat(stream.fileno())
-        _require((after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns) == before,
+        after = descriptor_identity(stream.fileno())
+        _require(after == before,
                  "owner changed while reading")
     _require(consumed == before[2] and _path(root, name) == path and _stamp(path) == before,
              "owner changed or read was incomplete during verification")

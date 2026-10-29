@@ -58,6 +58,12 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
                 if value and value.get("phase") == "loading":
                     host = value["host"]
                     break
+        if not getattr(self, 'real_start_clock', False):
+            # Component cases keep the actual ten-second Rust gate and advance
+            # its trusted clock observation before testing gameplay/results.
+            room = self.api.transport.rooms[descriptors[0]['id']]
+            started = room.start_clock
+            room.clock = lambda: started + 10000
         return headers, descriptors, sockets, queues, host
 
     async def test_admission_real_challenges_loading_and_authenticated_routes(self):
@@ -85,7 +91,7 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[c]["slot"]])+packet)
 
     async def test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss(self):
-        headers, descriptors, sockets, _, _ = await self.pair()
+        headers, descriptors, sockets, queues, _ = await self.pair()
         room = self.api.transport.rooms[descriptors[0]["id"]]
         now = room.start_clock
         room.clock = lambda: now
@@ -101,10 +107,12 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
             for header in headers:
                 value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=header)).json()
                 self.assertEqual(value["start_countdown_ms"], expected)
-        room.phase = "running"
+        for socket in sockets:
+            await socket.send_json({"loaded":"1234567890abcdef:000001a"})
+        for queue in queues:
+            self.assertEqual((await asyncio.wait_for(queue.get(), 2))["phase"], "running")
         value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=headers[0])).json()
         self.assertIsNone(value["start_countdown_ms"])
-        room.phase = "loading"
         outsider = await self.session("three")
         value = await (await self.client.get("/v1/matchmaking/ticket?start=1", headers=outsider)).json()
         self.assertIsNone(value["start_countdown_ms"])
@@ -152,18 +160,18 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         room = self.api.transport.rooms[descriptors[0]["id"]]
         now = room.start_clock + 5000
         room.clock = lambda: now
-        room.team_mode = True
-        original = room.players[:]
-        room.players = [(p, name, 0) for p, name, _ in original]
+        # Actual socket presence is an IO observation. Immutable admitted
+        # teams are covered by the original/native numerical controls.
+        owner, peer = next(iter(room.peers.items()))
+        room.peers.pop(owner)
         self.assertIsNone(room.start_countdown_ms())
         self.assertIsNone(room.start_clock)
-        room.players = original
+        room.peers[owner] = peer
         self.assertEqual(room.start_countdown_ms(), 10000)
         now += 10000
         self.assertEqual(room.start_countdown_ms(), 0)
 
     async def test_audio_flood_is_bounded_on_the_authenticated_stream(self):
-        from multiplayer.master_server.match_transport import PacketBudget
         _, descriptors, sockets, queues, host = await self.pair()
         for socket in sockets:
             await socket.send_json({"loaded": "1234567890abcdef:000001c"})
@@ -174,7 +182,7 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         member = room.players[descriptors[c]["slot"]][0]
         # Freeze just the packet limiter's time so a single-stream burst is
         # deterministic; real socket admission/challenges remain unchanged.
-        room.peers[member].budget = PacketBudget(clock=lambda:0.)
+        room.peers[member].packet_clock = lambda:0.
         audio = bytearray(23)
         audio[:7] = b"H2N2\x1c\x00\x06"
         audio[8] = descriptors[c]["slot"]
@@ -188,7 +196,6 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(room.closed)
 
     async def test_game_flood_is_bounded_on_the_authenticated_destination(self):
-        from multiplayer.master_server.match_transport import PacketBudget
         _, descriptors, sockets, queues, host = await self.pair()
         for socket in sockets:
             await socket.send_json({"loaded": "1234567890abcdef:000001c"})
@@ -197,7 +204,7 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         c = next(i for i,d in enumerate(descriptors) if d["slot"] != host)
         room = self.api.transport.rooms[descriptors[0]["id"]]
         member = room.players[descriptors[c]["slot"]][0]
-        room.peers[member].budget = PacketBudget(clock=lambda:0.)
+        room.peers[member].packet_clock = lambda:0.
         packet = bytes([host])+b"H2N2\x1c\x00\x02"+b"x"*20
         for i in range(513):
             await sockets[c].send_bytes(packet)
@@ -209,7 +216,6 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(room.closed)
 
     async def test_voice_preferences_share_the_bounded_speaker_stream(self):
-        from multiplayer.master_server.match_transport import PacketBudget
         _, descriptors, sockets, queues, host = await self.pair()
         for socket in sockets:
             await socket.send_json({"loaded": "1234567890abcdef:000001c"})
@@ -218,7 +224,7 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         c = next(i for i,d in enumerate(descriptors) if d["slot"] != host)
         room = self.api.transport.rooms[descriptors[0]["id"]]
         member = room.players[descriptors[c]["slot"]][0]
-        room.peers[member].budget = PacketBudget(clock=lambda:0.)
+        room.peers[member].packet_clock = lambda:0.
         preferences = bytes([host])+b"H2N2\x1c\x00\x06\x01\x01\x00\x00"
         for _ in range(76):
             await sockets[c].send_bytes(preferences)
@@ -324,10 +330,10 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         c = 1-h
         # Voice is admitted through the same match bearer after simulation;
         # obsolete gameplay never reaches the completed report screen.
-        packet = b"H2N2\x1c\x00\x06\x01\x01\x00\x00"
+        packet = b"H2N2\x1b\x00\x06\x01\x01\x00\x00"
         await sockets[c].send_bytes(bytes([host])+packet)
         self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[c]["slot"]])+packet)
-        await sockets[c].send_bytes(bytes([host])+b"H2N2\x1c\x00\x02"+b"x"*20)
+        await sockets[c].send_bytes(bytes([host])+b"H2N2\x1b\x00\x02"+b"x"*20)
         with self.assertRaises(asyncio.TimeoutError):
             await asyncio.wait_for(queues[h].get(), .05)
         await sockets[h].close()
@@ -424,19 +430,19 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
                 room.proposal = replace(room.proposal, game=replace(room.proposal.game,
                     variant="Multi Flag CTF" if engine == 1 else "Multi Bomb"))
                 struct.pack_into("<I", raw, 0x64, engine)
-                self.assertEqual(self.api.results.validate(room, raw.hex())[0], raw)
+                self.assertEqual(self.api.results._validate_fixture(room, raw.hex())[0], raw)
                 forged = raw.copy()
                 struct.pack_into("<I", forged, 0x64, 2)
                 with self.assertRaises(Problem):
-                    self.api.results.validate(room, forged.hex())
+                    self.api.results._validate_fixture(room, forged.hex())
                 for at in (0, 0x11, 0x370+2, 0x370+0x88, 0xcb0):
                     forged = raw.copy()
                     forged[at] ^= 1
                     with self.assertRaises(Problem):
-                        self.api.results.validate(room, forged.hex())
+                        self.api.results._validate_fixture(room, forged.hex())
         struct.pack_into("<I", raw, 0x64, 3)
         with self.assertRaises(Problem):
-            self.api.results.validate(room, raw.hex())
+            self.api.results._validate_fixture(room, raw.hex())
         # Objective reports require the actual admitted team game even when
         # every other FFA-shaped field would otherwise pass validation.
         struct.pack_into("<I", raw, 0x64, 9)
@@ -446,7 +452,7 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         for slot in range(2):
             raw[0x370+slot*0x94+0x88] = 255
         with self.assertRaises(Problem):
-            self.api.results.validate(room, raw.hex())
+            self.api.results._validate_fixture(room, raw.hex())
 
     async def test_client_cannot_finalize_or_forge_postgame(self):
         _, descriptors, sockets, queues, host = await self.pair()

@@ -2,6 +2,7 @@
 // read the original game state through the caller's memory and reproduce the
 // retail functions' arithmetic under the caller's x87 control word and MXCSR.
 #include "audio/native_tu15_sound_kernel.hpp"
+#include "audio/native_campaign_audio_stop_callback_adapter.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -285,7 +286,7 @@ const Kernel *find(std::uint32_t entry) {
         std::map<std::uint32_t,const Kernel *> t;
         for(const auto group:{sound_manager_kernels(),gain_kernels(),properties_kernels(),listener_kernels(),
                 resource_kernels(),startup_kernels(),object_loop_kernels(),campaign_audio_kernels(),
-                unit_speech_kernels()})
+                campaign_stop_callback_kernels(),unit_speech_kernels()})
             for(const auto &kernel:group)if(!t.emplace(kernel.entry,&kernel).second)
                 throw FormatError("Native sound kernel entry registered twice");
         return t;
@@ -314,11 +315,11 @@ std::string native_tu15_sound_manager_compare(M &m,std::uint32_t entry,Abi &a,FP
     const auto *kernel=find(entry);
     if(!kernel)throw FormatError("Sound manager entry has no native kernel");
     return native_tu15_sound_compare_with(m,a,o,[&](M &view,Abi &abi){kernel->run(view,abi,fp,{},services);},
-        reference,kernel->contract.gp_full,kernel->contract.gp_low16,kernel->contract.xmm,entry);
+        reference,kernel->contract.gp_full,kernel->contract.gp_low16,kernel->contract.xmm,entry,kernel->contract.gp_low8);
 }
 std::string native_tu15_sound_compare_with(M &m,Abi &a,const O &o,const std::function<void(M &,Abi &)> &run,
     const std::function<void(M &,Abi &,const O &)> &reference,std::uint8_t gp_full,std::uint8_t gp_low16,
-    std::uint8_t xmm_owed,std::uint32_t entry) {
+    std::uint8_t xmm_owed,std::uint32_t entry,std::uint8_t gp_low8) {
     const auto entry_esp=a.gp[4];
     Overlay predicted(m);auto native=a;
     run(predicted,native);
@@ -337,10 +338,11 @@ std::string native_tu15_sound_compare_with(M &m,Abi &a,const O &o,const std::fun
     const auto differ=[&](const std::string &what,std::uint64_t n,std::uint64_t r) {
         if(why.empty() && n!=r)why=what+" native="+hex(n)+" reference="+hex(r);
     };
-    const Contract owed{gp_full,gp_low16,xmm_owed};
+    const Contract owed{gp_full,gp_low16,xmm_owed,gp_low8};
     for(unsigned i=0;i<8;++i) {
         if(owed.gp_full&(1u<<i))differ("gp"+std::to_string(i),native.gp[i],a.gp[i]);
         else if(owed.gp_low16&(1u<<i))differ("gp"+std::to_string(i)+" low16",native.gp[i]&0xffffu,a.gp[i]&0xffffu);
+        else if(owed.gp_low8&(1u<<i))differ("gp"+std::to_string(i)+" low8",native.gp[i]&0xffu,a.gp[i]&0xffu);
     }
     for(unsigned i=0;i<8;++i)if(owed.xmm&(1u<<i))
         for(unsigned l=0;l<4;++l)differ("xmm"+std::to_string(i),native.xmm[i][l],a.xmm[i][l]);

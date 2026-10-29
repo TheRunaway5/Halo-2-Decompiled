@@ -6,6 +6,7 @@
 #include <span>
 
 namespace halo2 {
+class AuthorityArchiveImage;
 struct AuthorityArchiveDecodeLimits {
     std::uint64_t encoded_bytes{},decoded_bytes{},allocated_bytes{},container_elements{},fixed_native_bytes{},working_bytes{};
 };
@@ -16,7 +17,9 @@ struct AuthorityArchiveParseStats {
     std::uint64_t raw_bytes{};std::size_t nodes{};std::uint64_t metadata_bytes{};std::size_t deepest{};
     std::uint64_t working_limit{},working_reserved{},working_peak{},native_claimed{};
 };
-// Owns the immutable Rust value tree and decompressed backing. Borrowed spans
+// Owns the immutable Rust value tree and either decompressed Rust backing or
+// a shared immutable AuthorityArchiveImage. Rust indexes never retain a slice.
+// Borrowed spans
 // below stay inside the immediate schema materializer/hash call and expire
 // with this owner. They are not inputs to a second byte decoder. Claims are
 // synchronized in Rust; parsing/materialization never invokes native callbacks.
@@ -38,6 +41,8 @@ private:
         std::span<const std::byte>,AuthorityArchiveDecodeLimits);
     friend std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_raw(
         std::span<const std::byte>,std::array<std::byte,32>,AuthorityArchiveDecodeLimits);
+    friend std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_image(
+        const AuthorityArchiveImage&,AuthorityArchiveDecodeLimits);
 };
 // Failure is terminal for this archive. Successful syntax parsing grants no
 // native schema, checksum, sender, world-import or callback authority.
@@ -46,4 +51,9 @@ std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive(
 // Expanded delta images still require the Rust grammar and allocation policy.
 std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_raw(
     std::span<const std::byte>,std::array<std::byte,32>,AuthorityArchiveDecodeLimits);
+// The closed image already owns checksum-verified immutable canonical bytes.
+// Retain that exact owner while Rust checks all grammar/ranges and budgets,
+// without a second byte bank. This still grants no schema/native authority.
+std::unique_ptr<ParsedAuthorityArchive> parse_authority_archive_image(
+    const AuthorityArchiveImage&,AuthorityArchiveDecodeLimits);
 }

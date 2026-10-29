@@ -34,6 +34,7 @@ struct SourcePropScene::Impl {
         unsigned lod{};
         std::vector<Vertex> vertices;
         ObjectColors colors;
+        std::vector<std::uint32_t> ordinals;
     };
     struct SourceMainView {std::vector<SourceMainSection> sections;bool submitted{};};
     struct Prop {
@@ -556,9 +557,11 @@ bool SourcePropScene::retain_source_view(unsigned view,std::span<const SourceLiv
         if(std::find(sections.begin(),sections.end(),section)==sections.end())return false;
         const SourceModelShaderCollector collector{0,draw.coverage};
         auto selected=prop.geometry.selected_section_world(draw.lod,section,collector,shader_view,nodes);
+        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        for(auto& vertex:selected.vertices)vertex.source_stipple_level=stipple;
         if(selected.prt_lighting)return false;
         count+=selected.vertices.size();
-        retained.sections.push_back({draw.lod,std::move(selected.vertices),source_live_model_base_colors_tu15(draw,prop.initial_colors)});
+        retained.sections.push_back({draw.lod,std::move(selected.vertices),source_live_model_base_colors_tu15(draw,prop.initial_colors),std::move(selected.ordinals)});
     }
     if(!count)return false;
     if(prop.source_views[view])throw FormatError("source prop owner was retained twice in one view");
@@ -575,6 +578,8 @@ void SourcePropScene::append_source_models(std::vector<ModelObjectDraw>& out,con
         impl_->query_lighting(prop,impl_->render_frame,input.draw_metric);
         for(const auto& section:source->sections)if(!section.vertices.empty()) {
             out.push_back({section.vertices,prop.light.lighting,section.colors});
+            out.back().source_model_selection=SourceModelDepthSelection{prop.handle,prop.object_definition,
+                prop.definition.render_model,section.lod,&prop.geometry.at(section.lod).model,0,section.ordinals};
             if(impl_->source_draw_observer)impl_->source_draw_observer(view.view_index,prop.handle,prop.object_definition,
                 prop.light.lighting,prop.light.lighting_valid,section.lod,section.vertices);
             if(impl_->draw_observer)impl_->draw_observer(view.view_index,prop.handle,std::uint32_t(prop.source_object),section.vertices);

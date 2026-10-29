@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require actual authored NPC birth and source campaign ticks from MCC inputs.
+"""Require authored NPC birth, native lifetime and campaign ticks from MCC inputs.
 
 This is an engine integration probe. It imports/converts no tags, supplies no
 actor records, controls, paths or gameplay outcomes, and retains no client,
@@ -18,6 +18,31 @@ import time
 from physics_test_cache import runtime_cache, runtime_map
 
 
+def native_ai_activity(text, required):
+    matches = re.findall(r'native_ai_threat=(\d+) native_ai_reset=(\d+)', text)
+    values = dict(zip(('threat', 'reset'), map(int, matches[-1]))) if matches else {}
+    for name,field in [('area','native_ai_area'),('behavior_reset','native_ai_behavior_reset'),
+                       ('clump_retirement','native_ai_clump_retire')]:
+        found = re.findall(r'\b'+field+r'=(\d+)',text)
+        if found:values[name]=int(found[-1])
+    return values, all(values.get(name, 0) > 0 for name in required)
+
+
+def actor_lifetime_observed(report):
+    final = report['source_status'][-1] if report.get('source_status') else {}
+    return (final.get('actors', 0) > 0 or
+            (final.get('actors') == 0 and
+             report.get('native_ai_queries', {}).get('clump_retirement', 0) > 0))
+
+
+def campaign_execution_succeeded(report, ticks):
+    final = report['source_status'][-1] if report.get('source_status') else {}
+    return (report.get('returncode') == 0 and report['authored_placement_reported'] and
+            final.get('tick') == ticks and final.get('script_faults') == 0 and
+            actor_lifetime_observed(report) and report['native_ai_queries_observed'] and
+            not report['reference_inputs_opened'] and not report['cache_write_attempts'])
+
+
 def sha(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -32,6 +57,10 @@ def main():
     ap.add_argument('--ticks', type=int, default=4)
     ap.add_argument('--timeout', type=int, default=120)
     ap.add_argument('--report-output', type=Path, required=True)
+    ap.add_argument('--require-native-ai-queries', action='store_true',
+                    help='Require observed native threat/reset callbacks after their authored boundaries')
+    ap.add_argument('--require-native-ai-query', choices=('threat', 'reset', 'area', 'behavior_reset', 'clump_retirement'), action='append', default=[],
+                    help='Require this actual native entry to have run; repeat for multiple required entries')
     args = ap.parse_args()
     if 'HALO2_TEST_SCRATCH' not in os.environ:
         ap.error('Run this probe through tools/run_test.py')
@@ -71,6 +100,12 @@ def main():
     statuses = re.findall(r'tick=(\d+) bsp=(\d+).*?actors=(\d+).*?script_faults=(\d+)', text)
     report['source_status'] = [dict(zip(('tick', 'bsp', 'actors', 'script_faults'), map(int, row)))
                                for row in statuses]
+    required_native_ai = sorted(set(args.require_native_ai_query +
+                                   (['threat', 'reset'] if args.require_native_ai_queries else [])))
+    report['native_ai_queries'], observed = native_ai_activity(text, required_native_ai)
+    report['native_ai_queries_scope'] = 'Process-wide entry activity; does not prove complete native AI closure'
+    report['native_ai_queries_required'] = required_native_ai
+    report['native_ai_queries_observed'] = observed
     report['authored_placement_reported'] = bool(re.search(
         r'Placed [1-9]\d* actors from '+re.escape(args.squad)+r'(?:\n|$)', text))
     opens = trace.read_text(errors='replace')
@@ -81,10 +116,10 @@ def main():
     report['cache_write_attempts'] = [line[:800] for line in opens.splitlines()
         if str(cache) in line and re.search(r'O_WRONLY|O_RDWR|O_CREAT|O_TRUNC', line)]
     final = report['source_status'][-1] if report['source_status'] else {}
-    report['passed'] = (report.get('returncode') == 0 and
-        report['authored_placement_reported'] and final.get('tick') == args.ticks and
-        final.get('actors', 0) > 0 and final.get('script_faults') == 0 and
-        not report['reference_inputs_opened'] and not report['cache_write_attempts'])
+    # Authored sequences can retire their actors. Require observed native
+    # teardown when none remain, rather than requiring immortal NPCs at exit.
+    report['actor_lifetime_observed'] = actor_lifetime_observed(report)
+    report['passed'] = campaign_execution_succeeded(report, args.ticks)
     args.report_output.parent.mkdir(parents=True, exist_ok=True)
     args.report_output.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(dict(passed=report['passed'], runtime=str(runtime),

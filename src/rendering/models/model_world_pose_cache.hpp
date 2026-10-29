@@ -19,7 +19,7 @@ class ModelWorldPoseCache {
     std::vector<Transform> nodes_;
     std::vector<Vertex> vertices_;
     std::vector<std::array<float,12>> palette_;
-    bool gpu_{},deferred_{};
+    bool gpu_{},deferred_{},factory_{};
     int rounding_{};
     unsigned mxcsr_{};
     struct Effects {
@@ -76,16 +76,26 @@ public:
                                   bool preserve_effects=false) {
         return update(model,nodes,preserve_effects,true);
     }
+    // Retain the complete original pose-factory result, including CPU palette
+    // rows. CPU/GPU admission remains a key; hits preserve the fresh factory's
+    // FP/errno effects through the same strict gate as selected CPU consumers.
+    DeferredResult update_factory(const RenderModel &model,std::span<const Transform> nodes,
+                                  bool allow_gpu) {
+        return update(model,nodes,true,allow_gpu,true);
+    }
 private:
     DeferredResult view(bool reused)const {return {{vertices_,palette_,gpu_},reused};}
     DeferredResult update(const RenderModel &model,std::span<const Transform> nodes,
-                          bool preserve_effects,bool deferred) {
+                          bool preserve_effects,bool deferred,bool factory=false) {
         const auto rounding=std::fegetround();unsigned mxcsr=0;
 #if defined(__SSE2__) || defined(_M_X64)
-        // Ignore sticky flags; preserve rounding, exception masks, DAZ and FTZ.
-        mxcsr=_mm_getcsr()&0xffc0u;
+        // GPU admission consumes PE after palette construction. Equal incoming
+        // PE plus equal WORLD/control inputs preserves that admission even if
+        // a preceding CPU deformation was what originally set the flag.
+        // Other sticky effects remain covered by the strict terminal gate.
+        mxcsr=_mm_getcsr()&(0xffc0u|(deferred?0x20u:0u));
 #endif
-        const bool same=model_==&model && deferred_==deferred && rounding_==rounding && mxcsr_==mxcsr && nodes_.size()==nodes.size() &&
+        const bool same=model_==&model && deferred_==deferred && factory_==factory && rounding_==rounding && mxcsr_==mxcsr && nodes_.size()==nodes.size() &&
             (nodes.empty() || !std::memcmp(nodes_.data(),nodes.data(),nodes.size_bytes()));
         if(same && !preserve_effects && !deferred)return view(true);
         const auto before=effects();
@@ -94,11 +104,11 @@ private:
         // Publish only a complete successful skin; failed inputs leave the
         // preceding immutable result and its key together.
         ModelSkinWorldPose pose;
-        if(deferred)pose=model_skin_world_pose(model,nodes,true);
+        if(factory||deferred)pose=model_skin_world_pose(model,nodes,deferred);
         else pose.vertices=skin_model_world_nodes(model,nodes);
         std::vector<Transform> retained(nodes.begin(),nodes.end());
         vertices_=std::move(pose.vertices);palette_=std::move(pose.palette);
-        gpu_=pose.gpu;nodes_=std::move(retained);
+        gpu_=pose.gpu;nodes_=std::move(retained);factory_=factory;
         const auto after=effects();
         model_=&model;deferred_=deferred;rounding_=rounding;mxcsr_=mxcsr;
         effects_=after;effects_ready_=eligible(before,after);

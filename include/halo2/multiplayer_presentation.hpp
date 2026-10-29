@@ -32,4 +32,9 @@ std::vector<SourceWorldPredictedRoot> predicted_body_roots(const MultiplayerStat
 // their sphere exactly.
 ShadowCasterSphere predicted_body_sphere(std::span<const SourceWorldPredictedRoot> roots,
     std::uint32_t object,const ShadowCasterSphere &current);
+// The recipient's mode0 FP body uses the native168DED WORLD bank. Carry that
+// sampled bank rigidly from its actual accepted root to the same displayed
+// root as the native eye, including local prediction and independent clocks.
+void present_first_person_body_nodes(std::span<Transform>,const MultiplayerState &previous,
+    const MultiplayerState &current,const MultiplayerState &shown,unsigned slot,bool paired,float fraction);
 }

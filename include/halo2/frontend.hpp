@@ -175,6 +175,9 @@ struct UiVariant {
   std::string name;
   unsigned engine{};
   GameVariantSettings values;
+  // Authenticated hopper rows retain all304 bytes, including map-specific
+  // options not recoverable from a display name. Ordinary menu presets omit it.
+  std::optional<SourceGameVariant> source_settings;
 };
 struct UiDialog {
   unsigned screen = 7, selected{};
@@ -395,6 +398,8 @@ struct FrontendLobbyView {
   std::optional<FrontendAppearance> player_appearance;
   int player_team{};
   FrontendLobbyTeamEdit team_edit;
+  std::array<FrontendLobbyTeamEdit,4> local_team_edits;
+  std::array<int,4> local_team_session_indices{0,1,2,3};
   unsigned team_count = 1;
   bool allow_no_team{};
   std::array<std::optional<std::string>, 5> quick_options;
@@ -432,6 +437,15 @@ enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding, InviteAccept, InviteDismiss, InviteTab, PcrTab, PriorStats };
 struct FrontendInviteNotice { std::string id,name; bool accepting{},can_accept{}; };
 enum class GamePauseAction { Resume, Revert, Restart, Quit };
+inline constexpr unsigned campaign_game_pause_context = 1;
+inline constexpr unsigned online_game_pause_context = 2;
+inline constexpr unsigned team_game_pause_context = 3;
+struct GamePauseTeams {
+  std::int16_t current=-1;
+  bool enabled{};
+  std::uint8_t available{};
+  std::array<std::string,8> names{"Red","Blue","Yellow","Green","Purple","Orange","Brown","Pink"};
+};
 struct FrontendPointerTarget {
   FrontendPointerAction action{};
   unsigned index{}, revision{};
@@ -460,7 +474,12 @@ public:
   void initialize_mainmenu_map();
   std::optional<std::uint32_t> ui_map_intro_color() const;
   void open(unsigned screen, unsigned context = 0);
+  void game_pause_teams(std::optional<GamePauseTeams> teams,std::function<std::string(std::int16_t)> change) {
+    game_pause_teams_=std::move(teams);game_pause_change_team_=std::move(change);
+  }
+  void game_pause_error(const std::string &error) {unavailable(error);}
   void open_game_pause(bool campaign);
+  void open_game_pause(bool campaign, bool online);
   void set_game_pause_action(std::function<std::string(GamePauseAction)> action) {
     game_pause_action_=std::move(action);
   }
@@ -475,10 +494,12 @@ public:
   // A completed source menu-return factory allocates a fresh lobby frame from
   // retained local selections. It never resumes a pre-match Back stack.
   void open_vista_lobby();
-  void set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer>,unsigned machines);
+  void set_system_link_lobby(bool host,std::vector<FrontendLobbyRosterPlayer>,unsigned machines,std::span<const unsigned> local_slots={});
   void leave_system_link_lobby();
   void adopt_system_link_configuration(std::string_view map,const UiVariant&);
-  void system_link_configuration_error(){unavailable("This session supports CTF and Assault. Leave the session to choose another game type.");}
+  void system_link_configuration_error(std::string message="The selected match settings are invalid."){
+    unavailable(std::move(message));
+  }
   void set_system_link_leave(std::function<void()> action){system_link_leave_=std::move(action);}
   void open_local_title();
   // Native presentation of the completed source main-menu return. Allocate
@@ -608,10 +629,14 @@ public:
   std::string profile_name() const;
   const std::string &signed_in_profile() const { return signed_in_; }
   std::vector<FrontendLocalPlayer> local_players() const;
+  bool local_team_event(unsigned controller,int type,int param);
+  void adopt_gameplay_teams(std::span<const std::int8_t>,bool preserve_edits=false);
+  void set_lobby_team_change(std::function<std::string(unsigned,std::int16_t)> change){lobby_team_change_=std::move(change);}
   // Resolve actual SDL identity before dispatch. An unbound A/Start in the
   // offline sign-in/lobby opens the existing profile picker for that user.
   std::optional<unsigned> controller_slot(std::int32_t instance,bool join);
   std::optional<unsigned> joining_controller() const { return joining_controller_?joining_controller_:online_local_options_; }
+  bool custom_match_settings_frame(const MenuFrame &) const;
   void leave_local_controller(unsigned);
   int profile_option(unsigned key, int fallback = 0) const;
   PcKeyboardSettings pc_keyboard_settings() const;
@@ -654,6 +679,8 @@ public:
 
 private:
   std::function<std::string(GamePauseAction)> game_pause_action_;
+  std::optional<GamePauseTeams> game_pause_teams_;
+  std::function<std::string(std::int16_t)> game_pause_change_team_;
   std::string game_pause_objectives_;
   const FrontendContent &content_;
   MenuFrame build_pc(unsigned, unsigned) const;
@@ -676,6 +703,8 @@ private:
   std::optional<bool> system_link_host_;
   std::vector<FrontendLobbyRosterPlayer> system_link_players_;
   unsigned system_link_machines_{};
+  std::array<int,4> system_link_local_slots_{-1,-1,-1,-1};
+  std::function<std::string(unsigned,std::int16_t)> lobby_team_change_;
   std::optional<std::uint8_t> vista_mainmenu_pbuffer_byte_;
   std::shared_ptr<DiscordLogin> discord_login_;
   std::array<std::shared_ptr<DiscordLogin>,4> local_discord_logins_{};
@@ -806,9 +835,13 @@ private:
   std::string profile_login_key(const std::string &);
   void bind_primary_login();
   GameVariantSettings variant_values_;
+  std::optional<SourceGameVariant> variant_source_settings_;
+  UiVariant current_variant() const;
+  std::optional<UiParameter> variant_parameter(unsigned datum) const;
   std::vector<UiVariant> saved_variants_;
   int saved_variant_ = -1;
   unsigned profile_{}, engine_{}, level_{}, map_{}, variant_{}, difficulty_ = 1;
+  unsigned browsed_engine_{};
   unsigned mode_{}, category_{}, appearance_part_{}, keyboard_purpose_{};
   int lobby_protocol_{};
   // The existing one-controller native session initially supplies team0.
@@ -817,6 +850,8 @@ private:
   // byte to the native local/network session.
   std::int32_t lobby_team_{};
   FrontendLobbyTeamEdit lobby_team_edit_;
+  std::array<std::int32_t,4> local_teams_{};
+  std::array<FrontendLobbyTeamEdit,4> local_team_edits_;
   std::string variant_name_ = "Slayer";
   std::size_t keyboard_cursor_{};
   unsigned keyboard_flags_{};

@@ -264,7 +264,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   if (!options.ui_assets.empty())
     std::cout << "Optional frontend 2D texture pack: " << ui_assets.size()
               << " image banks; Xbox layout, font metrics and 3D assets retained\n";
-  // ONLINE map preparation presents the original screen231 dialog. It is
+  // Multiplayer map preparation presents the original screen231 dialog. It is
   // painted from this same content, fonts and sampled pages after departure.
   if(cache.is_mcc() && content.screens.contains(231) && !desktop->network_transition_configured()) {
     auto dialog=std::make_shared<FrontendNetworkTransitionPainter>(content,gameplay_font_directory(cache),
@@ -272,6 +272,11 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     std::cout<<"Network transition: original screen231 PLEASE WAIT dialog, "
              <<dialog->materials().size()<<" resident UI owners\n";
     desktop->configure_network_transition(std::move(dialog));
+    const std::weak_ptr<FrontendSession> owner=session;
+    desktop->set_network_transition_audio_services({
+      [owner](std::uint32_t clock){if(auto s=owner.lock())s->audio_state().transition_begin(clock);},
+      [owner](std::uint32_t clock){if(auto s=owner.lock())s->audio_state().class_update(clock);},
+      [owner](std::uint32_t clock){if(auto s=owner.lock())s->audio_state().transition_end(clock);}});
   }
   std::size_t panes = 0, bitmaps = 0;
   for (const auto &[id, s] : content.screens) {
@@ -1217,6 +1222,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     state.voice_push_to_talk(SDL_GetKeyboardFocus()==window && SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_V]);
     state.update_online_directory();
     state.update_online_matchmaking();
+    audio_state.class_update(SDL_GetTicks());
     if(audio)audio->master_volume(options.mute?0.f:float(desktop->display_settings.volume)/10.f);
     const float dt =
         std::min(.1f, std::chrono::duration<float>(now - previous).count());
@@ -1415,6 +1421,18 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
         if(!slot || before!=state.frame().instance)continue;
         if(state.joining_controller() && slot!=state.joining_controller())continue;
         if(*slot!=0 && !state.joining_controller()) {
+          if(state.frame().screen==14 && !state.online_couch_mutable()) {
+            int type{},param{};
+            switch(event.cbutton.button) {
+              case SDL_CONTROLLER_BUTTON_X:type=5;param=2;break;
+              case SDL_CONTROLLER_BUTTON_A:type=5;param=0;break;
+              case SDL_CONTROLLER_BUTTON_B:type=5;param=1;break;
+              case SDL_CONTROLLER_BUTTON_DPAD_LEFT:type=2;break;
+              case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:type=4;break;
+              default:break;
+            }
+            if(type && state.local_team_event(*slot,type,param)){sound(FrontendUiSound::Cursor);continue;}
+          }
           if(state.online_couch_mutable() && event.cbutton.button==SDL_CONTROLLER_BUTTON_X)state.open_online_local_player(*slot);
           if((state.frame().screen==30 || state.frame().screen==14 || state.frame().screen==186) &&
               event.cbutton.button==SDL_CONTROLLER_BUTTON_B)state.leave_local_controller(*slot);
@@ -1508,10 +1526,22 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     if(options.session_update && options.session_update(state,ui_clock_ms,sound))break;
     for(const auto cue:state.take_ui_sounds())sound(cue);
     painter.prompt_device(menu_prompt_devices.at(state.joining_controller().value_or(0)));
+    static std::array<int,4> team_axis_direction{};
+    static std::array<float,4> team_axis_timer{};
     SDL_GameController* navigation_controller{};
     for(const auto& pad:controllers) {
       const auto slot=state.controller_slot(SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad.get())),false);
       if(slot && *slot==state.joining_controller().value_or(0))navigation_controller=pad.get();
+      if(slot && state.frame().screen==14 && !state.joining_controller() && !state.online_couch_mutable()) {
+        const auto value=SDL_GameControllerGetAxis(pad.get(),SDL_CONTROLLER_AXIS_LEFTX);
+        const auto direction=value < -18000?-1:value>18000?1:0;
+        team_axis_timer[*slot]-=dt;
+        if(direction && (direction!=team_axis_direction[*slot] || team_axis_timer[*slot]<=0)) {
+          if(state.local_team_event(*slot,direction<0?2:4,0)){idle.activity(now);sound(FrontendUiSound::Cursor);}
+          team_axis_timer[*slot]=direction!=team_axis_direction[*slot]?.35f:.12f;
+        }
+        team_axis_direction[*slot]=direction;
+      }
     }
     if (navigation_controller && !movie) {
       const int value = SDL_GameControllerGetAxis(navigation_controller,SDL_CONTROLLER_AXIS_LEFTY);

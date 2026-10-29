@@ -66,7 +66,7 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
 
     async def start(self):
         challenge = base64.urlsafe_b64encode(hashlib.sha256(self.verifier.encode()).digest()).rstrip(b"=").decode()
-        r = await self.client.post("/v1/auth/steam/start", json={"challenge": challenge})
+        r = await self.client.post("/v1/auth/steam/start", json={"challenge": challenge, "confirmation": base64.urlsafe_b64encode(hashlib.sha256(b"A1B2C3D4E5F6").digest()).rstrip(b"=").decode()})
         self.assertEqual(r.status, 201, await r.text()); value = await r.json()
         self.assertEqual(r.headers["Cache-Control"], "no-store")
         self.assertTrue(value["url"].startswith(OP + "?"))
@@ -85,13 +85,48 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
 
     async def complete(self, subject="76561197960287930"):
         device = await self.start()
-        r = await self.client.get("/v1/auth/steam/callback/" + device, params=self.assertion(device, subject))
-        self.assertEqual(r.status, 200, await r.text()); self.assertNotIn(subject, await r.text())
+        r = await self.client.get("/v1/auth/steam/callback/" + device, params=self.assertion(device, subject), allow_redirects=False)
+        self.assertEqual(r.status, 303, await r.text())
+        token = self.steam.pending[device].browser_token
+        r = await self.client.post("/v1/auth/steam/confirm/" + device, data={"code":"A1B2C3D4E5F6"},
+            headers={"Origin":self.settings.public_url, "Cookie":"steam-confirm="+token})
+        self.assertEqual(r.status, 200, await r.text())
         self.assertEqual(r.url.path,"/v1/auth/steam/complete")
-        self.assertFalse(r.url.query)
         r = await self.client.post("/v1/auth/steam/poll", json={"device": device, "verifier": self.verifier})
         self.assertEqual(r.status, 200, await r.text())
         return device, await r.json()
+
+    async def test_forwarded_provider_url_never_authorizes_poll_without_browser_confirmation(self):
+        device = await self.start()
+        response = await self.client.get("/v1/auth/steam/callback/"+device,
+            params=self.assertion(device),allow_redirects=False)
+        self.assertEqual(response.status,303)
+        response = await self.client.post("/v1/auth/steam/poll",json={"device":device,"verifier":self.verifier})
+        self.assertEqual(await response.json(),{"state":"awaiting_confirmation"})
+        response = await self.client.post("/v1/auth/steam/confirm/"+device,data={"code":"A1B2C3D4E5F6"},
+            headers={"Origin":self.settings.public_url})
+        self.assertEqual(response.status,401)
+        self.assertEqual(self.steam.db.execute("SELECT count(*) FROM steam_login_sessions").fetchone()[0],0)
+        token=self.steam.pending[device].browser_token
+        for _ in range(5):
+            response = await self.client.post("/v1/auth/steam/confirm/"+device,data={"code":"000000000000"},
+                headers={"Origin":self.settings.public_url,"Cookie":"steam-confirm="+token})
+            self.assertEqual(response.status,401)
+        self.assertEqual(self.steam.pending[device].status,"failed")
+
+    async def test_pending_occupancy_survives_rate_refills_and_reserves_fresh_sources(self):
+        challenge=base64.urlsafe_b64encode(hashlib.sha256(self.verifier.encode()).digest()).rstrip(b"=").decode()
+        with patch.object(self.directory,"source",return_value="abusive"):
+            for _ in range(4):await self.start()
+            self.now+=61
+            response=await self.client.post("/v1/auth/steam/start",json={"challenge":challenge,"confirmation":challenge})
+            self.assertEqual(response.status,429)
+        with patch.object(self.directory,"source",return_value="new-source"):
+            await self.start()
+        self.now+=301
+        with patch.object(self.directory,"source",return_value="abusive"):
+            await self.start()
+        self.assertEqual(len(self.steam.pending),1)
 
     async def test_verified_identity_private_handoff_and_clans(self):
         device, result = await self.complete()
@@ -196,6 +231,16 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
             r=await self.client.get("/v1/party",headers=second);self.assertEqual(len((await r.json())["invitations"]),1)
             command.update(request_id=str(__import__('uuid').uuid4()),steam_id="76561197960287999")
             r=await self.client.post("/v1/party/commands",headers=first,json=command);self.assertEqual(r.status,403)
+            ids=[self.steam.db.execute("SELECT h.public_id FROM player_identities i JOIN history_players h ON h.player=i.player WHERE i.provider='steam' AND i.subject=?",(result["identity"]["id"],)).fetchone()[0] for result in (a,b)]
+            for actor,target,actor_headers in ((0,1,first),(1,0,second)):
+                r=await self.client.post("/v1/friends/commands",headers=actor_headers,
+                    json={"request_id":str(__import__('uuid').uuid4()),"action":"block","target":ids[target]})
+                self.assertEqual(r.status,200,await r.text())
+                r=await self.client.get("/v1/account/steam-friends",headers=first)
+                self.assertEqual((await r.json())["friends"],[],"Cached Steam rows bypassed bilateral Halo block")
+                r=await self.client.post("/v1/friends/commands",headers=actor_headers,
+                    json={"request_id":str(__import__('uuid').uuid4()),"action":"unblock","target":ids[target]})
+                self.assertEqual(r.status,200,await r.text())
             self.directory.steam_friends.cache.clear();private=True
             r=await self.client.get("/v1/account/steam-friends",headers=first)
             self.assertEqual((await r.json())["state"],"private")

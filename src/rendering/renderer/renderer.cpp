@@ -1,6 +1,8 @@
 #include "rendering/renderer/renderer_shader_directory.hpp"
 #include "platform/startup_texture_fingerprints.hpp"
 #include "rendering/renderer/renderer_pipeline_cache.hpp"
+#include "rendering/renderer/renderer_gpu_timings.hpp"
+#include "rendering/renderer/renderer_shadow_bitmap_pages.hpp"
 #include "rendering/renderer/renderer_upload_batch.hpp"
 #include "halo2/vulkan_portability.hpp"
 #include "halo2/source_shadow_native_prefix_tu15.hpp"
@@ -24,8 +26,13 @@
 #include "rendering/renderer/material_fog_phase.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/renderer.hpp"
+#include "halo2/source_world_depth_input.hpp"
+#include "halo2/source_model_depth_input.hpp"
+#include "halo2/source_world_depth_position_contract.hpp"
+#include "halo2/source_world_depth_raster_contract.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/temporal_upscaler.hpp"
+#include "rendering/renderer/temporal_geometry.hpp"
 #include "halo2/pstencil/light_response_material.hpp"
 #include "halo2/pstencil/texture_accumulation_2003.hpp"
 #include "halo2/atmosphere.hpp"
@@ -73,6 +80,7 @@
 #include "halo2/path_tracing/scene.hpp"
 #include "halo2/path_tracing/geometry.hpp"
 #include "halo2/path_tracing/material_residency.hpp"
+#include "halo2/path_tracing/color_guide.hpp"
 #include "halo2/source_shadow_draw_storage.hpp"
 #include "rendering/renderer/resident_draw_storage.hpp"
 #include "halo2/mainmenu_world_source.hpp"
@@ -220,6 +228,8 @@ struct Renderer::Impl {
     bool measure_frames{};
     RendererFrameTiming frame_timing;
     std::ofstream timing_report;
+    std::unique_ptr<detail::RendererGpuTimings> gpu_timings;
+    std::uint64_t gpu_timing_serial{};
     SourceShadowNativePrefixTu15Stats timing_previous_shadow_prefix{};
     unsigned timing_frame{};
     std::chrono::steady_clock::time_point timing_previous{};
@@ -389,7 +399,10 @@ struct Renderer::Impl {
     VkFramebuffer camouflage_alias_framebuffer{};
     std::vector<bool> baked_materials;
     std::map<std::pair<unsigned,unsigned>,VkDescriptorSet> geometry_descriptors;
-    VkPipelineLayout pipeline_layout{};
+    VkPipelineLayout pipeline_layout{},source_world_depth_layout{};
+    std::vector<SourceWorldDepthMaterialIdentity> source_world_depth_identities;
+    std::vector<const Material*> source_depth_constructor_materials;
+    std::vector<Vertex> source_depth_constructor_atlas;
     VkPipeline pipeline{}, sky_pipeline{};
     VkPipeline light_volume_pipeline{};
     bool light_volume_materials{};
@@ -420,6 +433,8 @@ struct Renderer::Impl {
         bool camouflage_alias{};
         unsigned native_kernel=~0u;
         bool base_world{};
+        bool source_world_depth{};
+        bool source_model_depth{};
     };
     static std::array<std::uint32_t,60> combiner_controls(std::array<std::uint32_t,60> program) {
         std::fill(program.begin()+10,program.begin()+26,0);
@@ -438,6 +453,7 @@ struct Renderer::Impl {
     std::vector<ForwardPipeline> forward_pipelines;
     std::mutex native_forward_pipeline_mutex;
     std::map<std::pair<unsigned,std::array<std::uint32_t,60>>,unsigned> native_forward_variants;
+    std::map<std::pair<unsigned,bool>,unsigned> source_depth_pipeline_variants;
     std::vector<unsigned> pstencil_response_phases;
     std::vector<unsigned> forward_pipeline_indices;
     VkPipelineLayout overlay_layout{};
@@ -491,6 +507,10 @@ struct Renderer::Impl {
         const SourceBspResidentPart* observed_bsp_part{};
         std::span<const Vertex> observed_bsp_vertices;
         std::size_t observed_object=std::numeric_limits<std::size_t>::max();
+        bool source_depth_owned{};
+        const SourceModelDepthInput* source_model_depth_owned{};
+        std::uint32_t source_depth_first{},source_depth_count{};
+        SourceBspDrawKey source_depth_key;
     };
     using DrawKey=std::tuple<std::uint32_t,std::uint32_t,int,std::uint32_t,std::uint32_t>;
     static DrawKey draw_key(const Vertex &vertex) {
@@ -613,6 +633,7 @@ struct Renderer::Impl {
         observed_pipelines[result.handle]=std::move(result);
     }
     std::vector<Draw> draws;
+    FrameModelSkinPlan skin_plan_scratch;
     std::vector<GpuTexture> textures;
     std::vector<GpuTexture> scene_targets;
     // The world is reconstructed before any interface geometry is drawn.
@@ -881,6 +902,11 @@ struct Renderer::Impl {
         presentation_copy_worker.reset();
         if (device) {
             vkDeviceWaitIdle(device);
+            if(gpu_timings) {
+                try{gpu_timings->harvest();}
+                catch(const std::exception &error){std::cerr<<"Final GPU timing: "<<error.what()<<'\n';}
+                gpu_timings.reset();
+            }
             for(auto &copy:texture_camera_copies)copy.reset();texture_camera_pending={};
             model_skin_gpu.reset();
             release_texture_staging();
@@ -972,6 +998,7 @@ struct Renderer::Impl {
             if (acquired) vkDestroySemaphore(device, acquired, nullptr);
             if (command_pool) vkDestroyCommandPool(device, command_pool, nullptr);
             if (pipeline_layout) vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
+        if(source_world_depth_layout)vkDestroyPipelineLayout(device,source_world_depth_layout,nullptr);
             if (ui_frame_layout) vkDestroyPipelineLayout(device, ui_frame_layout, nullptr);
             if (vista_loading_layout) vkDestroyPipelineLayout(device, vista_loading_layout, nullptr);
             if (overlay_layout) vkDestroyPipelineLayout(device, overlay_layout, nullptr);
@@ -1236,6 +1263,8 @@ struct Renderer::Impl {
         device_info.ppEnabledExtensionNames = enabled_extensions.data();
         check(vkCreateDevice(physical, &device_info, nullptr, &device), "create device");
         vkGetDeviceQueue(device, queue_family, 0, &queue);
+        if(const auto *path=std::getenv("HALO2_RENDER_GPU_TIMINGS");path && *path)
+            gpu_timings=std::make_unique<detail::RendererGpuTimings>(device,physical,queue_family,path);
         pipeline_cache=std::make_unique<detail::RendererPipelineCache>(device,properties);
         depth_format=source_depth_format;
         VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -1269,6 +1298,14 @@ struct Renderer::Impl {
         layout_info.setLayoutCount = 1;
         layout_info.pSetLayouts = &texture_layout;
         check(vkCreatePipelineLayout(device, &layout_info, nullptr, &pipeline_layout), "create pipeline layout");
+        // Preserve the default layout exactly; original ordinary depth has a
+        // separate compatible descriptor prefix and explicit fragment tail.
+        const VkPushConstantRange source_ranges[]{{VK_SHADER_STAGE_VERTEX_BIT,0,112},
+            {VK_SHADER_STAGE_FRAGMENT_BIT,112,16}};
+        auto source_layout=layout_info;source_layout.pushConstantRangeCount=2;
+        source_layout.pPushConstantRanges=source_ranges;
+        check(vkCreatePipelineLayout(device,&source_layout,nullptr,&source_world_depth_layout),"create source world depth layout");
+
         VkPushConstantRange frame_push{VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(ShaderVector)};
         layout_info.pPushConstantRanges=&frame_push;
         check(vkCreatePipelineLayout(device,&layout_info,nullptr,&ui_frame_layout),"create frame sampling layout");
@@ -1313,6 +1350,7 @@ struct Renderer::Impl {
                     throw FormatError("source BSP resident physical range differs from renderer draw");
             }
         }
+        if(bsp_resident_plan)source_depth_constructor_atlas=grouped;
         const VkDeviceSize bytes = std::max<std::size_t>(1,grouped.size()) * sizeof(Vertex);
         make_buffer(bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vertex_buffer, vertex_memory);
         void* mapped;
@@ -2047,6 +2085,20 @@ struct Renderer::Impl {
         check(vkCreateSampler(device, &sampler_info, nullptr, &sampler), "create material sampler");
         sampler_info.addressModeU = sampler_info.addressModeV = sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         check(vkCreateSampler(device, &sampler_info, nullptr, &lightmap_sampler), "create lightmap sampler");
+        source_depth_constructor_materials=materials;
+        source_world_depth_identities.resize(materials.size());
+        for(unsigned root=0;root<material_count;++root) {
+            source_world_depth_identities[root]={root,"root"};
+            const auto identify=[&](unsigned slot,const std::string& path) {
+                if(slot!=~0u)source_world_depth_identities.at(slot)={root,path};
+            };
+            identify(environment_materials[root],"environment");
+            for(unsigned n=0;n<world_before[root].size();++n)identify(world_before[root][n],"before"+std::to_string(n));
+            for(unsigned n=0;n<world_after[root].size();++n)identify(world_after[root][n],"after"+std::to_string(n));
+            for(unsigned n=0;n<world_bloom[root].size();++n)identify(world_bloom[root][n],"bloom"+std::to_string(n));
+            identify(planar_materials[root],"planar");
+            for(unsigned n=0;n<3;++n)identify(world_planar_materials[root][n],"world_planar"+std::to_string(n));
+        }
         const auto count = static_cast<std::uint32_t>(materials.size());
         std::set<std::pair<unsigned,unsigned>> geometry_pairs;
         const auto add_geometry_pair=[&](unsigned root,unsigned lightmap) {
@@ -2194,10 +2246,11 @@ struct Renderer::Impl {
             source_loading_wait_materials.push_back(material.name=="source-loading-wait/font3" &&
                 material.ui_full_surface && !material.forward_pass && !material.hud_pass && !material.ui_emblem_pass &&
                 material.diffuse.format==11 && !material.diffuse.pixels.empty());
-            // Canvas UI owners of the screen231 dialog; never full-surface,
-            // frame-extension, emblem or world materials.
+            // Screen231 has one exact full-surface tint owner before its
+            // ordinary canvas widgets. It never admits world/emblem passes.
             network_transition_materials.push_back(material.name.starts_with("network-transition/") &&
-                !material.ui_full_surface && !material.forward_pass && !material.hud_pass && !material.ui_emblem_pass &&
+                (!material.ui_full_surface || material.name=="network-transition/ui/network-transition-backdrop") &&
+                !material.forward_pass && !material.hud_pass && !material.ui_emblem_pass &&
                 !material.vista_loading && material.ui_frame_extension==UiFrameExtension::None &&
                 !material.ui_frame_center && !material.diffuse.pixels.empty());
             ui_widescreen_backgrounds.push_back(material.ui_widescreen_background);
@@ -3059,17 +3112,21 @@ struct Renderer::Impl {
 
     void make_native_forward_pipeline(ForwardPipeline& p) {
         if(!p.controls)throw FormatError("World pipeline has no complete native fragment identity");
+        if(p.source_world_depth && (p.base_world || (p.extended_vertex_bank && !p.source_model_depth) || !source_world_depth_cull_admitted(p.state.cull) ||
+           !source_world_device.depth_clamp_enabled))
+            throw FormatError("source ordinary depth lost its admitted authored cull/vertex/device contract");
         const bool normal_producer=p.blend==pstencil::normal_accumulation_blend_2003;
         const bool normal_utility=p.blend==pstencil::normal_light_utility_blend_2003;
         const bool texture_accumulation=p.blend==pstencil::texture_accumulation_blend_2003;
-        const std::string_view family=texture_accumulation?"pstencil-texture":normal_producer?"pstencil-normal":
+        const std::string_view family=texture_accumulation?(p.source_world_depth?"pstencil-texture-source-depth":"pstencil-texture"):normal_producer?"pstencil-normal":
             normal_utility?"pstencil-normal-utility":p.blend==pstencil::light_utility_blend_2003?"pstencil-light-utility":
-            p.blend==pstencil::dependent_light_blend_2003?"pstencil-dependent-light":p.emblem_w_depth?"world-emblem":
+            p.blend==pstencil::dependent_light_blend_2003?(p.source_world_depth?"pstencil-dependent-light-source-depth":"pstencil-dependent-light"):p.source_world_depth?"world-source-depth":p.emblem_w_depth?"world-emblem":
             p.native_kernel==~0u?"world-fixed":"world";
         std::string_view vertex_path=p.extended_vertex_bank?"world_prt.vert.spv":"world.vert.spv";
         if(p.native_kernel!=~0u) {
             const auto& entry=generated_native_world_kernels::entries.at(p.native_kernel);
             vertex_path=normal_producer?entry.normal_vertex_path:normal_utility?entry.normal_utility_vertex_path:entry.vertex_path;
+            if(p.source_world_depth)vertex_path=entry.source_depth_vertex_path;
         } else if(normal_producer || normal_utility) {
             throw FormatError("pStencil normal producer lacks its complete native vertex kernel identity");
         }
@@ -3085,7 +3142,7 @@ struct Renderer::Impl {
             observe_shader(modules[index],words);
         };
         load(vertex_path,0);load(native_fragment_kernel_path(family,*p.controls),1);
-        if(p.emblem_w_depth) {
+        if(p.emblem_w_depth || p.source_world_depth) {
             if(!source_world_device.geometry_shader_enabled)
                 throw FormatError("original armor emblem W-depth requires geometry shader support");
             load("world_emblem.geom.spv",2);
@@ -3120,6 +3177,7 @@ struct Renderer::Impl {
         VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
         raster.polygonMode=VK_POLYGON_MODE_FILL;raster.frontFace=VK_FRONT_FACE_COUNTER_CLOCKWISE;raster.lineWidth=1;
         raster.depthBiasEnable=source_depth_bias!=0 && source_output_state[0]!=0;
+        raster.depthClampEnable=p.source_world_depth;
         if(p.state.cull!=0 && p.state.cull!=0x900 && p.state.cull!=0x901)
             throw FormatError("unsupported retail forward cull state");
         raster.cullMode=p.state.cull==0x901?VK_CULL_MODE_FRONT_BIT:p.state.cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
@@ -3155,9 +3213,10 @@ struct Renderer::Impl {
         VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
         dynamic.dynamicStateCount=3;dynamic.pDynamicStates=states;
         VkGraphicsPipelineCreateInfo info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-        info.stageCount=p.emblem_w_depth?3:2;info.pStages=stages;info.pVertexInputState=&input;info.pInputAssemblyState=&assembly;
+        info.stageCount=(p.emblem_w_depth || p.source_world_depth)?3:2;info.pStages=stages;info.pVertexInputState=&input;info.pInputAssemblyState=&assembly;
         info.pViewportState=&viewport;info.pRasterizationState=&raster;info.pMultisampleState=&samples;
-        info.pDepthStencilState=&depth;info.pColorBlendState=&color;info.pDynamicState=&dynamic;info.layout=pipeline_layout;
+        info.pDepthStencilState=&depth;info.pColorBlendState=&color;info.pDynamicState=&dynamic;
+        info.layout=p.source_world_depth?source_world_depth_layout:pipeline_layout;
         if((normal_producer || normal_utility || p.blend==pstencil::light_utility_blend_2003) && !pstencil_render)
             throw FormatError("native pStencil pipeline lacks its admitted render target");
         info.renderPass=p.camouflage_alias?camouflage_alias_pass:normal_producer?pstencil_render->normal_pass():
@@ -3181,6 +3240,24 @@ struct Renderer::Impl {
         make_native_forward_pipeline(candidate);
         const auto index=unsigned(forward_pipelines.size());
         forward_pipelines.push_back(candidate);native_forward_variants.emplace(key,index);return index;
+    }
+    unsigned source_depth_pipeline(unsigned base,bool model=false) {
+        std::lock_guard guard(native_forward_pipeline_mutex);
+        if(base==~0u || forward_pipelines.at(base).native_kernel==~0u)
+            throw FormatError("source ordinary depth lacks its complete native pipeline identity");
+        const auto key=std::pair{base,model};
+        if(const auto found=source_depth_pipeline_variants.find(key);found!=source_depth_pipeline_variants.end())return found->second;
+        auto candidate=forward_pipelines.at(base);
+        if(candidate.base_world || (candidate.extended_vertex_bank && !model) || !source_world_depth_cull_admitted(candidate.state.cull))
+            throw FormatError("source ordinary depth cannot enter the procedural base-world raster override");
+        if(candidate.blend==pstencil::normal_accumulation_blend_2003 ||
+           candidate.blend==pstencil::normal_light_utility_blend_2003 || candidate.blend==pstencil::light_utility_blend_2003)
+            throw FormatError("source ordinary depth cannot substitute a pStencil target program");
+        candidate.handle=candidate.sky_handle=VK_NULL_HANDLE;
+        candidate.source_world_depth=true;candidate.source_model_depth=model;candidate.emblem_w_depth=false;
+        make_native_forward_pipeline(candidate);
+        const auto index=unsigned(forward_pipelines.size());
+        forward_pipelines.push_back(candidate);source_depth_pipeline_variants.emplace(key,index);return index;
     }
     void make_pipeline() {
         VkAttachmentDescription attachments[2]{};
@@ -4241,7 +4318,9 @@ struct Renderer::Impl {
             while(end<vertices.size() && vertices[end].material==slot)++end;
             if(source_wait) {
                 const auto canvas=frontend_canvas(extent.width,extent.height);
-                const VkViewport viewport{canvas.left,canvas.top,canvas.width,canvas.height,0,1};
+                const bool backdrop=transition_materials && ui_full_surfaces.at(base+slot);
+                const VkViewport viewport=backdrop?VkViewport{0,0,float(extent.width),float(extent.height),0,1}:
+                    VkViewport{canvas.left,canvas.top,canvas.width,canvas.height,0,1};
                 vkCmdSetViewport(command,0,1,&viewport);
                 vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,ui_pipeline);
                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,
@@ -4437,7 +4516,12 @@ struct Renderer::Impl {
         const bool path_tracing_enabled=display.graphics_mode==pstencil::GraphicsMode::PathTracing && !mainmenu_world &&
             (vertex_count || !debug.empty() || !first_person.empty() ||
              std::any_of(views.begin(),views.end(),[](const auto& view){return view.full_surface;}));
-        struct PathTracingCaptureView {std::uint64_t draws{},vertices{},sky_draws{},sky_vertices{};};
+        struct PathTracingCaptureView {
+            std::uint64_t draws{},vertices{},sky_draws{},sky_vertices{},
+                native_player_occluder_vertices{},native_player_occluder_triangles{};
+            std::uint64_t native_body_occluder_triangles{};
+            std::vector<path_tracing::SecondaryBodyCount> native_body_roots;
+        };
         std::optional<std::array<PathTracingCaptureView,5>> path_tracing_capture;
         if(path_tracing_enabled && !screenshot.empty())path_tracing_capture.emplace();
         if(!path_tracing_enabled)release_path_tracing();
@@ -4497,6 +4581,45 @@ struct Renderer::Impl {
             }
             shadow_draw_count+=shadow_stats[i].caster_draws+shadow_stats[i].receiver_draws;
         }
+
+        for(const auto& view:views)if((view.source_model_depth || std::any_of(view.objects.begin(),view.objects.end(),
+            [](const auto& object){return object.source_model_depth!=nullptr;})) && !view.source_world_depth)
+            throw FormatError("source model depth requires its completed ordinary camera owner");
+        for(const auto& view:views)if(view.source_world_depth) {
+            if(!view.source_world_depth_targets || !view.full_surface || view.left || view.top ||
+               !std::isfinite(view.width) || !std::isfinite(view.height) ||
+               view.width<=0 || view.height<=0 || !view.atmosphere || path_tracing_enabled)
+                throw FormatError("source world depth requires its explicit ordinary full world/target context");
+            const auto& use=*view.source_world_depth_targets;
+            if(!use.valid() || use.bank().generation!=target_generation ||
+               use.device_address()!=NativeRuntimeAddress{reinterpret_cast<std::uintptr_t>(device)} ||
+               use.bank().depth_stencil.width!=extent.width || use.bank().depth_stencil.height!=extent.height)
+                throw FormatError("source world depth lost THIS Renderer attachment lease");
+            if(!view.camera.oriented)throw FormatError("source world depth requires the actual oriented camera owner");
+            view.source_world_depth->validate_camera(use,
+                {view.camera.position.x,view.camera.position.y,view.camera.position.z},
+                {view.camera.forward.x,view.camera.forward.y,view.camera.forward.z},
+                {view.camera.up.x,view.camera.up.y,view.camera.up.z});
+            view.source_world_depth->validate_source_owners(use);
+            if(view.source_model_depth) {
+                if(!view.raw_source_shadows)throw FormatError("source model depth lost its actual raw Apply plan");
+                view.source_model_depth->validate_receivers(*view.raw_source_shadows);
+                view.source_model_depth->validate_vertices(use,view.vertices);
+                // Its exact native prefix has already materialized WORLD xyz.
+                // A later generic GPU skin submission would destroy that owner.
+                if(!view.deferred_skins.empty())throw FormatError("source model depth cannot reskin its native WORLD bank");
+            }
+            for(const auto& object:view.objects)if(object.source_model_depth) {
+                if(!view.raw_source_shadows)throw FormatError("source model depth object lost its actual raw Apply plan");
+                object.source_model_depth->validate_receivers(*view.raw_source_shadows);
+                object.source_model_depth->validate_vertices(use,object.vertices);
+                if(!object.deferred_skins.empty())throw FormatError("source model depth object cannot reskin its native WORLD bank");
+            }
+            if(view.source_bsp_resident_plan) {
+                if(view.source_bsp_resident_plan!=bsp_resident_plan)throw FormatError("source world depth lost actual resident upload owner");
+                view.source_world_depth->validate_resident_atlas(*view.source_world_depth_targets,*bsp_resident_plan,source_depth_constructor_atlas);
+            } else view.source_world_depth->validate_geometry(*view.source_world_depth_targets,view.vertices);
+        }
         for(const auto& view:views)if(view.raw_source_shadow_targets) {
             const auto& use=*view.raw_source_shadow_targets;
             if(!view.raw_source_shadows || !use.valid() ||
@@ -4511,7 +4634,9 @@ struct Renderer::Impl {
             stats=validate_source_shadow_raw_plan(plan,raw_shadow_materials);
             for(const auto &root:plan.roots)if(source_shadow_raw_phases_present(root.command_masks))
                 for(unsigned phase=0;phase<2;++phase)for(const auto &draw:phase?root.receivers:root.casters) {
-                    const auto target=phase?extent:VkExtent2D{SourceShadowRender::target_width,SourceShadowRender::target_height};
+                    const auto target=phase && temporal_upscaler?
+                        VkExtent2D{std::uint32_t(draw.surface_size[0]),std::uint32_t(draw.surface_size[1])}:
+                        phase?extent:VkExtent2D{SourceShadowRender::target_width,SourceShadowRender::target_height};
                     const auto &surface_clip=draw.controls.surface_clip;
                     if(std::uint64_t(surface_clip[0])+surface_clip[2]>target.width ||
                        std::uint64_t(surface_clip[1])+surface_clip[3]>target.height)
@@ -4533,8 +4658,10 @@ struct Renderer::Impl {
                 throw FormatError("raw source shadow catalog was not built");
 #endif
             }
-            raw_shadow_draw_count+=stats.caster_draws+stats.receiver_draws;
-            raw_shadow_root_count+=stats.roots;
+            if(!views[i].raw_source_shadow_gpu_disabled) {
+                raw_shadow_draw_count+=stats.caster_draws+stats.receiver_draws;
+                raw_shadow_root_count+=stats.roots;
+            }
         }
         std::size_t effect_light_draw_count=0;
         std::size_t raw_effect_light_draw_count=0;
@@ -4561,7 +4688,10 @@ struct Renderer::Impl {
                 ++effect_light_draw_count;
             }
         }
-        FrameModelSkinPlan skin_plan;
+        static const bool fresh_skin_plans=[]{const auto *p=std::getenv("HALO2_REFERENCE_SKIN_PLAN_SCRATCH");return p&&*p;}();
+        FrameModelSkinPlan fresh_skin_plan;
+        auto &skin_plan=fresh_skin_plans?fresh_skin_plan:skin_plan_scratch;
+        const auto skin_frame=skin_plan.frame_scope();
         for(unsigned view_index=0;view_index<views.size();++view_index) {
             const auto &view=views[view_index];
             skin_plan.add_bank(view.vertices,view.deferred_skins,view_index);
@@ -4607,6 +4737,14 @@ struct Renderer::Impl {
                 if(!view.source_bsp_bindings.empty())throw FormatError("view BSP bindings have no resident owner");
                 required+=view.vertices.size();
             }
+            if(view.source_world_depth && bsp_plans[i]) {
+                if(!view.source_bsp_admission)throw FormatError("source world depth resident path lacks actual BSP admission");
+                view.source_world_depth->validate_resident_view(*view.source_world_depth_targets,
+                    *bsp_resident_plan,view.source_bsp_bindings,*bsp_plans[i]);
+                view.source_world_depth->validate_resident_visibility(*view.source_world_depth_targets,*view.source_bsp_admission);
+            }
+            if(view.source_world_depth)for(const auto& object:view.objects)for(const auto& vertex:object.vertices)
+                if(vertex.bsp_cluster!=-1)throw FormatError("source world depth owner object collides with BSP identity");
             for(const auto &object:view.objects) {
                 if(object.vertices.size()%3)throw FormatError("incomplete owner draw triangles");
                 required+=object.vertices.size();
@@ -4844,9 +4982,41 @@ struct Renderer::Impl {
                 }
             }
             }
+            if(view.source_world_depth)for(auto& draw:view_draws.back()) {
+                const SourceBspDrawKey key{draw.material,draw.lightmap,draw.cluster,draw.source_section,draw.source_part};
+                const bool visible=!view.source_bsp_admission || view.source_bsp_admission->geometry_visible(draw.cluster);
+                if(visible && draw.cluster!=-1 && !view.source_world_depth->admits_draw(key) &&
+                   !view.source_world_depth->independent_draw(key))
+                    throw FormatError("source world depth unexpected visible BSP draw");
+                if(view.source_model_depth && view.source_model_depth->admits_draw(key)) {
+                    view.source_model_depth->validate_draw(*view.source_world_depth_targets,key,draw.count);
+                    draw.source_depth_owned=true;draw.source_model_depth_owned=view.source_model_depth;
+                    draw.source_depth_first=draw.first;draw.source_depth_count=draw.count;draw.source_depth_key=key;
+                    continue;
+                }
+                if(!view.source_world_depth->admits_draw(key))continue;
+                if(bsp_plans[i]) {
+                    const auto& plan=*bsp_plans[i];const auto token=std::find_if(plan.draws.begin(),plan.draws.end(),[&](const auto& t){return t.key==key;});
+                    if(token==plan.draws.end())throw FormatError("source world depth appended BSP key lacks merged token");
+                    const auto payload=draw.source_resident?std::span(source_depth_constructor_atlas).subspan(draw.first,draw.count):
+                        std::span(plan.dynamic_vertices).subspan(token->first,token->count);
+                    view.source_world_depth->validate_draw(*view.source_world_depth_targets,key,payload,draw.source_resident);
+                } else {
+                    std::vector<Vertex> payload;for(const auto& v:view.vertices)if(draw_key(v)==DrawKey{key.material,key.lightmap,key.geometry,key.section,key.part})payload.push_back(v);
+                    view.source_world_depth->validate_draw(*view.source_world_depth_targets,key,payload,false);
+                }
+                draw.source_depth_owned=true;draw.source_depth_first=draw.first;draw.source_depth_count=draw.count;draw.source_depth_key=key;
+            }
             for(const auto &object:view.objects) {
                 auto &list=view_draws.back();const auto first=list.size();
                 group(object.vertices,list);
+                if(object.source_model_depth)for(auto& draw:std::span{list}.subspan(first)) {
+                    const SourceBspDrawKey key{draw.material,draw.lightmap,draw.cluster,draw.source_section,draw.source_part};
+                    if(!object.source_model_depth->admits_draw(key))continue;
+                    object.source_model_depth->validate_draw(*view.source_world_depth_targets,key,draw.count);
+                    draw.source_depth_owned=true;draw.source_model_depth_owned=object.source_model_depth;
+                    draw.source_depth_first=draw.first;draw.source_depth_count=draw.count;draw.source_depth_key=key;
+                }
                 if(view.completed_object_draw_observer)for(auto &draw:std::span{list}.subspan(first))
                     draw.observed_object=std::size_t(&object-view.objects.data());
                 object_ranges.push_back({i,std::size_t(&object-view.objects.data()),first,list.size()-first});
@@ -4993,6 +5163,7 @@ struct Renderer::Impl {
             check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"wait frame fence");
             measure(frame_timing.fence_ms);
         }
+        if(gpu_timings)gpu_timings->harvest();
         retire_weather_aliases();
         for(unsigned i=0;i<views.size();++i) {
             const auto &view=views[i];
@@ -5156,14 +5327,19 @@ struct Renderer::Impl {
             if(!particle_draws.empty() && prepared_particles[particle_draws.size()-1].before_light_volume>volume_draws.size())
                 throw FormatError("particle transparent order exceeds the supplied glow groups");
             if(!particle_renderer)particle_renderer=std::make_unique<ParticleRenderer>(
-                physical,device,queue,queue_family,render_pass,shader_directory);
+                physical,device,queue,queue_family,render_pass,shader_directory,sampler_mirror_clamp);
         }
-        const bool scene_particles=std::any_of(prepared_particles.begin(),prepared_particles.end(),[](const auto &draw) {
-            return draw.material && std::any_of(draw.material->pass.textures.begin(),draw.material->pass.textures.end(),
-                [](const auto &binding){return binding.external==23;});
+        std::map<const ParticleMaterial*,std::optional<RendererParticleProgramConfiguration>> particle_programs;
+        for(const auto& draw:prepared_particles)if(!particle_programs.contains(draw.material.get())) {
+            std::string diagnostic;
+            particle_programs.emplace(draw.material.get(),particle_renderer->try_program(draw.material,diagnostic));
+        }
+        const bool scene_particles=std::any_of(prepared_particles.begin(),prepared_particles.end(),[&](const auto &draw) {
+            return particle_programs.at(draw.material.get()).has_value() && draw.material &&
+                std::any_of(draw.material->pass.textures.begin(),draw.material->pass.textures.end(),
+                    [](const auto &binding){return binding.external==23;});
         });
-        if(scene_particles && !particle_scene.view) {
-            if(!can_capture)throw FormatError("particle external23 requires a readable current scene surface");
+        if(scene_particles && !particle_scene.view && can_capture) {
             make_post_image(particle_scene,extent,format,VK_IMAGE_USAGE_TRANSFER_DST_BIT);
         }
         std::vector<std::optional<ParticlePreparedViewBounds>> prepared_bounds;
@@ -5192,8 +5368,9 @@ struct Renderer::Impl {
             const auto count=state.foreground?range.foreground_count:range.world_count;
             const auto &v=state.viewport;const auto&s=state.scissor;
             for(std::size_t n=first;n<first+count;++n) {
-                auto &draw=prepared_particles[n];const auto program=particle_renderer->program(draw.material);
-                if(program.layout!=state.layout || program.classification<7 || program.classification>9 ||
+                auto &draw=prepared_particles[n];const auto& program=particle_programs.at(draw.material.get());
+                if(!program)continue;
+                if(program->layout!=state.layout || program->classification<7 || program->classification>9 ||
                    std::memcmp(draw.vertex.constants.data(),state.camera_constants.data(),12*sizeof(ShaderVector)) ||
                    (draw.vertex.clip_range!=input.vertex_clip && draw.vertex.clip_range!=state.vertex_clip) ||
                    (draw.depth.clip_range!=input.depth_clip && draw.depth.clip_range!=state.depth_clip) ||
@@ -5209,6 +5386,8 @@ struct Renderer::Impl {
         }
         prepared_particle_views.clear();
         if(particle_renderer)particle_renderer->prepare(prepared_particles,{particle_scene.view},prepared_bounds);
+        if(particle_renderer)for(const auto& diagnostic:particle_renderer->take_resource_diagnostics())
+            std::cerr<<"Particle resource: "<<diagnostic<<'\n';
 #endif
         std::vector<std::pair<std::size_t,std::size_t>> decal_ranges(views.size());
 #if HALO2_SOURCE_DECALS_AVAILABLE
@@ -5797,6 +5976,8 @@ struct Renderer::Impl {
         };
         std::array<bool,4> view_fog_enabled{};
         std::array<VkPipeline,4> view_fog_native_pipelines{};
+        std::array<std::vector<bool>,4> source_depth_masks;
+        std::array<std::vector<unsigned>,4> source_depth_pipelines;
         if(!views.empty()) {
             void *mapped{};
             for(std::size_t i=0;i<views.size();++i) if(views[i].atmosphere) {
@@ -6031,7 +6212,7 @@ struct Renderer::Impl {
             // the mapped buffer, so the views run together. The upload
             // observer is an ordered diagnostic contract: keep it serial.
             const bool observed_upload=std::any_of(views.begin(),views.end(),
-                [](const auto &v){return bool(v.completed_material_upload_observer);});
+                [](const auto &v){return bool(v.completed_material_upload_observer) || v.source_world_depth;});
             std::array<std::exception_ptr,4> upload_errors{};
             const auto upload_view=[&](std::size_t i) {
                 const auto &view=views[i];
@@ -6064,8 +6245,89 @@ struct Renderer::Impl {
                 }
                 auto &initialized=view_material_initialized[i];
                 initialized.resize(material_uniforms.size());
+                std::map<unsigned,MaterialUniform> source_final;
+                std::shared_ptr<const unsigned> source_frame_epoch;
+                std::map<unsigned,SourceWorldDepthFrameReceipt> source_frame_receipts;
+                if(view.source_world_depth) {
+                    // A unique borrowed epoch for this completed descriptor
+                    // producer. Receipt copies cannot keep it alive or cross
+                    // even another draw that happens to select the same page.
+                    source_frame_epoch=std::make_shared<const unsigned>(0);
+                    source_depth_masks[i].resize(material_uniforms.size());
+                    source_depth_pipelines[i].resize(material_uniforms.size(),~0u);
+                    std::vector<SourceWorldDepthCompletedMaterial> completed;
+                    for(const auto m:materials) {
+                        const auto& identity=source_world_depth_identities.at(m);
+                        const auto selected=view.source_world_depth->identities();
+                        if(std::find(selected.begin(),selected.end(),identity)==selected.end())continue;
+                        const auto logical=view_material_uniform(view,m);
+                        const auto [entry,inserted]=source_final.emplace(m,native_material_gpu_uniform(logical));
+                        (void)inserted;
+                        const auto& u=entry->second;const auto& b=vertex_bank_uniforms.at(m);
+                        const auto kernel=native_world_kernel_indices.at(m);
+                        if(kernel==~0u)throw FormatError("source world depth final material lacks its native kernel");
+                        completed.push_back({identity,m,std::as_bytes(std::span(&u,1)),std::as_bytes(std::span(&b,1)),
+                            source_depth_constructor_materials.at(m),&generated_native_world_kernels::entries.at(kernel),combiner_controls(logical.program)});
+                        const auto pipeline=source_depth_pipeline(view_native_pipeline_indices[i].at(m));
+                        source_depth_pipelines[i][m]=pipeline;
+                        const auto& controls=forward_pipelines.at(pipeline).controls;
+                        if(!controls || *controls!=combiner_controls(logical.program))
+                            throw FormatError("source world depth compiled native controls differ from final program");
+                        const auto witness=[](const auto& image) {
+                            return SourceWorldDepthImageUpload{&image.source_shape,image.source_pixel_fingerprint,
+                                image.mip_count,image.source_image,image.source_mutated};
+                        };
+                        const GpuTexture* pages[]{&textures.at(m),&detail_textures.at(m),
+                            &bump_textures.at(m),&auxiliary_textures.at(m)};
+                        std::array<SourceWorldDepthImageUpload,4> images;
+                        std::array<std::array<std::uint64_t,3>,4> page_views;
+                        std::array<std::uint64_t,4> page_samplers;
+                        for(unsigned stage=0;stage<4;++stage) {
+                            const auto& frames=animated_textures.at(m)[stage];
+                            if(!frames.empty())pages[stage]=&frames.at(bound_frames.at(m)[stage]);
+                            const auto& page=*pages[stage];images[stage]=witness(page);
+                            page_views[stage]={observed_handle(page.depth?image_fallback.view:page.view),
+                                observed_handle(page.cube_view?page.cube_view:cube_fallback.cube_view),
+                                observed_handle(page.depth?page.view:volume_fallback.view)};
+                            page_samplers[stage]=observed_handle(stage_samplers.at(m)[stage]);
+                        }
+                        const auto animation=owner_bitmap_animations.find(m);
+                        const auto animations=animation==owner_bitmap_animations.end()?
+                            std::span<const BitmapFrameAnimation>{}:std::span<const BitmapFrameAnimation>(animation->second);
+                        const auto receipt=SourceWorldDepthFrameReceipt(view.source_world_depth,
+                            *view.source_world_depth_targets,identity,source_depth_constructor_materials.at(m),m,
+                            source_frame_epoch,observed_handle(textures.at(m).descriptor),wanted_frames.at(m),
+                            bound_frames.at(m),images,stage_sampler_states.at(m),page_views,page_samplers,animations);
+                        const auto [frame_entry,frame_inserted]=source_frame_receipts.emplace(m,receipt);
+                        if(!frame_inserted)throw FormatError("ordinary depth duplicate completed frame receipt");
+                        view.source_world_depth->validate_uploaded_material(*view.source_world_depth_targets,identity,
+                            source_depth_constructor_materials.at(m),*controls,images,stage_sampler_states.at(m),bound_frames.at(m),
+                            &frame_entry->second,m);
+                        source_depth_masks[i][m]=true;
+                    }
+                    view.source_world_depth->validate_completed(*view.source_world_depth_targets,completed);
+                    std::vector<SourceWorldDepthImageUpload> lightmaps;
+                    for(const auto& image:lightmap_textures)lightmaps.push_back({&image.source_shape,
+                        image.source_pixel_fingerprint,image.mip_count,image.source_image,image.source_mutated});
+                    view.source_world_depth->validate_uploaded_lightmaps(*view.source_world_depth_targets,lightmaps);
+                    for(const auto m:materials) {
+                        const auto admits=[&](const SourceModelDepthInput* input) {
+                            return input && input->admits_material(material_roots.at(m),*source_depth_constructor_materials.at(m));
+                        };
+                        if(!admits(view.source_model_depth) && !std::any_of(view.objects.begin(),view.objects.end(),
+                            [&](const auto& object){return admits(object.source_model_depth);}))continue;
+                        const auto logical=view_material_uniform(view,m);
+                        if(native_world_kernel_indices.at(m)==~0u)
+                            throw FormatError("model receiver depth final material lacks its exact native kernel");
+                        const auto pipeline=source_depth_pipeline(view_native_pipeline_indices[i].at(m),true);
+                        const auto& controls=forward_pipelines.at(pipeline).controls;
+                        if(!controls || *controls!=combiner_controls(logical.program))
+                            throw FormatError("model receiver depth native controls differ from the completed ordinary program");
+                        source_depth_pipelines[i][m]=pipeline;source_depth_masks[i][m]=true;
+                    }
+                }
                 for(const auto m:materials) {
-                    const auto uniform=native_material_gpu_uniform(view_material_uniform(view,m));
+                    const auto uniform=source_final.contains(m)?source_final.at(m):native_material_gpu_uniform(view_material_uniform(view,m));
                     if(view.completed_material_upload_observer) {
                         RendererCompletedMaterialUpload upload;
                         upload.root_material_count=material_count;
@@ -6111,6 +6373,8 @@ struct Renderer::Impl {
                         upload.material_uniform={reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)};
                         const auto& bank=vertex_bank_uniforms.at(m);
                         upload.vertex_bank_uniform={reinterpret_cast<const std::byte*>(&bank),sizeof(bank)};
+                        if(const auto frame=source_frame_receipts.find(m);frame!=source_frame_receipts.end())
+                            upload.source_depth_frame_receipt=&frame->second;
                         view.completed_material_upload_observer(upload);
                     }
                     auto *destination=static_cast<std::byte*>(mapped)+
@@ -6209,7 +6473,8 @@ struct Renderer::Impl {
                     if(resident==shadow_materials.end())throw FormatError("validated shadow resident disappeared");
                     const auto bound=source_shadow_plan_bindings(plan,root,draw,*resident);
                     auto &uniform=shadow_uniforms.emplace_back(material_uniforms.at(draw.material_slot));
-                    if(!uniform.flags[3])throw FormatError("shadow slot requires its authored vertex program");
+                    if(native_world_kernel_indices.at(draw.material_slot)==~0u)
+                        throw FormatError("shadow slot requires its exact compiled native vertex kernel");
                     uniform.program=bound.program.words;
                     uniform.vertex_attributes=bound.constants[0];uniform.vertex_constants=bound.constants[1];
                     std::copy_n(bound.camera.begin(),7,uniform.source_camera_world.begin());
@@ -6238,6 +6503,7 @@ struct Renderer::Impl {
         struct RawShadowDrawRecord {
             const SourceShadowRawDraw *source{};
             std::size_t native_index{};
+            std::array<const GpuTexture*,4> images{};
         };
         struct RawShadowRootRecord {
             const SourceShadowRawPlanRoot *source{};
@@ -6246,17 +6512,21 @@ struct Renderer::Impl {
         std::vector<std::vector<RawShadowRootRecord>> raw_shadow_views(views.size());
         std::vector<MaterialUniform> raw_shadow_uniforms;raw_shadow_uniforms.reserve(raw_shadow_draw_count);
         std::vector<SourceWorldDrawUpload> raw_shadow_uploads;raw_shadow_uploads.reserve(raw_shadow_draw_count);
-        for(std::size_t i=0;i<views.size();++i)if(views[i].raw_source_shadows) {
+        for(std::size_t i=0;i<views.size();++i)if(views[i].raw_source_shadows && !views[i].raw_source_shadow_gpu_disabled) {
             const auto &plan=*views[i].raw_source_shadows;
             for(const auto &root:plan.roots) {
                 if(!source_shadow_raw_phases_present(root.command_masks))continue;
                 auto &record=raw_shadow_views[i].emplace_back();record.source=&root;
                 for(unsigned phase=0;phase<2;++phase)for(const auto &draw:phase?root.receivers:root.casters) {
+                    const auto slot=draw.material_slot;
+                    const auto& completed=draw.authored->material;
+                    std::array<const GpuTexture*,4> selected_images{&textures.at(slot),&detail_textures.at(slot),
+                        &bump_textures.at(slot),&auxiliary_textures.at(slot)};
                     auto &uniform=raw_shadow_uniforms.emplace_back(material_uniforms.at(draw.material_slot));
                     uniform.program=draw.program.words;
                     uniform.vertex_attributes=draw.constants[0];uniform.vertex_constants=draw.constants[1];
-                    std::copy_n(plan.camera.begin(),7,uniform.source_camera_world.begin());
-                    uniform.source_camera_control={1,0,0,phase};
+                    std::copy_n(draw.source.constants().begin(),7,uniform.source_camera_world.begin());
+                    uniform.source_camera_control={1,unsigned(source_shadow_raw_entry_stipple_tu15(draw.command.layer)),0,phase};
                     SourceWorldDrawUpload upload;
                     upload.resident=textures.at(draw.material_slot).descriptor;
                     upload.material_uniform={reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)};
@@ -6265,12 +6535,39 @@ struct Renderer::Impl {
                     // independently owned set1 carries all source c0..191.
                     upload.vertex_bank.range={34,158,0,0};
                     std::copy_n(draw.source.constants().begin()+34,158,upload.vertex_bank.constants.begin());
+                    const Texture* base_images[]{&completed.diffuse,&completed.detail,&completed.bump,&completed.auxiliary};
+                    for(unsigned stage=0;stage<4;++stage) {
+                        if(draw.authored->external_targets[stage])continue;
+                        const auto& frames=completed.animated_textures[stage];
+                        const auto& resident_frames=animated_textures.at(slot)[stage];
+                        const Texture* expected=base_images[stage];
+                        if(frames.size()!=resident_frames.size())
+                            throw FormatError("raw shadow selected image bank differs from preloaded residency");
+                        if(!frames.empty()) {
+                            const auto frame=completed.texture_frames[stage];
+                            if(frame>=frames.size())throw FormatError("raw shadow completed bitmap frame escapes its resident bank");
+                            expected=&frames[frame];selected_images[stage]=&resident_frames[frame];
+                        }
+                        const auto& image=*selected_images[stage];
+                        if(!frames.empty() && expected->pixels.empty())
+                            throw FormatError("raw shadow selected bitmap frame has no authored pixel owner");
+                        if(!expected->pixels.empty() && !detail::shadow_bitmap_page_matches(*expected,image.source_shape,
+                            image.source_pixel_fingerprint,image.mip_count,image.source_image,image.source_mutated))
+                            throw FormatError("raw shadow selected bitmap page differs from its completed source image/mip owner");
+                        if(frames.empty())continue;
+                        if(image.cube_view && !sampler_non_seamless_cube)
+                            throw FormatError("original animated cube face filtering requires VK_EXT_non_seamless_cube_map");
+                        upload.stage_images[stage]=SourceWorldDrawStageImages{stage_samplers.at(slot)[stage],
+                            image.depth?image_fallback.view:image.view,
+                            image.cube_view?image.cube_view:cube_fallback.cube_view,
+                            image.depth?image.view:volume_fallback.view};
+                    }
                     if(draw.authored->external_targets[0]) {
                         uniform.texture_effects[0][1]|=1u;
                         upload.target_view=shadow_render->target_view();
                         upload.target_sampler=stage_samplers.at(draw.material_slot)[0];
                     }
-                    record.draws[phase].push_back({&draw,raw_shadow_uploads.size()});
+                    record.draws[phase].push_back({&draw,raw_shadow_uploads.size(),selected_images});
                     raw_shadow_uploads.push_back(upload);
                 }
             }
@@ -6291,7 +6588,10 @@ struct Renderer::Impl {
             for(unsigned phase=0;phase<2;++phase)for(auto &record:root.draws[phase]) {
                 const auto &draw=*record.source;const auto slot=draw.material_slot;
                 const auto binding=record.native_index;
-                MenuWorldNativePacketInput input{draw.source,generated_menu_world_vertex_catalog::entries,
+                const Vec2 input_scale=phase?
+                    Vec2{float(extent.width)/draw.surface_size[0],float(extent.height)/draw.surface_size[1]}:Vec2{1,1};
+                const auto scaled_source=menu_world_source_resized_viewport(draw.source,input_scale);
+                MenuWorldNativePacketInput input{scaled_source,generated_menu_world_vertex_catalog::entries,
                     raw_shadow_uniforms[binding]};
                 input.fragment_offsets=draw.program.fragment_offsets;
                 input.forward=draw.authored->material.forward_raster;input.forward.cull=draw.controls.cull;
@@ -6302,12 +6602,15 @@ struct Renderer::Impl {
                 input.raster=draw.raster;input.clip_range=draw.clip_range;input.fog_parameters=draw.fog_parameters;
                 // Source bound surface/AA facts are distinct from the
                 // physical Vulkan viewport and raster.surface_scale.
-                input.surface_size=draw.surface_size;
+                input.surface_size=phase?std::array<float,2>{float(extent.width),float(extent.height)}:draw.surface_size;
+                if(phase && (input_scale.x!=1.f || input_scale.y!=1.f))
+                    for(auto& region:input.raster.regions)for(unsigned edge=0;edge<4;++edge) {
+                        const float value=region[edge]*(edge%2?input_scale.y:input_scale.x);
+                        region[edge]=std::int32_t(edge<2?std::floor(value):std::ceil(value));
+                    }
                 input.w_clip_mode=draw.controls.depth_clamp?MenuWorldWClipMode::clamp:MenuWorldWClipMode::cull;
                 input.demote_to_helper_enabled=shadow_enabled.demote_to_helper_enabled;
                 input.material_set=raw_shadow_descriptors[binding];input.material_offset=0;
-                const GpuTexture *stages[]{&textures.at(slot),&detail_textures.at(slot),
-                    &bump_textures.at(slot),&auxiliary_textures.at(slot)};
                 for(unsigned stage=0;stage<4;++stage) {
                     if(draw.authored->external_targets[stage]) {
                         if(stage!=0 || draw.authored->external_targets[stage]!=SourceShadowRender::target_index ||
@@ -6317,13 +6620,15 @@ struct Renderer::Impl {
                         input.texture_coordinates[0]=MenuWorldTextureCoordinates::pixel;
                         continue;
                     }
-                    const auto &animated=animated_textures.at(slot)[stage];
-                    if(!animated.empty())stages[stage]=&animated.at(bound_frames.at(slot)[stage]);
-                    const auto &image=*stages[stage];
+                    const auto &image=*record.images[stage];
                     if(image.source_image && (image.view || image.cube_view))input.images[stage]=&image.source_shape;
                 }
                 record.native_index=raw_shadow_inputs[phase].size();
-                raw_shadow_inputs[phase].push_back(menu_world_native_packet(input));
+                auto packet=menu_world_native_packet(input);
+                if(phase && temporal_upscaler) {
+                    const auto jitter=temporal_upscaler->jitter();packet.raster_offset={jitter.x,jitter.y};
+                }
+                raw_shadow_inputs[phase].push_back(std::move(packet));
             }
         for(unsigned phase=0;phase<2;++phase) {
             if(!raw_shadow_native[phase] && raw_shadow_root_count)
@@ -6457,7 +6762,11 @@ struct Renderer::Impl {
                 if(pstencil_enabled)pstencil_frame.add(i,draw,raw_light_inputs.size(),pstencil_specular_indices[i][j],
                     !views[i].pstencil_native_point_casters);
                 if(pstencil_enabled)input.raster=pstencil::receiver_raster(input.raster);
-                raw_light_inputs.push_back(menu_world_native_packet(input));
+                auto packet=menu_world_native_packet(input);
+                if(temporal_upscaler) {
+                    const auto jitter=temporal_upscaler->jitter();packet.raster_offset={jitter.x,jitter.y};
+                }
+                raw_light_inputs.push_back(std::move(packet));
             }
         }
         if(!effect_light_native && !raw_light_inputs.empty())effect_light_native=std::make_unique<MenuWorldNativeDraw>(
@@ -6504,6 +6813,8 @@ struct Renderer::Impl {
         measure(frame_timing.geometry_bind_ms);
         frame_timing.geometry_pack_ms+=frame_timing.geometry_bind_ms;
         std::vector<std::pair<std::uint32_t,std::array<std::byte,sizeof(Vertex)>>> verified_skin_vertices;
+        std::vector<Vertex> verified_ui_vertices;
+        if(verify_frame)verified_ui_vertices.assign(dynamic.begin()+ui_first,dynamic.end());
         const bool verify_skin=std::getenv("HALO2_VERIFY_GPU_SKINNING")!=nullptr;
         if (vertex_count()) {
             if(vertex_mapping.copy) {
@@ -6661,15 +6972,12 @@ struct Renderer::Impl {
             const auto prepare=[&](std::size_t slot,const ModelView* view) {
                 auto& scene=path_tracing_state->scenes[slot];
                 if(!scene)scene=path_tracing::build_scene({},path_tracing_materials);
+                path_tracing::refresh_color_guides(*scene,path_tracing_source_mesh->lightmaps);
                 std::vector<Vertex> geometry;
                 const auto append=[&](std::span<const Vertex> bank) {
-                    if(bank.size()%3)throw FormatError("Path Tracing requires complete source triangles");
-                    for(std::size_t first=0;first<bank.size();first+=3) {
-                        const auto material=bank[first].material;
-                        if(material>=path_tracing_materials.size())throw FormatError("Path Tracing material outside resident roots");
-                        if(path_tracing::traces_material(path_tracing_materials[material]))
-                            geometry.insert(geometry.end(),bank.begin()+first,bank.begin()+first+3);
-                    }
+                    path_tracing::append_secondary_geometry(geometry,bank,path_tracing_materials,
+                        view?view->path_tracing_replaced_body_materials:
+                            std::span<const path_tracing::MaterialRange>{});
                 };
                 // Ordinary game views without a resident plan already carry
                 // their BSP followed by dynamic vertices in the same bank.
@@ -6694,8 +7002,25 @@ struct Renderer::Impl {
                     append(path_tracing::posed_vertices(view->vertices,view->deferred_skins));
                     for(const auto& object:view->objects)
                         append(path_tracing::posed_vertices(object.vertices,object.deferred_skins));
+                    path_tracing::append_secondary_geometry(geometry,view->path_tracing_body_occluders,
+                        path_tracing_materials);
                     path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
                     path_tracing::update_geometry(*scene,geometry,view->path_tracing_lights);
+                    if(path_tracing_capture) {
+                        auto& captured=path_tracing_capture->at(slot);
+                        for(const auto& triangle:scene->triangles)
+                            if(std::any_of(view->path_tracing_replaced_body_materials.begin(),
+                                view->path_tracing_replaced_body_materials.end(),[&](const auto& range) {
+                                    const auto material=triangle.metadata[0];
+                                    return material>=range.first && material-range.first<range.count;
+                                }))++captured.native_player_occluder_triangles;
+                        captured.native_player_occluder_vertices=captured.native_player_occluder_triangles*3;
+                        captured.native_body_roots=path_tracing::secondary_body_counts(*scene,
+                            view->path_tracing_body_occluders,view->path_tracing_secondary_bodies,
+                            path_tracing_materials,view->path_tracing_replaced_body_materials);
+                        for(const auto& body:captured.native_body_roots)
+                            captured.native_body_occluder_triangles+=body.triangles;
+                    }
                 } else {
                     append(debug);
                     path_tracing::refresh_materials_for_geometry(*scene,path_tracing_materials,geometry);
@@ -6724,7 +7049,13 @@ struct Renderer::Impl {
         check(vkResetCommandBuffer(command, 0), "reset commands");
         VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        // Recheck complete immutable owners at the recording boundary. Per
+        // accessor checks below retain lifetime/camera and individual draw
+        // receipts without rescanning every texture for every BSP triangle.
+        for(const auto& view:views)if(view.source_world_depth)
+            view.source_world_depth->validate_source_owners(*view.source_world_depth_targets);
         check(vkBeginCommandBuffer(command, &begin), "begin commands");
+        if(gpu_timings)gpu_timings->begin(command);
         // Every successful alias record is covered by this frame's actual
         // fence. If recording fails before queue submission, reset the never
         // submitted command and restore each alias's previous layout history.
@@ -6773,6 +7104,7 @@ struct Renderer::Impl {
                         ++frame_timing.model_skin_gpu_deformed_vertices;break;
                     }
         }
+        if(gpu_timings)gpu_timings->mark(command,1);
         VkClearValue clear[2]{};
         clear[0].color = ui.empty()?VkClearColorValue{{0.018f, 0.026f, 0.044f, 1}}:VkClearColorValue{{0,0,0,1}};
         clear[1].depthStencil = {1, 0};
@@ -6901,14 +7233,30 @@ struct Renderer::Impl {
         const CameraUniform camera_uniform{matrix,glm::vec4(forward,atmosphere && source_depth_mode==2?1.f:0.f),
             glm::vec4(camera.position.x,camera.position.y,camera.position.z,1),
             glm::vec4(viewport.x,viewport.y,viewport.width,viewport.height)};
-        {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+        static_assert(sizeof(CameraUniform)==112);
+        CameraUniform ordinary_push{};bool ordinary_push_valid=false;
+        const auto push_ordinary=[&](const CameraUniform& value) {
+            ordinary_push=value;ordinary_push_valid=true;
+            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(value),&value);
+            capture_push(&value,sizeof(value));
+        };
+        push_ordinary(camera_uniform);
         std::uint32_t material_bank_offset=0;
         std::size_t active_material_view=std::numeric_limits<std::size_t>::max();
         std::optional<std::size_t> path_sky_capture;
         bool sky_raster=false,first_person_draw=false;
+        const auto is_source_material=[&](unsigned material,const Draw* draw) {
+            return draw && draw->source_depth_owned && !sky_raster && !first_person_draw &&
+                active_material_view<views.size() && views[active_material_view].source_world_depth &&
+                material<source_depth_masks[active_material_view].size() && source_depth_masks[active_material_view][material];
+        };
         bool path_tracing_material=false;
         const auto draw_material_geometry=[&](const Draw& draw) {
             vkCmdDraw(command, draw.count, 1, draw.first, 0);
+            if(draw.source_model_depth_owned) {
+                ++frame_timing.world_native_model_depth_recorded_draws;
+                frame_timing.world_native_model_depth_recorded_vertices+=draw.count;
+            }
             if(path_tracing_capture && path_sky_capture) {
                 auto& captured=path_tracing_capture->at(*path_sky_capture);
                 ++captured.sky_draws;captured.sky_vertices+=draw.count;
@@ -6948,7 +7296,8 @@ struct Renderer::Impl {
             if(path_tracing_material) {
                 const auto slot=active_material_view<views.size()?active_material_view+1:0;
                 path_tracing_state->renderers.at(slot)->bind(command,descriptor,bank,path_tracing_camera,material);
-            } else vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&bank);
+            } else vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,
+                is_source_material(material,&draw)?source_world_depth_layout:pipeline_layout,0,1,&descriptor,1,&bank);
             return std::pair{descriptor,bank};
         };
         auto material_pipeline=[&](unsigned m,const Draw *draw=nullptr) {
@@ -6965,7 +7314,10 @@ struct Renderer::Impl {
             const auto owner=draw && draw->object_alias!=std::numeric_limits<std::size_t>::max()?
                 object_aliases.at(draw->object_alias).at({m,draw->lightmap}):std::numeric_limits<std::size_t>::max();
             const auto sky_alias=path_sky_capture?path_sky_aliases[*path_sky_capture].indices.at({m,draw?draw->lightmap:0}):0;
-            const auto index=path_sky_capture?path_sky_aliases[*path_sky_capture].pipelines[sky_alias]:
+            const bool source=is_source_material(m,draw);
+            const auto index=source && draw->source_model_depth_owned && owner!=std::numeric_limits<std::size_t>::max()?
+                source_depth_pipeline(object_native_pipeline_indices.at(owner),true):source?source_depth_pipelines[active_material_view].at(m):
+                path_sky_capture?path_sky_aliases[*path_sky_capture].pipelines[sky_alias]:
                 owner!=std::numeric_limits<std::size_t>::max()?object_native_pipeline_indices.at(owner):
                 active_material_view<views.size()?view_native_pipeline_indices[active_material_view].at(m):active_forward_pipeline_indices[m];
             if(native_world_kernel_indices[m]!=~0u && (index==~0u ||
@@ -6977,6 +7329,32 @@ struct Renderer::Impl {
             if(sky_raster && authored_sky && (native_world_kernel_indices[m]==~0u ||
                index==~0u || forward_pipelines.at(index).native_kernel==~0u))
                 throw FormatError("Sky material has no exact native Vulkan kernel");
+            if(source) {
+                const auto& view=views[active_material_view];
+                const auto& depth=*view.source_world_depth;
+                const auto& use=*view.source_world_depth_targets;
+                const auto& state=depth.raster(use);
+                const SourceBspDrawKey key{draw->material,draw->lightmap,draw->cluster,draw->source_section,draw->source_part};
+                if(!ordinary_push_valid || draw->first!=draw->source_depth_first || draw->count!=draw->source_depth_count ||
+                   key!=draw->source_depth_key || (!draw->source_model_depth_owned && !depth.admits_draw(key)))
+                    throw FormatError("source world depth final draw owner changed");
+                if(draw->source_model_depth_owned) {
+                    draw->source_model_depth_owned->validate_draw(use,key,draw->count);
+                }
+                const auto vector=[](glm::vec4 value){return ShaderVector{value.x,value.y,value.z,value.w};};
+                depth.validate_camera_push(use,vector(ordinary_push.eye),vector(ordinary_push.position),vector(ordinary_push.viewport));
+                vkCmdPushConstants(command,source_world_depth_layout,VK_SHADER_STAGE_VERTEX_BIT,0,112,&ordinary_push);
+                capture_push(&ordinary_push,112);
+                const auto jitter=temporal_upscaler?temporal_upscaler->jitter():glm::vec2{};
+                const ShaderVector depth_raster{state.clip_range[2],state.clip_range[3],jitter.x,jitter.y};
+                vkCmdPushConstants(command,source_world_depth_layout,VK_SHADER_STAGE_FRAGMENT_BIT,112,16,depth_raster.data());
+            } else if(active_material_view<views.size() && views[active_material_view].source_world_depth) {
+                // Raw source draws use a128-byte layout. Restore the actual
+                // ordinary112-byte camera before a body/sky/FP continuation.
+                if(!ordinary_push_valid)throw FormatError("ordinary continuation lost its camera owner");
+                vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,112,&ordinary_push);
+                capture_push(&ordinary_push,112);
+            }
             const auto handle=index!=~0u?(sky_raster?forward_pipelines.at(index).sky_handle:forward_pipelines.at(index).handle):
                 (sky_raster?sky_pipeline:pipeline);
             vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,handle);
@@ -7019,8 +7397,9 @@ struct Renderer::Impl {
             // current material bindings and alpha/stipple coverage. Rejecting
             // hidden fragments then happens before their expensive ray work.
             vkCmdEndRenderPass(command);
-            rt.begin_visibility(command);
             const auto actual_viewport=temporal_viewport(target_viewport);
+            rt.prepare_visibility(extent,actual_viewport);
+            rt.begin_visibility(command);
             vkCmdSetViewport(command,0,1,&actual_viewport);
             vkCmdSetScissor(command,0,1,&target_clip);
             bool lighting=false;
@@ -7282,7 +7661,7 @@ struct Renderer::Impl {
                     const auto matrix=glm::perspective(1.5707963267948966f,1.f,.015625f,1024.f)*
                         glm::lookAt(position,position+directions[face],ups[face]);
                     const CameraUniform uniform{matrix,glm::vec4(directions[face],source_w),glm::vec4(position,1),glm::vec4(0,0,side,side)};
-                    vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(uniform),&uniform);
+                    push_ordinary(uniform);
                     vkCmdSetViewport(command,0,1,&sky_viewport);vkCmdSetScissor(command,0,1,&sky_clip);
                     draw_dynamic(list);draw_environment(list);draw_overlays(list,false,debug_buffer,true);
                     rt.end_environment(command);
@@ -7290,7 +7669,7 @@ struct Renderer::Impl {
                 path_sky_capture.reset();sky_raster=false;
             }
             active_material_view=std::numeric_limits<std::size_t>::max();
-            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);
+            push_ordinary(camera_uniform);
             set_temporal_viewport(viewport);vkCmdSetScissor(command,0,1,&scissor);
         }
         const bool empty_full_surface_accumulation=full_surface_scene &&
@@ -7409,7 +7788,7 @@ struct Renderer::Impl {
                 auto resumed=render;resumed.renderPass=continuation_pass;
                 resumed.clearValueCount=0;resumed.pClearValues=nullptr;
                 {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
-                {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+                {push_ordinary(camera_uniform);}
             }
             // 2BCD0: 25D50 selected fog, then layer 16 at 2C0DB, then layer 15
             // at 2C173. Only the audited BSP admissions are submitted here.
@@ -7463,7 +7842,7 @@ struct Renderer::Impl {
             auto volume_camera=camera_uniform;
             volume_camera.viewport={0,0,float(extent.width),float(extent.height)};
             {vkCmdSetViewport(command,0,1,&full_viewport);capture_viewport(full_viewport);}
-            {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(volume_camera),&volume_camera);capture_push(&volume_camera,sizeof(volume_camera));}
+            {push_ordinary(volume_camera);}
             std::size_t particle_cursor=0;
             for(std::size_t group=0;group<=volume_draws.size();++group) {
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
@@ -7482,7 +7861,7 @@ struct Renderer::Impl {
                 vkCmdDraw(command,draw.count,1,draw.first,0);
             }
             {set_temporal_viewport(viewport);}
-            {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+            {push_ordinary(camera_uniform);}
             vkCmdBindVertexBuffers(command,0,1,&vertex_buffer,&offset);
         }
         if(title_scene && atmosphere->patchy) {
@@ -7522,7 +7901,7 @@ struct Renderer::Impl {
                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,0,0,nullptr,0,nullptr,1,&barrier);
             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
-            {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+            {push_ordinary(camera_uniform);}
         }
         if (!first_person.empty()) {
             if(path_tracing_enabled)
@@ -7561,7 +7940,7 @@ struct Renderer::Impl {
             vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
-            {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+            {push_ordinary(camera_uniform);}
         }
         if(title_scene && scene_filter) {
             if(!can_capture)throw FormatError("title color filter requires transfer-source support");
@@ -7576,7 +7955,7 @@ struct Renderer::Impl {
             vkCmdDraw(command,3,1,0,0);vkCmdEndRenderPass(command);
             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
             {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
-            {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);capture_push(&camera_uniform,sizeof(camera_uniform));}
+            {push_ordinary(camera_uniform);}
         }
         const auto draw_reticle=[&] {
           if (reticle && effects.hud > 0 && extent.width > 16 && extent.height > 16) {
@@ -7779,7 +8158,7 @@ struct Renderer::Impl {
                         }
                         const auto restore=[&] {
                             set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);
-                            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);capture_push(&push,sizeof(push));
+                            push_ordinary(push);
                         };
                         restore();
                         //The global override's layer1 is texaccum_disabled:
@@ -7861,7 +8240,7 @@ struct Renderer::Impl {
                                 auto push=model_uniform;push.viewport={0,0,float(extent.width),float(extent.height)};
                                 const VkViewport full{0,0,float(extent.width),float(extent.height),0,1};
                                 {vkCmdSetViewport(command,0,1,&full);capture_viewport(full);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                                {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);capture_push(&push,sizeof(push));}
+                                {push_ordinary(push);}
                                 vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,light_volume_pipeline);
                                 vkCmdBindVertexBuffers(command,0,1,&light_volume_buffer,&offset);
                                 vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,
@@ -7888,7 +8267,7 @@ struct Renderer::Impl {
                             if(v.atmosphere){push.matrix*=.15f;push.eye.w=.15f;}
                         }
                         {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                        {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);capture_push(&push,sizeof(push));}
+                        {push_ordinary(push);}
                         for(const auto &draw:step.geometry)if(draw.count &&
                             !(camouflage_view->camouflage[draw.material]>0.f && camouflage_variants[draw.material][0]!=~0u))
                             for(auto material:source_layer15_passes[draw.material]) {
@@ -7898,9 +8277,9 @@ struct Renderer::Impl {
                             }
                     }
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 };
-                {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                {push_ordinary(model_uniform);}
                 material_bank_offset=std::uint32_t(material_stride*material_uniforms.size()*(i+1));
                 if(accumulation_pass) {
                     // Each local player and clipped model owns its projected
@@ -7921,7 +8300,7 @@ struct Renderer::Impl {
                     resumed.clearValueCount=0;resumed.pClearValues=nullptr;
                     {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
                     if(!retain_world_history)vkCmdClearAttachments(command,1,&depth_clear,1,&area);
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
                 if(!retain_world_history && !v.background.empty()) {
                     sky_raster=true;
@@ -7952,7 +8331,7 @@ struct Renderer::Impl {
                     pstencil_render->lightmap(command,masks,temporal_viewport(model_view),clip);
                     pstencil_render->end(command,framebuffers[index]);
                     set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
-                    vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                    push_ordinary(model_uniform);
                 }
 #endif
                 draw_environment(view_draws[i],true);
@@ -7961,7 +8340,7 @@ struct Renderer::Impl {
                     const auto [first,count]=decal_ranges[i];
                     capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,1u);
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
 #endif
                 const auto record_shadow_targets=[&](const auto& submissions) {
@@ -8010,7 +8389,7 @@ struct Renderer::Impl {
                         submissions.push_back({shadow_views[i][r].uniforms,roots[r][0],roots[r][1]});
                     }
                     record_shadow_targets(submissions);
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                 }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
@@ -8018,7 +8397,7 @@ struct Renderer::Impl {
                     std::vector<SourceShadowRawSubmission> submissions;
                     std::vector<std::array<std::vector<SourceShadowRawCallback>,2>> roots(raw_shadow_views[i].size());
                     submissions.reserve(roots.size());
-                    const VkViewport raw_shadow_viewport{0,0,float(extent.width),float(extent.height),0,1};
+                    const auto raw_shadow_viewport=temporal_viewport(VkViewport{0,0,float(extent.width),float(extent.height),0,1});
                     for(std::size_t r=0;r<roots.size();++r) {
                         const auto &record=raw_shadow_views[i][r];
                         for(unsigned phase=0;phase<2;++phase)for(const auto &draw:record.draws[phase]) {
@@ -8032,8 +8411,15 @@ struct Renderer::Impl {
                                     // of the shader WINDOW_CLIP packet.
                                     if(phase)vkCmdSetViewport(buffer,0,1,&raw_shadow_viewport);
                                     const auto &source_clip=draw.source->controls.surface_clip;
-                                    const VkRect2D surface_clip{{std::int32_t(source_clip[0]),std::int32_t(source_clip[1])},
-                                        {source_clip[2],source_clip[3]}};
+                                    const float scale_x=phase?float(extent.width)/draw.source->surface_size[0]:1.f;
+                                    const float scale_y=phase?float(extent.height)/draw.source->surface_size[1]:1.f;
+                                    const auto left=std::max(0,std::int32_t(std::floor(source_clip[0]*scale_x)));
+                                    const auto top=std::max(0,std::int32_t(std::floor(source_clip[1]*scale_y)));
+                                    const auto right=std::min(std::int32_t(phase?extent.width:128),
+                                        std::int32_t(std::ceil((source_clip[0]+source_clip[2])*scale_x)));
+                                    const auto bottom=std::min(std::int32_t(phase?extent.height:128),
+                                        std::int32_t(std::ceil((source_clip[1]+source_clip[3])*scale_y)));
+                                    const VkRect2D surface_clip{{left,top},{unsigned(std::max(0,right-left)),unsigned(std::max(0,bottom-top))}};
                                     vkCmdSetScissor(buffer,0,1,&surface_clip);
                                     record_native_world(*raw_shadow_native[phase],buffer,draw.native_index);
                                 }});
@@ -8043,7 +8429,7 @@ struct Renderer::Impl {
                     }
                     record_shadow_targets(submissions);
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                 }
 #endif
@@ -8060,7 +8446,7 @@ struct Renderer::Impl {
                     vkCmdDraw(command,draw.count,1,draw.first,0);
                 }
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
-                const VkViewport raw_light_viewport{0,0,float(extent.width),float(extent.height),0,1};
+                const auto raw_light_viewport=temporal_viewport(VkViewport{0,0,float(extent.width),float(extent.height),0,1});
                 if(!path_tracing_enabled && !raw_light_views[i].empty()){set_temporal_viewport(raw_light_viewport);}
                 if(pstencil_enabled && !pstencil_frame.lights(i).empty()) {
                     capture_unknown();pstencil_render->begin(command,index);
@@ -8076,7 +8462,7 @@ struct Renderer::Impl {
                     const bool normals=std::any_of(pstencil_specular_views[i].begin(),pstencil_specular_views[i].end(),[&](const auto& draw){return pstencil_response_phases.at(draw.material)==3;});
                     if(normals) {
                         set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
-                        vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                        push_ordinary(model_uniform);
                         vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                         // Build target9 once per view. Only depth-matched source
                         // receivers write it; each light subsequently reads the
@@ -8100,7 +8486,7 @@ struct Renderer::Impl {
                             set_temporal_viewport(raw_light_viewport);vkCmdSetScissor(command,0,1,&clip);
                             for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw))record_native_world(*effect_light_native,command,draw);
                             set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);
-                            vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                            push_ordinary(model_uniform);
                             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                             const bool utility=std::any_of(light.specular_receivers.begin(),light.specular_receivers.end(),[&](auto receiver){return phase(receiver)==1 || phase(receiver)==4;});
                             if(utility)pstencil_render->utility(command,[&] {
@@ -8116,7 +8502,7 @@ struct Renderer::Impl {
                 }
                 if(!path_tracing_enabled && !raw_light_views[i].empty()) {
                     {set_temporal_viewport(model_view);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                 }
 #endif
@@ -8125,7 +8511,7 @@ struct Renderer::Impl {
                     const auto [first,count]=decal_ranges[i];
                     capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,2u);
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
 #endif
                 draw_texture_mapping_overlays(view_draws[i],debug_buffer,true);
@@ -8134,7 +8520,7 @@ struct Renderer::Impl {
                     const auto [first,count]=decal_ranges[i];
                     capture_in_pass();decal_renderer->record(command,model_view,clip,first,count,0x3cu);
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
 #endif
                 if(retain_world_history && !v.background.empty()) {
@@ -8151,7 +8537,7 @@ struct Renderer::Impl {
                 draw_decals(view_draws[i]);
                 if(v.atmosphere) {
                     if(view_fog_enabled[i])composite_view_fog(view_fog_descriptors[i],view_fog_native_pipelines[i]);
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i]) {
                         if(!draw_visible(draw))continue;
@@ -8196,7 +8582,7 @@ struct Renderer::Impl {
                     const CameraUniform reflected{reflected_matrix,
                         glm::vec4(c.forward.x,c.forward.y,c.forward.z,0),glm::vec4(c.position.x,c.position.y,c.position.z,3),
                         glm::vec4(0,0,512,256)};
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(reflected),&reflected);capture_push(&reflected,sizeof(reflected));}
+                    {push_ordinary(reflected);}
                     sky_raster=true;
                     draw_dynamic(view_reflection_background[i]);draw_environment(view_reflection_background[i]);
                     sky_raster=false;
@@ -8235,7 +8621,7 @@ struct Renderer::Impl {
                     auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
                     {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
                 vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                 for(const auto &draw:view_draws[i])if(draw_visible(draw) && water_materials[draw.material]) {
@@ -8267,7 +8653,7 @@ struct Renderer::Impl {
                 const BspPostprocessTarget post_target{command,images[index],fog_framebuffers[index],framebuffers[index]};
                 if(v.atmosphere && bsp_postprocess) {
                     bsp_postprocess->record_patchy(i,post_target);
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
                 //36B50 follows late world effects and precedes first person.
                 const auto *hide_weather=std::getenv("HALO2_REFERENCE_WEATHER_HIDE");
@@ -8301,12 +8687,12 @@ struct Renderer::Impl {
                 }
                 if(!weather_draw_ranges[i].empty() || !weather_line_ranges[i].empty() || !weather_plate_ranges[i].empty()) {
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
                 if(lens_queries && !v.lens_queries.empty()) {
                     lens_queries->record(command,v.lens_queries,extent,clip);
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                 }
                 source_transparency_active=v.foreground_transparent.has_value();
                 if(!v.foreground.empty()) {
@@ -8324,7 +8710,7 @@ struct Renderer::Impl {
                         foreground_uniform.matrix*=.15f;
                         foreground_uniform.eye.w=.15f;
                     }
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(foreground_uniform),&foreground_uniform);capture_push(&foreground_uniform,sizeof(foreground_uniform));}
+                    {push_ordinary(foreground_uniform);}
                     if(accumulation_pass) {
                         vkCmdEndRenderPass(command);
                         auto target=render;target.renderPass=retain_world_history?foreground_accumulation_pass:accumulation_pass;
@@ -8358,7 +8744,7 @@ struct Renderer::Impl {
                 if(v.atmosphere && bsp_postprocess) {
                     // 2C2F8 submits alpha-only layer 17 after FP; 2C322
                     // consumes that mask in 13870 before the authored HUD.
-                    {vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);capture_push(&model_uniform,sizeof(model_uniform));}
+                    {push_ordinary(model_uniform);}
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i])if(draw_visible(draw))for(const auto material:world_bloom[draw.material]) {
                         if(!layer_enabled(material))continue;
@@ -8383,9 +8769,13 @@ struct Renderer::Impl {
                     const auto planes=v.projection_clip_planes.value_or(v.atmosphere?Vec2{.015625f,1024.f}:Vec2{.05f,10000.f});
                     temporal.near_plane=planes.x;temporal.far_plane=planes.y;
                     temporal.vertical_fov=camera_vertical_field_of_view(v.camera,model_view.width/model_view.height);
-                    std::vector<Vertex> temporal_vertices(v.vertices.begin(),v.vertices.end());
-                    for(const auto& object:v.objects)temporal_vertices.insert(temporal_vertices.end(),object.vertices.begin(),object.vertices.end());
-                    temporal.vertices=temporal_vertices;temporal.foreground=v.foreground;temporal.foreground_matrix=foreground_matrix;
+                    TemporalGeometry temporal_world,temporal_foreground;
+                    temporal_world.append(v.vertices,v.deferred_skins);
+                    for(const auto& object:v.objects)temporal_world.append(object.vertices,object.deferred_skins);
+                    temporal_foreground.append(v.foreground,v.deferred_foreground_skins);
+                    temporal.vertices=temporal_world.vertices;temporal.identities=temporal_world.identities;
+                    temporal.foreground=temporal_foreground.vertices;temporal.foreground_identities=temporal_foreground.identities;
+                    temporal.foreground_matrix=foreground_matrix;
                     temporal_upscaler->view(command,unsigned(i)+1,temporal);
                     auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
                     vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);
@@ -8689,6 +9079,7 @@ struct Renderer::Impl {
         }
         if(capture_internal_color && (native_composite || native_ui_active || temporal_upscaler))
             throw FormatError("Internal RGB diagnostic cannot label a separate native-UI/upscaled composite");
+        if(gpu_timings)gpu_timings->mark(command,2);
         const auto presentation_layout=present_color(index,presentation_index,native_composite);
         if (capture) {
             VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
@@ -8735,6 +9126,7 @@ struct Renderer::Impl {
             vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                 0,0,nullptr,0,nullptr,1,&barrier);
         }
+        if(gpu_timings)gpu_timings->mark(command,3);
         check(vkEndCommandBuffer(command), "end commands");
         measure(frame_timing.commands_ms);
         if(!weather_submission.fence_reset) {
@@ -8751,6 +9143,7 @@ struct Renderer::Impl {
         submit.signalSemaphoreCount = 1;
         submit.pSignalSemaphores = &present_ready[presentation_index];
         check(vkQueueSubmit(queue, 1, &submit, fence), "submit frame");
+        if(gpu_timings)gpu_timings->submitted(gpu_timing_serial++,extent.width,extent.height,views.size());
         ++texture_camera_submit_serial;
         last_submitted_color=index;if(source_double_buffer){source_color_written[index]=true;++source_frames_submitted;}
         weather_submission.submitted=true;
@@ -8771,7 +9164,7 @@ struct Renderer::Impl {
             if(!submission)throw FormatError("cannot write live title haze submission trace");
         }
         measure(frame_timing.present_ms);
-        if(!verified_skin_vertices.empty()) {
+        if(!verified_skin_vertices.empty() || !verified_ui_vertices.empty()) {
             check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"wait GPU model skin verification");
             void *mapped{};check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&mapped),"map completed GPU model skins");
             struct ReadMapping {VkDevice device;VkDeviceMemory memory;~ReadMapping(){vkUnmapMemory(device,memory);}} read_mapping{device,debug_memory};
@@ -8779,6 +9172,9 @@ struct Renderer::Impl {
             for(const auto &[destination,expected]:verified_skin_vertices)
                 if(std::memcmp(actual+destination,expected.data(),sizeof(Vertex)))
                     throw FormatError("ordinary GPU skin differs from complete original CPU vertex bytes at destination "+std::to_string(destination));
+            for(std::size_t i=0;i<verified_ui_vertices.size();++i)
+                if(std::memcmp(actual+ui_first+i,&verified_ui_vertices[i],sizeof(Vertex)))
+                    throw FormatError("GPU execution changed an unskinned UI vertex at destination "+std::to_string(ui_first+i));
             frame_timing.model_skin_gpu_verified_vertices=verified_skin_vertices.size();
         }
         if(frame_timing.model_skin_gpu_jobs && std::any_of(views.begin(),views.end(),
@@ -8821,6 +9217,13 @@ struct Renderer::Impl {
                 << " (" << capture_extent.width << 'x' << capture_extent.height << ')';
             if(capture_internal_color)std::cout<<" format="<<unsigned(format)<<" rgb_bytes="<<rgb.size();
             std::cout<<'\n';
+            std::cout<<"Temporal Upscaling frame: {\"completed\":true,\"enabled\":"
+                <<(temporal_upscaler?"true":"false")<<",\"method\":"<<unsigned(active_upscaler)
+                <<",\"quality\":"<<unsigned(active_upscaling_quality)
+                <<",\"frames\":"<<(temporal_upscaler?temporal_upscaler->frames():0)
+                <<",\"input_width\":"<<extent.width<<",\"input_height\":"<<extent.height
+                <<",\"output_width\":"<<presentation_extent.width
+                <<",\"output_height\":"<<presentation_extent.height<<"}\n";
             if(depth_capture) {
                 void *depth_mapped;
                 check(vkMapMemory(device,depth_capture_memory,0,depth_capture_size+stencil_capture_size,0,&depth_mapped),
@@ -8858,6 +9261,18 @@ struct Renderer::Impl {
                     if(count++)per_view<<',';
                     per_view<<"{\"slot\":"<<slot<<",\"opaque_draws\":"<<captured.draws
                         <<",\"vertices\":"<<captured.vertices<<",\"triangles\":"<<scene->triangles.size()
+                        <<",\"native_player_occluder_vertices\":"<<captured.native_player_occluder_vertices
+                        <<",\"native_player_occluder_triangles\":"<<captured.native_player_occluder_triangles
+                        <<",\"native_body_occluder_triangles\":"<<captured.native_body_occluder_triangles
+                        <<",\"native_body_roots\":[";
+                    for(unsigned n=0;n<captured.native_body_roots.size();++n) {
+                        if(n)per_view<<',';const auto& body=captured.native_body_roots[n];
+                        per_view<<"{\"owner\":"<<body.root<<",\"definition\":"<<body.definition
+                            <<",\"render_model\":"<<body.render_model<<",\"source_tick\":"<<body.source_tick
+                            <<",\"lod\":"<<body.lod<<",\"triangles\":"<<body.triangles
+                            <<",\"eligible_triangles\":"<<body.eligible_triangles<<'}';
+                    }
+                    per_view<<']'
                         <<",\"lights\":"<<scene->lights.size()<<",\"emissive_triangles\":"<<scene->emissive_count
                         <<",\"sky_capture_draws\":"<<captured.sky_draws<<",\"sky_capture_vertices\":"<<captured.sky_vertices
                         <<",\"environment_side\":64,\"environment_faces\":6"
@@ -8952,7 +9367,9 @@ struct Renderer::Impl {
                 returned(view.model_collection);returned(view.main_cull);returned(view.main_commands);
                 returned(view.shadow_selection);returned(view.shadow_roots);
             }
-            timing_report<<'\n';
+            // Profiling readers correlate each completed row with CPU time.
+            // Publish it here so buffering cannot move that boundary into teardown.
+            timing_report<<'\n'<<std::flush;
             timing_previous_shadow_prefix=prefix;
             if(!timing_report)throw FormatError("Write renderer frame timings");
         }
@@ -9181,7 +9598,9 @@ RendererPathTracingResources Renderer::path_tracing_resources()const {
             scene->lights.capacity()*sizeof(path_tracing::GpuLight)+
             scene->pixels.capacity()*sizeof(std::uint32_t)+
             scene->material_image_keys.capacity()*sizeof(scene->material_image_keys[0])+
-            scene->material_texel_capacities.capacity()*sizeof(std::uint32_t);
+            scene->material_texel_capacities.capacity()*sizeof(std::uint32_t)+
+            scene->color_guide_pixels.capacity()*sizeof(std::uint32_t)+
+            scene->color_guide_image_keys.capacity()*sizeof(scene->color_guide_image_keys[0]);
     }
     return usage;
 }
@@ -9303,7 +9722,7 @@ RendererParticleView Renderer::prepare_particle_views(std::span<const RendererPa
     }
     check(vkWaitForFences(impl_->device,1,&impl_->fence,VK_TRUE,UINT64_MAX),"wait prepared particle view resources");
     if(!impl_->particle_renderer)impl_->particle_renderer=std::make_unique<ParticleRenderer>(
-        impl_->physical,impl_->device,impl_->queue,impl_->queue_family,impl_->render_pass,impl_->shader_directory);
+        impl_->physical,impl_->device,impl_->queue,impl_->queue_family,impl_->render_pass,impl_->shader_directory,impl_->sampler_mirror_clamp);
     impl_->particle_renderer->prepare_views(views,impl_->extent.width,impl_->extent.height);
     auto control=particle_view_inputs();impl_->prepared_particle_views.clear();
     for(std::size_t n=0;n<views.size();++n)impl_->prepared_particle_views.push_back(control.acquire(n));
@@ -9353,7 +9772,7 @@ RendererParticleProgram Renderer::particle_program_control() {
         auto impl=owner.lock();if(!impl)throw FormatError("Native particle program renderer has retired");
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
         if(!impl->particle_renderer)impl->particle_renderer=std::make_unique<ParticleRenderer>(
-            impl->physical,impl->device,impl->queue,impl->queue_family,impl->render_pass,impl->shader_directory);
+            impl->physical,impl->device,impl->queue,impl->queue_family,impl->render_pass,impl->shader_directory,impl->sampler_mirror_clamp);
         auto program=impl->particle_renderer->program(std::move(material));
         program.target_generation=impl->target_generation;return program;
 #else
@@ -9361,6 +9780,27 @@ RendererParticleProgram Renderer::particle_program_control() {
         return RendererParticleProgramConfiguration{};
 #endif
     });
+}
+std::size_t Renderer::preload_particle_materials(
+    std::span<const std::shared_ptr<const ParticleMaterial>> materials) {
+    const auto owner=device_lease().acquire();
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+    if(std::this_thread::get_id()!=impl_->renderer_executor)
+        throw FormatError("Particle resource preparation requires the renderer's owning thread");
+    if(materials.empty())return 0;
+    if(!impl_->particle_renderer)impl_->particle_renderer=std::make_unique<ParticleRenderer>(
+        impl_->physical,impl_->device,impl_->queue,impl_->queue_family,impl_->render_pass,impl_->shader_directory,impl_->sampler_mirror_clamp);
+    std::size_t admitted{};
+    for(const auto& material:materials) {
+        std::string diagnostic;
+        admitted+=impl_->particle_renderer->try_program(material,diagnostic).has_value();
+    }
+    for(const auto& diagnostic:impl_->particle_renderer->take_resource_diagnostics())
+        std::cerr<<"Particle resource: "<<diagnostic<<'\n';
+    return admitted;
+#else
+    (void)materials;return 0;
+#endif
 }
 RendererDepthMode Renderer::depth_mode_control() {
     const std::weak_ptr<Impl> owner=impl_;
@@ -9556,6 +9996,18 @@ void Renderer::campaign_cinematic_crossfade(const CinematicCrossfadeFrame &frame
 bool Renderer::cinematic_crossfade_captured()const{return impl_->campaign_capture_completed;}
 std::string Renderer::device_name() const { return impl_->gpu; }
 SourceWorldDeviceState Renderer::source_world_device_state() const { return impl_->source_world_device; }
+bool Renderer::prepare_world_targets() {
+    const auto owned=device_lease().acquire();
+    if(std::this_thread::get_id()!=impl_->renderer_executor)
+        throw FormatError("World target preparation requires its actual Renderer thread");
+    if(SDL_GetWindowFlags(impl_->window)&SDL_WINDOW_MINIMIZED)return false;
+    if(!impl_->frame_has_game_world){impl_->frame_has_game_world=true;impl_->dirty=true;}
+    const auto display=*impl_->shared_display;
+    if(display.internal_width!=impl_->active_internal_width || display.internal_height!=impl_->active_internal_height ||
+       display.upscaler!=impl_->active_upscaler || display.upscaling_quality!=impl_->active_upscaling_quality ||
+       display.detail!=impl_->active_detail)impl_->dirty=true;
+    return !(impl_->dirty || !impl_->swapchain) || impl_->create_swapchain();
+}
 RendererDeviceLease Renderer::device_lease() {
     if(!impl_->device || !impl_->physical || !impl_->queue || !impl_->render_pass || !impl_->depth_view ||
        impl_->depth_format!=VK_FORMAT_D24_UNORM_S8_UINT ||

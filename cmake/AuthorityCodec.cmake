@@ -3,6 +3,7 @@ add_library(halo2_authority_delta STATIC src/runtime/source_authority_delta.cpp)
 target_include_directories(halo2_authority_delta PUBLIC include)
 target_compile_features(halo2_authority_delta PUBLIC cxx_std_20)
 target_link_libraries(halo2_authority_delta PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
+target_link_libraries(halo2_systems PRIVATE halo2_authority_delta)
 target_sources(halo2_systems PRIVATE src/runtime/source_authority_binding.cpp)
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
 add_library(halo2_authority_codec STATIC src/runtime/source_authority_codec.cpp src/runtime/source_authority_codec_decode.cpp src/runtime/source_execution_codec.cpp src/platform/source_replay_batch.cpp)
@@ -10,11 +11,13 @@ target_sources(halo2_authority_codec PRIVATE src/gameplay/vehicles/native_vehicl
 target_sources(halo2_authority_codec PRIVATE src/runtime/source_host_continuation_bundle.cpp)
 target_compile_features(halo2_authority_codec PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_codec PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
-target_link_libraries(halo2_authority_codec PUBLIC halo2_systems PRIVATE halo2_online_protocol OpenSSL::Crypto ZLIB::ZLIB)
+target_link_libraries(halo2_authority_codec PUBLIC halo2_systems PRIVATE halo2_authority_delta halo2_online_protocol OpenSSL::Crypto ZLIB::ZLIB)
 add_library(halo2_authority_publisher STATIC src/runtime/source_authority_publisher.cpp)
+target_sources(halo2_authority_publisher PRIVATE src/runtime/source_shadow_transport.cpp)
 target_compile_features(halo2_authority_publisher PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_publisher PUBLIC include)
 target_link_libraries(halo2_authority_publisher PUBLIC halo2_authority_codec PRIVATE halo2_authority_delta Threads::Threads)
+target_link_libraries(halo2_authority_publisher PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
 add_library(halo2_authority_receiver STATIC src/runtime/source_authority_receiver.cpp)
 target_sources(halo2_authority_receiver PRIVATE src/rendering/effects/effect_presentation_history.cpp)
 target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/multiplayer_pose_continuity.cpp)
@@ -31,6 +34,27 @@ include(cmake/HudContinuation.cmake)
 include(cmake/LocomotionContinuation.cmake)
 include(cmake/MccOnlineUi.cmake)
 if(BUILD_TESTING)
+    add_executable(source_shadow_transport_tests tests/source_shadow_transport_tests.cpp)
+    target_link_libraries(source_shadow_transport_tests PRIVATE halo2_authority_publisher halo2_authority_receiver nlohmann_json::nlohmann_json)
+    add_test(NAME source_shadow_transport_raw_udp COMMAND source_shadow_transport_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/source-shadow-transport.json")
+    set_tests_properties(source_shadow_transport_raw_udp PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE
+        LABELS "native;source-shadow;raw-udp;component")
+    add_test(NAME source_shadow_transport_dedicated_udp COMMAND source_shadow_transport_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/source-shadow-transport-dedicated.json" dedicated)
+    set_tests_properties(source_shadow_transport_dedicated_udp PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE
+        LABELS "native;source-shadow;raw-udp;dedicated;component")
+    add_executable(source_shadow_transport_online_tests tests/source_shadow_transport_online_tests.cpp)
+    target_link_libraries(source_shadow_transport_online_tests PRIVATE halo2_authority_publisher
+        LibDataChannel::LibDataChannelStatic nlohmann_json::nlohmann_json)
+    add_test(NAME source_shadow_transport_online_http COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py"
+        $<TARGET_FILE:source_shadow_transport_online_tests>)
+    set_tests_properties(source_shadow_transport_online_http PROPERTIES TIMEOUT 330 RUN_SERIAL TRUE
+        LABELS "native;source-shadow;ONLINE;direct-peer;component"
+        ENVIRONMENT "HALO2_SHADOW_TRANSPORT_ONLINE=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/source-shadow-online;HALO2_TEST_ASSET_SOURCE_ROOT=${HALO2_TEST_ASSET_SOURCE_ROOT}")
     add_executable(source_host_continuation_schema_tests tests/source_host_continuation_schema_tests.cpp)
     target_include_directories(source_host_continuation_schema_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
     target_link_libraries(source_host_continuation_schema_tests PRIVATE halo2_authority_codec)
@@ -232,6 +256,6 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_object_attachment_tu15.json")
     add_test(NAME source_authority_codec_tu15 COMMAND source_authority_codec_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(source_authority_codec_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
 endif()

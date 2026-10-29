@@ -130,6 +130,11 @@ def select(root, cache, *, verify=True, progress=print):
         raise FormatError("The selected cache needs the bundled custom maps; run MCC setup to prepare a fresh cache. Existing files were retained.")
     from custom_ui_assets import repair as repair_custom_ui
     cache, report = repair_custom_ui(root, cache, progress=progress)
+    # Selecting an already prepared cache is also an onboarding entry point.
+    # Import/repair the authenticated kit bank before publishing the selection,
+    # including when the kit was installed after the original MCC import.
+    from h2ek_loading_ambience import repair as repair_h2ek_ambience
+    cache, report = repair_h2ek_ambience(root, cache, progress=progress)
     from native_variant_assets import install as install_variants
     install_variants(root, cache, progress=progress)
     install_variants(root, root, progress=progress)
@@ -591,8 +596,6 @@ def setup(root, mcc_source=None, *, progress=print):
         cache, report = mcc_presentation.repair(root, cache, source, presentation, progress=progress)
         from controller_prompt_assets import repair as repair_controller_prompts
         cache, report = repair_controller_prompts(root,cache,progress=progress)
-        from h2ek_loading_ambience import repair as repair_h2ek_ambience
-        cache, report = repair_h2ek_ambience(root, cache, progress=progress)
         mcc_presentation.recheck(presentation)
         return select(root, cache, verify=False, progress=progress)
     cache, report = prepare(root, source, progress=progress, presentation=presentation)

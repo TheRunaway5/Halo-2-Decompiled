@@ -1,0 +1,91 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--test",
+        "matchmaking_room_setup",
+        "--test",
+        "matchmaking_queue_api",
+        "--test",
+        "matchmaking_catalog",
+        "--test",
+        "matchmaking_sessions",
+        "--test",
+        "matchmaking_parties",
+        "--test",
+        "party_countdown_original",
+        "--test",
+        "matchmaking_skill_original",
+        "--test",
+        "matchmaking_results",
+        "--test",
+        "matchmaking_coordinator",
+        "--test",
+        "gathering_owner",
+        "--test",
+        "team_assignment_original",
+        "--test",
+        "matchmaking_ratings_original",
+        "--test",
+        "session_candidates_original",
+        "--test",
+        "search_lifecycle_original"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "multiplayer/master_server/tests",
+        "-t",
+        "."
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-setup-port/halo2-test-wauu_oos/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "e7ceed86cc944acc38d41ae9d63fc8166cdd07711707e3df1fc3255a829e14dd",
+    "bytes": 2567216,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

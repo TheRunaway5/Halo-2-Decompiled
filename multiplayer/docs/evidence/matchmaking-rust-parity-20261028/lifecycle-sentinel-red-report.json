@@ -1,0 +1,30 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hxbtsegx/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_gathering_sessions.GatheringInputsTests.test_intmax_countdown_sentinel_cannot_launch_at_equal_elapsed"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hxbtsegx/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hxbtsegx",
+  "source_frozen": true
+}

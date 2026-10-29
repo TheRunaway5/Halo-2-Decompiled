@@ -3,6 +3,7 @@
 #include "halo2/original_data.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/source_authority_delta.hpp"
+#include "halo2/authority_archive_protocol.hpp"
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
@@ -129,12 +130,77 @@ void run(const char *exe,const char *xbe,const char *map,const char *receiver=nu
     }
     const auto encoded=encode_source_authority(saved,network_limits);
     const auto image=AuthorityArchiveImage::read(encoded,source_authority_network_delta_limits());
+    const auto direct_image=encode_source_authority_image(saved,network_limits);
+    check(direct_image.digest()==image.digest()&&direct_image.raw().size()==image.raw().size()&&
+        std::ranges::equal(direct_image.raw(),image.raw())&&
+        direct_image.encode(source_authority_network_delta_limits())==encoded,
+        "Direct canonical serialization changed complete source ownership bytes");
     std::cout<<"Network source image input: "<<encoded.size()<<" encoded / "<<image.decoded_size()<<" canonical bytes\n";
     SourceAuthorityCodecStats measured;
     const auto canonical=decode_source_authority_raw(image.raw(),image.digest(),network_limits,&measured);
     auto staged_limit=network_limits;staged_limit.staged_bytes=measured.staged_claimed-1;
     rejects([&]{decode_source_authority_raw(image.raw(),image.digest(),staged_limit);});
     rejects([&]{decode_source_authority(encoded,staged_limit);});
+    {
+        SourceAuthorityCodecStats indexed_stats;
+        const auto indexed=decode_source_authority_image(image,network_limits,&indexed_stats);
+        check(encode_source_authority(indexed,network_limits)==encoded,
+            "Immutable image decoder changed complete canonical owning state");
+        check(indexed_stats.native_claimed==measured.native_claimed &&
+            indexed_stats.staged_claimed==measured.staged_claimed &&
+            indexed_stats.metadata_bytes==measured.metadata_bytes &&
+            indexed_stats.working_peak+image.decoded_size()==measured.working_peak+128,
+            "Immutable image decoder changed native guards or retained a redundant raw byte bank");
+        auto staged=b.authority->prepare(indexed,binding);
+        check(b.authority->commit(std::move(staged)) && a.world->memory().checkpoint()==b.world->memory().checkpoint(),
+            "Immutable image decoder did not pass actual coupled native preparation/publication");
+        rejects([&]{decode_source_authority_image(image,staged_limit);});
+        auto bound=network_limits;bound.decoded_bytes=image.decoded_size()-1;
+        rejects([&]{decode_source_authority_image(image,bound);});
+        bound=network_limits;bound.allocated_bytes=1;
+        rejects([&]{decode_source_authority_image(image,bound);});
+        bound=network_limits;bound.container_elements=1;
+        rejects([&]{decode_source_authority_image(image,bound);});
+        bound=network_limits;bound.working_bytes=image.decoded_size();
+        rejects([&]{decode_source_authority_image(image,bound);});
+    }
+    {
+        const AuthorityArchiveDecodeLimits limits{network_limits.encoded_bytes,network_limits.decoded_bytes,
+            network_limits.allocated_bytes,network_limits.container_elements,sizeof(SourceMatchAuthority::Checkpoint),network_limits.working_bytes};
+        std::unique_ptr<ParsedAuthorityArchive> retained;const std::byte *retained_data{};
+        {
+            const auto caller=AuthorityArchiveImage::from_raw({image.raw().begin(),image.raw().end()},source_authority_network_delta_limits());
+            retained_data=caller.raw().data();retained=parse_authority_archive_image(caller,limits);
+            check(retained && retained->raw().data()==retained_data,
+                "Immutable grammar index copied the actual canonical image");
+        }
+        check(retained->raw().data()==retained_data && std::ranges::equal(retained->raw(),image.raw()) &&
+            retained->expected_hash()==image.digest() && retained->node(0).tag==13,
+            "Immutable grammar index lost its exact byte owner after caller image destruction");
+        const std::string_view name="version";
+        check(std::ranges::equal(retained->name(1),std::as_bytes(std::span(name))) &&
+            retained->name(retained->size()).empty() && retained->data(retained->size()).empty(),
+            "Immutable grammar index changed checked name/data range semantics");
+        auto caller=std::vector<std::byte>(image.raw().begin(),image.raw().end());
+        const auto independent=parse_authority_archive_raw(caller,image.digest(),limits);
+        check(independent && independent->raw().data()!=caller.data(),
+            "Generic span recovery decoder lost its independent owning byte copy");
+        std::fill(caller.begin(),caller.end(),std::byte{});
+        check(std::ranges::equal(independent->raw(),image.raw()),
+            "Generic span recovery decoder retained a mutable caller borrow");
+        auto wrong_hash=image.digest();wrong_hash[0]^=std::byte{1};
+        rejects([&]{decode_source_authority_raw(image.raw(),wrong_hash,network_limits);});
+    }
+    {
+        auto malformed=std::vector<std::byte>(image.raw().begin(),image.raw().end());malformed[0]=std::byte{};
+        const auto grammar=AuthorityArchiveImage::from_raw(std::move(malformed),source_authority_network_delta_limits());
+        rejects([&]{decode_source_authority_image(grammar,network_limits);});
+        malformed.assign(image.raw().begin(),image.raw().end());malformed[7]^=std::byte{1};
+        const auto schema=AuthorityArchiveImage::from_raw(std::move(malformed),source_authority_network_delta_limits());
+        rejects([&]{decode_source_authority_image(schema,network_limits);});
+        auto corrupt=encoded;corrupt[corrupt.size()/2]^=std::byte{1};
+        rejects([&]{AuthorityArchiveImage::read(corrupt,source_authority_network_delta_limits());});
+    }
     check(encode_source_authority(canonical,network_limits)==encoded,"Raw network materialization changed owning state");
     std::cout<<"Encoded complete source cut: "<<encoded.size()<<" bytes; canonical: "<<image.decoded_size()
         <<" bytes; dynamic native: "<<measured.native_claimed<<" metadata: "<<measured.metadata_bytes
@@ -150,9 +216,12 @@ void run(const char *exe,const char *xbe,const char *map,const char *receiver=nu
     bad=encoded;bad[64+bad.size()/3]^=std::byte{1};rejects([&]{decode_source_authority(bad);});
     auto limits=SourceAuthorityCodecLimits{};limits.decoded_bytes=128;rejects([&]{decode_source_authority(encoded,limits);});
     rejects([&]{encode_source_authority(saved,limits);});
+    rejects([&]{encode_source_authority_image(saved,limits);});
     limits={};limits.allocated_bytes=1;rejects([&]{decode_source_authority(encoded,limits);});
     limits={};limits.container_elements=1;rejects([&]{decode_source_authority(encoded,limits);});
     const auto invalid_enum=invalid_state_enum(encoded);rejects([&]{decode_source_authority(invalid_enum);});
+    const auto invalid_enum_image=AuthorityArchiveImage::read(invalid_enum,source_authority_network_delta_limits());
+    rejects([&]{decode_source_authority_image(invalid_enum_image,network_limits);});
     auto pointer=saved;pointer.match.simulation.player.value.custom_animation=std::make_shared<AnimationClip>();
     rejects([&]{encode_source_authority(pointer);});
     auto incompatible=decoded;incompatible.match.simulation.player.value.definition.radius+=.25f;

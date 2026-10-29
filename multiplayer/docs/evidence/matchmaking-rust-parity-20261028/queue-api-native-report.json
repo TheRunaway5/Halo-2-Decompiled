@@ -1,0 +1,31 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-kjtnp79x/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--test",
+        "matchmaking_queue_api"
+      ],
+      "returncode": 101
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-kjtnp79x/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/queue-api-port/halo2-test-kjtnp79x",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  }
+}

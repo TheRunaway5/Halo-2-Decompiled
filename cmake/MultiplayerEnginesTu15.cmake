@@ -8,6 +8,7 @@ target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_objective_p
 target_sources(halo2_systems PRIVATE src/gameplay/multiplayer/source_objective_goal_geometry_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/ui/hud/objective_waypoints.cpp)
 target_sources(halo2_systems PRIVATE src/ui/hud/objective_waypoint_memory_tu15.cpp src/network/system_link_session.cpp)
+target_sources(halo2_systems PRIVATE src/ui/frontend_custom_variant_settings.cpp)
 if(NOT MSVC)
     set_source_files_properties(src/gameplay/multiplayer/source_objective_goal_geometry_tu15.cpp
         PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
@@ -61,6 +62,27 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json")
     set_tests_properties(original_frontend_objective_start_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(frontend_match_customization_tests tests/frontend_match_customization_tests.cpp)
+    target_link_libraries(frontend_match_customization_tests PRIVATE halo2_systems)
+    add_test(NAME original_frontend_match_customization COMMAND frontend_match_customization_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps")
+    set_tests_properties(original_frontend_match_customization PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(frontend_custom_variant_settings_tests tests/frontend_custom_variant_settings_tests.cpp)
+    target_include_directories(frontend_custom_variant_settings_tests PRIVATE src)
+    target_link_libraries(frontend_custom_variant_settings_tests PRIVATE halo2_systems)
+    add_test(NAME native_custom_variant_settings COMMAND frontend_custom_variant_settings_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/data/tags/variants")
+    add_executable(frontend_custom_match_settings_tests tests/frontend_custom_match_settings_tests.cpp)
+    target_include_directories(frontend_custom_match_settings_tests PRIVATE src)
+    target_link_libraries(frontend_custom_match_settings_tests PRIVATE halo2_systems)
+    add_test(NAME original_frontend_custom_match_settings COMMAND frontend_custom_match_settings_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps")
+    set_tests_properties(original_frontend_custom_match_settings PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(custom_mode_local_launch_tests tests/custom_mode_local_launch_tests.cpp
+        src/gameplay/multiplayer/multiplayer_runtime.cpp)
+    target_link_libraries(custom_mode_local_launch_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    target_compile_definitions(custom_mode_local_launch_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
+    add_dependencies(custom_mode_local_launch_tests halo2_shaders)
     add_executable(objective_native_tu15_tests tests/objective_native_tu15_tests.cpp)
     target_include_directories(objective_native_tu15_tests PRIVATE include src ${HALO2_TEST_JSON_INCLUDE})
     if(HALO2_SANITIZERS AND NOT MSVC)
@@ -96,31 +118,66 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/result_recording_support_original_tu15.json")
     set(HALO2_MCC_MULTIPLAYER_ENGINE_MAP "" CACHE FILEPATH
         "Imported MCC map for actual TU1.5 multiplayer engine integration")
+    add_executable(ctf_assault_sky_projection_tests tests/ctf_assault_sky_projection_tests.cpp)
+    target_link_libraries(ctf_assault_sky_projection_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME native_mcc_ctf_assault_sky_projection_tu15 COMMAND ctf_assault_sky_projection_tests
+        "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-sky-projection.json" "${HALO2_TEST_ASSET_SOURCE_ROOT}")
+    set_tests_properties(native_mcc_ctf_assault_sky_projection_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120
+        FIXTURES_SETUP ctf_assault_original_sky)
     get_filename_component(HALO2_OBJECTIVE_TEST_MAPS "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}" DIRECTORY)
     add_test(NAME native_mcc_frontend_objective_start_tu15 COMMAND frontend_objective_start_tu15_tests
         "${HALO2_OBJECTIVE_TEST_MAPS}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json")
     set_tests_properties(native_mcc_frontend_objective_start_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME native_mcc_frontend_match_customization COMMAND frontend_match_customization_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}")
+    set_tests_properties(native_mcc_frontend_match_customization PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME native_mcc_frontend_custom_match_settings COMMAND frontend_custom_match_settings_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}")
+    set_tests_properties(native_mcc_frontend_custom_match_settings PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME native_mcc_custom_mode_local_launch COMMAND custom_mode_local_launch_tests
+        "${HALO2_OBJECTIVE_TEST_MAPS}" "${CMAKE_CURRENT_BINARY_DIR}/custom-mode-local-launch.json")
+    set_tests_properties(native_mcc_custom_mode_local_launch PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+    find_program(HALO2_CUSTOM_MODE_XVFB_RUN xvfb-run)
+    if(HALO2_CUSTOM_MODE_XVFB_RUN)
+        add_test(NAME native_mcc_custom_mode_render_launch
+            COMMAND "${HALO2_CUSTOM_MODE_XVFB_RUN}" -a -s "-screen 0 800x600x24"
+                $<TARGET_FILE:custom_mode_local_launch_tests> "${HALO2_OBJECTIVE_TEST_MAPS}"
+                "${CMAKE_CURRENT_BINARY_DIR}/custom-mode-render-launch.json" --render)
+        set_tests_properties(native_mcc_custom_mode_render_launch PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600 RUN_SERIAL TRUE
+            ENVIRONMENT "SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache;MESA_SHADER_CACHE_DIR=@HALO2_TEST_SCRATCH@/mesa-cache;__GL_SHADER_DISK_CACHE_PATH=@HALO2_TEST_SCRATCH@/nvidia-cache")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set_property(TEST native_mcc_custom_mode_render_launch APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=x11")
+        endif()
+    endif()
     add_executable(ctf_assault_runtime_start_tu15_tests tests/ctf_assault_runtime_start_tu15_tests.cpp
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_include_directories(ctf_assault_runtime_start_tu15_tests PRIVATE ${HALO2_TEST_JSON_INCLUDE})
     target_link_libraries(ctf_assault_runtime_start_tu15_tests PRIVATE halo2_renderer)
+    add_dependencies(ctf_assault_runtime_start_tu15_tests ctf_assault_sky_projection_tests)
     add_executable(multiplayer_end_presentation_tu15_tests tests/multiplayer_end_presentation_tu15_tests.cpp
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_link_libraries(multiplayer_end_presentation_tu15_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
     target_compile_definitions(multiplayer_end_presentation_tu15_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
     add_dependencies(multiplayer_end_presentation_tu15_tests halo2_shaders)
-    foreach(end_preset IN ITEMS Slayer Oddball King "2 on 1" "CTF Classic" "Single Bomb" "3 Plots")
+    add_dependencies(multiplayer_end_presentation_tu15_tests ctf_assault_sky_projection_tests)
+    foreach(end_preset IN ITEMS Slayer Oddball King "2 on 1" "Multi Flag CTF" "CTF Classic"
+            "1 Flag CTF" "1 Flag CTF Fast" "Multi Bomb" "Single Bomb" "Single Bomb Fast" "Neutral Bomb" "Blast Resort" "3 Plots")
         string(TOLOWER "${end_preset}" end_name)
         string(REPLACE " " "_" end_name "${end_name}")
         add_test(NAME native_mcc_end_presentation_${end_name}_tu15 COMMAND ${Python3_EXECUTABLE}
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/run_multiplayer_end_presentation_tu15.py"
-            $<TARGET_FILE:multiplayer_end_presentation_tu15_tests> "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}" "${end_preset}")
-        set_tests_properties(native_mcc_end_presentation_${end_name}_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 660 RUN_SERIAL TRUE)
+            $<TARGET_FILE:multiplayer_end_presentation_tu15_tests> "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}" "${end_preset}"
+            "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-end-${end_name}.json")
+        set_tests_properties(native_mcc_end_presentation_${end_name}_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 660 RUN_SERIAL TRUE
+            FIXTURES_REQUIRED ctf_assault_original_sky)
     endforeach()
     add_executable(objective_remote_consumers_tu15_tests tests/objective_remote_consumers_tu15_tests.cpp
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_link_libraries(objective_remote_consumers_tu15_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    add_dependencies(objective_remote_consumers_tu15_tests ctf_assault_sky_projection_tests)
     add_executable(ctf_assault_system_link_runtime_tests tests/ctf_assault_system_link_runtime_tests.cpp
         src/gameplay/multiplayer/multiplayer_runtime.cpp)
     target_link_libraries(ctf_assault_system_link_runtime_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
@@ -150,13 +207,15 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
         "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-remote-consumers.json")
     set_tests_properties(native_mcc_ctf_assault_remote_consumers_tu15 PROPERTIES
-        SKIP_RETURN_CODE 77 TIMEOUT 2400 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+        SKIP_RETURN_CODE 77 TIMEOUT 2400 RUN_SERIAL TRUE ENVIRONMENT "SDL_AUDIODRIVER=dummy"
+        FIXTURES_REQUIRED ctf_assault_original_sky)
     add_executable(objective_goal_renderer_tests tests/objective_goal_renderer_tests.cpp)
     target_link_libraries(objective_goal_renderer_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    add_dependencies(objective_goal_renderer_tests ctf_assault_sky_projection_tests)
     add_test(NAME native_mcc_objective_goal_renderer_tu15 COMMAND objective_goal_renderer_tests
         "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}")
     set_tests_properties(native_mcc_objective_goal_renderer_tu15 PROPERTIES
-        SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE)
+        SKIP_RETURN_CODE 77 TIMEOUT 300 RUN_SERIAL TRUE FIXTURES_REQUIRED ctf_assault_original_sky)
     add_test(NAME native_mcc_ctf_assault_runtime_start_tu15 COMMAND ctf_assault_runtime_start_tu15_tests
         "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
@@ -168,7 +227,7 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/ctf-assault-rendered-consumers.json")
     set_tests_properties(native_mcc_ctf_assault_rendered_consumers_tu15 PROPERTIES
         SKIP_RETURN_CODE 77 TIMEOUT 1800 RUN_SERIAL TRUE
-        ENVIRONMENT "HALO2_OBJECTIVE_RENDER=1;SDL_AUDIODRIVER=dummy")
+        ENVIRONMENT "HALO2_OBJECTIVE_RENDER=1;SDL_AUDIODRIVER=dummy" FIXTURES_REQUIRED ctf_assault_original_sky)
     add_test(NAME native_mcc_ctf_assault_lobby_return_tu15 COMMAND ctf_assault_runtime_start_tu15_tests
         "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
@@ -260,6 +319,12 @@ if(BUILD_TESTING)
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
             "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-engine-combat-slayer.json" "Slayer")
         set_tests_properties(native_mcc_multiplayer_engine_combat_slayer_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+        add_test(NAME native_mcc_multiplayer_accuracy_tu15 COMMAND multiplayer_engine_combat_tu15_tests
+            "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
+            "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-accuracy.json" "Slayer")
+        set_tests_properties(native_mcc_multiplayer_accuracy_tu15 PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 360 ENVIRONMENT "HALO2_COMBAT_ACCURACY_FLOW=1")
         add_test(NAME native_mcc_multiplayer_role_win_tu15 COMMAND multiplayer_engine_combat_tu15_tests
             "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
@@ -475,13 +540,22 @@ if(BUILD_TESTING)
         set_tests_properties(native_mcc_multiplayer_prepared_time_finalization_tu15 PROPERTIES
             SKIP_RETURN_CODE 77 TIMEOUT 180
             ENVIRONMENT "HALO2_ENGINE_PREPARED_MATCH=1;HALO2_ENGINE_PREPARED_FINALIZATION=1;HALO2_ENGINE_WORLD_VARIANT=King")
+        foreach(views IN ITEMS 2 3 4)
+            add_test(NAME native_mcc_multiplayer_prepared_views${views}_tu15 COMMAND multiplayer_engines_world_tu15_tests
+                "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
+                "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-prepared-views${views}.json")
+            set_tests_properties(native_mcc_multiplayer_prepared_views${views}_tu15 PROPERTIES
+                SKIP_RETURN_CODE 77 TIMEOUT 180
+                ENVIRONMENT "HALO2_ENGINE_PREPARED_MATCH=1;HALO2_ENGINE_PREPARED_VIEWS=${views};HALO2_ENGINE_WORLD_VARIANT=Slayer")
+        endforeach()
         add_test(NAME native_mcc_multiplayer_prepared_views_tu15 COMMAND multiplayer_engines_world_tu15_tests
             "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/multiplayer_engines_original_tu15.json"
             "${CMAKE_CURRENT_BINARY_DIR}/multiplayer-prepared-views.json")
         set_tests_properties(native_mcc_multiplayer_prepared_views_tu15 PROPERTIES
             SKIP_RETURN_CODE 77 TIMEOUT 180
-            ENVIRONMENT "HALO2_ENGINE_PREPARED_MATCH=1;HALO2_ENGINE_PREPARED_VIEWS=1;HALO2_ENGINE_WORLD_VARIANT=Slayer")
+            ENVIRONMENT "HALO2_ENGINE_PREPARED_MATCH=1;HALO2_ENGINE_PREPARED_VIEWS=2;HALO2_ENGINE_WORLD_VARIANT=Slayer")
         foreach(mode IN ITEMS ffa team)
             add_test(NAME native_mcc_multiplayer_prepared_${mode}_cap_tu15 COMMAND multiplayer_engines_world_tu15_tests
                 "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}"

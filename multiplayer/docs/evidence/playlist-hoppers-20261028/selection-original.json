@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "cases": 456,
+  "safe_cases": 420,
+  "signed_short_overflow_cases": 36,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "entry": "0x198edb",
+  "stop": "0x3000000",
+  "original_instructions": 150,
+  "instruction_trace_sha256": "3e8437ada11356ff7f38b0d41e3f99a180b5cf67384956c15d42077c42d81e9b",
+  "tool_sha256": "43fe7ac29de6bb711a0869538f34b92adb06e4f95ce7c814717b91f1858d1372",
+  "fixture_sha256": "5b0fa8a010fe4f251a3caa1224bda19c71ec21eaa7148f1e89b306dc689f6c76",
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "scope": "Replay unchanged TU1.5 weighted hopper selection after block-file read.\n\nThe entry at198EDB receives an explicitly synthetic block-read result, block,\ninstalled-map registry and RNG state. The original map predicate, clamp, RNG,\nordered selector,304-byte copy and return paths execute without substitutions.\nThis does not execute filesystem admission, original downloaded hopper data,\nupstream random-state ownership or a complete Live matchmaking call.\nRun through tools/run_test.py; generated work belongs to HALO2_TEST_SCRATCH.\n",
+  "scratch": "/tmp/halo2-test-je_8pr8i",
+  "scratch_retained": false
+}

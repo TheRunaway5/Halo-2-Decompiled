@@ -15,6 +15,7 @@ from pathlib import Path
 from pathlib import PurePosixPath
 import struct
 import subprocess
+import sys
 import tempfile
 
 from audit_rendering import FormatError, file_sha
@@ -206,7 +207,12 @@ def reconstruct_mask(glow, logo):
 def converter(root):
     from installation_paths import resource_root
     root = resource_root(root)
-    for relative in ("bin/halo2_mcc_loading_audio", "dist/builds/linux-x86_64/halo2_mcc_loading_audio", "build/halo2_mcc_loading_audio"):
+    candidates = (("halo2_mcc_loading_audio.exe", "bin/halo2_mcc_loading_audio.exe",
+                   "dist/builds/windows-x86_64/halo2_mcc_loading_audio.exe",
+                   "build-windows/halo2_mcc_loading_audio.exe", "build/halo2_mcc_loading_audio.exe")
+                  if sys.platform == "win32" else
+                  ("bin/halo2_mcc_loading_audio", "dist/builds/linux-x86_64/halo2_mcc_loading_audio", "build/halo2_mcc_loading_audio"))
+    for relative in candidates:
         path = _owned(root / relative, root)
         if path.is_file() and os.access(path, os.X_OK):
             return path

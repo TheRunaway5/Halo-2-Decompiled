@@ -1,9 +1,17 @@
 # Native gathering bridge validation
 
-Production release20261012T022410Z enables the gathering profile in all six
-validation queues. Native source defaults to v8. The installed launchers
-currently select `build-armor-framebuffer-20261012/halo2_native`; disassembly
-confirms its environment options construct the v8 compatibility string.
+The 2026-10-28 Rust gathering/query owner and its
+[current evidence boundary](matchmaking-rust-parity-audit-20261028.md#rust-gathering-and-query-authority)
+supersede the implementation-language descriptions below. Rust now owns the
+registries, advertisement projection, lifecycle and probe-result transitions;
+Python performs temporary typed transport IO. Current source checks do not
+qualify installed or deployed activation. The remaining release account below
+is historical evidence from 2026-10-12.
+
+Production release20261012T022410Z enabled the gathering profile in all six
+validation queues. That cohort used v8. Its installed launchers selected
+`build-armor-framebuffer-20261012/halo2_native`; retained disassembly
+confirmed its environment options constructed the v8 compatibility string.
 Older v7 clients retain account access but cannot enter these queues and see
 these playlists as ineligible. Playlist revisions changed, requiring fresh
 member consent. This restores evidenced selection/lifecycle rules without

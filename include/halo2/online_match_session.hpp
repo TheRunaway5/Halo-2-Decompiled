@@ -97,6 +97,9 @@ public:
   std::vector<unsigned> local_slots() const;
   const std::vector<OnlineAdmission> &roster() const;
   std::string error() const;
+  // Authenticated room departures and failures of previously live direct
+  // connections. Includes every couch seat; local teardown supplies no bits.
+  std::uint16_t departed_players() const;
   // New service completion receipt. False means the surviving owners agreed
   // on presentation, while departed-owner consent prevented history/rank writes.
   // Missing means an older service supplied no publication receipt.

@@ -1,5 +1,6 @@
 """Differential outputs come from unchanged executable bytes, not this port."""
 from dataclasses import replace
+import ctypes
 import gzip
 import hashlib
 import json
@@ -9,6 +10,7 @@ import unittest
 
 from multiplayer.master_server.session_candidates import (
     BANK_SIZE, COUNT, STRIDE, Candidates, Configuration, Search, threshold,
+    native,
 )
 
 
@@ -115,3 +117,48 @@ class SessionCandidateTests(unittest.TestCase):
                 candidates.select(*args)
         with self.assertRaises(ValueError):
             candidates.select(100, 6000, active=1)
+
+    def test_rust_owns_isolated_cache_config_changes_and_handle_retirement(self):
+        case=self.original['banks'][0]
+        first=Candidates(search(case['search']),config(case['config']))
+        second=Candidates(Search(1,10,0,0,-1))
+        self.addCleanup(second.close)
+        expected=bank(case['expected'])
+        self.assertEqual(first.update(bank(case['bank'])),expected)
+        first.config=replace(first.config,rank_high=9999)
+        self.assertEqual(first.update(first.bank),expected)
+        self.assertEqual(second.bank,bytes(BANK_SIZE))
+        handle=first._handle
+        first.close()
+        first.close()
+        output=(ctypes.c_uint8*BANK_SIZE)(*([0xa5]*BANK_SIZE))
+        self.assertFalse(native().h2_candidates_bank(handle,output,BANK_SIZE))
+        self.assertEqual(bytes(output),bytes([0xa5])*BANK_SIZE)
+        row=(ctypes.c_uint8*STRIDE)(*([0xa5]*STRIDE))
+        self.assertEqual(native().h2_candidates_select(handle,0,0,True,row,STRIDE),2)
+        self.assertEqual(bytes(row),bytes([0xa5])*STRIDE)
+        with self.assertRaises(ValueError):first.update(expected)
+        self.assertNotEqual(second._handle,handle)
+
+    def test_invalid_ffi_carriers_leave_output_and_published_cache_unchanged(self):
+        candidates=Candidates(Search(1,10,0,0,-1))
+        self.addCleanup(candidates.close)
+        bad=bytearray(BANK_SIZE)
+        bad[0]=bad[1]=1
+        struct.pack_into('<i',bad,0x70,-1)
+        struct.pack_into('<i',bad,0x5c,128)
+        source=ctypes.create_string_buffer(bytes(bad))
+        output=(ctypes.c_uint8*BANK_SIZE)(*([0xa5]*BANK_SIZE))
+        self.assertFalse(native().h2_candidates_update(candidates._handle,source,BANK_SIZE,output,BANK_SIZE))
+        self.assertEqual(bytes(output),bytes([0xa5])*BANK_SIZE)
+        self.assertEqual(candidates.bank,bytes(BANK_SIZE))
+        for size in (0,BANK_SIZE-1,BANK_SIZE+1):
+            self.assertFalse(native().h2_candidates_update(candidates._handle,source,size,output,BANK_SIZE))
+        bad_json=ctypes.create_string_buffer(b'{}')
+        self.assertEqual(native().h2_candidates_new(bad_json,2),0)
+        self.assertEqual(native().h2_candidates_new(bad_json,16385),0)
+        self.assertFalse(native().h2_candidates_configure(candidates._handle,bad_json,2))
+        scalar=ctypes.c_int32(777)
+        self.assertFalse(native().h2_candidates_threshold(0,0,bad_json,2,ctypes.byref(scalar)))
+        self.assertEqual(scalar.value,777)
+        self.assertEqual(candidates.bank,bytes(BANK_SIZE))

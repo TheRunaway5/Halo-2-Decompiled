@@ -1,0 +1,69 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o/master-source/rust/online_protocol/Cargo.toml",
+        "--test",
+        "matchmaking_catalog",
+        "--test",
+        "matchmaking_results",
+        "--test",
+        "gathering_owner"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_catalog_owner_native",
+        "multiplayer.master_server.tests.test_matchmaking_http",
+        "multiplayer.master_server.tests.test_ranked_results",
+        "multiplayer.master_server.tests.test_casual_results",
+        "multiplayer.master_server.tests.test_result_consent",
+        "multiplayer.master_server.tests.test_clan_matchmaking_http",
+        "multiplayer.master_server.tests.test_results_owner_native",
+        "multiplayer.master_server.tests.test_gathering_owner_native",
+        "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8etj1b0o/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "21b6e41782d342f9b79013a153b81325d1d55ab28cf5a74da4930432f3f95942",
+    "bytes": 1843912,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

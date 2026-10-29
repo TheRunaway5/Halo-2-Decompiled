@@ -41,9 +41,9 @@ Entrance entrance(const Cache &cache,const LevelContent &content,const std::stri
       if(!tag || (owner=="teleporter" ? !tag->name.ends_with("\\2way_teleporter") :
           owner=="sound-scenery"?placed.type!=10:!tag->name.ends_with(paths.at(owner))))continue;
       if(owner=="lift") {
-        // The actual authored lower phantom hull is a declared birth-position
-        // input. Original contact, force, activation and loop controls still
-        // run normally; neither a lift result nor a sound request is supplied.
+        // The actual authored lower phantom hull is a declared post-birth
+        // position input. Original contact, force, activation and loop controls
+        // still run normally; neither a lift result nor a sound request is supplied.
         const auto object=cache.load_source_tag_metadata(placed.definition);
         const Bytes object_root(object.bytes_at(object.source_address(),object.size()));
         const auto model=cache.load_source_tag_metadata(object_root.u32(0x38));
@@ -132,11 +132,13 @@ int main(int argc,char **argv) {
     options.local_players=(packets_mode||mode.starts_with("native-views"))?2:1;
     options.starting_weapon=5;options.source_object_world=true;options.mute=true;
     options.session_random_seed=0x22a0d10u;
-    Vec3 entry_point;std::set<std::uint32_t> target_loops;std::uint32_t target_definition=null_datum;
+    Vec3 entry_point;std::optional<Spawn> lift_spawn;
+    std::set<std::uint32_t> target_loops;std::uint32_t target_definition=null_datum;
     {
       Cache cache(options.map,options.shared_maps);
       const auto content=cache.load_content(0,true,source_game_variant(options.variant));
-      const auto setup=entrance(cache,content,owner);options.native_spawn_inputs={setup.spawn};
+      const auto setup=entrance(cache,content,owner);
+      if(owner=="lift")lift_spawn=setup.spawn;else options.native_spawn_inputs={setup.spawn};
       entry_point=setup.point;target_definition=setup.definition;
       report["declared_entry_spawn"]={setup.spawn.position.x,setup.spawn.position.y,setup.spawn.position.z};
       report["authored_entry_point"]={setup.point.x,setup.point.y,setup.point.z};
@@ -157,6 +159,70 @@ int main(int argc,char **argv) {
     auto &source=*world.source_objects;auto &native=source.tu15_world();
     const auto native_audio_locations=world.cache->load_bsp_atmosphere(0);
     auto &memory=native.memory();
+    std::optional<float> placed_lift_height;
+    if(lift_spawn) {
+      check(options.native_spawn_inputs.empty() && world.match.source_engine_owned(),
+          "Local lift fixture requires canonical source-engine birth before placement");
+      auto born=world.match.state();unsigned birth_wait_ticks{};
+      const auto ready=[&] {
+        return std::ranges::all_of(world.local_slots,[&](auto slot) {
+          const auto& player=born.players[slot];
+          return player.source_unit!=null_datum && !player.dead && player.first_person_pose.has_value();
+        });
+      };
+      while(!ready() && birth_wait_ticks<3u) {
+        world.match.step({});++birth_wait_ticks;born=world.match.state();
+      }
+      check(world.local_slots.size()==options.local_players && ready(),
+          "Canonical local lift birth omitted an actual local unit or completed FP packet");
+      Json birth_rows=Json::array();std::vector<Vec3> before_placement;
+      for(unsigned view=0;view<world.local_slots.size();++view) {
+        const auto slot=world.local_slots[view];const auto& player=born.players[slot];
+        const auto& temporal=player.first_person_pose->temporal;
+        const auto row=word(memory,word(memory,0x4f54f4u)+0x44u)+(player.source_player&65535u)*0x21cu;
+        const auto input_user=word(memory,row+0x24u),local_view=word(memory,row+0x28u,2);
+        check((word(memory,row,2)<<16 | (player.source_player&65535u))==player.source_player &&
+            input_user==view && local_view==view && source.first_person_view(view).unit==player.source_unit &&
+            temporal.generation && temporal.source_tick+1u==born.tick &&
+            temporal.identity.player==player.source_player && temporal.identity.unit==player.source_unit,
+            "Canonical local lift birth lost its full player/unit/view/input/FP identity");
+        before_placement.push_back(source.biped_motion(player.source_unit).position);
+        birth_rows.push_back({{"slot",slot},{"view",view},{"input_user",input_user},
+            {"player",player.source_player},{"unit",player.source_unit},
+            {"packet_source_tick",temporal.source_tick},{"packet_generation",temporal.generation}});
+      }
+      report["lift_native_birth"]={{"canonical_source_engine_owned",true},
+          {"completed_tick",born.tick},{"additional_wait_ticks",birth_wait_ticks},{"local_players",birth_rows}};
+      const auto same_point=[](Vec3 a,Vec3 b) {
+        return std::bit_cast<std::uint32_t>(a.x)==std::bit_cast<std::uint32_t>(b.x) &&
+            std::bit_cast<std::uint32_t>(a.y)==std::bit_cast<std::uint32_t>(b.y) &&
+            std::bit_cast<std::uint32_t>(a.z)==std::bit_cast<std::uint32_t>(b.z);
+      };
+      const auto slot=world.local_slots.at(0),unit=born.players[slot].source_unit;
+      // The complete original B95D0 API moves only this genuinely born unit.
+      // Capture its actual result before stepping; Match still publishes its
+      // pre-placement position until the next completed native source phase.
+      native.set_object_position(unit,lift_spawn->position);
+      const auto placed=source.biped_motion(unit).position;
+      check(same_point(placed,lift_spawn->position),"Original B95D0 did not deliver the declared lower lift position");
+      for(unsigned view=1;view<world.local_slots.size();++view)
+        check(same_point(source.biped_motion(born.players[world.local_slots[view]].source_unit).position,before_placement[view]),
+            "Local lift placement moved another actual local player");
+      placed_lift_height=placed.z;
+      report["lift_native_placement"]={{"canonical_birth_then_b95d0",true},{"view",0},{"slot",slot},{"unit",unit},
+          {"source_tick",born.tick},{"actual_position",{placed.x,placed.y,placed.z}},
+          {"actual_height_before_next_step",placed.z},{"other_local_units_unchanged",true}};
+      world.match.step({});const auto completed=world.match.state();
+      const auto& player=completed.players[slot];
+      check(completed.tick==born.tick+1u && player.source_unit==unit && !player.dead && player.first_person_pose &&
+          player.first_person_pose->temporal.identity.player==born.players[slot].source_player &&
+          player.first_person_pose->temporal.identity.unit==unit &&
+          player.first_person_pose->temporal.source_tick+1u==completed.tick &&
+          same_point(player.position,source.biped_motion(unit).position),
+          "Local lift placement lost its genuine completed source/FP continuation");
+      report["lift_native_placement"]["first_completed_tick"]=completed.tick;
+      report["lift_native_placement"]["first_completed_position"]={player.position.x,player.position.y,player.position.z};
+    }
     std::uint32_t target_object=null_datum;
     const auto select_target=[&](unsigned tick) {
       if(target_definition==null_datum||target_object!=null_datum)return;
@@ -346,7 +412,7 @@ int main(int argc,char **argv) {
     }
     std::array<Controls,multiplayer_capacity> commands{};
     const auto initial=world.match.state();const auto slot=world.local_slots.at(0);
-    const float initial_height=initial.players[slot].position.z;float peak_height=initial_height;
+    const float initial_height=placed_lift_height.value_or(initial.players[slot].position.z);float peak_height=initial_height;
     commands[slot].yaw=initial.players[slot].yaw;commands[slot].pitch=initial.players[slot].pitch;
     const auto look=entry_point-(initial.players[slot].position+Vec3{0,0,world.content.player.camera_height});
     commands[slot].pitch=std::atan2(look.z,std::hypot(look.x,look.y));

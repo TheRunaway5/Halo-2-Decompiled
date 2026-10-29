@@ -9,6 +9,7 @@
 #include "halo2/source_effect_particle_frame_tu15.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_network_session_startup_tu15.hpp"
+#include "helpers/native_campaign_perception_default_ownership.hpp"
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -346,6 +347,35 @@ int main(int argc,char** argv)try {
         check(rejected&&partial.checkpoint()==prior,"Multiplayer branch admission changed or accepted a conflicting owner");
     }
     auto memory=native_tu15_world_memory(input);
+    // Authenticated21b207e7... D3D section flags7: exact eight file-backed
+    // bytes4117E0..E7 are zero. They are requested-AA inputs, not a device
+    // pointer or a completed hardware/default-state initialization result.
+    check(word(memory,0x4117e0u)==0 && word(memory,0x4117e4u)==0 &&
+        !memory.is_read_only(0x4117e0u,8),
+        "Original SDK requested-AA inputs lack their mutable cold owner");
+    {
+        const auto regions=memory.checkpoint().regions;
+        const auto owner=std::ranges::find(regions,0x4117e0u,
+            &SourceRuntimeMemory::CheckpointRegion::address);
+        check(owner!=regions.end() && owner->bytes.size()==8,
+            "SDK requested-AA storage admitted unrelated device state");
+        SourceRuntimeMemory changed;changed.restore(memory.checkpoint());
+        const std::array<std::uint32_t,2> requested{2,5};
+        changed.write(0x4117e0u,std::as_bytes(std::span(requested)));
+        SourceRuntimeMemory restored;restored.restore(changed.checkpoint());
+        check(word(restored,0x4117e0u)==2 && word(restored,0x4117e4u)==5,
+            "Checkpoint restore replaced actual requested-AA writes with cold defaults");
+        for(const auto address:{0x4117e0u,0x4117e4u,0x4117e7u}) {
+            SourceRuntimeMemory foreign;
+            foreign.mount(address,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,
+                "foreign requested-AA owner");
+            const auto before=foreign.checkpoint();bool rejected=false;
+            try{mount_native_tu15_renderer_startup_data(foreign);}
+            catch(const std::invalid_argument&){rejected=true;}
+            check(rejected && foreign.checkpoint()==before,
+                "Requested-AA conflict caused partial renderer startup publication");
+        }
+    }
     check_portal_empty_bounds(memory);
     // Pinned21b207e7... original167CAB/16821D and151570 operands.
     // The high-bounce Dire Valley map exercises the formerly missing first
@@ -507,6 +537,7 @@ int main(int argc,char** argv)try {
             "Original direct-consumer vector alias lost its authored value or writable section access");
         check(memory.is_read_only(target,12),"Vector alias lost its existing authored constant backing");
     }
+    halo2::test::perception_default_ownership(memory);
     check(word(memory,0x411568u)==0&&!memory.is_read_only(0x411568u,4),
         "Original405801 cold SDK device cell lost its loader-zero writable owner");
     check(word(memory,0x52be40u)==0&&!memory.is_read_only(0x52be40u,4),

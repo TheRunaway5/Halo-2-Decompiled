@@ -334,6 +334,10 @@ bool NativeVistaOfflineFlow::supports(const FrontendLaunch& launch) {
   if(!launch.multiplayer || launch.campaign || !launch.local_players || launch.local_players>4 || launch.host_port ||
       launch.online_match || launch.selected_profiles.size()!=launch.local_players)return false;
   try {
+    // Native extension writes are outside the original variant buffer. The
+    // recovered PC lifecycle cannot infer their custom-rule authority from
+    // the underlying Slayer/Assault type alone.
+    if(custom_slayer(launch.variant)!=CustomSlayer::none || bomb_defusal_variant(launch.variant))return false;
     const auto variant=source_game_variant(launch.variant);
     const auto type=source_game_variant_type(variant);
     if(type==1 || type==9) {

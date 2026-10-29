@@ -1,6 +1,7 @@
 #include "source_effect_light_gpu_fixture.hpp"
 #include "halo2/source_hologram_material.hpp"
 #include "halo2/source_scene_copy_gpu.hpp"
+#include "halo2/source_world_draw_storage.hpp"
 #include "halo2/menu_world_native_packet.hpp"
 #include "halo2/menu_world_vertex_source.hpp"
 #include "halo2/model.hpp"
@@ -77,7 +78,8 @@ fixture::Image unused_image(fixture::Gpu &g,bool cube) {
 int main(int argc,char **argv)try {
     const bool triangle_only=argc==5&&std::string_view(argv[4])=="--triangle-carrier";
     const bool depth_differential=argc==5&&std::string_view(argv[4])=="--depth-differential";
-    fixture::require(argc==4||triangle_only||depth_differential,"Supply original opening map, shader directory, report and optional --triangle-carrier or --depth-differential");
+    const bool temporal_raster=argc==5&&std::string_view(argv[4])=="--temporal-raster";
+    fixture::require(argc==4||triangle_only||depth_differential||temporal_raster,"Supply original opening map, shader directory, report and optional --triangle-carrier, --depth-differential or --temporal-raster");
     const auto started=std::chrono::steady_clock::now();
     const auto checkpoint=[&](const std::string &phase,unsigned completed=0) {
         if(!depth_differential)return;
@@ -143,12 +145,13 @@ int main(int argc,char **argv)try {
     std::array<VkImageView,4> views{copy_binding.view};
     for(unsigned s=1;s<4;++s)views[s]=texture(g,*shapes[s]).view;
     const auto cube=unused_image(g,true),volume=unused_image(g,false);
-    VkDescriptorSetLayoutBinding bindings[7]{};
+    VkDescriptorSetLayoutBinding bindings[8]{};
     for(unsigned n=0;n<7;++n)bindings[n]={n,n==4?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,n>=5?4u:1u,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
-    VkDescriptorSetLayoutCreateInfo dl{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};dl.bindingCount=7;dl.pBindings=bindings;
+    bindings[7]={7,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT,nullptr};
+    VkDescriptorSetLayoutCreateInfo dl{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};dl.bindingCount=8;dl.pBindings=bindings;
     fixture::check(vkCreateDescriptorSetLayout(g.device,&dl,nullptr,&g.descriptor_layout));
-    const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,1},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,12}};
-    VkDescriptorPoolCreateInfo dp{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};dp.maxSets=1;dp.poolSizeCount=2;dp.pPoolSizes=sizes;
+    const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,1},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,12}};
+    VkDescriptorPoolCreateInfo dp{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};dp.maxSets=1;dp.poolSizeCount=3;dp.pPoolSizes=sizes;
     fixture::check(vkCreateDescriptorPool(g.device,&dp,nullptr,&g.descriptors));
     VkDescriptorSet set;VkDescriptorSetAllocateInfo da{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};da.descriptorPool=g.descriptors;da.descriptorSetCount=1;da.pSetLayouts=&g.descriptor_layout;
     fixture::check(vkAllocateDescriptorSets(g.device,&da,&set));
@@ -173,6 +176,13 @@ int main(int argc,char **argv)try {
         if(n<4)w.pImageInfo=&two[n];else if(n==4)w.pBufferInfo=&buffer;else w.pImageInfo=n==5?cubes.data():volumes.data();
     }
     vkUpdateDescriptorSets(g.device,7,writes,0,nullptr);
+    const PackedVertexProgramBank unused_bank{};
+    const auto bank_buffer=g.buffer(sizeof(unused_bank),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    std::memcpy(bank_buffer.mapped,&unused_bank,sizeof(unused_bank));
+    const VkDescriptorBufferInfo bank_info{bank_buffer.handle,0,sizeof(unused_bank)};
+    VkWriteDescriptorSet bank_write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};bank_write.dstSet=set;
+    bank_write.dstBinding=7;bank_write.descriptorCount=1;bank_write.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bank_write.pBufferInfo=&bank_info;vkUpdateDescriptorSets(g.device,1,&bank_write,0,nullptr);
     MenuWorldNativePacketInput input{binding,generated_menu_world_vertex_catalog::entries,uniform};
     input.fragment_offsets=m.forward_program.fragment_offsets;input.forward=m.forward_raster;
     input.forward.cull=0;input.forward.depth_enable=0;input.forward.depth_write=0; // Declared diagnostic raster.
@@ -228,6 +238,63 @@ int main(int argc,char **argv)try {
         }
     }
     checkpoint("color_controls_complete");
+    unsigned bitmap_isolation_cases=0,bitmap_changed_channels=0;
+    if(temporal_raster) {
+        // Two owners share one original pass/resident set but bind different
+        // completed pages. Copy the full production dimensional bank and
+        // retain external stage0. Re-record owner0 after owner1 to expose any
+        // descriptor mutation leaking through the shared material slot.
+        constexpr unsigned stage=1;
+        fixture::require(((uniform.program[54]>>(stage*5))&31u)!=0,"bitmap isolation requires the original active stage1");
+        const std::array<Texture,2> pages{{{1,1,11,{std::byte{255},std::byte{255},std::byte{255},std::byte{255}},{}},
+            {1,1,11,{std::byte{0},std::byte{0},std::byte{0},std::byte{0}},{}}}};
+        const std::array<fixture::Image,2> images{texture(g,pages[0]),texture(g,pages[1])};
+        SourceWorldDrawStorage storage({g.device,g.physical,g.descriptor_layout,sizeof(uniform)});
+        std::array<SourceWorldDrawUpload,2> uploads;
+        for(unsigned owner=0;owner<2;++owner) {
+            auto& upload=uploads[owner];upload.resident=set;
+            upload.material_uniform=std::as_bytes(std::span{&uniform,1});upload.vertex_bank.range={34,158,0,0};
+            upload.target_view=copy_binding.view;upload.target_sampler=two[0].sampler;
+            upload.stage_images[stage]=SourceWorldDrawStageImages{two[stage].sampler,images[owner].view,cube.view,volume.view};
+        }
+        const auto descriptors=storage.upload(uploads);
+        std::vector<MenuWorldNativeDrawInput> frame_packets;
+        for(unsigned owner=0;owner<2;++owner) {
+            auto selected=input;selected.material_set=descriptors[owner];selected.images[stage]=&pages[owner];
+            selected.forward_blend=0;selected.forward.color_write=0x01010101u;
+            frame_packets.push_back(menu_world_native_packet(selected));
+        }
+        MenuWorldNativeDrawContext context{g.device,g.physical,load,g.descriptor_layout,VK_API_VERSION_1_3,
+            g.geometry_enabled,g.geometry_enabled,true,true,argv[2]};
+        context.strict_shader_math_enabled=g.strict_shader_math;
+        MenuWorldNativeDraw renderer(context);renderer.prepare(frame_packets);
+        std::array<std::vector<unsigned char>,3> observed;
+        for(unsigned sample=0;sample<3;++sample) {
+            fixture::check(vkResetFences(g.device,1,&fence));
+            scene_copy.prepare({{{0,0,480,640},320,240,.01f,1024.f},{640,480},extent});
+            g.begin();VkClearValue values[2]{};values[0].color={{29.f/255,71.f/255,113.f/255,197.f/255}};values[1].depthStencil={1,0};
+            VkRenderPassBeginInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};pass.renderPass=clear;pass.framebuffer=fb;
+            pass.renderArea.extent=extent;pass.clearValueCount=2;pass.pClearValues=values;
+            vkCmdBeginRenderPass(g.command,&pass,VK_SUBPASS_CONTENTS_INLINE);vkCmdEndRenderPass(g.command);
+            scene_copy.record({g.device,g.command,color.handle,VK_FORMAT_R8G8B8A8_UNORM,extent,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_SAMPLE_COUNT_1_BIT,1,1,g.family,fence,true,true});
+            pass.renderPass=load;pass.clearValueCount=0;pass.pClearValues=nullptr;
+            vkCmdBeginRenderPass(g.command,&pass,VK_SUBPASS_CONTENTS_INLINE);
+            const VkViewport vp{0,0,640,480,0,1};const VkRect2D rect{{0,0},extent};
+            vkCmdSetViewport(g.command,0,1,&vp);vkCmdSetScissor(g.command,0,1,&rect);
+            renderer.record(g.command,sample==1?1:0);vkCmdEndRenderPass(g.command);
+            g.readback(color.handle,extent,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,rb);
+            fixture::check(vkEndCommandBuffer(g.command));VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};submit.commandBufferCount=1;submit.pCommandBuffers=&g.command;
+            fixture::check(vkQueueSubmit(g.queue,1,&submit,fence));fixture::check(vkWaitForFences(g.device,1,&fence,VK_TRUE,5000000000ull));
+            fixture::require(scene_copy.retire(),"bitmap isolation source copy did not complete");
+            const auto* bytes=static_cast<const unsigned char*>(rb.mapped);observed[sample].assign(bytes,bytes+640*480*4);
+            ++bitmap_isolation_cases;
+        }
+        fixture::require(observed[0]==observed[2],"another owner's selected page changed the first draw");
+        for(unsigned n=0;n<observed[0].size();++n)bitmap_changed_channels+=observed[0][n]!=observed[1][n];
+        fixture::require(bitmap_changed_channels>100,"two completed bitmap pages did not produce distinct original-program output");
+    }
     unsigned depth_cases=0,depth_coverage_pixels=0;
     if(triangle_only) {
         // The explicit diagnostic c3 row above makes every source W exactly 1.
@@ -301,7 +368,7 @@ int main(int argc,char **argv)try {
         }
     }
     nlohmann::json gradient_reports=nlohmann::json::array();
-    if(depth_differential) {
+    if(depth_differential || temporal_raster) {
         // Same-device original GS/D24, triangle/D24 and triangle/canonical-D32.
         // These declared view/bias controls are not an original camera/pose or
         // a cross-GPU coverage oracle. No production shader arithmetic changes.
@@ -313,7 +380,7 @@ int main(int argc,char **argv)try {
             std::unique_ptr<MenuWorldNativeDraw> renderer;
         };
         std::vector<Target> targets;
-        for(unsigned mode=0;mode<3;++mode) {
+        for(unsigned mode=0;mode<(temporal_raster?1u:3u);++mode) {
             const auto format=mode==2?VK_FORMAT_D32_SFLOAT_S8_UINT:VK_FORMAT_D24_UNORM_S8_UINT;
             Target target;
             target.color=g.image(extent,VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -337,10 +404,13 @@ int main(int argc,char **argv)try {
             {0,0,2/(maxz-minz),.75f-2*minz/(maxz-minz)}}};
         const std::array<std::array<float,2>,7> biases{{{0,0},{0,.75f},{0,-.75f},
             {128,0},{-128,0},{0,float(source_d24_maximum)},{0,-float(source_d24_maximum)}}};
-        const auto draw=[&](Target &target,unsigned mode,unsigned clear_depth) {
+        const auto draw=[&](Target &target,unsigned mode,unsigned clear_depth,
+                            std::array<float,2> jitter=std::array<float,2>{},bool correct_offset=true) {
             const bool trace=(gradient_reports.size()<48 && clear_depth==0) || gradient_reports.size()%48==0;
             if(trace)checkpoint("preparing_mode_"+std::to_string(mode),gradient_reports.size());
-            const auto packet=menu_world_native_packet(input);target.renderer->prepare(std::span(&packet,1));
+            auto packet=menu_world_native_packet(input);
+            if(correct_offset)packet.raster_offset=jitter;
+            target.renderer->prepare(std::span(&packet,1));
             if(trace)checkpoint("recording_mode_"+std::to_string(mode),gradient_reports.size());
             fixture::check(vkResetFences(g.device,1,&fence));
             scene_copy.prepare({{{0,0,480,640},320,240,.01f,1024.f},{640,480},extent});
@@ -355,7 +425,7 @@ int main(int argc,char **argv)try {
                 VK_SAMPLE_COUNT_1_BIT,1,1,g.family,fence,true,true});
             pass.renderPass=target.load;pass.clearValueCount=0;pass.pClearValues=nullptr;
             vkCmdBeginRenderPass(g.command,&pass,VK_SUBPASS_CONTENTS_INLINE);
-            const VkViewport vp{0,0,640,480,0,1};const VkRect2D rect{{0,0},extent};
+            const VkViewport vp{jitter[0],jitter[1],640,480,0,1};const VkRect2D rect{{0,0},extent};
             vkCmdSetViewport(g.command,0,1,&vp);vkCmdSetScissor(g.command,0,1,&rect);
             target.renderer->record(g.command,0);vkCmdEndRenderPass(g.command);
             g.readback(target.color.handle,extent,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,target.rgba);
@@ -382,7 +452,51 @@ int main(int argc,char **argv)try {
             fixture::check(vkWaitForFences(g.device,1,&fence,VK_TRUE,5000000000ull));
             fixture::require(scene_copy.retire(),"differential depth copy/draw fence did not retire");
         };
-        for(unsigned profile=0;profile<profiles.size();++profile) {
+        if(temporal_raster) {
+            auto bank=constants;bank[3]=profiles[1];
+            binding=menu_world_source_binding_class(cache,binding.owner(),binding.draw(),authored.pass.vertex_shader(),1,bank);
+            input.forward.depth_enable=2;input.forward.depth_write=1;
+            input.forward.depth_function=0x207;input.forward_blend=0;
+            input.raster.depth_factor_offset={0,0};
+            auto& target=targets.front();
+            const auto words=[&] {
+                const auto* data=static_cast<const std::uint32_t*>(target.words.mapped);
+                return std::vector<std::uint32_t>(data,data+640*480);
+            };
+            draw(target,0,source_d24_maximum);const auto base=words();
+            draw(target,0,source_d24_maximum,{1,0});const auto shifted=words();
+            draw(target,0,source_d24_maximum,{1,0},false);const auto missing=words();
+            std::size_t checked=0,translation_errors=0,negative_differences=0;
+            for(unsigned y=0;y<480;++y)for(unsigned x=1;x<640;++x) {
+                const auto at=y*640+x;
+                const auto expected=base[at-1]&source_d24_maximum;
+                translation_errors+=(shifted[at]&source_d24_maximum)!=expected;
+                negative_differences+=(missing[at]&source_d24_maximum)!=(shifted[at]&source_d24_maximum);
+                checked+=expected!=source_d24_maximum;
+            }
+            fixture::require(checked>100,"temporal raw W plane has no useful coverage");
+            fixture::require(!translation_errors,"temporal raw W reconstruction did not preserve the translated source samples");
+            fixture::require(negative_differences>0,"omitted temporal raster offset did not expose the depth defect");
+            gradient_reports.push_back({{"temporal_raster",true},{"jitter",{1,0}},
+                {"checked_covered_pixels",checked},{"translation_errors",translation_errors},
+                {"missing_offset_depth_differences",negative_differences}});
+            // A native source viewport translation is an independent
+            // subpixel control: shifting c11 by an exact1/16-pixel multiple
+            // must agree with the post-quantization Vulkan raster offset.
+            const std::array<float,2> fractional{.375f,-.25f};
+            draw(target,0,source_d24_maximum,fractional);const auto jittered=words();
+            auto translated=bank;
+            translated[11][0]+=fractional[0];translated[11][1]+=fractional[1];
+            binding=menu_world_source_binding_class(cache,binding.owner(),binding.draw(),authored.pass.vertex_shader(),1,translated);
+            draw(target,0,source_d24_maximum);const auto source_translated=words();
+            std::size_t fractional_errors=0;
+            for(unsigned at=0;at<640*480;++at)
+                fractional_errors+=(jittered[at]&source_d24_maximum)!=(source_translated[at]&source_d24_maximum);
+            fixture::require(!fractional_errors,"temporal subpixel offset differs from the native source viewport translation");
+            gradient_reports.push_back({{"temporal_raster",true},{"jitter",fractional},
+                {"native_viewport_depth_differences",fractional_errors}});
+        }
+        for(unsigned profile=0;!temporal_raster && profile<profiles.size();++profile) {
             auto bank=constants;bank[3]=profiles[profile];
             binding=menu_world_source_binding_class(cache,binding.owner(),binding.draw(),authored.pass.vertex_shader(),1,bank);
             for(const auto bias:biases) {
@@ -456,6 +570,7 @@ int main(int argc,char **argv)try {
     const nlohmann::json report{{"color_fnv64",color_hashes},{"triangle_vertices_exact",triangle_only?nlohmann::json(nullptr):nlohmann::json(true)},{"triangle_only",triangle_only},{"geometry_shader_enabled",g.geometry_enabled},{"strict_shader_math_enabled",g.strict_shader_math},{"depth_format",depth_format},{"validation_layer_active",g.validation},{"passed",true},{"device",properties.deviceName},{"covered_pixels",covered},
         {"partial_alpha_pixels",partial_alpha},{"checked_channels",channels},{"maximum_byte_error",maximum},{"depth_comparison_cases",depth_cases},{"depth_coverage_pixels",depth_coverage_pixels},
         {"validation_errors",fixture::validation_errors},{"target19_prebound_then_produced",true},
+        {"bitmap_isolation_cases",bitmap_isolation_cases},{"bitmap_changed_channels",bitmap_changed_channels},
         {"depth_differential_pairs",{"GS_D24_vs_triangle_D24","triangle_D24_vs_triangle_D32"}},{"depth_differential_cases",gradient_reports},
         {"scope","Actual original rigid Regret resource/program/material through native scene-copy and raw draw; explicit diagnostic camera/palette/raster/background, not live group/body ordering or Xbox GPU pixels"},
         {"large_artifacts_retained",nlohmann::json::array()}};

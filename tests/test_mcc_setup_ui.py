@@ -11,14 +11,159 @@ import sys
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from setup_assets_ui import SetupProcess, SourceSelector
+from setup_pipe import read_available
+from file_lock import file_lock
 
 
 TOOLS = Path(__file__).resolve().parents[1] / 'tools'
+
+
+class SetupPipeTests(unittest.TestCase):
+    def test_idle_data_and_eof_are_distinct_and_bounded(self):
+        read, write = os.pipe()
+        try:
+            started = time.monotonic()
+            self.assertIsNone(read_available(read, 4096, .025))
+            self.assertLess(time.monotonic() - started, 1)
+            os.write(write, b'progress\n')
+            self.assertEqual(read_available(read, 4, .1), b'prog')
+            self.assertEqual(read_available(read, 4096, .1), b'ress\n')
+            os.close(write); write = None
+            self.assertEqual(read_available(read, 4096, .1), b'')
+        finally:
+            os.close(read)
+            if write is not None:
+                os.close(write)
+
+    def test_invalid_descriptor_is_an_error_not_eof(self):
+        with self.assertRaises((OSError, ValueError)):
+            read_available(-1, 4096, 0)
+
+    def test_exited_child_with_inherited_open_stdout_cannot_report_success_or_hang(self):
+        read, write = os.pipe()
+        worker = SetupProcess(Path.cwd(), queue.Queue())
+        worker.process = SimpleNamespace(stdout=os.fdopen(read, 'rb'), stdin=None,
+                                         poll=lambda: 0, wait=lambda: 0)
+        worker.reader = threading.Thread(target=worker._read, args=(worker.process,))
+        reader = worker.reader
+        reader.start()
+        try:
+            started = time.monotonic()
+            worker.poll()
+            self.assertLess(time.monotonic() - started, 1)
+            self.assertFalse(reader.is_alive())
+            self.assertIsNone(worker.process)
+            self.assertIsNone(worker.reader)
+            result = worker.events.get_nowait()
+            self.assertEqual(result[0], 'error')
+            self.assertIn('output did not close', result[1])
+            self.assertTrue(worker.events.empty())
+        finally:
+            os.close(write)
+            worker.shutdown()
+
+
+class SetupFileLockTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix='halo2-setup-lock-',
+                                                     dir=os.environ.get('HALO2_TEST_SCRATCH'))
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.path = self.root / 'owned.lock'
+        self.fd = os.open(self.path, os.O_RDWR | os.O_CREAT, 0o600)
+        self.addCleanup(os.close, self.fd)
+
+    def child(self, mode):
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,TOOLS)
+from file_lock import file_lock
+path=Path(sys.argv[1]);mode=sys.argv[2]
+fd=os.open(path,os.O_RDWR)
+try:
+    if mode=='wait': path.with_suffix('.waiting').touch()
+    with file_lock(fd,shared=mode=='shared',blocking=mode=='wait'):
+        path.with_suffix('.acquired').touch()
+except BlockingIOError: raise SystemExit(23)
+finally: os.close(fd)
+'''.replace('TOOLS', repr(str(TOOLS)))
+        return subprocess.Popen([sys.executable, '-B', '-c', script, str(self.path), mode],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def attempt(self, mode):
+        with self.child(mode) as process:
+            stdout, stderr = process.communicate(timeout=20)
+            self.assertEqual(stdout, b'')
+            self.assertEqual(stderr, b'')
+            return process.returncode
+
+    def test_exclusive_lock_excludes_another_process_and_release_allows_retry(self):
+        os.lseek(self.fd, 7, os.SEEK_SET)
+        with file_lock(self.fd):
+            self.assertEqual(self.attempt('exclusive'), 23)
+            self.assertEqual(self.attempt('shared'), 23)
+            self.assertEqual(os.lseek(self.fd, 0, os.SEEK_CUR), 7)
+        self.assertEqual(self.attempt('exclusive'), 0)
+
+    def test_shared_lock_allows_other_readers_and_excludes_a_writer(self):
+        with file_lock(self.fd, shared=True):
+            self.assertEqual(self.attempt('shared'), 0)
+            self.assertEqual(self.attempt('exclusive'), 23)
+
+    def test_actual_mcc_bank_lock_excludes_another_importer(self):
+        from mcc_movies import _lock
+        self.path = self.root / '.bundled-movies.lock'
+        with _lock(self.root):
+            self.assertEqual(self.attempt('exclusive'), 23)
+        self.assertEqual(self.attempt('exclusive'), 0)
+
+    def test_blocking_acquisition_waits_for_the_kernel_lock_then_proceeds(self):
+        process = None
+        try:
+            with file_lock(self.fd):
+                process = self.child('wait')
+                deadline = time.monotonic() + 20
+                while not self.path.with_suffix('.waiting').exists() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue(self.path.with_suffix('.waiting').exists())
+                self.assertFalse(self.path.with_suffix('.acquired').exists())
+                self.assertIsNone(process.poll())
+            stdout, stderr = process.communicate(timeout=20)
+            self.assertEqual((process.returncode, stdout, stderr), (0, b'', b''))
+            self.assertTrue(self.path.with_suffix('.acquired').exists())
+        finally:
+            if process is not None:
+                if process.poll() is None:
+                    process.kill(); process.wait(timeout=5)
+                process.stdout.close(); process.stderr.close()
+
+    def test_reused_publication_helper_does_not_replace_an_existing_owner(self):
+        from mcc_prepared_cache_delta import _publish
+        source, target = self.root / 'source', self.root / 'target'
+        source.mkdir(); target.mkdir()
+        with self.assertRaises(FileExistsError):
+            _publish(source, target)
+        self.assertTrue(source.is_dir())
+        self.assertTrue(target.is_dir())
+        target.rmdir()
+        _publish(source, target)
+        self.assertFalse(source.exists())
+        self.assertTrue(target.is_dir())
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows import and Linux-only research boundary')
+    def test_windows_imports_research_helpers_without_claiming_linux_reflinks(self):
+        from mcc_prepared_cache_delta import _transaction
+        from prepare_mcc_elongation_glass import allocated_unshared
+        with self.assertRaisesRegex(ValueError, 'requires Linux FICLONE'):
+            _transaction(self.root / 'absent', self.root / 'new', lambda *args: None)
+        self.assertIsNone(allocated_unshared(self.path))
+        self.assertFalse((self.root / 'new').exists())
 
 
 class SetupFixture:
@@ -43,6 +188,14 @@ def operation(root, source=None, **kwargs):
         raise ValueError('tiny fixture import failed')
     if mode=='quick':
         print('tiny setup complete')
+        return
+    if mode=='lock-wait':
+        from file_lock import file_lock
+        fd=os.open(root/'setup.lock',os.O_RDWR|os.O_CREAT,0o600)
+        try:
+            (root/'ready').touch()
+            with file_lock(fd): (root/'unexpected-acquire').touch()
+        finally: os.close(fd)
         return
     pending=root/'.owned-partial'; pending.write_bytes(b'partial')
     if mode=='ignore': signal.signal(signal.SIGTERM,signal.SIG_IGN)
@@ -98,6 +251,19 @@ raise SystemExit(main())
 
 
 class SetupProcessTests(SetupFixture, unittest.TestCase):
+    def test_owner_eof_cancels_a_writer_waiting_for_another_importer_lock(self):
+        fd = os.open(self.root / 'setup.lock', os.O_RDWR | os.O_CREAT, 0o600)
+        try:
+            with file_lock(fd):
+                process = self.start_worker('lock-wait')
+                self.wait_until(lambda: (self.root / 'ready').exists())
+                self.worker.shutdown()
+            self.assertEqual(process.returncode, 143)
+            self.assertFalse((self.root / 'unexpected-acquire').exists())
+            self.preserved()
+        finally:
+            os.close(fd)
+
     def test_separate_resources_keep_cli_and_writes_with_their_owners(self):
         from installation_paths import ENVIRONMENT, SCHEMA
         resources = self.root.parent / 'signed resources'
@@ -129,8 +295,11 @@ class SetupProcessTests(SetupFixture, unittest.TestCase):
         self.assertFalse(reader.is_alive())
         self.assertTrue((self.root / 'cleaned').exists())
         self.preserved()
-        with self.assertRaises(ProcessLookupError):
-            os.kill(process.pid, 0)
+        if os.name == 'posix':
+            with self.assertRaises(ProcessLookupError):
+                os.kill(process.pid, 0)
+        else:
+            self.assertIsNotNone(process.poll())
 
     def test_failure_stream_is_bounded_and_retry_restores_custom_handlers(self):
         old = {n: signal.getsignal(n) for n in (signal.SIGINT, signal.SIGTERM)}
@@ -152,6 +321,7 @@ class SetupProcessTests(SetupFixture, unittest.TestCase):
             self.stop_worker()
             for n, handler in old.items(): signal.signal(n, handler)
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX delivery race; Windows cancellation uses owner-pipe EOF')
     def test_signal_between_creation_and_publication_cannot_orphan_child(self):
         children = []
         before = signal.getsignal(signal.SIGTERM)
@@ -179,6 +349,7 @@ class SetupProcessTests(SetupFixture, unittest.TestCase):
         self.assertEqual(self.terminal_event()[0], 'done')
         self.preserved()
 
+    @unittest.skipUnless(os.name == 'posix', 'POSIX interpreter wrapper')
     def test_bundled_wrapper_and_relative_source_are_preserved(self):
         wrapper = self.root / 'python/bin/python3'
         wrapper.parent.mkdir(parents=True)
@@ -201,7 +372,7 @@ class SetupProcessTests(SetupFixture, unittest.TestCase):
         self.wait_until(lambda: 'tiny fixture copying' in self.worker.tail)
         with self.assertRaisesRegex(RuntimeError, 'cleanup could not be verified'):
             self.worker.shutdown()
-        self.assertEqual(process.returncode, -signal.SIGKILL)
+        self.assertEqual(process.returncode, -signal.SIGKILL if os.name == 'posix' else 1)
         self.assertIsNone(self.worker.process)
         self.assertEqual((self.root / 'prior-cache').read_bytes(), b'valid existing cache')
         self.assertTrue((self.root / '.owned-partial').exists())
@@ -218,6 +389,7 @@ class SetupProcessTests(SetupFixture, unittest.TestCase):
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Tk display required (use xvfb-run)')
+@unittest.skipUnless(os.name == 'posix', 'POSIX signal/process-group lifetime contract')
 class SetupGuiLifetimeTests(SetupFixture, unittest.TestCase):
     def gui(self, action):
         driver = self.root / 'gui-driver.py'

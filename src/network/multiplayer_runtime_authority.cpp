@@ -58,6 +58,10 @@ struct MultiplayerRuntimeAuthority::Impl {
     // Captured from the resident constructor's private original owner, never
     // from an arbitrary replacement of its public Cache slot.
     std::shared_ptr<const Cache> resident_cache;
+    // Presentation capture has its own coupled read boundary. It must not
+    // enable ONLINE recovery machinery for an ordinary System Link host.
+    // LanHost borrows it, so keep it alive until after the socket owner retires.
+    std::unique_ptr<SourceMatchAuthority> shadow_authority;
     std::unique_ptr<LanHost> initial_host;
     std::unique_ptr<LanClient> initial_client;
     std::unique_ptr<SourcePeerHostTakeover> active,pending;
@@ -112,7 +116,7 @@ struct MultiplayerRuntimeAuthority::Impl {
     Clock::time_point capture_retry{};
     Clock::time_point receiver_retry{};
     std::string admission_error,receiver_error,terminal_error,publication_error,preparation_error;
-    bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{},recovery_preparation{};
+    bool frame{},committing{},continuing_input{},recovery_enabled{},restart_receiver{},recovery_preparation{},shadow_enabled{};
     std::optional<std::uint64_t> continued_input_tick;
     std::array<Controls,4> continued_input;
     OuterRetirementGate retirement_gate{};
@@ -534,6 +538,19 @@ MultiplayerRuntimeAuthority::MultiplayerRuntimeAuthority(const MultiplayerOption
     need(!s.receiver||(s.online&&s.initial_client));
     if(s.online&&s.initial_host&&s.world().source_objects&&s.world().source_objects->owns_physics())
         s.authority=std::make_unique<SourceMatchAuthority>(s.world().match,*s.world().source_objects);
+    const auto &rules=s.world().rules;
+    const bool native_shadows=s.world().cache->original_data()&&
+        s.world().cache->original_data()->image==OriginalData::Image::TitleUpdate15&&
+        rules.custom==CustomSlayer::none&&!rules.defusal&&!options.replay&&
+        !options.capture_root&&options.reference_player.empty();
+    s.shadow_enabled=native_shadows;
+    if(native_shadows&&s.initial_host&&s.world().source_objects&&s.world().source_objects->owns_physics()) {
+        s.shadow_authority=std::make_unique<SourceMatchAuthority>(s.world().match,*s.world().source_objects);
+        const auto producer=s.online?s.online->local_slots():s.world().local_slots;
+        s.initial_host->enable_shadow_lane(*s.shadow_authority,producer,
+            s.online?std::span<const OnlineAdmission>(s.online->roster()):std::span<const OnlineAdmission>{});
+    }
+    if(native_shadows&&s.initial_client)s.initial_client->enable_shadow_lane(s.online);
 }
 MultiplayerRuntimeAuthority::~MultiplayerRuntimeAuthority(){
     // Native objects and publisher frames must retire on their executor.
@@ -561,6 +578,8 @@ std::pair<std::unique_ptr<LanHost>,std::unique_ptr<LanClient>> MultiplayerRuntim
     if(s.initial_host)need(s.initial_host->system_link_state().phase==SystemLinkPhase::postgame);
     else {need(bool(s.initial_client));const auto state=s.initial_client->system_link_state();
       need(state && (state->phase==SystemLinkPhase::postgame || (state->phase==SystemLinkPhase::lobby && !s.initial_client->ready())));}
+    if(s.initial_host)s.initial_host->disable_shadow_lane();
+    if(s.initial_client)s.initial_client->disable_shadow_lane();
     return {std::move(s.initial_host),std::move(s.initial_client)};
 }
 void MultiplayerRuntimeAuthority::admit_players(){
@@ -628,6 +647,16 @@ void MultiplayerRuntimeAuthority::service(){
     auto &s=*impl_;s.quiescent();if(s.active&&s.active->publication_held())return;
     if(!s.retirement_boundary())return;
     if(s.preparation_retiring())return;
+    if(s.shadow_enabled&&s.host()&&s.world().source_objects&&s.world().source_objects->owns_physics()&&
+       (!s.shadow_authority||!s.shadow_authority->for_match(s.world().match))) {
+        // A certified host transition publishes another actual native World.
+        // Its presentation lane must borrow that owner, never the predecessor.
+        auto authority=std::make_unique<SourceMatchAuthority>(s.world().match,*s.world().source_objects);
+        const auto producer=s.online?s.online->local_slots():s.world().local_slots;
+        s.host()->enable_shadow_lane(*authority,producer,
+            s.online?std::span<const OnlineAdmission>(s.online->roster()):std::span<const OnlineAdmission>{});
+        s.shadow_authority=std::move(authority);
+    }
     admit_players();s.publish();receive();s.common_pins();
 }
 void MultiplayerRuntimeAuthority::receive(){
@@ -641,7 +670,7 @@ void MultiplayerRuntimeAuthority::receive(){
             diagnostic(s.receiver_error,"Source shadow restart unavailable: ",error.what());
         }
     }
-    if(s.online&&s.client()&&s.client()->ready()&&!s.client_context&&s.online->direct_udp()){
+    if(s.online&&s.client()&&s.client()->transport_ready()&&!s.client_context&&s.online->direct_udp()){
         if(const auto context=s.online->authority_context())try{
             s.client()->bind_continuity(*context,s.online->self(),s.online->roster());s.client_context=context;
         }catch(const std::exception &e){diagnostic(s.receiver_error,"Source client continuity unavailable: ",e.what());}
@@ -677,13 +706,24 @@ std::unique_ptr<MultiplayerRuntimeAuthority::Frame> MultiplayerRuntimeAuthority:
 }
 void MultiplayerRuntimeAuthority::broadcast_candidate_frame(std::unique_ptr<Frame> &frame){
     auto &s=*impl_;s.own();need(frame&&frame->impl_->owner==&s&&s.frame&&s.host());
+    if(s.shadow_enabled&&s.online)s.host()->update_shadow_roster(s.online->roster());
+    const auto capture_shadow=[&] {
+        if(!s.host()->shadow_publication_pending())return;
+        // The emitted gameplay bytes and this native checkpoint are one
+        // completed cut. Never capture inside the recovery call journal or
+        // after another native phase has advanced the host.
+        if(frame){frame->finish();frame.reset();}
+        try{(void)s.host()->capture_shadow_state();}
+        catch(...){frame=begin_frame();throw;}
+        frame=begin_frame();
+    };
     if(!s.online||!s.online->snapshot_candidates_enabled()||!s.publisher||!s.snapshot_module||
-        !s.snapshot_round||s.snapshot_capture_started){s.host()->broadcast();return;}
+        !s.snapshot_round||s.snapshot_capture_started){s.host()->broadcast();capture_shadow();return;}
     const auto candidate=s.snapshot_module->state();const auto publication=s.publisher->state();
     if(candidate.pending!=s.snapshot_round||candidate.closing||candidate.published||
         candidate.armed!=s.snapshot_round->recipients||!publication.snapshot_candidate_mode||
         publication.held_group||publication.encoding||publication.awaiting_validation||publication.snapshot_candidate){
-        s.host()->broadcast();return;
+        s.host()->broadcast();capture_shadow();return;
     }
     const auto token=*s.snapshot_round;
     std::optional<LanHost::CandidateEmission> emission;
@@ -711,6 +751,7 @@ void MultiplayerRuntimeAuthority::broadcast_candidate_frame(std::unique_ptr<Fram
     }
     // No native call occurs between the selected broadcast and the capture.
     // Even a rejected capture returns the caller to an ordinary live frame.
+    if(s.host()->shadow_publication_pending())(void)s.host()->capture_shadow_state();
     frame=begin_frame();
 }
 std::optional<MultiplayerRuntimeAuthority::SnapshotCandidateCut> MultiplayerRuntimeAuthority::snapshot_candidate_cut()const{

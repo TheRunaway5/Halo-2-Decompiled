@@ -30,11 +30,11 @@ int main(int argc,char**argv){try{
   unsigned began=0,prepared=0,released=0,contacts=0,detonated=0;
   bool plasma_released=false,plasma_contacted=false,plasma_detonated=false;
   auto pulse=[&]{for(const auto type:{SDL_KEYDOWN,SDL_KEYUP}){SDL_Event e{};e.type=type;e.key.windowID=id;
-    e.key.state=type==SDL_KEYDOWN?SDL_PRESSED:SDL_RELEASED;e.key.keysym.scancode=SDL_SCANCODE_Q;e.key.keysym.sym=SDLK_q;
-    if(SDL_PushEvent(&e)!=1)throw FormatError("Could not queue actual SDL Q event");}
+    e.key.state=type==SDL_KEYDOWN?SDL_PRESSED:SDL_RELEASED;e.key.keysym.scancode=SDL_SCANCODE_F;e.key.keysym.sym=SDLK_f;
+    if(SDL_PushEvent(&e)!=1)throw FormatError("Could not queue actual SDL F event");}
     SDL_Event e;while(SDL_PollEvent(&e))kbm.handle_event(e);
     controls[player]=kbm.consume(controls[player].yaw,controls[player].pitch).controls;
-    if(!controls[player].grenade)throw FormatError("SDL Q event was not delivered");};
+    if(!controls[player].grenade)throw FormatError("SDL F event was not delivered");};
   std::cout<<std::unitbuf<<"initial inventory "<<unsigned(initial[0])<<' '<<unsigned(initial[1])<<" plasma "<<std::hex<<plasma<<std::dec<<'\n';
   try{
     for(unsigned tick=0;tick<660;++tick){

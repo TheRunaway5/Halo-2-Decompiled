@@ -24,6 +24,7 @@
 #include "halo2/death_camera.hpp"
 #include "halo2/source_vehicle_director_tu15.hpp"
 #include "halo2/source_original_camera_seed.hpp"
+#include "halo2/native_tu15_input_devices.hpp"
 #include "halo2/melee_impact.hpp"
 #include "halo2/source_effect_location.hpp"
 #include "halo2/source_effect_replica_render_tu15.hpp"
@@ -118,6 +119,7 @@ struct SourceMultiplayerEngineStateTu15 {
     SourceResultRecording recording;
     SourceGameOverState game_over;
     std::uint16_t retained_teams{};
+    std::uint16_t available_teams{};
     bool finalized{};
 };
 // Actual15DDC0 input and completed outcome. NONE is a real tied/no-winner
@@ -252,7 +254,13 @@ public:
     // Explicit caller input, including retained native stack scratch. The
     // journal owns a copy; arbitrary memory writes remain unrecorded work.
     void write_source_call_input(std::uint32_t,std::span<const std::byte>);
+    // Semantic native cinematic mutations retain the world's executor and
+    // publication barriers. Neither advances an original-address CPU owner.
+    void stop_campaign_screen();
+    void acknowledge_campaign_screen_capture();
     void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
+    // The slot is exclusive: active scoped/unscoped owners cannot be replaced.
+    SourceCompletedMainCameraObserverScopeTu15 scoped_completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
     void inspect_render_memory(const SourceRenderMemoryInspectorTu15&) const;
     // Native original-ABI caller frame using this world's actual retained
     // stack/TLS/floating-point owner. Does not execute or admit a source entry.
@@ -278,6 +286,15 @@ public:
     // Opaque157EB0 default captured locally before any authority import.
     // Incoming checkpoint commits never replace this executor-owned value.
     SourceOriginalCameraSeed original_camera_seed()const;
+    // Native physical-input owner, separate from received commands and from
+    // the camera's cycle-only input binding. The original startup/sample/
+    // preset/mapping/close routines execute on this world's retained bank.
+    // This independent owner does not import/export hosting checkpoints.
+    void initialize_native_input(NativeTu15InputSelection);
+    void publish_native_input_profile(unsigned device,const SourceFullPlayerProfile &,
+                                      const SourceMachineIdentity &);
+    void sample_native_input();
+    void close_native_input();
     // Optional actual native graphics owner, admitted before session options.
     // Headless execution supplies no graphics success or palette bindings.
     void admit_renderer_palette(RendererPaletteFactory);
@@ -285,6 +302,9 @@ public:
     void switch_campaign_bsp(std::size_t);
     // Actual currently bound Cache/BSP image; independent of cold game+2.
     std::size_t source_bsp_index() const;
+    // Read-only native catalog selection from this World's actual campaign
+    // game-options keys. Completion/profile-save/request services are separate.
+    std::optional<std::string> next_campaign_scenario() const;
     NativeRuntimeAddress object_pool() const;
     NativeRuntimeAddress player_pool() const;
     // Explicit original-ABI boundary for authenticated source routines/probes.
@@ -346,6 +366,7 @@ public:
     // Native roster input, before player allocation/configuration. Original
     // team-mask and existing-player configuration owners consume the change.
     void publish_roster_team(unsigned user,std::int8_t team);
+    SourcePlayerConfiguration update_player_configuration(std::uint32_t,const SourcePlayerConfiguration &);
     void bind_player(std::uint32_t player,std::uint32_t object);
     // Complete88C50 identity gate and155920/15A860 ordinary departure.
     // Retains the allocated player/profile/results; unit death is deferred
@@ -582,6 +603,10 @@ public:
         // Fixed campaign renderer-static adoption under this preparation
         // lock/barrier; never used by default full-RAM authority imports.
         void retain_live_campaign_lens();
+        // A dedicated recipient presentation world retains its real native
+        // cache/history while importing the next accepted simulation cut.
+        void retain_live_multiplayer_render_history();
+        void retain_live_multiplayer_render_history_from(const PhysicsLiveWorldTu15 &);
     private:
         friend class PhysicsLiveWorldTu15;
         PreparedAuthority();
@@ -597,6 +622,13 @@ public:
     SourceExecutionClocks execution_clocks() const;
     void anchor_execution_clocks(const SourceExecutionClocks &);
     void require_execution_boundary() const;
+    // Same native call/borrow exclusion, but permits the explicitly tracked
+    // Begin/EndPresentedModelPoses operation inside a recorded frame.
+    void require_presentation_boundary() const;
+    // Executor-owned backing publication identity, independent of original
+    // game clocks and journal bytes. Derived renderer owners cannot survive
+    // a successful native bank replacement without a fresh activation.
+    std::uint64_t authority_backing_revision() const;
     PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
     // No-throw publication of all staged backing/resources/sidecars. Callers
     // must rebind every borrowed view/native address afterward. Services and
@@ -604,6 +636,9 @@ public:
     // This owner must outlive preparation; commit/cancel on its executor thread.
     bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+    friend class NativeVehicleCamera;
+    std::array<std::byte,0x5c> collect_native_input(std::uint32_t player,unsigned view,
+        float frame_seconds,float game_seconds,SourceCameraControllerState &,SourceObserverState &);
     friend class MccScriptSoundWorldAccess;
     friend class SourceNativePublication;
     friend class MultiplayerObjectRuntime;

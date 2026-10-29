@@ -1,0 +1,64 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cqclv1t2/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--test",
+        "gathering_owner",
+        "--test",
+        "matchmaking_coordinator",
+        "--test",
+        "team_assignment_original",
+        "--test",
+        "matchmaking_ratings_original",
+        "--test",
+        "search_lifecycle_original",
+        "--test",
+        "session_candidates_original"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cqclv1t2/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "multiplayer/master_server/tests",
+        "-t",
+        "."
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cqclv1t2/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cqclv1t2",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true
+}

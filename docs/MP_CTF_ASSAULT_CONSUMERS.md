@@ -130,11 +130,14 @@ Done to fresh admission. Their remote objective bank produces 185 events,
 complete local audio/PCR/lobby flows. Sixteen service transport/result tests
 also pass, including family, identity, team and client-snapshot forgery rejection.
 
-System Link session/PCR return remains a separate missing owner. The application
-still lacks a retained native LAN lobby lifetime across world teardown. The
-offline session guard is preserved; an admitted remote player is not recast as
-an offline PC session member. Network migration, physical played routes,
-controller/speaker/Xbox framebuffer comparisons and launcher installation keep
+The later [System Link return](MP_CTF_ASSAULT_SYSTEM_LINK_RETURN.md) adds a
+retained native LAN owner across world teardown, independently confirmed PCR,
+fresh lobby return and another source world on the existing socket/key. Its
+qualification is tracked separately under
+`build/ctf-assault-system-link-20261025`; only a passing final acceptance receipt
+closes that gate. The offline session guard remains: admitted remote players
+are not recast as offline PC members. Network migration, physical played routes,
+controller/speaker/Xbox framebuffer comparisons and launcher installation retain
 their own acceptance gates.
 
 ## Evidence and limits
@@ -174,8 +177,8 @@ Rendered startup uses a real Vulkan device under X11/Xvfb, two local players
 and three submitted frames per preset. Actual startup cameras correctly cull
 distant enemy goal rings; the separate visible-goal GPU test compares real
 shader visibility, zero alpha, opacity and animation controls. Temporary frame
-captures are removed. The Khronos validation layer is unavailable on this host;
-these GPU runs explicitly disable it and are not clean-validation-layer proof.
+captures are removed. The Khronos validation layer was unavailable for those
+earlier runs; they explicitly disabled it and are not clean-validation-layer proof.
 The optional preexisting Vista announcer fixture is absent and its legacy test
 skips. The older optional 22-case King boundary fixture is also absent; the new
 48 original King-height cases verify the shared wall code for their declared
@@ -187,6 +190,16 @@ renderer with declared native mouse input. A metadata-only display replica
 does not gain physics authority. Physical controller routes, speaker waveforms,
 original Xbox framebuffer comparisons, all option combinations, cross-machine
 play, migration and launcher installation are not inferred from these tests.
+
+The later [rendered validation](MP_CTF_ASSAULT_RENDERED_VALIDATION.md) uses the
+launcher-selected V7 cache and the repository's Khronos validation bundle.
+All 22 selected tests pass, including all nine stock local starts, remote
+waypoint consumers, timed original endings and retained native System Link
+returns. It submits 1,080 remote frames and 17,250 waypoint vertices; all nine
+endings also pass direct font-ink readback in both local views. The old sky-guard
+failure is retained separately, and the original sky guard is unchanged. Exact
+scope, source identities, broader all-map failures and cleanup are recorded in
+`build/ctf-assault-rendered-20261028`.
 
 ## Storage
 

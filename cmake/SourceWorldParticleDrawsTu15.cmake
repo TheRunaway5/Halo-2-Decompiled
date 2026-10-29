@@ -6,6 +6,35 @@ target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_view_
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_world_execution_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_particle_target_tu15_generated.cpp)
 if(BUILD_TESTING)
+    add_executable(particle_draw_resource_validation_tests tests/particle_draw_resource_validation_tests.cpp)
+    target_link_libraries(particle_draw_resource_validation_tests PRIVATE halo2_cache)
+    add_test(NAME particle_draw_resource_validation COMMAND particle_draw_resource_validation_tests)
+    set(HALO2_MCC_PARTICLE_MODEL_CHILD_MAP "" CACHE FILEPATH
+        "Prepared MCC campaign map retaining particle models with child systems")
+    add_executable(particle_model_children_tests tests/particle_model_children_tests.cpp)
+    target_link_libraries(particle_model_children_tests PRIVATE halo2_cache)
+    add_test(NAME native_mcc_particle_model_children COMMAND particle_model_children_tests "${HALO2_MCC_PARTICLE_MODEL_CHILD_MAP}")
+    set_tests_properties(native_mcc_particle_model_children PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(source_particle_model_child_parent_tu15_tests tests/source_particle_model_child_parent_tu15_tests.cpp)
+    target_link_libraries(source_particle_model_child_parent_tu15_tests PRIVATE halo2_physics_world_runtime)
+    add_test(NAME native_tu15_particle_model_child_parent COMMAND source_particle_model_child_parent_tu15_tests)
+    set(HALO2_MCC_PARTICLE_ADMISSION_MAP "" CACHE FILEPATH
+        "Prepared MCC map for atomic particle resource admission validation")
+    add_executable(source_particle_resource_admission_tests
+        tests/source_particle_resource_admission_tests.cpp)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT APPLE)
+        target_sources(source_particle_resource_admission_tests PRIVATE
+            src/rendering/effects/source_world_particle_draws_tu15.cpp
+            src/runtime/source_runtime_memory.cpp src/gameplay/objects/raw_datum_pool_identity.cpp)
+        target_compile_options(source_particle_resource_admission_tests PRIVATE -ffunction-sections -fdata-sections)
+        target_link_options(source_particle_resource_admission_tests PRIVATE -Wl,--gc-sections)
+        target_link_libraries(source_particle_resource_admission_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    else()
+        target_link_libraries(source_particle_resource_admission_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    endif()
+    add_test(NAME native_particle_resource_admission COMMAND source_particle_resource_admission_tests
+        "${HALO2_MCC_PARTICLE_ADMISSION_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/particle-resource-admission.json")
+    set_tests_properties(native_particle_resource_admission PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(source_particle_target_tu15_tests tests/source_particle_target_tu15_tests.cpp)
     target_link_libraries(source_particle_target_tu15_tests PRIVATE halo2_systems halo2_renderer nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_particle_target_selection COMMAND source_particle_target_tu15_tests)

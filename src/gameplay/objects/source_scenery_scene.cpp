@@ -13,6 +13,7 @@
 #include "halo2/model.hpp"
 #include "halo2/renderer.hpp"
 #include "halo2/math.hpp"
+#include "halo2/source_live_model_geometry_tu15.hpp"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -25,6 +26,8 @@
 
 namespace halo2 {
 struct SourceSceneryScene::Impl {
+    struct SourceSection {unsigned lod{};std::vector<Vertex> vertices;std::vector<std::uint32_t> ordinals;ObjectColors colors;};
+    struct SourceView {std::vector<SourceSection> sections;bool submitted{};};
     struct Lod {
         struct ShaderPart {unsigned section{},part{},material{};float scale=1;std::uint32_t shader{};};
         RenderModel model;
@@ -57,6 +60,8 @@ struct SourceSceneryScene::Impl {
         ObjectLightingCache light;
         SourceSceneryQueryState query_state;
         bool query_state_valid{};
+        ObjectColors initial_colors;
+        std::array<std::optional<SourceView>,4> source_views;
     };
     // Only the values written after resident resource preparation. A cut must
     // own all six posed streams and active collector lists, not just node0.
@@ -78,16 +83,18 @@ struct SourceSceneryScene::Impl {
         ObjectLightingCache light;
         SourceSceneryQueryState query_state;
         bool query_state_valid{};
+        std::array<std::optional<SourceView>,4> source_views;
         explicit State(const Scenery &s):handle(s.handle),created_tick(s.created_tick),
             active(s.active),visible(s.visible),selection(s.selection),previous_lod(s.previous_lod),
             root(s.root),node0(s.node0),world_nodes(s.world_nodes),solved_nodes(s.solved_nodes),
-            scale(s.scale),light(s.light),query_state(s.query_state),query_state_valid(s.query_state_valid) {
+            scale(s.scale),light(s.light),query_state(s.query_state),query_state_valid(s.query_state_valid),source_views(s.source_views) {
             for(unsigned i=0;i<lods.size();++i)lods[i]={s.lods[i].active_sections,s.lods[i].vertices};
         }
         void exchange(Scenery &s) noexcept {
             static_assert(std::is_nothrow_swappable_v<SourceInitialModelSelection>);
             static_assert(std::is_nothrow_swappable_v<ObjectLightingCache>);
             using std::swap;
+            source_views.swap(s.source_views);
             swap(handle,s.handle);swap(created_tick,s.created_tick);swap(active,s.active);swap(visible,s.visible);
             swap(selection,s.selection);swap(previous_lod,s.previous_lod);swap(root,s.root);swap(node0,s.node0);
             swap(world_nodes,s.world_nodes);swap(solved_nodes,s.solved_nodes);swap(scale,s.scale);
@@ -221,6 +228,7 @@ struct SourceSceneryScene::Impl {
             const auto variant=s.selection.variant_index<0?0u:initial.variants.at(unsigned(s.selection.variant_index)).name;
             const auto colors=source_object_initial_colors(color_definition,object.position,variant);
             const auto source_materials=s.lods[5].model.mesh.materials;
+            s.initial_colors=colors;
             std::map<unsigned,unsigned> material_slots;s.first_material=unsigned(mesh.materials.size());
             for(unsigned lod:{5u,0u,1u,2u,3u,4u}) {
                 auto &g=s.lods[lod];
@@ -375,6 +383,7 @@ struct SourceSceneryScene::Impl {
             if(found==live.end()){s.active=false;s.visible=false;continue;}
             const auto &object=*found->second;
             const bool born=s.handle!=object.handle;
+            if(born)s.source_views={};
             if(s.resource_error) {
                 if(object.visible)throw FormatError("Visible SCEN placement "+std::to_string(s.source_object)+
                     " requires source resources: "+*s.resource_error);
@@ -583,7 +592,7 @@ void SourceSceneryScene::reset_lifetimes() noexcept {
     for(auto &o:s.scenery){
         o.handle=0xffffffffu;o.created_tick=0;o.active=o.visible=false;
         o.previous_lod.fill(-1);o.solved_nodes.reset();o.world_nodes.clear();
-        o.light={};o.query_state_valid=false;
+        o.light={};o.query_state_valid=false;o.source_views={};
     }
 }
 SourceSceneryScene::SourceSceneryScene(SourceSceneryScene&&)noexcept=default;
@@ -619,6 +628,10 @@ void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<Ob
     const SourceObjectViewLod &view,std::vector<SourceObjectViewSelection>*selections) {
     Impl::Mutation mutation(*impl_);
     for(auto &s:impl_->scenery)if(s.active && s.visible) {
+        if(const auto& source=s.source_views.at(view.view_index);source) {
+            if(!source->submitted)throw FormatError("Retained native SCEN draw was not submitted");
+            continue;
+        }
         auto selected=impl_->select(s,view);const auto &g=s.lods[selected.lod];
         //4B5D0 evaluates the admitted owner's lighting cache before41040
         //selects part shaders; selected vertex counts do not gate that cache.
@@ -629,6 +642,68 @@ void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<Ob
             if(s.dynamic)bindings.push_back({s.first_material,s.material_count,s.probe?s.probe->lighting:s.light.lighting});
         }
         if(selections)selections->push_back(selected);
+    }
+}
+std::vector<std::uint32_t> SourceSceneryScene::source_render_models()const {
+    impl_->own();std::set<std::uint32_t> roots;
+    for(const auto& s:impl_->scenery)if(!s.resource_error && s.initial.render_model!=~0u)roots.insert(s.initial.render_model);
+    return {roots.begin(),roots.end()};
+}
+void SourceSceneryScene::begin_source_frame() {
+    Impl::Mutation mutation(*impl_);for(auto& s:impl_->scenery)for(auto& view:s.source_views)view.reset();
+}
+bool SourceSceneryScene::retain_source_view(unsigned view,std::span<const SourceLiveModelBaseDrawTu15> draws,
+    std::span<const Transform> nodes,const SourceModelShaderView& shader) {
+    Impl::Mutation mutation(*impl_);if(view>=4)throw FormatError("Native SCEN view exceeds four players");
+    if(draws.empty())return false;
+    const auto at=std::find_if(impl_->scenery.begin(),impl_->scenery.end(),[&](const auto& s){return s.active&&s.visible&&s.handle==draws.front().object;});
+    if(at==impl_->scenery.end())return false;auto& scenery=*at;
+    if(scenery.resource_error)throw FormatError("Native SCEN draw requires its actual resident resources: "+*scenery.resource_error);
+    if(scenery.source_views[view])throw FormatError("Native SCEN owner was retained twice");
+    Impl::SourceView retained;
+    for(const auto& draw:draws) {
+        if(draw.object!=scenery.handle || draw.definition!=scenery.authored.definition || draw.unit.words[1]!=scenery.initial.render_model || draw.lod>=6)
+            throw FormatError("Native SCEN draw lost its actual object/definition/model/LOD");
+        if(draw.override_slot!=255 || draw.lighting_class!=(scenery.dynamic?2u:1u))return false;
+        const auto& geometry=scenery.lods[draw.lod];const auto section=(draw.unit.words[3]>>9)&511u;
+        if(std::find(geometry.sections.begin(),geometry.sections.end(),section)==geometry.sections.end())
+            throw FormatError("Native SCEN selected an unprepared original section");
+        const auto posed=skin_model_world_nodes(geometry.model,nodes);
+        std::map<std::pair<unsigned,unsigned>,unsigned> parts;
+        for(const auto& part:geometry.shader_parts)if(part.section==section) {
+            const auto choice=source_model_shader_part({0,draw.coverage},part.scale,impl_->shader_definitions.at(part.shader),shader).choice;
+            parts.emplace(std::pair{part.section,part.part},choice.accepted&&choice.index>=0?
+                scenery.shader_slots.at(part.material).at(unsigned(choice.index)):~0u);
+        }
+        Impl::SourceSection selected;selected.lod=draw.lod;selected.colors=source_live_model_base_colors_tu15(draw,scenery.initial_colors);
+        for(unsigned n=0;n<posed.size();++n)if(posed[n].source_section==section) {
+            const auto binding=parts.find({posed[n].source_section,posed[n].source_part});
+            if(binding==parts.end())throw FormatError("Native SCEN vertex lost its actual shader part");
+            if(binding->second==~0u)continue;
+            if(impl_->unresolved_materials.contains(binding->second))throw FormatError("Native SCEN selected unresolved shader inputs");
+            selected.vertices.push_back(posed[n]);selected.vertices.back().material=binding->second;
+            selected.vertices.back().source_stipple_level=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+            selected.ordinals.push_back(n);
+        }
+        retained.sections.push_back(std::move(selected));
+    }
+    scenery.source_views[view]=std::move(retained);return true;
+}
+void SourceSceneryScene::append_source_models(std::vector<ModelObjectDraw>& output,const SourceObjectViewLod& view) {
+    Impl::Mutation mutation(*impl_);
+    for(auto& scenery:impl_->scenery)if(scenery.active&&scenery.visible) {
+        auto& source=scenery.source_views.at(view.view_index);if(!source)continue;
+        if(source->submitted || !view.input)throw FormatError("Native SCEN submission lost its unique lighting owner");
+        impl_->retain_query_state(scenery);
+        const auto sphere=view.source_bound?view.source_bound(scenery.handle):ShadowCasterSphere{scenery.query_state.sphere_center,scenery.query_state.sphere_radius};
+        const auto input=view.input(scenery.source_object,scenery.handle,sphere.center,sphere.radius);
+        impl_->query_lighting(scenery,input.draw_metric);
+        for(const auto& section:source->sections)if(!section.vertices.empty()) {
+            output.push_back({section.vertices,scenery.dynamic?std::optional{scenery.probe?scenery.probe->lighting:scenery.light.lighting}:std::nullopt,section.colors});
+            output.back().source_model_selection=SourceModelDepthSelection{scenery.handle,scenery.authored.definition,
+                scenery.initial.render_model,section.lod,&scenery.lods[section.lod].model,0,section.ordinals};
+        }
+        source->submitted=true;
     }
 }
 const SourceScenerySceneStats&SourceSceneryScene::stats()const{return impl_->counts;}

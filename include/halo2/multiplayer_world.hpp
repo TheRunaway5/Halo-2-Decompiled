@@ -9,6 +9,10 @@
 namespace halo2 {
 class GameplayFontBank;
 class SourceRuntimeResourcePreparation;
+// Newly authored modes retain their native custom-rule authority. Resolve the
+// application's stock source-world default after its effective variant is
+// known, including an authenticated LAN host's selected configuration.
+void select_multiplayer_mode_authority(MultiplayerOptions &);
 // Immutable map resources only: no Match, source executor, players, clocks or
 // RNG. A countdown job can prepare these before the original world boundary.
 class MultiplayerMapAssets {
@@ -104,6 +108,7 @@ private:
   friend class MultiplayerRuntimeAuthority;
   friend class SourcePeerHostTakeover;
   friend class SourceTerminalRecovery;
+  friend class SourceShadowPresentationOwner;
   struct SourceShadowSetup;
   std::shared_ptr<const Cache> original_cache() const;
   // Only same-creator incoming takeover construction may reuse the resident's
@@ -111,6 +116,10 @@ private:
   static std::unique_ptr<MultiplayerPreparedWorld> incoming_source_shadow(
       const MultiplayerOptions&,const MultiplayerPreparedWorld&,
       std::shared_ptr<PhysicsLiveClockSource>);
+  static std::unique_ptr<MultiplayerPreparedWorld> shadow_presentation_world(
+      const MultiplayerOptions&,const MultiplayerPreparedWorld&,
+      std::span<const OnlineAdmission> roster,std::span<const unsigned> views,
+      std::span<const unsigned> selected);
   static std::unique_ptr<MultiplayerPreparedWorld> source_shadow(
       const MultiplayerOptions&,SourceShadowViews,
       std::shared_ptr<PhysicsLiveClockSource>,std::shared_ptr<const Cache>);

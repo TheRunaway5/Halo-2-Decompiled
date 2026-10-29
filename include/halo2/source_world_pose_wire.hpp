@@ -21,4 +21,8 @@ std::vector<std::byte> encode_source_world_poses(bool authoritative,
 SourceWorldPoseBank decode_source_world_poses(std::span<const std::byte>,
     std::span<const SourceWorldPoseOwner>,
     SourceWorldPoseWireFormat = SourceWorldPoseWireFormat::legacy);
+// Lossless metadata outside the bandwidth codec's WORLD-matrix range. Each
+// full owner must already occur in this same accepted pose bank.
+std::vector<std::byte> encode_source_world_pose_models(std::span<const SourceWorldPose>);
+std::size_t decode_source_world_pose_models(std::span<const std::byte>,std::span<SourceWorldPose>);
 }

@@ -1,0 +1,213 @@
+{
+  "schema": "H2_RUST_LIFECYCLE_VALIDATION_V1",
+  "updated_utc": "2026-10-28T16:50:42.839496+00:00",
+  "lifecycle_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Retail lifecycle arithmetic and owned native adapter state, plus explicit native replacement provider order. Complete original task/session/identity/quality producers, TU1.5 correspondence, coordinator/API/results/persistence and native/delivery proof remain separate.",
+  "original_replay": {
+    "report": "lifecycle-original.json",
+    "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "oracle_sha256": "9e5194a8edaa6f840c2ef7917bb783039d10776b8d50e6f1f1a21932eb243401",
+    "fixture_sha256": "3dd366025109302824808e07fa5feeb00ede43c6bfabcbd6bc91c190a3e138fc",
+    "original_instructions": 2236,
+    "executed_instruction_sha256": "9397749daed613032d1233b6ae73f705c4ce3120d19d1f1306bc126ee88c7c07",
+    "instruction_patches": [],
+    "replaced_callees": [],
+    "controls": {
+      "jitter": 68,
+      "elapsed": 37,
+      "roles": 72,
+      "progress": 199,
+      "growth": 578,
+      "hoppers": 7,
+      "countdown_gates": 49,
+      "gather_timeouts": 63,
+      "search_timeouts": 12,
+      "seen": 154,
+      "seen_final": 150,
+      "seen_lookups": 7
+    },
+    "seen_final_is_retained_data_not_additional_controls": true,
+    "all_inputs_synthetic": true,
+    "whole_session_or_live_flow_qualified": false
+  },
+  "rust_state_owners": [
+    "Signed tick/timeout comparisons and launch sentinel gate",
+    "Per-party choose/search/gather/joined native transition state and timestamps",
+    "Result-driven radius/total/active state",
+    "Failed-session bank with duplicate detection, capacity150 and no eviction",
+    "Growth/peak/start clocks and read-only countdown projection",
+    "Two-draw signed-low16 jitter stream with its seed",
+    "Executable-default metadata interpretation for all seven countdown tables"
+  ],
+  "modern_integration": {
+    "search_generations": "Monotone private new-search generations reject stale progress/seen views without changing the current search. This is a native safeguard, not an original wire field.",
+    "native_provider": "Rust native_birth_id_order owns birth/private-ID ordering and the50-record bank cap over already structurally admitted descriptors. Original Live filtering/order/truncation/ties remain unrecovered.",
+    "resource_bounds": {
+      "maximum_private_handles": 4096,
+      "input_bytes": 262144,
+      "response_bytes": 65536,
+      "original_service_limits_claimed": false
+    },
+    "abi_atomicity": "Rust commits a candidate next state only after successful command validation and response capacity checks. Failed JSON/owners/generations/capacity leave output and state unchanged."
+  },
+  "sentinel_regression": {
+    "before": "Actual GatheringSessions.proposal emitted a proposal at elapsed INTMAX with an explicit INTMAX countdown.",
+    "after": "Rust original gate rejects the sentinel even at equal elapsed time.",
+    "red_report": "lifecycle-sentinel-red-report.json",
+    "red_diagnostics": "lifecycle-sentinel-red.log",
+    "green_test": "GatheringInputsTests.test_intmax_countdown_sentinel_cannot_launch_at_equal_elapsed",
+    "scope": "Synthetic admitted two-player finalizer seam and clock; no live match observed."
+  },
+  "passing_backend_cohort": {
+    "passed": true,
+    "frozen": true,
+    "tests": 422,
+    "seconds": 144.963,
+    "report": "lifecycle-backend-report.json",
+    "manifest": "lifecycle-source-manifest.json",
+    "diagnostics": "lifecycle-backend-tests.log",
+    "includes_unrelated_concurrent_work": true
+  },
+  "rust_regressions": {
+    "passed": true,
+    "tests": 18,
+    "lifecycle_tests": 6,
+    "candidate_ratings_assignment_tests": 12,
+    "diagnostics": "lifecycle-rust-tests.log"
+  },
+  "focused_backend": {
+    "passed": true,
+    "tests": 43,
+    "report": "lifecycle-focused-report.json"
+  },
+  "actual_native_provider_test": "GatheringInputsTests.test_actual_query_routes_sixty_native_sessions_through_rust_provider_order",
+  "toolchain_receipt": "lifecycle-toolchain.json",
+  "current_task_source_sha256": {
+    "rust/online_protocol/src/search_lifecycle.rs": "0c9b130ea5149cf035b456777c304fec02fb554e19dbeecb39a991a3bd42c24f",
+    "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+    "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "rust/online_security_ffi/src/matchmaking_lifecycle.rs": "04975fad96cf6e9b9f00b194a56db9194c2510ff51df82e541c0693f7c6f1c2e",
+    "multiplayer/master_server/search_lifecycle.py": "7be927eaf53f36ec1d7a331a3e3314ec1a1a1fb4f97e601608cb8f584c760f64",
+    "multiplayer/master_server/gathering_sessions.py": "324fd9b7ee6fe72f92c453881ae269c78929a63f08d9f5643df69ad317a9e011",
+    "multiplayer/master_server/tests/test_search_lifecycle.py": "48ed3cf3f1c299f3ce5a9caeab51d5aad789ff6c246f6edf49f664dce51a5627",
+    "multiplayer/master_server/tests/test_gathering_sessions.py": "4c8adba1e063b9009a2fb68226e9de03643278214e6f7ce81814a701c6ee933c",
+    "tools/test_master_server.py": "32d4dd183335b5730408ff5d7dac229cb74bc27028fa752335b943b2e3b626ae",
+    "rust/online_protocol/src/lib.rs": "01fa15a0b004402053a967086c1db0100784dc09fb0c30f3743de96cf2d769ff",
+    "rust/online_security_ffi/src/lib.rs": "8c4e0d4deff1220f365abcd4152420ef29d241ef15b21cf804667a0a246c9342"
+  },
+  "live_source_drift_since_passing_cohort": [
+    "rust/online_security_ffi/src/lib.rs",
+    "rust/online_protocol/src/security_policy.rs",
+    "multiplayer/master_server/matchmaking_http.py",
+    "multiplayer/master_server/match_transport.py",
+    "multiplayer/master_server/couch_players.py",
+    "multiplayer/master_server/carnage_history.py",
+    "multiplayer/master_server/player_statistics.py",
+    "multiplayer/master_server/security_policy.py",
+    "multiplayer/master_server/tests/test_hopper_catalog.py"
+  ],
+  "retained_numerical_original_fixture": {
+    "path": "tests/fixtures/matchmaking_lifecycle_original.json",
+    "bytes": 206883,
+    "sha256": "3dd366025109302824808e07fa5feeb00ede43c6bfabcbd6bc91c190a3e138fc"
+  },
+  "embedded_retail_clock_metadata": {
+    "path": "rust/online_protocol/data/retail_gathering.json",
+    "sha256": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "source_copy_preserved": "multiplayer/master_server/retail_gathering.json",
+    "fresh_all_seven_getters_compared": true
+  },
+  "scratch_cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hftljwuf",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-djhvoon6",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-kayry_m4",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hxbtsegx",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-yh2xkjp4",
+      "removed": true
+    }
+  ],
+  "retained_large_generated_artifacts": [],
+  "installed_runtime_replaced_by_this_work": false,
+  "remote_service_replaced_by_this_work": false,
+  "remaining": [
+    "Complete original session/task allocation, logon/readiness/NAT/quality input and role callers",
+    "Rust structural eligibility, whole queue/gathering/query object registry and coordinator/API ownership",
+    "Authenticated complete profiles, epochs, authority/roster bindings and transactional results/persistence",
+    "Original Live provider and arbitration recovery without guessed values",
+    "TU1.5 owner correspondence and actual native all-mode/delivery acceptance"
+  ],
+  "current_component_identity_audit": {
+    "rust/online_protocol/src/search_lifecycle.rs": {
+      "tested_sha256": "0c9b130ea5149cf035b456777c304fec02fb554e19dbeecb39a991a3bd42c24f",
+      "current_sha256": "0c9b130ea5149cf035b456777c304fec02fb554e19dbeecb39a991a3bd42c24f",
+      "matches": true
+    },
+    "rust/online_protocol/tests/search_lifecycle_original.rs": {
+      "tested_sha256": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+      "current_sha256": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+      "matches": true
+    },
+    "rust/online_protocol/data/retail_gathering.json": {
+      "tested_sha256": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+      "current_sha256": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+      "matches": true
+    },
+    "rust/online_security_ffi/src/matchmaking_lifecycle.rs": {
+      "tested_sha256": "04975fad96cf6e9b9f00b194a56db9194c2510ff51df82e541c0693f7c6f1c2e",
+      "current_sha256": "04975fad96cf6e9b9f00b194a56db9194c2510ff51df82e541c0693f7c6f1c2e",
+      "matches": true
+    },
+    "multiplayer/master_server/search_lifecycle.py": {
+      "tested_sha256": "7be927eaf53f36ec1d7a331a3e3314ec1a1a1fb4f97e601608cb8f584c760f64",
+      "current_sha256": "7be927eaf53f36ec1d7a331a3e3314ec1a1a1fb4f97e601608cb8f584c760f64",
+      "matches": true
+    },
+    "multiplayer/master_server/gathering_sessions.py": {
+      "tested_sha256": "324fd9b7ee6fe72f92c453881ae269c78929a63f08d9f5643df69ad317a9e011",
+      "current_sha256": "324fd9b7ee6fe72f92c453881ae269c78929a63f08d9f5643df69ad317a9e011",
+      "matches": true
+    },
+    "multiplayer/master_server/tests/test_search_lifecycle.py": {
+      "tested_sha256": "48ed3cf3f1c299f3ce5a9caeab51d5aad789ff6c246f6edf49f664dce51a5627",
+      "current_sha256": "48ed3cf3f1c299f3ce5a9caeab51d5aad789ff6c246f6edf49f664dce51a5627",
+      "matches": true
+    },
+    "multiplayer/master_server/tests/test_gathering_sessions.py": {
+      "tested_sha256": "4c8adba1e063b9009a2fb68226e9de03643278214e6f7ce81814a701c6ee933c",
+      "current_sha256": "4c8adba1e063b9009a2fb68226e9de03643278214e6f7ce81814a701c6ee933c",
+      "matches": true
+    },
+    "tools/test_master_server.py": {
+      "tested_sha256": "32d4dd183335b5730408ff5d7dac229cb74bc27028fa752335b943b2e3b626ae",
+      "current_sha256": "32d4dd183335b5730408ff5d7dac229cb74bc27028fa752335b943b2e3b626ae",
+      "matches": true
+    },
+    "rust/online_protocol/src/lib.rs": {
+      "tested_sha256": "01fa15a0b004402053a967086c1db0100784dc09fb0c30f3743de96cf2d769ff",
+      "current_sha256": "01fa15a0b004402053a967086c1db0100784dc09fb0c30f3743de96cf2d769ff",
+      "matches": true
+    },
+    "rust/online_security_ffi/src/lib.rs": {
+      "tested_sha256": "8c4e0d4deff1220f365abcd4152420ef29d241ef15b21cf804667a0a246c9342",
+      "current_sha256": "806be108de36be66c421a1e4df11cadc030e6ff844149c0d6c6914b481040be3",
+      "matches": false
+    }
+  },
+  "shared_ffi_entry_registration_present": true,
+  "later_shared_ffi_change_qualified_by_this_cohort": false
+}

@@ -8,12 +8,13 @@ import codecs
 import contextlib
 import os
 import queue
-import select
 import signal
 import subprocess
 import sys
 import threading
 from pathlib import Path
+
+from setup_pipe import read_available
 
 
 WIDTH, HEIGHT = 1040, 720
@@ -63,9 +64,9 @@ class SetupProcess:
         try:
             fd = process.stdout.fileno()
             while not self.reader_stop.is_set():
-                if not select.select([fd], [], [], .05)[0]:
+                data = read_available(fd, 4096, .05)
+                if data is None:
                     continue
-                data = os.read(fd, 4096)
                 text = decoder.decode(data, final=not data)
                 if text:
                     with self.lock:
@@ -89,7 +90,7 @@ class SetupProcess:
         self.reader_stop.clear(); self.reader_done.clear()
         from installation_paths import resource_root
         resources = resource_root(self.root)
-        bundled = resources / "python/bin/python3"
+        bundled = resources / ("python/python.exe" if os.name == "nt" else "python/bin/python3")
         python = str(bundled) if bundled.is_file() else sys.executable
         command = [python, "-u", "-B", str(resources / "tools/setup_assets.py"),
                    "--root", str(self.root), "--gui-owner"]

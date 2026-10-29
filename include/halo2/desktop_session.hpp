@@ -22,6 +22,7 @@ struct GameplayFontSource;
 struct DesktopLoadingSnapshot {
   bool active{},fade_active{},fade_complete{};
   std::uint32_t clock_origin{},deadline{},gain_bits{},sleeps{},present_calls{},submitted_frames{};
+  std::optional<FrontendNetworkTransitionStatus> network_transition;
 };
 struct DesktopLoadingAudioServices {
   // Normal initializer66BAAD starts782297 before the graphics thread;
@@ -29,6 +30,9 @@ struct DesktopLoadingAudioServices {
   std::function<void()> begin;
   std::function<void(std::uint32_t)> gain;
   std::function<void()> end;
+};
+struct DesktopNetworkTransitionAudioServices {
+  std::function<void(std::uint32_t)> begin, update, end;
 };
 // The application owns the SDL window across menu/game renderer lifetimes.
 // Construction is lazy so inspection and dedicated-server paths need no video.
@@ -54,16 +58,19 @@ public:
   void configure_loading(const std::filesystem::path&);
   // Owned converted MCC inputs use the same animation, fade and renderer
   // handoff. Admission is atomic; no executable/Vista bank is discovered here.
-  void configure_loading(const VistaLoadingAssets&);
+  void configure_loading(const VistaLoadingAssets&,bool preserve_logo_proportions=false);
   // Independent original Xbox multiplayer map-wait presentation. Fonts are
   // admitted MCC/H2EK inputs; campaign/Vista loading keeps its separate owner.
   void configure_source_loading_wait(const GameplayFontSource&);
-  // Original screen231 network transition dialog ("PLEASE WAIT") for ONLINE
+  // Original screen231 network transition dialog ("PLEASE WAIT") for multiplayer
   // map preparation and departures, painted from the selected menu content.
   // Like the map wait, it must be configured before the first renderer.
   void configure_network_transition(std::shared_ptr<FrontendNetworkTransitionPainter>);
   bool network_transition_configured() const;
   void begin_network_transition(FrontendNetworkTransitionStatus);
+  // All multiplayer entry/return routes use screen231. Imported maps are
+  // already copied, so their setup begins with network_joining (TU1.5 4/10).
+  void begin_multiplayer_loading(FrontendNetworkTransitionStatus = FrontendNetworkTransitionStatus::SettingUpGame);
   // Status shown from the next presented frame; no effect when inactive.
   void network_transition_status(FrontendNetworkTransitionStatus);
   std::shared_ptr<Renderer> make_renderer(Mesh&,bool validation,
@@ -92,6 +99,10 @@ public:
   // Retained independent ambience device/worker, never borrowed menu music.
   // All three services must be bound before a loading interval starts.
   void set_loading_audio_services(DesktopLoadingAudioServices);
+  // Continue the retained menu's source music clock while campaign resources
+  // load. This is separate from the independent loading-ambience gain.
+  void set_loading_update_service(std::function<void()>);
+  void set_network_transition_audio_services(DesktopNetworkTransitionAudioServices);
   DisplaySettings display_settings;
   bool upscaling_preferences_initialized{};
   PcKeyboardSettings keyboard_settings;

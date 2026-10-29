@@ -35,13 +35,17 @@ std::optional<std::u16string> player_status_text(const FullScoreboardAssets &ass
     const MultiplayerState &state,unsigned slot,bool suppress,std::size_t capacity) {
   if(slot>=state.players.size() || !state.players[slot].connected)return {};
   const auto &player=state.players[slot];
-  if(!player.source_status)return {};
-  const auto &status=*player.source_status;
+  const auto *status=player.source_status?&*player.source_status:nullptr;
   SourcePlayerStatusTextInput input;
   input.team_mode=state.team_mode;
-  input.lifecycle=state.source_round_lifecycle_available?state.round_phase:status.lifecycle;
-  input.special_mode=state.source_round_lifecycle_available?state.finished:status.special_mode;
-  input.status=status.status;
+  // Original161BA0 selects inactive lifecycle headings independently of the
+  // per-player1618B0 status. Missing active-player status must not hide GAME
+  // OVER after the match/round owner has already completed its transition.
+  input.lifecycle=state.source_round_lifecycle_available?state.round_phase:
+      state.results_finalized?2:status?status->lifecycle:1;
+  input.special_mode=state.source_round_lifecycle_available || state.results_finalized?
+      state.finished:status && status->special_mode;
+  input.status=status?status->status:-1;
   input.suppress_playing=suppress;
   input.respawn_seconds=player.source_respawn_seconds;
   input.lives_remaining=player.source_lives_remaining;

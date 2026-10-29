@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import unittest
 import uuid
-from unittest.mock import patch
 from aiohttp import WSMsgType
 
 from . import test_matchmaking_http as baseline
@@ -58,20 +57,22 @@ class TombstonePlaylistTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((added.map, added.variant, added.weight), ("highplains2", "Fiesta Slayer", 1))
         self.assertEqual(live[-1].required_compatibility, "halo2-native-queue-v10")
 
-    async def test_disc_only_and_old_revision_do_not_admit_unloadable_rotations(self):
+    async def test_missing_pool_maps_do_not_disable_available_rows(self):
         for maps in (["lockout", "foundation"], ["lockout", "foundation", "highplains"]):
             headers = await self.session(maps=maps, couch=False)
             response = await self.client.get("/v1/matchmaking/playlists", headers=headers)
             rows = {p["id"]: p for p in (await response.json())["playlists"]}
             self.assertTrue(rows["casual"]["eligible"])
             for self.selected in ("casual-team", "ranked-team", "action-sack", "casual-slayer"):
-                self.assertFalse(rows[self.selected]["eligible"])
-                self.assertEqual((await self.enqueue(headers)).status, 400)
+                self.assertTrue(rows[self.selected]["eligible"])
+        headers = await self.session(maps=["highplains"],couch=False)
+        response = await self.client.get("/v1/matchmaking/playlists",headers=headers)
+        self.assertFalse(any(row["eligible"] for row in (await response.json())["playlists"]))
         self.assertFalse(self.api.core.tickets)
 
     async def check_couch_selection(self, playlist, variant, team_mode):
         self.selected = playlist
-        headers = [await self.session(owner) for owner in ("one", "two")]
+        headers = [await self.session(owner,maps=["highplains2"]) for owner in ("one", "two")]
         async def echo(socket):
             async for message in socket:
                 self.assertEqual(message.type, WSMsgType.TEXT)
@@ -88,27 +89,24 @@ class TombstonePlaylistTests(unittest.IsolatedAsyncioTestCase):
             socket = await self.client.ws_connect("/v1/matchmaking/qos", headers=header)
             self.addAsyncCleanup(socket.close)
             self.addAsyncCleanup(stop, asyncio.create_task(echo(socket)))
-        # Force the selected map only; use the actual catalog, gathering owner,
-        # authenticated physical connections, admission and relay descriptor.
-        def tombstone(population, **kwargs):
-            return [next(g for g in population if g.map == "highplains2")]
-        with patch.object(self.api.core.rng, "choices", side_effect=tombstone):
-            for header in headers:
-                self.assertEqual((await self.enqueue(header)).status, 201)
-            async with asyncio.timeout(4):
-                while not self.api.core.proposals:
-                    for header in headers:
-                        response = await self.client.get("/v1/matchmaking/ticket", headers=header)
-                        self.assertEqual(response.status, 200, await response.text())
-                    await asyncio.sleep(.005)
-            descriptors = []
-            for header in headers:
-                response = await self.client.get("/v1/matchmaking/ticket", headers=header)
-                match = (await response.json())["match"]
-                self.assertEqual((match["map"], match["variant"]), ("highplains2", variant))
-                response = await self.client.get("/v1/matchmaking/transport", headers=header)
-                self.assertEqual(response.status, 200, await response.text())
-                descriptors.append(await response.json())
+        # Genuine admitted map availability exercises Rust filtering/draw;
+        # no injected map chooser or altered catalog weights.
+        for header in headers:
+            self.assertEqual((await self.enqueue(header)).status, 201)
+        async with asyncio.timeout(4):
+            while not self.api.core.proposals:
+                for header in headers:
+                    response = await self.client.get("/v1/matchmaking/ticket", headers=header)
+                    self.assertEqual(response.status, 200, await response.text())
+                await asyncio.sleep(.005)
+        descriptors = []
+        for header in headers:
+            response = await self.client.get("/v1/matchmaking/ticket", headers=header)
+            match = (await response.json())["match"]
+            self.assertEqual((match["map"], match["variant"]), ("highplains2", variant))
+            response = await self.client.get("/v1/matchmaking/transport", headers=header)
+            self.assertEqual(response.status, 200, await response.text())
+            descriptors.append(await response.json())
         self.assertEqual(descriptors[0]["id"], descriptors[1]["id"])
         self.assertNotEqual(descriptors[0]["token"], descriptors[1]["token"])
         for row in descriptors:

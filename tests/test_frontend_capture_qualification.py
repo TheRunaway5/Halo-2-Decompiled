@@ -90,6 +90,7 @@ class QualificationTests(unittest.TestCase):
         self.menu_log = witness()
         self.menu_pixels = None
         self.timeout = False
+        self.loading_log = 'MCC V3 loading: genuine PCM and reconstructed artwork admitted\n'
         self.sidecar = self.runtime.with_name(self.runtime.name + '.frontend-test.json')
 
     def run_capture(self, command, **kwargs):
@@ -100,7 +101,7 @@ class QualificationTests(unittest.TestCase):
         target = Path(command[command.index('--screenshot') + 1])
         frame(target, self.menu_pixels if menu else None)
         output = ('Frontend movie: fixture frame\n' if not menu else self.menu_log)
-        return subprocess.CompletedProcess(command, 0, output + 'Rendered 4 frontend frames\n')
+        return subprocess.CompletedProcess(command, 0, output + self.loading_log + 'Rendered 4 frontend frames\n')
 
     def qualify(self):
         with patch.object(qualification.subprocess, 'run', side_effect=self.run_capture), \
@@ -136,6 +137,14 @@ class QualificationTests(unittest.TestCase):
         report = json.loads((self.output / 'report.json').read_bytes())
         self.assertFalse(report['passed'])
         self.assertIn('witness', report['cases'][-1]['error'])
+
+    def test_wrong_loading_bank_cannot_publish_a_frontend_capability(self):
+        self.loading_log = 'An unrelated loading track was selected\n'
+        with self.assertRaisesRegex(RuntimeError, 'intro'):
+            self.qualify()
+        self.assertFalse(self.sidecar.exists())
+        self.assertIn('loading presentation', json.loads(
+            (self.output / 'report.json').read_bytes())['cases'][-1]['error'])
 
     def test_clear_witness_cannot_hide_black_frame(self):
         self.menu_pixels = bytes(12)

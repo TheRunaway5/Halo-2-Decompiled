@@ -1,0 +1,74 @@
+{
+  "native_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "reference_checkout_head": "5f08630655e3ddc9ac45909090f11ae799fa0c27",
+  "originals": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/default.xbe",
+      "exists": true,
+      "bytes": 4861952,
+      "sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d"
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe",
+      "exists": true,
+      "bytes": 4919296,
+      "sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"
+    }
+  ],
+  "retail_constructed_fallback": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/online-completion-20261013/research/retail-constructed-multiplayer_hopper.dat",
+    "exists": true,
+    "bytes": 1453248,
+    "sha256": "24e709e18e7a9f23186433dc2f489a5b2b00c0a73f6ea57f94c53c6ce7d32f22"
+  },
+  "selected_local_runtime": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/9d531caa3b6a4b0c9284b954c3874139/halo2_native",
+    "exists": true,
+    "bytes": 253985992,
+    "sha256": "ea2a889433821435231f4d504099e5b50b1f0d232f617a3c437c5c1cf38a05b5",
+    "matches_declared_sha256": true
+  },
+  "runtime_flow_qualified_in_this_audit": false,
+  "remote_service_inspected_in_this_audit": false,
+  "system_python_packages": {
+    "capstone": false,
+    "unicorn": false,
+    "aiohttp": true
+  },
+  "oracle_python": "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+  "oracle_python_replay_successful": true,
+  "preexisting_working_changes_before_audit_documentation": [
+    "cmake/SecurityTransport.cmake",
+    "include/halo2/game_voice.hpp",
+    "include/halo2/multiplayer_datagrams.hpp",
+    "include/halo2/voice_origin.hpp",
+    "multiplayer/master_server/friends_http.py",
+    "multiplayer/master_server/match_transport.py",
+    "multiplayer/master_server/steam_friends.py",
+    "multiplayer/master_server/steam_login.py",
+    "multiplayer/master_server/tests/test_friends_http.py",
+    "multiplayer/master_server/tests/test_security_voice_origin.py",
+    "multiplayer/master_server/tests/test_steam_login.py",
+    "multiplayer/master_server/tests/test_voice_blocks.py",
+    "multiplayer/master_server/tests/voice_signing.py",
+    "multiplayer/master_server/voice_origin.py",
+    "rust/online_protocol/src/netcode/generic.rs",
+    "rust/online_protocol/src/netcode/range.rs",
+    "rust/online_protocol/src/netcode/stream.rs",
+    "src/assets/cache.cpp",
+    "src/assets/mcc/mcc_resource_reader.cpp",
+    "src/gameplay/multiplayer/multiplayer_runtime.cpp",
+    "src/network/online_match_session.cpp",
+    "src/network/services/steam_login.cpp",
+    "tests/mcc_resource_reader_tests.cpp",
+    "tests/multiplayer_tests.cpp",
+    "tests/security_transport_tests.cpp",
+    "tests/steam_login_tests.cpp",
+    "tools/audit_rendering.py",
+    "tools/mcc_content.py",
+    "tools/prepare_mcc_gameplay.py",
+    "tools/setup_assets.py"
+  ],
+  "production_changes_performed": false,
+  "source_files_changed_after_probe": []
+}

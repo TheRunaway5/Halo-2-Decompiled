@@ -1,7 +1,6 @@
 import json
 import unittest
 from types import SimpleNamespace as S
-from unittest.mock import patch
 from multiplayer.master_server.player_presence import population
 from multiplayer.master_server.couch_players import LocalPlayer
 from . import test_matchmaking_http as http
@@ -9,9 +8,6 @@ from . import test_matchmaking_http as http
 
 class PopulationTests(unittest.TestCase):
     def setUp(self):
-        self.clock = patch('multiplayer.master_server.player_presence.time.monotonic', return_value=100)
-        self.clock.start()
-        self.addCleanup(self.clock.stop)
         self.api = S(clock=lambda: 100, sessions={}, entries=[S(policy=S(id=p), name=p.title())
             for p in ('ranked', 'casual')], core=S(tickets={}, proposals={}))
         self.directory = S(clans=S(clock=lambda: 100, sessions={}), matchmaking=self.api,
@@ -27,12 +23,14 @@ class PopulationTests(unittest.TestCase):
         self.api.core.tickets[key] = S(id=key, playlist=playlist, expires_at=expires,
             players=[S(id=name) for name in players])
 
-    def room(self, phase='running', *, deadline=150, closed=False, socket_closed=False,
-             challenge='', sent=99):
-        self.directory.match_transport.rooms['match'] = S(phase=phase, deadline=deadline, closed=closed,
-            peers={'owner': S(socket=S(closed=socket_closed), challenge=challenge, sent=sent)},
-            owners={'owner': 'owner', 'couch': 'owner', 'guest': 'owner'}, guests={'guest'},
-            proposal=S(playlist='ranked'))
+    def room(self, phase='running', *, closed=False, socket_closed=False, present=True):
+        # Population consumes native seat observations. Challenge/lease and
+        # connection-generation eligibility run in the Rust/HTTP controls.
+        seats = [dict(player='owner',guest=False),dict(player='couch',guest=False),
+                 dict(player='guest',guest=True)] if present else []
+        self.directory.match_transport.rooms['match'] = S(phase=phase,closed=closed,
+            peers={'owner':S(socket=S(closed=socket_closed))},
+            connected_seats=lambda who,peer:seats,proposal=S(playlist='ranked'))
 
     def test_unique_accounts_couch_guests_and_zero_playlists(self):
         self.directory.clans.sessions['social'] = self.session('owner')
@@ -75,7 +73,7 @@ class PopulationTests(unittest.TestCase):
             counts = population(self.directory)
             self.assertEqual(counts[state], {'users': 2, 'guests': 1}, phase)
             self.assertEqual(sum(counts[key]['users'] for key in ('idle', 'queued', 'joining', 'playing', 'postgame')), 2)
-        for options in [dict(closed=True), dict(deadline=100), dict(socket_closed=True), dict(challenge='nonce', sent=84)]:
+        for options in [dict(closed=True),dict(socket_closed=True),dict(present=False)]:
             self.room(**options)
             self.assertEqual(population(self.directory)['online'], {'users': 0, 'guests': 0}, options)
 

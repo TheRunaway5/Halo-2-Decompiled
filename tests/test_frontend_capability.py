@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from native_gameplay_test import (FRONTEND_CAPABILITY, FRONTEND_MAP, FRONTEND_SCHEMA,
                                  FRONTEND_SCOPE, frontend_runtime_available,
                                  native_gameplay_test_available, _check,
-                                 _frontend_contract, _runtime_owner)
+                                 _frontend_contract, _runtime_owner,
+                                 FRONTEND_H2EK_LOADING_PROFILE, FRONTEND_H2EK_LOADING_FILES)
 from package_mcc_test_build import qualified_frontend, packaged_frontend
 from packaged_shader_defaults import native_runtime_wrapper, relocate_compiled_shader_default
 from packaged_shader_test_support import elf_with_readonly_literal
@@ -158,6 +159,39 @@ class FrontendCapabilityTests(unittest.TestCase):
         self.publish();self.assertFalse(self.available())
         self.report["validation"]["original_loading_ambience"] = False
         self.publish();self.assertTrue(self.available())
+
+    def h2ek_presentation_family(self):
+        self.report['validation']['mcc_loading_presentation_profile'] = FRONTEND_H2EK_LOADING_PROFILE
+        self.report['validation']['original_loading_ambience'] = True
+        for name in list(self.report['resources']):
+            if name.startswith('presentation/loading-v3/'):
+                self.report['resources'].pop(name)
+        for name in FRONTEND_H2EK_LOADING_FILES:
+            path = self.cache/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(name.encode())
+            self.report['resources'][name] = self.digest(path)
+        self.publish()
+
+    def test_h2ek_admission_requires_every_exact_onboarded_loading_resource(self):
+        self.h2ek_presentation_family()
+        _check(self.root, self.runtime, self.cache, frontend=True)
+        self.assertTrue(self.available())
+        for name in FRONTEND_H2EK_LOADING_FILES:
+            with self.subTest(resource=name):
+                digest = self.report['resources'].pop(name)
+                self.publish();self.assertFalse(self.available())
+                self.report['resources'][name] = digest
+                self.publish();self.assertTrue(self.available())
+                path = self.cache/name
+                original = path.read_bytes()
+                path.write_bytes(original+b'changed')
+                self.assertFalse(self.available())
+                path.write_bytes(original)
+
+    def test_packager_preserves_h2ek_loading_in_the_relocated_portable_owner(self):
+        self.h2ek_presentation_family()
+        self.test_packager_preserves_passed_scope_in_a_relocated_portable_owner()
 
     def authored_presentation_family(self):
         """Retained synthetic legacy proof and assets for diagnostic controls."""

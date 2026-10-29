@@ -9,6 +9,16 @@
 #include <vector>
 
 namespace halo2 {
+class SourceNativeRenderTimeline;
+// Only the adopted/ACKed native timeline can admit a sparse completed pair.
+// Ordinary simulation histories retain their consecutive-tick requirement.
+class SourceNativeCutPermit {
+    friend class SourceNativeRenderTimeline;
+    friend class SourceWorldInterpolation;
+    friend class SceneInterpolation;
+    SourceNativeCutPermit(std::uint64_t before,std::uint64_t after):before_(before),after_(after){}
+    std::uint64_t before_,after_;
+};
 // Native presentation between completed game states. These helpers never
 // advance a source controller, dispatch events or change simulation storage.
 void validate_render_fraction(float);
@@ -36,6 +46,8 @@ public:
     // its pose owner. Their completed nodes must not blend with standing nodes.
     void capture(std::uint64_t tick,std::span<const SourceWorldPose>,
         std::span<const std::uint32_t> discontinuities);
+    void capture_native_cut(const SourceNativeCutPermit&,std::span<const SourceWorldPose>,
+        std::span<const std::uint32_t> discontinuities={});
     // A newer accepted body can replace this completed tick without a new
     // simulation step. Retain the earlier endpoint only for surviving owners.
     void refresh(std::uint64_t tick,std::span<const SourceWorldPose>,
@@ -69,8 +81,8 @@ private:
     std::vector<Transform> sample_ordinary(std::uint32_t object,const RenderModel&,float fraction,
         std::optional<Transform> shown_parent_frame)const;
     std::optional<Vec3> predicted_offset(std::uint32_t object,float fraction,bool model_order)const;
-    std::uint64_t tick_{};
-    bool initialized_{},paired_{};
+    std::uint64_t tick_{},previous_tick_{};
+    bool initialized_{},paired_{},native_pair_{};
     std::vector<SourceWorldPose> previous_,current_;
     std::vector<std::pair<std::uint32_t,Transform>> presented_;
     std::vector<SourceWorldPredictedRoot> predicted_;
@@ -81,6 +93,7 @@ public:
     // reset is required for a checkpoint restore, teleport or BSP replacement.
     void reset(std::uint64_t tick,std::span<const SceneObjects::Object>);
     void capture(std::uint64_t tick,std::span<const SceneObjects::Object>);
+    void capture_native_cut(const SourceNativeCutPermit&,std::span<const SceneObjects::Object>);
     void refresh(std::uint64_t tick,std::span<const SceneObjects::Object>);
     Transform sample(const SceneObjects::Object &,float fraction)const;
     std::vector<Transform> sample_nodes(const SceneObjects::Object &,float fraction)const;

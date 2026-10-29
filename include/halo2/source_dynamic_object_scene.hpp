@@ -19,6 +19,10 @@ struct SourceDynamicObjectDraw {
     float camouflage{};
     // Set when vertices are local records the renderer deforms (GPU route).
     std::vector<ModelSkinSubmission> skins;
+    const RenderModel* source_model{};
+    unsigned source_lod{};
+    std::uint32_t source_render_model=~0u;
+    std::vector<std::uint32_t> source_ordinals;
 };
 class SourceDynamicObjectScene {
     struct PreparedData;

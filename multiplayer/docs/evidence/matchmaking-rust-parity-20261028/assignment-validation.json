@@ -1,0 +1,116 @@
+{
+  "schema": "H2_RUST_ASSIGNMENT_VALIDATION_V1",
+  "updated_utc": "2026-10-28T15:20:02.119318+00:00",
+  "assignment_component_passed": true,
+  "scope": "Original/Rust assignment corridor and the recorded passing frozen backend cohort. Later shared-source changes and failing integration cases are separate; the current whole checkout is not qualified.",
+  "original_replay": {
+    "passed": true,
+    "scope": "Replay unchanged retail 71730 assignment decisions and hopper getters.\n\nStarts at 71B1E with declared synthetic ready-summary/register/stack inputs;\nstops before launch publication (71CAD) or failure/session transition (71C73).\nAll called getters, count/weighted kernels and their callees run unchanged.\nThis does NOT execute upstream session/readiness/7E210 producers or downstream\n71FF0 launch, does not replay Live, and does not certify the whole 71730 owner.\nRun through tools/run_test.py. All compiler outputs stay in its owned scratch.\n",
+    "cases": 336,
+    "original_assignment_decisions": 336,
+    "original_getter_calls": 2688,
+    "original_instructions": 1248,
+    "instruction_patches": [],
+    "replaced_callees": [],
+    "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "tool_sha256": "2bda98bd311f430d1f7099f10fbede34317b3ec3f3cab92fe15cbb2b5e06fc88",
+    "native_source_sha256": {
+      "team_assignment": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+      "team_balance": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7"
+    },
+    "fixture_sha256": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee",
+    "scratch": "/tmp/halo2-test-icpfjhlb",
+    "scratch_retained": false,
+    "whole_71730_or_session_flow_qualified": false
+  },
+  "rust_regressions": {
+    "tests": 4,
+    "receipt": "assignment-rust-tests.json"
+  },
+  "passing_backend_cohort": {
+    "tests": 392,
+    "seconds": 56.393,
+    "failures": [],
+    "errors": [],
+    "frozen": true,
+    "report": "assignment-backend-report.json",
+    "manifest": "assignment-source-manifest.json"
+  },
+  "latest_integration": {
+    "tests": 395,
+    "seconds": 59.437,
+    "failures": [
+      "test_game_is_selected_at_gathering_creation_and_preserved_at_launch (multiplayer.master_server.tests.test_gathering_sessions.GatheringInputsTests.test_game_is_selected_at_gathering_creation_and_preserved_at_launch)",
+      "test_disc_only_and_old_revision_do_not_admit_unloadable_rotations (multiplayer.master_server.tests.test_tombstone_playlists.TombstonePlaylistTests.test_disc_only_and_old_revision_do_not_admit_unloadable_rotations)",
+      "test_fiesta_two_couches_select_revised_tombstone (multiplayer.master_server.tests.test_tombstone_playlists.TombstonePlaylistTests.test_fiesta_two_couches_select_revised_tombstone)",
+      "test_team_slayer_two_couches_select_revised_tombstone (multiplayer.master_server.tests.test_tombstone_playlists.TombstonePlaylistTests.test_team_slayer_two_couches_select_revised_tombstone)"
+    ],
+    "errors": [
+      "test_all_opposing_team_members_leave_including_host (multiplayer.master_server.tests.test_direct_peer_http.TeamOpponentDepartureTests.test_all_opposing_team_members_leave_including_host)"
+    ],
+    "passed": false,
+    "frozen": true,
+    "report": "assignment-current-integration-report.json",
+    "manifest": "assignment-current-source-manifest.json",
+    "diagnostics": "assignment-current-integration.log"
+  },
+  "original_replayed_core_still_matches": {
+    "team_assignment": true,
+    "team_balance": true
+  },
+  "live_source_drift_since_latest_cohort": [
+    "multiplayer/master_server/team_balance.py",
+    "multiplayer/master_server/match_transport.py",
+    "multiplayer/master_server/matchmaking_http.py",
+    "multiplayer/master_server/matchmaking.py",
+    "multiplayer/master_server/tests/test_direct_peer_http.py",
+    "rust/online_protocol/src/hopper_selection.rs"
+  ],
+  "scratch_cleanup": [
+    {
+      "path": "/tmp/halo2-test-lobjgcb4",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-ga3z8caq",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-227lv1z8",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-l7z56sas",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-cmven6rn",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-ak0_ox1e",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-ii037bas",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-x0qtkrw_",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-icpfjhlb",
+      "removed": true
+    }
+  ],
+  "retained_numerical_original_fixture": {
+    "path": "tests/fixtures/matchmaking_assignment_original.json",
+    "bytes": 242031,
+    "sha256": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee"
+  },
+  "retained_large_generated_artifacts": [],
+  "installed_runtime_replaced_by_this_work": false,
+  "remote_service_replaced_by_this_work": false,
+  "full_goal_complete": false
+}

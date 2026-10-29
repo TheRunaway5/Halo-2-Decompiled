@@ -1,6 +1,7 @@
 #include "halo2/mcc_resource_reader.hpp"
 #include "halo2/mcc_cache.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/confined_file.hpp"
 #include <memory>
 #if defined(__linux__)
 #include <cerrno>
@@ -24,7 +25,8 @@ constexpr std::uint64_t maximum_container=1024ull*1024*1024;
 struct File {
     int fd;
     explicit File(const std::filesystem::path& path)
-        :fd(::open(path.c_str(),O_RDONLY|O_CLOEXEC|O_NONBLOCK)) {
+        // identity() admits the regular-file type and extent on this same FD.
+        :fd(open_confined_file(path,false)) {
         if(fd<0)throw FormatError("Cannot open MCC resource container: "+path.string());
     }
     ~File(){::close(fd);}
@@ -89,7 +91,7 @@ std::vector<std::byte> read_mcc_resource_range(const std::filesystem::path& path
     last_container=std::make_unique<const DecodedOwner>(DecodedOwner{admitted,std::move(decoded)});
     return result;
 #else
-    return owned_range(read_mcc_cache(path),offset,bytes);
+    return owned_range(decode_mcc_cache(read_confined_file(path)),offset,bytes);
 #endif
 }
 }

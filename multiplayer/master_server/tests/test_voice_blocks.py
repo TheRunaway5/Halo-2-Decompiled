@@ -64,7 +64,7 @@ class MatchVoiceBlockTests(unittest.IsolatedAsyncioTestCase):
     enqueue = match.MatchTransportTests.enqueue
     pair = match.MatchTransportTests.pair
 
-    async def test_host_and_nonhost_blocks_preserve_third_party_relay_and_postgame(self):
+    async def test_host_and_nonhost_blocks_preserve_private_direct_delivery_and_postgame(self):
         self.api.entries = tuple(replace(e, policy=replace(e.policy, minimum_players=3, maximum_players=3)) for e in self.api.entries)
         self.api.core.playlists = {e.policy.id: e.policy for e in self.api.entries}
         _, descriptors, sockets, queues, host = await self.pair(("one", "two", "three"))
@@ -84,39 +84,50 @@ class MatchVoiceBlockTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 200, await response.text())
         async def mask(i, value):
             self.assertEqual(await asyncio.wait_for(queues[i].get(), 2), {"voice_blocked": value})
-        def audio(source):
-            return sign_voice(room, b"H2N2\x1c\0\x06\0" + bytes([descriptors[source]["slot"]]) + b"\0" * 14)
+        def audio(source, listener):
+            return sign_voice(room, b"H2N2\x1c\0\x06\0" + bytes([descriptors[source]["slot"]]) + b"\0" * 14, recipient=descriptors[listener]["slot"])
         await blocks(h, c)
         await mask(h, 1 << descriptors[c]["slot"])
         await mask(c, 1 << host)
-        # A blocked microphone still reaches the host as relay data for D;
-        # the separate authoritative mask prevents local host playback.
-        packet = audio(c)
+        # Excluded host receives no microphone bytes; an eligible peer still does.
+        packet = audio(c, h)
         await sockets[c].send_bytes(bytes([host]) + packet)
-        self.assertEqual(await asyncio.wait_for(queues[h].get(), 2), bytes([descriptors[c]["slot"]]) + packet)
-        await sockets[h].send_bytes(bytes([descriptors[d]["slot"]]) + packet)
-        self.assertEqual(await asyncio.wait_for(queues[d].get(), 2), bytes([host]) + packet)
-        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h))
         with self.assertRaises(asyncio.TimeoutError):
-            await asyncio.wait_for(queues[c].get(), .1)
+            await asyncio.wait_for(queues[h].get(), .05)
+        packet = audio(c, d)
+        await sockets[c].send_bytes(bytes([descriptors[d]["slot"]]) + packet)
+        self.assertEqual(await asyncio.wait_for(queues[d].get(), 2), bytes([descriptors[c]["slot"]]) + packet)
+        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h,c))
+        with self.assertRaises(asyncio.TimeoutError):
+            await asyncio.wait_for(queues[c].get(), .05)
         # Manual native preferences cannot clear the server's relationship.
         preferences = b"H2N2\x1c\0\x06\x01\x01\0\0"
         await sockets[c].send_bytes(bytes([host]) + preferences)
         await asyncio.wait_for(queues[h].get(), 2)
-        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h))
+        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h,c))
         with self.assertRaises(asyncio.TimeoutError):
             await asyncio.wait_for(queues[c].get(), .1)
         await blocks(h, None)
         await mask(h, 0); await mask(c, 0)
-        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h))
-        self.assertEqual(await asyncio.wait_for(queues[c].get(), 2), bytes([host]) + audio(h))
+        await sockets[h].send_bytes(bytes([descriptors[c]["slot"]]) + audio(h,c))
+        self.assertEqual(await asyncio.wait_for(queues[c].get(), 2), bytes([host]) + audio(h,c))
         # Postgame uses the same private pair filter; two nonhosts can block
         # each other without blocking the host or the simulation channel.
         room = directory.match_transport.rooms[descriptors[0]["id"]]
-        room.phase = "postgame"
+        raw = match.MatchTransportTests.report(self, descriptors)
+        digest = self.api.results.submit(room, room.players[room.host][0], raw.hex())
+        for owner in room.tokens:
+            self.api.results.confirm(room, owner, digest)
+        room.finish_review()
+        for queue in queues:
+            while True:
+                value = await asyncio.wait_for(queue.get(), 2)
+                if isinstance(value, dict) and 'voice_members' in value:
+                    break
+        self.assertEqual(room.phase, 'postgame')
         await blocks(c, d)
         await mask(c, 1 << descriptors[d]["slot"]); await mask(d, 1 << descriptors[c]["slot"])
         for source, listener in ((c, d), (d, c)):
-            await sockets[h].send_bytes(bytes([descriptors[listener]["slot"]]) + audio(source))
+            await sockets[source].send_bytes(bytes([descriptors[listener]["slot"]]) + audio(source,listener))
             with self.assertRaises(asyncio.TimeoutError):
                 await asyncio.wait_for(queues[listener].get(), .1)

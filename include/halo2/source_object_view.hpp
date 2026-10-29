@@ -33,6 +33,9 @@ struct SourceObjectViewLod {
     // Original spatial membership and current portal-frustum admission.
     // Absent only for explicit diagnostic/legacy presentation callers.
     std::function<bool(std::uint32_t full_handle,ShadowCasterSphere)> source_visible;
+    // Native receiver depth materializes its original prefix before upload;
+    // a generic deferred skin must not replace that exact WORLD bank.
+    bool require_cpu_world_positions{};
 };
 struct SourceObjectViewSelection {
     std::size_t source_object{};

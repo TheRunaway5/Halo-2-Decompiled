@@ -1,0 +1,34 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/tmp/halo2-test-l7z56sas/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "multiplayer/master_server/tests",
+        "-t",
+        "."
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/tmp/halo2-test-l7z56sas/master-source",
+  "scratch": "/tmp/halo2-test-l7z56sas",
+  "source_frozen": true
+}

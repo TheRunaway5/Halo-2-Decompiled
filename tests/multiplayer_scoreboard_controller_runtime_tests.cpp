@@ -66,6 +66,7 @@ int main(int argc,char **argv)try {
   if(native_mcc)check(Cache(options.map,options.shared_maps).is_mcc(),"native-mcc requires a prepared imported MCC cache");
   else options.gameplay_xbe=argv[3];
   options.width=640;options.height=480;options.local_players=4;options.starting_weapon=5;options.mute=true;
+  options.validation=std::getenv("HALO2_SCOREBOARD_VALIDATION");
   options.reference_tick_cadence=true;options.reference_render_fraction=1.f;
   options.frames=224;
   if(const auto *assets=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))options.ui_assets=assets;

@@ -179,13 +179,13 @@ void native_requests() {
     event.key.keysym.scancode=scan;input.handle_event(event);
   };
   key(SDL_SCANCODE_E,true);key(SDL_SCANCODE_E,false);
-  key(SDL_SCANCODE_X,true);key(SDL_SCANCODE_X,false);
-  key(SDL_SCANCODE_TAB,true);key(SDL_SCANCODE_TAB,false);
+  key(SDL_SCANCODE_C,true);key(SDL_SCANCODE_C,false);
+  key(SDL_SCANCODE_1,true);key(SDL_SCANCODE_1,false);
   const auto c=input.consume().controls;
   check(c.pickup && c.dual_wield && c.switch_weapon,"SDL short pickup/dual/switch taps were lost");
   const auto released=input.consume().controls;
   check(!released.pickup && !released.dual_wield && !released.switch_weapon,"Consumed item requests repeated");
-  key(SDL_SCANCODE_X,true);
+  key(SDL_SCANCODE_C,true);
   SDL_Event focus{};focus.type=SDL_WINDOWEVENT;focus.window.windowID=42;focus.window.event=SDL_WINDOWEVENT_FOCUS_LOST;
   input.handle_event(focus);check(!input.consume().controls.dual_wield,"Focus loss retained a dual pickup request");
 }

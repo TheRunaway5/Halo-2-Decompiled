@@ -78,7 +78,7 @@ struct SourceWorldDrawStorage::Impl {
         check(vkCreateDescriptorPool(context.device,&create,nullptr,&pool),"create queued world descriptor pool");
     }
     std::span<const VkDescriptorSet> upload(std::span<const SourceWorldDrawUpload> draws) {
-        for(const auto &draw:draws)
+        for(const auto &draw:draws) {
             if(!draw.resident || draw.material_uniform.size()!=context.material_uniform_size ||
                bool(draw.target_view)!=bool(draw.target_sampler) ||
                draw.vertex_bank.range[0]>192 || draw.vertex_bank.range[1]>158 ||
@@ -86,6 +86,11 @@ struct SourceWorldDrawStorage::Impl {
                draw.vertex_bank.range[2]>1 || draw.vertex_bank.range[3]>1 ||
                (draw.vertex_bank.range[3] && (draw.vertex_bank.range[0]!=0 || draw.vertex_bank.range[1]<12)))
                 throw FormatError("incomplete queued world draw binding");
+            for(unsigned stage=0;stage<draw.stage_images.size();++stage)if(const auto& image=draw.stage_images[stage])
+                if(!image->sampler || !image->two_dimensional || !image->cube || !image->volume ||
+                   (stage==0 && draw.target_view))
+                    throw FormatError("incomplete or conflicting queued world image selection");
+        }
         if(draws.empty()){sets.clear();return sets;}
         reserve(draws.size());
         check(vkResetDescriptorPool(context.device,pool,0),"reset retired world descriptors");
@@ -121,6 +126,24 @@ struct SourceWorldDrawStorage::Impl {
             writes[1].dstBinding=7;writes[1].descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;writes[1].pBufferInfo=&bank;
             writes[2].dstBinding=0;writes[2].descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;writes[2].pImageInfo=&target;
             vkUpdateDescriptorSets(context.device,draw.target_view?3:2,writes,0,nullptr);
+            // Copies above retain the global image/sampler bank. Each draw's
+            // completed owner may replace its own selected pages afterwards;
+            // another draw sharing the same resident set stays independent.
+            for(unsigned stage=0;stage<draw.stage_images.size();++stage)if(const auto& selected=draw.stage_images[stage]) {
+                const VkDescriptorImageInfo images[]{
+                    {selected->sampler,selected->two_dimensional,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                    {selected->sampler,selected->cube,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+                    {selected->sampler,selected->volume,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL}};
+                VkWriteDescriptorSet image_writes[3]{};
+                for(unsigned table=0;table<3;++table) {
+                    auto& write=image_writes[table];write={VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                    write.dstSet=sets[i];write.dstBinding=table?table+4:stage;
+                    write.dstArrayElement=table?stage:0;write.descriptorCount=1;
+                    write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    write.pImageInfo=&images[table];
+                }
+                vkUpdateDescriptorSets(context.device,3,image_writes,0,nullptr);
+            }
         }
         return sets;
     }

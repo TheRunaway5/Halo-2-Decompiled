@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "returncode": 0,
+  "argv": [
+    "/usr/bin/python3",
+    "-B",
+    "tools/build_online_playlists.py",
+    "--check"
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-i0s2w_3c",
+  "scratch_retained": false,
+  "source_sha256": {
+    "tools/build_online_playlists.py": "9d63b39b499f711253c49c2afb1ef08e9b62868f9558317d7287ec499b277359",
+    "tools/build_online_hopper_variants.cpp": "3269493d59bbc28ec853eeef5adf7725b3354ae5531c7783363821fbe8a54b30",
+    "src/gameplay/multiplayer/source_game_variant.cpp": "39a51be06f6df8846996622e8c40eb032daf8b0c50aa4e1dd5d01da818884e75",
+    "multiplayer/master_server/data/recovered-hopper-rows-v1.json": "78ec30c6cde74c58747620146c01865acf07dd8e977a6568aaed035119b5c5e8",
+    "multiplayer/master_server/data/published-hopper-membership-v1.json": "01446eddc448de65b1e895eb2728c931b267a07db3d0430b077630caaaca421c",
+    "multiplayer/master_server/examples/matchmaking-online.json": "fe25baa6e638f48a280c515fb5e0c7511b548e3d4ee663aa5c77832f772d22bb",
+    "multiplayer/master_server/data/online-hopper-frequencies-v1.json": "e747d8f39c205598e5a82f12a62334cdd144186b0b084d9a541e82822f58801c",
+    "multiplayer/master_server/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "multiplayer/docs/evidence/playlist-hoppers-20261028/mcc-map-identities.json": "828456f363fe55dacde12da0899ec5b0b16d0ac4ac9e1783715904e5f123959f"
+  },
+  "drift_during_check": [],
+  "retained_large_artifacts": []
+}

@@ -375,6 +375,8 @@ class Directory:
             with contextlib.suppress(asyncio.CancelledError):
                 await task
             await self.session.close()
+            if self.matchmaking.core is not None:
+                self.matchmaking.core.close()
             self.store.db.close()
             LOG.info(json.dumps({"event": "master_stopped", "master_id": self.id}))
 

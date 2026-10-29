@@ -16,7 +16,10 @@ struct MultiplayerKbmActions {
 struct MultiplayerKbmInput {
   Controls controls;
   MultiplayerKbmActions actions;
-  // Resolve mouse actions against the current source unit's actual seat.
+  // A real overlapping jump/movement chord may end before tick delivery.
+  // Only a seated consumer restores its sampled direction for that jump.
+  std::optional<std::array<float,2>> vehicle_evasion_direction;
+  // Resolve mouse actions and evasion chords against the actual source seat.
   Controls gameplay_controls(bool dual,bool seated,bool inverted) const;
 };
 
@@ -55,8 +58,10 @@ private:
   std::array<bool, SDL_NUM_SCANCODES> keys_{};
   std::array<bool, 6> mouse_{};
   std::array<bool, pc_action_count> pressed_{};
+  std::optional<std::array<float,2>> pending_vehicle_evasion_direction_;
   bool held(PcAction) const;
   void press(int binding);
+  void update_vehicle_evasion(int binding,bool down);
   void update_interactions(Uint32);
   bool own_window(Uint32 id) const { return !window_id_ || id == window_id_; }
 };

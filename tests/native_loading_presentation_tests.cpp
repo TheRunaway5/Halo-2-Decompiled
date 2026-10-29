@@ -1,6 +1,7 @@
 #include "halo2/native_loading_presentation.hpp"
 #include <nlohmann/json.hpp>
 #include <bit>
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -17,6 +18,8 @@ int main(int argc,char** argv) {
         halo2::VistaLoadingAssets assets;
         for(auto& image:assets)image={1,1,{1,1,11,std::vector<std::byte>(4,std::byte{255}),{}}};
         halo2::NativeLoadingPresentation presentation(assets);
+        assets[1].source_width=1024;assets[1].source_height=128;
+        halo2::NativeLoadingPresentation proportioned(assets,true);
         check(presentation.resident_mesh().materials.size()==12,"loading resident draw bank changed");
         unsigned cases{},vertices{};
         for(const auto& row:fixture.at("cases")) {
@@ -41,6 +44,15 @@ int main(int argc,char** argv) {
                 draws.push_back(draw);
             }
             presentation.update(draws,row.at("width"),row.at("height"));
+            proportioned.update(draws,row.at("width"),row.at("height"));
+            const auto logo=proportioned.vertices().subspan(60,6);
+            float left=1,right=0,top=1,bottom=0;
+            for(const auto &v:logo){left=std::min(left,v.position.x);right=std::max(right,v.position.x);
+                top=std::min(top,v.position.y);bottom=std::max(bottom,v.position.y);}
+            const float aspect=(right-left)*row.at("width").get<float>()/
+                ((bottom-top)*row.at("height").get<float>());
+            check(std::abs(aspect-8.f)<.0001f && std::abs(left+right-1.f)<.00001f &&
+                std::abs(top+bottom-1.f)<.00001f,"Imported logo stretched or left its authored centre");
             check(presentation.vertices().size()==draws.size()*6,"loading triangles dropped");
             for(unsigned i=0;i<draws.size();++i) {
                 const auto& draw=draws[i];const auto& material=*presentation.materials()[i].vista_loading;

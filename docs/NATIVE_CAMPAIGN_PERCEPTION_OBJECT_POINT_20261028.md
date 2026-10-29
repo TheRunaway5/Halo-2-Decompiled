@@ -1,0 +1,11 @@
+# Native perception object points
+
+Semantic native owners cover1EBCB0 object snapshot,26DDD0 stored-state snapshot,11B4F0 attachment point,299770 nearest-attachment selection and26DED0 actor point. They consume actual object/actor/attachment/component pools and the genuine private native marker API. No guest stack address, supplied point, synthetic visibility or executable-backed runtime call is used.
+
+The two snapshot routines deliberately retain different behavior:1EBCB0 publishes orientation and actual component velocity;26DDD0 leaves orientation unchanged and uses the root object's stored velocity. Unit points consume actual marker world coordinates, type12 attachment-center refusal uses its original object-local fallback, and other kinds retain their own world-point paths. Closest-attachment selection preserves ordered squared-distance arithmetic, strict first-tie choice, signed extension reads and actual null-access failure. Actor fallback copies the real14-word snapshot forward, including aliases.
+
+[Proof](../analysis/campaign-native-perception-object-point-20261028/proof.json) covers778 complete physical-original calls,348 memory fault prefixes and one real missing-read fault at18: all307 root/833 composed sites,51,665 ordered reads,11,667 stores and complete retained banks. All256 object kinds, current numerical controls, output/query/forward-copy aliases, signed extensions and equal-distance selection are included. GCC, Clang, five actual core objects under ASan/UBSan, seven compiled mutants and exact independent original repeat pass. The semantic core needed no algorithm correction.
+
+The precise rejected26DF15 MOVSD destination admits one verified pending source read; memory-provider side effects on that rejected copy remain unqualified. Original private register/FP ABI transport is separate from this native typed API.
+
+The1,503,642-byte compressed canonical original observation fixture is required input. An earlier newly generated corpus was replaced before qualification to cover alias/signed/tie concerns; its compact report and replacement receipt remain. All four owned reference/build trees are removed and the main production module is included. Actual2669E0/265F40/266D30 parent composition, full campaign/runtime/native-only and launcher qualification remain open.

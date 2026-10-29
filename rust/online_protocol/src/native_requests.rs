@@ -133,6 +133,7 @@ pub enum NativeRequest {
         nonce: u64,
         cookie: u64,
     },
+    TeamChange { nonce: u64, cookie: u64, sequence: u32, view: u8, team: u8 },
     SessionQuery {
         nonce: u64,
     },
@@ -324,7 +325,7 @@ pub fn decode_request(packet: &[u8], protocol: u16) -> Result<NativeRequest, Dec
         return Err(DecodeError::WrongProtocol);
     }
     let kind = reader.u8()?;
-    if !matches!(kind, 1 | 2 | 4 | 6) {
+    if !matches!(kind, 1 | 2 | 4 | 6 | 19) {
         return Err(DecodeError::WrongKind);
     }
     let nonce = reader.u64()?;
@@ -426,6 +427,12 @@ pub fn decode_request(packet: &[u8], protocol: u16) -> Result<NativeRequest, Dec
             nonce,
             cookie: reader.u64()?,
         },
+        19 => {
+            let cookie=reader.u64()?;let sequence=reader.u32()?;
+            let view=reader.u8()?;let team=reader.u8()?;
+            if sequence==0 || view>=4 || team>=8 { return Err(DecodeError::InvalidControl); }
+            NativeRequest::TeamChange {nonce,cookie,sequence,view,team}
+        },
         6 => NativeRequest::SessionQuery { nonce },
         _ => unreachable!(), // Exhaustive checked wire kind above.
     };
@@ -493,6 +500,20 @@ mod tests {
         value.extend_from_slice(&1.25f32.to_bits().to_le_bytes());
         value.extend_from_slice(&3u16.to_le_bytes());
         value
+    }
+
+    #[test]
+    fn team_change_is_bounded_and_owned_by_a_peer_local_view() {
+        let mut packet=header(19);packet.extend_from_slice(&9u64.to_le_bytes());
+        packet.extend_from_slice(&1u32.to_le_bytes());packet.extend_from_slice(&[3,7]);
+        assert_eq!(decode_request(&packet,97),Ok(NativeRequest::TeamChange {
+            nonce:0x123456789abcdef0,cookie:9,sequence:1,view:3,team:7}));
+        for n in 0..packet.len() {assert!(decode_request(&packet[..n],97).is_err());}
+        for (at,value) in [(27,4),(28,8),(28,255)] {
+            let mut invalid=packet.clone();invalid[at]=value;assert!(decode_request(&invalid,97).is_err());
+        }
+        let mut zero=packet.clone();zero[23..27].fill(0);assert!(decode_request(&zero,97).is_err());
+        packet.push(0);assert!(decode_request(&packet,97).is_err());
     }
 
     #[test]

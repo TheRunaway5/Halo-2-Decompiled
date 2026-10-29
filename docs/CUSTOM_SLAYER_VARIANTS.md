@@ -49,6 +49,16 @@ players. Both custom modes use the native authoritative match, with original
 TU1.5 data supplying their existing weapon/animation/damage consumers. The
 separate source-VM world does not implement these newly authored rulesets.
 
+LAN and split-screen match editors keep each mode's defining rules fixed.
+Fiesta exposes score, time, player limit, lives, respawn/suicide penalties,
+grenades and supported damage settings. Infection exposes survival time,
+player limit, respawn/suicide penalties and supported damage settings. Faction
+loadouts, conversion, zombie traits and the survival/infection endings remain
+fixed. Unsupported original-engine controls are omitted from these custom
+editors. Named copies retain native extension writes as well as the complete
+original settings buffer. Select a fresh LAN session to use a custom mode;
+the retained stock-game lobby does not change into a custom-mode session.
+
 Building `halo2_native` copies `data/tags` beside the executable and generates
 `releases/halo2-custom-slayer-v1.zip`. The repository also includes that portable
 release asset. The generated bundle now also includes the Assault-based

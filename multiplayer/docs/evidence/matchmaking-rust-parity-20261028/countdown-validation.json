@@ -1,0 +1,521 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_COUNTDOWN_VALIDATION_V1",
+  "updated_utc": "2026-10-28T21:08:27.106087+00:00",
+  "countdown_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "scope": "Rust pregame countdown registry/publication, original press/tick/complete parameter writer, serial/clock/requester/cancel/zero rules, command replay and guarded SQL plans. Full original caller/Live, remaining API/room migration, crash/distributed recovery and native played/delivered acceptance remain open.",
+  "reproduced_gap": {
+    "trigger": "B requests an active countdown, then C requests the identical mode-1 ten-second tuple900ms later.",
+    "before": "Python replaced requester, incremented serial and restarted the clock.",
+    "required_and_after": "Both originals and Rust preserve B, serial and clock; ordinary publication occurs1000ms from the first request.",
+    "failing_report": "countdown-red-report.json",
+    "failing_log": "countdown-red-step-1.log"
+  },
+  "original_replay": {
+    "schema": "H2_COUNTDOWN_WRITER_ORIGINAL_REPORT_V1",
+    "scope": "Replay complete unchanged retail/TU1.5 countdown parameter writers.\n\nSynthetic session fields and caller operands only. No original Live, network,\ncontroller, rendered frame or full original caller provenance is claimed.\n",
+    "epochs": {
+      "retail": {
+        "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+        "entry": 384816,
+        "bytes": 243,
+        "code_sha256": "be9aa23e41d198a3908463ca300f6fb0459cb88fe6458dbc137678e3e8b894b2",
+        "calls": 768,
+        "instruction_visits": 33343,
+        "covered_instructions": 68,
+        "instructions": 68,
+        "all_executed_instruction_bytes_verified": true
+      },
+      "tu15": {
+        "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+        "entry": 388128,
+        "bytes": 243,
+        "code_sha256": "be9aa23e41d198a3908463ca300f6fb0459cb88fe6458dbc137678e3e8b894b2",
+        "calls": 768,
+        "instruction_visits": 33343,
+        "covered_instructions": 68,
+        "instructions": 68,
+        "all_executed_instruction_bytes_verified": true
+      }
+    },
+    "original_calls": 1536,
+    "paired_controls": 768,
+    "fixture": {
+      "path": "tests/fixtures/matchmaking_countdown_writer_original.json",
+      "bytes": 277109,
+      "sha256": "0fb4d1f349e341a834ecb5cab320cc8ca9bd1a10e421c4a97d3c20d178d32d92"
+    },
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-dvw3iv2c",
+    "retained_large_artifacts": [],
+    "report": "countdown-writer-original.json",
+    "command": [
+      "python3",
+      "-B",
+      "tools/run_test.py",
+      "--scratch-root",
+      ".local/test-scratch/countdown-port",
+      "--",
+      ".tools/python/bin/python",
+      "-B",
+      "tools/oracle_matchmaking_countdown.py",
+      "--fixture",
+      "tests/fixtures/matchmaking_countdown_writer_original.json",
+      "--report",
+      "build/test-results/matchmaking-countdown-port-20261028/writer-original.json"
+    ],
+    "retained_legacy_controls": 40
+  },
+  "rust_authorities": [
+    "Live pregame registry, serial/publication generations, original signed/wrapping clock and no-catchup timer",
+    "Complete original active/seconds/mode/watermark/opaque requester/update-counter writer",
+    "Start/shorten/member request/cancel, unchanged-tuple requester/serial/clock preservation, public handle projection and zero consumption",
+    "Accepted-party version, full profile, connected-roster/session generation retirement and prepared-publication fencing",
+    "Command request UUID/shape/replay/capacity decisions, SQL party/member CAS and request-ledger guards",
+    "Opaque prepared continuation, abort/no-publication on SQL failure, stale epoch/expiry/profile/roster rejection"
+  ],
+  "checks": [
+    "768 paired unchanged original writer outputs, including every field/update counter and repeated-request identity exclusion",
+    "Retained40 original timer/press/parameter controls; signed elapsed, wrap, no catchup, minimum3, zero consumption and restart",
+    "Actual three-member HTTP repeated-request regression and shared requester/clock behavior",
+    "Real SQLite trigger failure leaves publication/request ledger unchanged; same UUID retry succeeds",
+    "Same-visible-revision full-profile change and connection replacement retire live/staged countdowns",
+    "Prepared publication abort, cancellation and intervening timer epoch reject stale grants",
+    "Read-only stable Python views, independent shallow-copy snapshots and absent live restoration path",
+    "Same-process service reinitialization preserves membership and resets countdown/consent",
+    "Privacy/ticket/consent independence and idle-pump database lifetime integration regressions corrected"
+  ],
+  "storage_and_io": {
+    "trusted_facts": "Existing provider/accepted-directory/room observations and integer clock IO remain trusted adapters.",
+    "publication": "Rust prepares native state and SQL guards. The generic adapter commits SQLite before native continuation publication; failed SQL aborts the continuation.",
+    "recovery_limit": "A crash after SQL commit but before native publication can leave a replay record without published ephemeral state. OS-process crash/retry and future parallel/distributed fact/SQL/native coordination remain open.",
+    "restart_limit": "The service reinitialization control runs within one test process; it does not qualify OS-process crash recovery.",
+    "modern_policy": "Transport authorization, request UUIDs, serials, capacity and proposal-lease continuation expiry are declared native service rules. Original Live or historical values were not inferred."
+  },
+  "passing_frozen_full": {
+    "passed": true,
+    "rust_tests": 59,
+    "backend_tests": 462,
+    "backend_seconds": 96.128,
+    "feature_enabled": true,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-r5hp_db2/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "9ac89f5979e678ba15754b776214b691b4a71e302ec2df756d8b5d02606f0028",
+      "bytes": 2228848,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 234,
+    "report": "countdown-full-final-report.json",
+    "manifest": "countdown-full-final-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-r5hp_db2",
+    "scratch_removed": true
+  },
+  "passing_frozen_production": {
+    "passed": true,
+    "rust_tests": 37,
+    "backend_tests": 137,
+    "backend_seconds": 23.094,
+    "feature_enabled": false,
+    "compiler": {
+      "returncode": 0,
+      "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+    },
+    "rust_library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-5rigqi1l/cargo/release/libhalo2_online_security_ffi.so",
+      "sha256": "1b2ec35a987fd80140e9a71c36ba102a9dce207ccdece16e392ff79e5fea36d1",
+      "bytes": 2217528,
+      "retained": false,
+      "borrowed_external": false
+    },
+    "frozen_files": 234,
+    "report": "countdown-production-final-report.json",
+    "manifest": "countdown-production-final-source-manifest.json",
+    "current_source_drift": [],
+    "drift_during_freeze": [],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-5rigqi1l",
+    "scratch_removed": true
+  },
+  "cmake_component": {
+    "passed": true,
+    "report": "countdown-cmake-report.json",
+    "identity": "countdown-cmake-build-identity.json",
+    "archive_sha256": "fb4b550f73fd9117612ee3bd75d8178927a90beaa0bfa87234d87fa9430eff4d",
+    "worker_sha256": "e5e2c60409196bc4bb3a481e0edc94f9ab84be743a2dd9a25ec462da28d025ed",
+    "scope": "Live-tree Rust static bridge/helper component build; not frozen native gameplay/delivery qualification. Rust sources match the final backend manifest.",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-upejkn0e",
+    "scratch_removed": true
+  },
+  "source_sha256": {
+    "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+    "rust/online_protocol/src/matchmaking_party_countdowns.rs": "f3b2b62a466405cfb9115a117e95b98c0bf2d2ee3e2e0a0463452ccf1f1764a6",
+    "rust/online_protocol/src/matchmaking_parties.rs": "d6fcc4b1c51d0cde60fc4cba4e43effa4528c5e73e815f7562279e2ed3fb1221",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "81b1f1501719bf0db4d7f07d274286f412b448facb6fa7067dd43d87c0c11716",
+    "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+    "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+    "rust/online_protocol/Cargo.lock": "c89281b09a6fab9364260eb440e65e1a7e73876b2771dbe9a4bd6ca8fd19b1e4",
+    "rust/online_security_ffi/Cargo.lock": "12b3ed9a6b0afc4e46b0ef8119819c74648ace877451011435a6814c56226fee",
+    "rust/online_protocol_bridge/Cargo.lock": "fbef65d71bab237ceba99221c7b6815bb97f543e38e04fa12b6958f0295f2cdd",
+    "multiplayer/master_server/parties_http.py": "e300cec708584804bb0226f6ff22b7854498abc2b5b56c9660d0fa432c872d89",
+    "multiplayer/master_server/party_countdown.py": "ee105e3089bf9bf64d7d1dd69a2f1fabeb0aaf66d7cffe5cdaaf8863a117523e",
+    "multiplayer/master_server/native_party_countdowns.py": "f16a2909049484dff94d2952fe65c6afb8d7bd9b5d7af758735df7f043d5cdba",
+    "multiplayer/master_server/native_database.py": "43e9bbe1437531ed0e5f0bdf47ba4f46c3235108ce0dfb12b0ada21a087b8a7a",
+    "multiplayer/master_server/tests/test_countdown_owner_native.py": "0da158b4c090ef39ed006a1c2578fc129ac36204004b552febddcb4a0ce2fcc8",
+    "tools/oracle_matchmaking_countdown.py": "d59f87bad166e16a205e7075e7a47c18dc6cd39c0d43bdd3f3025933b46042f5",
+    "tools/test_master_server.py": "5753209de7704decd1ee8285e9f21a6a1cedc2e171d834ae6caa1bd2fa4349d4",
+    "tests/fixtures/matchmaking_countdown_writer_original.json": "0fb4d1f349e341a834ecb5cab320cc8ca9bd1a10e421c4a97d3c20d178d32d92",
+    "tests/fixtures/tu15_party_countdown_original.json": "d8dec3055851191d8e0b054e3a2eebf4da47edfc7235f5273320f303e84fd8b6"
+  },
+  "retained_required_reference": {
+    "path": "tests/fixtures/matchmaking_countdown_writer_original.json",
+    "bytes": 277109,
+    "sha256": "0fb4d1f349e341a834ecb5cab320cc8ca9bd1a10e421c4a97d3c20d178d32d92"
+  },
+  "retained_small_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-red-report.json",
+      "bytes": 1492,
+      "sha256": "359e1c119933c4cdc770ac50b9f8f929e729a23e930afac1a1455c013e2a71f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-red-source-manifest.json",
+      "bytes": 29145,
+      "sha256": "650a2199d41acbedd7bbe4492224490385b148fce75692b8c152ab3fc76bbf99"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-red-step-0.log",
+      "bytes": 1431,
+      "sha256": "676025a7346790221c640d570bb6fdc7365f2a3f82bc545ed384412f894406d4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-red-step-1.log",
+      "bytes": 1993,
+      "sha256": "77eb2acbc475ad0cf30edb78a6c400192a6b7eef08b50843a9c7de140ee6a1b4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-first-report.json",
+      "bytes": 2007,
+      "sha256": "6b0f14e233435d7e1dff1177812661e773602fc87d2314aa5ce98177384ddc8c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-first-source-manifest.json",
+      "bytes": 29538,
+      "sha256": "7c6f39f29300ebccc3c9343623153b454f3ae539d5caa63ebf4b65a016bdcfd2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-first-step-0.log",
+      "bytes": 1955,
+      "sha256": "6149aba88df8998598e9c5e8b303be3c9e41d0d42699f25a2c69b0fba9fb9abe"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-first-step-1.log",
+      "bytes": 1430,
+      "sha256": "16658701a14b72bf821526e348aba97bdb297b8ba99e1343947de070d5c798bc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-first-step-2.log",
+      "bytes": 115,
+      "sha256": "d4d3a566f4b6a12ea23e26eab7f731746359e5d58b875edda6f5ee65ec507b1e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-native-report.json",
+      "bytes": 2000,
+      "sha256": "47aec0a413447b5cbc75db7355c41c792772ad02f12f5a90bf60f3f7ab4db6a4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-native-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "130134743563c3bae900dd378092f093fb458d292809e3dc929a4dd3c2b1cfa2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-native-step-0.log",
+      "bytes": 2791,
+      "sha256": "e4992f61a620609e7b3893177deb7f09c888213dd5070913609002d5650eeca9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-native-step-1.log",
+      "bytes": 1430,
+      "sha256": "9968e53b25fc7aaee745be574b13df5247469a1c3e2568e51089677d15f8de8e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-native-step-2.log",
+      "bytes": 505,
+      "sha256": "09b544e05f6fdba797140c28690b3dc21f056ddd2c86c13be4c1d63e46892271"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-io-report.json",
+      "bytes": 2136,
+      "sha256": "e0d8d7b3d870862f74e49bbd261505369fe53c7e56d63f9e53d325ee79ad652e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-io-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "590afe9c452e4e6a9d43153f152e0535b60897f2cc55ff02fb1521e00b30b06c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-io-step-0.log",
+      "bytes": 2791,
+      "sha256": "0b528f4f291a96308163369ceb8c263abae0a24d68812c2ecef9e64395084858"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-io-step-1.log",
+      "bytes": 1430,
+      "sha256": "a644c23d93a76cba7d911e5454cdec376f65062c4c4b5fe82e26bde57b962ad7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-io-step-2.log",
+      "bytes": 125,
+      "sha256": "23b6a3b295520ecf696ff295fcf8a7f4baf38c5dbe9674205c17419dbe21ae66"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-report.json",
+      "bytes": 2609,
+      "sha256": "16776401f5109c39355abd3a7785d4836a56d7423562f0ab7c64aea77359a063"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "3fe0bc7b5c14d34f014b0ab65c58c31d7977701f2cd2fbcd55beba802d112c8a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-step-0.log",
+      "bytes": 9590,
+      "sha256": "70d909e53991792aa3fd0dcfdf078b53fc60a8da6d29d8223252e1b8fa2f28f0"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-step-1.log",
+      "bytes": 1430,
+      "sha256": "7b27e31e4026d6367a7f2653e686352343a0388171c65da920174332ae743b5a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-step-2.log",
+      "bytes": 15852,
+      "sha256": "7e08f4dc11e3855f71b49718da4c900f91b9bb5d2ebd92b1480c34fc6f014b0a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-report.json",
+      "bytes": 3476,
+      "sha256": "fbc73c5b1fbed60ea3252479146f5d460cfc3fd23b0cf5a4444f6f392bd681db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "7a5081a40a0160d62a6266f7f276acf622857044a7b9f004c3fdde036707869e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-step-0.log",
+      "bytes": 6099,
+      "sha256": "2935fd56498eca46d589f41facdb3dd98ea9a9166f14fe096317f144a0d514d3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-step-1.log",
+      "bytes": 1430,
+      "sha256": "3d955216cba28b4f85d56051a75aaea1892841a68e32d6177915e608ba74a221"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-step-2.log",
+      "bytes": 4159,
+      "sha256": "fe53d558ef7676e33e647ec6cbaa27cccc69954d680b15b6d321d4605eae8f6a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-boundary-fix-report.json",
+      "bytes": 1709,
+      "sha256": "5d24740dc655fdc4323ae531d17917fdbbb9d93192b89e7f10eba3f3bd0cbda6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-boundary-fix-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "f2248761bd9e5e0270925824a841f5e7122291efaff2dffd50f4d899d0301d50"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-boundary-fix-step-0.log",
+      "bytes": 1430,
+      "sha256": "4e9ade2fd50d00d467de0f365a820e5f451f359fcd7e38fac1b65e691f625ad1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-boundary-fix-step-1.log",
+      "bytes": 579,
+      "sha256": "ab196210e551a75d3d972326db95af17d91ee7227a927141ce361bbbc8e32875"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-final-report.json",
+      "bytes": 2608,
+      "sha256": "d1116c30231a2069014a9125af9c88f40e72ea9cf7485f1913024b9cf27b2b37"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-final-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "4b4f40ee9c0389aaaee8f7c173e76058d0ae01550aff326f8b6eba1093e0c2cc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-final-step-0.log",
+      "bytes": 9591,
+      "sha256": "b93deea3be08062d10a311517e8e67909463a8442a8643e0bfc5c0d77ac96f12"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-final-step-1.log",
+      "bytes": 1431,
+      "sha256": "23b2c9f40ae2d0e11501c6a66d4733a859d7d033ba72a0941edff65d158ed818"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-full-final-step-2.log",
+      "bytes": 8947,
+      "sha256": "4756628131e3caa6b513572bd93c7c44f139517912b98f720e75f3606d6bc9c9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-final-report.json",
+      "bytes": 3475,
+      "sha256": "42f96b7e7a7e64a164f8e9cdcf619000ac1d82cccfab69dba76ff605615632a6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-final-source-manifest.json",
+      "bytes": 29668,
+      "sha256": "fb8e3ceec145376fb8acf3e66391ea6adca3ff4a22006b1f2b6af7a3f6e7e99b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-final-step-0.log",
+      "bytes": 6099,
+      "sha256": "3a9db817dedf26b3938e0490549d3f93af7eaac620e1df2d42a56e9b0f523d1a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-final-step-1.log",
+      "bytes": 1431,
+      "sha256": "86ab89ae23522b729bc3bd6d46e6f9f8f5f1f33580d43bfe77b36e6af12d9d36"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-production-final-step-2.log",
+      "bytes": 2053,
+      "sha256": "168d7bcc5c632bd605f4e949ab9c70199821f7da9f438d41ce2745ced461c7ae"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-writer-original.json",
+      "bytes": 1528,
+      "sha256": "c1c370ae9f4e8b8cbc95a8ae5d2b849508393d6062c8a375d06c4636aeaf4783"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-writer-disassembly.txt",
+      "bytes": 5812,
+      "sha256": "16c442514bfd5a5a66d79de772ba5b91b4c7561be7a83f3313b5461e1e5ba9b9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-scope-preservation.json",
+      "bytes": 428,
+      "sha256": "191d3947709d8d7466c98946b2293a650dca03e2e8b06fd5c6f63f08adda1573"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-source-coherence.json",
+      "bytes": 406,
+      "sha256": "973142dfcddb0c64d7a8f81b031e401c83b8c8c9ef31999c8059a1dad8741083"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-cmake-report.json",
+      "bytes": 2492,
+      "sha256": "ff99ad10f41ec8d8901f82e405eeffe77efc7aef4b7db7968a369ccaaf669021"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-cmake-configure.log",
+      "bytes": 4638,
+      "sha256": "a3257d91dee19041c3ede47196faa19414139153df7af2f2e212584c7cc0eba1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-cmake-build.log",
+      "bytes": 6784,
+      "sha256": "1bb53ff6f04a7f7b429a4ba38bbda972be060ec32474894a81b0fee5035c951a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-cmake-tests.log",
+      "bytes": 299,
+      "sha256": "d1e4a2749eb66efe02f8467b3fd691e4bf265e115692800b54e9815cd1976227"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-cmake-build-identity.json",
+      "bytes": 1865,
+      "sha256": "68e8b9b5fa921dc9baad122f7bf1b9610b7e50b3479f80758724a81adea637f0"
+    }
+  ],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-xbkd49eo",
+      "removed": true,
+      "report": "countdown-red-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-tmu0udpk",
+      "removed": true,
+      "report": "countdown-first-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-v8yty370",
+      "removed": true,
+      "report": "countdown-native-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-j_zv7b1y",
+      "removed": true,
+      "report": "countdown-io-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-tatm3444",
+      "removed": true,
+      "report": "countdown-full-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-qcre_n2k",
+      "removed": true,
+      "report": "countdown-production-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-pine52n4",
+      "removed": true,
+      "report": "countdown-boundary-fix-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-r5hp_db2",
+      "removed": true,
+      "report": "countdown-full-final-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-5rigqi1l",
+      "removed": true,
+      "report": "countdown-production-final-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-dvw3iv2c",
+      "removed": true,
+      "report": "countdown-writer-original.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-ybzz4q0r",
+      "removed": true,
+      "report": "countdown-scope-preservation.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-9genzfct",
+      "removed": true,
+      "report": "countdown-source-coherence.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-upejkn0e",
+      "removed": true,
+      "report": "countdown-cmake-report.json"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-0u3ze4f0",
+      "removed": true,
+      "report": "countdown-validation.json report helper"
+    }
+  ],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/countdown-port/halo2-test-0u3ze4f0",
+  "retained_large_artifacts": [],
+  "deployed_or_installed": false,
+  "launcher_selected_runtime_modified": false,
+  "report_helper_scratch_removed": true,
+  "owned_scratch_root_empty": true
+}

@@ -13,10 +13,7 @@ from pathlib import Path
 import re
 import struct
 
-
-def _identity(value):
-    return (value.st_dev, value.st_ino, value.st_size,
-            value.st_mtime_ns, value.st_ctime_ns)
+from file_identity import descriptor_identity, path_identity
 
 PROFILE = "native-vulkan-pstencil-upscaling-v1"
 AOT_PROFILE = "native-vulkan-aot-program-kernels-v2"
@@ -61,7 +58,7 @@ PATH_TRACING_TEMPORAL_FRAGMENTS = frozenset({"path_tracing/world.frag.spv", "pat
 PATH_TRACING_SURFACE_MARKER = b"Path Tracing authored surface shaders are unavailable in this runtime.\0"
 PATH_TRACING_SURFACE_FRAGMENTS = PATH_TRACING_TEMPORAL_FRAGMENTS | PATH_TRACING_VISIBILITY_FILES
 _GENERATED_PATH = re.compile(
-    r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility)?\.vert|f-[0-9a-f]{64}\.frag)"
+    r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility|-source-depth)?\.vert|f-[0-9a-f]{64}\.frag)"
     r"|native-fragments/[a-z][a-z0-9-]*/[0-9a-f]{64}\.frag)\.spv")
 
 
@@ -69,11 +66,11 @@ def _direct_bytes(path, maximum):
     if path.is_symlink() or not path.is_file() or path.resolve(strict=True) != path:
         raise ValueError("Native shader package has no direct file owner")
     with path.open('rb') as stream:
-        before = os.fstat(stream.fileno())
-        if not 0 < before.st_size <= maximum:
+        before = descriptor_identity(stream.fileno())
+        if not 0 < before[2] <= maximum:
             raise ValueError("Native shader owner exceeds its declared extent")
         raw = stream.read()
-        if _identity(before) != _identity(os.fstat(stream.fileno())) or _identity(before) != _identity(path.stat()):
+        if before != descriptor_identity(stream.fileno()) or before != path_identity(path):
             raise ValueError("Native shader owner changed during validation")
     return raw
 
@@ -219,8 +216,8 @@ def _bound_shader_requirements(executable):
     if executable.is_symlink() or not executable.is_file() or executable.resolve(strict=True) != executable:
         raise ValueError("Native shader catalog has no direct executable owner")
     with executable.open('rb') as stream:
-        before = os.fstat(stream.fileno())
-        if not before.st_size:
+        before = descriptor_identity(stream.fileno())
+        if not before[2]:
             raise ValueError("Native shader catalog executable is empty")
         with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
             pattern = re.compile(_GENERATED_PATH.pattern.encode() + rb'\x00')
@@ -230,7 +227,7 @@ def _bound_shader_requirements(executable):
             lighting = data.find(PATH_TRACING_LIGHTING_MARKER) != -1
             temporal = data.find(PATH_TRACING_TEMPORAL_MARKER) != -1
             surface = data.find(PATH_TRACING_SURFACE_MARKER) != -1
-        if _identity(before) != _identity(os.fstat(stream.fileno())) or _identity(before) != _identity(executable.stat()):
+        if before != descriptor_identity(stream.fileno()) or before != path_identity(executable):
             raise ValueError("Native shader catalog executable changed during validation")
     if not paths:
         raise ValueError("Native executable has no bound per-program Vulkan catalog")
@@ -274,9 +271,9 @@ def validate_native_package(directory, *, expected_sha256=None, executable):
                 not isinstance(pin, str) or not re.fullmatch('[0-9a-f]{64}', pin)):
             raise ValueError("Native shader package lacks an immutable module identity")
         path = directory/name
-        identity = _identity(path.stat())
+        identity = path_identity(path)
         data = _direct_bytes(path, 32*1024*1024)
-        if identity != _identity(path.stat()):
+        if identity != path_identity(path):
             raise ValueError("Native shader changed before its contract was checked")
         identities[path] = identity
         if len(data) != size or hashlib.sha256(data).hexdigest() != pin:
@@ -314,7 +311,7 @@ def validate_native_package(directory, *, expected_sha256=None, executable):
         if path.is_file():
             actual.add(path.relative_to(directory).as_posix())
     if (actual != files.keys() or _direct_bytes(package, 64*1024*1024) != raw or
-            any(_identity(path.stat()) != identity for path, identity in identities.items())):
+            any(path_identity(path) != identity for path, identity in identities.items())):
         raise ValueError("Native shader package inventory changed")
     return dict(profile=AOT_PROFILE, files=files, module_count=len(rows),
                 package=dict(path=AOT_PACKAGE_NAME, sha256=package_pin))

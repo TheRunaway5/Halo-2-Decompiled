@@ -447,6 +447,11 @@ mod ffi {
         count: u64,
         next: usize,
     }
+    struct ArchiveRange {
+        valid: bool,
+        offset: usize,
+        bytes: usize,
+    }
     struct ArchiveStats {
         valid: bool,
         raw_bytes: u64,
@@ -534,6 +539,8 @@ mod ffi {
         zoom: i16,
     }
     struct NativeRequestFrame {
+        team_view: u8,
+        team: u8,
         status: DecodeStatus,
         kind: u8,
         nonce: u64,
@@ -564,6 +571,15 @@ mod ffi {
         fn archive_len(self: &Archive) -> usize;
         fn archive_claim(self: &Archive, count: u64, extent: u64, elements: bool) -> bool;
         fn archive_stats(self: &Archive) -> ArchiveStats;
+        type ArchiveIndex;
+        fn index_authority_archive_raw(packet: &[u8], hash: [u8; 32], limits: ArchiveLimits) -> Result<Box<ArchiveIndex>>;
+        fn archive_index_node(self: &ArchiveIndex, index: usize) -> ArchiveNode;
+        fn archive_index_name(self: &ArchiveIndex, index: usize) -> ArchiveRange;
+        fn archive_index_data(self: &ArchiveIndex, index: usize) -> ArchiveRange;
+        fn archive_index_hash(self: &ArchiveIndex) -> [u8; 32];
+        fn archive_index_len(self: &ArchiveIndex) -> usize;
+        fn archive_index_claim(self: &ArchiveIndex, count: u64, extent: u64, elements: bool) -> bool;
+        fn archive_index_stats(self: &ArchiveIndex) -> ArchiveStats;
         fn decode_voice_frame(packet: &[u8], expected_protocol: u16) -> VoiceFrame;
         fn decode_native_request_frame(packet: &[u8], expected_protocol: u16)
         -> NativeRequestFrame;
@@ -860,6 +876,55 @@ fn parse_authority_archive_raw(packet:&[u8],hash:[u8;32],limits:ffi::ArchiveLimi
     }).unwrap_or_else(|_|Err("Authority archive parser failed".to_owned()))
 }
 
+struct ArchiveIndex {
+    inner: halo2_online_protocol::authority_archive::ArchiveIndex,
+}
+impl ArchiveIndex {
+    fn archive_index_node(&self, index: usize) -> ffi::ArchiveNode {
+        self.inner.node(index).map_or(
+            ffi::ArchiveNode { valid: false, tag: 0, bits: 0, count: 0, next: 0 },
+            |n| ffi::ArchiveNode { valid: true, tag: n.tag, bits: n.bits, count: n.count, next: n.next },
+        )
+    }
+    fn archive_index_name(&self, index: usize) -> ffi::ArchiveRange {
+        self.inner.name_range(index).map_or(
+            ffi::ArchiveRange { valid: false, offset: 0, bytes: 0 },
+            |range| ffi::ArchiveRange { valid: true, offset: range.start, bytes: range.end - range.start },
+        )
+    }
+    fn archive_index_data(&self, index: usize) -> ffi::ArchiveRange {
+        self.inner.data_range(index).map_or(
+            ffi::ArchiveRange { valid: false, offset: 0, bytes: 0 },
+            |range| ffi::ArchiveRange { valid: true, offset: range.start, bytes: range.end - range.start },
+        )
+    }
+    fn archive_index_hash(&self) -> [u8; 32] { self.inner.hash() }
+    fn archive_index_len(&self) -> usize { self.inner.len() }
+    fn archive_index_claim(&self, count: u64, extent: u64, elements: bool) -> bool {
+        self.inner.claim_native(count, extent, elements)
+    }
+    fn archive_index_stats(&self) -> ffi::ArchiveStats {
+        let Some(s) = self.inner.stats() else {
+            return ffi::ArchiveStats { valid: false, raw_bytes: 0, nodes: 0, metadata_bytes: 0,
+                deepest: 0, working_limit: 0, working_reserved: 0, working_peak: 0, native_claimed: 0 };
+        };
+        ffi::ArchiveStats { valid: true, raw_bytes: s.raw_bytes, nodes: s.nodes, metadata_bytes: s.metadata_bytes,
+            deepest: s.deepest, working_limit: s.working_limit, working_reserved: s.working_reserved,
+            working_peak: s.working_peak, native_claimed: s.native_claimed }
+    }
+}
+fn index_authority_archive_raw(packet: &[u8], hash: [u8; 32], limits: ffi::ArchiveLimits) -> Result<Box<ArchiveIndex>, String> {
+    std::panic::catch_unwind(|| {
+        let limits = halo2_online_protocol::authority_archive::Limits {
+            encoded_bytes: limits.encoded_bytes, decoded_bytes: limits.decoded_bytes,
+            allocated_bytes: limits.allocated_bytes, container_elements: limits.container_elements,
+            fixed_native_bytes: limits.fixed_native_bytes, working_bytes: limits.working_bytes,
+        };
+        halo2_online_protocol::authority_archive::index_raw(packet, hash, limits)
+            .map(|inner| Box::new(ArchiveIndex { inner })).map_err(|e| e.to_string())
+    }).unwrap_or_else(|_| Err("Authority archive parser failed".to_owned()))
+}
+
 fn empty(status: ffi::DecodeStatus) -> ffi::VoiceFrame {
     ffi::VoiceFrame {
         status,
@@ -942,6 +1007,8 @@ fn status(error: DecodeError) -> ffi::DecodeStatus {
 
 fn empty_request(status: ffi::DecodeStatus) -> ffi::NativeRequestFrame {
     ffi::NativeRequestFrame {
+        team_view: 0,
+        team: 0,
         status,
         kind: 0,
         nonce: 0,
@@ -1088,6 +1155,10 @@ fn parse_request(packet: &[u8], protocol: u16) -> ffi::NativeRequestFrame {
                     completed_vehicle: intent(c.completed_vehicle),
                 })
                 .collect();
+        }
+        NativeRequest::TeamChange {nonce,cookie,sequence,view,team} => {
+            frame.kind=19;frame.nonce=nonce;frame.cookie=cookie;frame.sequence=sequence;
+            frame.team_view=view;frame.team=team;
         }
         NativeRequest::Leave { nonce, cookie } => {
             frame.kind = 4;

@@ -1,0 +1,3372 @@
+{
+  "passed": true,
+  "argv": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "tools/oracle_session_candidates.py",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9bqbvuy2/original"
+  ],
+  "returncode": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9bqbvuy2",
+  "scratch_retained": false,
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "retained_large_artifacts": [],
+  "original": {
+    "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "controls": [
+      {
+        "name": "rank_difference_0",
+        "inputs": {
+          "candidate": {
+            "rank": 10
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "rank_difference_negative_0",
+        "inputs": {
+          "candidate": {
+            "rank": 10
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "rank_difference_1",
+        "inputs": {
+          "candidate": {
+            "rank": 11
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 85,
+        "expected": 85
+      },
+      {
+        "name": "rank_difference_negative_1",
+        "inputs": {
+          "candidate": {
+            "rank": 9
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 85,
+        "expected": 85
+      },
+      {
+        "name": "rank_difference_2",
+        "inputs": {
+          "candidate": {
+            "rank": 12
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 70,
+        "expected": 70
+      },
+      {
+        "name": "rank_difference_negative_2",
+        "inputs": {
+          "candidate": {
+            "rank": 8
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 70,
+        "expected": 70
+      },
+      {
+        "name": "rank_difference_3",
+        "inputs": {
+          "candidate": {
+            "rank": 13
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 55,
+        "expected": 55
+      },
+      {
+        "name": "rank_difference_negative_3",
+        "inputs": {
+          "candidate": {
+            "rank": 7
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 55,
+        "expected": 55
+      },
+      {
+        "name": "rank_difference_4",
+        "inputs": {
+          "candidate": {
+            "rank": 14
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 40,
+        "expected": 40
+      },
+      {
+        "name": "rank_difference_negative_4",
+        "inputs": {
+          "candidate": {
+            "rank": 6
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 40,
+        "expected": 40
+      },
+      {
+        "name": "rank_difference_5",
+        "inputs": {
+          "candidate": {
+            "rank": 15
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "rank_difference_negative_5",
+        "inputs": {
+          "candidate": {
+            "rank": 5
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "rank_difference_6",
+        "inputs": {
+          "candidate": {
+            "rank": 16
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "rank_difference_negative_6",
+        "inputs": {
+          "candidate": {
+            "rank": 4
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "exact_space_bonus",
+        "inputs": {
+          "candidate": {
+            "space": 1
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 50,
+        "expected": 50
+      },
+      {
+        "name": "extra_space_has_no_bonus",
+        "inputs": {
+          "candidate": {
+            "space": 3
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "wait_seconds_-20",
+        "inputs": {
+          "candidate": {
+            "wait": -20
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "wait_clamp_-20",
+        "inputs": {},
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "wait_seconds_0",
+        "inputs": {
+          "candidate": {
+            "wait": 0
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "wait_clamp_0",
+        "inputs": {},
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "wait_seconds_1",
+        "inputs": {
+          "candidate": {
+            "wait": 1
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 2,
+        "expected": 2
+      },
+      {
+        "name": "wait_clamp_1",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "wait_seconds_17",
+        "inputs": {
+          "candidate": {
+            "wait": 17
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 34,
+        "expected": 34
+      },
+      {
+        "name": "wait_clamp_17",
+        "inputs": {},
+        "actual": 17,
+        "expected": 17
+      },
+      {
+        "name": "wait_seconds_179",
+        "inputs": {
+          "candidate": {
+            "wait": 179
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 358,
+        "expected": 358
+      },
+      {
+        "name": "wait_clamp_179",
+        "inputs": {},
+        "actual": 179,
+        "expected": 179
+      },
+      {
+        "name": "wait_seconds_180",
+        "inputs": {
+          "candidate": {
+            "wait": 180
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 360,
+        "expected": 360
+      },
+      {
+        "name": "wait_clamp_180",
+        "inputs": {},
+        "actual": 180,
+        "expected": 180
+      },
+      {
+        "name": "wait_seconds_181",
+        "inputs": {
+          "candidate": {
+            "wait": 181
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 360,
+        "expected": 360
+      },
+      {
+        "name": "wait_clamp_181",
+        "inputs": {},
+        "actual": 180,
+        "expected": 180
+      },
+      {
+        "name": "wait_seconds_3600",
+        "inputs": {
+          "candidate": {
+            "wait": 3600
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 360,
+        "expected": 360
+      },
+      {
+        "name": "wait_clamp_3600",
+        "inputs": {},
+        "actual": 180,
+        "expected": 180
+      },
+      {
+        "name": "median_rtt_ms_-1",
+        "inputs": {
+          "candidate": {
+            "latency": -1,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "median_rtt_ms_0",
+        "inputs": {
+          "candidate": {
+            "latency": 0,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "median_rtt_ms_1",
+        "inputs": {
+          "candidate": {
+            "latency": 1,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 99,
+        "expected": 99
+      },
+      {
+        "name": "median_rtt_ms_50",
+        "inputs": {
+          "candidate": {
+            "latency": 50,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 90,
+        "expected": 90
+      },
+      {
+        "name": "median_rtt_ms_99",
+        "inputs": {
+          "candidate": {
+            "latency": 99,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 80,
+        "expected": 80
+      },
+      {
+        "name": "median_rtt_ms_100",
+        "inputs": {
+          "candidate": {
+            "latency": 100,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 80,
+        "expected": 80
+      },
+      {
+        "name": "median_rtt_ms_150",
+        "inputs": {
+          "candidate": {
+            "latency": 150,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 65,
+        "expected": 65
+      },
+      {
+        "name": "median_rtt_ms_200",
+        "inputs": {
+          "candidate": {
+            "latency": 200,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 50,
+        "expected": 50
+      },
+      {
+        "name": "median_rtt_ms_250",
+        "inputs": {
+          "candidate": {
+            "latency": 250,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 25,
+        "expected": 25
+      },
+      {
+        "name": "median_rtt_ms_300",
+        "inputs": {
+          "candidate": {
+            "latency": 300,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "median_rtt_ms_350",
+        "inputs": {
+          "candidate": {
+            "latency": 350,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "median_rtt_ms_400",
+        "inputs": {
+          "candidate": {
+            "latency": 400,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "median_rtt_ms_450",
+        "inputs": {
+          "candidate": {
+            "latency": 450,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -150,
+        "expected": -150
+      },
+      {
+        "name": "median_rtt_ms_499",
+        "inputs": {
+          "candidate": {
+            "latency": 499,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -198,
+        "expected": -198
+      },
+      {
+        "name": "median_rtt_ms_500",
+        "inputs": {
+          "candidate": {
+            "latency": 500,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -200,
+        "expected": -200
+      },
+      {
+        "name": "median_rtt_ms_900",
+        "inputs": {
+          "candidate": {
+            "latency": 900,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -200,
+        "expected": -200
+      },
+      {
+        "name": "median_rtt_ms_1000",
+        "inputs": {
+          "candidate": {
+            "latency": 1000,
+            "ready": true
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": -200,
+        "expected": -200
+      },
+      {
+        "name": "rtt_without_full_qos_flag_excluded",
+        "inputs": {
+          "candidate": {
+            "latency": 50,
+            "ready": false
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "brief_service_result_uses_same_rank_space_wait",
+        "inputs": {
+          "candidate": {
+            "details": false,
+            "ready": true,
+            "rank": 12,
+            "space": 1,
+            "wait": 5,
+            "latency": 1
+          },
+          "own": null,
+          "configuration": null
+        },
+        "actual": 229,
+        "expected": 229
+      },
+      {
+        "name": "host_quality_own_(262144, 262144)_candidate_(262144, 262144)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              262144,
+              262144
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "host_quality_own_(262144, 262144)_candidate_(262143, 262144)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              262143,
+              262144
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "host_quality_own_(262144, 262144)_candidate_(262144, 262143)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              262144,
+              262143
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "host_quality_own_(262143, 262144)_candidate_(0, 0)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              0,
+              0
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262143,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "host_quality_own_(262144, 262143)_candidate_(0, 0)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              0,
+              0
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262143
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "host_quality_own_(262144, 262144)_candidate_(0, 0)",
+        "inputs": {
+          "candidate": {
+            "quality": [
+              0,
+              0
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "host_quality_unavailable_in_brief_result",
+        "inputs": {
+          "candidate": {
+            "details": false,
+            "quality": [
+              0,
+              0
+            ]
+          },
+          "own": {
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_0_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_0_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_0_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_0_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_0_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_0_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_0_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_0_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_0_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 0
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_1_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "language_1_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_1_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_2_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_2_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_2_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_2_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_2_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_2_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_2_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_2_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_2_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 2
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_3_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_3_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_3_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_3_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_3_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_3_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_3_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_3_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_3_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 3
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_4_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_4_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_4_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_4_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_4_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_4_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_4_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_4_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_4_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 4
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_5_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_5_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_5_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_5_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_5_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_5_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_5_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_5_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_5_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 5
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_6_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "language_6_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_6_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 6
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_7_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "language_7_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 7
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_8_0",
+        "inputs": {
+          "candidate": {
+            "language": 0
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_8_1",
+        "inputs": {
+          "candidate": {
+            "language": 1
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_8_2",
+        "inputs": {
+          "candidate": {
+            "language": 2
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_8_3",
+        "inputs": {
+          "candidate": {
+            "language": 3
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_8_4",
+        "inputs": {
+          "candidate": {
+            "language": 4
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_8_5",
+        "inputs": {
+          "candidate": {
+            "language": 5
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -50,
+        "expected": -50
+      },
+      {
+        "name": "language_8_6",
+        "inputs": {
+          "candidate": {
+            "language": 6
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_8_7",
+        "inputs": {
+          "candidate": {
+            "language": 7
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": -100,
+        "expected": -100
+      },
+      {
+        "name": "language_8_8",
+        "inputs": {
+          "candidate": {
+            "language": 8
+          },
+          "own": {
+            "language": 8
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "language_unavailable_in_brief_result",
+        "inputs": {
+          "candidate": {
+            "details": false,
+            "language": 1
+          },
+          "own": {
+            "language": 1
+          },
+          "configuration": null
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "custom_nonintegral_wait_truncates_positive",
+        "inputs": {
+          "candidate": {
+            "wait": 3
+          },
+          "own": null,
+          "configuration": {
+            "840": 0.25
+          }
+        },
+        "actual": 0,
+        "expected": 0
+      },
+      {
+        "name": "custom_nonintegral_wait_truncates_negative_toward_zero",
+        "inputs": {
+          "candidate": {
+            "wait": 1,
+            "rank": 10
+          },
+          "own": null,
+          "configuration": {
+            "840": 0.25,
+            "500": -50,
+            "504": -50
+          }
+        },
+        "actual": -49,
+        "expected": -49
+      },
+      {
+        "name": "custom_rank_step_divides_before_multiplying",
+        "inputs": {
+          "candidate": {
+            "rank": 12
+          },
+          "own": null,
+          "configuration": {
+            "496": 4,
+            "500": 100,
+            "504": 52
+          }
+        },
+        "actual": 82,
+        "expected": 82
+      },
+      {
+        "name": "combined_retail_components",
+        "inputs": {
+          "candidate": {
+            "rank": 12,
+            "space": 1,
+            "wait": 23,
+            "ready": true,
+            "latency": 175,
+            "language": 1,
+            "quality": [
+              262143,
+              262144
+            ]
+          },
+          "own": {
+            "language": 1,
+            "own_quality": [
+              262144,
+              262144
+            ]
+          },
+          "configuration": null
+        },
+        "actual": 423,
+        "expected": 423
+      },
+      {
+        "name": "sort_composite_descending",
+        "inputs": {},
+        "actual": [
+          3,
+          2,
+          1
+        ],
+        "expected": [
+          3,
+          2,
+          1
+        ]
+      },
+      {
+        "name": "sort_equal_score_lower_median_rtt_first",
+        "inputs": {},
+        "actual": [
+          3,
+          1,
+          2
+        ],
+        "expected": [
+          3,
+          1,
+          2
+        ]
+      },
+      {
+        "name": "sort_equal_score_lower_rank_difference_first",
+        "inputs": {},
+        "actual": [
+          2,
+          3,
+          1
+        ],
+        "expected": [
+          2,
+          3,
+          1
+        ]
+      },
+      {
+        "name": "sort_equal_score_rtt_rank_smaller_space_first",
+        "inputs": {},
+        "actual": [
+          2,
+          3,
+          1
+        ],
+        "expected": [
+          2,
+          3,
+          1
+        ]
+      },
+      {
+        "name": "identical_snapshot_bypasses_rescore",
+        "inputs": {},
+        "actual": [
+          {
+            "id": 1,
+            "score": 100,
+            "rank_difference": 5,
+            "bounded_wait": 0,
+            "latency": 0,
+            "space": 2,
+            "eligible": true
+          }
+        ],
+        "expected": [
+          {
+            "id": 1,
+            "score": 100,
+            "rank_difference": 5,
+            "bounded_wait": 0,
+            "latency": 0,
+            "space": 2,
+            "eligible": true
+          }
+        ]
+      },
+      {
+        "name": "snapshot_copied_after_sort",
+        "inputs": {},
+        "actual": "e9a5ffa99747308511772e7f3914b19f06ff3f7211e1fdcc563e7fbf3efe4834",
+        "expected": "e9a5ffa99747308511772e7f3914b19f06ff3f7211e1fdcc563e7fbf3efe4834"
+      },
+      {
+        "name": "all_ready_selects_immediately",
+        "inputs": {
+          "count": 8,
+          "ready": 8
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "all_ready_selects_immediately_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "score_equal_threshold_is_accepted",
+        "inputs": {
+          "count": 1,
+          "ready": 1
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "score_equal_threshold_is_accepted_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "score_below_threshold_rejected",
+        "inputs": {
+          "count": 1,
+          "ready": 1,
+          "score": 99
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "no_full_qos_candidate_rejected",
+        "inputs": {
+          "count": 1,
+          "ready": 0,
+          "elapsed": 6000
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "partial_ready_exact_5000ms_waits",
+        "inputs": {
+          "count": 8,
+          "ready": 2,
+          "elapsed": 5000
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "partial_ready_5001ms_selects",
+        "inputs": {
+          "count": 8,
+          "ready": 2,
+          "elapsed": 5001
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "partial_ready_5001ms_selects_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "below_floor_quarter_waits_even_after_delay",
+        "inputs": {
+          "count": 8,
+          "ready": 1,
+          "elapsed": 6000
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "floor_quarter_not_ceil_for_seven",
+        "inputs": {
+          "count": 7,
+          "ready": 1,
+          "elapsed": 6000
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "floor_quarter_not_ceil_for_seven_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "floor_quarter_zero_for_three_but_one_candidate_required",
+        "inputs": {
+          "count": 3,
+          "ready": 1,
+          "elapsed": 6000
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "floor_quarter_zero_for_three_but_one_candidate_required_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "ineligible_results_do_not_count_in_readiness_denominator",
+        "inputs": {
+          "count": 8,
+          "ready": 1,
+          "eligible_count": 1
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "ineligible_results_do_not_count_in_readiness_denominator_first_qualifying_id",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "repeated_selection_without_rng_0",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_1",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_2",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_3",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_4",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_5",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_6",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_7",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_8",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_9",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_10",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "repeated_selection_without_rng_11",
+        "inputs": {},
+        "actual": [
+          1,
+          22
+        ],
+        "expected": [
+          1,
+          22
+        ]
+      },
+      {
+        "name": "higher_scoring_unready_host_skipped",
+        "inputs": {},
+        "actual": [
+          1,
+          33
+        ],
+        "expected": [
+          1,
+          33
+        ]
+      },
+      {
+        "name": "mixed_readiness_compare_a_b",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "mixed_readiness_compare_b_a",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "required_space_mask_present",
+        "inputs": {
+          "offset": "0x110",
+          "value": 1
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "required_space_mask_missing",
+        "inputs": {
+          "offset": "0x110",
+          "value": 2
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "description_protocol_mismatch",
+        "inputs": {
+          "offset": "0xac",
+          "value": 3
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "description_lower_version_above_supported",
+        "inputs": {
+          "offset": "0xb0",
+          "value": 9810
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "description_lower_version_below_supported",
+        "inputs": {
+          "offset": "0xb0",
+          "value": 9808
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "description_upper_version_above_supported",
+        "inputs": {
+          "offset": "0xb4",
+          "value": 9810
+        },
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "description_upper_version_below_supported",
+        "inputs": {
+          "offset": "0xb4",
+          "value": 9808
+        },
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "mask_party_4_mask_8_details_False",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "mask_party_4_mask_4_details_False",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "mask_party_8_mask_128_details_False",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_False_lower_True_11_upper_False_100",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "rank_gate_details_False_lower_True_10_upper_False_100",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_False_lower_False_0_upper_True_9",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "rank_gate_details_False_lower_False_0_upper_True_10",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_False_lower_False_100_upper_False_0",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "mask_party_4_mask_8_details_True",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "mask_party_4_mask_4_details_True",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "mask_party_8_mask_128_details_True",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_True_lower_True_11_upper_False_100",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "rank_gate_details_True_lower_True_10_upper_False_100",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_True_lower_False_0_upper_True_9",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "rank_gate_details_True_lower_False_0_upper_True_10",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "rank_gate_details_True_lower_False_100_upper_False_0",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "brief_result_does_not_yet_check_description_version",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "cached_own_advertised_address_rejected",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "clan_same_True_gate",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "clan_same_False_gate",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "failed_admission_clears_eligible_and_score",
+        "inputs": {},
+        "actual": [
+          false,
+          0
+        ],
+        "expected": [
+          false,
+          0
+        ]
+      },
+      {
+        "name": "qos_extracts_probe_rtt_min_median_up_down_data",
+        "inputs": {},
+        "actual": [
+          1,
+          8,
+          7,
+          41,
+          73,
+          123456,
+          654321,
+          3,
+          17965824
+        ],
+        "expected": [
+          1,
+          8,
+          7,
+          41,
+          73,
+          123456,
+          654321,
+          3,
+          17965824
+        ]
+      },
+      {
+        "name": "interface_caches_qos_downstream_at_quality_first_source",
+        "inputs": {},
+        "actual": 654321,
+        "expected": 654321
+      },
+      {
+        "name": "interface_caches_separate_bandwidth_estimate",
+        "inputs": {},
+        "actual": 345678,
+        "expected": 345678
+      },
+      {
+        "name": "config_definition_format_version",
+        "inputs": {},
+        "actual": 35,
+        "expected": 35
+      },
+      {
+        "name": "config_destination_is_live_configuration",
+        "inputs": {},
+        "actual": 5038144,
+        "expected": 5038144
+      },
+      {
+        "name": "config_buffer_exact_size",
+        "inputs": {},
+        "actual": 5936,
+        "expected": 5936
+      },
+      {
+        "name": "config_validation_version_35_size_5936_corrupt_False",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "config_validation_version_34_size_5936_corrupt_False",
+        "inputs": {},
+        "actual": 11,
+        "expected": 11
+      },
+      {
+        "name": "config_validation_version_36_size_5936_corrupt_False",
+        "inputs": {},
+        "actual": 12,
+        "expected": 12
+      },
+      {
+        "name": "config_validation_version_35_size_5932_corrupt_False",
+        "inputs": {},
+        "actual": 9,
+        "expected": 9
+      },
+      {
+        "name": "config_validation_version_35_size_5936_corrupt_True",
+        "inputs": {},
+        "actual": 8,
+        "expected": 8
+      },
+      {
+        "name": "query_boundary_radius_0_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_0_maximum_6",
+        "inputs": {},
+        "actual": 200,
+        "expected": 200
+      },
+      {
+        "name": "query_boundary_radius_1_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_1_maximum_6",
+        "inputs": {},
+        "actual": 183,
+        "expected": 183
+      },
+      {
+        "name": "query_boundary_radius_2_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_2_maximum_6",
+        "inputs": {},
+        "actual": 166,
+        "expected": 166
+      },
+      {
+        "name": "query_boundary_radius_3_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_3_maximum_6",
+        "inputs": {},
+        "actual": 150,
+        "expected": 150
+      },
+      {
+        "name": "query_boundary_radius_4_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_4_maximum_6",
+        "inputs": {},
+        "actual": 133,
+        "expected": 133
+      },
+      {
+        "name": "query_boundary_radius_5_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_5_maximum_6",
+        "inputs": {},
+        "actual": 116,
+        "expected": 116
+      },
+      {
+        "name": "query_boundary_radius_6_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_6_maximum_6",
+        "inputs": {},
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "query_boundary_radius_-1_maximum_6",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_-1_maximum_6",
+        "inputs": {},
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "query_boundary_radius_0_maximum_0",
+        "inputs": {},
+        "actual": 588416,
+        "expected": 588416
+      },
+      {
+        "name": "score_threshold_radius_0_maximum_0",
+        "inputs": {},
+        "actual": 100,
+        "expected": 100
+      },
+      {
+        "name": "complete_bank_0_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_1_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_2_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_3_retains_valid_records",
+        "inputs": {},
+        "actual": 47,
+        "expected": 47
+      },
+      {
+        "name": "complete_bank_4_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_5_retains_valid_records",
+        "inputs": {},
+        "actual": 47,
+        "expected": 47
+      },
+      {
+        "name": "complete_bank_6_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_7_retains_valid_records",
+        "inputs": {},
+        "actual": 41,
+        "expected": 41
+      },
+      {
+        "name": "complete_bank_8_retains_valid_records",
+        "inputs": {},
+        "actual": 41,
+        "expected": 41
+      },
+      {
+        "name": "complete_bank_9_retains_valid_records",
+        "inputs": {},
+        "actual": 41,
+        "expected": 41
+      },
+      {
+        "name": "complete_bank_10_retains_valid_records",
+        "inputs": {},
+        "actual": 42,
+        "expected": 42
+      },
+      {
+        "name": "complete_bank_11_retains_valid_records",
+        "inputs": {},
+        "actual": 39,
+        "expected": 39
+      },
+      {
+        "name": "complete_bank_12_retains_valid_records",
+        "inputs": {},
+        "actual": 48,
+        "expected": 48
+      },
+      {
+        "name": "complete_bank_13_retains_valid_records",
+        "inputs": {},
+        "actual": 42,
+        "expected": 42
+      },
+      {
+        "name": "complete_bank_14_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_15_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_16_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_17_retains_valid_records",
+        "inputs": {},
+        "actual": 41,
+        "expected": 41
+      },
+      {
+        "name": "complete_bank_18_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_19_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_20_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_21_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_22_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_23_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_24_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_25_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_26_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_27_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_28_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_29_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_30_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_31_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_32_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_33_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_34_retains_valid_records",
+        "inputs": {},
+        "actual": 43,
+        "expected": 43
+      },
+      {
+        "name": "complete_bank_35_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_36_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_37_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_38_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_39_retains_valid_records",
+        "inputs": {},
+        "actual": 45,
+        "expected": 45
+      },
+      {
+        "name": "complete_bank_40_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_41_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_42_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_43_retains_valid_records",
+        "inputs": {},
+        "actual": 48,
+        "expected": 48
+      },
+      {
+        "name": "complete_bank_44_retains_valid_records",
+        "inputs": {},
+        "actual": 48,
+        "expected": 48
+      },
+      {
+        "name": "complete_bank_45_retains_valid_records",
+        "inputs": {},
+        "actual": 46,
+        "expected": 46
+      },
+      {
+        "name": "complete_bank_46_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_47_retains_valid_records",
+        "inputs": {},
+        "actual": 47,
+        "expected": 47
+      },
+      {
+        "name": "complete_bank_48_retains_valid_records",
+        "inputs": {},
+        "actual": 27,
+        "expected": 27
+      },
+      {
+        "name": "complete_bank_49_retains_valid_records",
+        "inputs": {},
+        "actual": 40,
+        "expected": 40
+      },
+      {
+        "name": "complete_bank_50_retains_valid_records",
+        "inputs": {},
+        "actual": 33,
+        "expected": 33
+      },
+      {
+        "name": "complete_bank_51_retains_valid_records",
+        "inputs": {},
+        "actual": 13,
+        "expected": 13
+      },
+      {
+        "name": "complete_bank_52_retains_valid_records",
+        "inputs": {},
+        "actual": 17,
+        "expected": 17
+      },
+      {
+        "name": "complete_bank_53_retains_valid_records",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "complete_bank_54_retains_valid_records",
+        "inputs": {},
+        "actual": 33,
+        "expected": 33
+      },
+      {
+        "name": "complete_bank_55_retains_valid_records",
+        "inputs": {},
+        "actual": 21,
+        "expected": 21
+      },
+      {
+        "name": "complete_bank_56_retains_valid_records",
+        "inputs": {},
+        "actual": 9,
+        "expected": 9
+      },
+      {
+        "name": "complete_bank_57_retains_valid_records",
+        "inputs": {},
+        "actual": 10,
+        "expected": 10
+      },
+      {
+        "name": "complete_bank_58_retains_valid_records",
+        "inputs": {},
+        "actual": 28,
+        "expected": 28
+      },
+      {
+        "name": "complete_bank_59_retains_valid_records",
+        "inputs": {},
+        "actual": 19,
+        "expected": 19
+      },
+      {
+        "name": "complete_bank_60_retains_valid_records",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "complete_bank_61_retains_valid_records",
+        "inputs": {},
+        "actual": 25,
+        "expected": 25
+      },
+      {
+        "name": "complete_bank_62_retains_valid_records",
+        "inputs": {},
+        "actual": 37,
+        "expected": 37
+      },
+      {
+        "name": "complete_bank_63_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_64_retains_valid_records",
+        "inputs": {},
+        "actual": 39,
+        "expected": 39
+      },
+      {
+        "name": "complete_bank_65_retains_valid_records",
+        "inputs": {},
+        "actual": 31,
+        "expected": 31
+      },
+      {
+        "name": "complete_bank_66_retains_valid_records",
+        "inputs": {},
+        "actual": 29,
+        "expected": 29
+      },
+      {
+        "name": "complete_bank_67_retains_valid_records",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "complete_bank_68_retains_valid_records",
+        "inputs": {},
+        "actual": 29,
+        "expected": 29
+      },
+      {
+        "name": "complete_bank_69_retains_valid_records",
+        "inputs": {},
+        "actual": 8,
+        "expected": 8
+      },
+      {
+        "name": "complete_bank_70_retains_valid_records",
+        "inputs": {},
+        "actual": 25,
+        "expected": 25
+      },
+      {
+        "name": "complete_bank_71_retains_valid_records",
+        "inputs": {},
+        "actual": 38,
+        "expected": 38
+      },
+      {
+        "name": "complete_bank_72_retains_valid_records",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "complete_bank_73_retains_valid_records",
+        "inputs": {},
+        "actual": 30,
+        "expected": 30
+      },
+      {
+        "name": "complete_bank_74_retains_valid_records",
+        "inputs": {},
+        "actual": 16,
+        "expected": 16
+      },
+      {
+        "name": "complete_bank_75_retains_valid_records",
+        "inputs": {},
+        "actual": 12,
+        "expected": 12
+      },
+      {
+        "name": "complete_bank_76_retains_valid_records",
+        "inputs": {},
+        "actual": 35,
+        "expected": 35
+      },
+      {
+        "name": "complete_bank_77_retains_valid_records",
+        "inputs": {},
+        "actual": 39,
+        "expected": 39
+      },
+      {
+        "name": "complete_bank_78_retains_valid_records",
+        "inputs": {},
+        "actual": 20,
+        "expected": 20
+      },
+      {
+        "name": "complete_bank_79_retains_valid_records",
+        "inputs": {},
+        "actual": 16,
+        "expected": 16
+      },
+      {
+        "name": "complete_bank_80_retains_valid_records",
+        "inputs": {},
+        "actual": 35,
+        "expected": 35
+      },
+      {
+        "name": "complete_bank_81_retains_valid_records",
+        "inputs": {},
+        "actual": 17,
+        "expected": 17
+      },
+      {
+        "name": "complete_bank_82_retains_valid_records",
+        "inputs": {},
+        "actual": 8,
+        "expected": 8
+      },
+      {
+        "name": "complete_bank_83_retains_valid_records",
+        "inputs": {},
+        "actual": 11,
+        "expected": 11
+      },
+      {
+        "name": "complete_bank_84_retains_valid_records",
+        "inputs": {},
+        "actual": 35,
+        "expected": 35
+      },
+      {
+        "name": "complete_bank_85_retains_valid_records",
+        "inputs": {},
+        "actual": 9,
+        "expected": 9
+      },
+      {
+        "name": "complete_bank_86_retains_valid_records",
+        "inputs": {},
+        "actual": 13,
+        "expected": 13
+      },
+      {
+        "name": "complete_bank_87_retains_valid_records",
+        "inputs": {},
+        "actual": 1,
+        "expected": 1
+      },
+      {
+        "name": "complete_bank_88_retains_valid_records",
+        "inputs": {},
+        "actual": 42,
+        "expected": 42
+      },
+      {
+        "name": "complete_bank_89_retains_valid_records",
+        "inputs": {},
+        "actual": 11,
+        "expected": 11
+      },
+      {
+        "name": "complete_bank_90_retains_valid_records",
+        "inputs": {},
+        "actual": 12,
+        "expected": 12
+      },
+      {
+        "name": "complete_bank_91_retains_valid_records",
+        "inputs": {},
+        "actual": 44,
+        "expected": 44
+      },
+      {
+        "name": "complete_bank_92_retains_valid_records",
+        "inputs": {},
+        "actual": 33,
+        "expected": 33
+      },
+      {
+        "name": "complete_bank_93_retains_valid_records",
+        "inputs": {},
+        "actual": 35,
+        "expected": 35
+      },
+      {
+        "name": "complete_bank_94_retains_valid_records",
+        "inputs": {},
+        "actual": 24,
+        "expected": 24
+      },
+      {
+        "name": "complete_bank_95_retains_valid_records",
+        "inputs": {},
+        "actual": 11,
+        "expected": 11
+      },
+      {
+        "name": "select_elapsed_start_0_end_5000_active_True",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "select_elapsed_start_0_end_5001_active_True",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "select_elapsed_start_-20_end_4981_active_True",
+        "inputs": {},
+        "actual": true,
+        "expected": true
+      },
+      {
+        "name": "select_elapsed_start_0_end_-1_active_True",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      },
+      {
+        "name": "select_elapsed_start_0_end_6000_active_False",
+        "inputs": {},
+        "actual": false,
+        "expected": false
+      }
+    ],
+    "control_count": 339,
+    "unique_original_instructions": 1987,
+    "executed_instruction_sha256": "a673673dfe0ad5bfe5e2f3833ea592e4a4e741127ded6afbe4660cf30acf8845",
+    "oracle_sha256": "29133faa0b9a6a08868a3477f1f3a16bebc8e4c0660f8f2d11e9f4cf0a05e59e",
+    "scope": "Unchanged retail scoring, comparator, full sort, admission, selection, QoS extraction and config validation with synthetic data; threshold prefix stops before original Live query 0x8fa80. No Live callbacks or native implementation replaced.",
+    "bank_controls": 264,
+    "admission_controls": 27,
+    "selection_controls": 124,
+    "threshold_controls": 100
+  },
+  "retained_fixture": {
+    "path": "multiplayer/master_server/tests/fixtures/retail-session-candidates.json.gz",
+    "bytes": 735608,
+    "sha256": "20ef2f951fdac45ebec6501c95dd3b372c706392961f89b36b51bf1acb8f649a"
+  },
+  "retained_fixture_matches_fresh_original": true,
+  "scope": "Fresh unchanged retail admission, score, complete sort/cache, selection and threshold controls with synthetic banks/configuration; threshold prefixes stop before Live. Original provider ordering, real descriptions/QoS, full task/session flow, TU1.5 correspondence, native play and delivery remain separate."
+}

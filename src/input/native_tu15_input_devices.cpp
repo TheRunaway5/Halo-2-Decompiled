@@ -87,6 +87,7 @@ struct NativeTu15InputDevices::State {
 NativeTu15InputDevices::NativeTu15InputDevices(SourceRuntimeMemory& m,NativeTu15InputSelection s):state_(std::make_unique<State>(m,std::move(s))){}
 NativeTu15InputDevices::~NativeTu15InputDevices()=default;
 std::span<const NativeTu15InputCall> NativeTu15InputDevices::calls()const noexcept{return state_->calls;}
+void NativeTu15InputDevices::clear_calls()noexcept{state_->calls.clear();}
 std::size_t NativeTu15InputDevices::live_controllers()const noexcept{return state_->controllers.size();}
 std::vector<std::uintptr_t> NativeTu15InputDevices::native_controller_addresses()const {
     std::vector<std::uintptr_t> out;for(const auto& [handle,c]:state_->controllers)out.push_back(reinterpret_cast<std::uintptr_t>(c->native));return out;

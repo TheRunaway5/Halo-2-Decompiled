@@ -1,102 +1,104 @@
-"""Retail gathering-session admission, scoring, ordering and selection.
+"""Temporary typed IO adapter for Rust-owned candidate search state.
 
-Authority: unchanged retail 0x90D90/0x91000/0x90F10/0x91400, sort
-0x13DA70/0x13DCD0 and threshold prefix 0x90B30. See the candidate evidence
-note. The 50 x 0x204 bank is an INTERNAL value representation used to preserve
-the original byte-cache and comparator behavior. It is not a network protocol,
-a public input parser, a central party assembler or a QoS measurement adapter.
-In particular, relay percentages and ticket ages are not accepted as inputs.
+Rust owns configuration defaults/validation, admission, score arithmetic, the
+original sort, byte-cache behavior and selection. This is a private typed bank
+carrier, not an endpoint or a source of Live/QoS/identity authority.
 """
-from dataclasses import dataclass
-import math
-import struct
+import ctypes
+from dataclasses import asdict, dataclass
+from functools import lru_cache
+import json
+import weakref
 
+from .protocol import require
+from .security_policy import library
 
 COUNT, STRIDE = 50, 0x204
 BANK_SIZE = COUNT * STRIDE
 EMPTY_BANK = bytes(BANK_SIZE)
-I32_MIN, I32_MAX = -(1 << 31), (1 << 31) - 1
+I32_MIN, I32_MAX = -(1 << 31), (1 << 31)-1
+REQUEST_LIMIT = 16 * 1024
 
 
-def _integer(value, low=I32_MIN, high=I32_MAX):
-    if type(value) is not int or not low <= value <= high:
-        raise ValueError("Invalid session-search integer")
-    return value
+@lru_cache(maxsize=1)
+def native():
+    lib=library()
+    ptr=ctypes.c_void_p
+    size=ctypes.c_size_t
+    u64=ctypes.c_uint64
+    signatures={
+        'h2_candidates_defaults':([ptr,size],size),
+        'h2_candidates_configuration_valid':([ptr,size],ctypes.c_bool),
+        'h2_candidates_search_valid':([ptr,size],ctypes.c_bool),
+        'h2_candidates_new':([ptr,size],u64),
+        'h2_candidates_drop':([u64],None),
+        'h2_candidates_configure':([u64,ptr,size],ctypes.c_bool),
+        'h2_candidates_bank':([u64,ptr,size],ctypes.c_bool),
+        'h2_candidates_restore_cache':([u64,ptr,size],ctypes.c_bool),
+        'h2_candidates_update':([u64,ptr,size,ptr,size],ctypes.c_bool),
+        'h2_candidates_select':([u64,ctypes.c_int32,ctypes.c_int32,ctypes.c_bool,ptr,size],ctypes.c_uint32),
+        'h2_candidates_threshold':([ctypes.c_int32,ctypes.c_int32,ptr,size,ptr],ctypes.c_bool),
+    }
+    for name,(arguments,result) in signatures.items():
+        require(hasattr(lib,name),'Rust candidate search requires an update',503)
+        function=getattr(lib,name)
+        function.argtypes=arguments
+        function.restype=result
+    return lib
 
 
-def _f32(value):
-    return struct.unpack("<f", struct.pack("<f", value))[0]
+def _carrier(value):
+    raw=json.dumps(value,separators=(',',':'),allow_nan=False).encode()
+    if len(raw)>REQUEST_LIMIT:
+        raise ValueError('Invalid bounded candidate carrier')
+    return ctypes.create_string_buffer(raw),len(raw)
 
 
-def _signed(value):
-    return (value + (1 << 31)) % (1 << 32) - (1 << 31)
+def _defaults():
+    output=(ctypes.c_uint8*REQUEST_LIMIT)()
+    length=native().h2_candidates_defaults(output,REQUEST_LIMIT)
+    require(0<length<=REQUEST_LIMIT,'Rust candidate defaults unavailable',503)
+    return json.loads(bytes(output[:length]))
 
 
-def _divide(a, b):
-    # IDIV truncates toward zero, including negative configured coefficients.
-    return (abs(a) // abs(b)) * (-1 if (a < 0) != (b < 0) else 1)
-
-
-def _convert(value):
-    # Retail's truncating float conversion returns the integer indefinite value
-    # on overflow. Normal authored coefficients stay far inside this range.
-    return math.trunc(value) if math.isfinite(value) and I32_MIN <= value < I32_MAX + 1 else I32_MIN
-
-
-def _read(row, offset):
-    return struct.unpack_from("<i", row, offset)[0]
-
-
-def _write(row, offset, value):
-    struct.pack_into("<i", row, offset, _signed(value))
-
-
-def _language_table():
-    special = {1, 6, 7}
-    return tuple(tuple(100 if a == b and a in special else
-                       0 if a == b else -100 if a in special or b in special else -50
-                       for b in range(9)) for a in range(9))
+DEFAULTS=_defaults()
 
 
 @dataclass(frozen=True)
 class Configuration:
-    """0x66330 retail defaults; later downloaded configurations remain unknown."""
-    rank_radius: int = 4
-    rank_high: int = 100
-    rank_low: int = 25
-    exact_space_bonus: int = 50
-    maximum_age_seconds: int = 180
-    age_coefficient: float = 2.0
-    first_quality_threshold: int = 262144
-    second_quality_threshold: int = 262144
-    quality_adjustment: int = 100
-    latency_curve: tuple[int, ...] = (100, 80, 50, 0, -100, -200, -200, -200, -200, -200)
-    language: tuple[tuple[int, ...], ...] = _language_table()
-    partial_qos_delay_ms: int = 5000
-    threshold_initial: int = 200
-    threshold_final: int = 100
+    """Explicit retail defaults come from the Rust original owner."""
+    rank_radius: int = DEFAULTS['rank_radius']
+    rank_high: int = DEFAULTS['rank_high']
+    rank_low: int = DEFAULTS['rank_low']
+    exact_space_bonus: int = DEFAULTS['exact_space_bonus']
+    maximum_age_seconds: int = DEFAULTS['maximum_age_seconds']
+    age_coefficient: float = DEFAULTS['age_coefficient']
+    first_quality_threshold: int = DEFAULTS['first_quality_threshold']
+    second_quality_threshold: int = DEFAULTS['second_quality_threshold']
+    quality_adjustment: int = DEFAULTS['quality_adjustment']
+    latency_curve: tuple[int,...] = tuple(DEFAULTS['latency_curve'])
+    language: tuple[tuple[int,...],...] = tuple(tuple(row) for row in DEFAULTS['language'])
+    partial_qos_delay_ms: int = DEFAULTS['partial_qos_delay_ms']
+    threshold_initial: int = DEFAULTS['threshold_initial']
+    threshold_final: int = DEFAULTS['threshold_final']
 
     def __post_init__(self):
-        _integer(self.rank_radius, 0, I32_MAX - 1)
-        _integer(self.maximum_age_seconds, 0)
-        _integer(self.partial_qos_delay_ms, 0)
-        for value in (self.rank_high, self.rank_low, self.exact_space_bonus,
-                      self.first_quality_threshold, self.second_quality_threshold,
-                      self.quality_adjustment, self.threshold_initial, self.threshold_final):
-            _integer(value)
-        if type(self.age_coefficient) is not float or not math.isfinite(self.age_coefficient):
-            raise ValueError("Invalid session-age coefficient")
-        if type(self.latency_curve) is not tuple or len(self.latency_curve) != 10:
-            raise ValueError("Invalid latency curve")
-        if type(self.language) is not tuple or len(self.language) != 9:
-            raise ValueError("Invalid language matrix")
-        for value in self.latency_curve:
-            _integer(value)
-        for row in self.language:
-            if type(row) is not tuple or len(row) != 9:
-                raise ValueError("Invalid language matrix")
-            for value in row:
-                _integer(value)
+        # Preserve the adapter's typed tuple/float contract before JSON erases
+        # these Python representation distinctions. Rust validates all values.
+        if (type(self.age_coefficient) is not float or type(self.latency_curve) is not tuple or
+                type(self.language) is not tuple or any(type(row) is not tuple for row in self.language)):
+            raise ValueError('Invalid typed candidate configuration')
+        source,length=_carrier(asdict(self))
+        if not native().h2_candidates_configuration_valid(source,length):
+            raise ValueError('Invalid candidate configuration')
+
+
+def _search_data(search):
+    value=asdict(search)
+    for name in ('own_address','clan'):
+        if value[name] is not None:
+            value[name]=value[name].hex()
+    return value
 
 
 @dataclass(frozen=True)
@@ -112,202 +114,117 @@ class Search:
     clan: bytes | None = None
 
     def __post_init__(self):
-        _integer(self.player_count, 1, 16)
-        _integer(self.average_rank, 0, 127)
-        _integer(self.language, 0, 8)
-        for value in (self.quality_first, self.quality_second):
-            _integer(value)
-        for value in (self.minimum_rank, self.maximum_rank):
-            if value is not None:
-                _integer(value, 0, 127)
-        for value, size in ((self.own_address, 36), (self.clan, 12)):
-            if value is not None and (type(value) is not bytes or len(value) != size):
-                raise ValueError("Invalid private session identity")
+        for value,size in ((self.own_address,36),(self.clan,12)):
+            if value is not None and (type(value) is not bytes or len(value)!=size):
+                raise ValueError('Invalid typed private session identity')
+        source,length=_carrier(_search_data(self))
+        if not native().h2_candidates_search_valid(source,length):
+            raise ValueError('Invalid candidate search')
 
 
-def _allowed(search, row):
-    detailed = bool(row[0xA4])
-    if detailed:
-        # The original lower/upper comparisons look unusual. Preserve their
-        # executed direction rather than silently correcting the decompile.
-        if _read(row, 0xAC) != 4 or _read(row, 0xB0) < 0x2651 or _read(row, 0xB4) > 0x2651:
-            return False
-        mask, minimum, maximum = (_read(row, at) for at in (0x110, 0x12C, 0x124))
-    else:
-        mask, minimum, maximum = (_read(row, at) for at in (0x70, 0x64, 0x68))
-    if search.own_address is not None and row[0x24:0x48] == search.own_address:
-        return False
-    if detailed and search.clan is not None:
-        count = _read(row, 0x130)
-        if not 0 <= count <= 16:
-            raise ValueError("Invalid detailed clan count")
-        if any(row[0x134 + i*12:0x140 + i*12] == search.clan for i in range(count)):
-            return False
-    return (bool(mask & (1 << (search.player_count - 1))) and
-            (search.minimum_rank is None or minimum >= search.minimum_rank) and
-            (search.maximum_rank is None or maximum <= search.maximum_rank))
+DEFAULT_CONFIGURATION=Configuration()
 
 
-def _latency_score(ms, config):
-    t = min(9.0, max(0.0, _f32(_f32(ms) * _f32(0.01))))
-    index = math.trunc(t)
-    if index == 9:
-        return config.latency_curve[9]
-    lower, upper = (_f32(config.latency_curve[i]) for i in (index, index + 1))
-    return _convert(_f32(lower + _f32(_f32(t - _f32(index)) * _f32(upper - lower))))
+def _integer(value):
+    if type(value) is not int or not I32_MIN<=value<=I32_MAX:
+        raise ValueError('Invalid candidate scalar carrier')
 
 
-def _score(search, row, config):
-    _write(row, 0x1F8, 0)
-    if row[0] and row[1] and not _allowed(search, row):
-        row[1] = 0
-    if not row[0] or not row[1]:
-        return
-    detailed = bool(row[0xA4])
-    space, rank, age = (_read(row, at) for at in
-                        ((0x10C, 0x120, 0x11C) if detailed else (0x60, 0x5C, 0x6C)))
-    _integer(rank, 0, 127)
-    difference = abs(rank - search.average_rank)
-    _write(row, 0x1FC, difference)
-    score = 0
-    if difference <= config.rank_radius:
-        step = _divide(_signed(config.rank_high - config.rank_low), config.rank_radius + 1)
-        score = _signed(config.rank_high - _signed(step * difference))
-    if space == search.player_count:
-        score = _signed(score + config.exact_space_bonus)
-    bounded_age = min(config.maximum_age_seconds, max(0, age))
-    _write(row, 0x200, bounded_age)
-    score = _convert(score + bounded_age * config.age_coefficient)
-    if detailed:
-        if ((_read(row, 0xF8) < config.first_quality_threshold or
-             _read(row, 0xFC) < config.second_quality_threshold) and
-                search.quality_first >= config.first_quality_threshold and
-                search.quality_second >= config.second_quality_threshold):
-            score = _signed(score + config.quality_adjustment)
-        language = _integer(_read(row, 0xB8), 0, 8)
-        score = _signed(score + config.language[search.language][language])
-    if row[0x74]:
-        score = _signed(score + _latency_score(_read(row, 0x90), config))
-    _write(row, 0x1F8, score)
-
-
-def _precedes(first, second):
-    # This means "worse than". Readiness is deliberately tested only on the
-    # FIRST record. A tuple key or Python sort would alter mixed-ready ties.
-    a, b = _read(first, 0x1F8), _read(second, 0x1F8)
-    if a != b:
-        return a < b
-    if first[0x74]:
-        a, b = _read(first, 0x90), _read(second, 0x90)
-        if a != b:
-            return a > b
-    a, b = _read(first, 0x1FC), _read(second, 0x1FC)
-    if a != b:
-        return a > b
-    return _read(first, 0x10C) > _read(second, 0x10C)
-
-
-def _sort(rows):
-    """The fixed-middle-pivot retail sort, including its eight-row short sort."""
-    stack = [(0, COUNT - 1)]
-    while stack:
-        lo, hi = stack.pop()
-        while True:
-            size = hi - lo + 1
-            if size <= 8:
-                while hi > lo:
-                    worst = lo
-                    for p in range(lo + 1, hi + 1):
-                        if _precedes(rows[p], rows[worst]):
-                            worst = p
-                    rows[worst], rows[hi] = rows[hi], rows[worst]
-                    hi -= 1
-                break
-            middle = lo + size // 2
-            rows[middle], rows[lo] = rows[lo], rows[middle]
-            low, high = lo, hi + 1
-            while True:
-                low += 1
-                while low <= hi and not _precedes(rows[low], rows[lo]):
-                    low += 1
-                high -= 1
-                while high > lo and not _precedes(rows[lo], rows[high]):
-                    high -= 1
-                if high < low:
-                    break
-                rows[low], rows[high] = rows[high], rows[low]
-            rows[lo], rows[high] = rows[high], rows[lo]
-            # Original compares byte pointers and subtracts ONE BYTE here.
-            if (high - lo)*STRIDE - 1 >= (hi - low)*STRIDE:
-                if lo + 1 < high:
-                    stack.append((lo, high - 1))
-                if low < hi:
-                    lo = low
-                    continue
-            else:
-                if low < hi:
-                    stack.append((low, hi))
-                if lo + 1 < high:
-                    hi = high - 1
-                    continue
-            break
-
-
-def threshold(radius, maximum_radius, config=Configuration()):
-    """0x90B30 radius interpolation, not a guessed elapsed-time schedule."""
-    _integer(radius, -1, 127)
-    _integer(maximum_radius, 0, 127)
-    if radius == -1 or maximum_radius <= 0:
-        return config.threshold_final
-    ratio = _f32(_f32(radius) / _f32(maximum_radius))
-    difference = _f32(_f32(config.threshold_final) - _f32(config.threshold_initial))
-    return _convert(_f32(_f32(config.threshold_initial) + _f32(ratio * difference)))
+def threshold(radius,maximum_radius,config=DEFAULT_CONFIGURATION):
+    _integer(radius)
+    _integer(maximum_radius)
+    if type(config) is not Configuration:
+        raise ValueError('Typed candidate configuration required')
+    source,length=_carrier(asdict(config))
+    result=ctypes.c_int32()
+    if not native().h2_candidates_threshold(radius,maximum_radius,source,length,ctypes.byref(result)):
+        raise ValueError('Invalid candidate threshold inputs')
+    return result.value
 
 
 class Candidates:
-    """One searching party's bank; recreate it for each genuine new query.
+    """One Rust-owned searching party bank, configuration and exact byte cache.
 
-    update() takes all 50 records, retains opaque bytes, and returns the sorted
-    bank. Feeding its unchanged output back in deliberately bypasses rescoring,
-    even after a configuration change, just as the original memcmp cache does.
-    select() returns a complete private selected record or None. The caller
-    owns advertisements, query start time, QoS and actual all-party joining.
+    Every query owns a distinct handle. close() and finalization retire only
+    that handle; no state pointer or handle is accepted from a public client.
     """
-    def __init__(self, search, config=Configuration()):
+    def __init__(self,search,config=DEFAULT_CONFIGURATION):
         if type(search) is not Search or type(config) is not Configuration:
-            raise ValueError("Trusted session-search values required")
-        self.search, self.config = search, config
-        self.bank = EMPTY_BANK
+            raise ValueError('Trusted session-search values required')
+        source,length=_carrier({'search':_search_data(search),'config':asdict(config)})
+        lib=native()
+        handle=lib.h2_candidates_new(source,length)
+        require(handle!=0,'Rust candidate allocation unavailable',503)
+        self._handle=handle
+        self._search,self._config=search,config
+        self._finalizer=weakref.finalize(self,lib.h2_candidates_drop,handle)
 
-    def update(self, bank):
-        if type(bank) is not bytes or len(bank) != BANK_SIZE:
-            raise ValueError("A complete session-candidate bank is required")
-        if bank == self.bank:
-            return self.bank
-        rows = [bytearray(bank[i*STRIDE:(i+1)*STRIDE]) for i in range(COUNT)]
-        for row in rows:
-            _score(self.search, row, self.config)
-        _sort(rows)
-        self.bank = b"".join(rows)
-        return self.bank
+    def close(self):
+        self._finalizer()
+        self._handle=0
 
-    def select(self, minimum_score, elapsed_query_ms, *, active=True):
+    def _owned(self):
+        if not self._handle:
+            raise ValueError('Candidate search is closed')
+        return self._handle
+
+    def _configure(self,search,config):
+        if type(search) is not Search or type(config) is not Configuration:
+            raise ValueError('Trusted session-search values required')
+        source,length=_carrier({'search':_search_data(search),'config':asdict(config)})
+        if not native().h2_candidates_configure(self._owned(),source,length):
+            raise ValueError('Rust candidate configuration rejected')
+        self._search,self._config=search,config
+
+    @property
+    def search(self):
+        return self._search
+
+    @search.setter
+    def search(self,value):
+        self._configure(value,self._config)
+
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self,value):
+        self._configure(self._search,value)
+
+    @property
+    def bank(self):
+        output=(ctypes.c_uint8*BANK_SIZE)()
+        if not native().h2_candidates_bank(self._owned(),output,BANK_SIZE):
+            raise ValueError('Rust candidate snapshot rejected')
+        return bytes(output)
+
+    @bank.setter
+    def bank(self,value):
+        if type(value) is not bytes or len(value)!=BANK_SIZE:
+            raise ValueError('A complete trusted candidate cache is required')
+        source=ctypes.create_string_buffer(value)
+        if not native().h2_candidates_restore_cache(self._owned(),source,BANK_SIZE):
+            raise ValueError('Rust candidate cache restore rejected')
+
+    def update(self,bank):
+        if type(bank) is not bytes or len(bank)!=BANK_SIZE:
+            raise ValueError('A complete session-candidate bank is required')
+        source=ctypes.create_string_buffer(bank)
+        output=(ctypes.c_uint8*BANK_SIZE)()
+        if not native().h2_candidates_update(self._owned(),source,BANK_SIZE,output,BANK_SIZE):
+            raise ValueError('Rust candidate bank rejected')
+        return bytes(output)
+
+    def select(self,minimum_score,elapsed_query_ms,*,active=True):
         _integer(minimum_score)
         _integer(elapsed_query_ms)
         if type(active) is not bool:
-            raise ValueError("Invalid active-query flag")
-        if not active:
+            raise ValueError('Invalid active-query flag')
+        output=(ctypes.c_uint8*STRIDE)()
+        status=native().h2_candidates_select(self._owned(),minimum_score,elapsed_query_ms,active,output,STRIDE)
+        if status==1:
             return None
-        eligible, ready, selected = 0, 0, None
-        for i in range(COUNT):
-            row = self.bank[i*STRIDE:(i+1)*STRIDE]
-            if row[0] and row[1]:
-                eligible += 1
-                if row[0x74]:
-                    ready += 1
-                    if selected is None and _read(row, 0x1F8) >= minimum_score:
-                        selected = row
-        if selected is not None and (ready == eligible or
-                (ready >= eligible // 4 and elapsed_query_ms > self.config.partial_qos_delay_ms)):
-            return selected
-        return None
+        if status!=0:
+            raise ValueError('Rust candidate selection rejected')
+        return bytes(output)

@@ -141,7 +141,16 @@ void lifecycle_cuts(bool on_foot=false) {
     changed=b;(changed.players[0].*camera)->camera_mode=3;cut(a,changed);
     changed=b;(changed.players[0].*camera).reset();cut(a,changed);
     changed=a;(changed.players[0].*camera).reset();cut(changed,b);
-    changed=b;++changed.tick;cut(a,changed);
+    changed=b;++changed.tick;
+    if(!on_foot)cut(a,changed);
+    else for(float f:{0.f,.25f,.5f,.75f,1.f}) {
+        const auto shown=multiplayer_presentation(a,changed,f);
+        const auto &eye=*shown.players[0].source_player_camera;
+        near(eye.position-shown.players[0].position,{.125f,0,1},
+            "Packet loss detached the completed ordinary eye from its displayed root");
+        auto expected=*changed.players[0].source_player_camera;expected.position=eye.position;
+        check(exact(eye,expected),"Packet loss changed the completed ordinary eye basis or lens");
+    }
     changed=b;changed.tick=a.tick;cut(a,changed);
     changed=b;changed.tick=a.tick-1;cut(a,changed);
     if(on_foot)return;

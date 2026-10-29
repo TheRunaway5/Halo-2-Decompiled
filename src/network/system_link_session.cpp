@@ -1,5 +1,7 @@
 #include "halo2/system_link_session.hpp"
 #include "halo2/frontend_session.hpp"
+#include "halo2/custom_slayer.hpp"
+#include "halo2/bomb_defusal.hpp"
 #include "halo2/native_vista_pcr.hpp"
 #include "halo2/vista_pcr_owner_state.hpp"
 #include <algorithm>
@@ -33,11 +35,14 @@ std::unique_ptr<LanClient> SystemLinkSession::enter_client(const std::string& ad
     const auto& client=retained_client_;
     const auto next=client->system_link_state();
     if(!next || next->phase!=SystemLinkPhase::starting || next->fingerprint!=fingerprint || client->slots().size()!=players ||
-        profiles.size()!=players || teams.size()!=players)
+        profiles.size()!=players)
       throw FormatError("System Link client preparation differs from the authenticated next world");
+    const bool team_mode=source_game_variant_get(source_game_variant(next->variant),91)!=0;
+    if((team_mode && teams.size()!=players) || (!teams.empty() && teams.size()!=players))
+      throw FormatError("System Link client team selection differs from its next world");
     for(unsigned i=0;i<players;++i) {
       const auto slot=client->slots()[i];const auto admitted=std::ranges::find(next->roster,slot,&OnlineAdmission::slot);
-      if(next->profiles[slot]!=profiles[i] || admitted==next->roster.end() || admitted->team!=teams[i])
+      if(next->profiles[slot]!=profiles[i] || admitted==next->roster.end() || admitted->team!=(team_mode?teams[i]:-1))
         throw FormatError("System Link client preparation changed its actual selected profile/team");
     }
     client->resume_system_link_world();
@@ -125,9 +130,29 @@ void SystemLinkSession::update_frontend(MenuState& menu,std::uint32_t clock,
     players.push_back(std::move(p));machines.insert(row.peer);
   }
   if(players.empty()){close();menu.leave_system_link_lobby();return;}
-  menu.set_system_link_lobby(host_,std::move(players),unsigned(machines.size()));
+  std::vector<unsigned> local_slots;
+  if(host_)for(const auto &row:current->roster) {
+    if(row.peer==0 && (current->active_players&(1u<<row.slot)))local_slots.push_back(row.slot);
+  } else if(retained_client_)local_slots.assign(retained_client_->slots().begin(),retained_client_->slots().end());
+  std::vector<std::int8_t> teams;
+  for(auto slot:local_slots) {
+    const auto row=std::ranges::find(current->roster,slot,&OnlineAdmission::slot);
+    teams.push_back(std::int8_t(row->team));
+  }
+  menu.adopt_gameplay_teams(teams,true);
+  menu.set_system_link_lobby(host_,std::move(players),unsigned(machines.size()),local_slots);
   if(!host_)menu.adopt_system_link_configuration(current->map,current->variant);
   const auto self=shared_from_this();
+  menu.set_lobby_team_change([self,&menu,local_slots](unsigned controller,std::int16_t team) {
+    const auto locals=menu.local_players();
+    const auto player=std::ranges::find(locals,controller,&FrontendLocalPlayer::controller);
+    if(player==locals.end() || unsigned(player-locals.begin())>=local_slots.size())return std::string("This controller has no session player.");
+    const auto view=unsigned(player-locals.begin());
+    if(self->host_)return self->retained_host_->change_system_link_team(local_slots[view],team);
+    return self->retained_client_->request_team_change(view,team);
+  });
+  if(retained_client_)for(const auto &result:retained_client_->take_team_change_results())
+    if(!result.error.empty())menu.system_link_configuration_error(result.error);
   menu.set_system_link_leave([self,&menu]{self->close();menu.leave_system_link_lobby();});
   if(current->phase==SystemLinkPhase::lobby && menu.frame().vista_pcr)menu.open_vista_lobby();
   menu.set_session_countdown(current->countdown<0?std::nullopt:std::optional(current->countdown));
@@ -138,13 +163,18 @@ void SystemLinkSession::update_frontend(MenuState& menu,std::uint32_t clock,
       } else {self->close();menu.leave_system_link_lobby();}
       return true;
     }
-    if(!self->host_)return true;
+    if(!self->host_)return action!=FrontendLobbySessionAction::Auxiliary ||
+        self->state()->phase!=SystemLinkPhase::lobby || self->state()->countdown>=0;
     if(action==FrontendLobbySessionAction::Start) {
       if(self->state()->phase!=SystemLinkPhase::lobby)return true;
       const auto stage=self->state()->countdown;
       const auto selected=menu.selected_multiplayer_configuration();
-      const auto type=source_game_variant_type(source_game_variant(selected.variant));
-      if(type!=1 && type!=9){menu.system_link_configuration_error();return true;}
+      if(custom_slayer(selected.variant)!=CustomSlayer::none || bomb_defusal_variant(selected.variant)) {
+        menu.system_link_configuration_error("Start a new LAN session to use this custom game.");return true;
+      }
+      if(!source_game_variant_valid(source_game_variant(selected.variant))) {
+        menu.system_link_configuration_error();return true;
+      }
       const auto result=vista_session_countdown_start({0,10,3},{stage<0?0xa:0xb,0,true,stage,true});
       for(const auto& call:result.call_intents())if(call.service==VistaSessionCountdownService::write) {
         self->pending_start_=selected;

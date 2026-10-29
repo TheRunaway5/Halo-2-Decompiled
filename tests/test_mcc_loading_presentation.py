@@ -53,6 +53,26 @@ class LoadingPresentationTests(unittest.TestCase):
         self.addCleanup(self.owned.cleanup)
         self.root = Path(self.owned.name)
 
+    def test_windows_loading_converter_uses_native_package_filename(self):
+        decoder = self.root / 'halo2_mcc_loading_audio.exe'
+        decoder.write_bytes(b'MZ native Windows converter fixture')
+        decoder.chmod(0o755)
+        unrelated = self.root / 'bin/halo2_mcc_loading_audio'
+        unrelated.parent.mkdir()
+        unrelated.write_bytes(b'ELF fixture belongs to Linux')
+        unrelated.chmod(0o755)
+        codebook = self.root / loading.CODEBOOK
+        codebook.parent.mkdir(parents=True)
+        codebook.write_bytes((Path(__file__).resolve().parents[1] / loading.CODEBOOK).read_bytes())
+        with patch.object(loading.sys, 'platform', 'win32'):
+            self.assertEqual(loading.converter(self.root), decoder)
+            dependencies = loading.converter_dependencies(self.root)
+            self.assertEqual(dependencies['converter']['path'], decoder.name)
+            self.assertEqual(dependencies['codebook']['sha256'], loading.CODEBOOK_SHA)
+            decoder.unlink()
+            with self.assertRaisesRegex(FormatError, 'converter is missing'):
+                loading.converter(self.root)
+
     def pak(self, *, damaged_payload=False, damaged_header=False, duplicate=False):
         payload = b"bounded actual media fixture"
         header = struct.pack("<qqqi20sBI", 0, len(payload), len(payload), 0,

@@ -19,6 +19,7 @@ struct MenuWorldSourceMetadataRead {
 // aliases without mutable host pointer fixups or fabricated metadata.
 class MenuWorldSourcePass {
 public:
+  const Cache &cache_owner() const {return *cache_owner_;}
   std::uint32_t shader() const {return shader_;}
   std::uint32_t shader_template() const {return template_;}
   std::uint32_t shader_pass() const {return pass_;}
@@ -44,6 +45,7 @@ private:
   MenuWorldSourcePass()=default;
   friend MenuWorldSourcePass load_menu_world_source_pass(const Cache &,
       std::uint32_t,const MenuWorldSourcePassChoice &);
+  const Cache *cache_owner_{};
   std::uint32_t shader_{},template_{},pass_{},vertex_{};
   MenuWorldSourcePassChoice choice_;
   unsigned template_pass_{},template_remap_{};

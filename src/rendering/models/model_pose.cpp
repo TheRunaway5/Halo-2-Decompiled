@@ -13,13 +13,18 @@
 #include "halo2/frontend_model_primary.hpp"
 #include <algorithm>
 #include <memory>
-#include <unordered_map>
-#include <mutex>
 #include <functional>
 #include <cstdlib>
 #include "rendering/models/model_skin_vertices.hpp"
 
 namespace halo2 {
+struct ModelSkinAdmissionCache {
+  std::uint32_t checksum{};
+  const void *vertices{},*skin{};
+  std::size_t vertex_count{},binding_count{};
+  bool summary_ready{};
+  ModelSkinAdmissionStatic summary;
+};
 std::vector<Vertex> pose_scenery_model(const Cache &cache,
                                       const RenderModel &model, float seconds) {
   if (model.animation != 0xffffffffu) {
@@ -299,35 +304,39 @@ std::vector<std::array<float,12>> model_skin_world_palette(const RenderModel &mo
   return skin_palette(model,std::vector<Transform>(nodes.begin(),nodes.end()),mapping);
 }
 namespace {
-// HALO2_NATIVE_SKIN_ADMISSION_CACHE=1: keep each resident model's
-// palette-independent admission summary (opt-in until a byte-identical frame
-// capture is recorded); HALO2_VERIFY_SKIN_ADMISSION=1 also evaluates the full
-// predicate and rejects any disagreement. The key covers the model's identity
-// and bank storage; vertices and bindings are immutable after load.
-struct SkinAdmissionCacheEntry {
-  std::uint32_t checksum{};const void *vertices{},*skin{};std::size_t count{};
-  std::shared_ptr<const ModelSkinAdmissionStatic> summary;
-};
-std::mutex skin_admission_mutex;
-std::unordered_map<const RenderModel*,SkinAdmissionCacheEntry> skin_admission_cache;
+// Keep each reused resident model's palette-independent admission summary by
+// default. HALO2_NATIVE_SKIN_ADMISSION_CACHE=0 (or empty) restores the full
+// predicate; HALO2_VERIFY_SKIN_ADMISSION=1 also evaluates the full
+// predicate and rejects any disagreement. The model owns the immutable
+// summary; first use retains only a small pending key and evaluates the full
+// predicate. Only a repeated immutable bank builds the per-vertex summary, so
+// single-use selected-section temporaries do not allocate a second vertex bank.
+// Fresh/copy lifetimes start empty. Concurrent cold readers
+// may build equal summaries, then publish them atomically without a registry.
 bool model_skin_arithmetic_admitted_cached(const RenderModel &model,std::span<const Vertex> vertices,
     std::span<const std::array<float,12>> palette) {
-  static const bool cached=[]{const auto *p=std::getenv("HALO2_NATIVE_SKIN_ADMISSION_CACHE");return p && *p;}();
+  static const bool cached=[]{const auto *p=std::getenv("HALO2_NATIVE_SKIN_ADMISSION_CACHE");
+    return !p || (*p && !(p[0]=='0' && !p[1]));}();
   static const bool verify=[]{const auto *p=std::getenv("HALO2_VERIFY_SKIN_ADMISSION");return p && *p;}();
   if(!cached)return model_skin_gpu_arithmetic_admitted(vertices,model.skin,palette);
-  std::shared_ptr<const ModelSkinAdmissionStatic> summary;
-  {
-    std::lock_guard lock(skin_admission_mutex);
-    auto &entry=skin_admission_cache[&model];
-    if(!entry.summary || entry.checksum!=model.checksum || entry.vertices!=model.mesh.vertices.data() ||
-       entry.skin!=model.skin.data() || entry.count!=model.mesh.vertices.size()) {
-      entry={model.checksum,model.mesh.vertices.data(),model.skin.data(),model.mesh.vertices.size(),
-             std::make_shared<const ModelSkinAdmissionStatic>(model_skin_gpu_admission_static(model.mesh.vertices,model.skin))};
-    }
-    summary=entry.summary;
+  auto retained=model.skin_admission_cache.load();
+  if(!retained || retained->checksum!=model.checksum || retained->vertices!=model.mesh.vertices.data() ||
+     retained->skin!=model.skin.data() || retained->vertex_count!=model.mesh.vertices.size() ||
+     retained->binding_count!=model.skin.size()) {
+    retained=std::make_shared<const ModelSkinAdmissionCache>(ModelSkinAdmissionCache{
+        model.checksum,model.mesh.vertices.data(),model.skin.data(),model.mesh.vertices.size(),model.skin.size(),
+        false,{}});
+    model.skin_admission_cache.publish(retained);
+    return model_skin_gpu_arithmetic_admitted(vertices,model.skin,palette);
+  }
+  if(!retained->summary_ready) {
+    retained=std::make_shared<const ModelSkinAdmissionCache>(ModelSkinAdmissionCache{
+        model.checksum,model.mesh.vertices.data(),model.skin.data(),model.mesh.vertices.size(),model.skin.size(),
+        true,model_skin_gpu_admission_static(model.mesh.vertices,model.skin)});
+    model.skin_admission_cache.publish(retained);
   }
   // The local records are an unmodified copy of the model bank.
-  const bool admitted=vertices.size()==model.mesh.vertices.size() && model_skin_gpu_arithmetic_admitted(*summary,palette);
+  const bool admitted=vertices.size()==model.mesh.vertices.size() && model_skin_gpu_arithmetic_admitted(retained->summary,palette);
   if(verify && admitted!=model_skin_gpu_arithmetic_admitted(vertices,model.skin,palette))
     throw FormatError("Cached skin admission summary differs from the full arithmetic predicate");
   return admitted;

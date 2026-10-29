@@ -1,4 +1,8 @@
 if(BUILD_TESTING)
+    add_executable(confined_file_tests "${CMAKE_CURRENT_LIST_DIR}/../tests/confined_file_tests.cpp")
+    target_include_directories(confined_file_tests PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../include")
+    target_compile_features(confined_file_tests PRIVATE cxx_std_20)
+    add_test(NAME security_resource_paths COMMAND confined_file_tests)
     add_executable(security_transport_tests "${CMAKE_CURRENT_LIST_DIR}/../tests/security_transport_tests.cpp")
     target_include_directories(security_transport_tests PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../include")
     target_compile_features(security_transport_tests PRIVATE cxx_std_20)
@@ -15,4 +19,10 @@ if(BUILD_TESTING)
         -s "${CMAKE_CURRENT_LIST_DIR}/../tests" -p test_security_asset_limits.py)
     add_test(NAME security_tool_limits COMMAND ${Python3_EXECUTABLE} -B -m unittest discover
         -s "${CMAKE_CURRENT_LIST_DIR}/../tests" -p test_security_tool_limits.py)
+    add_test(NAME security_import_work_limits COMMAND ${Python3_EXECUTABLE} -B -m unittest discover
+        -s "${CMAKE_CURRENT_LIST_DIR}/../tests" -p test_security_scan_20261028_imports.py)
+    add_test(NAME security_snapshot_expansion_budget COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_LIST_DIR}/../tools/test_snapshot_expansion_budget.py"
+        --output "@HALO2_TEST_SCRATCH@/snapshot-allocation.json")
+    set_tests_properties(security_snapshot_expansion_budget PROPERTIES TIMEOUT 180)
 endif()

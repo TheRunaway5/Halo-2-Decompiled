@@ -16,7 +16,6 @@ import zlib
 
 from audit_rendering import Cache, file_sha
 from import_mcc_hud import MccCache
-from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from audit_dlc_map_previews_tu15 import DEFAULT_ROOT as DLC_ROOT, export_dlc_map_preview_descriptors
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -158,6 +157,7 @@ class Definition:
             global_strings={} if isinstance(self.c,MccCache) else self.global_strings(),map_images=self.map_images(),button_keys=keys)
 
 def main():
+    from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--xbox',type=Path,default=ROOT/'assets/disc/maps/mainmenu.map')
     p.add_argument('--mcc',type=Path,required=True)

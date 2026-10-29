@@ -15,7 +15,7 @@ import re
 import struct
 import zlib
 
-from audit_rendering import FormatError
+from audit_rendering import FormatError, ImportBudget
 
 HEADER_SIZE = 896
 MAX_CACHE = 1024 * 1024 * 1024
@@ -144,7 +144,8 @@ def decode_cache(raw):
 class MccCache:
     bitmap_stride = 168
 
-    def __init__(self, path):
+    def __init__(self, path, budget=None):
+        self.parse_budget = budget or ImportBudget()
         self.path = Path(path)
         if self.path.is_symlink() or not self.path.is_file() or self.path.stat().st_size > MAX_CACHE:
             raise FormatError(f"Missing regular or excessive MCC cache: {self.path}")
@@ -156,6 +157,7 @@ class MccCache:
         count = self.u32(self.index + 24)
         if not 0 < count <= 65536 or count != self.u32(32):
             raise FormatError("MCC directory count differs from header")
+        self.parse_budget.charge(count)
         table = self.pointer(self.u32(self.index + 8), header_magic, count * 16)
         names, size, offsets = self.u32(36), self.u32(40), self.u32(44)
         self.require(names, size)
@@ -192,10 +194,11 @@ class MccCache:
 
     def string(self, at, size):
         self.require(at, size)
-        end = self.data.find(b"\0", at, at + size)
+        end = self.data.find(b"\0", at, at + min(size,4096))
         if end < 0:
             raise FormatError("Unterminated MCC string")
         try:
+            self.parse_budget.charge(1,end-at)
             return self.data[at:end].decode("utf-8")
         except UnicodeError as error:
             raise FormatError("Invalid MCC string encoding") from error
@@ -207,6 +210,8 @@ class MccCache:
 
     def block(self, at, stride):
         count, pointer = self.u32(at), self.u32(at + 4)
+        if budget := getattr(self, "parse_budget", None):
+            budget.charge(count)
         if count > 65536 or stride <= 0:
             raise FormatError("Excessive MCC block")
         if not count:

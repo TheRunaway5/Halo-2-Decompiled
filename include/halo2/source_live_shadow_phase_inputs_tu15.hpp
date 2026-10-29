@@ -13,7 +13,7 @@ struct SourceLiveShadowPhaseResidueTu15 {
     std::array<float,2> fog_parameters;
 };
 
-// Bounded ordinary640x480 caller owner. It never creates an SDK device, runs
+// Ordinary full-view caller owner. It never creates an SDK device, runs
 // a source GPU call, constructs target10, sets4922A8 or activates shadows.
 // Keep the real memory owner and attachment use alive and unchanged through
 // synchronous Scene consumption. A retired/recreated lease or changed source
@@ -27,7 +27,7 @@ public:
 private:
     friend SourceLiveShadowPhaseInputsTu15 source_live_shadow_phase_inputs_tu15(
         const SourceRuntimeMemory&,const RendererTargets::Use&,
-        const SourceLiveShadowPhaseResidueTu15&);
+        const SourceLiveShadowPhaseResidueTu15&,std::array<std::uint32_t,2>);
     SourceLiveShadowPhaseInputsTu15()=default;
     struct RetainedInput {std::uint32_t address;std::vector<std::byte> bytes;};
     const SourceRuntimeMemory* memory_{};
@@ -39,11 +39,16 @@ private:
     void validate_live(const RendererTargets::Use&) const;
 };
 
-// Requires actual Renderer-owned BGRA8/D24S8 single-sample640x480 attachments,
+// Requires actual Renderer-owned BGRA8/D24S8 single-sample attachments,
 // ordinary unscaled full source viewport, matching global/submitting camera
 // aliases, completed native1FB90/169D0 inputs and retained offscreen-AA zero.
-//960/split/timed-boundary/override paths remain explicit rejection corridors.
+// The optional logical surface is the actual submitting surface before a
+// native temporal upscaler. Omission uses the real attachment dimensions.
+// Phase packets retain that logical surface; the renderer maps Apply to its
+// physical input target. Generate remains128x128. Source AA, split views,
+// timed boundaries and near/far overrides remain explicit rejection corridors.
 SourceLiveShadowPhaseInputsTu15 source_live_shadow_phase_inputs_tu15(
     const SourceRuntimeMemory&,const RendererTargets::Use&,
-    const SourceLiveShadowPhaseResidueTu15&);
+    const SourceLiveShadowPhaseResidueTu15&,
+    std::array<std::uint32_t,2> logical_surface={});
 } // namespace halo2

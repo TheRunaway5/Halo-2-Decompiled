@@ -16,8 +16,8 @@ struct Events {
   ~Events(){SDL_DestroyWindow(window);SDL_Quit();}
   void key(bool down,bool repeat=false){SDL_Event event{};event.type=down?SDL_KEYDOWN:SDL_KEYUP;
     event.key.windowID=id;event.key.state=down?SDL_PRESSED:SDL_RELEASED;event.key.repeat=repeat;
-    event.key.keysym.scancode=SDL_SCANCODE_Q;event.key.keysym.sym=SDLK_q;
-    check(SDL_PushEvent(&event)==1,"SDL could not queue Q");}
+    event.key.keysym.scancode=SDL_SCANCODE_F;event.key.keysym.sym=SDLK_f;
+    check(SDL_PushEvent(&event)==1,"SDL could not queue F");}
   void focus(bool gain){SDL_Event event{};event.type=SDL_WINDOWEVENT;event.window.windowID=id;
     event.window.event=gain?SDL_WINDOWEVENT_FOCUS_GAINED:SDL_WINDOWEVENT_FOCUS_LOST;
     check(SDL_PushEvent(&event)==1,"SDL could not queue focus");}
@@ -40,16 +40,16 @@ int main(int argc,char **argv){try{
   check(match.unit(remote).grenades[0]==2,"Actual authored ordinary spawn grenade inventory was not available");
   events.focus(true);events.drain(kbm);
   events.key(true);events.key(false);events.drain(kbm);
-  for(unsigned frame=0;frame<5;++frame)check(kbm.snapshot().controls.grenade,"Render observation lost queued Q tap");
-  outgoing[0]=kbm.consume().controls;check(outgoing[0].grenade,"Consumed Q tap absent from Controls");
+  for(unsigned frame=0;frame<5;++frame)check(kbm.snapshot().controls.grenade,"Render observation lost queued F tap");
+  outgoing[0]=kbm.consume().controls;check(outgoing[0].grenade,"Consumed F tap absent from Controls");
   client.send(outgoing);host.receive(received);check(received[remote].grenade,"UDP lost real SDL short tap");
   host.receive(received);check(!received[remote].grenade,"Cached packet retriggered consumed grenade pulse");
-  check(!kbm.consume().controls.grenade,"SDL consumed Q tap twice");
-  // Two consecutive consumed ticks can both contain a new Q press. These are
+  check(!kbm.consume().controls.grenade,"SDL consumed F tap twice");
+  // Two consecutive consumed ticks can both contain a new F press. These are
   // pulses, unlike the retained fire/jump/reload edges in the native protocol.
   for(unsigned i=0;i<2;++i){events.key(true);events.key(false);events.drain(kbm);
     outgoing[0]=kbm.consume().controls;client.send(outgoing);host.receive(received);
-    check(received[remote].grenade,"Consecutive Q pulses were coalesced as held input");}
+    check(received[remote].grenade,"Consecutive F pulses were coalesced as held input");}
   // Latest continuous input can replace a packet; its serial still retains
   // each consumed pulse. Host drains exactly one queued pulse per receive.
   for(unsigned i=0;i<2;++i){events.key(true);events.key(false);events.drain(kbm);
@@ -61,22 +61,22 @@ int main(int argc,char **argv){try{
   events.key(true);events.drain(kbm);check(kbm.consume().controls.grenade,"New held key lacks first pulse");
   events.key(true,true);events.drain(kbm);check(!kbm.consume().controls.grenade,"Key repeat created grenade pulse");
   events.key(false);events.key(true);events.focus(false);events.drain(kbm);
-  check(!kbm.consume().controls.grenade,"Focus loss retained dangerous pending Q pulse");
-  events.focus(true);events.drain(kbm);check(!kbm.consume().controls.grenade,"Focus gain recreated old Q pulse");
+  check(!kbm.consume().controls.grenade,"Focus loss retained dangerous pending F pulse");
+  events.focus(true);events.drain(kbm);check(!kbm.consume().controls.grenade,"Focus gain recreated old F pulse");
   // Actual authored start, native movement, source inventory, decoded throw
   // animation/current marker, genuine shared allocation, terrain and blast.
-  // Only Q is queued through SDL; yaw/pitch are explicit native look inputs.
+  // Only F is queued through SDL; yaw/pitch are explicit native look inputs.
   check(cache.original_data()->grenade_constants.has_value(),"Selected executable grenade operands absent");
   MultiplayerMatch play(content,0,cache.spawns(),rules);
   std::cerr<<"stage configure\n";play.configure_grenades(cache_owner,*cache.original_data()->grenade_constants);std::cerr<<"stage configured\n";
-  const auto local=play.join("Q local");std::cerr<<"stage joined\n";
+  const auto local=play.join("F local");std::cerr<<"stage joined\n";
   std::array<Controls,16> controls{};
   // A steeper actual look input keeps the bounced grenade within the authored
   // 1.75-unit radius after BSP material indices are resolved to global rows.
   controls[local].yaw=play.unit(local).yaw;controls[local].pitch=-1.5f;
   events.key(true);events.key(false);events.drain(kbm);
   controls[local]=kbm.consume(controls[local].yaw,controls[local].pitch).controls;
-  check(controls[local].grenade,"Live SDL Q pulse absent");
+  check(controls[local].grenade,"Live SDL F pulse absent");
   const auto initial_health=play.unit(local).vitality.body,initial_shield=play.unit(local).vitality.shield;
   bool began=false,prepared=false,released=false,contacted=false,detonated=false,damaged=false;
   std::uint32_t projectile=null_datum;
@@ -95,7 +95,7 @@ int main(int argc,char **argv){try{
       contacted|=e.kind==NativeGrenadeEvent::Contact;detonated|=e.kind==NativeGrenadeEvent::Detonated;
     }
   }
-  check(began&&prepared&&released,"Actual SDL Q failed begin/prepare/release");
+  check(began&&prepared&&released,"Actual SDL F failed begin/prepare/release");
   check(contacted&&detonated,"Actual Lockout throw failed native terrain/fuse/detonation");
   check(damaged,"Actual nearby grenade blast never damaged the throwing player");
   check(play.grenade_projectiles().empty(),"Detonated grenade retained its object allocation");
@@ -105,7 +105,7 @@ int main(int argc,char **argv){try{
   check(live_state.grenade_detonations.front().projectile==projectile&&
       live_state.grenade_detonations.front().effect!=null_datum,
       "Detonation presentation lost original projectile/effect identity");
-  // Genuine remote Q follows the same authoritative action. The client only
+  // Genuine remote F follows the same authoritative action. The client only
   // receives snapshots and decodes the selected clip; it never runs selection.
   match.configure_grenades(cache_owner,*cache.original_data()->grenade_constants);
   MultiplayerMatch replica(content,0,cache.spawns(),rules);
@@ -143,8 +143,8 @@ int main(int argc,char **argv){try{
     }
   }
   check(remote_prepared&&remote_released&&remote_detonated&&remote_clip,
-      "Actual remote SDL Q failed authoritative throw or selected-clip presentation");
-  check(match.unit(remote).grenades[0]==1,"Remote Q debited grenade inventory more than once");
-  std::cout<<"PASS "<<checks<<" checks: actual SDL Q event queue and native UDP pulse delivery on actual Lockout\n";
+      "Actual remote SDL F failed authoritative throw or selected-clip presentation");
+  check(match.unit(remote).grenades[0]==1,"Remote F debited grenade inventory more than once");
+  std::cout<<"PASS "<<checks<<" checks: actual SDL F event queue and native UDP pulse delivery on actual Lockout\n";
   std::cout<<"LIMIT native decoded-animation residency and triangle/capsule collision adapter; no Xbox Havok/platform/effect playback parity\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

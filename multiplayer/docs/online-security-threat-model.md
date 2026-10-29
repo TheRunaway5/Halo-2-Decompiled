@@ -20,6 +20,11 @@ were not audited here. Source defaults below are not deployment observations.
 Protect the player's process, files and credentials; native world ownership;
 account/seat identity; voice privacy and mute/block decisions; fair authority
 transitions; availability for healthy peers; and guest-filtered result history.
+Public Halo names, stable public identities and friend tags remain discoverable
+across blocks. Blocking prevents communication and private presence disclosure;
+denied friend/clan/party actions can make a block inferable. The fact of a block
+is not promised confidential. Public friend search itself is block-independent.
+
 An ordinary player process runs with the user's privileges. A memory-corruption
 bug in that process could therefore affect more than the current match.
 

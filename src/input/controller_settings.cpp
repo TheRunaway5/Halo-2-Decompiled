@@ -67,7 +67,9 @@ ControllerSample sample_controller(SDL_GameController *pad) {
 }
 ControllerInput controller_input(const ControllerSample &s,
                                  const ControllerSettings &settings) {
-  // Literal outputs of unchanged Vista45EE72, all16 stick/button combinations.
+  // Layout0 also matches MCC Halo2Controller.json's BaseGamepadMapping,
+  // selected by its named Halo 2 Default preset. Retain the separately
+  // authenticated Vista45EE72 alternate stick/button combinations.
   const auto layout = std::min(settings.buttons, 3u);
   const auto sticks = std::min(settings.sticks, 3u);
   const auto down = [&](unsigned i) { return s.hardware[i] > .2f; };
@@ -92,7 +94,9 @@ ControllerInput controller_input(const ControllerSample &s,
   r.melee = down(layout == 2 ? 0 : layout == 3 ? 9 : 13);
   r.zoom = down(layout == 3 ? 13 : 9);
   r.flashlight = down(10);
-  r.switch_grenade = down(11);
+  // MCC's Default also binds Previous Grenade to D-pad Left. With Halo 2's
+  // two grenade types both directions reach the same original switch owner.
+  r.switch_grenade = down(11) || (layout==0 && down(4));
   r.accept = down(12);
   r.cancel = down(13);
   // TU1.5 127710 publishes Back at processed+1D; 15E70D reads its

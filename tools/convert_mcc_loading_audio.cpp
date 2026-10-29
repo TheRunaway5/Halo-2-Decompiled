@@ -25,7 +25,9 @@ struct Vorbis {
 }
 // The caller owns a temporary directory. Never downloads a codec or reads a
 // game executable. Reconstruct ordinary Vorbis packets with the unmodified
-// BSD ww2ogg converter, then decode with the system Vorbis library.
+// BSD ww2ogg converter, then decode with the platform's admitted Vorbis
+// dependency. Windows fixes the inverse-transform/overlap operation order in
+// its private source-built decoder; the source-owned PCM profile is shared.
 int main(int argc,char** argv)try {
   if(argc!=5)throw std::runtime_error("input WEM, output WAV, codebooks and declared frame count required");
   const auto expected=std::stoull(argv[4]);

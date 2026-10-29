@@ -1,0 +1,12 @@
+if(BUILD_TESTING)
+    add_executable(source_runtime_undo_journal_tests
+        tests/source_runtime_undo_journal_tests.cpp src/runtime/source_runtime_memory.cpp)
+    target_include_directories(source_runtime_undo_journal_tests PRIVATE include src)
+    target_link_libraries(source_runtime_undo_journal_tests PRIVATE halo2_snapshot_storage Threads::Threads)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_runtime_undo_journal_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_runtime_undo_journal_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME source_runtime_undo_journal COMMAND source_runtime_undo_journal_tests)
+    set_tests_properties(source_runtime_undo_journal PROPERTIES TIMEOUT 30)
+endif()

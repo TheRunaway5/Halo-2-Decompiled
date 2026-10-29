@@ -43,9 +43,22 @@ decoder is introduced. Other engine families, migration, original Xbox wire
 compatibility, physical played routes, framebuffer/speaker comparisons and
 launcher installation retain their own acceptance scope.
 
-Validation is being recorded under
-`build/ctf-assault-system-link-20261025`. Qualification is complete only when
-its final acceptance and cleanup receipts report success.
+Validation is recorded under `build/ctf-assault-system-link-20261025`.
+The 2026-10-28 cohort passes all nine System Link return/restart cases, including
+the extended late-join/sparse-roster case, and the ordinary native runtime
+handoff. It also repeats all nine complete local audio/PCR/lobby flows and the
+483 original audio cases. Final acceptance names each contributing cohort;
+cleanup is recorded separately.
+
+All nine ONLINE result/PCR/return cases also pass against a separately frozen
+Python service and freshly compiled native Rust FFI. Its 156 source identities,
+build command and test-specific dependency selection are recorded in the same
+evidence directory. The initial stale-library failures remain diagnostics.
+Integration fixtures use the CMake-selected `unlimited` native transport
+profile so every explicit broadcast can replicate. This does not qualify the
+default per-client bandwidth budget; the snapshot-stream test selects and
+checks its own profiles. `effective-transport-profile.json` records the earlier
+fixture-label correction without altering its original results.
 
 The retained-session regression covers Multi Flag CTF, CTF Classic, 1 Flag CTF,
 1 Flag CTF Fast, Multi Bomb, Single Bomb, Single Bomb Fast, Neutral Bomb and
@@ -73,3 +86,29 @@ host migration are separate features. The source qualification uses a frozen
 coherent cohort because other work is active in the shared checkout; its exact
 hashes and subsequent narrow repairs accompany the results. Whole-file hashes
 of concurrently changed source are not represented as tested workspace hashes.
+
+The earlier broader rendered remote-consumer rerun failed for every preset at the
+sky projection guard: `Sky material/texture semantics differ from the
+authenticated projection input`. This failed rerun remains in
+`final-regression/evidence/ctf-assault-remote-consumers.json`; earlier rendered
+consumer evidence is not relabeled as a passing result for that cohort.
+
+The later [rendered validation](MP_CTF_ASSAULT_RENDERED_VALIDATION.md) identifies
+the stale cache selection and passes the unchanged sky guard against the
+launcher-selected V7 cache, with an independent original Xbox geometry/material
+comparison. Its `final-nine-native-25` cohort passes all 22 selected tests,
+including all nine rendered starts, remote waypoint consumers, natural timed
+endings and native System Link returns. It also adds the missing dispatch to
+the existing native combat/action owner `1E32A0`, reached by actual first-person
+context calls during three Assault return cases. Gameplay rule kernels remain
+unchanged. Rendered ending checks and native PCR/lobby return checks retain
+their distinct scopes; physical Xbox routes are not inferred.
+
+`acceptance.json` qualifies the native return scope with eight distinct passing
+related CTests; that historical receipt leaves its rendered gate red. The later
+qualification and cleanup are under `build/ctf-assault-rendered-20261028`.
+The older `cleanup.json` verifies removal
+of both the recovered private source/build/service tree (3,487,140 allocated
+KiB) and its recovery supervisor tree. No new large binaries, banks or captures
+are retained. Launcher installation and concurrent workspace changes are not
+represented as qualified by this frozen cohort.

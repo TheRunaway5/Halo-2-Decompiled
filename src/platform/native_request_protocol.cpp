@@ -61,6 +61,7 @@ std::optional<NativeRequest> decode_native_request(std::span<const std::byte> pa
         }
         return value;
     }
+    if(frame.kind==19)return NativeTeamChangeRequest{frame.nonce,frame.cookie,frame.sequence,frame.team_view,frame.team};
     if(frame.kind==4)return NativeLeaveRequest{frame.nonce,frame.cookie};
     if(frame.kind==6)return NativeSessionQuery{frame.nonce};
     return {};

@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_world_memory.hpp"
+#include "helpers/native_campaign_perception_default_ownership.hpp"
 #include "halo2/source_network_session_startup_tu15.hpp"
 #include "halo2/native_tu15_multiplayer_data.hpp"
 #include "halo2/original_data.hpp"
@@ -23,6 +24,52 @@ template<class Call>void rejects(Call call,const char* message) {
     bool rejected=false;
     try{call();}catch(const std::out_of_range&){rejected=true;}
     check(rejected,message);
+}
+void submitted_view_storage(const SourceRuntimeMemory& cold) {
+    // Original2B480's complete startup destination already contains the
+    // submitted-view serial, current viewport and four cluster/leaf pairs.
+    // These fields must share its backing rather than mount new subregions.
+    constexpr std::uint32_t base=0x4c6854u;
+    constexpr std::size_t bytes=0x40u;
+    const auto checkpoint=cold.checkpoint();const auto& bank=region(checkpoint,base);
+    check(bank.bytes.size()==bytes && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="source startup33..44 loader-zeroed constructor destination" &&
+        !bank.page_bytes && bank.committed.empty() &&
+        std::ranges::all_of(bank.bytes,[](auto byte){return byte==std::byte{};}),
+        "Submitted-view fields lost their complete original startup owner");
+    const auto native=cold.native_address(base,bytes);
+    for(const auto [address,length]:std::array{std::pair{0x4c6858u,4u},
+            std::pair{0x4c6870u,0x24u}}) {
+        cold.validate_mutable_view(address,length);
+        check(cold.native_address(address,length).value==native.value+address-base,
+            "Submitted-view field detached from original startup backing");
+    }
+    SourceRuntimeMemory live;live.restore(checkpoint);
+    std::array<std::byte,bytes> values{};
+    for(unsigned i=0;i<values.size();++i)values[i]=std::byte((i*37u+11u)&255u);
+    live.write(base,values);
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(std::ranges::equal(restored.view(base,bytes),values) &&
+        region(restored.checkpoint(),base).owner==bank.owner,
+        "Submitted-view live fields or original owner were lost on checkpoint restore");
+    std::cout<<"PASS submitted-view storage: complete cold64B RW startup owner, shared serial/viewport "
+        "backing and live checkpoint contents\n";
+}
+void view_angle_scalar(SourceRuntimeMemory& memory) {
+    constexpr std::array expected{std::byte{0xc3},std::byte{0xf5},std::byte{0x48},std::byte{0x3f}};
+    const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,0x45c55cu);
+    check(bank.bytes.size()==4 && bank.access==SourceRuntimeMemory::Access::ReadOnly &&
+        bank.owner=="source2F7E0 authored view-angle scalar" &&
+        std::ranges::equal(memory.view(0x45c55cu,4),expected),
+        "Cold world lost the exact original immutable view-angle scalar");
+    bool rejected=false;
+    try { memory.write(0x45c55cu,std::array<std::byte,4>{}); }
+    catch(const std::exception&) { rejected=true; }
+    check(rejected,"Original immutable view-angle scalar admitted a write");
+    SourceRuntimeMemory restored;restored.restore(checkpoint);
+    check(restored.is_read_only(0x45c55cu,4) &&
+        std::ranges::equal(restored.view(0x45c55cu,4),expected),
+        "Cold checkpoint restore lost the original view-angle scalar");
 }
 void animation_mask_scratch(const SourceRuntimeMemory &cold) {
     const auto saved=cold.checkpoint();const auto &bank=region(saved,0x56e060u);
@@ -216,6 +263,9 @@ int main()try {
         check(rejected,"Cold factory admitted an invalid retained platform dependency");
     }
     auto memory=native_tu15_world_memory(clock);
+    view_angle_scalar(memory);
+    halo2::test::perception_default_ownership(memory);
+    submitted_view_storage(memory);
     animation_mask_scratch(memory);
     name_mapping_operands(memory);
     saved_session_storage(memory);

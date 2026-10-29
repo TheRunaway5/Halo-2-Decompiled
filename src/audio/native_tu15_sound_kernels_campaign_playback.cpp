@@ -382,44 +382,6 @@ void r_127b70(CampaignContext &c,Abi &a) {
 }
 
 // =====================================================================
-// 12DB00: the fraction of the distance arg2 across [arg0, arg1] clamped to
-// [0, 1] in XMM0; when the range is narrower than 0.0001 (x87 |arg0-arg1|)
-// it is a step: 0 when (arg0 > arg2) equals CL, else 1. ret 12.
-// =====================================================================
-void r_12db00(CampaignContext &c,Abi &a) {
-    Cpu x(c,a);
-    auto &eax=x.eax,&ecx=x.ecx,&esp=x.esp;
-    x.fld32(esp+4u);
-    {auto &v=x.st0();v=fsub(v,load_single(x.d(esp+8u)));}
-    x.fabs0();
-    x.fld(load_single(epsilon));
-    const auto narrow=[&]{const auto other=x.st0(1);const auto r=extended_compare(x.st0(),other);x.floating.pop();return r;}();
-    x.fstp0();
-    if(!narrow.above()) {
-        x.x(1,x.ld(esp+4u));
-        x.x(0,x.ld(esp+0xcu));
-        x.x(2,x.ld(esp+8u));
-        x.x(0,_mm_sub_ss(x.x(0),x.x(1)));
-        x.x(2,_mm_sub_ss(x.x(2),x.x(1)));
-        x.zero(1);
-        x.x(0,_mm_div_ss(x.x(0),x.x(2)));
-        if(!comiss(x.x(1),x.x(0)).above()) {
-            x.x(1,single(one));
-            if(comiss(x.x(0),x.x(1)).below_equal()){x.ret(12);return;}
-        }
-        x.x(0,x.x(1));
-        x.ret(12);
-        return;
-    }
-    x.x(0,x.ld(esp+4u));
-    eax=comiss(x.x(0),x.ld(esp+0xcu)).above()?1u:0u;
-    ecx&=0xffu;
-    if(eax==ecx){x.zero(0);x.ret(12);return;}
-    x.x(0,single(one));
-    x.ret(12);
-}
-
-// =====================================================================
 // 12D730: the distance gain of the playing sound (EDI: its +0x18 block,
 // EAX: tag datum) at the distance arg0: the minimum distance (127AD0, at
 // least 0.001; the override +0x34, the class +0x18 or the playback row +0)
@@ -798,7 +760,6 @@ std::span<const CampaignRoutineEntry> campaign_playback_routines() {
         {0x12d6f0u,r_12d6f0},
         {0x127ad0u,r_127ad0},
         {0x127b70u,r_127b70},
-        {0x12db00u,r_12db00},
         {0x12d730u,r_12d730},
         {0x12d840u,r_12d840},
         {0x150900u,r_150900},

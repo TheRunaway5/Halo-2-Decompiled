@@ -6,10 +6,11 @@ never catch up several seconds after a stalled pump. 5DF30 clears mode1
 and its requester when a lower value is published. 6E410 consumes zero.
 """
 import ctypes
-from dataclasses import dataclass
 from functools import lru_cache
 from .protocol import integer, require
 from .security_policy import library
+from .native_party_countdowns import Countdown as Projection, Snapshot
+from .native_matchmaking import value as native_value
 
 
 @lru_cache(maxsize=1)
@@ -31,28 +32,16 @@ def press(seconds):
     return native().h2_party_countdown_press(value)
 
 
-@dataclass
-class Countdown:
-    serial: int
-    seconds: int | None
-    clock_ms: int
-    playlist: str
-    revision: str
-    party_version: int
-    mode: int = 0
-    complete: bool = False
-    requester: str | None = None
+class Countdown(Projection):
+    """Numerical fixture carrier; never admitted into the live registry."""
+    def __init__(self, serial, seconds, clock_ms, playlist, revision, party_version,
+                 mode=0, complete=False, requester=None):
+        row = native_value('party_countdown_sample', value=dict(serial=serial, seconds=seconds,
+            clock_ms=clock_ms, playlist=playlist, revision=revision, party_version=party_version,
+            mode=mode, complete=complete, requester=requester))
+        object.__setattr__(self, '_snapshot', Snapshot(**row))
 
     def update(self, now_ms):
-        if self.seconds is None:
-            return
-        value=native().h2_party_countdown_tick(integer(self.seconds,0,0x7FFFFFFF),(now_ms-self.clock_ms)&0xFFFFFFFF)
-        if value != self.seconds:
-            self.seconds = value
-            self.clock_ms = now_ms&0xFFFFFFFF
-            self.mode = 0
-            self.requester = None
-            self.complete = self.seconds == 0
-
-    def public(self):
-        return dict(serial=self.serial, seconds=self.seconds, mode=self.mode, complete=self.complete)
+        row = {name: getattr(self, name) for name in Snapshot.__dataclass_fields__}
+        value = native_value('party_countdown_sample_tick', value=row, clock_ms=now_ms)
+        object.__setattr__(self, '_snapshot', Snapshot(**value))

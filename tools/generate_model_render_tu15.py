@@ -81,6 +81,21 @@ def main():
     source=source.replace('halo2/physics_live_support_tu15.hpp','halo2/source_model_render_tu15.hpp')
     source=source.replace('source_run_physics_live_support_tu15','source_run_model_render_tu15')
     source=source.replace('source_physics_live_support_tu15_owns_entry','source_model_render_tu15_owns_entry')
+    # Shared generator admits the same presentation boundary in every
+    # authenticated3DDC0 copy, including this module's inlined calls.
+    # PC presentation supplies its already sampled WORLD input after the real
+    # BF640 overlay and before original13A2E0's palette instructions. The
+    # scope restores only that temporary input; all native instructions and
+    # their actual registers/returns remain unchanged.
+    start='static void run_13a2e0(WorldState &s) {'
+    assert source.count(start)==1
+    source=source.replace(start,start+'\nSourcePresentedModelNodeUseTu15 presented(s.memory);'
+        '\nconst auto presented_owner=s.gp[1],presented_model=s.gp[2];'
+        '\nconst bool presented_first_person=r(s.memory,s.gp[4]+16u,1)!=0;')
+    boundary='L13a32e: '
+    assert source.count(boundary)==1
+    source=source.replace(boundary,boundary+
+        'presented.publish(presented_owner,presented_model,s.gp[0],r(s.memory,s.gp[3]+0x48u,4),presented_first_person); ')
     a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "scope": "Replay unchanged retail 71730 assignment decisions and hopper getters.\n\nStarts at 71B1E with declared synthetic ready-summary/register/stack inputs;\nstops before launch publication (71CAD) or failure/session transition (71C73).\nAll called getters, count/weighted kernels and their callees run unchanged.\nThis does NOT execute upstream session/readiness/7E210 producers or downstream\n71FF0 launch, does not replay Live, and does not certify the whole 71730 owner.\nRun through tools/run_test.py. All compiler outputs stay in its owned scratch.\n",
+  "cases": 336,
+  "original_assignment_decisions": 336,
+  "original_getter_calls": 2688,
+  "original_instructions": 1248,
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "tool_sha256": "2bda98bd311f430d1f7099f10fbede34317b3ec3f3cab92fe15cbb2b5e06fc88",
+  "native_source_sha256": {
+    "team_assignment": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "team_balance": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7"
+  },
+  "fixture_sha256": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee",
+  "scratch": "/tmp/halo2-test-icpfjhlb",
+  "scratch_retained": false,
+  "whole_71730_or_session_flow_qualified": false
+}

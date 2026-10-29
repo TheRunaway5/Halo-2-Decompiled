@@ -15,6 +15,7 @@ from pathlib import Path
 import sys
 import tempfile
 import uuid
+from collections.abc import Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, os.environ.get("H2_QUALIFICATION_MASTER_ROOT", str(ROOT)))
@@ -48,6 +49,15 @@ def bounded_log(path):
         tail=data[-48 * 1024:].decode(errors="replace"), truncated=len(data) > 48 * 1024)
 
 
+def plain_data(value):
+    """Copy immutable native value views into the bounded JSON receipt."""
+    if isinstance(value, Mapping):
+        return {str(key): plain_data(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [plain_data(item) for item in value]
+    return value
+
+
 def save(destination, report):
     if destination is None:
         return
@@ -70,6 +80,28 @@ async def one_case(args, owner, mode):
     selected.write_text(json.dumps(fixture))
     verified = []
     requests = dict(signal=0, relay=0)
+    room_id = None
+    live_coordinator = None
+
+    def observe_coordinator(application):
+        nonlocal live_coordinator
+        if room_id is None:
+            return
+        api = next(iter(application.values())).matchmaking
+        try:
+            room = api.transport.rooms[room_id]
+            measured = room.measured_hosts()
+            if not measured or not room.direct_udp:
+                return
+            elected = min(measured, key=measured.__getitem__)
+            live_coordinator = dict(host=room.host, direct_udp=room.direct_udp,
+                elected_host=room.index(elected), measured_host_score=list(measured[elected]),
+                reciprocal_direct_reports=plain_data(list(room.direct_ready.values())),
+                observed_before_native_room_retirement=True)
+        except (Problem, KeyError):
+            # The actual coordinator retires the setup when its final native
+            # endpoint leaves. Keep only an already completed live observation.
+            return
 
     async def verify(session, token, application):
         if token not in ("sword-owned-one", "sword-owned-two") or application != "1558522073272426519":
@@ -84,7 +116,10 @@ async def one_case(args, owner, mode):
             requests["signal"] += 1
         if request.path.endswith("/relay"):
             requests["relay"] += 1
-        return await handler(request)
+        observe_coordinator(request.app)
+        response = await handler(request)
+        observe_coordinator(request.app)
+        return response
 
     app = create_app(Settings(state=case, public_url="http://127.0.0.1:8080", allow_http=True,
         rate_per_minute=100000, matchmaking_catalog=str(selected)), verify)
@@ -118,6 +153,7 @@ async def one_case(args, owner, mode):
                 descriptors.append(await response.json())
             if {row["slot"] for row in descriptors} != {0, 1} or descriptors[0]["id"] != descriptors[1]["id"]:
                 raise RuntimeError("Actual local sword room did not admit exactly two independent owners")
+            room_id = descriptors[0]["id"]
             paths = {}
             for d in descriptors:
                 path = case / ("descriptor-" + str(d["slot"]) + ".json")
@@ -159,19 +195,16 @@ async def one_case(args, owner, mode):
                     raise RuntimeError("Native gameplay did not retain its real ONLINE Running/direct admission")
                 if len(endpoint["quality"]) != 2 or any(row["upload_bytes_per_second"] <= 0 for row in endpoint["quality"]):
                     raise RuntimeError("Actual ONLINE quality evidence is missing a measured endpoint")
-            api = next(iter(app.values())).matchmaking
-            room = api.transport.rooms[descriptors[0]["id"]]
-            measured = room.measured_hosts()
-            if not measured or room.index(min(measured, key=measured.__getitem__)) != room.host:
+            if live_coordinator is None:
+                raise RuntimeError("No completed live coordinator observation preceded native room retirement")
+            if live_coordinator["elected_host"] != live_coordinator["host"]:
                 raise RuntimeError("The local sword room did not preserve its actual measured host election")
-            if transport["host"] != room.host or requests["relay"] or requests["signal"] < 2:
+            if transport["host"] != live_coordinator["host"] or requests["relay"] or requests["signal"] < 2:
                 raise RuntimeError("Native sword gameplay escaped its real direct-signaling room path")
             if set(verified) != {"sword-owned-one", "sword-owned-two"}:
                 raise RuntimeError("Both owned local authentication fixtures were not exercised")
-            result.update(passed=True, transport=transport, coordinator=dict(
-                host=room.host, direct_udp=room.direct_udp, signaling_requests=requests["signal"],
-                gameplay_relay_requests=requests["relay"], measured_host_score=list(measured[min(measured, key=measured.__getitem__)]),
-                reciprocal_direct_reports=[{str(peer): row for peer, row in rows.items()} for rows in room.direct_ready.values()]))
+            result.update(passed=True, transport=transport, coordinator=live_coordinator | dict(
+                signaling_requests=requests["signal"], gameplay_relay_requests=requests["relay"]))
     except Exception as error:
         result["failure"] = str(error)
         if log_path.is_file():

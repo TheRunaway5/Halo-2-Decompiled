@@ -20,7 +20,15 @@ const OnlinePlaylist *selected(const OnlineMatchmakingSnapshot &s, const std::st
 }
 // mainmenu.map's goof names append the authored U+E008 display glyph.
 // Match the catalog name to that row while retaining every source rule.
-std::optional<UiVariant> matched_variant(const FrontendContent &content, const std::string &name) {
+std::optional<UiVariant> matched_variant(const FrontendContent &content, const OnlineMatch &match) {
+  const auto &name=match.variant;
+  if(match.settings) {
+    constexpr std::array<int,7> types{2,3,7,4,1,9,8};
+    const auto found=std::find(types.begin(),types.end(),source_game_variant_type(*match.settings));
+    if(found==types.end()||!source_game_variant_valid(*match.settings))return std::nullopt;
+    UiVariant result{name,unsigned(found-types.begin()),{}};result.source_settings=match.settings;
+    return result;
+  }
   const auto variant=std::find_if(content.variants.begin(),content.variants.end(),[&](const auto &v){
     std::string_view value=v.name;
     if(value.ends_with(" \xee\x80\x88"))value.remove_suffix(4);
@@ -321,12 +329,11 @@ bool MenuState::launch_online_match() {
   try {
     FrontendLaunch result;
     const auto &matched=*matchmaking_.match;
-    const auto variant=matched_variant(content_,matched.variant);
+    const auto variant=matched_variant(content_,matched);
     if(!variant)throw FormatError("Playlist selected an unavailable game variant.");
     result.variant=*variant;
     result.variant.name=matched.variant;
     const auto rules=detail::frontend_multiplayer_rules(result.variant);
-    if(rules.custom==CustomSlayer::none && !rules.defusal && (matched.map=="midship" || matched.map=="waterworks"))throw FormatError("Playlist selected a map whose starting weapons are unfinished.");
     if(matched.map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_")!=std::string::npos)throw FormatError("Invalid matchmaking map.");
     result.map=matched.map+".map"; result.multiplayer=true;
     result.match_voice=match_voice_ || (party_voice_wanted_ && voice_party_ && voice_.joined);
@@ -383,7 +390,7 @@ bool MenuState::online_matchmaking_team_colors() const {
   // 0x19A127: hopper types3/4/5 are team hoppers. The native playlist names
   // its variant; that variant's own team rule is the equivalent property.
   if(!matchmaking_.match)return false;
-  const auto variant=matched_variant(content_,matchmaking_.match->variant);
+  const auto variant=matched_variant(content_,*matchmaking_.match);
   return variant && matchmaking_progress_team_colors(matchmaking_countdown_,
       detail::frontend_multiplayer_rules(*variant).team_mode);
 }
@@ -459,7 +466,7 @@ std::vector<unsigned> MenuState::online_matchmaking_roster_order() const {
     return order;
   }
   const auto *playlist=selected(matchmaking_,matchmaking_.playlist_id);
-  const auto variant=matched_variant(content_,matchmaking_.match->variant);
+  const auto variant=matched_variant(content_,*matchmaking_.match);
   return matchmaking_progress_order(players,playlist && playlist->ranked,
       variant && detail::frontend_multiplayer_rules(*variant).team_mode);
 }
@@ -527,7 +534,7 @@ std::string MenuState::online_matchmaking_original_text(unsigned pane,unsigned i
     if(i==2)return replace_token(std::move(value),"\xee\x90\x8a",matchmaking_.match->variant);
     if(i==3)return replace_token(std::move(value),"\xee\x90\x88",matched_map_name(content_,matchmaking_.match->map));
     if(i>=4 && i<=9) {
-      const auto variant=matched_variant(content_,matchmaking_.match->variant);if(!variant)return {};
+      const auto variant=matched_variant(content_,*matchmaking_.match);if(!variant)return {};
       std::map<unsigned,int> queries;const auto settings=source_game_variant(*variant);
       for(unsigned id=0;id<112;++id)queries.emplace(id,source_game_variant_get(settings,int(id)));
       const auto options=frontend_matchmaking_quick_options(content_,variant->engine,queries,
@@ -640,7 +647,7 @@ std::optional<unsigned> MenuState::online_matchmaking_speaker(unsigned row) cons
 }
 std::optional<unsigned> MenuState::online_matchmaking_game_icon() const {
   if(!matchmaking_.match)return {};
-  const auto variant=matched_variant(content_,matchmaking_.match->variant);
+  const auto variant=matched_variant(content_,*matchmaking_.match);
   if(!variant)return {};
   return original_matchmaking_game_icon(frontend_lobby_variant_type(variant->engine).value_or(-1));
 }

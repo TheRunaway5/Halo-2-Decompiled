@@ -175,24 +175,32 @@ int main(int argc,char **argv)try {
       bounds[1]=std::min(bounds[1],p.y*height/480);bounds[2]=std::max(bounds[2],p.x*width/640);
       bounds[3]=std::max(bounds[3],p.y*height/480);
     }
-    if(wide) {
-      const auto v=hud_viewport(players,view,true);const auto anchor=i.widget.anchor;
-      const float oldx=(anchor==0 || anchor==3)?v.safe.right:(anchor==1 || anchor==2)?v.safe.left:
-          std::floor((v.safe.left+v.safe.right)*.5f);
-      const float l=v.outer.left*2+(v.safe.left-v.outer.left)*1.5f,
-          r=v.outer.right*2-(v.outer.right-v.safe.right)*1.5f;
-      const float newx=(anchor==0 || anchor==3)?r:(anchor==1 || anchor==2)?l:
-          std::floor(((l+r)*.5f-160)/1.5f)*1.5f+160;
-      for(unsigned k:{0u,2u})expected[k]=newx+(expected[k]-oldx)*1.5f;
-      for(unsigned k:{1u,3u})expected[k]*=1.5f;
-    }
+    // Keep the source fixture's geometry and translate its anchor to the
+    // desktop safe rectangle; source camera/aiming coordinates stay intact.
+    const auto v=hud_viewport(players,view,wide);const auto anchor=i.widget.anchor;
+    const float scale=std::min(width/640.f,height/480.f),
+        left=(width-640*scale)/2,top=(height-480*scale)/2;
+    const float oldx=(anchor==0 || anchor==3)?v.safe.right:(anchor==1 || anchor==2)?v.safe.left:
+        std::floor((v.safe.left+v.safe.right)*.5f),
+        oldy=(anchor==0 || anchor==1)?v.safe.top:(anchor==2 || anchor==3)?v.safe.bottom:
+        std::floor((v.safe.top+v.safe.bottom)*.5f);
+    const float l=v.outer.left*width/640+8*scale,r=v.outer.right*width/640-8*scale,
+        t=v.outer.top*height/480+8*scale,b=v.outer.bottom*height/480-8*scale;
+    const float center_x=std::floor(((v.outer.left*width/640-left)/scale+v.safe.left-v.outer.left+
+        (v.outer.right*width/640-left)/scale+v.safe.right-v.outer.right)*.5f)*scale+left,
+        center_y=std::floor(((v.outer.top*height/480-top)/scale+v.safe.top-v.outer.top+
+        (v.outer.bottom*height/480-top)/scale+v.safe.bottom-v.outer.bottom)*.5f)*scale+top;
+    const float newx=(anchor==0 || anchor==3)?r:(anchor==1 || anchor==2)?l:center_x,
+        newy=(anchor==0 || anchor==1)?t:(anchor==2 || anchor==3)?b:center_y;
+    for(unsigned k:{0u,2u})expected[k]=newx+(expected[k]-oldx)*scale;
+    for(unsigned k:{1u,3u})expected[k]=newy+(expected[k]-oldy)*scale;
     for(unsigned k=0;k<4;++k)if(std::abs(bounds[k]-expected[k])>.001f)
       throw FormatError(name+" alignment differs from disc/TU1.5 at geometry "+std::to_string(geometry_cases)+
           " edge "+std::to_string(k)+": "+std::to_string(bounds[k])+" != "+std::to_string(expected[k]));
     ++geometry_cases;
   }
   check(geometry_cases==860,"Objective/shield/radar source geometry coverage changed");
-  std::cout<<geometry_cases<<" objective, shield fill/outline and radar outline quads match disc/TU1.5\n";
+  std::cout<<geometry_cases<<" objective, shield fill/outline and radar outline quad shapes match disc/TU1.5 at desktop corner anchors\n";
 #if defined(HALO2_OBJECTIVE_GPU)
   if(argc==4) {
     phase="Vulkan objective rendering";

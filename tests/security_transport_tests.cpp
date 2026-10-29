@@ -1,6 +1,7 @@
 #include "halo2/lan_admission.hpp"
 #include "halo2/lan_packet_auth.hpp"
 #include "halo2/voice_origin.hpp"
+#include "halo2/online_packet_role.hpp"
 #include "halo2/peer_packet_queue.hpp"
 #include <iostream>
 #include <stdexcept>
@@ -13,6 +14,15 @@ VoiceOrigin::Key public_key(const VoiceOrigin::Key &seed){
   EVP_PKEY_free(key);return result;
 }
 int main(){try{
+  check(online_packet_role(false,false,6),"Direct voice between nonhosts was rejected");
+  check(!online_packet_role(false,false,3)&&!online_packet_role(false,false,1),"Direct voice relaxed simulation roles");
+  check(online_packet_role(true,false,18)&&online_packet_role(false,true,18),
+      "Native shadow control or payload lost its authenticated host/client direction");
+  check(!online_packet_role(false,false,18),
+      "A nonhost direct peer gained native shadow admission authority");
+  check(online_packet_role(true,false,19) && online_packet_role(false,true,20),"Team switching lost its authenticated direction");
+  check(!online_packet_role(false,false,19) && !online_packet_role(false,false,20) &&
+      !online_packet_role(false,true,19) && !online_packet_role(true,false,20),"A team request or result can spoof the authority");
   LanPacketAuth host_auth,client_auth;LanPacketAuth::Session host_session,client_session;
   LanPacketAuth::Context context{};context[0]=107;
   host_auth.bind(host_session,client_auth.public_key(),true,context);
@@ -59,20 +69,22 @@ int main(){try{
   VoiceOrigin sender("00000000-0000-0000-0000-000000000001"),receiver("00000000-0000-0000-0000-000000000001"),other_room("00000000-0000-0000-0000-000000000002");
   check(sender.configure(one,keys,0)&&receiver.configure(two,keys,1)&&other_room.configure(two,keys,1),"Configure room keys");
   std::vector<std::byte> body(23);body[0]=std::byte{'H'};body[8]=std::byte{0};body[9]=std::byte{1};body[22]=std::byte{7};
-  const auto signature=sender.sign(body,3);check(signature.has_value(),"Sign voice");
+  const auto addressed=sender.sign(body,3,1);
+  check(addressed && receiver.verify(body,*addressed,0,3,1) && !receiver.verify(body,*addressed,0,3,0),"Voice recipient binding failed");
+  const auto signature=sender.sign(body,3,1);check(signature.has_value(),"Sign voice");
   // Fixed seed/body signed by the coordinator's Python voice_message/Ed25519
   // implementation. This locks the C++/Python domain and byte layout together.
-  constexpr char expected[]="453ec0b7e31f99e909b746e5a5a469c437b0dc9bfa9b8efdb48b47d68a0098103255776373d0a71197d40076bc589e801a6aee659b04c9c6d070cd2824999405";
+  constexpr char expected[]="bb9d508873314e0f6cabda744d00c703ca04b0de0ac25efe49f18908618a388509927686aa21da57f23c69489670c439a5a0b816338376320cd29100484dd600";
   constexpr char digits[]="0123456789abcdef";std::string actual;
   for(auto b:*signature){const auto n=std::to_integer<unsigned>(b);actual+=digits[n>>4];actual+=digits[n&15];}
   check(actual==expected,"Native and coordinator voice proof formats differ");
-  check(receiver.verify(body,*signature,0,3),"Valid signed relay rejected");
-  check(!receiver.verify(body,*signature,1,3),"Host signed as a different microphone owner");
-  check(!receiver.verify(body,*signature,0,4),"Voice replayed across authority generations");
-  check(!other_room.verify(body,*signature,0,3),"Voice replayed across rooms");
-  body[8]=std::byte{1};check(!receiver.verify(body,*signature,0,3),"Relabeled speaker accepted");body[8]=std::byte{0};
-  body[22]^=std::byte{1};check(!receiver.verify(body,*signature,0,3),"Forged codec bytes accepted");body[22]^=std::byte{1};
-  body[14]=std::byte{1};check(receiver.verify(body,*signature,0,3),"Legitimate host gain mixing invalidated origin");
+  check(receiver.verify(body,*signature,0,3,1),"Valid signed relay rejected");
+  check(!receiver.verify(body,*signature,1,3,1),"Host signed as a different microphone owner");
+  check(!receiver.verify(body,*signature,0,4,1),"Voice replayed across authority generations");
+  check(!other_room.verify(body,*signature,0,3,1),"Voice replayed across rooms");
+  body[8]=std::byte{1};check(!receiver.verify(body,*signature,0,3,1),"Relabeled speaker accepted");body[8]=std::byte{0};
+  body[22]^=std::byte{1};check(!receiver.verify(body,*signature,0,3,1),"Forged codec bytes accepted");body[22]^=std::byte{1};
+  body[14]=std::byte{1};check(!receiver.verify(body,*signature,0,3,1),"Modified voice gains accepted");
   check(!receiver.configure(one,keys,1),"Reconnect replaced microphone identity");
   std::cout<<"LAN endpoint/request/expiry cookies and bounded replies; room/epoch/speaker/codec voice authentication passed\n";
   return 0;

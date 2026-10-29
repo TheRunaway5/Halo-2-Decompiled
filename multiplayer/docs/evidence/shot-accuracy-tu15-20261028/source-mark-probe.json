@@ -1,0 +1,367 @@
+{
+  "schema": "tu15-shot-accuracy-original-mark-proof-v1",
+  "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "xbe_path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe",
+  "instruction_patches": [],
+  "supplied_returns": [],
+  "scope": "Whole unchanged original shot-mark creation and consumption, real Slayer relation virtual27 and real weapon-stat writer. Raw pool/engine/clock/bank inputs are declared; not whole weapon/world execution.",
+  "declared_inputs": {
+    "recording": "enabled and unfrozen except named recording-gate cases",
+    "source_engine_type": 2,
+    "player_salts": [
+      1,
+      1
+    ],
+    "player_teams": [
+      0,
+      1
+    ],
+    "clock_rate": 30,
+    "clock_tick": 37,
+    "first_mark": 42
+  },
+  "cases": [
+    {
+      "name": "whole_original_fire",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860"
+      ],
+      "mark": 42
+    },
+    {
+      "name": "whole_original_enemy_hit",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 1
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0019b8f0",
+        "0019b860"
+      ],
+      "mark_consumed": true
+    },
+    {
+      "name": "nine_duplicate_pellet_or_damage_notifications_same_token",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 1
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70"
+      ]
+    },
+    {
+      "name": "friendly_relation_does_not_consume",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70"
+      ],
+      "mark_retained": true
+    },
+    {
+      "name": "later_enemy_relation_consumes",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 1
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0015f7d0",
+        "0025bc70",
+        "0019b8f0",
+        "0019b860"
+      ]
+    },
+    {
+      "name": "stale_shooter_salt_rejected",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0"
+      ]
+    },
+    {
+      "name": "none_token_rejected",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0"
+      ]
+    },
+    {
+      "name": "ninth_fire_overwrites_oldest_mark",
+      "counts": {
+        "shots_fired": 9,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70"
+      ]
+    },
+    {
+      "name": "declared_partial_recording_window_can_hit_without_recorded_fire",
+      "counts": {
+        "shots_fired": 0,
+        "shots_hit": 1
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0019b8f0",
+        "0019b860"
+      ],
+      "complete_match_recording": false
+    },
+    {
+      "name": "frozen_recording_consumes_mark_without_increment",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0",
+        "0025bc70",
+        "0019b8f0",
+        "0019b860"
+      ]
+    },
+    {
+      "name": "global_identifier_none_wrap_loses_hit",
+      "counts": {
+        "shots_fired": 1,
+        "shots_hit": 0
+      },
+      "calls": [
+        "0015f6e0",
+        "0019b8f0",
+        "0019b860",
+        "0015f7d0"
+      ],
+      "mark": 65535
+    }
+  ],
+  "weapon_descriptors": [
+    {
+      "kind": 0,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    {
+      "kind": 1,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    {
+      "kind": 2,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    {
+      "kind": 3,
+      "minimum": 0,
+      "maximum": 1023
+    },
+    {
+      "kind": 4,
+      "minimum": 0,
+      "maximum": 32767
+    },
+    {
+      "kind": 5,
+      "minimum": 0,
+      "maximum": 32767
+    },
+    {
+      "kind": 6,
+      "minimum": 0,
+      "maximum": 32767
+    }
+  ],
+  "cause_to_reporting_index": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    16,
+    17,
+    18,
+    19,
+    15,
+    22,
+    23,
+    24,
+    25,
+    26,
+    40,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    20,
+    21,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "source_owners": {
+    "0015f6e0": {
+      "instruction_rows": 65,
+      "listing_sha256": "24aa699ea3634b47dd265bebc84726320f8be32f5cba96f4017880e69b7b307a"
+    },
+    "0015f7d0": {
+      "instruction_rows": 68,
+      "listing_sha256": "faa594532e64c547237f57e47e91c4116c3d45733f8c3ba5580f7296991d808a"
+    },
+    "0019b860": {
+      "instruction_rows": 43,
+      "listing_sha256": "cd773435bc057a4421a8101a79f274f75d046f0d3f204d6d41f759da03ead171"
+    },
+    "0019b8f0": {
+      "instruction_rows": 87,
+      "listing_sha256": "cb89325d04d9656f0199965bd3a84d5594bf369550fd0fb9d79c4e53e95abd72"
+    },
+    "0025bc70": {
+      "instruction_rows": 5,
+      "listing_sha256": "7c35e095c9ce8dd61289b0af6cdb57b8f619d24ece7862215c7ad2bfb8448b20"
+    },
+    "00102980": {
+      "instruction_rows": 41,
+      "listing_sha256": "91613f6a8916b5d48da2e365f06207af74b8849dfcc241809f4a046fc18d2866"
+    },
+    "00109220": {
+      "instruction_rows": 1195,
+      "listing_sha256": "da2fa702acc23efefad9a75c7706c6ece2297f6dd1b9aa2fb4a336a40386e451"
+    }
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-ocblvqhl"
+}

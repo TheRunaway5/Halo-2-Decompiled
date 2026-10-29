@@ -1,0 +1,439 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_ROOM_PACKETS_VALIDATION_V1",
+  "updated_utc": "2026-10-29T00:05:15.498390+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "room_packets_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "scope": "Rust-owned modern relay packet, voice, privacy, abuse budgets and queued delivery. Declared HTTP/component fixtures; no new original execution, actual played engine/world or deployed/runtime activation proof.",
+  "reproduced_gap": {
+    "trigger": "A legacy relay admitted loaded native protocol0x1c, then received a routed packet carrying0x1d.",
+    "before": "The actual HTTP relay forwarded the mismatched packet; the new assertion expecting rejection failed.",
+    "after": "Rust binds every relay packet to the immutable admitted loaded protocol and rejects the mismatch.",
+    "red_report": "room-packets-red-report.json",
+    "red_log": "room-packets-red-step-1.log"
+  },
+  "rust_authorities": "Rust now owns relay packet framing/loaded protocol/physical roles, continuity epochs and postgame traffic; per-physical-owner Ed25519 voice keys and full room/epoch/recipient/body proofs; frozen signed-local/guest privacy masks; per-connection control/game/audio budgets; native routing/backpressure dispositions and both-generation queued delivery fences. The actual legacy protocol mismatch is reproduced and corrected. These remain modern H2N2/security/abuse policies; remaining text/challenge/QoS/endpoint/service IO, cross-store recovery, original service/wire and full native played/delivered gates remain open.",
+  "checks": [
+    "Physical roles,0..16 bounds and native protocol/datagram validation; exact512 game/control and75 voice burst boundaries",
+    "Per-connection stream ownership, invalid/regressing clocks and finite16-seat codec/snapshot fanout fixture",
+    "Independent Python signer and native verifier; wrong room/recipient/epoch/key/body and foreign physical speaker rejection",
+    "Frozen signed-local device union and guest account inheritance; strict exact privacy facts and denied-audio accounting",
+    "Stateless privacy lookup does not charge twice; before-send privacy and both native connection generations are checked",
+    "Continuity stale epochs, missing readers and stalled-reader close dispositions; postgame/result/requeue checks",
+    "Python roster aliases cannot replace native packet/voice authority; native budgets have no install/reset path",
+    "Same252-file full/default-feature source cohort, CMake offline bridge/helper and preserved full goal criteria"
+  ],
+  "cohorts": {
+    "privacy": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 252,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 0,
+      "rust_integration_passed": 19,
+      "rust_checks_passed": 19,
+      "rust_ignored": 0,
+      "backend_tests": 48,
+      "backend_seconds": 22.043,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-mq_h_i4w/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "1f13c2099aa43ad24dd200118757b76f3fc48d89ea6d30ce8673fdf7c3cd2c6c",
+        "bytes": 3212256,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-packets-privacy-report.json",
+      "manifest": "room-packets-privacy-source-manifest.json"
+    },
+    "full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 252,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 161,
+      "rust_integration_passed": 90,
+      "rust_checks_passed": 251,
+      "rust_ignored": 2,
+      "backend_tests": 482,
+      "backend_seconds": 113.32,
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-7w3h93j7/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "77673c1334106793d1a1901b277c44c410bf27e489246c6952bf9baf19eec986",
+        "bytes": 3201496,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-packets-full-report.json",
+      "manifest": "room-packets-full-source-manifest.json"
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 252,
+      "changed_since_freeze": [],
+      "rust_unit_passed": 161,
+      "rust_integration_passed": 68,
+      "rust_checks_passed": 229,
+      "rust_ignored": 2,
+      "backend_tests": 242,
+      "backend_seconds": 65.509,
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-4l66ugwz/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "91a08cc53ae14eb506adf31bda06328e9c3702a7d0aa7d941728ab853f11b757",
+        "bytes": 3183936,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "room-packets-production-report.json",
+      "manifest": "room-packets-production-source-manifest.json"
+    }
+  },
+  "cmake": {
+    "passed": true,
+    "jobs": 2,
+    "test_jobs": 1,
+    "report": "room-packets-cmake-report.json",
+    "helper": "room-packets-cmake-build-report.json"
+  },
+  "dependency": {
+    "locks": {
+      "rust/online_protocol/Cargo.lock": {
+        "sha256": "951285275d3e5d1bfd1d79cf26ad42f570365f22ff511fa2a791637126048a3d",
+        "ed25519_dalek": {
+          "name": "ed25519-dalek",
+          "version": "2.2.0",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9",
+          "dependencies": [
+            "curve25519-dalek",
+            "ed25519",
+            "serde",
+            "sha2",
+            "subtle",
+            "zeroize"
+          ]
+        }
+      },
+      "rust/online_security_ffi/Cargo.lock": {
+        "sha256": "9fe822ab9a2088354d6525536de4ce7f496e2bc8b4f2904410ef15afb06d1e1f",
+        "ed25519_dalek": {
+          "name": "ed25519-dalek",
+          "version": "2.2.0",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9",
+          "dependencies": [
+            "curve25519-dalek",
+            "ed25519",
+            "serde",
+            "sha2",
+            "subtle",
+            "zeroize"
+          ]
+        }
+      },
+      "rust/online_protocol_bridge/Cargo.lock": {
+        "sha256": "2da7216b28cb4dac8baa3b0f7c248aa2ff7fb6e5f2550e286b1e201c64aea57a",
+        "ed25519_dalek": {
+          "name": "ed25519-dalek",
+          "version": "2.2.0",
+          "source": "registry+https://github.com/rust-lang/crates.io-index",
+          "checksum": "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9",
+          "dependencies": [
+            "curve25519-dalek",
+            "ed25519",
+            "serde",
+            "sha2 0.10.9",
+            "subtle",
+            "zeroize"
+          ]
+        }
+      }
+    },
+    "primary_docs": [
+      "https://docs.rs/ed25519-dalek/2.2.0/ed25519_dalek/struct.SigningKey.html",
+      "https://docs.rs/ed25519-dalek/2.2.0/ed25519_dalek/struct.VerifyingKey.html#method.verify_strict"
+    ],
+    "message_domain": "Existing H2VOICE2 NUL,room ASCII,epoch LEu32,recipient byte,complete voice body; existing64-byte signature.",
+    "original_xbox_wire_or_voice_policy": false
+  },
+  "diagnostics": {
+    "red": "Expected baseline relay protocol failure.",
+    "first": "One stale postgame fixture sent0x1c after loaded0x1b; two subtests selected diagnostic report restoration with production ABI disabled. Corrected fixture input and later production selection; no policy was relaxed.",
+    "focused": "New JSON test macro array-index syntax corrected.",
+    "integration": "New stale-generation assertion expected401; corrected to the existing native409 contract.",
+    "report_helper": "The CMake advisory .lock file is excluded from report retention.",
+    "existing_ignored_tests": [
+      "netcode::stream::tests::captured_corpus_payload",
+      "netcode::stream::tests::encode_cost_for_large_mostly_static_bodies"
+    ],
+    "existing_backend_diagnostics": "Passing cohorts emit existing sqlite ResourceWarning and declared negative-path rejection logs."
+  },
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_packet_budget.rs": "3faeeb25d0fa775d0017cbaee84d9791ec24ba1c20f7238aafd3bbccb377c76b",
+    "rust/online_protocol/src/matchmaking_room_packets.rs": "8441e130e58d3c3a7ba7645990c74e4ccb3990b290be4d3c9b91b80d827af78c",
+    "rust/online_protocol/src/matchmaking_room_wire.rs": "c83dbe2ca964c43d02ac7aba6266d77530a8a8f1e6c53e20ca1757e4e240260f",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "bb84430b27343784c3f295da21adfbf31f6b887c74764f729ff6617bc05904eb",
+    "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "42979377eb00000f2130065e2967374e23a1bbcf5060d2fc1d0f31744c7512fe",
+    "rust/online_protocol/src/matchmaking_continuity.rs": "e4d308608a3145481252e30a3a7aa674c469f7e2ed5c5b38b1391a58253c0872",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "5f232da2f57a7a75362832c1e4523a189cdd44d9a448f9b4101cf2b428ba75f4",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "8811e39a2532b994880e96bb01f2d6c1b55f1a7f95eff970b4eba3a61403c510",
+    "rust/online_protocol/tests/matchmaking_room_setup.rs": "087f56c75f10613d606aad254c1fbaa246ce760b99395808f35979298e33df6c",
+    "multiplayer/master_server/match_transport.py": "5eda502e66831079d365ce2e6bfe00227da71347fbb568d9580cc6c185034558",
+    "multiplayer/master_server/tests/test_room_packets_owner_native.py": "c704ada6d4122ea4f5bc489fd411b349ff3e8bce164792159393b059b18b6862",
+    "multiplayer/master_server/tests/voice_signing.py": "65652dae65135dca0dfa238a952e99f58e87cbbd78137853964cb896f63e8842"
+  },
+  "removed_production_source": "multiplayer/master_server/voice_origin.py",
+  "goal_criteria": {
+    "unchanged": true,
+    "before_after_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "gaps_open": 12,
+    "algorithm_ids_retained": 53,
+    "acceptance_gates_open": 12,
+    "reference_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "full_criteria_record": "room-packets-goal-criteria-before.json"
+  },
+  "remaining": [
+    "Original Live service ordering, historical/downloaded profiles and original arbitration/wire/voice coefficients",
+    "Remaining room text-control/challenge/QoS sensor and endpoint/service implementation; accepted social/party/clan CRUD and generic account/provider/storage IO",
+    "Parallel/distributed/cross-store recovery, actual complete-world import/continuity and native full outcomes across the retained full scope",
+    "Delivered client/library/service/catalog/feature identity and all full G01-G12 gates"
+  ],
+  "storage": {
+    "named_scratch": [
+      {
+        "label": "red",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-pa9xtrq2",
+        "removed": true
+      },
+      {
+        "label": "first",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-k97xy9s9",
+        "removed": true
+      },
+      {
+        "label": "focused",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-quac_eud",
+        "removed": true
+      },
+      {
+        "label": "integration",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-58_qncnc",
+        "removed": true
+      },
+      {
+        "label": "privacy",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-mq_h_i4w",
+        "removed": true
+      },
+      {
+        "label": "full",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-7w3h93j7",
+        "removed": true
+      },
+      {
+        "label": "production",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-4l66ugwz",
+        "removed": true
+      },
+      {
+        "label": "cmake",
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-djyjz7cg",
+        "removed": true
+      }
+    ],
+    "all_named_removed": true,
+    "criteria_helper_removed": true,
+    "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/room-packets-port/halo2-test-nni7tgys",
+    "report_helper_lifecycle": "Owned run_test.py; final parent-empty audit follows completion.",
+    "retained_source_reports": [
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-red-report.json",
+        "bytes": 1507,
+        "sha256": "26e95c7f93ebafc6bd1b032aa80844990b21a49b203b046c3ecb9a3bea29a7a5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-red-source-manifest.json",
+        "bytes": 31901,
+        "sha256": "dac3fdbdad37eeabff03431042dd73f3aaceaf5d1a4a4f5f38bd07f68ec69b43"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-red-step-0.log",
+        "bytes": 1437,
+        "sha256": "b5239f8f8c042fe80af51f2ab5423f167355a29ec3d2fe89f969b15452d01256"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-red-step-1.log",
+        "bytes": 1839,
+        "sha256": "0136b6b39481d1ece45180d89c6538238d385550ccbaba8c51965e5f83208b08"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-first-report.json",
+        "bytes": 2123,
+        "sha256": "1b705f98aaf0796e53efe76f065b56756808196b1684c820fa24ad69667c93e3"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-first-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "5a87fccedd12b8b6f86e8d290212ec1e4f3d48bf4c296038394ace2bceadb084"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-first-step-0.log",
+        "bytes": 18346,
+        "sha256": "b4d27fb9f40e9212fa00098cd0d33ff8faaf997d1a05b9f6c84cdf18dfdc91cf"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-first-step-1.log",
+        "bytes": 1529,
+        "sha256": "ac87440d24fc7aba21a3660437edcb983253dd29e751ba4a1dc4da9d687da4e5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-first-step-2.log",
+        "bytes": 7070,
+        "sha256": "79f1a2acf925d1c500e667704bfa9c93f806f9205ac1b0a7f8ddda2a23d158fb"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-focused-report.json",
+        "bytes": 1110,
+        "sha256": "f2a1dc8792f95629276db9c79404e1227b36410b7aa4d08ac7c8e8e95ffaac80"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-focused-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "fbab2c20d2bbf6b890c95433ded579aceddcf8e2a4002f76f6167cfa42c5c7d5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-focused-step-0.log",
+        "bytes": 3287,
+        "sha256": "3306a68ea9e25da70d95f968343fd7f1a44b283ab64efb034d50601de156affe"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-integration-report.json",
+        "bytes": 1110,
+        "sha256": "a50369139ea4662d6b6f2200d83a874a6985be9478c6ad21ac1dde9fcc61ef89"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-integration-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "4d402d0ab7a9f35dcb597e69a4d94c9656ec1e6a1f54d3613a1c25e2387b764a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-integration-step-0.log",
+        "bytes": 19346,
+        "sha256": "bbdff36b5d2264b74f7cdc5f4d3a6d0a05f6a6f15a6b772b33c4af9a11f318e7"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-privacy-report.json",
+        "bytes": 2410,
+        "sha256": "275e8f18aad1a1ba8ddc1659db8a5f19d5013f50c32e5c88302a409b35e0da9f"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-privacy-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "0ed693fb4619e4130b5dd280cba772ef0501b57b0e268512e5ded58cac1b389a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-privacy-step-0.log",
+        "bytes": 3253,
+        "sha256": "1a1c8090a1fc680f10726e2f127f87a9425ed4a0501508fa9bd09eff158dba84"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-privacy-step-1.log",
+        "bytes": 1529,
+        "sha256": "410ac4e9b1950039b0750f8021e364449593faed48339bd4bccac4d60267a99f"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-privacy-step-2.log",
+        "bytes": 2068,
+        "sha256": "c69a8b3bbcda31b88353df2b66ed49f5b6bf80ae451656703c565312bb4cd37c"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-full-report.json",
+        "bytes": 2795,
+        "sha256": "25f54239b33723b84ae9a75299f33bad142530e70cd7a7803bc8b7ab522769f7"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-full-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "8d37bb700fc94e072f05141060f18063b9b54056a53fbec42beb7ea4a89e72d8"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-full-step-0.log",
+        "bytes": 28939,
+        "sha256": "880cac509ec474636483f23dff46358691ea12192c17d27723b5683c861294f3"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-full-step-1.log",
+        "bytes": 1529,
+        "sha256": "8cf8f2a3881c30f744d21851a40760e1a8c94d0f4cf55dafecf0a2435813acd4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-full-step-2.log",
+        "bytes": 12419,
+        "sha256": "64563cefa82e312e15457c0cd90170db0dae6e7112a5bc0861898b22d33578a3"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-production-report.json",
+        "bytes": 7301,
+        "sha256": "8ac51ed2e01204922e728056c2fdea769ded2c3d774fa38de21466f46785fabd"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-production-source-manifest.json",
+        "bytes": 32041,
+        "sha256": "f8c671e1ddf31def22e89bf6ab547b3445dee08b38fcbe28131d0b0cdf8f0366"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-production-step-0.log",
+        "bytes": 25429,
+        "sha256": "df5ec80262c83c4d170f5b432cdb49650762cb3116787e8513573379e8fcb53f"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-production-step-1.log",
+        "bytes": 1529,
+        "sha256": "6359e8926093ea3f11808cd4ec82ace97da9b54df24016831284a977e4d084bc"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-production-step-2.log",
+        "bytes": 3433,
+        "sha256": "2399182dc4a97d3967ff2b1fb4c9ebdce5d5aab290bfe2e832b2b2a21003bf8c"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-cmake-build.log",
+        "bytes": 6910,
+        "sha256": "7bd8085f7fdcd1035827a02ea96eb3dede3d0e0a84b47fc7d692525ff94d87a6"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-cmake-configure.log",
+        "bytes": 4640,
+        "sha256": "553da7d94145718d6b470f3a99d57765587711eaef43e4751c39221522b9e001"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-cmake-build-report.json",
+        "bytes": 1874,
+        "sha256": "e3c8f3c7697b8cd75f76388b13e36a06c6de5f8c7e4006247e007f2429453ac4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-cmake-report.json",
+        "bytes": 2516,
+        "sha256": "04564ed7dd3ac05a332f31130f050fedcc3e14302018a60e58e67907498c34c2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-cmake-tests.log",
+        "bytes": 302,
+        "sha256": "865f09dcd7e05973dddd93ce347e0018b673f0ec9f5925c806f26c9669d21502"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-packets-goal-criteria-before.json",
+        "bytes": 15009,
+        "sha256": "7de5bde31063fc533f84338447147bec493bcbbb00d5cb8724431cbf2142b1c7"
+      }
+    ],
+    "retained_source_report_files": 36,
+    "retained_source_report_bytes": 406736,
+    "retained_large_artifacts": [],
+    "selected_runtimes_changed": false
+  }
+}

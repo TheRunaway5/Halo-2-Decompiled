@@ -135,6 +135,24 @@ std::vector<SourcePlayerAdmission> SourceMatchAuthority::player_admissions(std::
   }
   return result;
 }
+std::vector<SourcePlayerAdmission> SourceMatchAuthority::allocated_player_admissions()const {
+  calls_.capture();match_.authority_calls_.capture();world_.require_authority_executor(true);
+  NativeAuthorityBoundary::Call active(calls_);
+  const auto &bank=world_.memory();const auto pool=world_.source_player_pool();
+  const SourceRawDatumPoolServices storage{.read=[&](auto at,auto n){return bank.view(at,n);}};
+  std::vector<SourcePlayerAdmission> result;
+  for(unsigned slot=0;slot<multiplayer_capacity;++slot) {
+    const auto datum=match_.player(slot).source_datum;
+    if(datum==null_datum)continue;
+    if((datum&65535u)!=slot)throw FormatError("Allocated source admission has a different native slot");
+    const auto row=source_raw_datum_lookup(pool,datum,storage);
+    if(!row)throw FormatError("Allocated source admission lost its full native allocation");
+    SourcePlayerAdmission entry{slot,datum};
+    bank.read(row+offsetof(SourceDeparturePlayer,identity),std::as_writable_bytes(std::span(entry.identity)));
+    result.push_back(entry);
+  }
+  return result;
+}
 struct SourceMatchAuthority::Prepared::Impl {
   SourceMatchAuthority *owner{};bool *staging{};
   std::optional<MultiplayerObjectRuntime::PreparedAuthority> world;
@@ -147,6 +165,17 @@ SourceMatchAuthority::Prepared::~Prepared()=default;
 SourceMatchAuthority::Prepared::Prepared(Prepared &&)noexcept=default;
 SourceMatchAuthority::Prepared &SourceMatchAuthority::Prepared::operator=(Prepared &&)noexcept=default;
 bool SourceMatchAuthority::Prepared::for_owner(const SourceMatchAuthority &owner)const noexcept{return impl_&&impl_->owner==&owner;}
+void SourceMatchAuthority::Prepared::retain_live_multiplayer_render_history() {
+  if(!impl_ || !impl_->world)throw FormatError("Native match render retention has no prepared world");
+  impl_->world->retain_live_multiplayer_render_history();
+}
+void SourceMatchAuthority::Prepared::retain_live_multiplayer_render_history_from(
+    const SourceMatchAuthority &source) {
+  if(!impl_ || !impl_->world || impl_->owner==&source)
+    throw FormatError("Native presentation history requires a distinct prepared Match owner");
+  source.calls_.capture();source.match_.authority_calls_.capture();
+  impl_->world->retain_live_multiplayer_render_history_from(source.world_);
+}
 SourceMatchAuthority::Prepared SourceMatchAuthority::prepare(const Checkpoint &saved,AuthorityDigest binding) {
   return prepare(saved,binding,{});
 }
@@ -175,7 +204,7 @@ SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(co
     std::span<const SourcePlayerAdmission> roster,std::span<const unsigned> producer_views) {
   if(&workspace==this||&workspace.match_==&match_||&workspace.world_==&world_)
     throw FormatError("Reusable source workspace must be a separate private executor");
-  if(producer_views.empty()||producer_views.size()>4||roster.empty())
+  if(producer_views.size()>4||roster.empty())
     throw FormatError("Reusable source workspace requires independently admitted producer views");
   std::uint16_t seen{};
   for(auto slot:producer_views) {
@@ -228,6 +257,55 @@ SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(co
     rebound=workspace.checkpoint(binding);
   }
   return prepare(rebound,binding);
+}
+void SourceMatchAuthority::import_presentation(const Checkpoint &saved,AuthorityDigest binding,
+    std::span<const LocalPlayerAdmission> admitted,std::span<const SourcePlayerAdmission> roster,
+    std::span<const unsigned> producer_views,SourceMatchAuthority &displayed) {
+  if(&displayed==this || &displayed.match_==&match_ || &displayed.world_==&world_)
+    throw FormatError("Native presentation staging must be a distinct private world");
+  calls_.prepare();match_.authority_calls_.prepare();
+  displayed.calls_.capture();displayed.match_.authority_calls_.capture();
+  world_.require_authority_executor();displayed.world_.require_authority_executor();
+  displayed.world_.tu15_world().require_presentation_boundary();
+  if(source_execution_inputs(world_.memory()) || source_execution_inputs(displayed.world_.memory()))
+    throw FormatError("Private presentation import cannot consume a recovery execution journal");
+  if(producer_views.size()>4 || roster.empty())
+    throw FormatError("Native presentation requires independently admitted producer views and roster");
+  std::uint16_t seen{};
+  for(auto slot:producer_views) {
+    if(slot>=multiplayer_capacity || (seen&(1u<<slot)) ||
+        std::ranges::find(roster,slot,&SourcePlayerAdmission::slot)==roster.end())
+      throw FormatError("Native presentation producer view has no unique admitted owner");
+    seen|=std::uint16_t(1u<<slot);
+  }
+  const auto locals=displayed.match_.first_person_players_;
+  std::vector<FirstPersonBindingDefinition> definitions;
+  for(const auto &[key,definition]:displayed.match_.first_person_definitions_){(void)key;definitions.push_back(definition);}
+  if(locals.empty() || locals.size()>4 || admitted.size()!=locals.size())
+    throw FormatError("Native presentation requires its displayed admitted recipient views");
+  for(unsigned view=0;view<locals.size();++view) {
+    const auto id=locals[view];const auto &admission=admitted[view];
+    const auto &incoming=saved.match.players.at(id),&current=displayed.match_.players_.at(id);
+    if(!incoming.connected || !current.connected || (incoming.source_flags&2u) || (current.source_flags&2u) ||
+        incoming.source_datum==null_datum || admission.slot!=id || incoming.source_datum!=admission.player ||
+        std::ranges::find(roster,admission)==roster.end())
+      throw FormatError("Native presentation recipient has a missing, departed or stale admitted identity");
+  }
+  // This unpublished owner alone changes its validation selector. The whole
+  // ordinary native import still checks every source/resource/platform owner;
+  // the displayed bank and its caller leases remain untouched on failure.
+  calls_.fault=true;match_.authority_calls_.fault=true;
+  match_.first_person_players_.assign(producer_views.begin(),producer_views.end());
+  auto prepared=prepare(saved,binding,roster);
+  prepared.retain_live_multiplayer_render_history_from(displayed);
+  if(!commit(std::move(prepared)))
+    throw FormatError("Native presentation staging could not commit its complete admitted world");
+  validate_source_players(saved.match,world_.memory(),admitted,false);
+  match_.configure_local_views(locals,definitions);
+  const auto completed=execution_boundary();
+  if(completed.tick!=saved.match.simulation.ticks)
+    throw FormatError("Native presentation rebind changed its complete source tick");
+  world_.tu15_world().require_presentation_boundary();
 }
 bool SourceMatchAuthority::commit(Prepared &&p)noexcept {
   if(!p.for_owner(*this))return false;

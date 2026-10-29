@@ -77,6 +77,7 @@ class SteamFriends:
         friends=[]
         for row in result["friends"]:
             target=db.execute("SELECT player FROM player_identities WHERE provider='steam' AND subject=?",(row["id"],)).fetchone()
+            if target and self.directory.friends.blocked(who,target[0]): continue
             if target and db.execute("SELECT 1 FROM party_blocks WHERE (player=? AND inviter=?) OR (player=? AND inviter=?)",(target[0],who,who,target[0])).fetchone(): continue
             friends.append({**row,"registered":bool(target),"halo_online":bool(target and target[0] in present)})
         return web.json_response({**result,"friends":sorted(friends,key=lambda r:(not r["halo_online"],r["name"].casefold(),r["id"]))},headers={"Cache-Control":"no-store"})

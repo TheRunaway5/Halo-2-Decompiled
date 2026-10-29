@@ -84,6 +84,71 @@ pub struct Archive {
     budget: Mutex<Budget>,
 }
 
+/// Owned grammar/range metadata for a separately retained immutable byte owner.
+/// No pointer or borrowed slice survives `index_raw`; the C++ owner keeps the
+/// closed canonical image alive and applies these checked ranges to that image.
+pub struct ArchiveIndex {
+    nodes: Vec<Node>,
+    hash: [u8; 32],
+    deepest: usize,
+    raw_bytes: u64,
+    budget: Mutex<Budget>,
+}
+
+impl ArchiveIndex {
+    pub fn node(&self, index: usize) -> Option<&Node> {
+        self.nodes.get(index)
+    }
+    pub fn name_range(&self, index: usize) -> Option<Range<usize>> {
+        self.nodes.get(index).map(|n| n.name.clone())
+    }
+    pub fn data_range(&self, index: usize) -> Option<Range<usize>> {
+        self.nodes.get(index).map(|n| n.data.clone())
+    }
+    pub fn hash(&self) -> [u8; 32] {
+        self.hash
+    }
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
+    pub fn claim_native(&self, count: u64, extent: u64, elements: bool) -> bool {
+        let Ok(mut b) = self.budget.lock() else {
+            return false;
+        };
+        let Some(bytes) = count.checked_mul(extent) else {
+            return false;
+        };
+        if bytes > b.native_left || (elements && count > b.elements_left) {
+            return false;
+        }
+        if b.charge(bytes).is_err() {
+            return false;
+        }
+        b.native_left -= bytes;
+        b.native_claimed += bytes;
+        if elements {
+            b.elements_left -= count;
+        }
+        true
+    }
+    pub fn stats(&self) -> Option<Stats> {
+        let b = self.budget.lock().ok()?;
+        Some(Stats {
+            raw_bytes: self.raw_bytes,
+            nodes: self.nodes.len(),
+            metadata_bytes: (self.nodes.capacity() * size_of::<Node>()) as u64,
+            deepest: self.deepest,
+            working_limit: b.limit,
+            working_reserved: b.used,
+            working_peak: b.peak,
+            native_claimed: b.native_claimed,
+        })
+    }
+}
+
 impl Archive {
     pub fn node(&self, index: usize) -> Option<&Node> {
         self.nodes.get(index)
@@ -376,6 +441,27 @@ pub fn decode_raw(bytes: &[u8], hash: [u8; 32], limits: Limits) -> Result<Archiv
     finish(raw, hash, budget)
 }
 
+/// Parse the exact same grammar while retaining only checked offsets and
+/// metadata. The independent byte owner is charged once; there is no Rust
+/// copy to charge or retain. State/checksum/native authority is external.
+pub fn index_raw(bytes: &[u8], hash: [u8; 32], limits: Limits) -> Result<ArchiveIndex, Error> {
+    if bytes.is_empty() || bytes.len() as u64 > limits.decoded_bytes {
+        return Err(Error::Extent);
+    }
+    // The C++ owner retains one small shared-image/index lease in addition
+    // to the Rust index. No second raw allocation exists in this path.
+    let retained = (bytes.len() as u64).checked_add(128).ok_or(Error::Budget)?;
+    let mut budget = budget(limits, retained)?;
+    let (nodes, deepest) = tree(bytes, &mut budget)?;
+    Ok(ArchiveIndex {
+        nodes,
+        hash,
+        deepest,
+        raw_bytes: bytes.len() as u64,
+        budget: Mutex::new(budget),
+    })
+}
+
 pub fn decode(bytes: &[u8], limits: Limits) -> Result<Archive, Error> {
     if bytes.len() < 64 || bytes.len() as u64 > limits.encoded_bytes {
         return Err(Error::Envelope);
@@ -428,6 +514,66 @@ pub fn decode(bytes: &[u8], limits: Limits) -> Result<Archive, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn immutable_image_index_matches_owned_tree_without_retaining_a_slice() {
+        let raw = record(&[6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 255, 128]);
+        let hash = [0x51; 32];
+        let owned = decode_raw(&raw, hash, limits()).unwrap();
+        let index = index_raw(&raw, hash, limits()).unwrap();
+        assert_eq!(index.hash(), owned.hash());
+        assert_eq!(index.len(), owned.len());
+        for i in 0..index.len() {
+            let a = index.node(i).unwrap();
+            let b = owned.node(i).unwrap();
+            assert_eq!((a.tag, a.bits, a.count, a.next), (b.tag, b.bits, b.count, b.next));
+            assert_eq!(&raw[index.name_range(i).unwrap()], owned.name(i));
+            assert_eq!(&raw[index.data_range(i).unwrap()], owned.data(i));
+        }
+        assert!(index.node(index.len()).is_none());
+        assert!(index.name_range(index.len()).is_none());
+        assert!(index.data_range(index.len()).is_none());
+        let detached = {
+            let caller = raw.clone();
+            index_raw(&caller, hash, limits()).unwrap()
+        };
+        assert_eq!(detached.node(1).unwrap().count, 3);
+        assert_eq!(&raw[detached.data_range(1).unwrap()], [0, 255, 128]);
+    }
+    #[test]
+    fn immutable_image_index_retains_all_grammar_and_native_budget_controls() {
+        for raw in [vec![], vec![0, 1], vec![13, 1, 0, 0, 0], record(&[0, 2]), record(&[12, 1])] {
+            assert!(decode_raw(&raw, [0; 32], limits()).is_err());
+            assert!(index_raw(&raw, [0; 32], limits()).is_err());
+        }
+        let raw = record(&[0, 1]);
+        let mut l = limits();
+        l.allocated_bytes = 16;
+        l.container_elements = 2;
+        let index = index_raw(&raw, [0; 32], l).unwrap();
+        assert!(index.claim_native(1, 8, true));
+        assert!(index.claim_native(1, 8, true));
+        assert!(!index.claim_native(1, 1, false));
+        assert!(!index.claim_native(u64::MAX, 2, false));
+        l.decoded_bytes = raw.len() as u64 - 1;
+        assert!(index_raw(&raw, [0; 32], l).is_err());
+        l = limits();l.working_bytes = raw.len() as u64;
+        assert!(index_raw(&raw, [0; 32], l).is_err());
+    }
+    #[test]
+    fn immutable_image_index_removes_exactly_one_raw_reservation() {
+        let mut blob = vec![6];
+        blob.extend_from_slice(&(1u64 << 20).to_le_bytes());
+        blob.resize(blob.len() + (1 << 20), 0x15);
+        let raw = record(&blob);
+        let owned = decode_raw(&raw, [0; 32], limits()).unwrap();
+        let index = index_raw(&raw, [0; 32], limits()).unwrap();
+        let a = owned.stats().unwrap();let b = index.stats().unwrap();
+        assert_eq!(a.metadata_bytes, b.metadata_bytes);
+        assert_eq!(a.working_peak + 128, b.working_peak + raw.len() as u64);
+        let mut exact = limits();exact.working_bytes = b.working_peak;
+        assert!(index_raw(&raw, [0; 32], exact).is_ok());
+        assert!(decode_raw(&raw, [0; 32], exact).is_err());
+    }
     #[test]
     fn raw_images_share_the_grammar_and_cumulative_materialization_budget() {
         let raw = [13, 0, 0, 0, 0];

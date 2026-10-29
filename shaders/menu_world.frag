@@ -26,6 +26,12 @@ layout(constant_id=0) const uint defaultTextureWMask=0u;
 layout(constant_id=1) const uint sourceWClipMode=0u;
 layout(constant_id=2) const uint sourceFogAlphaBound=0u;
 layout(constant_id=61) const uint sourceDepthEncoding=0u;
+#ifdef H2_NATIVE_RASTER_OFFSET
+layout(push_constant) uniform NativeRasterOffset {
+    layout(offset=112) vec4 offset;
+} nativeRaster;
+#define MENU_WORLD_RASTER_OFFSET() nativeRaster.offset.xy
+#endif
 #include "source_depth_storage.glsl"
 layout(set=0,binding=0) uniform sampler2D diffuse;
 layout(set=0,binding=1) uniform sampler2D detail;

@@ -57,7 +57,7 @@ if(BUILD_TESTING)
     target_link_libraries(source_execution_shadow_storage_native_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_execution_shadow_storage_native_tu15 COMMAND source_execution_shadow_storage_native_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(source_execution_shadow_storage_native_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     add_executable(source_execution_render_commands_native_tests tests/source_execution_render_commands_native_tests.cpp)
     target_link_libraries(source_execution_render_commands_native_tests PRIVATE halo2_authority_codec)
@@ -109,10 +109,23 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(native_melee_continuation_resources_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(source_match_local_rebind_tests tests/source_match_local_rebind_tests.cpp)
+    add_executable(source_shadow_presentation_tu15_tests EXCLUDE_FROM_ALL tests/source_shadow_presentation_tu15_tests.cpp)
+    target_link_libraries(source_shadow_presentation_tu15_tests PRIVATE halo2_systems halo2_authority_codec)
+    add_test(NAME source_shadow_presentation_tu15 COMMAND source_shadow_presentation_tu15_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
+    set_tests_properties(source_shadow_presentation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+    add_executable(source_presentation_resource_rollback_tu15_tests EXCLUDE_FROM_ALL tests/source_presentation_resource_rollback_tu15_tests.cpp)
+    target_link_libraries(source_presentation_resource_rollback_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    set(HALO2_MCC_PRESENTATION_RESOURCE_MAP "" CACHE FILEPATH "Explicit prepared MCC map for native presentation resource rollback validation")
+    add_test(NAME native_presentation_resource_rollback_tu15 COMMAND source_presentation_resource_rollback_tu15_tests
+        "${HALO2_MCC_PRESENTATION_RESOURCE_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/presentation-resource-rollback.json")
+    set_tests_properties(native_presentation_resource_rollback_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     target_link_libraries(source_match_local_rebind_tests PRIVATE halo2_systems)
     add_test(NAME source_match_local_rebind_tu15 COMMAND source_match_local_rebind_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(source_match_local_rebind_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     add_executable(source_match_network_departure_tests tests/source_match_network_departure_tests.cpp)
     target_link_libraries(source_match_network_departure_tests PRIVATE halo2_systems)
@@ -146,7 +159,7 @@ if(BUILD_TESTING)
     target_link_libraries(source_host_continuation_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_host_continuation_tu15 COMMAND source_host_continuation_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
     set_tests_properties(source_host_continuation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     # This fixture proves byte-exact complete snapshot and native host/camera
     # continuation. Adaptive delta sender ACK/baseline/bandwidth state has a

@@ -133,22 +133,25 @@ class MatchmakingHttpTests(unittest.IsolatedAsyncioTestCase):
         await self.client.delete("/v1/matchmaking/session", headers=replacement)
         self.assertEqual((await self.enqueue(replacement)).status, 401)
         self.assertEqual(len(self.api.core.tickets), 1)
-        for session in self.api.sessions.values():
-            session.expires = 0
+        expired_at = self.api.clock() + 901
+        self.api.clock = lambda: expired_at
         self.api.cleanup()
         self.assertEqual(len(self.api.core.tickets), 0)
         self.assertEqual(len(self.api.requests), 0)
 
     async def test_renewal_requires_fresh_primary_proof_and_unexpired_owned_session(self):
-        a, b = await self.session(), await self.session("two")
+        now = [self.api.clock()]
+        self.api.clock = lambda: now[0]
+        a = await self.session()
+        now[0] += 1
+        b = await self.session("two")
         token = a["Authorization"][7:]
         body = dict(screen_name="Chosen Pilot", maps=["lockout"], compatibility="test-v1", renew_session=token)
         for authorization, status in ((a["Authorization"], 401), ("Bearer two", 403)):
             response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": authorization}, json=body)
             self.assertEqual(response.status, status, await response.text())
         self.assertEqual((await self.client.get("/v1/matchmaking/ticket", headers=a)).status, 200)
-        import hashlib
-        self.api.sessions[hashlib.sha256(token.encode()).hexdigest()].expires = self.api.clock() - 1
+        now[0] += 899.5
         response = await self.client.post("/v1/matchmaking/session", headers={"Authorization": "Bearer one"}, json=body)
         self.assertEqual(response.status, 401, await response.text())
         self.assertEqual((await self.client.get("/v1/matchmaking/ticket", headers=a)).status, 401)

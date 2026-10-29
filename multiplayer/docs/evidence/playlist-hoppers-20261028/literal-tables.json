@@ -1,0 +1,353 @@
+{
+  "schema": "H2_ORIGINAL_HOPPER_LITERAL_TABLES_V1",
+  "retail_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "scope": "All61 retail literal triples occur unchanged in TU1.5. Byte presence does not prove updated fallback caller activation or downloaded service state.",
+  "tables": [
+    {
+      "retail_address": "0x444fc0",
+      "tu15_address": "0x44f120",
+      "triple_bytes_sha256": "57026c0cacf3c298571d19b98c9831f41b548949000d7ed8c5e9772dc38b1d10",
+      "total": 64,
+      "rows": [
+        {
+          "preset": 1,
+          "map_id": 10,
+          "weight": 16
+        },
+        {
+          "preset": 1,
+          "map_id": 50,
+          "weight": 14
+        },
+        {
+          "preset": 1,
+          "map_id": 70,
+          "weight": 12
+        },
+        {
+          "preset": 1,
+          "map_id": 80,
+          "weight": 10
+        },
+        {
+          "preset": 1,
+          "map_id": 80,
+          "weight": 3
+        },
+        {
+          "preset": 3,
+          "map_id": 50,
+          "weight": 1
+        },
+        {
+          "preset": 5,
+          "map_id": 50,
+          "weight": 1
+        },
+        {
+          "preset": 5,
+          "map_id": 20,
+          "weight": 1
+        },
+        {
+          "preset": 3,
+          "map_id": 10,
+          "weight": 1
+        },
+        {
+          "preset": 3,
+          "map_id": 70,
+          "weight": 1
+        },
+        {
+          "preset": 24,
+          "map_id": 50,
+          "weight": 1
+        },
+        {
+          "preset": 24,
+          "map_id": 80,
+          "weight": 1
+        },
+        {
+          "preset": 24,
+          "map_id": 80,
+          "weight": 1
+        },
+        {
+          "preset": 22,
+          "map_id": 80,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "retail_address": "0x445068",
+      "tu15_address": "0x44f1c8",
+      "triple_bytes_sha256": "71bacd6d2ad82e9dfaf8411e31353e6789b3ae7ec0f60476591cda39e675c9a3",
+      "total": 67,
+      "rows": [
+        {
+          "preset": 15,
+          "map_id": 30,
+          "weight": 10
+        },
+        {
+          "preset": 13,
+          "map_id": 70,
+          "weight": 6
+        },
+        {
+          "preset": 19,
+          "map_id": 60,
+          "weight": 5
+        },
+        {
+          "preset": 23,
+          "map_id": 80,
+          "weight": 5
+        },
+        {
+          "preset": 21,
+          "map_id": 110,
+          "weight": 4
+        },
+        {
+          "preset": 25,
+          "map_id": 50,
+          "weight": 3
+        },
+        {
+          "preset": 25,
+          "map_id": 70,
+          "weight": 3
+        },
+        {
+          "preset": 18,
+          "map_id": 30,
+          "weight": 3
+        },
+        {
+          "preset": 21,
+          "map_id": 20,
+          "weight": 3
+        },
+        {
+          "preset": 26,
+          "map_id": 20,
+          "weight": 3
+        },
+        {
+          "preset": 26,
+          "map_id": 50,
+          "weight": 3
+        },
+        {
+          "preset": 2,
+          "map_id": 10,
+          "weight": 2
+        },
+        {
+          "preset": 2,
+          "map_id": 50,
+          "weight": 2
+        },
+        {
+          "preset": 16,
+          "map_id": 10,
+          "weight": 2
+        },
+        {
+          "preset": 16,
+          "map_id": 60,
+          "weight": 2
+        },
+        {
+          "preset": 13,
+          "map_id": 100,
+          "weight": 2
+        },
+        {
+          "preset": 2,
+          "map_id": 70,
+          "weight": 2
+        },
+        {
+          "preset": 13,
+          "map_id": 20,
+          "weight": 1
+        },
+        {
+          "preset": 14,
+          "map_id": 20,
+          "weight": 1
+        },
+        {
+          "preset": 16,
+          "map_id": 50,
+          "weight": 1
+        },
+        {
+          "preset": 19,
+          "map_id": 10,
+          "weight": 1
+        },
+        {
+          "preset": 26,
+          "map_id": 70,
+          "weight": 1
+        },
+        {
+          "preset": 26,
+          "map_id": 80,
+          "weight": 1
+        },
+        {
+          "preset": 16,
+          "map_id": 80,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "retail_address": "0x445188",
+      "tu15_address": "0x44f2e8",
+      "triple_bytes_sha256": "6d4ff218b3c593b90eccf708588caf4d4f0c010388a4bdeb1f812ef80836e9ad",
+      "total": 32,
+      "rows": [
+        {
+          "preset": 15,
+          "map_id": 800,
+          "weight": 8
+        },
+        {
+          "preset": 18,
+          "map_id": 800,
+          "weight": 4
+        },
+        {
+          "preset": 15,
+          "map_id": 30,
+          "weight": 4
+        },
+        {
+          "preset": 15,
+          "map_id": 40,
+          "weight": 3
+        },
+        {
+          "preset": 12,
+          "map_id": 40,
+          "weight": 3
+        },
+        {
+          "preset": 20,
+          "map_id": 110,
+          "weight": 2
+        },
+        {
+          "preset": 27,
+          "map_id": 30,
+          "weight": 2
+        },
+        {
+          "preset": 27,
+          "map_id": 800,
+          "weight": 2
+        },
+        {
+          "preset": 17,
+          "map_id": 40,
+          "weight": 1
+        },
+        {
+          "preset": 18,
+          "map_id": 30,
+          "weight": 1
+        },
+        {
+          "preset": 20,
+          "map_id": 40,
+          "weight": 1
+        },
+        {
+          "preset": 27,
+          "map_id": 70,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "retail_address": "0x445218",
+      "tu15_address": "0x44f378",
+      "triple_bytes_sha256": "df6141765ce20db9a3da0ad00aa6eb589b6bf5689cdb9a01b2d51145742fe746",
+      "total": 20,
+      "rows": [
+        {
+          "preset": 2,
+          "map_id": 10,
+          "weight": 8
+        },
+        {
+          "preset": 2,
+          "map_id": 40,
+          "weight": 4
+        },
+        {
+          "preset": 2,
+          "map_id": 50,
+          "weight": 6
+        },
+        {
+          "preset": 2,
+          "map_id": 30,
+          "weight": 1
+        },
+        {
+          "preset": 4,
+          "map_id": 10,
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "retail_address": "0x445258",
+      "tu15_address": "0x44f3b8",
+      "triple_bytes_sha256": "212ab56847f885d472b0217fbcefbf4f5176ecdd68637fbc7611b3d4c4d20400",
+      "total": 38,
+      "rows": [
+        {
+          "preset": 0,
+          "map_id": 50,
+          "weight": 16
+        },
+        {
+          "preset": 0,
+          "map_id": 80,
+          "weight": 12
+        },
+        {
+          "preset": 0,
+          "map_id": 20,
+          "weight": 6
+        },
+        {
+          "preset": 7,
+          "map_id": 50,
+          "weight": 2
+        },
+        {
+          "preset": 9,
+          "map_id": 50,
+          "weight": 1
+        },
+        {
+          "preset": 9,
+          "map_id": 20,
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}

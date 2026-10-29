@@ -20,12 +20,14 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstdlib>
 #include <deque>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <limits>
 
 using namespace halo2;
 namespace {
@@ -196,6 +198,84 @@ void adopter_checks() {
   report.sequence = 24;
   check(adopter.adopt(read, state, collision, slot, report, 1).decision.rejection == NonHostRejection::invalid,
         "adopter: dead unit adopted motion");
+  state.players[slot].dead=false;
+  PhysicsImpulseEvent impulse;impulse.serial=7;impulse.object=unit;
+  state.physics_impulses={impulse};observe(24);
+  check(adopter.last_forced(slot)==NonHostForcedMotion::impulse && adopter.forced_sequence(slot)==25u,
+        "adopter: impulse prefix was not recorded before its checkpoint");
+  const auto cut=adopter.checkpoint();
+  unsigned resumed_writes{};
+  NonHostMotionWriter fresh_writer;
+  fresh_writer.nudge=[&](std::uint32_t object,Vec3 position,Vec3 velocity) {
+    check(object==unit && position.x==report.position.x && velocity.x==report.velocity.x,
+        "adopter: resumed writer lost its fresh native operands");
+    ++resumed_writes;return true;
+  };
+  NonHostMotionAdopter resumed(bounds,.2f,{},fresh_writer);
+  check(!resumed.forced_sequence(slot),"adopter: cold owner unexpectedly retained the prior sequence");
+  resumed.restore(cut);
+  const auto same_checkpoint=[](const auto &a,const auto &b) {
+    if(a.configuration!=b.configuration)return false;
+    const auto bits=[](float value){return std::bit_cast<std::uint32_t>(value);};
+    for(unsigned n=0;n<a.peers.size();++n) {
+      const auto &x=a.peers[n],&y=b.peers[n];
+      if(x.seen!=y.seen || x.unit!=y.unit || x.teleport_serial!=y.teleport_serial ||
+          x.damage_serial!=y.damage_serial || x.impulse_serial!=y.impulse_serial ||
+          bits(x.velocity.x)!=bits(y.velocity.x) || bits(x.velocity.y)!=bits(y.velocity.y) ||
+          bits(x.velocity.z)!=bits(y.velocity.z) || bits(x.adoption.budget)!=bits(y.adoption.budget) ||
+          x.adoption.forced_sequence!=y.adoption.forced_sequence || x.adoption.last_sequence!=y.adoption.last_sequence ||
+          x.forced!=y.forced)return false;
+    }
+    return true;
+  };
+  check(same_checkpoint(cut,resumed.checkpoint()),"adopter: checkpoint lost completed peer state");
+  const auto continue_report=[&](NonHostRejection rejection,NonHostAdoptionKind kind) {
+    const auto before=nudges.size();
+    const auto expected=adopter.adopt(read,state,collision,slot,report,1);
+    const auto actual=resumed.adopt(read,state,collision,slot,report,1);
+    check(expected.decision.rejection==rejection && expected.decision.kind==kind &&
+        actual.decision.rejection==expected.decision.rejection && actual.decision.kind==expected.decision.kind &&
+        actual.written==expected.written && actual.placement_unavailable==expected.placement_unavailable &&
+        nudges.size()==before+unsigned(expected.written) &&
+        same_checkpoint(adopter.checkpoint(),resumed.checkpoint()),
+        "adopter: resumed report diverged from the uninterrupted authority at sequence "+std::to_string(report.sequence));
+  };
+  report.sequence=24;report.baseline=24;report.position=motion.position+Vec3{.1f,0,0};
+  continue_report(NonHostRejection::stale,NonHostAdoptionKind::reject);
+  report.sequence=25;report.baseline=25;report.position=motion.position+Vec3{.25f,0,0};
+  continue_report(NonHostRejection::budget,NonHostAdoptionKind::reject);
+  report.sequence=26;report.position=motion.position+Vec3{.02f,0,0};
+  continue_report(NonHostRejection::none,NonHostAdoptionKind::nudge);
+  check(resumed_writes==1,"adopter: checkpoint copied the previous owner's writer callback");
+  const std::array resumed_view{NonHostMotionAdopter::View{slot,29}};
+  adopter.observe(state,read,resumed_view);resumed.observe(state,read,resumed_view);
+  check(adopter.forced_sequence(slot)==25u && same_checkpoint(adopter.checkpoint(),resumed.checkpoint()),
+      "adopter: restored damage/impulse/velocity prefix was treated as a new forced move");
+  unsigned rejected{};
+  const auto invalid=[&](const auto &value) {
+    const auto before=resumed.checkpoint();bool failed{};
+    try{resumed.restore(value);}catch(const std::invalid_argument&){failed=true;}
+    check(failed && same_checkpoint(before,resumed.checkpoint()),
+        "adopter: invalid checkpoint changed its fresh owner");++rejected;
+  };
+  auto bad=cut;bad.peers[15].velocity.x=std::numeric_limits<float>::quiet_NaN();invalid(bad);
+  bad=cut;bad.peers[slot].adoption.budget=std::numeric_limits<float>::infinity();invalid(bad);
+  bad=cut;bad.peers[slot].adoption.budget=-1;invalid(bad);
+  bad=cut;bad.peers[slot].adoption.budget=1;invalid(bad);
+  bad=cut;bad.peers[slot].forced=NonHostForcedMotion(255);invalid(bad);
+  bad=cut;bad.peers[slot].adoption.forced_sequence.reset();invalid(bad);
+  // Every configuration lane belongs to the captured authority, including
+  // valid alternative values which must not replace a fresh owner's policy.
+  for(unsigned n=0;n<cut.configuration.size();++n) {
+    bad=cut;bad.configuration[n]^=1u;invalid(bad);
+  }
+  auto quiet=cut;quiet.peers[slot].forced=NonHostForcedMotion::none;
+  resumed.restore(quiet);
+  check(resumed.forced_sequence(slot)==25u && resumed.last_forced(slot)==NonHostForcedMotion::none,
+      "adopter: a quiet checkpoint lost its retained forced-motion sequence");
+  resumed.restore(cut);resumed.restore(cut);
+  check(same_checkpoint(cut,resumed.checkpoint()),"adopter: restoring a completed cut was not repeatable");
+  std::cout<<"adopter checkpoint continuation and "<<rejected<<" rejection controls passed\n";
   std::cout << "adopter checks passed\n";
 }
 } // namespace
@@ -205,6 +285,7 @@ int main(int argc, char **argv) try {
   if (argc < 2 || argc > 3)
     throw FormatError("Supply a prepared MCC Lockout map and optionally a JSON report path");
   adopter_checks();
+  if(std::string_view(argv[1])=="--adopter-only")return 0;
   if (!std::filesystem::is_regular_file(argv[1]))
     return 77;
   const Cache cache(argv[1]);

@@ -4,6 +4,15 @@
 #include <stdexcept>
 
 namespace halo2 {
+SourceResultAccuracy source_result_accuracy(const SourceResultStatistics& statistics) {
+  SourceResultAccuracy result;
+  for(unsigned slot=0;slot<16;++slot)
+    for(unsigned weapon=0;weapon<SourceResultAccuracy::weapon_count;++weapon)
+      for(unsigned kind=0;kind<2;++kind)
+        result.players[slot][weapon][kind]=statistics.players[slot]
+            [78+(weapon+SourceResultAccuracy::first_weapon)*8+4+kind]&0x7fffu;
+  return result;
+}
 namespace {
 void validate(const SourceResultPublication& p,int stat,int player,int team) {
   if(stat<0 || stat>=45 || player < -1 || player>=16 || team < -1 || team>=16)

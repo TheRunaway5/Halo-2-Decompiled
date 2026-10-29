@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "source": "https://repo.msys2.org/mingw/mingw64/",
+  "base_sdk_lock_sha256": "92213c3a093dca88449d65d9ed5f502e46891d374d77748650810736d2a7ab3f",
+  "python": "3.14",
+  "packages": [
+    {
+      "name": "mingw-w64-x86_64-libavif",
+      "version": "1.4.2-1",
+      "filename": "mingw-w64-x86_64-libavif-1.4.2-1-any.pkg.tar.zst",
+      "sha256": "f9bce61fc6faaf070a9b8b5305ad098a304519d72926413929be04eaba037e9a",
+      "bytes": 438473
+    },
+    {
+      "name": "mingw-w64-x86_64-libimagequant",
+      "version": "4.4.1-1",
+      "filename": "mingw-w64-x86_64-libimagequant-4.4.1-1-any.pkg.tar.zst",
+      "sha256": "a6131f8b1c6fb26990aaaee8bc32fe52e554921a513ed1670ed08bef4e4cbad1",
+      "bytes": 2016661
+    },
+    {
+      "name": "mingw-w64-x86_64-libraqm",
+      "version": "0.11.0-1",
+      "filename": "mingw-w64-x86_64-libraqm-0.11.0-1-any.pkg.tar.zst",
+      "sha256": "6d3b67be482b20a6bc1bec30b4fdf54dfee4731cf9ca1ece3c8398e76bc27b2b",
+      "bytes": 46082
+    },
+    {
+      "name": "mingw-w64-x86_64-libyuv",
+      "version": "1924.r2921.644251f25-2",
+      "filename": "mingw-w64-x86_64-libyuv-1924.r2921.644251f25-2-any.pkg.tar.zst",
+      "sha256": "6a1457f9ec1873f80cbc907138a207897bada49efba56062e2b40bda4269dd6d",
+      "bytes": 553879
+    },
+    {
+      "name": "mingw-w64-x86_64-python-pillow",
+      "version": "13.0.0-1",
+      "filename": "mingw-w64-x86_64-python-pillow-13.0.0-1-any.pkg.tar.zst",
+      "sha256": "43bfd8de0cb4523f23f32e64cb7c923810a09e37257e06e579ccff072d7944e9",
+      "bytes": 991043
+    }
+  ]
+}

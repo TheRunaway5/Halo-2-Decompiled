@@ -1,0 +1,904 @@
+{
+  "schema": "H2_MATCHMAKING_RUST_PARITY_GAPS_V1",
+  "audited_at_utc": "2026-10-28T14:37:28.627170+00:00",
+  "source_head": "ec3fdb77161886514b67bcdfd6bc7ec5d6659c88",
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "certified": false,
+  "goal_complete": false,
+  "all_production_matchmaking_code_language": "Rust",
+  "rust_requirement": "Rust owns matchmaking algorithms, policy, state, API, immutable profiles/admission, rank/XP and transactional finalization. Temporary Python and native C++ adapters have no independent matchmaking policy and are not completion.",
+  "python_owners_to_replace": [
+    "multiplayer/master_server/matchmaking.py",
+    "multiplayer/master_server/gathering_sessions.py",
+    "multiplayer/master_server/session_candidates.py",
+    "multiplayer/master_server/search_lifecycle.py",
+    "multiplayer/master_server/playlist_skill.py",
+    "multiplayer/master_server/clan_skill.py",
+    "multiplayer/master_server/match_results.py",
+    "multiplayer/master_server/matchmaking_http.py",
+    "multiplayer/master_server/match_continuity.py",
+    "multiplayer/master_server/search_qos.py"
+  ],
+  "additional_boundaries": [
+    "Matching-related party and local-seat admission/consent",
+    "Matchmaking host, countdown and room transitions currently in match_transport.py",
+    "Thin adapters in team_balance.py, party_countdown.py and matchmaking_readiness.py",
+    "C++ client matchmaking/session decisions; preserve native rendering, transport IO and actual gameplay-engine owners"
+  ],
+  "algorithm_index": {
+    "source": "PDF section 12.2, IDs only; expanded companion contracts were not supplied",
+    "matching_or_certification_claim": false,
+    "ids": [
+      "ALG-RANK-INIT",
+      "ALG-RANK-PAIR",
+      "ALG-RANK-PLAYER",
+      "ALG-RANK-CLAN",
+      "ALG-RANK-LEVEL",
+      "ALG-RANK-DISPLAY",
+      "ALG-PARTY-AVERAGE",
+      "ALG-PARTY-SUMMARY",
+      "ALG-HOPPER-INVERSE",
+      "ALG-HOPPER-GETTERS",
+      "ALG-SEARCH-INIT",
+      "ALG-SEARCH-QUERY",
+      "ALG-SEARCH-EXPAND",
+      "ALG-SEARCH-SERVICE",
+      "ALG-CAND-ADMIT",
+      "ALG-CAND-SCORE",
+      "ALG-CAND-SORT",
+      "ALG-CAND-SELECT",
+      "ALG-QOS-INPUTS",
+      "ALG-TEAMS-CALLER",
+      "ALG-TEAMS-KERNEL",
+      "ALG-TEAMS-COUNT",
+      "ALG-TEAMS-CAPACITY",
+      "ALG-TEAMS-ADAPTER",
+      "ALG-MAP-WEIGHTED",
+      "ALG-RNG-STEP",
+      "ALG-HOPPER-FALLBACK",
+      "ALG-VARIANT-PRESETS",
+      "ALG-COUNTDOWN-GATHER",
+      "ALG-COUNTDOWN-START",
+      "ALG-HOST-CHOICE",
+      "ALG-HOST-ELECTION",
+      "ALG-HOST-REESTABLISH",
+      "ALG-WORLD-PROMOTE",
+      "ALG-RESULT-PLACE",
+      "ALG-RESULT-WIRE",
+      "ALG-RESULT-PCR",
+      "ALG-RESULT-NATIVE",
+      "ALG-RESULT-ARBITRATION",
+      "ALG-UI-FLOW",
+      "ALG-ENGINE-FRAME",
+      "ALG-ENGINE-NEWPLAYER",
+      "ALG-MODE-CTF",
+      "ALG-MODE-SLAYER",
+      "ALG-MODE-ODDBALL",
+      "ALG-MODE-KING",
+      "ALG-MODE-JUGGERNAUT",
+      "ALG-MODE-TERRITORIES",
+      "ALG-MODE-ASSAULT",
+      "ALG-CLAN-IDENTITY",
+      "ALG-HISTORY-EPOCH",
+      "ALG-MODERN-TRANSPORT",
+      "ALG-CERTIFICATION"
+    ]
+  },
+  "scope": {
+    "mode_families": [
+      "Slayer",
+      "Capture the Flag",
+      "Assault",
+      "Oddball",
+      "King of the Hill",
+      "Territories",
+      "Juggernaut"
+    ],
+    "builtin_preset_count": 39,
+    "historical_variants_required": true,
+    "profile_epochs_separate": true,
+    "all_original_valid_topologies_and_subjects_required": true,
+    "natural_full_match_and_continuity_acceptance_required": true,
+    "deployment_identity_required": true,
+    "no_guessed_historical_or_service_values": true
+  },
+  "gaps": [
+    {
+      "id": "GAP-01",
+      "status": "open",
+      "required": true,
+      "classification": "reproduced_implementation_divergence",
+      "current_finding": "Python exhaustive/random-tie assignment was removed; formation routes to Rust. 336 original assignment decisions and 2688 getter calls match. The subsequent ratings/catalog integration passes eight frozen Rust regressions and all 409 backend tests, including earlier selector/transport failures. Full upstream/session/summary/publication, TU1.5 caller and native/delivery proof remain open. The Rust queue/proposal owner now invokes the same assignment corridor and creates reservations atomically; Python cannot insert authoritative proposals.",
+      "closure_criteria": "Implement the actual ordered caller in Rust: FFA, original hopper options, count feasibility and allowed imbalance, weighted optimized assignment, and type-3-only individual retry. Preserve raw weights, grouping/traversal order, failure transitions and clan admission. Replay complete callers and real dispatch, not just a `>2` branch edit.",
+      "baseline_finding": "Confirmed two-team divergence above. Clan assignment bypasses the generic caller. More-than-two-team routing uses Rust leaves, but the Python adapter hardcodes party flags to false/zero. The policy model lacks the complete original hopper type/getter contract.",
+      "implementation_status": "partial_verified",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/assignment-corridor-original.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/assignment-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "remaining": [
+        "Full original session/readiness/summary/publication owners",
+        "TU1.5 full-caller correspondence and replay",
+        "Authenticated historical profile/header binding in production",
+        "Complete Rust summary/capacity/API ownership",
+        "Native played-match and delivered-runtime/service acceptance"
+      ]
+    },
+    {
+      "id": "GAP-02",
+      "status": "open",
+      "required": true,
+      "classification": "reproduced_aggregate_divergence_and_producer_proof",
+      "current_finding": "Rust now owns raw rated statistics, the separately derived adjusted array, rank-map inverse, advertised floor and search bound arithmetic. The actual guest advertisement regression (26 versus 30) passes through the real Rust ABI. Fresh unchanged-retail replay matches 300 roster controls, 516 inverse calls, 40 search initializations and 65 queries. Full group summary validity/capacity, TU1.5 correspondence, producer-to-result effective comparison skill, and persistent/public/clan progression remain open. Eight frozen Rust regressions and all 409 backend tests pass. The reconstructed online catalog now explicitly binds the retained retail-default rank map; invalid maps fail Rust validation at catalog load. The subsequent candidate-core cohort passes 12 Rust regressions and 412 backend tests; candidate arithmetic/cache state now also belongs to Rust. Lifecycle clocks/progress/seen/native party state are now Rust-owned; the later frozen cohort passes18 Rust regressions and422 backend tests. Catalog/player validation, optional historical rank helpers, queue stage/compatibility decisions and map eligibility now also belong to the Rust owner. The unified Rust owner now also produces native gathering advertisements from admitted raw rosters, selected rank maps, birth clocks, clan/language values and typed relay QoS facts. Whole original summary validity/capacity producers remain unproven. Rust now also owns authenticated retail/TU1.5 XP tables, pair/player/clan arithmetic, rank hysteresis, public display domains and skill snapshot/storage guards. Fresh unchanged originals supply1910 comparison controls, all matched by Rust. The production result comparison policy remains explicitly native persistent-raw; the original effective-to-result producer remains open. Rust now selects the configured personal/clan/legacy display store and public rank requests directly from its catalog. Public playlist visibility is also Rust-owned. Catalog rank-table identity is part of admission rather than mutable Python entry metadata; the original comparison-skill producer and full native progression remain open. Rust now also selects enqueue skill stores and constructs every admitted signed-local/guest player and clan search rank. Guests inherit their physical owner raw skill. A bounded Rust snapshot bank makes all group skill reads/initializations one SQLite transaction; a real second-profile migration failure rolls back the first initialization before ticket publication. Original effective-to-result comparison skill remains open.",
+      "closure_criteria": "Give Rust distinct raw, effective, previous and public-rank types/fields. Trace and replay original producers/consumers for remote parties, independently signed local accounts, guests and clans. Distinguish `F(H)` from the decompiled double-inverse error. Do not guess a universal adjustment.",
+      "baseline_finding": "Guest aggregation mismatch reproduced. `effective_ranks()` uses a separately described 2007 inference; `PlaylistSkills.commit()` supplies persistent raw rank as comparison skill. Search, assignment, published adjusted skill and persistent XP are not proven to have the original separate producer chains.",
+      "implementation_status": "partial_verified",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-original.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json"
+      ],
+      "remaining": [
+        "Full original summary mask/capacity/validity production",
+        "Independently signed local and clan producer correspondence",
+        "TU1.5 ratings and full-caller owner mapping",
+        "Authenticated hopper/profile epoch and statistics namespace binding",
+        "Published effective-to-result comparison skill and full native persistent/public progression",
+        "Complete original candidate-input/summary producers; Rust authenticated seat/API authority and original result producers",
+        "Native played-match and delivered-runtime/service acceptance"
+      ]
+    },
+    {
+      "id": "GAP-03",
+      "status": "open",
+      "required": true,
+      "classification": "full_flow_acceptance",
+      "current_finding": "Seven source families and all 39 built-ins already exist in component evidence. The retained acceptance matrix still has `pending_full_scope=true`; the twelve-seat source fixture has `runtime_passed=false`.",
+      "closure_criteria": "Verify genuine admission, exact variant, ordinary actions and natural endings through results, public/hidden/clan progression, PCR, party return and requeue for every applicable profile/variant. Include local/remote ownership, ties, departures and migration. Keep shortened/component tests labeled."
+    },
+    {
+      "id": "GAP-04",
+      "status": "open",
+      "required": true,
+      "classification": "historical_inputs",
+      "current_finding": "A constructed retail fallback blob is available, with the expected 1,453,248-byte size. It is not an authenticated final-2010 download. No authenticated final-service configuration or complete April-2006 workbook was identified in this audit. A filename search is not proof that such an artifact does not exist. Supplied versioned JSON catalog parsing/normalization, retail clock aliases and metadata registry now run in Rust. This is not recovery or authentication of the missing downloaded historical XML/binary/profile inputs; those requirements remain unchanged.",
+      "closure_criteria": "Preserve and parse legitimate original/default and downloaded inputs separately. Recover complete dated hopper/network data, weights and variant buffers, including the historical inventory and Team Carnage/HBO checkpoint. Record provenance and unresolved cells/fields. Never synthesize historical values.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "implementation_status": "partial_verified"
+    },
+    {
+      "id": "GAP-05",
+      "status": "open",
+      "required": true,
+      "classification": "unrecovered_original_service_contract",
+      "current_finding": "The same Rust owner now holds tickets, sessions, party lifecycle state, query membership/cache, failed-session memory and IO continuations. Rust produces native advertisements, applies structural eligibility, uses the named birth/private-ID provider and50-record cap, and drives allocation outcomes into original candidate/lifecycle kernels. Python is temporary typed QoS IO. Original Live filtering/order/truncation/ties, platform allocation and authentic quality/summary producers remain unrecovered or unqualified. The shared ticket/gathering/query/IO profile pin now includes admitted catalog metadata, client requirements and rank-table identity, not only the queue-policy fields. Rust now separately owns modern authenticated bearer/local-seat sessions, generations, verified renewal, request UUIDs and failure storage. Session retirement cancels queued reservations and gathering/query/IO state inside Rust. These authentication/session service rules do not recover original Live filtering/order or advertisement producers. Rust now also selects accepted matching parties and current consent over trusted directory/room facts, issues private request/profile/roster/session-bound queue permits and retains party bindings in immutable admission. Original Live party/service procedures remain unrecovered; accepted social/clan CRUD is still a separate migration boundary. Queue endpoint advancement, public/optional response shape and private roster/artwork/appearance selection now run in Rust over the existing native provider and original numerical owners. This adds no recovered original Live provider ordering or server procedure.",
+      "closure_criteria": "Move the replacement policy into an explicitly named Rust provider boundary. Preserve ordered banks into the client decision core. Seek distinguishing original request/response evidence or procedure definitions; keep original-service parity open until recovered.",
+      "baseline_finding": "`GatheringSessions.query()` explicitly substitutes structurally compatible sessions sorted by `(born,id)`, truncated to 50. The retired title-specific procedure's filtering, ordering, truncation and ties are unrecovered.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json"
+      ],
+      "implementation_status": "partial_verified",
+      "remaining": [
+        "Complete authentic original advertisement/summary/QoS and platform allocation correspondence",
+        "Distinguishing original Live procedure request/response or implementation evidence",
+        "Original provider filtering/order/truncation/tie recovery",
+        "Native full-flow and delivered service/client acceptance"
+      ]
+    },
+    {
+      "id": "GAP-06",
+      "status": "open",
+      "required": true,
+      "classification": "modern_policy_and_unrecovered_arbitration",
+      "current_finding": "Rust now owns immutable queue-derived result admission, report validation, original physical-owner votes, departure vote retention and conflicting-report/digest quarantine. Rust plans one atomic SQLite ledger/admission/envelope/player/clan XP/PCR/outbox transaction with skill CAS guards and namespace binding. Two real SQLite connections finalize one digest with exactly one award, and actual SQL/schema failures roll back all new rows. Python is temporary generic SQLite/transport IO. Unanimity is declared native policy; original Live arbitration, comparison-skill/standing/wire producers, pending-result process recovery, concurrent dispute mutation during future parallel IO and full native/delivered scope remain open. Result admission now enforces the selected Rust catalog rank configuration; a caller cannot disable or substitute personal/clan XP by altering room/entry projections. Rust owns prelaunch room failure provenance, same-party outcomes, local cancellation exclusions and the bounded destroyed-room retry cache. The actual stale-room HTTP bug (old report overwriting a newer failure on the same session) now rejects409 by latest-admission/generation binding. Full result arbitration and crash/distributed recovery requirements remain open.",
+      "closure_criteria": "Implement Rust validation/finalization and an explicit authority/dispute/quarantine policy. Test absent, late, duplicate, conflicting and disconnected reports plus couch ownership and restart/retry. Preserve security; label modern arbitration until original title-specific evidence exists.",
+      "baseline_finding": "`MatchResults.commit()` requires every originally admitted physical owner. An unreachable owner cannot satisfy that rule. Transactions and immutable-digest retries already protect exactly-once writes; they do not prove original arbitration or independent simulation truth.",
+      "implementation_status": "partial_verified",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json"
+      ]
+    },
+    {
+      "id": "GAP-07",
+      "status": "open",
+      "required": true,
+      "classification": "implementation_and_world_continuity_acceptance",
+      "current_finding": "Rust queue authority now owns measured route host ranking, its separately versioned modern scheduler/host RNG stream, host-change readiness invalidation and membership-before-refresh acknowledgment. Python continuity/session transitions and existing-world native acceptance remain separate. Route host scoring and continuity policies are declared native replacements; the original host comparator is unrecovered. Gathering role, countdown, withdrawal and launch proposal transitions are now also inside Rust; gameplay room/world continuity and native mode acceptance remain separate. Modern authentication and running-match capabilities now have explicitly separate lifetimes. Rust checks foreign active-room ownership over trusted room facts and retires authentication/queued state; real HTTP tests preserve a running room after session loss. The temporary room/host/world policy and actual original running-world continuity remain unqualified. Active-room and already-playing-clan search admission gates now run in Rust over bounded trusted observations. These checks and connection-generation permits are not proof of native room ownership, host migration or retained running-world parity. Pregame countdown publication, clock/press/complete-parameter rules, serials, requester, cancellation, zero consumption and command SQL/replay plans now run in Rust. The original unchanged-tuple member-request mismatch is reproduced and corrected. Running room/world and original host/continuity/full native acceptance remain unqualified. Queue polling/cancellation and failure admission decisions now belong to Rust. Room start observations still call the existing temporary room readiness/clock producer; running-room host/world/transport decisions and full original/native continuity remain open. Rust now freezes actual room setup seats/physical owners and owns measured history/direct report validation, peer masks/original connected-team predicate, declared native RTT/upload/loss host ranking, readiness acknowledgement, original shared start timer and loading/running setup grants. Early matching loader reports cannot bypass source zero. A real-clock HTTP control waits the full ten seconds. Running-world/host election/migration/departure/socket/effect ownership and full native continuity remain open. Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open.",
+      "closure_criteria": "Put matchmaking host/session decisions in Rust. Trace original eligibility, generations, clocks, QoS units and caller state. Prove actual existing-world continuity under graceful/abrupt host loss and ordinary departures for all families, including meaningful objective/role/fuse state. Keep route-measurement differences explicit.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "implementation_status": "partial_verified",
+      "baseline_finding": "Rust migration components and C++ native handoff APIs exist. Python continuity selects by measured milliseconds/index and a native timeout; `_host()` uses native route scores. These are declared replacements, not the original host comparator. Old documentation saying no handoff API exists is stale."
+    },
+    {
+      "id": "GAP-08",
+      "status": "open",
+      "required": true,
+      "classification": "source_confirmed_selector_and_settings_divergence",
+      "current_finding": "Production queue draws now keep the original hopper seed in Rust, separately from the explicitly modern v2 scheduler/host stream. Rust owns ordered eligible-map filtering and invokes the existing original clamp/LCG row selector; full selected rows are carried and checked for equality against the pinned catalog. Failed assignment does not consume the hopper seed. Complete original upstream RNG ownership/call sequence, profile/version coverage and delivered native flow remain open; this queue increment reuses earlier original selector evidence. The same Rust owner selects the founding row, preserves it through joins/countdown and checks exact catalog equality on publication. Original upstream stream provenance still remains open. Rust result validation now binds all304 selected variant bytes when present. Unfamiliar names without settings are rejected; the two already shipped native Fiesta/Infection assets have explicit legacy registrations separate from the original39 presets. Complete native-extension settings and original upstream stream/profile/delivery proof remain open. Rust now interprets the supplied catalog and validates its complete rows, policies and metadata. The existing ordered selector is unchanged; original upstream RNG/capture and native delivery remain unqualified.",
+      "closure_criteria": "Implement original ordered LCG draw and full-row selection in Rust, with explicit RNG ownership/call order, duplicate rows, map predicates, clamps, output/failure behavior and complete 304-byte settings. Replay signed-short boundary behavior before extending the demonstrated safe domain. Do not use a random distribution approximation.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "implementation_status": "partial_verified",
+      "baseline_finding": "Both gathering and legacy selection use Python `random.choices`; weights accept 1..10000 rather than the selector's available-map clamp 1..1000. Admission requires every pool map, whereas the original selector zeros unavailable rows. `Game` carries names/weight, without complete selected settings."
+    },
+    {
+      "id": "GAP-09",
+      "status": "open",
+      "required": true,
+      "classification": "original_reference_reproducibility",
+      "current_finding": "Both legitimate original executables are present and hash-verified. The system Python lacks oracle packages, but `.tools/python/bin/python` has capstone/unicorn and successfully reran the team oracle. Existing fixtures/harnesses provide a usable starting point. The full caller suite is still missing. The gathering increment reuses existing pinned original numerical fixtures and adds declared native registry/IO tests. No new original executable run or authentic service capture is claimed for that increment. The result/skill increment freshly executes both pinned original XP initializers and pair/player/clan/rank routines:1912 calls,1910 output controls,1266 retail and1356 TU1.5 distinct instructions. Every executed instruction byte is verified unchanged; inputs remain synthetic and no service/result producer is inferred. The catalog increment replays the retained pinned numerical fixtures but adds no new original executable/service capture. Its frozen39-Rust/444-backend cohort and separate17-Rust/50-backend default ABI pass, as does the CMake bridge/helper check. Fresh complete unchanged retail/TU1.5 countdown parameter writer replay adds 1,536 calls and 768 paired controls, including all 68 instructions with every executed byte verified. Rust matches all outputs; the retained 40 countdown controls also pass. Synthetic fields/caller operands are explicit; original upstream caller/Live/network/framebuffer provenance is not inferred. The queue endpoint increment replays all retained original numerical fixtures and adds native endpoint/continuation/storage/failure tests. It performs no new unchanged-original execution or original Live/historical capture. Fresh unchanged TU1.5 timer/helper execution adds512 full-width clock controls plus16 normal/dispatch/init/clear outputs (528 total,1572 bounded block invocations,52 distinct instructions). Fresh readiness/policy/producer/caller/constructor controls execute498 distinct instructions. Every executed byte is verified. Rust matches the512 timer and retained readiness outputs; complete platform/session/mode/publication/caller and Live evidence remain open. Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open.",
+      "closure_criteria": "Build repeatable original/Rust comparisons with binary, runner, fixture, config, compiler and instruction identities. Use existing genuine inputs. Regenerate missing fixtures from originals rather than the implementation under test. Preserve rejected/failing cases and declare synthetic inputs.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "implementation_status": "partial_verified"
+    },
+    {
+      "id": "GAP-10",
+      "status": "open",
+      "required": true,
+      "classification": "delivery_identity_and_acceptance",
+      "current_finding": "The initial audit pinned the selected runtime identified in baseline_finding. The subsequent frozen Rust/backend receipts identify tested source cohorts and temporary libraries, not current installed activation. This queue increment does not replace a launcher-selected runtime or remote service. Fresh coherent client/library/service/catalog/feature identity and delivery acceptance remain required.",
+      "closure_criteria": "Bind Rust source/build/library, actual selected client, server, catalog, profile and feature identities to acceptance receipts. Verify production-equivalent flow, config changes during an outstanding match, restart, rollback and installed delivery. A matching local binary digest alone does not close this row.",
+      "baseline_finding": "Both local selection manifests name runtime `9d531caa3b6a4b0c9284b954c3874139`; its binary hash matches the declared hash. This audit did not qualify its matchmaking flow or inspect the running remote service/library/catalog. Prior runtime IDs in older notes are not current observations."
+    },
+    {
+      "id": "GAP-11",
+      "status": "open",
+      "required": true,
+      "classification": "source_confirmed_binding_gap",
+      "current_finding": "Rust owns supplied catalog/profile pins and public rank/playlist policy, authenticated sessions/local seats/generations, and now matching-party Ready/remote-consent storage plans, valid readiness projection, leader/ordered-roster/build/map/guest/clan/active-room gates and private final-publication permits. A real same-revision metadata change previously admitted stale remote consent with HTTP201; Rust now rejects it until fresh approval. Consent binds member handle/party version, full profile, own bearer hash/generation and the connected roster. Remote consent also rejects replaced connections before delayed directory notification. Ordered private party/session bindings join proposal/result source digests. Accepted social/clan CRUD, remaining API/QoS/room policy, future parallel fact/SQL/queue coordination, full client-visible capability identity and the complete original/native/delivery chain remain open. Rust also fences live/staged pregame countdowns by complete profile, accepted-party version, connected roster and native session generations. Guarded SQL commits precede native publication; real SQL failures leave the countdown unpublished, and stale/expired continuations reject. The full client-visible capability chain, future parallel/distributed coordination and recovery across the SQL/native commit boundary remain open. Rust enqueue continuations bind full profile, accepted facts, request, generation and native party permit, then recheck current room and ordered seat/session state before publication. Rust public queue views preserve legacy/optional privacy boundaries. Complete rendered client capability identity and future parallel/distributed/cross-store recovery remain open. Room setup now retains immutable admitted seat/owner/team/protocol context in Rust and accepts only scoped physical peer observations. Samples/direct quality/loaded data/clock projections are read-only in Python, and the setup capability survives separate account-session retirement. Normal current-client countdown0..10000ms flow is covered. Existing C++ parser/presentation guards and unused legacy elapsed helper are not full signed/wrapping outlier-domain acceptance; that native consumer work remains open. Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open.",
+      "closure_criteria": "Introduce an immutable Rust admission/result envelope binding complete settings, executable/profile/catalog/map/rank identities, roster and authority generations, expiry and replay identity. Verify every upstream/downstream consumer and transactional player/clan namespace. Reject unfamiliar objective variants with missing authenticated settings rather than treating them as Slayer.",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "implementation_status": "partial_verified",
+      "baseline_finding": "Catalog `Game`/`Proposal` and the room handoff carry map/variant names; result validation maps 39 known names and otherwise assumes Slayer. No complete selected-options digest, map revision, profile epoch and statistics namespace are carried in this audited matchmaking chain. Some frozen skill/configuration checks already exist."
+    },
+    {
+      "id": "GAP-12",
+      "status": "open",
+      "required": true,
+      "classification": "current_operational_documentation",
+      "current_finding": "Operational docs identify native session/local-seat/consent/queue-permit/catalog/gathering/query/result/XP/SQL-plan ownership and the remaining accepted social/clan/HTTP/countdown/QoS/room/IO boundaries. Latest frozen source passes52 Rust checks and455 backend tests; a separate default-feature ABI passes30 Rust and128 backend tests. Stale consent and countdown presentation regressions were reproduced and corrected. Actual SQLite trigger rollback, same-process service reinitialization/migration, whole-roster/profile/permit fencing and private admission binding are covered. CMake Rust bridge/helper passes. All13 private test/build trees are removed; no generated large artifact is retained. No selected or deployed native runtime/service was activated or certified. The countdown increment documents Rust state/publication/replay/SQL ownership, unchanged-tuple requester/clock behavior and original comparison evidence. Frozen full/default ABI and CMake reports retain current component identities and scratch cleanup. Accepted social/clan/remaining endpoint/IO/QoS/room policy and full original/native/delivered acceptance remain open. The final frozen234-file cohort passes59 Rust checks and462 backend tests; the separate production ABI passes37 Rust checks and137 backend tests with diagnostic restoration disabled. Both manifests match current source. CMake bridge/helper passes. All14 named private test/build/report-helper trees are removed; the owned scratch root is empty. No generated large artifact is retained. Queue enqueue/skill/roster/poll/cancel/content-failure/retry rules and response projections now belong to Rust. The frozen 237-file cohort passes 65 Rust and 464 backend tests; production ABI passes 43 Rust and 142 backend tests. Both source manifests match current source. CMake bridge/helper passes. No deployed/installed runtime is activated or certified. All owned queue-API test/build/report-helper trees are removed, the scratch root is empty and no generated large artifact is retained. The room setup increment documents Rust clock/readiness/QoS/host/setup authority and the corrected early-loader timing gap. Frozen242-file source passes70 Rust and467 backend tests; production ABI passes48 Rust and174 backend tests with diagnostic restoration disabled. Both manifests match current source. CMake bridge/helper passes; no selected/deployed runtime was activated or certified. All owned room-setup scratch/build/report-helper trees are removed, the owned scratch root is empty and no generated large artifact is retained. Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open.",
+      "closure_criteria": "Update operational docs from actual selected routes and fresh receipts. Keep historical notes identified, distinguish source/component/live/deployed evidence, and maintain the intentional-deviation ledger. Do not replace accurate seven-family implementation with old Slayer-only claims.",
+      "baseline_finding": "Documentation mixes legacy timed lab search, recovered gathering, old Discord-only descriptions and obsolete host-role limitations. Current `Directory.verify_identity()` accepts Steam sessions when configured; queue creation uses that provider-aware owner.",
+      "implementation_status": "partial_verified",
+      "evidence": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ]
+    }
+  ],
+  "receipts": [
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/audit-receipt.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/team-balance-original.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/guest-advertisement.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/environment.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/cleanup.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-original.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-original.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-original.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+    "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+  ],
+  "algorithm_progress": {
+    "ALG-HOPPER-GETTERS": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/team_assignment.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/assignment-validation.json",
+      "scope": "Eight retail hopper getters and the 71730 assignment corridor; complete caller and versioned producer/publication remain separate."
+    },
+    "ALG-TEAMS-CALLER": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/team_assignment.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/assignment-validation.json",
+      "scope": "Eight retail hopper getters and the 71730 assignment corridor; complete caller and versioned producer/publication remain separate.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/team_assignment.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ]
+    },
+    "ALG-TEAMS-ADAPTER": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/team_assignment.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/assignment-validation.json",
+      "scope": "Eight retail hopper getters and the 71730 assignment corridor; complete caller and versioned producer/publication remain separate."
+    },
+    "ALG-PARTY-AVERAGE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_ratings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+      "scope": "Original raw aggregate exclusions and truncating signed division; actual party/gathering adapters call Rust. Full original producer and identity readiness remain separate."
+    },
+    "ALG-PARTY-SUMMARY": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_ratings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+      "scope": "Raw aggregates and separate adjusted array from 7E210; 300 controls, including 219 complete original calls. Group masks, capacity, validity, publication and result consumers remain open."
+    },
+    "ALG-HOPPER-INVERSE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_ratings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+      "scope": "516 unchanged original inverse calls across executable-default and explicit diagnostic tables; admitted header extraction is validated, not authenticated historical profile recovery."
+    },
+    "ALG-SEARCH-INIT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_ratings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+      "scope": "40 original post-allocation initialization controls and explicit selected-header binding in the service adapter; allocation, failed-session ownership and complete scheduling remain open. Successful new-search seen reset is now Rust-owned with private stale-view generations; complete original allocation/input producers remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_ratings.rs",
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ]
+    },
+    "ALG-SEARCH-QUERY": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_ratings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+      "scope": "Rust owns bounded rank filters (65 original prefixes) and threshold interpolation (100 original controls). Search/service task scheduling, provider ordering and full query/input lifecycle remain separate owners. Rust now additionally owns completion state and the named native provider ordering; original Live tasks/filtering/order remain separate.",
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_ratings.rs",
+        "rust/online_protocol/src/session_candidates.rs",
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ],
+      "additional_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ]
+    },
+    "ALG-CAND-ADMIT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/session_candidates.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+      "scope": "Rust owns the original detailed/brief version, mask, rank, own-address and clan predicate; 27 original controls plus all full banks match. Actual upstream descriptions/QoS/identity and TU1.5 producers remain separate."
+    },
+    "ALG-CAND-SCORE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/session_candidates.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+      "scope": "Rust owns rank/age/quality/language/RTT arithmetic, scalar conversions and complete opaque-bank writes; 264 exact original full banks match. Input provenance and version correspondence remain open."
+    },
+    "ALG-CAND-SORT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/session_candidates.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+      "scope": "Rust owns the original asymmetric comparator, fixed-middle pivot, eight-row short sort and one-byte partition-span choice; 264 complete 50-record outputs match. Original service input ordering is not inferred."
+    },
+    "ALG-CAND-SELECT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/session_candidates.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+      "scope": "Rust owns ready/eligible counts, threshold and strict partial-QoS delay gates, first eligible record and private bank/cache state; 124 original selection controls match. Full task/join/session and native acceptance remain open."
+    },
+    "ALG-SEARCH-EXPAND": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/search_lifecycle.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+      "scope": "Rust owns completion-driven radius/total/active state and seen memory; 199 original completion controls, signed wrapping totals, pending handles/selection, casual unbounded retry and saturation/clear controls match. Complete task/session/producer lifecycle and TU1.5 correspondence remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ]
+    },
+    "ALG-COUNTDOWN-GATHER": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/search_lifecycle.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+      "scope": "Rust owns historical peak/growth clocks, signed elapsed, all seven executable-default countdown tables, INTMAX sentinel and timeout gates. 578 growth controls, 126 getter outputs, 49 countdown gates and 63 gather timeout boundaries match. Full original gathering/launch and native played flow remain separate.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ]
+    },
+    "ALG-SEARCH-SERVICE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/search_lifecycle.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+      "scope": "The explicitly named Rust native_birth_id_order provider owns modern birth/private-ID ordering and50-result truncation, reached through the actual gathering query. Structural admission is still a coordinator input. The retired original Live procedure filtering/order/ties remain unrecovered. Structural admission and native legacy scheduling now also belong to Rust; the whole gathering/query registry and complete original input/service boundary remain open. The whole native gathering/query registry and its IO continuation pipeline now also live in Rust. Native advertisement projection is not proof of the original service producers.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ],
+      "catalog_increment": "Rust catalog/rank identity, compatibility and profile fencing; original producers/native acceptance still unclosed."
+    },
+    "ALG-RNG-STEP": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/search_lifecycle.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+      "scope": "Rust owns the lifecycle jitter stream seed and original two-step LCG/signed-low16 casts; 68 complete initializer controls match. Original upstream random-owner/profile correspondence and all call sequences remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/search_lifecycle.rs",
+        "rust/online_protocol/src/matchmaking_gatherings.rs"
+      ]
+    },
+    "ALG-HOST-CHOICE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_coordinator.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/coordinator-validation.json",
+      "scope": "Rust owns explicitly native measured-route ranking, declared quality tuple ordering, reservation host refresh and readiness invalidation. The modern v2 stream is separate from original hopper draws. Original eligibility/comparator/service transport and native world continuity remain unqualified.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_start.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs"
+      ],
+      "room_setup_increment": "Rust frozen setup roster, bounded samples/direct validation, original team readiness and shared signed/wrapping timer, explicitly native RTT/upload/loss host ranking and guarded loading/running setup transitions. Real ten-second HTTP and synthetic component clocks are separate. Full original host/platform/caller and running-world/native/delivered/signed-client-domain requirements remain open.",
+      "continuity_increment": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open."
+    },
+    "ALG-QOS-INPUTS": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_gatherings.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+      "scope": "Rust requests exact private transport facts and owns probe allocation/failure/seen transitions and candidate-bank projection. The authenticated three-sample relay sensor and IO policy remain temporary Python owners. Xbox XNet measurements, original raw summaries and original service correspondence remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_start.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs"
+      ],
+      "room_setup_increment": "Rust frozen setup roster, bounded samples/direct validation, original team readiness and shared signed/wrapping timer, explicitly native RTT/upload/loss host ranking and guarded loading/running setup transitions. Real ten-second HTTP and synthetic component clocks are separate. Full original host/platform/caller and running-world/native/delivered/signed-client-domain requirements remain open."
+    },
+    "ALG-RANK-INIT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "catalog_increment": "Rust catalog/rank identity, compatibility and profile fencing; original producers/native acceptance still unclosed."
+    },
+    "ALG-RANK-PAIR": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain."
+    },
+    "ALG-RANK-PLAYER": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain."
+    },
+    "ALG-RANK-CLAN": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain."
+    },
+    "ALG-RANK-LEVEL": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain."
+    },
+    "ALG-RANK-DISPLAY": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_skill.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Authenticated executable-default tables and typed XP/rank/public domains in Rust.1910 synthetic-input unchanged retail/TU1.5 pair/collection/clan/rank controls match. Full original input producers, historical policies and native/delivered progression remain open; display mapping is a separate bounded presentation domain.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "catalog_increment": "Rust catalog/rank identity, compatibility and profile fencing; original producers/native acceptance still unclosed."
+    },
+    "ALG-RESULT-NATIVE": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_results.rs",
+        "rust/online_protocol/src/matchmaking_persistence.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs"
+      ],
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Native immutable admission/report/physical-owner consent/quarantine and SQL transaction policy.304-byte selected variants, ledger bindings, XP/PCR/outbox atomicity and duplicate completion guards pass component/HTTP checks. This is not original placement/wire/Live arbitration, independent simulation truth, pending-process recovery or full native/delivery proof.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "catalog_increment": "Rust catalog/rank identity, compatibility and profile fencing; original producers/native acceptance still unclosed.",
+      "continuity_increment": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open."
+    },
+    "ALG-RESULT-PCR": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_results.rs",
+        "rust/online_protocol/src/matchmaking_persistence.rs"
+      ],
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Native immutable admission/report/physical-owner consent/quarantine and SQL transaction policy.304-byte selected variants, ledger bindings, XP/PCR/outbox atomicity and duplicate completion guards pass component/HTTP checks. This is not original placement/wire/Live arbitration, independent simulation truth, pending-process recovery or full native/delivery proof.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+      ],
+      "catalog_increment": "Rust catalog/rank identity, compatibility and profile fencing; original producers/native acceptance still unclosed."
+    },
+    "ALG-RESULT-ARBITRATION": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_results.rs",
+        "rust/online_protocol/src/matchmaking_persistence.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs"
+      ],
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+      "scope": "Native immutable admission/report/physical-owner consent/quarantine and SQL transaction policy.304-byte selected variants, ledger bindings, XP/PCR/outbox atomicity and duplicate completion guards pass component/HTTP checks. This is not original placement/wire/Live arbitration, independent simulation truth, pending-process recovery or full native/delivery proof.",
+      "continuity_increment": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ]
+    },
+    "ALG-UI-FLOW": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_catalog.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+      "scope": "Native public playlist response, compatibility/eligibility/visibility rules and selected public rank-store policy through actual HTTP/ABI checks. Remaining authenticated session/party/enqueue/poll/transport policy, rendered frontend and full played/delivered flow are not certified. Rust now additionally owns session/queue-body validation, renewal/revocation/request/failure state and generation-bound queue publication. Rendered presentation, remaining endpoint/party/room policy and full acceptance remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_parties.rs",
+        "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+        "rust/online_protocol/src/matchmaking_queue_api.rs",
+        "rust/online_protocol/src/matchmaking_start.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs"
+      ],
+      "party_consent_increment": "Rust Ready/consent SQL plans, profile/whole-roster/session binding, public valid-ready projection, accepted matching-party selection, active-room/clan gates and private final queue permits. Accepted social/clan CRUD, countdown/remaining API and full original/native/delivery proof remain unclosed.",
+      "countdown_increment": "Rust pregame registry, original timer/press/complete parameter writer, publication/serial/requester/zero-consumption/replay and guarded SQL plans. Full original producer/Live, rendered/played/delivered and crash/distributed SQL-to-memory recovery remain open.",
+      "queue_api_increment": "Rust enqueue skill/roster/guest/clan planning, transactional snapshot bank, endpoint response/optional privacy rules, cancellation and admission-bound failure/retry cache. Remaining room/start/QoS/social/identity IO and full original/native/delivered requirements remain open.",
+      "room_setup_increment": "Rust frozen setup roster, bounded samples/direct validation, original team readiness and shared signed/wrapping timer, explicitly native RTT/upload/loss host ranking and guarded loading/running setup transitions. Real ten-second HTTP and synthetic component clocks are separate. Full original host/platform/caller and running-world/native/delivered/signed-client-domain requirements remain open."
+    },
+    "ALG-MODERN-TRANSPORT": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_sessions.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+      "scope": "Rust native authentication/local-seat/renewal/revocation/generation/request/failure ownership, verified provider/canonical-account fact guards and atomic session-bound queue publication through real HTTP/default-ABI checks. Provider verification remains trusted identity IO. Accepted-party/clan consent, remaining endpoint/QoS/room/world policy, original XNet/service producers and rendered/played/delivered acceptance remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/queue-api-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json",
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json"
+      ],
+      "implementations": [
+        "rust/online_protocol/src/matchmaking_parties.rs",
+        "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+        "rust/online_protocol/src/matchmaking_queue_api.rs",
+        "rust/online_protocol/src/matchmaking_start.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs",
+        "rust/online_protocol/src/matchmaking_continuity.rs"
+      ],
+      "party_consent_increment": "Rust Ready/consent SQL plans, profile/whole-roster/session binding, public valid-ready projection, accepted matching-party selection, active-room/clan gates and private final queue permits. Accepted social/clan CRUD, countdown/remaining API and full original/native/delivery proof remain unclosed.",
+      "countdown_increment": "Rust pregame registry, original timer/press/complete parameter writer, publication/serial/requester/zero-consumption/replay and guarded SQL plans. Full original producer/Live, rendered/played/delivered and crash/distributed SQL-to-memory recovery remain open.",
+      "queue_api_increment": "Rust enqueue skill/roster/guest/clan planning, transactional snapshot bank, endpoint response/optional privacy rules, cancellation and admission-bound failure/retry cache. Remaining room/start/QoS/social/identity IO and full original/native/delivered requirements remain open.",
+      "room_setup_increment": "Rust frozen setup roster, bounded samples/direct validation, original team readiness and shared signed/wrapping timer, explicitly native RTT/upload/loss host ranking and guarded loading/running setup transitions. Real ten-second HTTP and synthetic component clocks are separate. Full original host/platform/caller and running-world/native/delivered/signed-client-domain requirements remain open.",
+      "continuity_increment": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open."
+    },
+    "ALG-COUNTDOWN-START": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/party_countdown.rs",
+      "implementations": [
+        "rust/online_protocol/src/party_countdown.rs",
+        "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+        "rust/online_protocol/src/matchmaking_start.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs"
+      ],
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/countdown-validation.json",
+      "scope": "Complete unchanged retail/TU1.5 parameter writers:1536 original calls,768 paired outputs; retained40 timer/press/writer controls. Rust live registry owns signed wrapping clock, no-catchup timer, Start/shorten/member requests, unchanged-tuple requester/serial/clock preservation, cancellation and zero consumption. Native authorization/SQL plans remain declared modern transport; full original upstream caller/Live/played/delivery and crash recovery remain open.",
+      "additional_receipts": [
+        "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/room-setup-validation.json"
+      ],
+      "room_setup_increment": "Rust frozen setup roster, bounded samples/direct validation, original team readiness and shared signed/wrapping timer, explicitly native RTT/upload/loss host ranking and guarded loading/running setup transitions. Real ten-second HTTP and synthetic component clocks are separate. Full original host/platform/caller and running-world/native/delivered/signed-client-domain requirements remain open."
+    },
+    "ALG-HOST-ELECTION": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_continuity.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json",
+      "scope": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open."
+    },
+    "ALG-HOST-REESTABLISH": {
+      "status": "partial_verified",
+      "certified": false,
+      "implementation": "rust/online_protocol/src/matchmaking_continuity.rs",
+      "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/continuity-validation.json",
+      "scope": "Rust now owns legacy v11 relay continuity over frozen admitted physical seats: immutable bounded world seals, standby proofs, latest-world candidate choice, u32 epochs, pinned-world retries, acceptance/rebind and expiry. Python attaches read-only views; actual complete-world messages and late-proof policy execute in Rust. Result finalization rejects caller-supplied epochs and derives provenance from the same Rust room owner. Election/timeout policies remain declared native; real engine world import/preservation, direct-peer/full original host continuity, high-level room/departure/effect policy and native played/delivered acceptance remain open."
+    }
+  },
+  "last_implementation_update_utc": "2026-10-28T22:22:59.424218+00:00",
+  "acceptance_gates": {
+    "source": "Master PDF section11.2, printed pages19-20; complete requirements retained without closure claims",
+    "gates": [
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G01",
+        "title": "Target and provenance",
+        "required_completion_evidence": "Pinned original/native identities, dated profile scope, input units and caller layouts.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G02",
+        "title": "Algorithm ownership",
+        "required_completion_evidence": "Every relevant registry entry has a verified caller, implementation route and reproducible receipt.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G03",
+        "title": "Rank",
+        "required_completion_evidence": "All valid raw pairs/outcomes; absent/tied records; player/clan aggregation; thresholds, midpoint and maximum-XP edges.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G04",
+        "title": "Search and candidates",
+        "required_completion_evidence": "All forward/inverse inputs; query exhaustion; original bank sort/readiness; authentic measurement fields and pool ordering boundary.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/ratings-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/candidates-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/lifecycle-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/gatherings-validation.json"
+        ],
+        "unclosed_boundary": "Original input producers/service ordering/full lifecycle, TU1.5 correspondence and native/delivered flow remain unqualified."
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G05",
+        "title": "Teams",
+        "required_completion_evidence": "Original caller options and kernel outputs for every original-valid topology, including two teams, guests, significant parties, failures and casual fallback."
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G06",
+        "title": "Catalog and draw",
+        "required_completion_evidence": "Complete full-buffer map/variant rows, duplicates, eligibility, weights, RNG state and numeric edge cases.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G07",
+        "title": "Modes",
+        "required_completion_evidence": "Every required variant reaches its actual source engine and natural outcome; component-only or edited-limit runs are identified."
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G08",
+        "title": "Session continuity",
+        "required_completion_evidence": "Search/gather/launch/cancel, graceful/abrupt host changes, nonhost departures and retained running-world state.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G09",
+        "title": "Results",
+        "required_completion_evidence": "Original standings, ties and departed records; actual finalization/disputes; exactly-once personal/clan XP and history projection.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G10",
+        "title": "Historical profile",
+        "required_completion_evidence": "Authenticated dated inputs or a clearly bounded executable-default claim; complete included inventory without silent exclusions.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G11",
+        "title": "Modern boundaries",
+        "required_completion_evidence": "Steam/security/relay changes isolated, intentional deviations recorded, custom/LAN/offline XP isolation proven.",
+        "partial_receipts": [
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/results-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/catalog-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/sessions-validation.json",
+          "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/party-consent-validation.json"
+        ]
+      },
+      {
+        "status": "open",
+        "certified": false,
+        "id": "G12",
+        "title": "Deployed release",
+        "required_completion_evidence": "Tested binary/library/server/catalog/feature hashes match the actual running release and its smoke/acceptance traces."
+      }
+    ]
+  },
+  "temporary_python_adapters": [
+    "multiplayer/master_server/matchmaking.py",
+    "multiplayer/master_server/native_matchmaking.py",
+    "multiplayer/master_server/gathering_sessions.py",
+    "multiplayer/master_server/session_candidates.py",
+    "multiplayer/master_server/search_lifecycle.py",
+    "multiplayer/master_server/playlist_skill.py",
+    "multiplayer/master_server/clan_skill.py",
+    "multiplayer/master_server/match_results.py",
+    "multiplayer/master_server/native_database.py",
+    "multiplayer/master_server/native_sessions.py",
+    "multiplayer/master_server/couch_players.py",
+    "multiplayer/master_server/match_continuity.py"
+  ],
+  "current_python_policy_boundaries": [
+    "Accepted social/party/clan membership and invitation/privacy/activity CRUD plus remaining party HTTP request/idempotency/presentation policy",
+    "Retirement/transaction-retry notification acknowledgement and crash recovery across countdown SQL/native publication commits; pregame countdown state/rules now belong to Rust",
+    "High-level review/postgame, departure/socket/bearer/effect dispatch and actual direct-peer engine/world continuity; Rust owns room setup/readiness/start/QoS and legacy v11 authority/complete-world coordination",
+    "Search QoS sensors/allocation and raw authenticated network timestamp/challenge/room observations; legacy v11 authority/world-proof coordination now belongs to Rust; full original/native world continuity remains open",
+    "Trusted directory/account/clan/room facts and temporary HTTP/file/provider/shared-identity/SQLite IO; future parallel/distributed fact/SQL/queue coordination",
+    "Full native client-visible profile/capability identity and public history readers"
+  ]
+}

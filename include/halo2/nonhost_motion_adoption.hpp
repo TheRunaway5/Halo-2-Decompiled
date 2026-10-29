@@ -94,8 +94,7 @@ public:
   NonHostForcedMotion last_forced(unsigned slot) const;
   const NonHostAdoptionLimits &limits() const noexcept { return limits_; }
 
-private:
-  struct Peer {
+  struct PeerState {
     bool seen{};
     std::uint32_t unit = 0xffffffffu, teleport_serial{};
     std::uint64_t damage_serial{};
@@ -104,11 +103,25 @@ private:
     NonHostAdoptionState adoption;
     NonHostForcedMotion forced{};
   };
+  struct Checkpoint {
+    // Exact scalar bits of bounds, radius and limits, in checkpoint() order.
+    // No writer, native object pointer or executor owner crosses this value.
+    std::array<std::uint32_t,41> configuration{};
+    std::array<PeerState,16> peers{};
+  };
+  Checkpoint checkpoint() const;
+  static void validate_checkpoint(const Checkpoint &);
+  // Requires this freshly constructed owner's exact configuration and keeps
+  // its writer. A rejected checkpoint leaves all current peer state intact.
+  void restore(const Checkpoint &);
+
+private:
+  std::array<std::uint32_t,41> checkpoint_configuration() const;
   NonHostMotionDefinition bounds_;
   float radius_{};
   NonHostAdoptionLimits limits_;
   NonHostMotionWriter writer_;
-  std::array<Peer, 16> peers_{};
+  std::array<PeerState, 16> peers_{};
 };
 
 // Wire form of a motion report (NativeMotionReport, 17 bytes): absolute

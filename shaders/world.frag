@@ -15,7 +15,7 @@ layout(location=7) in vec4 forwardColor;
 layout(location=8) in vec4 stageCoordinates[4];
 layout(location=12) in vec2 titleDepth;
 layout(location=13) flat in uint stippleLevel;
-#ifdef H2_EMBLEM_W_DEPTH
+#if defined(H2_EMBLEM_W_DEPTH) || defined(H2_SOURCE_WORLD_DEPTH)
 layout(location=14) flat in vec4 sourceEmblemWindow0;
 layout(location=15) flat in vec4 sourceEmblemWindow1;
 layout(location=16) flat in vec4 sourceEmblemWindow2;
@@ -39,6 +39,11 @@ layout(set=0,binding=4,std140) uniform Material {
     vec4 sourceCameraForeground[4];
     uvec4 sourceCameraControl;
 } material;
+#ifdef H2_SOURCE_WORLD_DEPTH
+layout(push_constant) uniform SourceWorldDepthPush {
+    layout(offset=112) vec4 clipRange;
+} sourceDepth;
+#endif
 layout(location=0) out vec4 pixel;
 #include "world_combiner_specialization.glsl"
 #include "combiner.glsl"
@@ -79,7 +84,11 @@ vec4 fetchStage2D(uint stage,vec2 p) {
 #define TEXTURE_VOLUME(i) ((material.textureEffects[i].z&1u)!=0u)
 // Outputs that the original program never writes retain initialized W=1.
 // Keep that constant through projected sampling instead of interpolating it.
+#ifdef H2_SOURCE_WORLD_DEPTH
+#define TEXTURE_COORDINATE_W(i) stageCoordinates[i].w
+#else
 #define TEXTURE_COORDINATE_W(i) ((material.alphaTest.w&(1u<<(i)))!=0u ? 1.0 : stageCoordinates[i].w)
+#endif
 vec4 fetchStageProjected2D(uint stage) {
     vec3 p=vec3(stageCoordinates[stage].xy,TEXTURE_COORDINATE_W(stage));
     // The retained TU1.5 shader normalizes linear-image S/T before
@@ -112,6 +121,14 @@ void main() {
     gl_FragDepth=titleDepth.y!=0.0 ?
         worldD24Depth(clamp(material.sourceCameraControl.x!=0u ? titleDepth.x : titleDepth.x*16777215.0,
             0.0,16777215.0)) : gl_FragCoord.z;
+#ifdef H2_SOURCE_WORLD_DEPTH
+    // Original ordinary W Cull follows vertex projection. Vulkan Z clipping
+    // is disabled for this pipeline so it cannot discard a valid W sample.
+    float sourceW=worldWDepth(gl_FragCoord.xy-sourceDepth.clipRange.zw,vec2(1),
+        sourceEmblemWindow0,sourceEmblemWindow1,sourceEmblemWindow2,0,0,0);
+    if(sourceW<sourceDepth.clipRange.x || sourceDepth.clipRange.y<sourceW)discard;
+    gl_FragDepth=worldD24Depth(sourceW);
+#endif
 #ifdef H2_EMBLEM_W_DEPTH
     // Late armor emblems compare against integer W depth. Hardware varying
     // interpolation can cross an integer boundary and drop a valid edge pixel.

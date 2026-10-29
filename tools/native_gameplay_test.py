@@ -21,6 +21,7 @@ import sys
 # The launcher may inherit PYTHONSAFEPATH or use -P; sibling helpers must still
 # resolve from this installed tool directory rather than the caller's CWD.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from file_identity import descriptor_identity, path_identity
 
 SCHEMA = "H2_NATIVE_GAMEPLAY_TEST_V1"
 CAPABILITY = "mcc-lockout-source-object-world-test"
@@ -33,6 +34,11 @@ FRONTEND_CAPABILITY = "mcc-native-frontend"
 FRONTEND_SCOPE = "mcc-native-title-menu"
 FRONTEND_MAP = "halo2/h2_maps_win64_dx11/mainmenu.map"
 FRONTEND_LOADING_PROFILE = "mcc-logo-glow-mcc-track-oneshot-v1"
+FRONTEND_H2EK_LOADING_PROFILE = "h2ek-logo-sweep-four-voice-v2"
+FRONTEND_H2EK_LOADING_FILES = {
+    "presentation/original-loading-v2/" + name for name in
+    ("manifest.json", "ambience.xbox-adpcm", "loading-00.dds", "loading-01.dds",
+     "loading-03.dds", "loading-04.dds", "loading-05.dds", "loading-11.dds")}
 FRONTEND_PROMPT_FONT_PROFILE = "mcc-native-control-fonts-v1"
 
 
@@ -42,34 +48,29 @@ def _digest(value):
     return value
 
 
-def _identity(value):
-    return (value.st_dev, value.st_ino, value.st_size,
-            value.st_mtime_ns, value.st_ctime_ns)
-
-
 class NativeTestOwnerChanged(ValueError):
     """A strict digest lost its exact file identity while reading it."""
 
     def __init__(self, path, before, after_fd, after_path):
         super().__init__("Native-test owner changed during validation")
         self.path = Path(path)
-        self.before = _identity(before)
-        self.after_fd = _identity(after_fd)
-        self.after_path = _identity(after_path)
+        self.before = before
+        self.after_fd = after_fd
+        self.after_path = after_path
 
 
 def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
     if path.is_symlink() or not path.is_file():
         raise ValueError("Native-test file has no direct owner")
     with path.open("rb") as stream:
-        before = os.fstat(stream.fileno())
+        before = descriptor_identity(stream.fileno())
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
         if exact is not None:
             stream.seek(0)
-            if before.st_size != len(exact) or stream.read() != exact:
+            if before[2] != len(exact) or stream.read() != exact:
                 raise ValueError("Native-test executable wrapper differs")
         if embedded is not None:
-            if not before.st_size:
+            if not before[2]:
                 raise ValueError("Empty native-test executable")
             with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
                 if data.find(embedded) < 0:
@@ -77,9 +78,8 @@ def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
                 if readonly_literal:
                     from packaged_shader_defaults import readonly_literal_location
                     readonly_literal_location(data, embedded)
-        after_fd, after_path = os.fstat(stream.fileno()), path.stat()
-        if (_identity(before) != _identity(after_fd) or
-                _identity(before) != _identity(after_path)):
+        after_fd, after_path = descriptor_identity(stream.fileno()), path_identity(path)
+        if before != after_fd or before != after_path:
             raise NativeTestOwnerChanged(path, before, after_fd, after_path)
     return digest
 
@@ -232,14 +232,20 @@ def _frontend_contract(report):
     validation = report["validation"]
     native_fonts = ("mcc_loading_presentation_profile" in validation or
                     "mcc_prompt_font_profile" in validation)
+    h2ek = validation.get("mcc_loading_presentation_profile") == FRONTEND_H2EK_LOADING_PROFILE
     if native_fonts:
-        if (validation.get("mcc_loading_presentation_profile") != FRONTEND_LOADING_PROFILE or
-                validation.get("original_loading_ambience") is True):
+        if h2ek:
+            if validation.get("original_loading_ambience") is not True:
+                raise ValueError("H2EK loading requires its separately passed original ambience profile")
+        elif (validation.get("mcc_loading_presentation_profile") != FRONTEND_LOADING_PROFILE or
+              validation.get("original_loading_ambience") is True):
             raise ValueError("Frontend requires a separately passed MCC V3 loading profile; legacy proofs cannot be upgraded")
         if validation.get("mcc_prompt_font_profile") != FRONTEND_PROMPT_FONT_PROFILE:
             raise ValueError("Frontend requires a separately passed native MCC prompt font profile; legacy proofs cannot be upgraded")
     loading_files = {"presentation/loading-v3/manifest.json", "presentation/loading-v3/glow-mask.dds",
                      "presentation/loading-v3/loading.wav"}
+    if h2ek:
+        loading_files = set(FRONTEND_H2EK_LOADING_FILES)
     allowed = set(loading_files) if native_fonts else {
         "presentation/loading/manifest.json", "presentation/loading/glow-mask.dds",
         "presentation/loading/loading.wav", "presentation/loading-v2/manifest.json",

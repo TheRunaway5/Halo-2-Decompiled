@@ -155,9 +155,22 @@ def main():
     copy_file(ROOT/'CMakeLists.txt')
     for name in ('src','include','cmake','shaders','third_party','external','rust'):
         copy_tree(name)
+    # ONLINE qualification imports Python and its native Rust service as one
+    # cohort. A live master_server link can otherwise acquire new operations
+    # while this snapshot is still compiling the previous Rust dispatcher.
+    copy_tree('multiplayer/master_server')
+    for path in (ROOT/'multiplayer').iterdir():
+        if path.name!='master_server':
+            (source/'multiplayer'/path.name).symlink_to(path,target_is_directory=path.is_dir())
     for path in sorted((ROOT/'tools').iterdir()):
         if path.is_file() and path.suffix in ('.py','.cpp','.hpp','.h','.c','.S','.sh','.txt'):
             copy_file(path)
+    # The native Vorbis regression also compiles this nested source on Linux.
+    # Freeze its regular compiler inputs along with the top-level tools.
+    if (ROOT/'tools/windows').is_dir():
+        for path in sorted((ROOT/'tools/windows').iterdir()):
+            if path.is_file() and path.suffix in ('.py','.cpp','.hpp','.h','.c','.S','.sh','.txt'):
+                copy_file(path)
     for name in ('data','reference','pstencil'):
         if (ROOT/'tools'/name).exists():(source/'tools'/name).symlink_to(ROOT/'tools'/name,target_is_directory=True)
     for path in sorted((ROOT/'tests').iterdir()):
@@ -181,7 +194,7 @@ def main():
         # reference inputs and fixture directories.
         if path.name in selected or (path.is_file() and path.stat().st_size<=65536):copy_file(path)
         else:(fixtures/path.name).symlink_to(path,target_is_directory=path.is_dir())
-    for name in ('assets','analysis','resources','data','multiplayer','.tools'):
+    for name in ('assets','analysis','resources','data','.tools'):
         if (ROOT/name).exists():(source/name).symlink_to(ROOT/name,target_is_directory=True)
     if not 0<=args.copy_drift_retries<=5:parser.error('--copy-drift-retries must be 0..5')
     copy_retries=[]

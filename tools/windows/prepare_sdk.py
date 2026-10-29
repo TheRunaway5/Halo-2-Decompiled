@@ -12,8 +12,8 @@ import tempfile
 import urllib.request
 
 
-def prepare(root, sdk):
-    lock_path = root / "tools/windows/sdk-lock.json"
+def prepare(root, sdk, *, lock_path=None):
+    lock_path = lock_path or root / "tools/windows/sdk-lock.json"
     lock_bytes = lock_path.read_bytes()
     lock = json.loads(lock_bytes)
     identity = hashlib.sha256(lock_bytes).hexdigest()

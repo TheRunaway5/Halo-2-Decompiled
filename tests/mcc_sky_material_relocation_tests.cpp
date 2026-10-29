@@ -16,7 +16,9 @@ int main(int argc,char**argv){try{
         const auto datum=row.at("shader").get<std::uint32_t>();const auto data=cache->tag_payload({datum});
         const auto input=row.at("model_input_sha256").get<std::string>(),name=row.at("name").get<std::string>(),expected=row.at("before_payload_sha256").get<std::string>();
         const auto matches=[&](std::span<const std::byte> bytes){return mcc_sky_material_relocation_matches(input,datum,name,expected,bytes);};
-        if(!matches(data))throw FormatError("Exact actual derived sky shader was rejected");++admitted;
+        if(!matches(data))throw FormatError("Exact actual derived sky shader was rejected: "+
+            J({{"map",map},{"shader",datum},{"actual_payload_sha256",mcc_sky_geometry_sha256(data)},
+                {"expected_derived_payload_sha256",row.at("after_payload_sha256")}}).dump());++admitted;
         const auto no=[&](bool value){if(value)throw FormatError("Unsupported sky payload/input mutation was admitted");++rejected;};
         no(mcc_sky_material_relocation_matches("other-model",datum,name,expected,data));
         no(mcc_sky_material_relocation_matches(input,datum^0x10000u,name,expected,data));

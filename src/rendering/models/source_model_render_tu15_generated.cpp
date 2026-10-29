@@ -2,6 +2,7 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics/runtime/physics_world_runtime_internal.hpp"
 #include "halo2/source_model_render_tu15.hpp"
+#include "halo2/source_presented_model_pose_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
 namespace {
@@ -3262,6 +3263,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_3ddc0(WorldState &s) {
+if(source_has_presented_model_pose_tu15(s.memory))source_validate_presented_model_frame_tu15(s.memory,r(s.memory,s.gp[4]+4u,4),r(s.memory,0x4c6854u,4));
 if(s.services.instruction){s.services.instruction(0x3ddc0u);} s.set(4,s.flags.minus(s.reg(4,4,0),selected(0xcu,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x3ddc3u);} s.push(0x3ddc3u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0x3ddc4u);} s.set(3,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
@@ -10287,6 +10289,9 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_13a2e0(WorldState &s) {
+SourcePresentedModelNodeUseTu15 presented(s.memory);
+const auto presented_owner=s.gp[1],presented_model=s.gp[2];
+const bool presented_first_person=r(s.memory,s.gp[4]+16u,1)!=0;
 if(s.services.instruction){s.services.instruction(0x13a2e0u);} s.push(0x13a2e0u,s.reg(5,4,0));
 if(s.services.instruction){s.services.instruction(0x13a2e1u);} s.set(5,s.reg(4,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x13a2e3u);} s.set(4,s.flags.logic((s.reg(4,4,0))&(selected(0xfffffff0u,s.image)),4),4,0);
@@ -10314,7 +10319,7 @@ if(s.services.instruction){s.services.instruction(0x13a324u);} s.set(0,r(s.memor
 if(s.services.instruction){s.services.instruction(0x13a327u);} s.push(0x13a327u,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x13a328u);} s.push(0x13a328u,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0x13a329u);} s.push(0x13a329u,selected(0x13a32eu,s.image));run_bf640(s);
-L13a32e: if(s.services.instruction){s.services.instruction(0x13a32eu);} s.flags.logic((r(s.memory,(selected(0x4u,s.image)+s.gp[3]),1))&(selected(0x4u,s.image)),1);
+L13a32e: presented.publish(presented_owner,presented_model,s.gp[0],r(s.memory,s.gp[3]+0x48u,4),presented_first_person); if(s.services.instruction){s.services.instruction(0x13a32eu);} s.flags.logic((r(s.memory,(selected(0x4u,s.image)+s.gp[3]),1))&(selected(0x4u,s.image)),1);
 if(s.services.instruction){s.services.instruction(0x13a332u);} if(s.flags.zf)goto L13a33e;
 if(s.services.instruction){s.services.instruction(0x13a334u);} s.set(1,(selected(0x60u,s.image)+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x13a338u);} w(s.memory,s.observe,0x13a338u,(selected(0x1cu,s.image)+s.gp[4]),4,s.reg(1,4,0));

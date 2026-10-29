@@ -20,9 +20,10 @@ void attachments(const RendererTargets::Use& use) {
     if(!use.valid() || use.device_address().is_null())
         throw FormatError("live shadow phases require a live native Renderer attachment lease");
     const auto& bank=use.bank();
-    const auto valid=[](const RendererTargetImage& image,std::uint32_t format,std::uint32_t usage) {
+    const auto width=bank.depth_stencil.width,height=bank.depth_stencil.height;
+    const auto valid=[&](const RendererTargetImage& image,std::uint32_t format,std::uint32_t usage) {
         return image.image && image.view && !image.image_backing.is_null() && !image.view_backing.is_null() &&
-            image.format==format && image.width==640 && image.height==480 && image.samples==1 &&
+            image.format==format && width && height && image.width==width && image.height==height && image.samples==1 &&
             image.mips==1 && image.layers==1 && (image.usage&usage)==usage;
     };
     if(!bank.generation || bank.color.empty() ||
@@ -30,7 +31,7 @@ void attachments(const RendererTargets::Use& use) {
        std::any_of(bank.color.begin(),bank.color.end(),[&](const auto& image) {
            return !valid(image,VK_FORMAT_B8G8R8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
        }))
-        throw FormatError("live shadow phases require actual single-sample640x480 BGRA8/integerD24S8 attachments");
+        throw FormatError("live shadow phases require matching actual single-sample BGRA8/integerD24S8 attachments");
 }
 NativeRuntimeAddress effect_backing(const SourceRuntimeMemory& memory,std::uint32_t address) {
     const auto arena=read<std::uint32_t>(memory,0x4f2950u),used=read<std::uint32_t>(memory,0x4f2954u);
@@ -145,9 +146,13 @@ const SourceShadowScenePhaseInput& SourceLiveShadowPhaseInputsTu15::phase(
 }
 SourceLiveShadowPhaseInputsTu15 source_live_shadow_phase_inputs_tu15(
     const SourceRuntimeMemory& memory,const RendererTargets::Use& use,
-    const SourceLiveShadowPhaseResidueTu15& residue) {
+    const SourceLiveShadowPhaseResidueTu15& residue,std::array<std::uint32_t,2> logical_surface) {
     attachments(use);SourceLiveShadowPhaseInputsTu15 output;
     output.memory_=&memory;output.generation_=use.bank().generation;output.device_=use.device_address();
+    if(logical_surface==std::array<std::uint32_t,2>{})
+        logical_surface={use.bank().depth_stencil.width,use.bank().depth_stencil.height};
+    if(!logical_surface[0] || !logical_surface[1] || logical_surface[0]>32767 || logical_surface[1]>32767)
+        throw FormatError("live shadow logical surface exceeds its positive signed-short camera bank");
     const auto retain=[&](std::uint32_t address,std::size_t extent) {
         const auto bytes=memory.view(address,extent);
         output.retained_.push_back({address,{bytes.begin(),bytes.end()}});
@@ -157,11 +162,14 @@ SourceLiveShadowPhaseInputsTu15 source_live_shadow_phase_inputs_tu15(
     const auto global_viewport=read<std::array<std::int16_t,4>>(memory,0x4c65f0u);
     const auto viewport=read<std::array<std::int16_t,4>>(memory,0x491e68u);
     const auto players=read<std::int32_t>(memory,0x4c686cu);
-    //226F0's timed-effect caller admits only full canonical640x480 and at
-    //most one player. Ordinary mode0 alone does not establish boundary0.
-    if(!same(global_viewport,viewport) || viewport!=std::array<std::int16_t,4>{0,0,480,640} ||
+    //226F0's canonical640x480 check controls the timed split in13660;
+    //it does not constrain the ordinary mode0 fallback at13768. The actual
+    //zero-effect/override bank below establishes that fallback at any full
+    //native surface. Preserve the submitting shorts and camera unchanged.
+    if(!same(global_viewport,viewport) || viewport!=std::array<std::int16_t,4>{0,0,
+        std::int16_t(logical_surface[1]),std::int16_t(logical_surface[0])} ||
        players<0 || players>1)
-        throw FormatError("live shadow phases lack the proven full640x480 unsplit source viewport");
+        throw FormatError("live shadow phases lack a matching full unsplit source viewport");
     const auto global_eye=read<Vec3>(memory,0x4c65c0u),eye=read<Vec3>(memory,0x491e38u);
     const auto global_planes=read<std::array<float,2>>(memory,0x4c6600u);
     const auto planes=read<std::array<float,2>>(memory,0x491e78u);
@@ -213,18 +221,20 @@ SourceLiveShadowPhaseInputsTu15 source_live_shadow_phase_inputs_tu15(
     const auto generation=raster.snapshot({MenuWorldRasterPrimitive::ordinary_triangles,
         MenuWorldRasterPolygon::fill,std::array<std::int32_t,2>{1,1},false});
     raster.entry_end();raster.shadow_end(); //Actual445C0→49690, beforeApply.
-    raster.viewport_reset({640,480});raster.layer_begin(MenuWorldRasterLayer::shadow_apply_11);
+    raster.viewport_reset(logical_surface);
+    raster.layer_begin(MenuWorldRasterLayer::shadow_apply_11);
     raster.entry_begin({false,false,false});
     const auto application=raster.snapshot({MenuWorldRasterPrimitive::ordinary_triangles,
         MenuWorldRasterPolygon::fill,std::array<std::int32_t,2>{1,1},true});raster.entry_end();
     for(unsigned n=0;n<2;++n) {
         auto& phase=output.phases_[n];phase.constants=residue.constants;
         std::copy(camera.begin(),camera.end(),phase.constants.begin());
-        phase.controls={0x900,true,n?std::array<std::uint32_t,4>{0,0,640,480}:
+        phase.controls={0x900,true,n?std::array<std::uint32_t,4>{0,0,logical_surface[0],logical_surface[1]}:
             std::array<std::uint32_t,4>{0,0,128,128}};
         phase.raster=n?application:generation;phase.clip_range={0,maximum,minimum,upper};
         phase.fog_parameters=residue.fog_parameters;
-        phase.surface_size=n?std::array<float,2>{640,480}:std::array<float,2>{128,128};
+        phase.surface_size=n?std::array<float,2>{float(logical_surface[0]),float(logical_surface[1])}:
+            std::array<float,2>{128,128};
     }
     for(const auto [address,extent]:std::array<std::pair<std::uint32_t,std::size_t>,13>{{
         {0x491e22u,2},{0x491e27u,1},{0x4c65f0u,8},{0x491e68u,8},

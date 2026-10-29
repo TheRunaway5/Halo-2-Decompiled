@@ -9,7 +9,7 @@ each frontend observes that publication rather than starting a private UI timer.
 | --- | --- |
 | retail `25106C -> 19A78E`, TU1.5 decision block `194FBD` | Leader Start begins at 10; another A/Start subtracts one only above 3. Active A/Start precedes focused-button dispatch (`250B1E`). |
 | retail `6E360`, TU1.5 `71D70` | After signed 32-bit elapsed milliseconds reaches 1000, subtract once and store the current clock. A delayed pump does not catch up several ticks. |
-| retail `5DF30`, TU1.5 `5EC20` | Parameter fields are active flag `49A8`, seconds `49AC`, mode `49B0`, watermark `49B4`, requester identity `49B8`. A lower ordinary publication clears mode 1 and its requester. |
+| retail `5DF30`, TU1.5 `5EC20` | Parameter fields are active flag `49A8`, seconds `49AC`, mode `49B0`, watermark `49B4`, requester identity `49B8`. A lower ordinary publication clears mode 1 and its requester. Equality compares the active/seconds/mode tuple, so another identical member request preserves the first requester and publication clock. Nonleaders preserve the active flag. Clearing the old mode and changing the tuple can increment the wrapping update counter twice. |
 | retail `19A7E9` | Leader X stops the countdown. Member X publishes the actual tuple `(start=true, mode=1, value=10, requester)`; it does not stop the leader's countdown. |
 | retail `64B00`, `22D80B`, `24FFC9`, `19ABE4` | Mode-1 requester resolves to a real roster name for token E414 and source delayed-countdown status. The public party handle adapts the original XUID lookup. |
 | retail `6E410`, `19B1C9` | Zero stops the active parameter and enters matchmaking mode 6, presented as screen 210. |
@@ -21,13 +21,31 @@ retail counterparts and records instruction visits. Timer execution stops before
 the network publication call, and the press block accepts previously evaluated
 status/host/getter conditions. The fixture has 40 controls and 1,083 instruction
 visits. It does not claim original Live transport, an original Xbox framebuffer,
-or physical-controller coverage. The independent C++ and Python tests consume
-that fixture.
-The live service calls the Rust native press/tick exports through the trusted
-scalar C ABI. Python owns authentication, the shared clock and publication, with
-no Python decision fallback. The Python fixture test therefore checks the Rust
-implementation through the same ABI used by real party requests. Missing native
-kernels produce an explicit 503 response.
+or physical-controller coverage. C++, Rust and Python fixture tests consume
+that reference. `tools/oracle_matchmaking_countdown.py` adds 768 paired controls
+from 1,536 fresh unchanged complete writer calls, verifying every executed
+instruction byte against the pinned retail and TU1.5 images. Both writers have
+identical 243-byte bodies, and all 68 instructions execute in the cohort.
+Synthetic fields and caller operands do not establish original caller/Live
+provenance. The [validation receipt](evidence/matchmaking-rust-parity-20261028/countdown-validation.json)
+records hashes, commands, limits and scratch cleanup.
+
+The live Rust owner in `matchmaking_party_countdowns.rs` now owns countdown
+state, serials, clocks, original press/tick/parameter publication, cancellation,
+request replay policy and zero consumption. Python provides integer clock,
+accepted-directory and room observations and executes Rust SQL plans; its weak
+cache exposes read-only snapshots. The standalone Python numerical carrier calls
+Rust and has no path to install live state. Missing native kernels fail closed.
+
+Rust prepares each command and its guarded SQLite statements without publishing
+the countdown. The adapter commits those statements before Rust commits its
+prepared publication; SQL failures abort the native continuation and leave the
+published countdown unchanged. Party/member CAS checks and request-ledger guards
+run in the same SQLite transaction. The continuation also checks expiry, current
+publication generation, full profile and current connected roster. A changed
+generation, profile or party revision retires the countdown. This ordered
+single-event-loop integration is not a crash-atomic transaction across SQLite
+and native memory; a crash after the SQL commit still requires recovery work.
 
 The replacement transport uses the existing authenticated accepted party and
 real selected hopper revision. Initial Start validates actual compatible queue

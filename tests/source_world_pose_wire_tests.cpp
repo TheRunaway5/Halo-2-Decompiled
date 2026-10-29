@@ -1,4 +1,5 @@
 #include "halo2/source_world_pose_wire.hpp"
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <fstream>
@@ -18,6 +19,8 @@ int main(int argc,char **argv)try {
     SourceWorldPose child{owners[1].object,{Transform{}},{{2,3,4},5}};
     child.attachment=SourceWorldPoseAttachment{parent.object,129u,frame};
     std::vector<SourceWorldPose> poses{parent,child};
+    poses[0].model=SourceWorldPoseModel{0x30003u,{0,255,2,0}};
+    poses[1].model=SourceWorldPoseModel{0x40004u,{1}};
     const auto encode=[&](const auto &p,SourceWorldPoseWireFormat format){return encode_source_world_poses(true,p,owners,format);};
     const auto legacy=encode(poses,SourceWorldPoseWireFormat::legacy);
     auto unavailable=poses;for(auto &pose:unavailable)pose.attachment.reset();
@@ -27,6 +30,15 @@ int main(int argc,char **argv)try {
         "Legacy WORLD bank fabricated known native linkage");
     const auto bytes=encode(poses,SourceWorldPoseWireFormat::parent_frame);
     const auto decoded=decode_source_world_poses(bytes,owners,SourceWorldPoseWireFormat::parent_frame);
+    need(!decoded.poses[0].model && !decoded.poses[1].model,
+        "Existing WORLD matrix format fabricated model region metadata");
+    auto with_models=decoded;
+    const auto models=encode_source_world_pose_models(poses);
+    need(decode_source_world_pose_models(models,with_models.poses)==models.size() &&
+        with_models.poses[0].model==poses[0].model && with_models.poses[1].model==poses[1].model,
+        "Native WORLD snapshot dropped actual biped/held-weapon model region choices");
+    need(encode_source_world_pose_models(with_models.poses)==models,
+        "Native WORLD model region metadata changed source bytes");
     need(decoded.consumed==bytes.size() && decoded.poses.size()==2,"New WORLD bank changed its complete extent");
     need(decoded.poses[0].attachment->parent==0xffffffffu && decoded.poses[0].attachment->parent_node==0xc7u &&
         !decoded.poses[0].attachment->parent_frame,"Known NONE lost its actual unused node byte");
@@ -57,6 +69,24 @@ int main(int argc,char **argv)try {
         if(invalid==7)bad[0].attachment=SourceWorldPoseAttachment{child.object,0u,child.nodes[0]};
         if(invalid==8)bad[1].object=parent.object;
         reject([&]{encode(bad,SourceWorldPoseWireFormat::parent_frame);});
+    }
+    for(unsigned invalid=0;invalid<7;++invalid) {
+        auto bad=models;
+        if(invalid==0)bad.erase(bad.begin()+1,bad.end());
+        if(invalid==1)bad.pop_back();
+        if(invalid==2)bad[0]=std::byte{3}; // More models than completed poses.
+        if(invalid==3)bad[2]=std::byte{7}; // Unpublished salted owner.
+        if(invalid==4)std::fill_n(bad.begin()+6,4,std::byte{255});
+        if(invalid==5)bad[10]=std::byte{17};
+        if(invalid==6)std::copy_n(bad.begin()+2,4,bad.begin()+15); // Repeated full owner.
+        reject([&]{auto target=decoded.poses;(void)decode_source_world_pose_models(bad,target);});
+    }
+    for(unsigned invalid=0;invalid<3;++invalid) {
+        auto bad=poses;
+        if(invalid==0)bad[0].model->definition=0xffffffffu;
+        if(invalid==1)bad[0].model->permutations.resize(17);
+        if(invalid==2)bad[1].object=bad[0].object;
+        reject([&]{(void)encode_source_world_pose_models(bad);});
     }
     // Parent/node identity is a full uint8 source field; no guessed signed
     // 128-node cap may replace the actual published hierarchy bound.

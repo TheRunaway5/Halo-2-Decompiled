@@ -35,7 +35,7 @@ int main(){try{
     check(r.bearer.empty(),"Native identity leaked a service credential into login setup");
     auto body=Json::parse(r.form);
     if(r.url==std::string(default_online_origin)+"/v1/auth/steam/start"){
-      check(body.size()==1,"Unexpected initial proof fields");challenge=body.at("challenge");
+      check(body.size()==2 && body.at("confirmation").get<std::string>().size()==43,"Missing browser confirmation proof");challenge=body.at("challenge");
       return DiscordHttpResponse{201,Json{{"device",device},{"url",url(device)},{"expires_in",300},{"interval",1}}.dump()};
     }
     check(r.url==std::string(default_online_origin)+"/v1/auth/steam/poll","Handoff sent to a different origin");

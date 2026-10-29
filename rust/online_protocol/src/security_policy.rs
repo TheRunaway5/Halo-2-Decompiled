@@ -22,10 +22,12 @@ pub fn steam_revocation_accepted(status: u16, body: &str) -> bool {
 // banks that are installed before native execution. Unknown kinds fail closed.
 // Kind 32 is a match step with numeric displayed views for the replay world's
 // own lag-compensation owner.
+// Kinds35/36 scope bounded numeric sampled WORLD inputs against independently
+// validated live object/model identities. They carry no source address/ABI.
 // Local diagnostic tapes retain
 // their separate trusted replay API.
 pub fn network_replay_call(kind: u8) -> bool {
-    matches!(kind, 1..=14 | 24 | 29 | 31 | 32)
+    matches!(kind, 1..=14 | 24 | 29 | 31 | 32 | 35 | 36)
 }
 #[derive(Default)]
 pub struct EosAdmissions { principals: HashSet<[u64; 4]> }
@@ -57,6 +59,21 @@ pub fn persistable_result(raw: &[u8]) -> Option<Vec<u8>> {
     }
     Some(result)
 }
+
+/// Only for the versioned native consumer that checks these exact counters
+/// against the final admitted snapshot before unanimous confirmation.
+/// Neither a report digest nor the legacy summary protocol grants this scope.
+pub fn persistable_accuracy_result(raw: &[u8]) -> Option<Vec<u8>> {
+    let mut result = persistable_result(raw)?;
+    for slot in 0..16 {
+        for weapon in 5..=38 {
+            // Original PC 0x40C8CE: base0xECC = 0xE30 + 156, word78.
+            let at = 0xecc + 2 * (slot * 437 + weapon * 8 + 4);
+            result[at..at + 4].copy_from_slice(&raw[at..at + 4]);
+        }
+    }
+    Some(result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -75,13 +92,27 @@ mod tests {
         assert!(persistable_result(&raw[..PCR_SIZE-1]).is_none());
     }
     #[test]
+    fn accuracy_scope_preserves_only_the_original_shot_and_hit_words() {
+        let raw=vec![255;PCR_SIZE];
+        let summary=persistable_result(&raw).unwrap();
+        let accuracy=persistable_accuracy_result(&raw).unwrap();
+        assert_eq!(summary[0xf24..0xf28],[0;4]);
+        assert_eq!(accuracy[0xf24..0xf28],[255;4]);
+        assert_eq!(accuracy[0xf22..0xf24],[0;2]); // adjacent category3
+        assert_eq!(accuracy[0xf28..0xf2a],[0;2]); // adjacent category6
+        assert_eq!(summary.iter().zip(&accuracy).filter(|(a,b)|a!=b).count(),16*34*4);
+        assert!(accuracy[0x44d0..0x48d0+8*45*2].iter().all(|b|*b==0));
+        assert!(persistable_accuracy_result(&raw[..PCR_SIZE-1]).is_none());
+    }
+    #[test]
     fn dangerous_replay_capabilities_are_not_network_operations() {
         for kind in 15..=23 { assert!(!network_replay_call(kind)); }
-        for kind in [0, 25, 26, 27, 28, 30, 255] { assert!(!network_replay_call(kind)); }
+        for kind in [0, 25, 26, 27, 28, 30, 34, 37, 255] { assert!(!network_replay_call(kind)); }
         assert!(network_replay_call(1)); assert!(network_replay_call(24));
         assert!(network_replay_call(31)); // Numeric input to an independently installed native camera.
         assert!(network_replay_call(32)); // Step with numeric displayed views for the replay world's rewind owner.
         assert!(!network_replay_call(33));
+        assert!(network_replay_call(35)); assert!(network_replay_call(36));
     }
     #[test]
     fn one_principal_cannot_occupy_queue_or_foreign_bank() {

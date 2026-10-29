@@ -1,0 +1,164 @@
+{
+  "schema": "H2_RUST_RATINGS_VALIDATION_V1",
+  "updated_utc": "2026-10-28T16:02:07.440541+00:00",
+  "ratings_component_passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "scope": "Rust raw/effective rating producers, rank-map inverse and search-bound arithmetic, actual temporary backend ABI and recorded frozen backend cohort. Full summary validity/capacity, provenance-to-result linkage, TU1.5 full callers, native played flow and delivered runtime/service remain unqualified.",
+  "original_replay": {
+    "passed": true,
+    "scope": "Original raw/effective roster ratings, advertisement floor and search bounds.\n\nRaw/effective controls enter unchanged retail 7E210 and stop at 7E550 after\nthe raw aggregates, before group-count/capacity production. Cases with a rated\nseat in every declared group also execute complete 7E210 and compare the same\noutputs; its observed validity is recorded, not assumed to be admission proof.\nAdvertisements execute 736A8..736FA, search initialization 9098B..90A5E after\nallocation, and query prefixes stop before the real Live wrapper 8FA80. All\ncalled original instructions/callees run unchanged. Inputs, tables and sessions\nare declared synthetic controls, not historical service observations.\nRun through tools/run_test.py; all compiler products stay in owned scratch.\n",
+    "roster_controls": 300,
+    "complete_7e210_calls": 219,
+    "inverse_controls": 516,
+    "search_initializations": 40,
+    "query_controls": 65,
+    "native_comparisons": 888,
+    "original_instructions": 3293,
+    "instruction_patches": [],
+    "replaced_callees": [],
+    "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "tool_sha256": "f0baddcd29129bcf0d461da0b12f02f323412ab8a5e903782da2c124f4e61566",
+    "native_source_sha256": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+    "fixture_sha256": "1d03fce33b2e4a479155a98c989c6d549f52419435705f6298dc9e0b67124370",
+    "scratch": "/tmp/halo2-test-x93didvi",
+    "scratch_retained": false,
+    "full_summary_validity_and_capacity_ported": false,
+    "persistent_result_comparison_owner_qualified": false
+  },
+  "guest_regression": {
+    "before": 26,
+    "required": 30,
+    "after": 30,
+    "raw_ranks": [
+      20,
+      20,
+      40
+    ],
+    "guest_flags": [
+      0,
+      1,
+      0
+    ],
+    "actual_seam": "GatheringSessions.bank brief +5C and detail +120; party search average uses same Rust exclusion owner",
+    "red_report": "ratings-guest-red-report.json",
+    "red_diagnostics": "ratings-guest-red.log",
+    "green_test": "GatheringInputsTests.test_guest_is_excluded_from_actual_gathering_rank_advertisement",
+    "raw_operands_preserved": true
+  },
+  "selected_header_regression": {
+    "test": "GatheringInputsTests.test_selected_hopper_rank_table_reaches_actual_search_and_advertisement",
+    "synthetic_identity_table": true,
+    "actual_search_and_advertisement": true,
+    "invalid_zero_table_rejected_at_catalog_load": true,
+    "historical_profile_recovery_claimed": false
+  },
+  "reconstructed_catalog_correction": {
+    "previous": "Generated 0x614 headers contained an invalid all-zero rank map, exposed by actual enqueue with Rust bound calculation.",
+    "current": "Explicitly copy the retained retail executable-default rank map, validate in Rust at catalog load, and record source header/executable/table identity. Dated downloaded maps remain unknown.",
+    "table_sha256": "e429ca18cb9a49e9a1348dbe68d315fa8a8b4a64d51dd0704a451e271d463cef",
+    "reproducible_check": "ratings-catalog-check.json",
+    "historical_service_values_guessed": false
+  },
+  "rust_regressions": {
+    "passed": true,
+    "tests": 8,
+    "report": "ratings-rust-report.json",
+    "manifest": "ratings-rust-source-manifest.json",
+    "diagnostics": "ratings-rust-tests.log"
+  },
+  "focused_backend": {
+    "passed": true,
+    "tests": 69,
+    "report": "ratings-focused-report.json",
+    "manifest": "ratings-focused-source-manifest.json"
+  },
+  "passing_backend_cohort": {
+    "tests": 409,
+    "seconds": 89.79,
+    "passed": true,
+    "frozen": true,
+    "report": "ratings-backend-report.json",
+    "manifest": "ratings-source-manifest.json",
+    "diagnostics": "ratings-backend-tests.log",
+    "includes_concurrent_selector_transport_work": true,
+    "unrelated_transport_changes_authored_by_this_work": false
+  },
+  "prior_full_suite_failure": {
+    "tests": 409,
+    "failures": [
+      "Incorrect new test expectation (7,14,27 versus 6,14,26), corrected.",
+      "Actual hopper HTTP enqueue rejected generated invalid zero rank maps, corrected explicitly in generator and admission."
+    ],
+    "report": "ratings-before-catalog-fix-report.json",
+    "diagnostics": "ratings-before-catalog-fix.log"
+  },
+  "current_task_source_sha256": {
+    "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+    "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "rust/online_security_ffi/src/lib.rs": "dde9ee62a1c3cb3bf73945fea85cbe3ff09a6e5bdbebc317255c6adf01f81c68",
+    "rust/online_protocol/src/lib.rs": "23cdd238a75a1d13eb3c165b882544df6a58bde8d1bf296b24475d6033c49fc3",
+    "multiplayer/master_server/matchmaking_ratings.py": "e59eb67bafa1a38f51c1e9bcc886b66bad3f32c3c81dda33c5111a57201a7e27",
+    "multiplayer/master_server/gathering_sessions.py": "d3f520d6c35bb9920360d6b6f9d89ff8c8fffd848f693030c44f8596a332cd54",
+    "multiplayer/master_server/matchmaking.py": "111668291b721de461928e3d9c96710ff90c831e6e02dda8ffe80043df9ab0e8",
+    "multiplayer/master_server/tests/test_matchmaking_ratings_native.py": "98b74b54bfbe4f6151ac42001a36513fd84378e42c8df28572152419b9aefdc0",
+    "multiplayer/master_server/tests/test_gathering_sessions.py": "47155c34d3eb370e9e0f61a50c5b2227f2fb032e1d66c4fd2812465ac1e49bc6",
+    "tools/oracle_matchmaking_ratings.py": "f0baddcd29129bcf0d461da0b12f02f323412ab8a5e903782da2c124f4e61566",
+    "tools/test_master_server.py": "79b51565f66ee63e9505592b02c8a50b18fc779b3688a5532220326417fc3dfb",
+    "tools/build_online_playlists.py": "9d63b39b499f711253c49c2afb1ef08e9b62868f9558317d7287ec499b277359",
+    "multiplayer/master_server/examples/matchmaking-online.json": "fe25baa6e638f48a280c515fb5e0c7511b548e3d4ee663aa5c77832f772d22bb",
+    "multiplayer/master_server/data/online-hopper-frequencies-v1.json": "e747d8f39c205598e5a82f12a62334cdd144186b0b084d9a541e82822f58801c"
+  },
+  "live_source_drift_since_passing_backend_cohort": [],
+  "scratch_cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-7rn0158q",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-__a3pjdt",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-cjswicef",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-i0s2w_3c",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-8mtatlor",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-t5h0849y",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-x93didvi",
+      "removed": true
+    },
+    {
+      "path": "/tmp/halo2-test-z0iiz_ly",
+      "removed": true
+    }
+  ],
+  "retained_numerical_original_fixture": {
+    "path": "tests/fixtures/matchmaking_ratings_original.json",
+    "bytes": 249914,
+    "sha256": "1d03fce33b2e4a479155a98c989c6d549f52419435705f6298dc9e0b67124370"
+  },
+  "retained_large_generated_artifacts": [],
+  "installed_runtime_replaced_by_this_work": false,
+  "remote_service_replaced_by_this_work": false,
+  "remaining": [
+    "Full original session/readiness/summary validity and capacity masks",
+    "Independently signed-local, guest and clan producer-to-result ownership and TU1.5 correspondence",
+    "Published adjusted skill consumption and transactional persistent/public progression",
+    "Rust search lifecycle/candidates/coordinator/API/state/results and authenticated profile/epoch/namespace binding",
+    "Actual native played-match, delivery/config-change/restart/rollback acceptance"
+  ]
+}

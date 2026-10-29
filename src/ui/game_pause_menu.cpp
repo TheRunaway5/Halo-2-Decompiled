@@ -172,10 +172,16 @@ void GamePauseMenu::show() {
   state_->adopt_pc_settings(desktop_->keyboard_settings,desktop_->display_settings,
       {unsigned(width),unsigned(height),unsigned(desktop_->fullscreen_mode())});
   }
-  state_->ui_clock(SDL_GetTicks());state_->open_game_pause(campaign_);
+  state_->game_pause_teams(teams_?teams_(input_instance_):std::nullopt,[this](std::int16_t team) {
+    return change_team_?change_team_(input_instance_,team):"The host is unavailable.";
+  });
+  state_->ui_clock(SDL_GetTicks());state_->open_game_pause(campaign_,online_match_);
   visible_=true;entered_=SDL_GetTicks();screen_=state_->frame().screen;
   if(window_)SDL_SetRelativeMouseMode(SDL_FALSE);
   refresh();
+}
+void GamePauseMenu::team_change_error(const std::string &error) {
+  show();state_->game_pause_error(error);refresh();
 }
 void GamePauseMenu::refresh() {
   if(!visible_ || !window_)return;

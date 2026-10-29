@@ -21,6 +21,7 @@ import uuid
 
 from audit_rendering import FormatError
 from installation_paths import resource_root
+from file_lock import file_lock
 
 SCHEMA = "H2_PORT_BUNDLED_MOVIES_V1"
 SOURCE_SCHEMA = "halo2-upscaled-movies-v1"
@@ -115,14 +116,13 @@ def _verify(path, row, root):
 
 @contextlib.contextmanager
 def _lock(cache):
-    import fcntl
     path = _owned(cache / ".bundled-movies.lock", cache)
     fd = os.open(path, os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0), 0o600)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise FormatError("Invalid bundled movie repair lock")
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        yield
+        with file_lock(fd):
+            yield
     finally:
         os.close(fd)
 

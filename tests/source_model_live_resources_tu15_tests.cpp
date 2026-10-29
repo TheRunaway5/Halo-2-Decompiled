@@ -148,6 +148,32 @@ int main(int argc,char**argv)try {
             const auto context=produced.u32(0x48);
             if(!context || word(context)!=object || word(context+4)!=0xc08e0u)
                 throw FormatError("live model context lacks the TU1.5 owner/callback identity");
+            std::vector<unsigned> selected_sections;
+            for(unsigned region=0;region<produced.u32(0x18u);++region) {
+                const auto section=std::to_integer<unsigned>(produced.slice(0x75u+region,1).front());
+                if(section!=255)selected_sections.push_back(section);
+            }
+            const auto skin=cache.load_model_sections(model->datum,false,0,produced.u16(0x168u),selected_sections);
+            const auto exact=source_live_model_collector_vertices_tu15(world,collector,0,skin);
+            if(exact.empty())throw FormatError("Completed native collector palette produced no secondary body vertices");
+            if(const auto nodes=world.rendered_world_nodes(object)) {
+                const auto from_nodes=source_live_model_selected_vertices_tu15(object,produced.u16(0x168u),skin,*nodes,selected_sections);
+                if(exact.size()!=from_nodes.size() || std::memcmp(exact.data(),from_nodes.data(),exact.size()*sizeof(Vertex)))
+                    throw FormatError("Completed native palette differs from its exact original WORLD skin arithmetic");
+            }
+            // Region-change allocation can defer context publication once.
+            // Reach genuine same-view geometry reuse, then require the owned
+            // current palette's posed output to survive that no137800 path.
+            auto prior=produced.u32(4u);bool reused{};
+            for(unsigned repeat=0;repeat<3 && !reused;++repeat) {
+                const auto again=world.build_world_model(object,view,players,false,metric,1.f);
+                const auto token=Bytes(again.bytes).u32(4u);
+                const auto cached=source_live_model_collector_vertices_tu15(world,again,0,skin);
+                if(exact.size()!=cached.size() || std::memcmp(exact.data(),cached.data(),exact.size()*sizeof(Vertex)))
+                    throw FormatError("Native geometry reuse lost the actual completed secondary palette skin");
+                reused=token==prior;prior=token;
+            }
+            if(!reused)throw FormatError("Native secondary palette witness never reached actual geometry cache reuse");
             std::cout<<"Live model collector: view "<<view<<" / "<<players<<" players / "
                 <<produced.u16(0x166)<<" model(s), source LOD "<<produced.u16(0x168)<<'\n';
         }

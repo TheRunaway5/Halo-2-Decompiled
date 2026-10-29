@@ -24,6 +24,10 @@ public:
       std::uint16_t player_flags,float seconds,bool cycle_pressed=false,
       std::optional<NativeDeathCameraView> *completed=nullptr);
   bool death_view(unsigned view) const {return views_.at(view).controller[0xc/4]==0x247140u;}
+  // Complete1898A0 consumes this view's preceding original controller and
+  // observer. This does not run the camera scheduler ahead of input collection.
+  std::array<std::byte,0x5c> collect_player_input(unsigned view,std::uint32_t player,
+      float frame_seconds,float game_seconds);
   using AuthorityBinding=std::array<std::byte,32>;
   class Checkpoint {
   public:

@@ -19,6 +19,12 @@ public:
   ~GamePauseMenu();
   void bind(SDL_Window *, DesktopSession &, Renderer &);
   void audio(AudioEngine *);
+  void teams(std::function<std::optional<GamePauseTeams>(std::int32_t)> query,
+      std::function<std::string(std::int32_t,std::int16_t)> change) {
+    teams_=std::move(query);change_team_=std::move(change);
+  }
+  void team_change_error(const std::string &error);
+  void online_match(bool value) { online_match_=value; }
   void party_notices(std::function<std::optional<FrontendInviteNotice>()> query,std::function<bool(bool)> action) {
     party_notice_=std::move(query);party_notice_action_=std::move(action);
   }
@@ -45,13 +51,15 @@ private:
   Renderer *renderer_{};
   std::function<std::string(unsigned)> audio_layout_;
   SDL_Cursor *previous_cursor_{},*hand_cursor_{};
-  bool campaign_{},visible_{},quit_{};
+  bool campaign_{},online_match_{},visible_{},quit_{};
   bool await_release_{};
   std::int32_t input_instance_=-1;
   unsigned screen_{};
   std::uint32_t entered_{};
   std::uint32_t axis_repeat_{};
   std::function<std::string(GamePauseAction)> command_;
+  std::function<std::optional<GamePauseTeams>(std::int32_t)> teams_;
+  std::function<std::string(std::int32_t,std::int16_t)> change_team_;
   std::function<std::optional<FrontendInviteNotice>()> party_notice_;
   std::function<bool(bool)> party_notice_action_;
   std::optional<FrontendInviteNotice> drawn_notice_;

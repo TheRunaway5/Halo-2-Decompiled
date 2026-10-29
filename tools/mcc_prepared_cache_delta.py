@@ -13,7 +13,6 @@ from collections import Counter
 import copy
 import csv
 import ctypes
-import fcntl
 import json
 import os
 from pathlib import Path
@@ -34,6 +33,11 @@ from mcc_movies import _cancellation
 from mcc_multiplayer_catalog import (apply_catalog_plan, bitmap, digest,
                                      plan_catalog)
 from prepare_mcc_gameplay import PROFILE, save_changed_cache, write_json
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 SCHEMA = "H2_MCC_PREPARED_CACHE_DELTA_V1"
 FICLONE = 0x40049409
@@ -76,6 +80,7 @@ def _snapshot_sha(entries):
 
 
 def _clone_tree(source, stage, snapshot):
+    require(fcntl is not None, "incremental derivation requires Linux FICLONE")
     files, logical_bytes = 0, 0
     for name, identity in snapshot.items():
         if name == ".":
@@ -107,6 +112,11 @@ def _clone_tree(source, stage, snapshot):
 
 
 def _publish(stage, destination):
+    if os.name == "nt":
+        # Windows rename refuses an existing destination, including an empty
+        # directory. Normal import reuses this publication helper only.
+        os.rename(stage, destination)
+        return
     # rename(2) may replace an existing empty directory. RENAME_NOREPLACE also
     # closes that final race and leaves any concurrent destination untouched.
     libc = ctypes.CDLL(None, use_errno=True)
@@ -121,6 +131,7 @@ def _publish(stage, destination):
 
 def _transaction(source, destination, convert, progress=lambda message: None):
     """Own the unpublished clone; an exception can never alter an existing cache."""
+    require(sys.platform.startswith("linux"), "incremental derivation requires Linux FICLONE")
     source = _directory(source)
     raw = Path(destination).absolute()
     require(raw.name not in ("", ".", ".."), "invalid destination")

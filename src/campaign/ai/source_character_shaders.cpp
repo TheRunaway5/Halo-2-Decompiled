@@ -60,6 +60,10 @@ ShaderInput SourceCharacterShaderInputs::input(const Unit& unit,float seconds)co
             unit.vitality.dead,functions_,*tables_,name,seconds,names_);
     };
 }
+void SourceCharacterShaders::select_indexed(std::vector<Vertex>& vertices,std::vector<std::uint32_t>& ordinals,
+    const SourceModelShaderCollector& collector,const SourceModelShaderView& view)const {
+    resident_->select_indexed(vertices,ordinals,collector,view);
+}
 ObjectLightQueryContext SourceCharacterShaderInputs::light_query_context(const Unit& unit)const {
     auto context=lighting_;
     if(context.object_type==0)
