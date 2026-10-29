@@ -8273,3 +8273,19 @@ Evidence: [custom-mode acceptance](../build/test-results/custom-mode-cohort-2026
 
 - [x] Bounded semantic component work is tracked in the [native campaign engine checklist](CAMPAIGN_NATIVE_ENGINE_GOAL_CHECKLIST.md). Its checked milestones link independent original comparisons, meaningful mutants, compiler/sanitizer checks and owned-storage cleanup. The [sixth evidence checkpoint](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-6.json) records48 passed reports; later completed components retain their own linked receipts until the next aggregate.
 - [ ] Full campaign native-only engine closure remains open. Actual v5 Marine/Grunt behavior278460 and Johnson navigation1C9F10 still require complete parent composition; full HS/script scheduling, orders/action begin, speech/presentation, map/save lifecycle, co-op, missions and launcher qualification remain open. Imported tags/scripts consume native engine behavior; they do not replace missing algorithms. No selected runtime is promoted by component proof.
+
+
+### Split-screen tick-zero shadow startup crash (2026-10-28)
+
+- [x] Reproduce the exact installed-runtime 640×480 reference-guard error through the real MCC Split Screen profile/lobby/countdown/native handoff at 1280×720, with zero gameplay frames; confirm the missing nonzero-reference check in the installed binary and lock down the permanent regression.
+- [ ] Qualify and select a fresh immutable runtime containing the source correction, requiring that actual unbounded menu Start to submit frames and exit cleanly, plus launcher/loading/frontend and ordinary local multiplayer checks.
+
+[Diagnosis and regression scope](SPLITSCREEN_STARTUP_SHADOW_REFERENCE.md). Installed runtime `4bf0c86b3c41485193b431cf4f7da756` remains unchanged while delivery is pending. Private profiles/caches are disposable; no capture retention is requested.
+
+
+### Native player shadows across offline, System Link and ONLINE (2026-10-28)
+
+- [ ] Accept the current coherent Original/pStencil/Path Tracing matrix, including real raw-LAN and ONLINE host/joined native ownership, completed local-player GPU receipts, independent gameplay cadence and historical WORLD/depth consistency. The transport, recipient native owner, typed native timeline, scene/effects isolation and model-depth implementation are integrated; final linked/runtime evidence is pending. Preserve native fixed-shadow disabling for two to four local views.
+- [ ] Complete the all-25 prepared-MCC-map full archive/native restore census under the actual production shadow caps and verify disposable owner cleanup. The earlier offline 35-check and pixel controls remain bounded evidence for their earlier pinned source, not acceptance of these new changes.
+
+See [native player shadow status](PLAYER_SHADOWS_NATIVE.md). No launcher promotion is part of this work; the selected runtime and unrelated installed work remain unchanged.

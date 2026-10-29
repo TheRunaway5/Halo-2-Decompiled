@@ -16,6 +16,7 @@
 #include "halo2/native_campaign_camera_startup_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_control_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
+#include "halo2/native_tu15_render_camera_packet_binding.hpp"
 #include "halo2/native_campaign_level_transition_tu15.hpp"
 #include "halo2/native_campaign_scenario_lookup_tu15.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
@@ -423,6 +424,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::uint64_t utc_adjustment{};
     mutable std::recursive_mutex call_gate;
     std::uint64_t authority_backing_revision{};
+    const std::shared_ptr<const void> authority_backing_owner=std::make_shared<const unsigned char>(0);
     std::atomic<bool> publication_held{false};
     const void *publication_scope{};
     std::size_t public_calls{},execution_depth{};
@@ -1464,6 +1466,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(native_campaign_camera_reset_tu15_owns_entry(c.target)) {
             native_campaign_camera_reset_tu15_run(m,c.target,a,o);return;
+        }
+        if(native_tu15_render_camera_packet_owns_entry(c.target)) {
+            native_tu15_render_camera_packet_run(m,c.target,c.instruction,a,o);return;
         }
         if(native_campaign_camera_control_tu15_owns_entry(c.target)) {
             native_campaign_camera_control_tu15_run(m,c.target,a,o);return;
@@ -5707,6 +5712,10 @@ void PhysicsLiveWorldTu15::require_presentation_boundary() const {
 std::uint64_t PhysicsLiveWorldTu15::authority_backing_revision() const {
     std::lock_guard gate(impl_->call_gate);impl_->require_executor();
     return impl_->authority_backing_revision;
+}
+std::weak_ptr<const void> PhysicsLiveWorldTu15::authority_backing_owner() const {
+    std::lock_guard gate(impl_->call_gate);impl_->require_executor();
+    return impl_->authority_backing_owner;
 }
 bool PhysicsLiveWorldTu15::commit_authority(PreparedAuthority &&prepared) noexcept {
     if(!prepared.for_owner(*this) || std::this_thread::get_id()!=impl_->main_thread)return false;

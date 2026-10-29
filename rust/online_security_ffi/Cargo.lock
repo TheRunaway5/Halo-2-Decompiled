@@ -172,6 +172,7 @@ name = "halo2-online-security-ffi"
 version = "0.1.0"
 dependencies = [
  "halo2-online-protocol",
+ "serde_json",
 ]
 
 [[package]]

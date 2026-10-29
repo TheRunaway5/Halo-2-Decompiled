@@ -60,11 +60,6 @@ MultiplayerSnapshotProof SourceAuthorityHostProof::prove_snapshot(const LanClien
     if(!data_)throw FormatError("Missing validated host cut proof");
     return client.prove_snapshot(data_->host,data_->cut,origin);
 }
-MultiplayerOptions source_authority_options(const MultiplayerOptions &input){
-    MultiplayerOptions out;out.online_match=input.online_match;out.map=input.map;out.shared_maps=input.shared_maps;out.gameplay_xbe=input.gameplay_xbe;
-    out.bsp=input.bsp;out.variant=input.variant;out.starting_weapon=input.starting_weapon;out.session_random_seed=input.session_random_seed;
-    out.local_players=input.local_players;out.selected_teams=input.selected_teams;out.selected_profiles=input.selected_profiles;return out;
-}
 std::shared_ptr<MultiplayerPreparedWorld> SourceTerminalRecovery::prepare(const MultiplayerOptions &request,
     const SourceAuthorityRetainedWorld &saved,const OnlineMatchSession::TerminalObservation &observed) {
     const auto &session=request.online_match;

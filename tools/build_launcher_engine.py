@@ -683,8 +683,14 @@ def worker(args):
                    '--target', 'halo2_native', '--target', 'halo2_launcher',
                    '--target', 'halo2_title_launcher', '--target', 'halo2_onboarding',
                    '--target', 'shadow_array_swap_tu15_tests',
+                   '--target', 'multiplayer_tests', '--target', 'native_request_protocol_tests',
+                   '--target', 'frontend_custom_variant_settings_tests',
+                   '--target', 'frontend_custom_match_settings_tests',
+                   '--target', 'frontend_match_customization_tests',
                    '--filter', '^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
-                   'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap)$',
+                   'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap|native_mcc_split_screen_menu_startup|'
+                   'native_request_protocol|native_session_configuration|native_session_configuration_loading|native_custom_variant_settings|'
+                   'original_frontend_custom_match_settings|native_mcc_frontend_custom_match_settings|original_frontend_match_customization|native_mcc_frontend_match_customization)$',
                    '--jobs', str(args.jobs), '--test-jobs', '1',
                    '--config', configuration,
                    '--cmake-arg=-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=ON',
@@ -692,10 +698,12 @@ def worker(args):
                    '--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON',
                    '--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(root),
                    '--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(root),
+                   '--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=' + str(maps / default_map),
                    '--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF',
                    '--cmake-arg=-DHALO2_LAUNCHER_RUNTIME_DIR=' + str(destination),
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
-                   '--retain-report', 'engine-targets.txt']
+                   '--retain-report', 'engine-targets.txt',
+                   '--retain-report', 'multiplayer-menu-startup.json']
         # A present kit bank changes the actual loading path. Require its
         # submitted-frame handoffs and the fresh/reuse onboarding regressions
         # before a candidate can replace either selected launcher runtime.
@@ -771,6 +779,12 @@ def worker(args):
             report_sha256=digest(output/'validation/report.json'),
             build_only_report=str(build_output/'report.json'),
             build_only_report_sha256=digest(build_output/'report.json'))
+        menu_startup_path=output/'validation/evidence/multiplayer-menu-startup.json'
+        menu_startup=json.loads(menu_startup_path.read_text())
+        if menu_startup.get('passed') is not True or menu_startup.get('frames',0)<1:
+            raise RuntimeError('Engine qualification requires the real non-reference split-screen menu Start')
+        report['split_screen_menu_startup']=dict(passed=True,report=str(menu_startup_path),
+            report_sha256=digest(menu_startup_path),frames=menu_startup['frames'])
         # An active frozen cohort can predate CMake's custom-source target.
         # Asset delivery has its own current, pinned owner, so stage it through
         # this coordinator even when that older build did not create a bank.

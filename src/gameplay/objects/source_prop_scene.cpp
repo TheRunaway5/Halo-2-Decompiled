@@ -165,6 +165,7 @@ struct SourcePropScene::Impl {
     std::vector<MaterialBank> material_banks()const {
         if(!material_schema())throw FormatError("Source prop resident material schema changed");
         std::vector<MaterialBank> out;
+        if(effects_only)return out;
         for(const auto &slot:resident_materials)if(slot.environment&&slot.vertex==9) {
             const auto &material=mesh.materials[slot.material];
             out.push_back({slot.material,material.environment_pass,material.environment_pass->vertex_bank});
@@ -173,6 +174,7 @@ struct SourcePropScene::Impl {
     }
     bool material_owners(const std::vector<MaterialBank> &banks)const noexcept {
         if(!material_schema())return false;
+        if(effects_only)return banks.empty();
         std::size_t n{};
         for(const auto &slot:resident_materials)if(slot.environment&&slot.vertex==9) {
             if(n>=banks.size()||banks[n].material!=slot.material||!banks[n].pass||
@@ -192,6 +194,12 @@ struct SourcePropScene::Impl {
         return n==banks.size();
     }
 
+    bool effects_only{};
+    struct Fork {};
+    Impl(const Impl &s,Fork):cache(s.cache),collision(s.collision),mesh(s.mesh),lighting(s.lighting),surface(s.surface),
+        conversion(s.conversion),sh(s.sh),counts(s.counts),render_frame(s.render_frame),props(s.props),
+        prop_placements(s.prop_placements),nonrendered_placements(s.nonrendered_placements),
+        resident_materials(s.resident_materials),effects_only(true) {}
     Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool region_union)
         :cache(c),collision(cw),mesh(mesh),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
@@ -338,7 +346,7 @@ struct SourcePropScene::Impl {
         render_frame=frame;
         for(auto&p:props){
             if(!p.active || !p.visible)continue;
-            pose(p);p.geometry.update_banks(cache,p.world_nodes,sh,mesh);
+            pose(p);if(!effects_only)p.geometry.update_banks(cache,p.world_nodes,sh,mesh);
             p.query_state_valid=false;
         }
     }
@@ -395,6 +403,12 @@ struct SourcePropScene::PreparedData {
 };
 SourcePropScene::SourcePropScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,Mesh&mesh,
     const CollisionWorld&collision,bool source_regions):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_regions)){}
+SourcePropScene::SourcePropScene(std::unique_ptr<Impl> impl):impl_(std::move(impl)){}
+std::unique_ptr<SourcePropScene> SourcePropScene::fork()const {
+    if(impl_->executor!=std::this_thread::get_id() || impl_->mutating)
+        throw FormatError("Prop fork requires its completed foreground owner");
+    return std::unique_ptr<SourcePropScene>(new SourcePropScene(std::make_unique<Impl>(*impl_,Impl::Fork{})));
+}
 SourcePropScene::~SourcePropScene()=default;
 bool SourcePropScene::Checkpoint::valid()const noexcept {
     return data_&&!data_->owner.expired()&&data_->executor==std::this_thread::get_id();

@@ -10,6 +10,7 @@
 #include "halo2/source_scenery_idle_phase.hpp"
 #include "halo2/multiplayer_scene_runtime_values.hpp"
 #include "halo2/source_machine_scene.hpp"
+#include "halo2/source_prop_scene.hpp"
 #include "halo2/render_interpolation.hpp"
 #include <algorithm>
 #include <bit>
@@ -157,6 +158,68 @@ Counts verify(const std::filesystem::path &path) {
         <<" dynamic, "<<counts.unresolved<<" unresolved selections excluded explicitly, "<<counts.baked_vertices
         <<" exact source incident/RGB vertices, "<<counts.idle<<" admitted initial idle controllers\n";
     return counts;
+}
+void independent_effect_forks() {
+    Cache cache("assets/map-pack/maps/gemini.map");auto content=cache.load_content(0,true);
+    CollisionWorld collision(content.collision);Mesh mesh;
+    SourceSceneryScene scenery(cache,content.objects,0,mesh,collision);
+    SourceMachineScene machines(cache,content.objects,0,mesh,collision);
+    SourcePropScene props(cache,content.objects,0,mesh,collision);
+    SceneObjects objects(content,0);
+    unsigned borrowed_idle{},borrowed_birth{};
+    scenery.animation_frame([&](auto,auto,auto,auto,const auto&){++borrowed_idle;return 0.f;});
+    scenery.birth_query_capture([&](auto,auto,auto,auto,const auto&,auto){++borrowed_birth;});
+    auto latest=scenery.fork();auto latest_machines=machines.fork();auto latest_props=props.fork();
+    latest->animation_frame([](auto,auto,auto,auto,const auto&){return 0.f;});
+    const auto slots=mesh.materials.size(),vertices=mesh.vertices.size();
+    std::vector<const Material*> material_ids;std::vector<const Material*> pass_ids;
+    std::vector<const VertexProgramBank*> banks;
+    for(const auto &material:mesh.materials){material_ids.push_back(&material);
+        pass_ids.push_back(material.environment_pass.get());banks.push_back(material.environment_pass?material.environment_pass->vertex_bank.get():nullptr);}
+    require(!scenery.owns_checkpoint(latest->checkpoint()) && !latest->owns_checkpoint(scenery.checkpoint()),
+        "SCEN fork reused the historical checkpoint capability");
+    require(!machines.owns_checkpoint(latest_machines->checkpoint()) && !latest_machines->owns_checkpoint(machines.checkpoint()),
+        "MACH fork reused the historical checkpoint capability");
+    require(!props.owns_checkpoint(latest_props->checkpoint()) && !latest_props->owns_checkpoint(props.checkpoint()),
+        "BLOC fork reused the historical checkpoint capability");
+    latest->synchronize(objects);latest_machines->synchronize(objects);latest_props->synchronize(objects);
+    latest->update_pose(45,45,mesh);latest_machines->update_pose(45,45,mesh);latest_props->update_pose(45,mesh);
+    require(borrowed_idle==0 && borrowed_birth==0,"Effects fork invoked historical callback state");
+    scenery.synchronize(objects);machines.synchronize(objects);props.synchronize(objects);
+    scenery.update_pose(32,32,mesh);machines.update_pose(32,32,mesh);props.update_pose(32,mesh);
+    const auto snapshot=[](const auto &owners) {
+        std::vector<std::byte> words;
+        const auto append=[&](auto bytes){words.insert(words.end(),bytes.begin(),bytes.end());};
+        for(const auto &owner:owners){append(std::as_bytes(std::span(&owner.object,1)));
+            append(std::as_bytes(std::span(&owner.created_tick,1)));append(std::as_bytes(owner.nodes));
+            append(std::as_bytes(owner.permutations));}
+        return words;
+    };
+    const auto original_scenery=scenery.effect_owners(),original_machines=machines.effect_owners(),original_props=props.effect_owners();
+    const auto scenery_words=snapshot(original_scenery),machine_words=snapshot(original_machines),prop_words=snapshot(original_props);
+    require(!original_scenery.empty() && !original_machines.empty(),"Independent timeline fixture lost actual Gemini SCEN/MACH owners");
+    latest->update_pose(46,46,mesh);latest_machines->update_pose(46,46,mesh);latest_props->update_pose(46,mesh);
+    require(scenery.effect_owners().size()==original_scenery.size() && machines.effect_owners().size()==original_machines.size() &&
+        props.effect_owners().size()==original_props.size(),"Latest effects changed historical owner sets");
+    require(snapshot(scenery.effect_owners())==scenery_words && snapshot(machines.effect_owners())==machine_words &&
+        snapshot(props.effect_owners())==prop_words,"Latest effects changed historical WORLD/permutation words");
+    scenery.update_pose(33,33,mesh);machines.update_pose(33,33,mesh);
+    bool scenery_rejected=false,machine_rejected=false;
+    try{scenery.update_pose(31,31,mesh);}catch(const FormatError&){scenery_rejected=true;}
+    try{machines.update_pose(31,31,mesh);}catch(const FormatError&){machine_rejected=true;}
+    require(scenery_rejected&&machine_rejected,"Independent fork relaxed original rewind guards");
+    require(mesh.materials.size()==slots && mesh.vertices.size()==vertices,"Timeline fork appended GPU slots or mesh geometry");
+    for(std::size_t n=0;n<mesh.materials.size();++n){require(&mesh.materials[n]==material_ids[n],"Timeline fork relocated material IDs");
+        const auto &pass=mesh.materials[n].environment_pass;
+        require(pass.get()==pass_ids[n],"Timeline fork replaced resident pass identity");
+        // Capture after the original update: latest-only stepping must leave
+        // its just-published PRT bank untouched.
+        banks[n]=pass?pass->vertex_bank.get():nullptr;
+    }
+    latest_machines->update_pose(47,47,mesh);latest_props->update_pose(47,mesh);latest->update_pose(47,47,mesh);
+    for(std::size_t n=0;n<mesh.materials.size();++n){const auto &pass=mesh.materials[n].environment_pass;
+        require((pass?pass->vertex_bank.get():nullptr)==banks[n],"Effects fork overwrote historical resident PRT banks");}
+    std::cout<<"PASS independent prepared SCEN/MACH/BLOC effects forks: latest45/46/47 versus native32/33, separate callback/checkpoint owners, original rewind rejection and unchanged GPU slots/pass/bank identities\n";
 }
 void prepared_scenery_birth() {
     Cache cache("assets/disc/maps/ascension.map");auto content=cache.load_content(0,true);
@@ -570,11 +633,12 @@ void callback_auxiliary_values() {
 }
 int main(int argc,char **argv) {
     try {
+        if(argc==2 && std::string_view(argv[1])=="--fork-effects-only"){independent_effect_forks();return 0;}
         Counts total;
         const auto add=[&](const auto &path){const auto c=verify(path);total.models+=c.models;total.baked+=c.baked;
             total.dynamic+=c.dynamic;total.unresolved+=c.unresolved;total.streams+=c.streams;total.baked_vertices+=c.baked_vertices;total.idle+=c.idle;};
         if(argc==2)add(std::filesystem::path(argv[1]));else {
-            prepared_scenery_birth();lifetime_inputs();animation_input();checkpoint_roundtrip();callback_auxiliary_values();
+            independent_effect_forks();prepared_scenery_birth();lifetime_inputs();animation_input();checkpoint_roundtrip();callback_auxiliary_values();
             for(const auto *map:{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron",
                 "foundation","headlong","lockout","midship","waterworks","zanzibar"})
                 add(std::filesystem::path("assets/disc/maps")/(std::string(map)+".map"));

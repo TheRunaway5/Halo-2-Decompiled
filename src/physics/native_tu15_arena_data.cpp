@@ -35,6 +35,9 @@ void mount_native_tu15_arena_data(SourceRuntimeMemory& memory) {
     cold(memory,0x4f2958u,4,"native TU1.5 loader-zeroed opposite-end arena allocation cursor");
     cold(memory,0x4f295cu,4,"native TU1.5 cold game arena checksum");
     cold(memory,0x4f2964u,4,"native TU1.5 cold game arena storage binding");
+    // Separate BYTE in the original .data zero-filled tail.126820 clears it,
+    //126C8C sets it, and the view producer consumes/clears it at229BC7/229BB4.
+    cold(memory,0x4f2968u,1,"native TU1.5 cold arena state-change view flag");
     cold(memory,0x50ebb0u,1,"native TU1.5 cold physical suballocation active flag");
     cold(memory,0x50ebb4u,2*4,"native TU1.5 cold physical suballocation address and size");
     cold(memory,0x50ebccu,1,"native TU1.5 cold savegame files initialized flag");

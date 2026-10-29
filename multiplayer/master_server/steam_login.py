@@ -412,7 +412,7 @@ class SteamLogin:
             from .friend_tags import assign
             assign(self.db,target)
         if old and discord:
-            self.directory.clans.sessions = {k: s for k, s in self.directory.clans.sessions.items() if s.player != old}
+            self.directory.clans.revoke_player(old)
         self.directory.voice_blocks.subjects.clear()
         return web.json_response({"state": "linked"}, headers={"Cache-Control": "no-store"})
 

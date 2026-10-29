@@ -23,6 +23,10 @@ template<class F>void wait(F ready,const char *stage){const auto end=std::chrono
     while(!ready()){check(std::chrono::steady_clock::now()<end,stage);std::this_thread::sleep_for(2ms);}}
 std::vector<std::byte> game(unsigned self,bool host){return {std::byte{'H'},std::byte{'2'},std::byte{'N'},std::byte{'2'},
     std::byte(native_multiplayer_protocol),std::byte(native_multiplayer_protocol>>8),std::byte(host?3:1),std::byte(self)};}
+std::vector<std::byte> forwarded_voice_preferences(unsigned source){return {
+    std::byte{'H'},std::byte{'2'},std::byte{'N'},std::byte{'2'},
+    std::byte(native_multiplayer_protocol),std::byte(native_multiplayer_protocol>>8),
+    std::byte{6},std::byte{2},std::byte{1},std::byte{0},std::byte{0},std::byte(source)};}
 }
 int main(int argc,char **argv)try{
     check(argc==3,"Supply ORIGIN PRIVATE_DESCRIPTORS_FILE");Json descriptors;{std::ifstream in(argv[2]);in>>descriptors;}
@@ -43,7 +47,7 @@ int main(int argc,char **argv)try{
         sessions[self]=std::make_unique<OnlineMatchSession>(argv[1],d.at("id"),d.at("token"),self,roster,true,false,false,options);
         if(decoded_audio){devices[self]=std::make_shared<test::VoiceQueueState>();devices[self]->capture(true);
             audio[self]=std::make_shared<GameVoice>(std::make_unique<test::QueuedVoiceDevices>(devices[self]));
-            audio[self]->enable(true);audio[self]->mute(15,true);audio[self]->blocks(1u<<14);sessions[self]->retain_voice(audio[self]);}}
+            audio[self]->enable(true);audio[self]->mute(15,true);audio[self]->blocks(1u<<14);}}
     const auto healthy=[&]{for(unsigned p=0;p<16;++p)if(auto &s=sessions[p]){
         check(s->phase()!=OnlineMatchSession::Phase::Failed,s->error().c_str());
         if(audio[p])check(audio[p]->snapshot().error.empty(),audio[p]->snapshot().error.c_str());}};
@@ -84,16 +88,20 @@ int main(int argc,char **argv)try{
     unsigned attacker=0;while(attacker==host || !sessions[attacker])++attacker;
     if(decoded_audio)check(old_microphone[attacker].has_value(),"Real attacker capture baseline was not observed");
     check(old_received[attacker]&&old_received[attacker]->source==host&&old_received[attacker]->origin_signature,
-        "Wrong-seat replay lacks the host's independently signed delivered voice frame");
+        "Initial host voice lacks its independently signed delivered frame");
     auto baseline=decoded_audio?*old_microphone[attacker]:GameVoiceFrame{attacker,0,false,{1,1},{0x60}};
+    const auto forwarded_preferences=forwarded_voice_preferences(host);
+    Json voice_rejection_controls=Json::array();
     for(unsigned attack=0;attack<2;++attack){
         auto poison=baseline,control=baseline;poison.sequence=0xff000100u+attack;control.sequence=0xff000110u+attack;
-        // voice() correctly refuses to sign a foreign speaker locally. Replay
-        // the actual host-signed body through this different authenticated PC
-        // so origin verification succeeds and the receiver's seat check runs.
-        if(attack==0)poison=*old_received[attacker];
-        else poison.gains.left=std::numeric_limits<float>::infinity();
+        // The normal voice API signs only this PC's own speaker. Send the
+        // unauthorized forwarding claim as raw application bytes through this
+        // real authenticated DTLS peer; the receiver must reject subtype2.
+        // The second case uses a genuine own-speaker signature with an invalid
+        // gain, which must reach and fail the mandatory Rust voice decoder.
+        if(attack==1)poison.gains.left=std::numeric_limits<float>::infinity();
         const auto before=sessions[host]->rejected_direct_dispatches();bool valid_received=false;
+        unsigned healthy_control_packets=0;
         auto heartbeat=std::chrono::steady_clock::now();
         wait([&]{
             healthy();
@@ -101,21 +109,88 @@ int main(int argc,char **argv)try{
                 for(unsigned p=0;p<16;++p)if(p!=host&&sessions[p])sessions[host]->send(game(host,true),p);
                 heartbeat=std::chrono::steady_clock::now()+20ms;
             }
-            sessions[attacker]->voice(host,poison);sessions[attacker]->voice(host,control);
+            if(attack==0)sessions[attacker]->send(forwarded_preferences,host);
+            else sessions[attacker]->voice(host,poison);
+            sessions[attacker]->voice(host,control);
             for(auto &packet:sessions[host]->voice_packets()){
+                check(!packet.preferences,"Unauthorized forwarded voice preferences reached its consumer");
                 check(packet.frame.source!=poison.source||packet.frame.sequence!=poison.sequence,
-                    "Authenticated wrong-seat/malformed voice reached its consumer");
+                    "Authenticated malformed voice reached its consumer");
                 if(packet.frame.sequence==control.sequence){
                     check(!packet.preferences&&packet.peer==attacker&&packet.frame.source==attacker&&packet.frame.origin_signature,
-                        "Valid voice control lost its actual authenticated sender");valid_received=true;
+                        "Valid voice control lost its actual authenticated sender");valid_received=true;++healthy_control_packets;
                 }
             }
             return valid_received&&sessions[host]->rejected_direct_dispatches()>before;
         },"Actual malicious voice rejection or healthy control was not observed");
+        voice_rejection_controls.push_back({
+            {"case",attack==0?"authenticated_unauthorized_forwarded_preferences":"signed_nonfinite_gain"},
+            {"physical_sender",attacker},{"recipient",host},{"claimed_source",attack==0?host:attacker},
+            {"healthy_audio_sequence",control.sequence},{"healthy_audio_packets",healthy_control_packets},
+            {"healthy_audio_delivered",valid_received},{"rejected_before",before},
+            {"rejected_after",sessions[host]->rejected_direct_dispatches()}});
     }
     // Retire only the synthetic high-sequence controls before ordinary audio
     // resumes; they must not poison a real decoder's sequencing baseline.
     std::this_thread::sleep_for(40ms);sessions[host]->voice_packets();
+    // Receiver authorization controls run before session retention. The same
+    // four live devices already supplied their real generation0 PCM/Opus; raw
+    // application controls now reach DTLS without bypassing a retained-media
+    // generation fence. Attach those owners only after both strict controls.
+    Json retained_audio_controls=Json::array();
+    if(decoded_audio){
+        stage="retain real audio owners";
+        std::array<test::VoiceQueueState::Snapshot,16> before_retention{};
+        std::array<std::uint64_t,16> before_microphone_generation{},before_received_generation{};
+        unsigned retained_owners{};
+        for(unsigned p=0;p<16;++p)if(sessions[p]){
+            check(audio[p]&&devices[p]&&!sessions[p]->retained_voice(),"Receiver controls unexpectedly used a retained audio owner");
+            check(old_microphone[p]&&old_received[p],"Initial real microphone/received baselines were not observed");
+            before_microphone_generation[p]=old_microphone[p]->delivery_generation;
+            before_received_generation[p]=old_received[p]->delivery_generation;
+            check(before_microphone_generation[p]==0&&before_received_generation[p]==0,
+                "Receiver controls did not use their actual unretained generation");
+            before_retention[p]=devices[p]->snapshot();const auto &d=before_retention[p];
+            check(d.starts==1&&d.stops==0&&d.discards==0&&d.captures>0&&d.audible>0,
+                "Real PCM/Opus devices did not run before audio retention");
+            sessions[p]->retain_voice(audio[p]);
+            check(sessions[p]->retained_voice()==audio[p],"Session did not retain the same live audio owner");
+            old_microphone[p].reset();old_received[p].reset();++retained_owners;
+        }
+        check(retained_owners==4,"Audio retention changed the four physical device owners");
+        stage="fresh retained audio generation";
+        wait([&]{
+            exercise(100ms);
+            for(unsigned p=0;p<16;++p)if(sessions[p]){
+                const auto d=devices[p]->snapshot();
+                check(sessions[p]->retained_voice()==audio[p]&&d.starts==1&&d.stops==0,
+                    "Audio retention replaced or reopened a live device owner");
+                if(!old_microphone[p]||!old_received[p])return false;
+                const auto &microphone=*old_microphone[p],&received=*old_received[p];
+                if(!microphone.delivery_generation||received.delivery_generation!=microphone.delivery_generation||
+                    !audio[p]->ready(microphone.delivery_generation)||d.discards<=before_retention[p].discards||
+                    d.captures<=before_retention[p].captures||d.audible<=before_retention[p].audible+3)return false;
+            }
+            return true;
+        },"Retained audio did not retire and resume real microphone/decoded PCM with fresh generation baselines");
+        for(unsigned p=0;p<16;++p)if(sessions[p]){
+            const auto d=devices[p]->snapshot();const auto &prior=before_retention[p];
+            const auto &microphone=*old_microphone[p],&received=*old_received[p];
+            check(!microphone.opus.empty()&&microphone.opus.size()<=256&&!received.opus.empty()&&received.opus.size()<=256&&
+                received.origin_signature,"Refreshed retained baselines lost actual Opus or authenticated reception");
+            const auto selected=audio[p]->snapshot();
+            check(selected.enabled&&selected.muted==(1u<<15)&&selected.blocked==(1u<<14),
+                "Initial audio retention lost voice preferences");
+            retained_audio_controls.push_back({{"physical_peer",p},{"same_live_owner_retained",sessions[p]->retained_voice()==audio[p]},
+                {"before_microphone_generation",before_microphone_generation[p]},{"before_received_generation",before_received_generation[p]},
+                {"microphone_generation",microphone.delivery_generation},{"received_generation",received.delivery_generation},
+                {"retirement_ready",audio[p]->ready(microphone.delivery_generation)},
+                {"microphone_opus_bytes",microphone.opus.size()},{"received_opus_bytes",received.opus.size()},
+                {"received_origin_signature",bool(received.origin_signature)},
+                {"captures_before",prior.captures},{"captures_after",d.captures},{"audible_before",prior.audible},{"audible_after",d.audible},
+                {"discards_before",prior.discards},{"discards_after",d.discards},{"device_starts",d.starts},{"device_stops",d.stops}});
+        }
+    }
     Json history=Json::array();
     for(unsigned round=0;round<2;++round){stage="prepare handoff "+std::to_string(round+1);const auto before=*sessions[host]->authority_context();unsigned candidate=16;
         for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host){candidate=p;break;}
@@ -287,11 +362,12 @@ int main(int argc,char **argv)try{
         history.push_back({{"host",host},{"epoch",next.epoch},{"physical_members",next.peers},{"seats",4}});
     }
     Json result{{"handoffs",history},{"native_cut_and_role_completion","declared fixture"},{"game_counts",games},{"voice_packet_counts",voices},
-        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_peer_proposals",true},{"native_commit_callback_guard",true},{"automatic_rendered_runtime",false},{"authenticated_voice_rejection",true}};
+        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_peer_proposals",true},{"native_commit_callback_guard",true},{"automatic_rendered_runtime",false},{"authenticated_voice_rejection",true},{"voice_rejection_controls",voice_rejection_controls},{"retained_audio_generation_controls",retained_audio_controls}};
     {std::ofstream out(std::filesystem::path(argv[2]).parent_path()/"result.json");out<<result.dump(2);}
     std::cout<<"PASS four actual native session workers: two host socket/signaling losses, direct majority decisions, native-completion barriers, preserved 16 original allocation identities, 16/12/8 couch seats and resumed gameplay/encoded voice packets\n";
+    if(decoded_audio)std::cout<<"PASS same four live audio owners: actual generation0 receiver controls, nonzero worker retirement, fresh microphone/received Opus and resumed decoded PCM before both host losses\n";
     if(decoded_audio)std::cout<<"PASS real Opus/PCM through queued synthetic devices: in-flight playback holds native completion, retired old audio queues, late microphone/received-batch rejection, preserved voice preferences, resumed decoded stereo and retained device ownership across both host losses\n";
-    std::cout<<"PASS authenticated wrong-seat and non-finite voice rejection observed in dispatch, with healthy voice controls delivered\n";
+    std::cout<<"PASS authenticated unauthorized forwarded-preferences and signed non-finite voice rejection observed in dispatch, with healthy signed voice controls delivered\n";
     if(automatic)std::cout<<"PASS automatic ready-PC preference from reciprocal survivor measurements after predecessor telemetry expires across two host losses, then a sole physical survivor without invented speed/NAT metrics\n";
     std::cout<<"PASS session-worker election initiation and paced retries without any positive caller proposal\n";
     std::cout<<"PASS native commit admission/audio guards, refusal without epoch publication, one successful commit before publication and no repeated old-certificate commit\n";

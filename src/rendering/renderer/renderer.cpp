@@ -384,6 +384,7 @@ struct Renderer::Impl {
     std::array<std::vector<VkDescriptorSet>,4> camouflage_descriptors;
     std::array<std::unique_ptr<SourceSceneCopyGpu>,4> camouflage_copies;
     std::vector<bool> texture_camera_materials;
+    bool texture_camera_scene_required{};
     std::array<std::vector<VkDescriptorSet>,2> texture_camera_descriptors;
     std::array<std::unique_ptr<SourceSceneCopyGpu>,2> texture_camera_copies;
     std::array<SourceSceneCopyGpuBinding,2> texture_camera_bindings{};
@@ -2980,7 +2981,7 @@ struct Renderer::Impl {
             method==Upscaler::Off && settings.internal_height?settings.internal_height:presentation_extent.height,method,settings.upscaling_quality):
             std::pair{presentation_extent.width,presentation_extent.height};
         extent={render_size.first,render_size.second};
-        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer ||
+        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer || texture_camera_scene_required ||
             std::any_of(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),[](bool x){return x;}) ||
             std::any_of(texture_camera_materials.begin(),texture_camera_materials.end(),[](bool x){return x;}) ||
             extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
@@ -9515,6 +9516,10 @@ SourceTextureCameraNativeTargetsTu15 Renderer::prepare_texture_camera_targets(
     const auto device=device_lease().acquire();
     if(std::this_thread::get_id()!=impl_->renderer_executor)
         throw FormatError("Texture camera preparation requires its actual renderer owner thread");
+    // The producer can request a readable scene before any camera-textured
+    // material is drawn. Realize its actual color attachment at native
+    // resolution too, and retain that requirement across target recreation.
+    if(!impl_->texture_camera_scene_required){impl_->texture_camera_scene_required=true;impl_->dirty=true;}
     if(!impl_->frame_has_game_world){impl_->frame_has_game_world=true;impl_->dirty=true;}
     const auto display=*impl_->shared_display;
     if(display.internal_width!=impl_->active_internal_width || display.internal_height!=impl_->active_internal_height ||

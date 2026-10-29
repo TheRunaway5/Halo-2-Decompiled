@@ -44,6 +44,9 @@ public:
     SourceMachineScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
                        Mesh &,const CollisionWorld &,bool source_resource_defer=false);
     ~SourceMachineScene();
+    // Independent effects-only presentation over the exact prepared material IDs.
+    // No resource reload, Mesh/pass writes, callback aliases or checkpoint sharing.
+    std::unique_ptr<SourceMachineScene> fork()const;
     SourceMachineScene(SourceMachineScene &&) noexcept;
     SourceMachineScene &operator=(SourceMachineScene &&) noexcept;
     SourceMachineScene(const SourceMachineScene &)=delete;
@@ -129,6 +132,7 @@ public:
     std::span<const SourceMachineResourceBoundary> deferred_resource_owners() const;
 private:
     struct Impl;
+    explicit SourceMachineScene(std::unique_ptr<Impl>);
     std::unique_ptr<Impl> impl_;
 };
 } // namespace halo2

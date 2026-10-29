@@ -51,6 +51,9 @@ public:
     SourcePropScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
                     Mesh &,const CollisionWorld &,bool source_region_union = false);
     ~SourcePropScene();
+    // Independent effects-only presentation over the exact prepared material IDs.
+    // No resource reload, Mesh/pass writes, callback aliases or checkpoint sharing.
+    std::unique_ptr<SourcePropScene> fork()const;
     SourcePropScene(SourcePropScene &&) noexcept;
     SourcePropScene &operator=(SourcePropScene &&) noexcept;
     SourcePropScene(const SourcePropScene &)=delete;
@@ -138,6 +141,7 @@ public:
     const SourcePropSceneStats &stats() const;
 private:
     struct Impl;
+    explicit SourcePropScene(std::unique_ptr<Impl>);
     std::unique_ptr<Impl> impl_;
 };
 }

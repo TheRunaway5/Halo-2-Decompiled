@@ -36,6 +36,7 @@ pub mod matchmaking_coordinator;
 pub mod matchmaking_skill;
 pub mod matchmaking_persistence;
 pub mod matchmaking_party_directory;
+pub mod matchmaking_accounts;
 pub mod matchmaking_packet_budget;
 
 const MAGIC: &[u8; 4] = b"H2N2";

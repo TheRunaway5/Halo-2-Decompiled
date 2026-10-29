@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Lower twenty-six complete authenticated TU1.5 texture-camera CPU producer bodies.
+"""Lower twenty-five authenticated TU1.5 texture-camera CPU producer bodies.
 
 The generated C++ preserves all original branches/calls and floating-point
 semantics. It neither allocates GPU targets nor supplies object/marker/script
 engine results. Rendering, copy completion and view scheduling are separate.
+The retired2F7E0 packet helper is an external native required-owner boundary;
+its null-observer default projection remains an explicit unqualified capability.
 """
 import argparse,json,sys
 from pathlib import Path
 from types import SimpleNamespace
 
-ENTRIES=(0x255c0,0x255e0,0x256d0,0x25800,0x25940,0x2acc20,0x2acc70,0x229a90,0x2f5e0,0x2f620,0x2f690,0x2f7e0,0x2c470,0x14cd8d,0x14cd61,0x14aa8c,0x23590b,0x2b770,0x2b9f0,0x2b700,0x2f950,0x2fb50,0x2fd70,0x3d2b0,0x3ea50,0x13c00)
+ENTRIES=(0x255c0,0x255e0,0x256d0,0x25800,0x25940,0x2acc20,0x2acc70,0x229a90,0x2f5e0,0x2f620,0x2f690,0x2c470,0x14cd8d,0x14cd61,0x14aa8c,0x23590b,0x2b770,0x2b9f0,0x2b700,0x2f950,0x2fb50,0x2fd70,0x3d2b0,0x3ea50,0x13c00)
 CALLS=((0x2acc20,0x2acc54,0x255e0),(0x25800,0x25819,0x256d0),
        (0x256d0,0x257d1,0x255c0),(0x229ef0,0x22a000,0x229a90),
        (0x229a90,0x229b44,0x2f5e0),(0x229a90,0x229b5f,0x2f620),
        (0x229a90,0x229b7d,0x2f690),(0x229a90,0x229b95,0x2f7e0),
+       (0x229a90,0x229c30,0x2f7e0),
        (0x229a90,0x229b9e,0x2c470),(0x229a90,0x229acf,0x14cd8d),
        (0x2b770,0x2b94f,0x2b9f0),(0x2b9f0,0x2bbfb,0x132b0),(0x2b9f0,0x2bab7,0x2fd70),(0x2fd70,0x2fd79,0x2fb50),(0x13c00,0x13c40,0x132b0),(0x14cd8d,0x14cd8d,0x14cd61),(0x14cd61,0x14cd78,0x14aa8c),(0x14aa8c,0x14aa9a,0x23590b))
 
@@ -64,6 +67,20 @@ def main():
     text=text.replace('halo2/physics_live_support_tu15.hpp','halo2/source_texture_camera_producer_tu15.hpp')
     text=text.replace('source_run_physics_live_support_tu15','source_run_texture_camera_producer_tu15')
     text=text.replace('source_physics_live_support_tu15_owns_entry','source_texture_camera_producer_tu15_owns_entry')
+    # With2F7E0 absent fromENTRIES, both authenticated CALLs naturally use
+    # the existing external dispatch's required-owner transport. Never emit
+    # its former lifted helper or silently restore the null default profile.
+    if 'run_2f7e0' in text or 0x2f7e0 in ENTRIES:
+        raise ValueError('Retired2F7E0 was reintroduced as a local lifted helper')
+    camera_packet_boundaries=[]
+    for site in (0x229b95,0x229c30):
+        if not any(row['site']==f'{site:08x}' and row['target']=='0002f7e0' for row in external):
+            raise ValueError('Authenticated native camera packet boundary was not externalized')
+        ins=code.at(site)
+        camera_packet_boundaries.append(dict(site=f'{site:08x}',target='0002f7e0',
+            original_bytes=ins.bytes.hex(),original_return=f'{site+ins.size:08x}',
+            transport='existing external dispatch -> required_owner',
+            null_default_projection_qualified=False))
     original_call='if(s.services.instruction){s.services.instruction(0x258f7u);} s.push(0x258f7u,0x258fcu);run_25940(s);'
     required_call='if(s.services.instruction){s.services.instruction(0x258f7u);} s.push(0x258f7u,0x258fcu);s.required(0x258f7u,0x25940u,false);'
     ins=code.at(0x258f7)
@@ -106,6 +123,7 @@ def main():
         admitted_original_entries=[f'{p:08x}' for p in ENTRIES if p not in hidden],
         private_typed_prefix_entries=[f'{p:08x}' for p in hidden],
         authenticated_caller_chain=[dict(owner=f'{p:08x}',site=f'{q:08x}',target=f'{r:08x}') for p,q,r in CALLS],
+        retired_native_packet_helper='0002f7e0',native_packet_boundaries=camera_packet_boundaries,
         required_native_boundary=dict(site='000258f7',target='00025940',original_bytes='e844000000',original_return='000258fc',arithmetic_or_call_ABI_changed=False,scope='Required native owner only; no-capture World dispatch executes the same complete local25940 body'),
         external_engine_calls=external,source_tools_root=str(source),source_scope=__doc__,
         GPU_allocation_or_rendering_supplied=False,runtime_opcode_decode_or_interpretation=False)

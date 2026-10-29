@@ -8,6 +8,7 @@ void equal(Owner &a,Owner &b){check(encode_source_authority(a.authority->checkpo
     encode_source_authority(b.authority->checkpoint(binding)),"Shadow-storage replay changed the complete coupled world");}
 void restore(Owner &a,Owner &b){
     auto &world=b.world->tu15_world();const auto revision=world.authority_backing_revision();
+    const auto owner=world.authority_backing_owner();
     const auto saved=a.authority->checkpoint(binding);
     {auto cancelled=b.authority->prepare(saved,binding);
         check(world.authority_backing_revision()==revision,"Unpublished preparation changed the backing revision");}
@@ -15,6 +16,9 @@ void restore(Owner &a,Owner &b){
     auto prepared=b.authority->prepare(saved,binding);
     check(b.authority->commit(std::move(prepared)),"Shadow-storage replay repair failed");
     check(world.authority_backing_revision()==revision+1,"Successful native bank publication did not retire renderer bindings");
+    const auto after=world.authority_backing_owner();
+    check(!owner.expired() && !owner.owner_before(after) && !after.owner_before(owner),
+        "Native bank publication replaced the independent world lifetime identity");
     equal(a,b);
 }
 }
@@ -22,6 +26,11 @@ int main(int argc,char **argv)try {
     if(argc!=3||!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[2]))return 77;
     const std::array<unsigned,4> locals{0,1,2,3};
     Owner host(argv[1],argv[2],locals,1000),replica(argv[1],argv[2],locals,900000);
+    const auto host_owner=host.world->tu15_world().authority_backing_owner();
+    const auto replica_owner=replica.world->tu15_world().authority_backing_owner();
+    check(!host_owner.expired() && !replica_owner.expired() &&
+        (host_owner.owner_before(replica_owner) || replica_owner.owner_before(host_owner)),
+        "Independent native worlds reused the same renderer lifetime identity");
     // Freeze the explicitly injected profiling clock for the read-only
     // invariant. Normal fixture clocks advance on every sampling operation,
     // including a checkpoint; no archive fields are normalized for comparison.

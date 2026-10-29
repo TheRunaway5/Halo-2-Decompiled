@@ -318,6 +318,11 @@ class EnginePromotionTests(unittest.TestCase):
             validation_not_run=build_only,
             steps=[dict(name=name,exit_code=0) for name in
                    (('configure','build') if build_only else ('configure','build','tests'))])))
+        if not build_only:
+            evidence=output/'evidence/multiplayer-menu-startup.json'
+            evidence.parent.mkdir(exist_ok=True)
+            evidence.write_text(json.dumps(dict(passed=True,frames=1,
+                scope='Synthetic promotion-policy fixture; no gameplay claim')))
         return subprocess.CompletedProcess(command, 0)
 
     def attempt(self, case, build=None, *, reader=None):
@@ -352,15 +357,48 @@ class EnginePromotionTests(unittest.TestCase):
         self.assertEqual(filters[0],filters[1])
         for name in ['original_loading_gpu','original_loading_gpu_4_3','h2ek_loading_onboarding',
                      'bundled_loading_ambience','native_vista_loading_adapter','original_vista_loading','original_vista_loading_thread',
-                     'launcher_engine_promotion','native_frontend_launcher_routing']:
+                     'launcher_engine_promotion','native_frontend_launcher_routing',
+                     'native_mcc_split_screen_menu_startup']:
             self.assertIn(name,filters[1])
+        self.assertIn('multiplayer-menu-startup.json',commands[1])
         report=json.loads((self.args.output/'report.json').read_text())
         runtime=self.root/report['runtime']
         self.assertTrue(report['qualified_candidate'])
         self.assertEqual(engine.digest(runtime.parent/'shaders/production-shaders.json'),staged_hashes[0],
             'Packaging must retain the exact bank exercised by the required tests')
         self.assertTrue(report['validation']['passed'])
+        menu=report['split_screen_menu_startup']
+        self.assertTrue(menu['passed']);self.assertEqual(menu['frames'],1)
+        self.assertEqual(menu['report_sha256'],engine.digest(Path(menu['report'])))
         self.assertEqual(self.selection.read_bytes(),self.original_selection)
+
+    def test_missing_failed_or_zero_frame_menu_startup_cannot_promote(self):
+        for mode in ('missing','failed','zero_frames'):
+            with self.subTest(mode=mode):
+                def invalid_menu(command,**kwargs):
+                    result=self.build(command,**kwargs)
+                    if '--build-only' not in command:
+                        output=Path(command[command.index('--output')+1])
+                        evidence=output/'evidence/multiplayer-menu-startup.json'
+                        if mode=='missing': evidence.unlink()
+                        else:
+                            evidence.write_text(json.dumps(dict(
+                                passed=mode!='failed',frames=0 if mode=='zero_frames' else 1,
+                                scope='Synthetic rejected promotion-policy fixture; no gameplay claim')))
+                    return result
+                expected=FileNotFoundError if mode=='missing' else RuntimeError
+                with self.assertRaises(expected):
+                    self.attempt(dict(passed=True),invalid_menu)
+                self.assertEqual(self.selection.read_bytes(),self.original_selection)
+                for name,permissions in self.launcher_modes.items():
+                    self.assertEqual((self.root/name).read_text(),'previous launcher')
+                    self.assertEqual((self.root/name).stat().st_mode&0o777,permissions)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
+                report=json.loads((self.args.output/'report.json').read_text())
+                self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
+                self.assertEqual(report.get('smoke',[]),[])
+                self.assertNotIn('split_screen_menu_startup',report)
+                shutil.rmtree(self.scratch/'source')
 
     def test_build_only_receipt_cannot_replace_completed_qualification(self):
         def only_built(command,**kwargs):

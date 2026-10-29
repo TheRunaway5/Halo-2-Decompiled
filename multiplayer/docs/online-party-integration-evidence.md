@@ -2,6 +2,30 @@
 
 2026-10-11. Read-only investigation; this note is the only research output written. Source-backed gameplay/UI leaves are distinguished below from new Discord-account service policy. No live team match, microphone, WAN, retail Live backend or full party lifecycle is established by these controls.
 
+## Current Rust implementation update, 2026-10-28
+
+The investigation below preserves the October 11 baseline and its original
+evidence. Its missing-owner descriptions are historical. Current implementation
+and acceptance status are maintained in the
+[master parity audit](matchmaking-rust-parity-audit-20261028.md) and
+[gap ledger](matchmaking-rust-parity-gaps.json).
+
+`matchmaking_party_directory.rs` now owns accepted party membership,
+invitations, leadership, privacy, activity capabilities, request replay, SQL
+decisions and public party projections. It calls the actual Rust queue/session/
+consent/countdown owners through a bound native handle. Python executes typed
+HTTP, SQLite and shared provider IO. Activity capacity counts admitted local
+seats, and observing a full party revokes its old activity link before returning
+the rejection. This corrects the reproduced four-connections/sixteen-seats
+advertisement mismatch.
+
+The [party directory receipt](evidence/matchmaking-rust-parity-20261028/party-directory-validation.json)
+records authenticated API regressions, rollback and source-owner retirement
+checks. These remain native service policies. Original Live party wire/service
+recovery, account/clan ownership migration, cross-store recovery and full
+original/native played/delivered acceptance remain open. No PC/Vista evidence
+below substitutes for OG Xbox TU1.5 authority or actual delivered acceptance.
+
 ## Authority and immediate integration points
 
 PC addresses refer to the supplied [halo2.exe](../../Halo%202%20Vista%20installer/halo2.exe), image base `400000`, build `11122.07.08.24.1808.main`, SHA-256 `33119398d3f68ad569c5010b652039105d3ce1b6512c418508e49ce69309f109`. Its flat image bytes were read directly and executed unchanged in memory. Authored Vista UI measurements come from [mainmenu.map](../../analysis/frontend/vista-asset-inventory-20261009/extracted/maps/mainmenu.map), SHA-256 `eb259c207da26adc1820ae0757d23efb4ce1d2c2018956635d1094c8364f6b44`, decoded by the existing [bounded UI inventory](../../analysis/frontend/hd-ui-followup-20261009/audit-vista-menu-extension.py). Xbox source means the recovered [reference tree](../../tools/reference/halo2-decompiled/src/). Addresses explicitly described as U5 are supplied title-update1.5 instruction owners, not guessed equivalents.

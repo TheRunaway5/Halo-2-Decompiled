@@ -15,6 +15,32 @@
 using namespace halo2;
 namespace {
 void check(bool value,const char *message){if(!value)throw FormatError(message);}
+struct VirtualPads {
+  std::vector<SDL_JoystickID> ids;
+  std::vector<SDL_Joystick*> joysticks;
+  VirtualPads() {
+    check(SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)==0,SDL_GetError());
+    for(unsigned player=0;player<4;++player) {
+      SDL_VirtualJoystickDesc description{};description.version=SDL_VIRTUAL_JOYSTICK_DESC_VERSION;
+      description.type=SDL_JOYSTICK_TYPE_GAMECONTROLLER;description.naxes=SDL_CONTROLLER_AXIS_MAX;
+      description.nbuttons=SDL_CONTROLLER_BUTTON_MAX;description.name="Team switching controller";
+      const auto device=SDL_JoystickAttachVirtualEx(&description);
+      check(device>=0 && SDL_IsGameController(device),"Actual SDL team controller could not be mapped");
+      auto *joystick=SDL_JoystickOpen(device);check(joystick,SDL_GetError());
+      joysticks.push_back(joystick);ids.push_back(SDL_JoystickInstanceID(joystick));
+      for(int axis=0;axis<SDL_CONTROLLER_AXIS_MAX;++axis)
+        check(SDL_JoystickSetVirtualAxis(joystick,axis,axis>=4?-32768:0)==0,SDL_GetError());
+    }
+    SDL_JoystickUpdate();
+  }
+  ~VirtualPads() {
+    if(!SDL_WasInit(SDL_INIT_JOYSTICK))return;
+    for(auto *joystick:joysticks)SDL_JoystickClose(joystick);
+    for(auto id:ids)for(int device=0;device<SDL_NumJoysticks();++device)
+      if(SDL_JoystickGetDeviceInstanceID(device)==id){SDL_JoystickDetachVirtual(device);break;}
+    SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+  }
+};
 struct Host {
   std::shared_ptr<const Cache> cache;
   LevelContent content;
@@ -55,6 +81,7 @@ int main(int argc,char **argv)try {
   check(argc==3 || teams,"Unknown armor runtime mode");
   if(!std::getenv("DISPLAY"))return 77;
   SDL_SetMainReady();
+  std::optional<VirtualPads> pads;if(switching)pads.emplace();
   const std::filesystem::path root=argv[1],output=argv[2];
   std::filesystem::create_directories(output);
   MultiplayerOptions options;
@@ -71,8 +98,8 @@ int main(int argc,char **argv)try {
   if(switching) {
     options.map=argv[4];options.shared_maps=options.map.parent_path();options.gameplay_xbe.clear();
     if(!std::filesystem::is_regular_file(options.map))return 77;
-    options.source_object_world=true;options.frames=0;options.capture_tick=200;
-    options.variant.values.set(22,1);options.input_instances={-1,101,102,103};
+    options.source_object_world=true;options.frames=0;options.capture_tick=240;
+    options.variant.values.set(22,1);options.input_instances.assign(pads->ids.begin(),pads->ids.end());
   }
   const std::array<std::array<std::uint8_t,9>,4> appearances{{
     {8,12,9,1,0,26,9,0,0}, {3,4,3,4,1,5,31,0,0},
@@ -88,7 +115,7 @@ int main(int argc,char **argv)try {
   Cache cache(options.map,options.shared_maps,switching?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(options.gameplay_xbe));
   const auto assets=cache.load_full_scoreboard_assets();
   const auto &palette=assets.palette;
-  std::array<std::int8_t,4> accepted_teams{0,1,1,0};bool requested{},respawned{};
+  std::array<std::int8_t,4> accepted_teams{0,1,1,0};bool requested{},respawned{};unsigned requested_views{};
   auto accepted_profiles=options.selected_profiles;
   if(teams)options.input_observer=[&](auto,auto,const MultiplayerState &state) {
     bool all_respawned=true;
@@ -100,17 +127,16 @@ int main(int argc,char **argv)try {
       if(!switching)check(actual.source_membership==options.selected_teams[player],"Initial team selection changed");
       all_respawned&=actual.source_membership==int(player+2) && actual.source_unit!=null_datum;
     } else all_respawned=false;
-    if(switching && !requested && state.tick>=80) {
+    if(switching && requested_views<4 && state.tick>=80+20*requested_views) {
       requested=true;
-      const auto key=[](SDL_Keycode code) {SDL_Event event{};event.type=SDL_KEYDOWN;event.key.keysym.sym=code;
-        check(SDL_PushEvent(&event)==1,"Pause team keyboard event failed");};
       const auto button=[](int instance,SDL_GameControllerButton code) {SDL_Event event{};event.type=SDL_CONTROLLERBUTTONDOWN;
         event.cbutton.which=instance;event.cbutton.button=code;check(SDL_PushEvent(&event)==1,"Pause team controller event failed");};
-      for(unsigned view=0;view<4;++view) {
+      {
+        const unsigned view=requested_views++;
         const auto instance=options.input_instances[view];
-        if(view==0)key(SDLK_ESCAPE);else button(instance,SDL_CONTROLLER_BUTTON_START);
-        const auto down=[&]{if(view==0)key(SDLK_DOWN);else button(instance,SDL_CONTROLLER_BUTTON_DPAD_DOWN);};
-        const auto accept=[&]{if(view==0)key(SDLK_RETURN);else button(instance,SDL_CONTROLLER_BUTTON_A);};
+        button(instance,SDL_CONTROLLER_BUTTON_START);
+        const auto down=[&]{button(instance,SDL_CONTROLLER_BUTTON_DPAD_DOWN);};
+        const auto accept=[&]{button(instance,SDL_CONTROLLER_BUTTON_A);};
         down();down();accept();
         for(int n=accepted_teams[view];n<int(view+2);++n)down();accept();
       }
@@ -154,7 +180,10 @@ int main(int argc,char **argv)try {
   };
   check(run_multiplayer(options)==0,"Actual multiplayer renderer failed");
   if(host)host->finish();
-  if(switching)check(requested && respawned,"Actual pause events did not switch and respawn all four local owners");
+  if(switching && !(requested && requested_views==4 && respawned))throw FormatError(
+      "Actual pause switch/respawn missing: requests="+std::to_string(requested_views)+" teams="+
+      std::to_string(accepted_teams[0])+","+std::to_string(accepted_teams[1])+","+
+      std::to_string(accepted_teams[2])+","+std::to_string(accepted_teams[3]));
   check(players==std::set<unsigned>{0,1,2,3} && programs>=4,
       "Actual four-view gameplay did not animate all selected player armor banks");
   check(std::filesystem::file_size(options.screenshot)>640u*480u*3u,"Actual multiplayer screenshot missing");

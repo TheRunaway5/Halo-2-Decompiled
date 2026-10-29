@@ -57,6 +57,27 @@ set_tests_properties(current_campaign_opening_release PROPERTIES TIMEOUT 60)
     return additions, [dict(name='current_campaign_new_game_startup', report=str(result))]
 
 
+def install_graphics_batch_hook(args,source,output):
+    from install_campaign_new_game_graphics_hook import hook_text
+    owner=source.parent;build=owner/'build';build.mkdir(exist_ok=True)
+    batch=source/'tools/test_campaign_new_game_graphics_batch.py'
+    graphics_report=output/'graphics-batch.json'
+    gpu_command=[sys.executable,str(source/'tools/run_test.py'),
+        '--scratch-root',str(owner/'final-gpu-scratch'),'--',sys.executable,'-B',str(batch),
+        '--runtime',str(build/'halo2_native'),'--mcc-root',str(args.mcc_root),
+        '--frames',str(args.graphics_frames),'--timeout',str(args.graphics_timeout),
+        '--cold-data-check','--report-output',str(graphics_report)]
+    hook=build/'CTestCustom.cmake'
+    if hook.exists()and'# Explicit final New Game graphical acceptance.'not in hook.read_text():
+        raise ValueError('Refuse to overwrite another CTestCustom owner')
+    hook.write_text(hook_text(gpu_command))
+    (output/'graphics-CTestCustom.cmake').write_bytes(hook.read_bytes())
+    return dict(command=gpu_command,hook_sha256=sha(hook),helper_sha256=sha(batch),
+        report=str(graphics_report),acceptance_order=['cold_data_build_only','cold_data_ownership',
+        'renderer_framebuffer_aliases','graphics_startup','opening_handoff'],frames=args.graphics_frames,
+        timeout_seconds=args.graphics_timeout,passed=False)
+
+
 def refresh_input_path(name, selected_fixtures):
     path = Path(name)
     if (path.is_absolute() or not path.parts or '..' in path.parts
@@ -169,7 +190,7 @@ def owned_new_game_iterations(args, source, maps, inputs, selected_fixtures,
         manifest = output / 'source-inputs.json'
         manifest.write_text(json.dumps(current, indent=2, sort_keys=True) + '\n')
         iteration_command = list(command)
-        iteration_command.insert(2, '--build-worker')
+        if '--build-worker'not in iteration_command:iteration_command.insert(2, '--build-worker')
         iteration_command[iteration_command.index('--output')+1] = str(output / 'validation')
         record = dict(ordinal=ordinal, source_inputs_sha256=sha(manifest),
                       staged_cmake_sha256=staged['CMakeLists.txt'],
@@ -177,6 +198,8 @@ def owned_new_game_iterations(args, source, maps, inputs, selected_fixtures,
                       command=iteration_command, runtime_cases=cases, passed=False,
                       acceptance=acceptance,validation_budget=dict(ticks=args.ticks,timeout=args.timeout))
         report['iterations'].append(record)
+        if getattr(args,'graphics_batch',False):
+            record['graphics_batch']=install_graphics_batch_hook(args,source,output)
         report['runtime_cases'] = cases
         report['staged_cmake_sha256'] = staged['CMakeLists.txt']
         report['test_registration_delta'] = additions
@@ -204,11 +227,18 @@ def owned_new_game_iterations(args, source, maps, inputs, selected_fixtures,
                             and record['frontend_menu_handoff_passed']
                             and record['natural_startup_passed'] and record['opening_release_passed']
                             and all(case.get('passed') for case in cases))
+        if getattr(args,'graphics_batch',False):
+            graphics_report=Path(record['graphics_batch']['report'])
+            record['graphics_batch']['executed']=graphics_report.is_file()
+            if graphics_report.is_file():
+                record['graphics_batch']['passed']=json.loads(graphics_report.read_text())['passed']
+                record['graphics_batch']['report_sha256']=sha(graphics_report)
+            record['passed']=record['passed']and record['graphics_batch']['passed']
         report['passed'] = record['passed']
         report['returncode'] = record['returncode']
         report['phase'] = f'completed declared iteration{ordinal}'
         save()
-        if ordinal == args.owned_refreshes:
+        if ordinal == args.owned_refreshes or (getattr(args,'graphics_batch',False)and record['passed']):
             break
         report['phase'] = f'waiting at most{args.refresh_wait_seconds}s for control sequence{ordinal+1}'
         save()
@@ -280,6 +310,10 @@ def main():
                     help='Build native client/frontend and check menu handoff plus natural MCC introduction startup')
     ap.add_argument('--acceptance',choices=('cold_startup','opening_handoff'),default='cold_startup',
                     help='New Game only: explicit acceptance purpose, independent of tick budget')
+    ap.add_argument('--graphics-batch',action='store_true',
+                    help='New Game only: initial owned PRE_TEST ColdData, short GPU gate and natural rendered handoff')
+    ap.add_argument('--graphics-frames',type=int,default=30000)
+    ap.add_argument('--graphics-timeout',type=int,default=900)
     ap.add_argument('--owned-refreshes', type=int, default=0,
                     help='New Game only: permit1..3 exact declared source refreshes in one owned active build')
     ap.add_argument('--refresh-control', type=Path,
@@ -298,6 +332,9 @@ def main():
         ap.error('--new-game is a focused mode; encounter/ownership options cannot be combined')
     if args.acceptance!='cold_startup' and not args.new_game:
         ap.error('Opening-handoff acceptance requires --new-game')
+    if args.graphics_batch and (not args.new_game or args.acceptance!='cold_startup'
+            or not 6<=args.graphics_frames<=30000 or not 1<=args.graphics_timeout<=900):
+        ap.error('Graphics batch requires focused New Game/cold CLI check,6..30000frames and1..900seconds')
     if (not 0 <= args.owned_refreshes <= 3 or not 1 <= args.refresh_wait_seconds <= 1200
             or (args.owned_refreshes and (not args.new_game or args.refresh_control is None))
             or (args.refresh_control is not None and not args.owned_refreshes)):
@@ -468,6 +505,11 @@ set_tests_properties({name} PROPERTIES TIMEOUT {args.timeout + 60})
     report['phase'] = ('building production cold-world owner test' if args.ownership_only
                        else 'building and validating current native client')
     save()
+    if args.graphics_batch and not args.owned_refreshes:
+        command.insert(2,'--build-worker')
+        report['graphics_batch']=install_graphics_batch_hook(args,source,args.output)
+        report['owned_build_worker']=True
+        save()
     if args.owned_refreshes:
         try:
             return owned_new_game_iterations(args, source, maps, inputs, selected_fixtures,
@@ -529,6 +571,13 @@ set_tests_properties({name} PROPERTIES TIMEOUT {args.timeout + 60})
     report['full_campaign_or_coop_qualified'] = False
     report['native_only_engine_qualified'] = False
     report['native_ai_queries_required'] = args.require_native_ai_queries
+    if args.graphics_batch:
+        graphics_report=Path(report['graphics_batch']['report'])
+        report['graphics_batch']['executed']=graphics_report.is_file()
+        if graphics_report.is_file():
+            report['graphics_batch']['passed']=json.loads(graphics_report.read_text())['passed']
+            report['graphics_batch']['report_sha256']=sha(graphics_report)
+        report['passed']=report['passed']and report['graphics_batch']['passed']
     save()
     print(json.dumps(dict(passed=report['passed'], returncode=report['returncode'], report=str(report_path))))
     return 0 if report['passed'] else 1

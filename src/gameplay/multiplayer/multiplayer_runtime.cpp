@@ -2528,6 +2528,53 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   };
   auto &world_effect_tick=receipt_values.world_effect_tick;
   auto &attached_effect_objects=receipt_values.attached_effect_objects;
+  // Latest gameplay effects and historical graphics never share scene clocks
+  // or callback-owned idle/birth state. Forks retain the prepared slot IDs.
+  auto latest_effect_scenery=live_client()?source_scenery.fork():nullptr;
+  auto latest_effect_machines=live_client()?machines.fork():nullptr;
+  auto latest_effect_props=live_client()?props.fork():nullptr;
+  const Simulation *latest_effect_simulation=nullptr;
+  std::map<std::uint32_t,SceneryQueryLifetime> latest_effect_scenery_clocks;
+  if(latest_effect_scenery)latest_effect_scenery->animation_frames(
+      [&](std::size_t placement,std::uint32_t handle,std::uint64_t born,std::uint64_t tick,
+          const AnimationClip &clip)->AnimationFrameWindow {
+    if(!latest_effect_simulation)throw FormatError("Latest effect scenery has no completed scene");
+    const auto &object=latest_effect_simulation->scene().get(handle);
+    if(object.placement!=placement || object.created_tick!=born || tick<born)
+      throw FormatError("Latest effect scenery lost its actual birth clock");
+    auto [at,inserted]=latest_effect_scenery_clocks.try_emplace(handle);
+    auto &lifetime=at->second;
+    if(inserted){lifetime.placement=placement;lifetime.created_tick=born;lifetime.advanced_tick=born;}
+    if(lifetime.placement!=placement || lifetime.created_tick!=born || tick<lifetime.advanced_tick)
+      throw FormatError("Latest effect scenery changed its retained lifetime or clock");
+    if(!lifetime.idle_definition) {
+      lifetime.idle_definition=cache.load_source_scenery_idle_phase_definition(clip);
+      lifetime.idle_state=source_scenery_idle_phase_initial(*lifetime.idle_definition,tick_seconds);
+    }
+    const auto &definition=*lifetime.idle_definition;
+    if(definition.graph!=clip.source_graph || definition.animation!=clip.source_index)
+      throw FormatError("Latest effect scenery changed its actual initialized clip");
+    while(lifetime.advanced_tick<tick) {
+      lifetime.previous_idle_state=lifetime.idle_state;lifetime.idle_paired=true;
+      source_scenery_idle_phase_step(lifetime.idle_state,definition,tick_seconds);++lifetime.advanced_tick;
+    }
+    return {lifetime.previous_idle_state.frame,lifetime.idle_state.frame,1};
+  });
+  const SourceSceneryScene::LifetimeSelection latest_effect_scenery_regions=source_scenery_regions?
+      SourceSceneryScene::LifetimeSelection{[&](std::size_t placement,std::uint32_t handle,std::uint64_t born) {
+    if(!latest_effect_simulation)throw FormatError("Latest effect regions have no completed scene");
+    const auto &object=latest_effect_simulation->scene().get(handle);
+    if(object.placement!=placement || object.created_tick!=born || !object.source_model_regions)
+      throw FormatError("Latest effect scenery lacks its accepted region owner");
+    return object.source_model_regions->selection;
+  }}:SourceSceneryScene::LifetimeSelection{};
+  if(latest_effect_props)latest_effect_props->region_state([&](std::uint32_t handle)->const SourceInitialModelSelection* {
+    if(!latest_effect_simulation)throw FormatError("Latest effect prop has no completed scene");
+    if(!source_scenery_regions)return latest_effect_simulation->props().region_selection(handle);
+    const auto &object=latest_effect_simulation->scene().get(handle);
+    if(!object.source_model_regions)throw FormatError("Latest effect prop lacks its accepted region owner");
+    return &object.source_model_regions->selection;
+  });
   const auto source_decal_consumer_for=[&](const MultiplayerState &state) {
 #if HALO2_SOURCE_DECALS_AVAILABLE
     return cached_decals.active() && state.source_decals.has_value();
@@ -2596,17 +2643,26 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     }
     //Publish the actual current scene pose on the simulation tick before
     //emission. The later render interpolation is a separate read-only sample.
-    machines.synchronize(effect_simulation.scene(),&effect_simulation.devices());
-    props.synchronize(effect_simulation.scene());
-    source_scenery.synchronize(effect_simulation.scene(),scenery_regions);
+    auto &effect_machines=latest_effect_machines && !rendering_native?*latest_effect_machines:machines;
+    auto &effect_props=latest_effect_props && !rendering_native?*latest_effect_props:props;
+    auto &effect_scenery=latest_effect_scenery && !rendering_native?*latest_effect_scenery:source_scenery;
+    if(!rendering_native)latest_effect_simulation=&effect_simulation;
+    effect_machines.synchronize(effect_simulation.scene(),&effect_simulation.devices());
+    effect_props.synchronize(effect_simulation.scene());
+    effect_scenery.synchronize(effect_simulation.scene(),!rendering_native && latest_effect_scenery?
+        latest_effect_scenery_regions:scenery_regions);
     const auto render_fraction=scenery_render_fraction;scenery_render_fraction=1;
-    machines.update_pose(current.devices.tick,std::int32_t(current.tick),mesh);
-    props.update_pose(std::int32_t(current.tick),mesh);
-    source_scenery.update_pose(current.tick,std::int32_t(current.tick),mesh);
+    effect_machines.update_pose(current.devices.tick,std::int32_t(current.tick),mesh);
+    effect_props.update_pose(std::int32_t(current.tick),mesh);
+    effect_scenery.update_pose(current.tick,std::int32_t(current.tick),mesh);
     scenery_render_fraction=render_fraction;
-    auto map_owners=source_scenery.effect_owners();
-    for(const auto &owner:machines.effect_owners())map_owners.push_back(owner);
-    for(const auto &owner:props.effect_owners())map_owners.push_back(owner);
+    if(!rendering_native && latest_effect_scenery)std::erase_if(latest_effect_scenery_clocks,[&](const auto &entry) {
+      return std::none_of(effect_simulation.scene().objects().begin(),effect_simulation.scene().objects().end(),
+          [&](const auto &object){return object.handle==entry.first;});
+    });
+    auto map_owners=effect_scenery.effect_owners();
+    for(const auto &owner:effect_machines.effect_owners())map_owners.push_back(owner);
+    for(const auto &owner:effect_props.effect_owners())map_owners.push_back(owner);
     map_effects.synchronize(map_owners,current.tick,current.source_scene_roots);
     std::set<std::uint32_t> present;
     const auto publish_markers=[&](std::uint32_t handle,const auto &visual,std::span<const Transform> nodes) {
@@ -5141,6 +5197,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(graphics_epoch!=native_graphics_world_epoch || graphics_authority_world!=frame_source_model_world) {
       object_light_cache={};object_light_units.fill(null_datum);object_light_alive={};
       corpse_light_cache.clear();vehicle_light_cache.clear();vehicle_previous_lods.clear();
+      // A selected render-owner transition starts new scene lifetimes. The
+      // latest-effects forks retain their own clocks; ordinary/native draws
+      // must never inherit the other owner's future pose or callback cache.
+      scenery_query_lifetimes.clear();scenery_initial_state={};
+      prop_query_handles.clear();prop_initial_state={};actual_prop_regions.reset();
+      source_scenery.reset_lifetimes();machines.reset_lifetimes();props.reset_lifetimes();
       source_render_interpolation.clear();native_graphics_world_epoch=graphics_epoch;
       graphics_authority_world=frame_source_model_world;
       reset_native_world_effects();
@@ -5263,7 +5325,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::vector<std::vector<SourceLiveShadowRootTu15>> live_shadow_roots(options.local_players);
     const bool reference_shadow_frame=source_shadow_scene && options.reference_live_shadow_gpu_tick &&
         world_current.tick==options.reference_live_shadow_gpu_tick;
-    const bool native_shadow_frame=source_render_world && source_shadow_scene &&
+    // The actual12D split-screen policy disables fixed shadows for2..4
+    // local views. Native model/secondary-ray collection remains independent.
+    const bool native_fixed_shadows_enabled=source_geometry_lod_policy(options.local_players).feature_bytes[0]!=0;
+    const bool native_shadow_frame=native_fixed_shadows_enabled && source_render_world && source_shadow_scene &&
         platform.desktop->display_settings.graphics_mode!=pstencil::GraphicsMode::PathTracing &&
         (!options.reference_live_shadow_gpu_tick || reference_shadow_frame);
     //These owners outlive every span/pointer in ModelView through draw().
@@ -5410,7 +5475,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!live_client() || joined)machines.synchronize(world_simulation.scene(),&world_simulation.devices());
     if(world_current.devices.tick>world_previous.devices.tick)machines.interpolate(world_previous.devices,world_blend);
     machines.interpolate(world_simulation.scene(),world_scene_interpolation,world_blend);
-    if(!live_client() || native_render_frame) {
+    if(!live_client() || joined) {
       source_scenery.synchronize(world_simulation.scene(),scenery_regions);
       source_scenery.interpolate(world_simulation.scene(),world_scene_interpolation,world_blend);
       std::set<std::uint32_t> current_scenery_handles;
@@ -5566,21 +5631,42 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           source_object_camouflage(owner.secondary_weapon.datum,context)};
       const auto unit_camouflage=source_object_camouflage(owner.source_unit,context);
       for(const auto &[representation,body]:species)
-        for(const auto *layers:{&body.body_shields,&body.hand_shields})
-          for(const auto &[shader,layer]:*layers)
-            camouflage_range(layer.materials[j],layer.count,unit_camouflage);
+        for(const auto &[shader,layer]:body.body_shields)
+          camouflage_range(layer.materials[j],layer.count,unit_camouflage);
       for(const auto &[definition,bank]:body_guns)
         for(unsigned hand=0;hand<2;++hand)
           camouflage_range(bank.materials[j*2+hand],unsigned(bank.gun.model.mesh.materials.size()),camouflage[hand]);
-      for(unsigned i=0;i<ids.size();++i)if(ids[i]==j)
-        for(const auto &[representation,body]:species)
+      for(unsigned i=0;i<ids.size();++i)if(ids[i]==j) {
+        // Foreground has its own genuine latest binding/packet. Its scalar37
+        // shader context must agree with the latest screen-camouflage bank.
+        const auto &foreground_owner=current.players[j];
+        SourceCamouflageContextServices foreground_context;
+        foreground_context.initial=[&](std::uint32_t datum)->std::optional<SourceCamouflageObjectView> {
+          if(datum==null_datum || foreground_owner.source_unit==null_datum)return std::nullopt;
+          if(datum==foreground_owner.source_unit)return SourceCamouflageObjectView{0,foreground_owner.source_parent};
+          if(datum==foreground_owner.source_weapon || datum==foreground_owner.secondary_weapon.datum)
+            return SourceCamouflageObjectView{2,foreground_owner.source_unit};
+          return std::nullopt;
+        };
+        foreground_context.parent=[&](std::uint32_t datum)->std::optional<SourceCamouflageObjectView> {
+          if(foreground_owner.source_unit==null_datum ||
+              (datum&0xffffu)!=(foreground_owner.source_unit&0xffffu))return std::nullopt;
+          return SourceCamouflageObjectView{0,foreground_owner.source_parent};
+        };
+        foreground_context.primary=[&](std::uint32_t){return foreground_owner.source_camouflage.primary;};
+        const auto foreground_camouflage=source_object_camouflage(foreground_owner.source_unit,foreground_context);
+        for(const auto &[representation,body]:species) {
+          for(const auto &[shader,layer]:body.hand_shields)
+            camouflage_range(layer.materials[j],layer.count,foreground_camouflage);
           for(unsigned hand=0;hand<2;++hand) {
             if(body.guns.empty())continue;
             const auto &gun=body.guns.at(i*2+hand);
             const auto &view=live_client()?client_fp_views[i]:live_match().first_person_view(i);
             camouflage_range(gun.material,unsigned(gun.model.mesh.materials.size()),
-                source_object_camouflage(view.hands[hand].weapon,context));
+                source_object_camouflage(view.hands[hand].weapon,foreground_context));
           }
+        }
+      }
     }
     struct BodyFramePose {
       std::vector<Vertex> body,weapon;std::vector<Transform> nodes;
@@ -5840,9 +5926,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       if(audio && i==0)try {
         //18BB80 chooses the first actual local listener. Native cameras use
         // the same submitted position and literal14A280 cluster traversal.
+        const auto &audio_weather=live_match().simulation().weather();
         const auto targets=multiplayer_ambient_targets(audio_bsp,atmosphere,camera.position,
-            atmosphere.cluster_at(camera.position),world_simulation.weather().current,
-            world_simulation.weather().stopped==0);
+            atmosphere.cluster_at(camera.position),audio_weather.current,
+            audio_weather.stopped==0);
         audio->ambient(targets,audio_elapsed);
       }catch(const std::exception&e){if(!ambient_unavailable_reported){ambient_unavailable_reported=true;
         std::cerr<<"Multiplayer ambience: "<<e.what()<<'\n';}}

@@ -3,31 +3,21 @@
 Original role/lifecycle evidence: ../docs/halo2-clan-evidence.md.
 HTTP sessions, invitation expiry, text broadcasts and quotas are native policy.
 """
-from dataclasses import dataclass
-import hashlib
-import json
 import re
-import secrets
 import time
 import uuid
 
 from aiohttp import web
 from .protocol import fields, identifier, integer, require, text, canonical
 from .player_identity import initialize, player, VERIFIED_DISCORD_USERNAME
-
-
-@dataclass
-class Session:
-    player: str
-    expires: float
-    seen: float
+from .native_account_sessions import Accounts
 
 
 class ClanApi:
     def __init__(self, directory, *, clock=time.monotonic, wall=time.time):
         self.directory, self.clock, self.wall = directory, clock, wall
         self.db = directory.store.db
-        self.sessions = {}
+        self._sessions = Accounts(self)
         initialize(self.db)
         self.db.executescript("""
         CREATE TABLE IF NOT EXISTS clans(id TEXT PRIMARY KEY, name TEXT NOT NULL,
@@ -52,44 +42,45 @@ class ClanApi:
         """)
 
     def cleanup(self):
-        self.sessions = {k: s for k, s in self.sessions.items() if s.expires > self.clock()}
+        self._sessions.call('cleanup')
         with self.db:
             now = int(self.wall())
             self.db.execute("DELETE FROM clan_invites WHERE expires<=?", (now,))
             self.db.execute("DELETE FROM clan_requests WHERE expires<=?", (now,))
             self.db.execute("DELETE FROM clan_messages WHERE created<?", (now - 30 * 86400,))
 
+    @property
+    def sessions(self):return self._sessions
+
+    def revoke_player(self,who):self._sessions.revoke(who)
+
+    def countdown_rate(self,who):self._sessions.call('budget',player=who,bucket='countdown')
+
     def session(self, request, *, rate=True):
         self.cleanup()
-        header = request.headers.get("Authorization", "")
-        require(header.startswith("Bearer ") and len(header) <= 256, "ONLINE session required", 401)
-        key = hashlib.sha256(header[7:].encode()).hexdigest()
-        session = self.sessions.get(key)
-        require(session is not None, "ONLINE session expired; reconnect", 401)
-        if rate:
-            self.directory.rate("social:" + session.player, 120)
-        session.seen = self.clock()
-        return key, session.player
+        row=self._sessions.call('auth',header=request.headers.get('Authorization',''),rate=rate)
+        return row['key'],row['player']
 
     async def login(self, request):
         body = await self.directory.body(request)
-        fields(body, ("screen_name",))
-        name = text(body["screen_name"])
+        self._sessions.call('body',body=body)
         owner = await self.directory.owner(request)
         self.cleanup()
-        who = player(self.db, owner, name, request.get(VERIFIED_DISCORD_USERNAME, ""), now=self.directory.store.now())
-        with self.db:
-            self.directory.matchmaking.results.history.identity(who)
-            self.directory.friend_cloud.enqueue(who)
-        self.sessions = {k: s for k, s in self.sessions.items() if s.player != who}
-        require(len(self.sessions) < 1000, "ONLINE session capacity reached", 503)
-        token = secrets.token_urlsafe(32)
-        self.sessions[hashlib.sha256(token.encode()).hexdigest()] = Session(who, self.clock() + 900, self.clock())
-        return web.json_response({"token": token, "expires_in": 900}, status=201)
+        existing=self.db.execute('SELECT player FROM player_identities WHERE provider=? AND subject=?',owner).fetchone()
+        plan=self._sessions.call('prepare',body=body,owner=owner,existing=existing[0] if existing else None)
+        try:
+            who=player(self.db,owner,plan['name'],request.get(VERIFIED_DISCORD_USERNAME,''),now=self.directory.store.now())
+            with self.db:
+                self.directory.matchmaking.results.history.identity(who)
+                self.directory.friend_cloud.enqueue(who)
+            result=self._sessions.call('commit',permit=plan['permit'],owner=owner,player=who)
+            return web.json_response(result,status=201)
+        finally:
+            self._sessions.call('abort',permit=plan['permit'])
 
     async def logout(self, request):
         key, _ = self.session(request)
-        del self.sessions[key]
+        self._sessions.call('revoke',key=key)
         return web.json_response({"state": "signed_out"})
 
     def member(self, who):

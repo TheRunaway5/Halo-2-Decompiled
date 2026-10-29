@@ -71,6 +71,24 @@ void view_angle_scalar(SourceRuntimeMemory& memory) {
         std::ranges::equal(restored.view(0x45c55cu,4),expected),
         "Cold checkpoint restore lost the original view-angle scalar");
 }
+void arena_view_flag(const SourceRuntimeMemory& memory) {
+    const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,0x4f2968u);
+    check(bank.bytes.size()==1 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="native TU1.5 cold arena state-change view flag" &&
+        memory.view(0x4f2968u,1)[0]==std::byte{},
+        "Cold world lost the complete original loader-zeroed arena/view flag");
+    SourceRuntimeMemory live;live.restore(checkpoint);
+    const auto backing=live.native_address(0x4f2968u,1);
+    live.write(0x4f2968u,std::array{std::byte{0xa5}});
+    check(live.native_address(0x4f2968u,1).value==backing.value &&
+        live.view(0x4f2968u,1)[0]==std::byte{0xa5},
+        "Live arena/view flag lost its mutable native backing");
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(!restored.is_read_only(0x4f2968u,1) &&
+        restored.view(0x4f2968u,1)[0]==std::byte{0xa5} &&
+        region(restored.checkpoint(),0x4f2968u).owner==bank.owner,
+        "Checkpoint restore reset or detached the live arena/view flag");
+}
 void animation_mask_scratch(const SourceRuntimeMemory &cold) {
     const auto saved=cold.checkpoint();const auto &bank=region(saved,0x56e060u);
     check(bank.bytes.size()==32 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
@@ -264,6 +282,7 @@ int main()try {
     }
     auto memory=native_tu15_world_memory(clock);
     view_angle_scalar(memory);
+    arena_view_flag(memory);
     halo2::test::perception_default_ownership(memory);
     submitted_view_storage(memory);
     animation_mask_scratch(memory);

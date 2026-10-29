@@ -136,9 +136,7 @@ endif()
 target_sources(halo2_systems PRIVATE src/rendering/effects/source_contrail_snapshot.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_selection_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/shadows/source_multiplayer_render_history_tu15.cpp
-    src/rendering/shadows/source_presented_model_pose_tu15.cpp
-    src/rendering/shadows/source_shadow_presentation_owner.cpp
-    src/rendering/shadows/source_native_render_timeline.cpp)
+    src/rendering/shadows/source_presented_model_pose_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/rendering/models/source_presented_model_input_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_roots_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/rendering/shadows/source_live_shadow_main_draws_tu15.cpp)
@@ -1301,11 +1299,33 @@ if(BUILD_TESTING)
     add_executable(native_input_collection_tu15_tests tests/native_input_collection_tu15_tests.cpp)
     target_link_libraries(native_input_collection_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     target_include_directories(native_input_collection_tu15_tests PRIVATE tests)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_sources(native_input_collection_tu15_tests PRIVATE tools/capture_sword_movement_tu15.cpp)
+        target_link_options(native_input_collection_tu15_tests PRIVATE
+            "-Wl,--wrap=_ZN5halo231source_run_sandbox_special_tu15ERNS_26SourcePhysicsContactMemoryEjRNS_30SourcePhysicsContactRuntimeAbiENS_33SourcePhysicsFactoryFloatingPointERKNS_35SourcePhysicsContactRuntimeServicesERKSt8functionIFvRKNS_31SourcePhysicsContactRecordStoreEEE"
+        )
+    endif()
     add_test(NAME native_input_collection_tu15 COMMAND native_input_collection_tu15_tests
         "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}"
         native-mcc
         "@HALO2_TEST_SCRATCH@/native-input-collection")
     set_tests_properties(native_input_collection_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    foreach(physical_sword_case IN ITEMS lunge cancel cancel-jump)
+        add_test(NAME native_input_sword_${physical_sword_case}_tu15 COMMAND native_input_collection_tu15_tests
+            "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+            "@HALO2_TEST_SCRATCH@/native-input-sword-${physical_sword_case}")
+        set_tests_properties(native_input_sword_${physical_sword_case}_tu15 PROPERTIES
+            TIMEOUT 180 SKIP_RETURN_CODE 77 ENVIRONMENT "HALO2_NATIVE_INPUT_SWORD=${physical_sword_case}")
+    endforeach()
+    if(EXISTS "${HALO2_MCC_SWORD_LUNGE_MAPS}/05a_deltaapproach.map")
+        foreach(campaign_sword_case IN ITEMS lunge cancel cancel-jump)
+            add_test(NAME native_input_campaign_sword_${campaign_sword_case}_tu15 COMMAND native_input_collection_tu15_tests
+                "${HALO2_MCC_SWORD_LUNGE_MAPS}/05a_deltaapproach.map" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc
+                "@HALO2_TEST_SCRATCH@/native-input-campaign-sword-${campaign_sword_case}")
+            set_tests_properties(native_input_campaign_sword_${campaign_sword_case}_tu15 PROPERTIES
+                TIMEOUT 180 ENVIRONMENT "HALO2_NATIVE_INPUT_CAMPAIGN=1;HALO2_NATIVE_INPUT_SWORD=${campaign_sword_case}")
+        endforeach()
+    endif()
     foreach(sword_network_case IN ITEMS lunge-host lunge-client sword-close-host sword-close-client)
         add_test(NAME native_mcc_sword_${sword_network_case}_damage COMMAND capture_source_melee_contact
             "${HALO2_MCC_SWORD_LUNGE_MAP}" "${HALO2_MCC_SWORD_LUNGE_MAPS}" native-mcc

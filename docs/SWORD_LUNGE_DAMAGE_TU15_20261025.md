@@ -1,27 +1,36 @@
 # Sword lunge damage: TU1.5 source path and MCC timing lookup
 
-Status on October 28, 2026: a fresh owned rebuild of the retained native
-Sword cohort passes five actual lunge/close-damage controls, seventeen
-cancellation/held-trigger/airborne/equip controls, and both host/joined-player
-actual ONLINE socket lunge cases. The socket rerun uses an explicitly frozen,
-matching local test service/library; two earlier CTest attempts failed during
-service import, before gameplay, and remain recorded. The [recovery evidence](../analysis/sword-lunge-tu15-20261025/recovery-20261028/README.md)
-separates these results from installed-runtime admission. The selected runtime
-advanced to `6ef5ae1281fd4b679b4574da6e7da8ee` and its actual admission check
-passes; earlier 91-case results are not relabeled for this newer product.
-Vehicle stored-flight and complete original local/joined targeting remain open.
+Status on October 28, 2026: the native lunge-damage correction passes the
+fresh79-case regression, including18 actual ONLINE socket cases for hosting
+and joining. A subsequent test-only cleanup and Campaign extension passes all
+seven physical-input cases: neutral/held collection plus multiplayer and
+Campaign lunge, reload cancellation and cancellation followed by jump.
+[Current evidence and limits](../analysis/sword-lunge-tu15-20261025/input-integration-20261028/README.md)
+records exact source/binary identities. No damage amount or success result is
+assigned; the original contact and damage owners execute.
 
-Continued October28 work adds the complete native`1AD4F0`/`1AF490` targeting
-module and live-world entry dispatch. Actual accepted/rejected Sword and
-firearm queries pass comparison with unchanged original i386 code, including
-full floating-point state and memory; generation reproduces the committed
-337-instruction module. The [new execution evidence](../analysis/sword-lunge-tu15-20261025/targeting-original-proof-20261028/README.md)
-also passes a reload-cancel control through the new query: no pending hit,
-continued physical mode6, and seven original movement-call comparisons within
-their declared comparison scope. It preserves a red late-seat-exit movement
-gate and correctly constructed two-weapon far-range controls. Normal local collector ordering and joined
-target ownership remain unfinished; the new entry has not been substituted
-into the old composed query or published as complete flying parity.
+Complete native input/profile/target modules now execute through their actual
+live-world routes. Physical SDL-controller input drives the full original
+collector and private preceding camera in the component world. Multiplayer and
+Campaign cancel/jump controls pass full original-i386 input-call comparisons
+and seven original movement-call comparisons each. Source regeneration is
+exact:2,554 input instructions,498 profile instructions and45 authenticated
+data regions containing1,162 bytes. These component APIs have not replaced
+normal Match/Campaign mapped input or joined-client target ownership.
+
+Full1:1 Sword-flying qualification remains open. The real physical Campaign
+passenger diagnostic accepts one seated Sword initialization, then clears its
+physical lunge mode in that frame; the later genuine seat exit produces no
+stored movement. Its post-trigger collector matches unchanged original CPU
+execution, but its separate cold original-CPU execution faults. This is a
+retained failed qualification, not evidence that every TU1.5 flight variant is
+absent. No forced target, mode, velocity or accepted result was added to make
+that gate pass. Earlier targeting-only and far-range evidence remains in
+[the original-target comparison](../analysis/sword-lunge-tu15-20261025/targeting-original-proof-20261028/README.md).
+
+This continuation publishes no new engine and changes no launcher selection.
+The currently observed selection is recorded separately by the source audit;
+historical91-case matrices are not relabeled for another product.
 
 Historical qualification through October 26, 2026: the impact-timing and primary-input corrections
 have direct red/green evidence. The earlier 23-case native suite and 52

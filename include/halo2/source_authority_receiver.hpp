@@ -4,15 +4,12 @@
 #include "halo2/source_replay_batch.hpp"
 #include "halo2/source_match_authority.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/source_authority_options.hpp"
 #include <future>
 
 namespace halo2 {
 class SourcePeerHostTakeover;
 class SourceAuthorityEndpoint;
-// Owning native replay/takeover recipe. Retains the admitted session and
-// gameplay selections, without copying renderer/device callbacks, desktop,
-// prepared worlds or other live presentation borrowers.
-MultiplayerOptions source_authority_options(const MultiplayerOptions &);
 // Immutable evidence of one independently admitted, natively validated paired
 // world/host cut. Only the receiver creates this value. It owns the host table,
 // not a native executor or world borrower, so it can outlive worker advancement

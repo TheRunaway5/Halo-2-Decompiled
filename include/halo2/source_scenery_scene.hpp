@@ -63,6 +63,9 @@ public:
                       Mesh &,const CollisionWorld &,InitialSelection = {},OmitUnresolvedSelection = {},
                       bool source_region_union = false);
     ~SourceSceneryScene();
+    // Independent effects-only presentation over the exact prepared material IDs.
+    // No resource reload, Mesh/pass writes, callback aliases or checkpoint sharing.
+    std::unique_ptr<SourceSceneryScene> fork()const;
     SourceSceneryScene(SourceSceneryScene &&) noexcept;
     SourceSceneryScene &operator=(SourceSceneryScene &&) noexcept;
     SourceSceneryScene(const SourceSceneryScene &)=delete;
@@ -124,6 +127,7 @@ public:
     std::span<const SourceSceneryResourceBoundary> deferred_resource_owners() const;
 private:
     struct Impl;
+    explicit SourceSceneryScene(std::unique_ptr<Impl>);
     std::unique_ptr<Impl> impl_;
 };
 }

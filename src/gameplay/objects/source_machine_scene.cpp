@@ -129,6 +129,12 @@ struct SourceMachineScene::Impl {
     std::vector<SourceMachineResourceBoundary> deferred_resources;
     std::set<std::size_t> machine_placements,nonrendered_placements;
 
+    bool effects_only{};
+    struct Fork {};
+    Impl(const Impl &s,Fork):cache(s.cache),collision(s.collision),mesh_owner(s.mesh_owner),lighting(s.lighting),
+        surface(s.surface),conversion(s.conversion),sh(s.sh),counts(s.counts),state(s.state),resource_slots(s.resource_slots),
+        deferred_resources(s.deferred_resources),machine_placements(s.machine_placements),
+        nonrendered_placements(s.nonrendered_placements),effects_only(true) {}
     Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool source_resource_defer)
         :cache(c),collision(cw),mesh_owner(mesh),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
@@ -241,6 +247,7 @@ struct SourceMachineScene::Impl {
     }
     std::vector<BankLink> banks()const {
         std::vector<BankLink> out;
+        if(effects_only)return out;
         for(const auto &slot:resource_slots)if(slot.prt){
             const auto &pass=mesh_owner.materials[slot.material].environment_pass;
             if(std::none_of(out.begin(),out.end(),[&](const auto &link){return link.pass==pass;}))
@@ -271,7 +278,7 @@ struct SourceMachineScene::Impl {
         if(!m.resource_error)m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
             skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
     }
-    void bind_banks(Machine &m,Mesh &mesh){m.geometry.update_banks(cache,m.world_nodes,sh,mesh);}
+    void bind_banks(Machine &m,Mesh &mesh){if(!effects_only)m.geometry.update_banks(cache,m.world_nodes,sh,mesh);}
     static void reference_pose(Machine &m) {
         m.solved_nodes.reset();
         const auto&r=*m.reference;m.position=r.position;m.power=r.power;m.scale=r.root_scale;
@@ -361,7 +368,7 @@ struct SourceMachineScene::Impl {
             m.advanced_tick=tick;pose(m);
             //1152E0 progression continues while hidden; B9CE0 independently
             //prevents its render-light/geometry submission.
-            if(m.visible && !m.resource_error)bind_banks(m,mesh);
+            if(m.visible && !m.resource_error && !effects_only)bind_banks(m,mesh);
         }state.last_tick=tick;
     }
     void query_lighting(Machine&m,std::int32_t frame,float distance){
@@ -387,6 +394,12 @@ struct SourceMachineScene::Impl {
 };
 SourceMachineScene::SourceMachineScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,
     Mesh&mesh,const CollisionWorld&collision,bool source_resource_defer):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_resource_defer)){}
+SourceMachineScene::SourceMachineScene(std::unique_ptr<Impl> impl):impl_(std::move(impl)){}
+std::unique_ptr<SourceMachineScene> SourceMachineScene::fork()const {
+    if(impl_->executor!=std::this_thread::get_id() || impl_->depth)
+        throw FormatError("Machine fork requires its completed foreground owner");
+    return std::unique_ptr<SourceMachineScene>(new SourceMachineScene(std::make_unique<Impl>(*impl_,Impl::Fork{})));
+}
 SourceMachineScene::~SourceMachineScene()=default;
 SourceMachineScene::SourceMachineScene(SourceMachineScene&&) noexcept=default;
 SourceMachineScene&SourceMachineScene::operator=(SourceMachineScene&&) noexcept=default;

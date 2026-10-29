@@ -158,6 +158,21 @@ struct SourceSceneryScene::Impl {
     std::int32_t render_frame{};
     std::uint64_t tick{};
 
+    struct Fork {};
+    Impl(const Impl &s,Fork):cache(s.cache),collision(s.collision),lighting(s.lighting),surface(s.surface),
+        conversion(s.conversion),probes(s.probes),scenery(s.scenery),shader_definitions(s.shader_definitions),
+        unresolved_materials(s.unresolved_materials),unresolved_owners(s.unresolved_owners),
+        deferred_resources(s.deferred_resources),source_placements(s.source_placements),
+        nonrendered_placements(s.nonrendered_placements),counts(s.counts),render_frame(s.render_frame),tick(s.tick) {
+        // probe pointers belong to this copied residency, never the other scene.
+        for(auto &object:scenery)if(object.probe) {
+            bool rebound=false;
+            for(std::size_t n=0;n<s.probes.size();++n)if(object.probe==&s.probes[n]) {
+                object.probe=&probes[n];rebound=true;break;
+            }
+            if(!rebound)throw FormatError("SCEN fork lost its resident probe owner");
+        }
+    }
     Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,
          const CollisionWorld &cw,const InitialSelection &selected,const OmitUnresolvedSelection &omit,bool region_union)
         :cache(c),collision(cw),lighting(c.load_bsp_lighting(bsp)),
@@ -585,6 +600,10 @@ bool SourceSceneryScene::commit_restore(PreparedRestore &prepared)noexcept {
 SourceSceneryScene::SourceSceneryScene(const Cache &c,std::span<const ScenarioObject>objects,std::size_t bsp,
     Mesh &mesh,const CollisionWorld &cw,InitialSelection selected,OmitUnresolvedSelection omit,bool region_union)
     :impl_(std::make_unique<Impl>(c,objects,bsp,mesh,cw,selected,omit,region_union)){}
+SourceSceneryScene::SourceSceneryScene(std::unique_ptr<Impl> impl):impl_(std::move(impl)){}
+std::unique_ptr<SourceSceneryScene> SourceSceneryScene::fork()const {
+    impl_->completed();return std::unique_ptr<SourceSceneryScene>(new SourceSceneryScene(std::make_unique<Impl>(*impl_,Impl::Fork{})));
+}
 SourceSceneryScene::~SourceSceneryScene()=default;
 void SourceSceneryScene::reset_lifetimes() noexcept {
     if(!impl_)return;Impl::Mutation mutation(*impl_,std::nothrow);if(!mutation)return;

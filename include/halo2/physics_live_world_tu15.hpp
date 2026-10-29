@@ -629,6 +629,9 @@ public:
     // game clocks and journal bytes. Derived renderer owners cannot survive
     // a successful native bank replacement without a fresh activation.
     std::uint64_t authority_backing_revision() const;
+    // Weak lifetime identity also distinguishes a new world allocated at a
+    // previously used address. Renderer caches must not keep the world alive.
+    std::weak_ptr<const void> authority_backing_owner() const;
     PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
     // No-throw publication of all staged backing/resources/sidecars. Callers
     // must rebind every borrowed view/native address afterward. Services and

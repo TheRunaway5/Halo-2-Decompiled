@@ -17,7 +17,7 @@ if(BUILD_TESTING)
     set_tests_properties(source_world_attachment_interpolation PROPERTIES TIMEOUT 30
         LABELS "online-presentation;native-component")
     add_executable(source_native_render_timeline_tests tests/source_native_render_timeline_tests.cpp)
-    target_link_libraries(source_native_render_timeline_tests PRIVATE halo2_systems)
+    target_link_libraries(source_native_render_timeline_tests PRIVATE halo2_shadow_presentation)
     add_test(NAME source_native_render_continuity COMMAND source_native_render_timeline_tests)
     set_tests_properties(source_native_render_continuity PROPERTIES TIMEOUT 30
         LABELS "online-presentation;native-component")

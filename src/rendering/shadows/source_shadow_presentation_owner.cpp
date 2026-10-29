@@ -2,7 +2,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/source_authority_codec.hpp"
-#include "halo2/source_authority_receiver.hpp"
+#include "halo2/source_authority_options.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cstdio>

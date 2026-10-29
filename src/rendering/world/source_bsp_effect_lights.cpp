@@ -68,7 +68,7 @@ struct SourceBspEffectLights::Impl {
     std::map<MaterialKey,Slot> slots;
     std::map<std::uint32_t,EffectLightDefinition> lights;
     std::optional<SourceLiveShadowStorageTu15> shadow_storage;
-    const PhysicsLiveWorldTu15* shadow_world{};
+    std::weak_ptr<const void> shadow_world;
     std::uint64_t shadow_backing_revision{};
     SourceDrawUnitState units;
     SourceBspRangeArena main_arena,light_arena;
@@ -760,9 +760,12 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         // Renderer BSP activation is separate from each view's collection.
         // Preserve the original source-populated plane hash across frames.
         const auto revision=objects->world.authority_backing_revision();
-        if(!i.shadow_storage || i.shadow_world!=&objects->world || i.shadow_backing_revision!=revision) {
+        const auto owner=objects->world.authority_backing_owner();
+        const bool same_owner=!i.shadow_world.expired() &&
+            !i.shadow_world.owner_before(owner) && !owner.owner_before(i.shadow_world);
+        if(!i.shadow_storage || !same_owner || i.shadow_backing_revision!=revision) {
             auto storage=source_live_shadow_storage_activate_tu15(objects->world);
-            i.shadow_storage=storage;i.shadow_world=&objects->world;i.shadow_backing_revision=revision;
+            i.shadow_storage=storage;i.shadow_world=owner;i.shadow_backing_revision=revision;
         }else i.shadow_storage=source_live_shadow_storage_rebind_tu15(objects->world,*i.shadow_storage);
         const auto context=object_context({0,Impl::main_arena_token,0,fog,coverage});
         //134C42 selects556E18 for the ordinary main context. Publish the

@@ -144,7 +144,7 @@ void network(const std::filesystem::path &map) {
   }
   check(host.system_link_state().phase==SystemLinkPhase::postgame,"Original final team report did not receive peer confirmation");
   host.retire_system_link_world();host.continue_system_link_lobby();
-  const auto lobby_pump=[&]{client.service_system_link_lobby();host.service_system_link_lobby();host.broadcast();client.receive();};
+  const auto lobby_pump=[&]{client.service_system_link_lobby();host.service_system_link_lobby();client.receive();};
   until=std::chrono::steady_clock::now()+std::chrono::seconds(8);
   while((!client.system_link_state() || client.system_link_state()->phase!=SystemLinkPhase::lobby) && std::chrono::steady_clock::now()<until) {
     lobby_pump();std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -172,7 +172,9 @@ void network(const std::filesystem::path &map) {
   }
   MultiplayerPreparedWorld restarted(next);host.resume_system_link_world(restarted.match,0x7465616d73776974ull,next.variant,"coagulation");
   until=std::chrono::steady_clock::now()+std::chrono::seconds(5);
-  while(client.system_link_state()->phase!=SystemLinkPhase::starting && std::chrono::steady_clock::now()<until)lobby_pump();
+  while(client.system_link_state()->phase!=SystemLinkPhase::starting && std::chrono::steady_clock::now()<until) {
+    host.receive(controls);host.broadcast();client.receive();std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
   check(client.system_link_state()->phase==SystemLinkPhase::starting,"System Link did not publish its next generation");
   client.resume_system_link_world();
   until=std::chrono::steady_clock::now()+std::chrono::seconds(5);

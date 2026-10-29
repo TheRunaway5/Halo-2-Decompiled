@@ -97,6 +97,62 @@ Json inspect(const NativeTu15FramebufferAliases& aliases,unsigned width,unsigned
     rejects([&]{aliases.resolve(0x515e54);});return out;
 }
 std::vector<char> read(const std::filesystem::path& path){std::ifstream f(path,std::ios::binary);require(bool(f),"Native alias frame is missing");return {std::istreambuf_iterator<char>(f),{}};}
+Json texture_camera_without_materials(SDL_Window* window,const Mesh& mesh,
+    const std::filesystem::path& shaders,const std::filesystem::path& output) {
+    // This independent renderer has no camera/camouflage material, no source
+    // double-buffer request and no resolution conversion to realize a readable
+    // scene implicitly. Preparation must own that actual attachment itself.
+    Renderer renderer(window,mesh,true,{},nullptr,{},nullptr,shaders);
+    DisplaySettings native;native.internal_width=640;native.internal_height=480;
+    native.upscaler=Upscaler::Off;renderer.display_settings(native);
+    auto factory=renderer.target_resources();auto previous=factory.acquire();
+    const auto old_generation=previous.bank().generation;
+    require(!previous.bank().source_double_buffer,"Independent camera probe inherited source double buffering");
+    require(!previous.bank().color.empty(),"Ordinary direct presentation has no real color images");
+    for(const auto& image:previous.bank().color)
+        require(image.image&&image.view&&image.width==640&&image.height==480&&
+            !(image.usage&VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+            "Ordinary native-resolution presentation was already forced offscreen before a camera request");
+    SourceTextureCameraInputsTu15 inactive;inactive.camera_words[0]=0xffffffffu;
+    const SourceSceneCopyContext copy{{0,0,480,640},640,480,.015625f,1024.f};
+    auto prepared=renderer.prepare_texture_camera_targets(inactive,copy,{640,480});
+    prepared.require_current();
+    require(!prepared.available(18)&&!prepared.available(20),
+        "Inactive camera preparation fabricated a produced target");
+    require(!previous.valid(),"Camera scene attachment realization retained the departed generation");
+    auto actual=factory.acquire();const auto& bank=actual.bank();
+    require(bank.generation>old_generation && !bank.source_double_buffer &&
+        !bank.last_submitted_color && !bank.source_frames_submitted && !bank.color.empty(),
+        "Camera preparation lost its independent unsubmitted native attachment owner");
+    Json images=Json::array();
+    for(const auto& image:bank.color) {
+        constexpr auto usage=VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        require(image.image&&image.view&&image.image_backing.value>0xffffffffu&&image.view_backing.value>0xffffffffu&&
+            image.width==640&&image.height==480&&(image.usage&usage)==usage,
+            "Camera preparation lacks real readable native-resolution scene images");
+        std::uint64_t image_handle{},view_handle{};
+        std::memcpy(&image_handle,reinterpret_cast<const void*>(image.image_backing.value),sizeof(image_handle));
+        std::memcpy(&view_handle,reinterpret_cast<const void*>(image.view_backing.value),sizeof(view_handle));
+        require(image_handle==image.image&&view_handle==image.view,
+            "Camera preparation handles detached from actual renderer backing");
+        images.push_back({{"image",image.image},{"view",image.view},{"width",image.width},
+            {"height",image.height},{"usage",image.usage}});
+    }
+    Camera camera;camera.field_of_view=60;
+    const auto first=output/"camera-no-materials-first.ppm",repeat=output/"camera-no-materials-repeat.ppm";
+    require(renderer.draw(camera,first)&&renderer.draw(camera,repeat),
+        "Prepared native camera scene attachment failed real presentation/readback");
+    const auto pixels=read(first);
+    require(pixels.size()>640u*480u*3u && pixels==read(repeat),
+        "Camera attachment preparation failed complete deterministic native-resolution readback");
+    renderer.resized();rejects([&]{prepared.require_current();});
+    return {{"color",std::move(images)},{"generation",bank.generation},
+        {"direct_presentation_before_request",true},
+        {"source_double_buffer",false},{"inactive18_absent",true},{"inactive20_absent",true},
+        {"actual_presentations",2},{"readback_bytes",pixels.size()},
+        {"readback_repeat_equal",true},{"stale_capability_rejected",true}};
+}
 }
 int main(int argc,char** argv)try {
     require(argc==2,"Native alias output directory required");const std::filesystem::path output=argv[1];std::filesystem::create_directories(output);
@@ -108,6 +164,8 @@ int main(int argc,char** argv)try {
         Mesh mesh;Material material;material.diffuse={1,1,11,{std::byte{32},std::byte{80},std::byte{128},std::byte{255}}};mesh.materials.push_back(material);
         mesh.vertices={{{4,-2,-1},{1,1,1},{0,0},0},{{4,2,-1},{1,1,1},{0,0},0},{{4,0,2},{1,1,1},{0,0},0}};
         const auto* shader=std::getenv("HALO2_NATIVE_GPU_SHADER_DIR");
+        report["texture_camera_no_materials"]=texture_camera_without_materials(window,mesh,
+            shader?std::filesystem::path(shader):std::filesystem::path{},output);
         auto renderer=std::make_unique<Renderer>(window,mesh,true,std::span<const SourceShadowPlanMaterial>{},nullptr,std::function<void()>{},nullptr,shader?std::filesystem::path(shader):std::filesystem::path{});
         report["gpu"]=renderer->device_name();auto factory=renderer->target_resources();
         rejects([&]{NativeTu15FramebufferAliases invalid(factory.acquire());});

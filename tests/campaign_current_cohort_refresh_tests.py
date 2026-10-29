@@ -112,6 +112,27 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual(set(report['iterations'][1]['declared_refresh']['changed']),{'src/a.cpp'})
         self.assertFalse(report['native_only_engine_qualified'])
 
+    def test_graphics_success_finishes_without_an_idle_refresh(self):
+        output=self.work/'output';output.mkdir()
+        args=SimpleNamespace(refresh_control=self.work/'control.json',owned_refreshes=2,
+            refresh_wait_seconds=1,output=output,mcc_root=self.work/'mcc',ticks=120,
+            timeout=300,graphics_batch=True)
+        report={};commands=[]
+        def install(args,source,out):return dict(report=str(out/'graphics-batch.json'),passed=False)
+        def worker(command,cwd):
+            commands.append(command);path=Path(command[command.index('--output')+1]);path.mkdir()
+            (path/'tests.log').write_text('current_campaign_new_game_frontend .... Passed\n'
+                'current_campaign_new_game_startup .... Passed\ncurrent_campaign_opening_release .... Passed\n')
+            (path.parent/'new-game-startup.json').write_text('{"passed":true}')
+            (path.parent/'graphics-batch.json').write_text('{"passed":true}')
+            return 0
+        with patch.object(cohort,'install_graphics_batch_hook',install),patch.object(cohort.subprocess,'call',worker):
+            code=cohort.owned_new_game_iterations(args,self.source,self.work/'maps',self.inputs,set(),
+                ['python3','tools/run_tests.py','--output',str(output/'validation')],
+                (self.root/'CMakeLists.txt').read_text(),report,lambda:None)
+        self.assertEqual(code,0);self.assertEqual(len(commands),1)
+        self.assertEqual(len(report['iterations']),1);self.assertTrue(report['passed'])
+
 
 if __name__=='__main__':
     unittest.main()

@@ -6509,7 +6509,7 @@ if(BUILD_TESTING)
     add_executable(frontend_team_tests tests/frontend_team_tests.cpp)
     target_link_libraries(frontend_team_tests PRIVATE halo2_systems)
     add_test(NAME original_frontend_team_picker COMMAND frontend_team_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+        ${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/frontend_team_original.tsv)
     set_tests_properties(original_frontend_team_picker PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(local_profile_team_tests tests/local_profile_team_tests.cpp)
@@ -6794,16 +6794,16 @@ if(BUILD_TESTING)
         find_program(HALO2_XVFB_RUN xvfb-run)
         if(HALO2_XVFB_RUN)
             add_test(NAME player_armor_emblem_gpu COMMAND ${HALO2_XVFB_RUN} -a
-                $<TARGET_FILE:player_armor_emblem_gpu_tests> ${CMAKE_CURRENT_SOURCE_DIR}
+                $<TARGET_FILE:player_armor_emblem_gpu_tests> ${HALO2_TEST_ASSET_SOURCE_ROOT}
                 ${CMAKE_CURRENT_BINARY_DIR}/armor-emblem-gpu)
             add_test(NAME player_armor_emblem_runtime COMMAND ${HALO2_XVFB_RUN} -a
-                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${CMAKE_CURRENT_SOURCE_DIR}
+                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${HALO2_TEST_ASSET_SOURCE_ROOT}
                 ${CMAKE_CURRENT_BINARY_DIR}/armor-emblem-runtime)
             add_test(NAME player_team_color_runtime COMMAND ${HALO2_XVFB_RUN} -a
-                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${CMAKE_CURRENT_SOURCE_DIR}
+                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${HALO2_TEST_ASSET_SOURCE_ROOT}
                 ${CMAKE_CURRENT_BINARY_DIR}/team-color-runtime teams)
             add_test(NAME player_team_color_lan_runtime COMMAND ${HALO2_XVFB_RUN} -a
-                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${CMAKE_CURRENT_SOURCE_DIR}
+                $<TARGET_FILE:player_armor_emblem_runtime_tests> ${HALO2_TEST_ASSET_SOURCE_ROOT}
                 ${CMAKE_CURRENT_BINARY_DIR}/team-color-lan-runtime teams-lan)
             set_tests_properties(player_armor_emblem_gpu player_armor_emblem_runtime player_team_color_runtime player_team_color_lan_runtime
                 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
@@ -8424,6 +8424,9 @@ if(BUILD_TESTING)
         set_tests_properties(retail_source_scenery_shader PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(source_scenery_scene_tests PRIVATE halo2_renderer)
         add_test(NAME retail_source_scenery_scene COMMAND source_scenery_scene_tests)
+        add_test(NAME retail_source_scene_effect_forks COMMAND source_scenery_scene_tests --fork-effects-only)
+        set_tests_properties(retail_source_scene_effect_forks PROPERTIES TIMEOUT 180 RUN_SERIAL TRUE
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         set_tests_properties(retail_source_scenery_scene PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         add_executable(source_scenery_gpu_tests tests/source_scenery_gpu_tests.cpp)
         target_link_libraries(source_scenery_gpu_tests PRIVATE halo2_renderer)
@@ -10759,10 +10762,11 @@ include(cmake/CampaignAiDescriptorCallbacks.cmake)
 include(cmake/CampaignAiObjectDecisions.cmake)
 include(cmake/CampaignSessionSeedOrder.cmake)
 include(cmake/MultiplayerEnginesTu15.cmake)
+include(cmake/NativeSplitScreenStartup.cmake)
 if(BUILD_TESTING)
     if(HALO2_XVFB_RUN)
         add_test(NAME native_team_switch_color_runtime COMMAND ${HALO2_XVFB_RUN} -a
-            $<TARGET_FILE:player_armor_emblem_runtime_tests> ${CMAKE_CURRENT_SOURCE_DIR}
+            $<TARGET_FILE:player_armor_emblem_runtime_tests> ${HALO2_TEST_ASSET_SOURCE_ROOT}
             ${CMAKE_CURRENT_BINARY_DIR}/team-switch-colors teams-switch "${HALO2_MCC_MULTIPLAYER_ENGINE_MAP}")
         set_tests_properties(native_team_switch_color_runtime PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
     endif()
@@ -11598,6 +11602,7 @@ include(cmake/CampaignNativeCameraCommands.cmake)
 include(cmake/CampaignNativeCameraStartup.cmake)
 include(cmake/CampaignNativeCameraControl.cmake)
 include(cmake/CampaignNativeCameraReset.cmake)
+include(cmake/NativeTu15RenderCameraPacket.cmake)
 include(cmake/CampaignNativeObjectMarkers.cmake)
 include(cmake/CampaignNativeObjectMotionRefs.cmake)
 include(cmake/CampaignNativeObjectMarkerRequest.cmake)

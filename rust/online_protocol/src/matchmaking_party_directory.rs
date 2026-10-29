@@ -4,12 +4,14 @@
 //! provider and native-owner operation executes once; a continuation cannot be
 //! reordered, replayed, or expanded into an unbounded query/result bank.
 use crate::matchmaking_coordinator::{id, value};
-use crate::matchmaking_model::{self as m, Error, Result, array, n, s};
+use crate::matchmaking_model::{self as m, Error, Result, array};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 const MAX_STEPS: usize = 1024;
 const MAX_JOURNAL_BYTES: usize = 1024 * 1024;
+#[path="matchmaking_clan_directory.rs"]
+mod clans;
 #[derive(Clone)]
 struct Entry {
     request: Value,
@@ -57,8 +59,19 @@ impl Directory {
         m::fields_optional(
             config,
             &["mode", "source", "player", "wall", "clock"],
-            &["body", "features", "party", "target", "admitted", "steam"],
+            &["body", "features", "party", "target", "admitted", "steam","family","account_source","account_key","account_now"],
         )?;
+        m::check(config["family"].is_null() || config["family"]=="party" || config["family"]=="clan","Unknown directory family")?;
+        m::check(config["account_source"].is_null()==config["account_key"].is_null(),"Account source/key pair required")?;
+        if !config["account_source"].is_null(){
+            config["account_source"].as_u64().ok_or(Error(400,"Account source owner required"))?;
+            m::hex(&config["account_key"],32)?;m::text(&config["player"],64)?;
+            let now=m::real(&config["account_now"])?;
+            m::check(now>=0. && (now+900.).is_finite(),"Invalid directory account clock")?;
+        }
+        if config["family"]=="clan" && ["command","get"].iter().any(|m|config["mode"]==*m){
+            m::check(!config["account_source"].is_null(),"Authenticated clan directory source required")?;
+        }
         let source = if config["source"].is_null() {
             None
         } else {
@@ -88,6 +101,9 @@ impl Directory {
     }
     pub fn source(&self) -> Option<u64> {
         self.source
+    }
+    pub fn account_binding(&self)->Option<(u64,String,String,f64)>{
+        Some((self.config["account_source"].as_u64()?,self.config["account_key"].as_str()?.to_owned(),self.config["player"].as_str()?.to_owned(),self.config["account_now"].as_f64()?))
     }
     pub fn execute(&mut self, r: &Value) -> Result<Value> {
         m::check(!self.terminal, "Party transaction retired")?;
@@ -1193,6 +1209,20 @@ fn view(c: &mut Cursor<'_>, who: &str, flags: &Value) -> Flow<Value> {
             503,
             "Too many party room observations",
         )?;
+        for room in reviewing.as_array().unwrap() {
+            m::fields(room, &["closed", "phase", "peers"])?;
+            m::boolean(&room["closed"])?;
+            m::text(&room["phase"], 32)?;
+            let peers = room["peers"]
+                .as_array()
+                .ok_or(Error(400, "Party room peers required"))?;
+            need(peers.len() <= 16, 400, "Too many party room peers")?;
+            for peer in peers {
+                m::fields(peer, &["player", "closed"])?;
+                m::text(&peer["player"], 64)?;
+                m::boolean(&peer["closed"])?;
+            }
+        }
         let mut rows = Vec::new();
         let states = if flags["appearance"] == true || flags["local_players"] == true {
             c.state(&players)?
@@ -1347,6 +1377,7 @@ fn features(v: &Value, command: bool) -> Value {
     json!({"local_players":!command && enabled("local_players"),"appearance":!command && enabled("appearance"),"postgame":!command && enabled("postgame"),"countdown":enabled("countdown"),"privacy":enabled("privacy")})
 }
 fn operation(r: &Value, c: &mut Cursor<'_>) -> Flow<Value> {
+    if r["family"]=="clan"{return clans::operation(r,c);}
     let mode = txt(&r["mode"])?;
     let now = m::integer(&r["wall"], 0, 9007199254650000)?;
     if mode == "schema" {
@@ -1436,5 +1467,88 @@ fn operation(r: &Value, c: &mut Cursor<'_>) -> Flow<Value> {
             Ok(Value::Null)
         }
         _ => Err(Error(400, "Unknown party directory operation").into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn owner(mode: &str) -> Directory {
+        Directory::new(&json!({"mode":mode,"source":null,"player":"p","wall":100,"clock":10.}))
+            .unwrap()
+    }
+    #[test]
+    fn sql_continuations_are_single_use_and_malformed_replies_cannot_advance() {
+        let mut d = owner("cleanup");
+        let first = d.execute(&json!({"op":"begin"})).unwrap();
+        assert_eq!(array(&first, "statements").len(), 3);
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":2,"rows":[],"changes":[0,0,0]}))
+                .unwrap_err()
+                .0,
+            409
+        );
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":1,"rows":[],"changes":[0]}))
+                .unwrap_err()
+                .0,
+            400
+        );
+        assert!(d.journal.is_empty());
+        let result = d
+            .execute(&json!({"op":"reply","frame":1,"rows":[],"changes":[0,0,0]}))
+            .unwrap();
+        assert_eq!(result["kind"], "done");
+        assert_eq!(
+            d.journal.len(),
+            1,
+            "The recorded write is consumed rather than emitted again"
+        );
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":1,"rows":[],"changes":[0,0,0]}))
+                .unwrap_err()
+                .0,
+            400
+        );
+    }
+    #[test]
+    fn row_and_journal_byte_limits_reject_expansion_before_retaining_it() {
+        let mut d = owner("party");
+        d.execute(&json!({"op":"begin"})).unwrap();
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":1,"rows":vec![json!([]);129],"changes":[-1]}))
+                .unwrap_err()
+                .0,
+            400
+        );
+        assert!(d.journal.is_empty());
+        d.bytes = MAX_JOURNAL_BYTES - 1;
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":1,"rows":[],"changes":[-1]}))
+                .unwrap_err()
+                .0,
+            400
+        );
+        assert!(d.journal.is_empty());
+        d.bytes = 0;
+        assert_eq!(
+            d.execute(&json!({"op":"reply","frame":1,"rows":[],"changes":[-1]}))
+                .unwrap()["kind"],
+            "done"
+        );
+    }
+    #[test]
+    fn legacy_request_canonicalization_preserves_ascii_unicode_and_surrogate_pairs() {
+        let body = json!({"username":"Grüße🚀#12345678","request_id":"00000000-0000-0000-0000-000000000000","action":"invite","version":1});
+        assert_eq!(
+            ascii_json(&body),
+            r#"{"action":"invite","request_id":"00000000-0000-0000-0000-000000000000","username":"Gr\u00fc\u00dfe\ud83d\ude80#12345678","version":1}"#
+        );
+        assert_eq!(command_body(&body).unwrap(), "invite");
+        let mut invalid = body.clone();
+        invalid["version"] = json!(true);
+        // The typed mutation branch, rather than JSON truthiness, validates
+        // this version before SQL can change accepted membership.
+        assert!(m::integer(&invalid["version"], 1, i64::MAX).is_err());
     }
 }

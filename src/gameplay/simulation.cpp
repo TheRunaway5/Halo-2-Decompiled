@@ -22,6 +22,7 @@
 #include "halo2/native_campaign_camera_commands_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_control_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
+#include "halo2/native_tu15_render_camera_packet_binding.hpp"
 #include "halo2/source_campaign_player_queries_tu15.hpp"
 #include "halo2/script_clock_builtin.hpp"
 #include "halo2/source_script_rumble_tu15.hpp"
@@ -3361,7 +3362,8 @@ std::string Simulation::status() const {
         << " native_camera_stop=" << native_camera.stops
         << " native_camera_fov=" << native_camera.fovs
         << " native_camera_control=" << native_campaign_camera_control_calls_tu15()
-        << " native_camera_director_reset=" << native_campaign_camera_reset_calls_tu15();
+        << " native_camera_director_reset=" << native_campaign_camera_reset_calls_tu15()
+        << " native_render_camera_packet=" << native_tu15_render_camera_packet_calls();
   }
   if(const auto *state=cinematic_state();state && state->screen_active)
     out << " cinematic_clock=" << state->render_clock

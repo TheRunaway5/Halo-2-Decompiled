@@ -1,4 +1,5 @@
 //! Trusted IO bridge to the Rust matchmaking owner. No network pointers.
+use halo2_online_protocol::matchmaking_accounts::Accounts;
 use halo2_online_protocol::matchmaking_continuity::Continuity;
 use halo2_online_protocol::matchmaking_coordinator::{self as core, Coordinator};
 use halo2_online_protocol::matchmaking_model::{Error, Result};
@@ -22,6 +23,7 @@ enum Owner {
     Continuity(Box<Continuity>),
     Budget(Box<Budget>),
     PartyDirectory(Box<Directory>),
+    Accounts(Box<Accounts>),
 }
 impl Owner {
     fn execute(&mut self, request: &core::WireValue) -> Result<core::WireValue> {
@@ -32,6 +34,7 @@ impl Owner {
             Self::Continuity(value) => value.execute(request),
             Self::Budget(value) => value.execute(request),
             Self::PartyDirectory(value) => value.execute(request),
+            Self::Accounts(value) => value.execute(request),
         }
     }
 }
@@ -42,12 +45,28 @@ fn open(request: &core::WireValue) -> Result<u64> {
     if owners.values.len() >= 4096 {
         return Err(Error(503, "Native owner capacity reached"));
     }
-    let owner = if let Some(directory) = request.get("party_directory") {
+    let owner = if let Some(accounts) = request.get("accounts") {
+        halo2_online_protocol::matchmaking_model::fields(accounts, &[])?;
+        Owner::Accounts(Box::default())
+    } else if let Some(directory) = request.get("party_directory") {
+        if owners
+            .values
+            .values()
+            .filter(|v| matches!(v, Owner::PartyDirectory(_)))
+            .count()
+            >= 128
+        {
+            return Err(Error(503, "Party transaction capacity reached"));
+        }
         let directory = Directory::new(directory)?;
         if let Some(source) = directory.source() {
             if !matches!(owners.values.get(&source), Some(Owner::Queue(_))) {
                 return Err(Error(503, "Party source owner retired"));
             }
+        }
+        if let Some((source,key,player,now))=directory.account_binding(){
+            let Some(Owner::Accounts(accounts))=owners.values.get_mut(&source)else{return Err(Error(503,"Account source owner retired"));};
+            if !accounts.binding(&key,&player,now)?{return Err(Error(401,"ONLINE session expired; reconnect"));}
         }
         Owner::PartyDirectory(Box::new(directory))
     } else if let Some(database) = request.get("database") {
@@ -126,6 +145,12 @@ static OWNERS: LazyLock<Mutex<Owners>> = LazyLock::new(|| {
 static BUFFERS: AtomicUsize = AtomicUsize::new(0);
 
 fn execute(owners: &mut Owners, id: u64, request: &core::WireValue) -> Result<core::WireValue> {
+    if let Some(Owner::PartyDirectory(directory))=owners.values.get(&id){
+        if let Some((source,key,player,now))=directory.account_binding(){
+            let Some(Owner::Accounts(accounts))=owners.values.get_mut(&source)else{return Err(Error(503,"Account source owner retired"));};
+            if !accounts.binding(&key,&player,now)?{return Err(Error(401,"ONLINE session expired; reconnect"));}
+        }
+    }
     let source = match owners.values.get(&id) {
         Some(Owner::PartyDirectory(directory)) => directory.source(),
         Some(_) => return owners.values.get_mut(&id).unwrap().execute(request),
@@ -146,10 +171,11 @@ fn execute(owners: &mut Owners, id: u64, request: &core::WireValue) -> Result<co
             return Err(Error(503, "Party source owner retired"));
         };
         let result = queue.execute(&event["request"])?;
-        event =
-            owners.values.get_mut(&id).unwrap().execute(
-                &serde_json::json!({"op":"reply","frame":event["frame"],"value":result}),
-            )?;
+        let mut continuation = core::WireValue::Object(Default::default());
+        continuation["op"] = core::WireValue::from("reply");
+        continuation["frame"] = event["frame"].clone();
+        continuation["value"] = result;
+        event = owners.values.get_mut(&id).unwrap().execute(&continuation)?;
     }
     Err(Error(503, "Party owner continuation exceeds bounds"))
 }

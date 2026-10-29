@@ -114,7 +114,10 @@ class PartyActivityTests(unittest.IsolatedAsyncioTestCase):
         await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])
         await self.command(self.b, "leave")
         who = self.parties.db.execute("SELECT player FROM player_profiles WHERE discord_username='pilot_two'").fetchone()[0]
-        with patch.object(self.parties, "playing", side_effect=lambda p: p == who):
+        # Declared room observations feed the native authority predicate;
+        # overriding a former Python decision cannot control Rust admission.
+        rooms=lambda player:[dict(closed=False,phase='running',owners={player:player},active=[player],playlist='ranked',clans=[])]
+        with patch.object(self.queue, "room_facts", return_value=rooms(who)):
             await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])
         a = self.parties.db.execute("SELECT player FROM player_profiles WHERE discord_username='pilot_one'").fetchone()[0]
         self.directory.voice_blocks.blocks[who] = {self.directory.voice_blocks.subject(a)}
@@ -125,7 +128,7 @@ class PartyActivityTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone((await self.view(self.b))["party"])
         self.assertEqual(len((await self.view(self.a))["party"]["members"]), 1)
         self.directory.voice_blocks.blocks.clear()
-        with patch.object(self.parties, "playing", side_effect=lambda p: p == a):
+        with patch.object(self.queue, "room_facts", return_value=rooms(a)):
             await self.activity(self.a, 409)
             await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])
         self.assertEqual(len((await self.command(self.b, "join_activity", join_secret=link["join_secret"]))["party"]["members"]), 2)
@@ -141,9 +144,10 @@ class PartyActivityTests(unittest.IsolatedAsyncioTestCase):
                 who = player(self.parties.db, ("fixture", str(i)), "Extra Pilot")
                 self.parties.db.execute("INSERT INTO party_members(player,party,handle) VALUES(?,?,?)", (who,pid,str(uuid.uuid4())))
         await self.activity(self.a, 409)
-        await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])
+        await self.command(self.b, "join_activity", 404, join_secret=link["join_secret"])
         with self.parties.db:
             self.parties.db.execute("DELETE FROM party_members WHERE handle=(SELECT handle FROM party_members WHERE party=? ORDER BY rowid DESC LIMIT 1)", (pid,))
+        link=await self.activity(self.a)
         responses = await asyncio.gather(*[self.client.post("/v1/party/commands", headers=h,
             json={"action": "join_activity", "join_secret": link["join_secret"], "request_id": str(uuid.uuid4())}) for h in (self.b,self.c)])
         self.assertEqual(sorted(r.status for r in responses), [200,404])

@@ -74,6 +74,6 @@ int main(int argc,char **argv)try {
     check(*results==before,"Dynamic source presence changed retained numeric report");++cases;
   }
   check(cases==8,"Original PCR family coverage incomplete");
-  std::cout<<"PASS seven original family carriers/numeric columns, source-valid304byte options, sparse current/departed/unknown membership, admitted rank metadata; declared component banks, natural source/GPU/ONLINE flow tested separately\n";
+  std::cout<<"PASS seven original families plus enabled team changing, carriers/numeric columns, source-valid304byte options, sparse current/departed/unknown membership, admitted rank metadata; declared component banks, natural source/GPU/ONLINE flow tested separately\n";
   return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

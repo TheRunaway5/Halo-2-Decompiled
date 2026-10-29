@@ -1,0 +1,44 @@
+{
+  "scope": "Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "targets": [
+    "x86_64-unknown-linux-gnu"
+  ],
+  "lock_sha256": "2da7216b28cb4dac8baa3b0f7c248aa2ff7fb6e5f2550e286b1e201c64aea57a",
+  "cxx_version": "1.0.205",
+  "native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "resolved_native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "requested_cxx": "/usr/bin/c++",
+  "requested_cxx_flags": "",
+  "archive": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/party-directory-port/halo2-test-y4ufto3n/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+  "archive_sha256": "5cb891fee1d80f90bed7da98083e756439511ec5764983c6d494e83503f8d384",
+  "worker": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/party-directory-port/halo2-test-y4ufto3n/build/online-protocol/Release/eos_sdk_worker",
+  "worker_sha256": "943581dabd084c4345a8078a40bfdee094eacd90bfa241e5911ae2f0002186d8",
+  "worker_link_flags": "",
+  "header_sha256": {
+    "rust/cxx.h": "bb4eada7adbd269a932009682a12a15f716f0460761430e2b68ea7dab764646c",
+    "halo2-online-protocol-bridge/src/lib.rs.h": "81fb804e3bacd04ddab018990c7b622d8689689c7303979756cefa300f38cf77",
+    "src/eos_sdk.hpp": "85ccbd3cce12d58d2cc9650307362230c5eb82a08ee2a1567b5c1dfe7ecc9300"
+  },
+  "cargo_target_dir": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/party-directory-port/halo2-test-y4ufto3n/build/online-protocol/Release/cargo"
+}

@@ -1272,6 +1272,64 @@ actual existing-world continuity and all original/native played/delivered
 G01-G12 gates remain open. All twelve full gap criteria and all 53 algorithm IDs
 remain intact.
 
+## Rust accepted-party directory ownership
+
+`matchmaking_party_directory.rs` now owns accepted party creation, invitation
+and target selection, acceptance/decline/block/cancel, departures/removal/leader
+transfer, privacy changes, activity capabilities, request quotas/replay and
+public party projections. It owns the SQL schema, membership reads and writes,
+consent invalidation and the existing Ready/countdown handoffs. Shared account,
+friend-tag, presence, Steam and block providers remain explicit IO boundaries.
+These are native service rules, separate from original Live recovery.
+
+A real authenticated regression reproduced a local-seat capacity mismatch:
+four party connections with four admitted seats each filled sixteen player
+slots, but the activity endpoint still advertised four and issued a join secret.
+Rust counts admitted local seats. An observed full party revokes its activity
+link in a committed transaction before returning the rejection. Freeing seats
+allows a new link; it cannot revive the revoked secret. Ordinary rejected
+commands and SQL failures still roll back their complete mutation.
+
+The Rust transaction owner emits bounded SQL/provider continuations. Its journal
+records each result once and replays decisions without repeating writes or
+native effects. Frames, row counts, expected changes, total steps and retained
+reply bytes are bounded. Entropy belongs to Rust. Existing Unicode request
+payloads retain their prior ASCII JSON representation, including surrogate
+pairs. SQL statements contain bound parameters rather than interpolated input.
+
+The FFI binds each transaction to the actual Rust queue owner and resolves its
+session/queue/Ready/countdown/effect calls inside Rust. Retiring that source
+prevents continuation. Public member handles and activity aliases remain
+separate from private account and party identities. Python party-policy aliases
+cannot grant closed-party admission. Actual SQL-trigger failure rolls back the
+roster, version, invitations and replay row; retry commits once. Directory reads
+preserve a caller's existing SQLite transaction.
+
+`parties_http.py` now executes typed HTTP, clock, provider and countdown/SQL IO;
+its membership/action/target/replay/privacy/activity/view decisions were removed.
+Native presence/room/identity facts and general account/clan authentication,
+rate controls, full service replacement and cross-store recovery remain open.
+The [party directory receipt](evidence/matchmaking-rust-parity-20261028/party-directory-validation.json)
+retains the red control, source identities, full and production ABI regressions,
+CMake checks and scratch cleanup. The October 11 integration investigation is
+explicitly marked historical and links to the current audit.
+
+The frozen 259-file full cohort passed 174 Rust unit tests, 94 integration tests
+and 495 backend tests. The production ABI passed 174 unit tests, 72 integration
+tests and 272 backend tests with diagnostic restoration disabled. Both manifests
+match current source. CMake's offline Rust build/helper passed with two build
+jobs and one test job; its 80 recorded Rust inputs stayed unchanged. Two existing
+capture/performance tests remain ignored.
+
+All nine reported scratch trees and the receipt helper were removed; the owned
+scratch parent is empty. The 35 retained source reports total 420,206 bytes,
+excluding the summary receipt. No generated large artifact or selected runtime
+was changed.
+
+No new unchanged-original execution, original Live party procedure, actual
+played engine/world or delivered activation is claimed. All twelve complete
+gap criteria, 53 algorithm IDs and full G01-G12 gates remain open and intact.
+
 ## Rust implementation boundary
 
 **All production matchmaking code must end in Rust.** This includes catalog
