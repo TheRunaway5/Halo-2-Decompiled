@@ -35,8 +35,11 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
         m.word(0x30e954u,input.work+4u,second_count);
         const auto first_now=m.word(input.work);
         const auto first_table=m.word(input.first.identity);
-        m.word(0x30e95du,scratch.epsilon,0u);
-        if(first_count!=1u||second_count!=1u){++stats.initial_count_refusals;throw std::runtime_error("Native simplex solver requires its wider initial simplex");}
+        // At30E95D three arguments are still pushed: +28 is the iteration
+        // counter, while30E965's +20 is the actual epsilon at caller+14.
+        // Keep the source float bits, not a zero inferred from the first store.
+        m.word(0x30e965u,scratch.epsilon,0x2edbe6ffu);
+        if((first_count!=1u&&first_count!=2u)||second_count!=1u){++stats.initial_count_refusals;throw std::runtime_error("Native simplex solver requires its wider initial simplex");}
         if(!services.features)throw std::runtime_error("Native simplex solver requires native feature retrieval");
         const auto first_owner=m.word(first_table+0x34u);
         ++stats.feature_queries;services.features(memory,input.first,{first_owner},input.support_cache,first_now,input.work+0x20u,fp);
@@ -55,16 +58,41 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
             const auto z=m.vector(input.relative_transform+0x20u),z_term=multiply(z,lane<0xaau>(point));
             const auto translation=m.vector(input.relative_transform+0x30u),zt=add(z_term,translation),xy=add(x_term,y_term);
             m.vector(0x30e9e9u,input.work+0xa0u,add(xy,zt));
-            // The source's first iteration starts at a source-owned zero scalar.
+        }
+        std::uint32_t iteration{},result{};bool reduction{};
+        for(;;){
+          bool project{};
+          {
+            Environment phase(fp,depth);
             const auto a=m.word(input.work);push(m.word(scratch.epsilon));
             const auto b=m.word(input.work+4u);asm volatile("fadd %%st(0),%%st(0)":::"memory","st");
             m.pop_float(0x30ea13u,scratch.epsilon);
+            ++iteration;
             m.word(0x30ea22u,input.work+0x10u,0u);
-            if(a!=1u||b!=1u){++stats.initial_count_refusals;throw std::runtime_error("Native simplex solver requires its simplex switch continuation");}
-            // Exact vertex/vertex case30F253, not an emulated jump table.
-            const auto opposite=m.vector(input.work+0xa0u),first=m.vector(input.work+0x20u);
-            m.vector(0x30f261u,input.work+0x120u,subtract(opposite,first));
-            m.word(0x30f26au,input.work+8u,m.word(input.work+4u));
+            if(a==1u&&b==1u){
+                const auto opposite=m.vector(input.work+0xa0u),first=m.vector(input.work+0x20u);
+                m.vector(0x30f261u,input.work+0x120u,subtract(opposite,first));
+                m.word(0x30f26au,input.work+8u,m.word(input.work+4u));
+            }else if(a==2u&&b==1u){
+                // Exact edge/vertex30F175..30F23C, with source sign-bit tests
+                // and shuffle/multiply/subtract order for the triple cross.
+                const auto endpoint=m.vector(input.work+0x30u),first=m.vector(input.work+0x20u),other=m.vector(input.work+0xa0u);
+                const auto edge=subtract(endpoint,first),from_first=subtract(first,other),from_endpoint=subtract(endpoint,other);
+                const auto endpoint_dot=sum_three(multiply(from_endpoint,edge));
+                const auto first_dot=sum_three(multiply(from_first,edge));
+                if((endpoint_dot>>31u)==(first_dot>>31u)){
+                    ++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its edge endpoint reduction");
+                }
+                const auto term_a=multiply(lane<0xd2u>(from_endpoint),lane<0xc9u>(from_first));
+                const auto term_b=multiply(lane<0xd2u>(from_first),lane<0xc9u>(from_endpoint));
+                const auto cross=subtract(term_b,term_a);
+                const auto outer_b=multiply(lane<0xd2u>(edge),lane<0xc9u>(cross));
+                const auto outer_a=multiply(lane<0xc9u>(edge),lane<0xd2u>(cross));
+                m.vector(0x30f22eu,input.work+0x120u,subtract(outer_a,outer_b));
+                m.word(0x30f237u,input.work+8u,m.word(input.work+4u));
+            }else{
+                ++stats.initial_count_refusals;throw std::runtime_error("Native simplex solver requires its simplex switch continuation");
+            }
             const auto axis=m.vector(input.work+0x120u),squared=multiply(axis,axis);
             const auto squared_length=sum_three(squared);
             const auto first_now=m.vector(input.work+0x20u);
@@ -75,10 +103,39 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
             push(m.word(scratch.projection));multiply_scalar(m.word(scratch.projection));multiply_scalar(m.word(scratch.projection));
             push(m.word(scratch.epsilon));multiply_scalar(m.word(0x41d658u));multiply_scalar(m.word(scratch.squared_length));
             std::uint16_t relation;asm volatile("fcompp;fnstsw %0":"=a"(relation)::"memory","st","st(1)");
-            if(relation&0x100u){++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its projection iteration");}
+            project=(relation&0x100u)!=0;
+            if(project){push(m.word(scratch.squared_length));multiply_scalar(m.word(scratch.epsilon));m.pop_float(0x30ee7au,scratch.constant+4u);}
+          }
+          if(!project){reduction=true;break;}
+          const auto first_trial=[&](bool early){
+              // The parity of the source iteration selects which shape is
+              // tried first. Its cache limit is signed, including -1.
+              const auto limit=std::uint32_t(std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(m.word(input.support_cache+10u,1)))));
+              const auto count=m.word(input.work);
+              if(count==limit||m.word(input.work+0x10u)==1u)return false;
+              const auto table=m.word(input.first.identity),owner=m.word(table+0x30u);
+              if(!services.single.support)throw std::runtime_error("Native simplex solver requires its actual first support owner");
+              services.single.support(memory,input.first,{owner},input.work+0x120u,input.work+(count+2u)*16u,fp);
+              Environment phase(fp,depth);
+              const auto current=m.word(input.work);
+              const auto first=m.vector(input.work+0x20u),axis=m.vector(input.work+0x120u);
+              const auto candidate=m.vector(input.work+(current+2u)*16u);
+              const auto dot=sum_three(multiply(subtract(candidate,first),axis));
+              m.word(early?0x30eeeau:0x30f4cau,scratch.constant+8u,dot);
+              push(m.word(scratch.constant+8u));asm volatile("fabs":::"memory","st");multiply_scalar(m.word(scratch.constant+8u));
+              const auto threshold=m.word(scratch.constant+4u);std::uint16_t relation;
+              asm volatile("fcomps %1;fnstsw %0":"=a"(relation):"m"(threshold):"memory","st");
+              if(relation&0x4100u)return false;
+              if(current!=1u){++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its multi-edge candidate checks");}
+              m.word(early?0x30ef9eu:0x30f57au,input.work,current+1u);return true;
+          };
+          if((iteration&1u)&&first_trial(true))continue;
+          const auto second_limit=std::uint32_t(std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(m.word(input.support_cache+11u,1)))));
+          const auto second_current=m.word(input.work+4u);
+          if(second_current!=second_limit){++stats.projection_refusals;throw std::runtime_error("Native simplex solver requires its second-shape projection support");}
+          if((iteration&1u)||!first_trial(false))break;
         }
-        std::uint32_t result;
-        if(m.word(input.work+0xcu,1u)) {
+        if(reduction&&m.word(input.work+0xcu,1u)) {
             // Actual30F5A5..30F5CF: overlap queries keep the current simplex,
             // cap its two signed counts only when their sum exceeds four,
             // and return3. They do not call the30DE60 distance reduction.
@@ -94,7 +151,7 @@ std::uint32_t native_tu15_solve_convex_contact_simplex(NativeTu15ConvexSimplexMe
                 }
             }
             result=3u;
-        } else {
+        } else if(reduction) {
             result=native_tu15_solve_single_vertex_convex_simplex(memory,
                 {input.work,input.first,input.second,input.relative_transform},scratch.single,
                 fp,depth,services.single,clock,&stats.single);

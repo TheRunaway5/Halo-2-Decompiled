@@ -9,10 +9,12 @@
 #include <iostream>
 
 using namespace halo2;
+int overshield_live_feedback_test(int,char**);
 namespace {
 void check(bool ok,const char* why){if(!ok)throw FormatError(why);}
 }
 int main(int argc,char** argv)try {
+    if(argc==5 && std::string(argv[4])=="--overshield-feedback")return overshield_live_feedback_test(argc,argv);
     check(argc==4,"Supply prepared MCC Headlong, owned capture directory and bounded report path");
     if(!std::filesystem::is_regular_file(argv[1]) || !std::getenv("DISPLAY"))return 77;
     check(std::getenv("HALO2_TEST_SCRATCH"),"Live equipment rendering requires owned scratch");

@@ -948,6 +948,8 @@ struct MultiplayerOptions {
   // source pose banks retain the current authoritative snapshot. Network
   // receive can advance between fixed-rate input observations and rendering.
   std::function<void(unsigned,const MultiplayerState &,const Camera &)> view_state_observer;
+  // Read-only flash selected for the actual local ModelView, before HUD composition.
+  std::function<void(unsigned,std::uint32_t,const PlayerScreenFlash&)> player_screen_flash_observer;
   // Does not request posed vertices or disqualify retained GPU skinning.
   // No node bank is copied when absent; callback cannot retain borrowed spans.
   std::function<void(unsigned,std::uint32_t,const MultiplayerNodeObservation&)> node_observer;

@@ -126,6 +126,14 @@ int main(int argc,char **argv)try {
         };
         services.required_owner=[&](auto &memory,const auto &call,auto &abi,const auto &o) {
             if(traced==trace.size() && has_budget && call.target==budget_at)throw ObservationStop{};
+            // The composed reference executes this real lookup inside179ED0.
+            // Its instructions and stores remain in the physical trace; it has
+            // no supplied result or separate outer-frame boundary record.
+            if(!controlled && call.target==0x178070u) {
+                need(call.instruction==0x179f12u && !call.tail,"Different composed system lookup call");
+                source_run_effect_particle_frame_tu15(memory,call.target,abi,*abi.floating_point,services,o);
+                return;
+            }
             need(called<row.at("calls").size(),"Different physical frame lower-call count");const auto &expected=row.at("calls").at(called++);
             need(call.target==expected.at("target") && call.tail==expected.at("tail"),"Different physical frame actual lower target/tail");
             const auto site=systems?expected.at("instruction").get<std::uint32_t>():particle?(call.target==0x1778d0u?0x1778a1u:call.target==0x17de10u?0x1778b2u:0x1778bfu):

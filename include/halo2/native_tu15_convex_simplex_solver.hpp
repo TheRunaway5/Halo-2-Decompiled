@@ -7,6 +7,8 @@ struct NativeTu15ConvexSimplexSolverInput {
     std::uint32_t relative_transform{},support_cache{},plane{};
 };
 struct NativeTu15ConvexSimplexSolverScratch {
+    // constant owns16bytes: normalization literals and rounded projection
+    // threshold/trial scalars. The complete caller-owned arena stays live.
     std::uint32_t epsilon{},squared_length{},projection{},normalization{},constant{};
     NativeTu15ConvexSimplexSingleScratch single;
 };
@@ -21,7 +23,9 @@ struct NativeTu15ConvexSimplexSolverStats {
         initial_count_refusals{},projection_refusals{},alternate_solver_refusals{};
     NativeTu15ConvexSimplexSingleStats single;
 };
-// Actual30E930 selected vertex/vertex path: flag0 uses30DE60/count1; flag1
+// Actual30E930 selected vertex/vertex and first-edge/vertex paths, including
+// first-shape projection/support iteration with a fixed second vertex.
+// On reduction, flag0 uses30DE60/count1; flag1
 // keeps the current simplex and returns3 at30F5CF. The caller's work+0C
 // flag is initialized DATA. Every other used work byte is defined by this
 // kernel or its same-view native providers. Wider simplex/projection branches

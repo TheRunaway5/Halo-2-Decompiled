@@ -55,7 +55,7 @@ def main():
   if isinstance(command,list)and command and command[0]in compiled and result.returncode==0:
    build=compiled[command[0]];compiler=Path(build[0]).name;output=Path(command[4]).parent
    for name,(kernel,old,new)in changes.items():
-    content=kernel.read_text();assert content.count(old)==1,(name,content.count(old));overlay=scratch/name;overlay.mkdir();target=overlay/(compiler+'-mutant')
+    content=kernel.read_text();assert content.count(old)==1,(name,content.count(old));overlay=scratch/(compiler+'-'+name);overlay.mkdir();target=overlay/(compiler+'-mutant')
     variant=[str(target)if p==command[0]else p for p in build]
     if kernel==helper:
      include=overlay/'include/halo2';include.mkdir(parents=True);(include/helper.name).write_text(content.replace(old,new));variant.insert(1,'-I'+str(overlay/'include'))

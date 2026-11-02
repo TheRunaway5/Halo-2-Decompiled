@@ -1447,6 +1447,17 @@ records the verified result here before starting dependent work.
   GPU executable is relinked. This baseline preserves the preceding engine
   behavior; actual E3 camera rendering remains its separate next gate.
   [Current six-test GPU baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-gpu-baseline-1/report.json).
+- [x] Rerun the actual E3 GPU consumer with the rebuilt Cache and verified
+  combined36-file overlay. Both variants advance past the former paver
+  refusal and stop at `big_generator_in` LOD1, template
+  `shaders\shader_templates\opaque\tex_bump_env_alpha_test`, datum3837461317.
+  Its two LODs have no admitted native passes. The diagnostic also listed
+  neighboring converted `tex_bump_dprs_env_illum` materials; exact-name
+  matching confirms those are not the fatal shader. No GPU frame is qualified
+  and camera admission stays unchanged. The caller/preparation owner is
+  removed; the shared engine build remains active for the next conversion.
+  [Exact next material boundary](../build/test-results/workshop-goal-20261101/e3-camera-render-boundary-3.json),
+  [Actual native E3 run](../build/test-results/workshop-goal-20261101/camera-e3-gpu-6/consumer.json).
 - [ ] Implement and qualify the complete authored three-channel environment/
   illumination material conversion, then rerun the actual E3 camera GPU path
   before production camera admission or a new qualified feedback build.

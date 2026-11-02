@@ -2907,7 +2907,7 @@ add_executable(source_shield_live_runtime_tests tests/source_shield_live_runtime
 target_link_libraries(source_shield_live_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
 target_compile_definitions(source_shield_live_runtime_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
 add_dependencies(source_shield_live_runtime_tests halo2_shaders)
-add_executable(equipment_live_render_tests tests/equipment_live_render_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+add_executable(equipment_live_render_tests tests/equipment_live_render_tests.cpp tests/overshield_live_feedback.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
 target_link_libraries(equipment_live_render_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
 target_compile_definitions(equipment_live_render_tests PRIVATE HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
 add_dependencies(equipment_live_render_tests halo2_shaders)
@@ -8628,6 +8628,11 @@ if(BUILD_TESTING)
             "${HALO2_MCC_EQUIPMENT_MAP}" ${CMAKE_CURRENT_BINARY_DIR}/equipment-live-captures
             ${CMAKE_CURRENT_BINARY_DIR}/equipment-live-render.json)
         set_tests_properties(native_mcc_equipment_render PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1200)
+        add_test(NAME native_mcc_overshield_feedback COMMAND equipment_live_render_tests
+            "${HALO2_MCC_EQUIPMENT_MAP}" ${CMAKE_CURRENT_BINARY_DIR}/overshield-live-captures
+            ${CMAKE_CURRENT_BINARY_DIR}/overshield-live-feedback.json --overshield-feedback)
+        set_tests_properties(native_mcc_overshield_feedback PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE TIMEOUT 600
+            ENVIRONMENT "SDL_VIDEODRIVER=x11")
         add_executable(shader_state_gpu_tests tests/shader_state_gpu_tests.cpp)
         target_link_libraries(shader_state_gpu_tests PRIVATE halo2_renderer)
         add_test(NAME shader_state_color_delivery COMMAND shader_state_gpu_tests
