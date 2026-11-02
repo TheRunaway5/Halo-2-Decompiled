@@ -25,18 +25,32 @@ def main():
     parser.add_argument('--map', default='warlock')
     parser.add_argument('--case', default='1:150:10:110')
     parser.add_argument('--starting-weapon', type=int, choices=(0, *range(3, 21)), default=0)
+    parser.add_argument('--grenade-tick', type=int)
+    parser.add_argument('--look', type=float, nargs=2, metavar=('YAW', 'PITCH'))
+    parser.add_argument('--probe-only', action='store_true', help='One genuine run with no parity acceptance')
     parser.add_argument('--report', type=Path, required=True)
     parser.add_argument('--require-f8', action='store_true')
     a = parser.parse_args()
     players, tick, first, last = map(int, a.case.split(':'))
     if not (1 <= players <= 4 and tick > 0 and 0 <= first <= last):
         parser.error('Invalid players:capture_tick:fire_first:fire_last')
+    if a.grenade_tick is not None and not 0 <= a.grenade_tick < tick:
+        parser.error('Grenade tick must occur before capture')
+    if a.look and not (-1.5 <= a.look[1] <= 1.5):
+        parser.error('Pitch must be in the native input range')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     runtime = a.runtime.resolve(strict=True)
     maps = a.maps.resolve(strict=True)
     pins = {str(path): sha(path) for path in (runtime, maps / (a.map + '.map'), Path(parity.__file__))}
     entry = dict(case=a.case, runs=[])
     banks = []
+    script_text = None
+    if a.grenade_tick is not None or a.look:
+        look = a.look or (1.35, -0.6)
+        script_text = '# tick player fire reload grenade yaw pitch\n' + ''.join(
+            f'{t} {p} {int(first <= t < last and last > 0)} 0 '
+            f'{int(p == 0 and t == a.grenade_tick)} {look[0]} {look[1]}\n'
+            for t in range(tick) for p in range(players))
     for role in ('reference', 'reference-repeat', 'candidate', 'candidate-repeat'):
         name = 'light-flags-' + role
         bank = scratch / (name + '.banks')
@@ -50,7 +64,8 @@ def main():
         run = parity.capture(runtime, name, players, tick, first, last, env,
                              scratch=scratch, map_name=a.map, maps=maps,
                              size=(1920, 1080), timeout_seconds=240,
-                             extra_arguments=['--mp-starting-weapon', str(a.starting_weapon)] if a.starting_weapon else [])
+                             extra_arguments=['--mp-starting-weapon', str(a.starting_weapon)] if a.starting_weapon else [],
+                             script_text=script_text)
         run.update(role=role, environment=env)
         rgb = run.get('_payload', b'').split(b'\n', 3)[-1]
         run['nonuniform_image'] = bool(rgb) and any(
@@ -72,12 +87,24 @@ def main():
         world = re.findall(r'Native31650 stats: native=(\d+) reference=(\d+) '
                            r'bsp_rows=(\d+) object_rows=(\d+) changed=(\d+) f8=(\d+)', text)
         run['world_stats'] = [list(map(int, row)) for row in world]
+        run['grenade_observations'] = len(re.findall(r'^pStencil grenade input: ', text, re.MULTILINE))
+        detonations = re.findall(r'^Input capture tick=.*?\bdetonations=(\d+)\b', text, re.MULTILINE)
+        run['detonations'] = int(detonations[-1]) if detonations else 0
         data = bank.read_bytes() if bank.is_file() else b''
         banks.append(data)
         run.update(bank_bytes=len(data), bank_sha256=hashlib.sha256(data).hexdigest())
         entry['runs'].append(run)
         print(role, run['valid'], run.get('sha256'), run['calls'], 'flag calls',
               run['changed_objects'], 'changed object rows', len(data), 'bank bytes', flush=True)
+        if a.probe_only:
+            run.pop('_payload', None)
+            report = dict(passed=False, validation_not_run=True, probe_completed=run['valid'], case=entry,
+                          source_runtime_map_sha256=pins, helper_sha256=sha(__file__),
+                          grenade_tick=a.grenade_tick, look=a.look, input_script=script_text,
+                          retained_large_artifacts=[], scope='Single genuine input coverage probe; no native/GPU parity acceptance.')
+            a.report.parent.mkdir(parents=True, exist_ok=True)
+            a.report.write_text(json.dumps(report, indent=2) + '\n')
+            return int(not run['valid'])
     parity.compare_runs(entry)
     entry['all_images_nonuniform'] = all(r['nonuniform_image'] for r in entry['runs'])
     entry['positive_work'] = all(r['calls'] > 0 and r['changed_objects'] > 0 for r in entry['runs'])
@@ -86,6 +113,7 @@ def main():
     entry['native_selected'] = all(r['reference_calls'] == 0 and r['calls'] > 0
                                    for r in entry['runs'] if r['role'].startswith('candidate'))
     entry['f8_exercised'] = all(r['f8'] > 0 for r in entry['runs'])
+    entry['grenade_exercised'] = all(r['grenade_observations'] > 1 and r['detonations'] > 0 for r in entry['runs'])
     entry['complete_banks_and_fp_equal'] = bool(banks[0]) and all(b == banks[0] for b in banks)
     entry['bank_first_differences'] = []
     for run, data in zip(entry['runs'], banks, strict=True):
@@ -101,10 +129,12 @@ def main():
     entry['passed'] = (entry['passed'] and entry['all_images_nonuniform'] and entry['positive_work']
                        and entry['reference_selected'] and entry['native_selected']
                        and entry['complete_banks_and_fp_equal'] and unchanged
-                       and (not a.require_f8 or entry['f8_exercised']))
+                       and (not a.require_f8 or entry['f8_exercised'])
+                       and (a.grenade_tick is None or entry['grenade_exercised']))
     report = dict(passed=entry['passed'], case=entry, inputs_unchanged=unchanged,
                   source_runtime_map_sha256=pins, helper_sha256=sha(__file__),
                   f8_required=a.require_f8, starting_weapon=a.starting_weapon, retained_large_artifacts=[],
+                  grenade_tick=a.grenade_tick, look=a.look, input_script=script_text,
                   whole_renderer_xbox_visual_parity_verified=False,
                   scope='Four finite same-engine GPU runs. Only31650 reference selection differs: '
                         'reference executes unchanged TU1.5 code on the actual pre-edit receiver queues '

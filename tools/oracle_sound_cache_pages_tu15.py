@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""Observe unchanged TU1.5 page allocation, eviction and complete datum deletion.
+
+Only raw ABI/pool/list/cache/stack inputs are declared. All CPU callees and
+the actual sound busy/delete callbacks execute unchanged. No page handle,
+busy answer, eviction, loaded byte, resource read or platform result is supplied.
+The stack probe executes as called by13FE50; it is not a global CRT proof.
+"""
+import argparse,collections,hashlib,json,os,random
+from pathlib import Path
+from oracle_sound_stream_packets_tu15 import Xbe,NEW_DEFAULT,NEW_PIN,STACK,STOP,REGS
+from unicorn import Uc,UcError,UC_ARCH_X86,UC_MODE_32,UC_HOOK_CODE,UC_HOOK_MEM_WRITE,UC_HOOK_MEM_INVALID
+from unicorn.x86_const import *
+
+ALLOC,POOL,BITS,ROWS,CACHE,CBITS,CROWS,CHUNKS,WINDOWS=[0x4000000+n*0x100000 for n in range(9)]
+ENTRIES=[0x13fe00,0x13fe50,0x140310,0x16e8a0,0x21f3f0]
+CALLBACKS=[0x21f3b0,0x21f3f0]
+
+def specifications():
+ specs=[]
+ for tick in [0,150,300,1000,0xffffffff]:
+  for first in [0,149,150,151,299,300,301,1000,0xffffffff]:
+   for second in [0,149,150,151,299,300,301,1000,0xffffffff]:
+    specs.append(dict(entry=0x13fe00,tick=tick,first=first,second=second))
+ for df in [False,True]:
+  for policy in [0,1,2,0xffffffff]:
+   for count in [0,1,2,4,7,8]:
+    for layout in ['packed','gapped','tail','full']:
+     for threshold in [0,1,8,-1]:
+      specs.append(dict(entry=0x13fe50,df=df,policy=policy,count=count,layout=layout,threshold=threshold))
+  for index in [0,1,2,7,15,31,32,63]:
+   for stride in [0,1,2,3,4,7,16,17,24,31]:
+    for debug in [False,True]:specs.append(dict(entry=0x16e8a0,df=df,index=index,stride=stride,debug=debug))
+  for count in [1,2,4,7]:
+   for index in range(count):
+    for callback in [False,True]:
+     specs.append(dict(entry=0x140310,df=df,count=count,index=index,callback=callback))
+  for index in [0,1,7,31,32,63]:
+   for debug in [False,True]:specs.append(dict(entry=0x21f3f0,df=df,index=index,debug=debug))
+ # These drive the actual 256-slot rolling-window wrap and a full pool's
+ # oldest-record eviction when a free physical gap still needs metadata.
+ for policy in [0,1,2]:
+  for count in [255,256,257,300]:
+   specs.append(dict(entry=0x13fe50,policy=policy,count=count,layout='packed',need=count+1,capacity=count+1,total=count+8,callbacks=False,tick=10000))
+  for threshold in [-10,0,1,8,9,100,0x7fffffff]:
+   for need in [0,1,9,32,0xffffffff,0x80000000]:
+    specs.append(dict(entry=0x13fe50,policy=policy,count=4,layout='gapped',need=need,threshold=threshold))
+ for shift in [0,1,4,9,12,31,32,0xffffffff]:
+  for size in [0,1,511,512,513,0x3fffffff,0x7fffffff,0x80000000,0xffffffff]:
+   specs.append(dict(entry=0x13fe50,count=4,layout='gapped',shift=shift,size=size))
+ for entry in ENTRIES:
+  for fault in ['pool','rows','bitmap','allocator','stack']:
+   specs.append(dict(entry=entry,count=2,index=1,fault=fault))
+ for alias in ['bitmap-is-stride','record-is-count','record-is-stride']:
+  for df in [False,True]:
+   for stride in [0,3,16,17]:specs.append(dict(entry=0x16e8a0,index=0,stride=stride,df=df,debug=True,alias=alias))
+ return specs
+
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
+ owner=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True);args.output=args.output.resolve()
+ if not args.output.is_relative_to(owner):raise ValueError('Original fixture must stay in its disposable owner')
+ args.output.mkdir(parents=True,exist_ok=False);image=Xbe(NEW_DEFAULT)
+ assert hashlib.sha256(image.data).hexdigest()==NEW_PIN
+ regions=[[0x50e000,4096],[0x2000000,0x10000]]+[[base,0x10000 if base in [ROWS,CROWS,CHUNKS]else 4096]for base in [ALLOC,POOL,BITS,ROWS,CACHE,CBITS,CROWS,CHUNKS,WINDOWS]]
+ header=dict(original_xbe_sha256=NEW_PIN,raw_abi_only=True,platform_results_supplied=[],source_stack_stores_observed=True,
+  required_entries=ENTRIES,minimum_cases=2000,caller_direction_preserved=True,native_cpu_callees=CALLBACKS,regions=regions)
+ counts=collections.Counter();sites=collections.Counter();branches=collections.Counter();total=collections.Counter();digest=hashlib.sha256()
+ fixture=args.output/'cases.jsonl'
+ with fixture.open('wb')as out:
+  def emit(row):
+   raw=(json.dumps(row,separators=(',',':'))+'\n').encode();out.write(raw);digest.update(raw)
+  emit(header)
+  for ordinal,spec in enumerate(specifications()):
+   rng=random.Random(0x13fe50+ordinal);fields=[]
+   def w(at,n,value):fields.append([at,n,value&((1<<(8*n))-1)])
+   count=spec.get('count',4);entry=spec['entry'];index=spec.get('index',ordinal%max(1,count));stride=spec.get('stride',24)
+   capacity=spec.get('capacity',max(count,8) if spec.get('layout')=='full'else max(count+1,8));tick=spec.get('tick',1000)
+   salts=[0x8000+(n%32767)for n in range(max(64,count))];handle=(salts[index]<<16)|index
+   rows=ROWS+0x1000;crows=CROWS+0x1000;bitmap=BITS
+   alias=spec.get('alias')
+   if alias=='bitmap-is-stride':bitmap=POOL+0x24
+   if alias=='record-is-count':rows=POOL+0x3c
+   if alias=='record-is-stride':rows=POOL+0x24
+   for at,v in [(0x50ebdc,CACHE),(0x50ebe4,ALLOC),(POOL+0x20,capacity),(POOL+0x24,stride),(POOL+0x34,0),(POOL+0x38,max(count,index+1)),(POOL+0x3c,count),(POOL+0x44,rows),(POOL+0x48,bitmap),
+                (CACHE+0x20,max(count,index+1,64)),(CACHE+0x24,16),(CACHE+0x34,0),(CACHE+0x38,max(count,index+1)),(CACHE+0x3c,max(count,index+1)),(CACHE+0x44,crows),(CACHE+0x48,CBITS)]:w(at,4,v)
+   w(POOL+0x40,2,[0x8000,0xfffd,0xfffe,0xffff][ordinal%4]);w(POOL+0x2a,1,8 if spec.get('debug',ordinal%3==0)else 0)
+   w(CACHE+0x2a,1,8 if spec.get('debug',ordinal%3==0)else 0);w(CACHE+0x40,2,0x8000)
+   nodes=range(count)if entry not in [0x16e8a0,0x21f3f0]else range(index+1)
+   bits={};cbits={}
+   for n in nodes:
+    h=(salts[n]<<16)|n;record=rows+n*stride;cached=crows+n*16;chunk=CHUNKS+0x1000+n*12
+    # Datum-deletion cases include debug poisoning over populated surrounding
+    # bytes, with odd strides and the actual backwards string direction.
+    if entry==0x16e8a0 and not alias:
+     for k in range(0,max(stride,4),4):w(record+k,4,rng.getrandbits(32))
+    w(record,2,salts[n]);w(cached,2,salts[n]);w(cached+2,1,0 if ordinal%17==0 else 1)
+    w(cached+4,1,1 if ordinal%11==0 else 0);w(cached+5,1,255 if ordinal%13==0 else 0)
+    w(cached+12,4,chunk);w(chunk+8,4,h)
+    if entry!=0x16e8a0:
+     start=n*3 if spec.get('layout')=='gapped'else n+(4 if spec.get('layout')=='tail'else 0)
+     for at,v in [(record+4,1),(record+8,start),(record+12,((salts[n+1]<<16)|(n+1))if n+1<count else 0xffffffff),(record+16,((salts[n-1]<<16)|(n-1))if n else 0xffffffff),(record+20,[10,50,200,990][n%4])]:w(at,4,v)
+    bits[n>>5]=bits.get(n>>5,0)|(1<<(n&31));cbits[n>>5]=cbits.get(n>>5,0)|(1<<(n&31))
+   if bitmap==BITS:
+    for n,v in bits.items():w(BITS+n*4,4,v)
+   for n,v in cbits.items():w(CBITS+n*4,4,v)
+   if alias=='record-is-count':w(POOL+0x3c,4,0)
+   if alias=='record-is-stride':w(POOL+0x24,4,stride)
+   callbacks=spec.get('callbacks',True);delete=spec.get('callback',True)
+   for at,v in [(ALLOC+0x20,0x21f3f0 if callbacks and delete else 0),(ALLOC+0x24,0x21f3b0 if callbacks else 0),(ALLOC+0x2c,spec.get('policy',ordinal%3)),(ALLOC+0x30,spec.get('total',max(16,count+8))),(ALLOC+0x34,spec.get('shift',0)),(ALLOC+0x38,tick),
+                (ALLOC+0x3c,(salts[0]<<16)if count else 0xffffffff),(ALLOC+0x40,((salts[count-1]<<16)|(count-1))if count else 0xffffffff),(ALLOC+0x64,POOL)]:w(at,4,v)
+   for n in range(9):w(ALLOC+0x44+n*4,4,[0x7fffffff,0x7fffffff,0x7fffffff,0x7fffffff,0,1,4,8,32][(ordinal+n)%9]if ordinal%19==0 else 0x7fffffff)
+   for at in range(STACK-64,STACK+24,4):w(at,4,rng.getrandbits(32))
+   w(STACK,4,STOP);w(STACK+4,4,ALLOC);w(STACK+8,4,spec.get('size',spec.get('need',1+ordinal%12)));w(STACK+12,4,spec.get('threshold',0))
+   gp=[rng.getrandbits(32)for _ in REGS];gp[4]=STACK
+   if entry==0x13fe00:
+    gp[1]=ALLOC;gp[6]=WINDOWS+0x100;gp[7]=WINDOWS+0x200
+    w(WINDOWS+0x104,4,spec['first']);w(WINDOWS+0x204,4,spec['second'])
+    w(WINDOWS+0x10c,4,[0,1,0x7fffffff,0x80000000,0xffffffff][ordinal%5]);w(WINDOWS+0x20c,4,[0,1,0x7fffffff,0x80000000,0xffffffff][(ordinal//5)%5])
+   elif entry==0x140310:gp[7]=ALLOC;gp[3]=handle
+   elif entry==0x16e8a0:gp[2]=POOL;gp[0]=handle
+   elif entry==0x21f3f0:w(STACK+4,4,handle)
+   fault=spec.get('fault')
+   if fault=='pool':w(ALLOC+0x64,4,0);gp[2]=0
+   elif fault=='rows':w(POOL+0x44,4,0);w(CACHE+0x44,4,0)
+   elif fault=='bitmap':w(POOL+0x48,4,0);w(CACHE+0x48,4,0)
+   elif fault=='allocator':w(STACK+4,4,0);gp[1]=0;gp[7]=0
+   elif fault=='stack':gp[4]=0x2000000
+   xmm=[rng.getrandbits(128)for _ in range(8)];fp=[[0x27f,0x37f,0x77f,0xb7f,0xf7f][ordinal%5],[0x1f80,0x3f80,0x5f80,0x7f80,0x9fc0][ordinal%5],((ordinal%8)<<11)|(ordinal&0x3f)|0x4500]
+   flags=0x202|(0x400 if spec.get('df',False)else 0);g=Uc(UC_ARCH_X86,UC_MODE_32);g.mem_map(0x10000,0x800000)
+   for section in image.sections:g.mem_write(section.va,image.section_bytes(section))
+   text=image.section('.text');g.mem_protect(text.va&~4095,((text.va%4096+text.vsize+4095)//4096)*4096,5)
+   for at,n in regions:
+    if at>=0x1000000:g.mem_map(at,n)
+    g.mem_write(at,bytes(n))
+   g.mem_map(STOP,4096)
+   for at,n,v in fields:g.mem_write(at,v.to_bytes(n,'little'))
+   for reg,v in zip(REGS,gp):g.reg_write(reg,v)
+   for n,v in enumerate(xmm):g.reg_write(UC_X86_REG_XMM0+n,v)
+   for reg,v in zip([UC_X86_REG_FPCW,UC_X86_REG_MXCSR,UC_X86_REG_FPSW],fp):g.reg_write(reg,v)
+   g.reg_write(UC_X86_REG_EFLAGS,flags);stores=[];stack_stores=[];calls=[];bad=[];executed=set()
+   def u(at,n=4):return int.from_bytes(g.mem_read(at,n),'little')
+   def code(_g,at,n,_):
+    assert image.read(at,n)==bytes(g.mem_read(at,n));executed.add(at)
+    if at in CALLBACKS and at!=entry:
+     sp=g.reg_read(UC_X86_REG_ESP);calls.append(dict(target=at,gp=[g.reg_read(reg)for reg in REGS],return_=u(sp),args=[u(sp+4)]));calls[-1]['return']=calls[-1].pop('return_')
+   def write(_g,kind,at,n,v,_):
+    try:before=u(at,n)
+    except UcError:return
+    pc=g.reg_read(UC_X86_REG_EIP);v&=(1<<(8*n))-1
+    if 0x2000000<=at<0x2010000:stack_stores.append([at,n,before,v])
+    else:stores.append([pc,at,n,before,v])
+   def invalid(_g,kind,at,n,v,_):bad.append([at,n]);return False
+   g.hook_add(UC_HOOK_CODE,code);g.hook_add(UC_HOOK_MEM_WRITE,write);g.hook_add(UC_HOOK_MEM_INVALID,invalid)
+   try:g.emu_start(entry,STOP,count=4000000)
+   except UcError:
+    if not bad:raise
+   if not bad:assert g.reg_read(UC_X86_REG_EIP)==STOP,(ordinal,spec,hex(g.reg_read(UC_X86_REG_EIP)))
+   assert (g.reg_read(UC_X86_REG_EFLAGS)&0x400)==(flags&0x400)
+   assert [g.reg_read(UC_X86_REG_XMM0+n)for n in range(8)]==xmm
+   assert [g.reg_read(reg)for reg in [UC_X86_REG_FPCW,UC_X86_REG_MXCSR,UC_X86_REG_FPSW]]==fp
+   emit(spec|dict(case=ordinal,fields=fields,gp=gp,eflags=flags,out_gp=None if bad else[g.reg_read(reg)for reg in REGS],xmm=[[v>>(k*32)&0xffffffff for k in range(4)]for v in xmm],fp=fp,stores=stores,source_stack_stores=stack_stores,calls=calls,fault=bad[0]if bad else None))
+   counts[f'{entry:08x}']+=1;sites.update(executed);total.update(dict(cases=1,returns=not bad,faults=bool(bad),backwards=bool(flags&0x400),stores=len(stores),stack_stores=len(stack_stores),callbacks=len(calls)))
+ report=dict(passed=True,scope=__doc__,original_xbe_sha256=NEW_PIN,counts=dict(total),entries=dict(counts),instruction_sites=len(sites),executed_instructions_lower_bound=sum(sites.values()),
+  executed_sites=[f'{at:08x}'for at in sorted(sites)],fixture=str(fixture),fixture_bytes=fixture.stat().st_size,fixture_sha256=digest.hexdigest(),source_instruction_patches=[],supplied_callee_or_platform_results=[],source_cache_or_voice_admission=False)
+ (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items()if k!='executed_sites'}),flush=True)
+
+if __name__=='__main__':main()

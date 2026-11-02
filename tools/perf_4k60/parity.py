@@ -64,12 +64,12 @@ def log_tail(path):
 
 def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch,
             map_name='coagulation', maps=MAPS, size=SIZE, timeout_seconds=600,
-            extra_arguments=()):
+            extra_arguments=(), script_text=None):
     runtime = Path(runtime).resolve()
     scratch = Path(scratch).resolve()
     maps = Path(maps).resolve()
     script = scratch / f'{name}.tsv'
-    script.write_text('# tick player fire reload\n' + ''.join(
+    script.write_text(script_text if script_text is not None else '# tick player fire reload\n' + ''.join(
         f'{t} {p} {int(first <= t < last and last > 0)} 0\n' for t in range(tick) for p in range(players)))
     image = scratch / f'{name}.ppm'
     # A repeated helper invocation may reuse a case name inside one owner.
