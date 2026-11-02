@@ -84,8 +84,9 @@ def main():
    if alias=='record-is-stride':rows=POOL+0x24
    for at,v in [(0x50ebdc,CACHE),(0x50ebe4,ALLOC),(POOL+0x20,capacity),(POOL+0x24,stride),(POOL+0x34,0),(POOL+0x38,max(count,index+1)),(POOL+0x3c,count),(POOL+0x44,rows),(POOL+0x48,bitmap),
                 (CACHE+0x20,max(count,index+1,64)),(CACHE+0x24,16),(CACHE+0x34,0),(CACHE+0x38,max(count,index+1)),(CACHE+0x3c,max(count,index+1)),(CACHE+0x44,crows),(CACHE+0x48,CBITS)]:w(at,4,v)
-   w(POOL+0x40,2,[0x8000,0xfffd,0xfffe,0xffff][ordinal%4]);w(POOL+0x2a,1,8 if spec.get('debug',ordinal%3==0)else 0)
-   w(CACHE+0x2a,1,8 if spec.get('debug',ordinal%3==0)else 0);w(CACHE+0x40,2,0x8000)
+   debug=spec.get('debug',not spec.get('df',False)and ordinal%3==0)
+   w(POOL+0x40,2,[0x8000,0xfffd,0xfffe,0xffff][ordinal%4]);w(POOL+0x2a,1,8 if debug else 0)
+   w(CACHE+0x2a,1,8 if debug else 0);w(CACHE+0x40,2,0x8000)
    nodes=range(count)if entry not in [0x16e8a0,0x21f3f0]else range(index+1)
    bits={};cbits={}
    for n in nodes:
@@ -115,7 +116,7 @@ def main():
    gp=[rng.getrandbits(32)for _ in REGS];gp[4]=STACK
    if entry==0x13fe00:
     gp[1]=ALLOC;gp[6]=WINDOWS+0x100;gp[7]=WINDOWS+0x200
-    w(WINDOWS+0x104,4,spec['first']);w(WINDOWS+0x204,4,spec['second'])
+    w(WINDOWS+0x104,4,spec.get('first',0));w(WINDOWS+0x204,4,spec.get('second',0))
     w(WINDOWS+0x10c,4,[0,1,0x7fffffff,0x80000000,0xffffffff][ordinal%5]);w(WINDOWS+0x20c,4,[0,1,0x7fffffff,0x80000000,0xffffffff][(ordinal//5)%5])
    elif entry==0x140310:gp[7]=ALLOC;gp[3]=handle
    elif entry==0x16e8a0:gp[2]=POOL;gp[0]=handle
