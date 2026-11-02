@@ -8,6 +8,9 @@
 #include "gameplay/objects/source_damage_model_native_tu15_internal.hpp"
 // END native paired canonical model lookup include
 #include "halo2/source_vitality_runtime.hpp"
+// BEGIN native pending response include
+#include "gameplay/objects/source_pending_response_native_tu15_internal.hpp"
+// END native pending response include
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -179,7 +182,19 @@ if(s.services.instruction){s.services.instruction(0xd748bu);} if(s.flags.zf||(s.
 if(s.services.instruction){s.services.instruction(0xd7491u);} s.set(1,s.flags.plus(s.reg(1,4,0),0x4u,4),4,0);
 if(s.services.instruction){s.services.instruction(0xd7494u);} w(s.memory,s.observe,0xd7494u,(0x1cu+s.gp[4]),4,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0xd7498u);} goto Ld74a0;
-Ld74a0: if(s.services.instruction){s.services.instruction(0xd74a0u);} s.set(2,r(s.memory,(0x1cu+s.gp[4]),4),4,0);
+Ld74a0: ;
+// BEGIN native pending response step
+if(s.image==SourcePhysicsContactImage::TitleUpdate15) {
+    const auto status=pending_response_step_native_tu15(s,[&](std::uint32_t canonical,std::uint32_t actual){
+        (void)actual;
+        if(s.services.instruction)s.services.instruction(canonical);
+        return canonical;
+    });
+    if(status!=NativeTu15PendingResponseStatus::Due)goto Ld758c;
+    goto Ld74dc;
+}
+// END native pending response step
+if(s.services.instruction){s.services.instruction(0xd74a0u);} s.set(2,r(s.memory,(0x1cu+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xd74a4u);} s.set(1,s.flags.logic((s.reg(1,4,0))^(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xd74a6u);} s.set(1,r(s.memory,(0x0u+s.gp[2]),2),2,0);
 if(s.services.instruction){s.services.instruction(0xd74a9u);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
@@ -195,6 +210,9 @@ if(s.services.instruction){s.services.instruction(0xd74ccu);} s.set(1,s.reg(2,4,
 if(s.services.instruction){s.services.instruction(0xd74ceu);} w(s.memory,s.observe,0xd74ceu,(0x13u+s.gp[4]),1,0x1u);
 if(s.services.instruction){s.services.instruction(0xd74d3u);} w(s.memory,s.observe,0xd74d3u,(0x0u+s.gp[1]),2,s.reg(0,2,0));
 if(s.services.instruction){s.services.instruction(0xd74d6u);} if(!s.flags.zf)goto Ld758c;
+// BEGIN native pending response continuation
+Ld74dc: ;
+// END native pending response continuation
 if(s.services.instruction){s.services.instruction(0xd74dcu);} s.set(2,r(s.memory,(selected(0x4e78d0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xd74e2u);} s.set(1,r(s.memory,(0x44u+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xd74e5u);} s.set(2,r(s.memory,(0x20u+s.gp[4]),4),4,0);

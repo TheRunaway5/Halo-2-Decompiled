@@ -29,7 +29,7 @@ struct NativeWriteGuards {
     std::map<const SourceRuntimeMemory *,std::map<const void *,SourceRuntimeWriteGuard>> observers;
     std::map<const SourceRuntimeMemory *,std::map<const void *,SourceRuntimeWriteGuard>> topology;
     std::map<const SourceRuntimeMemory *,std::map<const void *,SourceRuntimeWriteGuard>> topology_observers;
-    struct PolicyState {const SourceRuntimePolicyHold *held{};std::size_t changes{};};
+    struct PolicyState {const void *held{};std::size_t changes{};};
     std::map<const SourceRuntimeMemory *,PolicyState> policies;
     // A retained identity avoids wraparound and address-reuse ambiguity in
     // per-thread dispatch caches. Only successful write-policy changes retire
@@ -201,6 +201,48 @@ SourceRuntimePolicyChange::~SourceRuntimePolicyChange() {
     if(found==registry.policies.end() || !found->second.changes || found->second.held)std::terminate();
     if(!--found->second.changes)registry.policies.erase(found);
 }
+SourceRuntimeNativeWriteLease::SourceRuntimeNativeWriteLease(const SourceRuntimeMemory &memory,
+    std::span<const SourceRuntimeNativeWriteRange> ranges,std::span<const void *const> allowed) noexcept {
+    using Reason=SourceRuntimeNativeWriteRefusal;
+    try {
+        if(ranges.empty()){refusal_=Reason::Range;return;}
+        auto &registry=native_write_guards();
+        // A callback cannot recursively acquire registry permission. The
+        // reference dispatcher intentionally retains all literal callbacks.
+        if(registry.reference_dispatch){refusal_=Reason::ReferenceDispatch;return;}
+        if(dispatch_slot(registry).depth){refusal_=Reason::Recursion;return;}
+        std::unique_lock lock(registry.mutex);
+        if(const auto p=registry.policies.find(&memory);p!=registry.policies.end()) {
+            if(p->second.held){refusal_=Reason::PolicyHold;return;}
+            if(p->second.changes){refusal_=Reason::PolicyChange;return;}
+        }
+        for(const auto &range:ranges)
+            if(!range.bytes||range.bytes>0x100000000ull-range.address){refusal_=Reason::Range;return;}
+        if(const auto observers=registry.observers.find(&memory);observers!=registry.observers.end())
+            for(const auto &[owner,callback]:observers->second) {
+                (void)callback;
+                if(std::find(allowed.begin(),allowed.end(),owner)==allowed.end()){refusal_=Reason::Observer;return;}
+            }
+        if(const auto guards=registry.banks.find(&memory);guards!=registry.banks.end()) {
+            const auto bounds=registry.guard_bounds.find(&memory);
+            for(const auto &[owner,guard]:guards->second) {
+                (void)guard;std::uint64_t inert{};
+                if(bounds!=registry.guard_bounds.end())
+                    if(const auto b=bounds->second.find(owner);b!=bounds->second.end())inert=b->second;
+                for(const auto &range:ranges)if(std::uint64_t(range.address)+range.bytes>inert){refusal_=Reason::Guard;return;}
+            }
+        }
+        registry.policies[&memory].held=this;memory_=&memory;
+    }catch(...){memory_=nullptr;refusal_=Reason::Unavailable;} // Admission failure performs no source work.
+}
+SourceRuntimeNativeWriteLease::~SourceRuntimeNativeWriteLease() {
+    if(!memory_)return;
+    if(std::this_thread::get_id()!=executor_)std::terminate();
+    auto &registry=native_write_guards();std::unique_lock lock(registry.mutex);
+    const auto p=registry.policies.find(memory_);
+    if(p==registry.policies.end()||p->second.held!=this||p->second.changes)std::terminate();
+    registry.policies.erase(p);
+}
 void source_runtime_register_write_guard(const SourceRuntimeMemory &memory,const void *owner,
     SourceRuntimeWriteGuard guard) {
     install_policy(&NativeWriteGuards::banks,memory,owner,guard,
@@ -323,6 +365,14 @@ void source_runtime_validate_write(const SourceRuntimeMemory &memory,std::uint32
         }
     }
     std::shared_lock lock(registry.mutex);
+    // A writer can send this call through the shared-lock path instead of
+    // borrowing the slot. Its callbacks still must refuse recursive native
+    // admission before trying to acquire this same mutex exclusively.
+    struct DispatchDepth {
+        NativeWriteGuards::DispatchSlot &slot;
+        explicit DispatchDepth(NativeWriteGuards::DispatchSlot &p):slot(p){++slot.depth;}
+        ~DispatchDepth(){--slot.depth;}
+    } depth(slot);
     dispatch_write(registry,memory,address,bytes,observe,slot.owner);
 }
 SourceRuntimeWriteSerial::SourceRuntimeWriteSerial(const SourceRuntimeMemory &memory):memory_(&memory) {

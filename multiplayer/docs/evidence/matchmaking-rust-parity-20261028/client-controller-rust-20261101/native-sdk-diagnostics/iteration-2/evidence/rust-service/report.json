@@ -1,0 +1,87 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/Testing/Temporary/scratch/halo2-test-vro1r9hv/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/Testing/Temporary/scratch/halo2-test-vro1r9hv",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/Testing/Temporary/scratch/halo2-test-vro1r9hv/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/Testing/Temporary/scratch/halo2-test-vro1r9hv/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/Testing/Temporary/scratch/halo2-test-vro1r9hv/cargo/release/halo2-matchmaking-service",
+    "bytes": 11449112,
+    "sha256": "22c55e9f954e26dd22e9e3b5feb7cce29cb492c7b4c6e24f10f5e8a22946072e",
+    "retained": false
+  },
+  "native_client": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/rust_service_account_probe",
+    "sha256": "1655a6f1851baf46404601c8884495c2e6a4d506f5a77d49bcdb2b5d6f803d4e",
+    "borrowed_read_only": true
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "real native account/profile/clan client over Rust HTTP; only provider handoff is a fixture",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ],
+  "native_matchmaking_client": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/rust_service_matchmaking_probe",
+    "sha256": "b60cfa82268a0706c1a87f24255fcdb506d3422a06e0abbb2ccc517dd5c50f71",
+    "borrowed_read_only": true
+  },
+  "matchmaking_checks": [
+    "session parser and verified couch preflight reject forged/duplicate inputs before canonical writes",
+    "actual 14-row catalog over Rust HTTP: v12 admits zero; v16 admits all twelve non-clan playlists",
+    "real queue API/SQL/gathering continuation rolls back ticket and rank writes on failed COMMIT, retries once, waits for actual QoS and cancels without fabricated matches",
+    "accepted-party create/invite/accept follows the same Rust queue source and hides private identities",
+    "real shared pregame countdown requires remote consent, enforces leader authority, replays once and ticks without request clocks",
+    "actual failed session COMMIT restores the prior native grant, accepted-party version, consent and active countdown",
+    "failed countdown COMMIT preserves publication and request retry cancels exactly once",
+    "four-seat canonical transaction rolls back new signed locals on failed COMMIT; guests remain transient, renewal preserves the grant and duplicate physical seating is rejected",
+    "actual session retirement clears shared countdown and stale consent through Rust directory effects",
+    "real Rust restart keeps accepted membership and canonical identities, while retiring session grants and countdown state",
+    "high-frequency countdown reads use the separate native countdown allowance and preserve ordinary social request capacity",
+    "actual native matchmaking client reads all fourteen Rust HTTP playlists with the observed v12/v16 eligibility differential; the native party client sends Start/cancel and observes Rust countdown; only provider handoff is a fixture",
+    "room descriptors reject an account-only grant; unported EOS issuance stays unavailable and full readiness stays false"
+  ],
+  "native_qos_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-final/halo2-test-yq6i7y2_/build/rust_service_qos_probe",
+    "sha256": "4980415575c85417de12d433116a2a13fb64913072e4fe4a83d38d23ddc6bddc",
+    "borrowed_read_only": true
+  },
+  "error": ""
+}

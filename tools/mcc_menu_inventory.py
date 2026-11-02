@@ -12,6 +12,7 @@ from pathlib import Path
 from audit_rendering import FormatError, file_sha
 from export_vista_menu_ui import dds_image
 from mcc_content import MccCache, texture_resource
+from setup_progress import WorkProgress
 
 INVENTORY = Path(__file__).resolve().parent / "data/mcc-menu-inventory.tsv"
 PRIMARY_FONTS = ("conduit-12", "conduit-13", "conduit-9", "fixedsys-9",
@@ -40,6 +41,8 @@ def verify(halo2, inventory=INVENTORY, progress=lambda message: None, catalog_pr
             raise FormatError("Unsafe MCC menu cache name")
         by_cache[cache_name].append(row)
     pages, banks, decoded = [], set(), {}
+    work = WorkProgress('menu-artwork', 'Checking menu artwork and fonts',
+                        sum(len(local) for local in by_cache.values()), progress)
     projected, projected_seen = {}, set()
     maps = halo2 / "h2_maps_win64_dx11"
     with (maps / "textures.dat").open("rb") as textures:
@@ -96,6 +99,7 @@ def verify(halo2, inventory=INVENTORY, progress=lambda message: None, catalog_pr
                         textures_dat_address=pointers[0] & 0x3fffffff)
                     page.update(provenance)
                     pages.append(page)
+                    work.advance()
             finally:
                 cache.close()
     if catalog_projection is not None and (not projected or projected_seen != set(projected)):
@@ -106,10 +110,12 @@ def verify(halo2, inventory=INVENTORY, progress=lambda message: None, catalog_pr
             raise FormatError("Missing copied MCC menu font/table: " + name)
     font_files = {p.relative_to(halo2).as_posix(): dict(bytes=p.stat().st_size, sha256=file_sha(p))
                   for p in sorted(fonts.rglob("*")) if p.is_file()}
-    return dict(schema="H2_MCC_VISTA_MENU_INVENTORY_V1", complete=True,
+    report = dict(schema="H2_MCC_VISTA_MENU_INVENTORY_V1", complete=True,
         inventory_sha256=file_sha(inventory), banks=len(banks), frame_owners=len(pages),
         unique_dds_pages=len({p["dds_sha256"] for p in pages}),
         comparisons=dict(Counter(p["source_comparison"] for p in pages)),
         pages=pages, fonts=font_files, unavailable_in_mcc=missing, excluded_reference_assets=excluded,
         storage="Original MCC caches/textures.dat and case-preserved h2_fonts tree",
         runtime_activation=False)
+    work.finish()
+    return report

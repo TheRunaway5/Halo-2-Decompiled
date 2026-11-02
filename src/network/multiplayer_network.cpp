@@ -239,7 +239,7 @@ enum class Anchor : std::uint64_t {
   player=1,weapon,vehicle,projectile,prop_removal,prop_region,device,device_event,rumble,grenade,
   detonation,impact,melee,damage_effect,engine_event,weapon_effect,damage_voice,corpse,scene_root,
   dynamic_object,contrail,source_bound,decal_frame,decal_record,decal_allocation,decal_head,
-  object_loop_emitters,object_loop_emitter,physics_impulse,gameplay_fade,gameplay_fade_frame
+  object_loop_emitters,object_loop_emitter,physics_impulse,gameplay_fade,gameplay_fade_frame,weapon_zoom_audio
 };
 void anchor(const Packet &p,Anchor section,std::uint64_t id=0xffffffffu) {
   if(!body_layout)return;
@@ -1247,6 +1247,15 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
       for(const auto &axis:t.basis)for(float value:{axis.x,axis.y,axis.z})put_float(p,value);
     }
   }
+  if(stream_version>=124) {
+    validate_native_weapon_zoom_audio_tu15(s.weapon_zoom_audio,s.tick);
+    anchor(p,Anchor::weapon_zoom_audio);put(p,s.weapon_zoom_audio.size(),1);
+    for(const auto &e:s.weapon_zoom_audio) {
+      anchor(p,Anchor::weapon_zoom_audio,e.serial);put(p,e.serial,8);put(p,e.tick,4);
+      put(p,e.unit,4);put(p,e.player,4);put(p,e.sound,4);put(p,e.control_bits,4);put(p,e.forced_reset,1);
+      if(!e.forced_reset)for(auto byte:e.request)put(p,std::to_integer<unsigned>(byte),1);
+    }
+  }
   anchor(p,Anchor::damage_voice);put(p,s.unit_damage_voices.size(),1);
   for(const auto &e:s.unit_damage_voices) {
     anchor(p,Anchor::damage_voice,e.serial);
@@ -2056,6 +2065,17 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids,unsi
       throw FormatError("Invalid retained weapon effect request");
     previous_effect=e.serial;s.weapon_effects.push_back(e);
     for(auto &player:s.players)if(player.weapon_effect.serial==e.serial)player.weapon_effect=e;
+  }
+  if(stream_version>=124) {
+    const auto count=r.get(1);if(count>64)throw FormatError("Native zoom audio journal exceeds retention");
+    for(unsigned n=0;n<count;++n) {
+      NativeWeaponZoomAudioEventTu15 e;e.serial=r.get(8);e.tick=r.get(4);e.unit=r.get(4);e.player=r.get(4);
+      e.sound=r.get(4);e.control_bits=r.get(4);const auto reset=r.get(1);
+      if(reset>1)throw FormatError("Invalid native zoom audio kind");e.forced_reset=reset!=0;
+      if(!e.forced_reset)for(auto &byte:e.request)byte=std::byte(r.get(1));
+      s.weapon_zoom_audio.push_back(e);
+    }
+    validate_native_weapon_zoom_audio_tu15(s.weapon_zoom_audio,s.tick);
   }
   const auto voice_count=r.get(1);
   if(voice_count>64)throw FormatError("Unit damage voice journal exceeds retention");
@@ -3499,7 +3519,15 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
       if (age > std::chrono::milliseconds(500)) {
         c.forward = c.right = 0;
         c.jump = c.fire = c.reload = c.fire_secondary = false;
-        c.pickup=c.dual_wield=false;c.pickup_milliseconds=c.dual_wield_milliseconds=0;
+        // Original1521B0 masks an already consumed interaction until its
+        // physical release. A timeout must not clear that native latch and
+        // turn the later completed hold into a second pickup/drop action.
+        const auto slot=peer.ids[j];
+        const auto consumed=h.match().source_engine_owned()?h.match().player(slot).source_flags:
+            h.match().unit(slot).source_player_actions.flags;
+        c.pickup=c.pickup && (consumed&0x10u);
+        c.dual_wield=c.dual_wield && (consumed&0x20u);
+        c.pickup_milliseconds=c.dual_wield_milliseconds=0;
         peer.delivered_presses[j]=peer.received_presses[j];
       } else {
         std::array<bool *,10> actions{&c.jump,&c.fire,&c.reload,&c.grenade,&c.pickup,&c.dual_wield,&c.switch_weapon,&c.fire_secondary,&c.melee,&c.switch_grenade};
@@ -4517,6 +4545,14 @@ bool LanClient::acknowledge_shadow_cut(const AcceptedShadowCut& cut) {
   if(!owns_shadow_cut(cut,cut.origin()))return false;
   if(!impl_->shadow_lane->acknowledge(cut.data_->payload))return false;
   cut.data_->local_acknowledged.store(true,std::memory_order_release);
+  impl_->service_shadow_packets();return true;
+}
+bool LanClient::shadow_preparation_progress(const AcceptedShadowCut& cut)const {
+  if(!owns_shadow_cut(cut,cut.origin())||acknowledged_shadow_cut(cut))return false;
+  // Flush the real completed-byte ACK before the construction pulse. Delivery
+  // reordering is harmless: the host refuses a pulse until byte receipt holds.
+  impl_->service_shadow_packets();
+  if(!impl_->shadow_lane->preparation_progress(cut.data_->payload))return false;
   impl_->service_shadow_packets();return true;
 }
 bool LanClient::acknowledged_shadow_cut(const AcceptedShadowCut& cut)const noexcept {

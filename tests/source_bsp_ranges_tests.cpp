@@ -193,6 +193,15 @@ void atomic_controls(const Case &c,std::span<const SourceBspFrustumDrawBank> sou
         equal_units(units,original,"atomic rejected cull");equal_arena(arena,c.before,"atomic rejected cull arena");
     };
     auto banks=std::vector<SourceBspFrustumDrawBank>(source_banks.begin(),source_banks.end());
+    {
+        auto unit=c.units[eligible.front()].before;unit.words[0]|=1u;
+        const auto original=unit;auto arena=c.before;
+        auto unresolved=banks[eligible.front()];unresolved.geometry_resolved=false;
+        rejected([&]{source_bsp_frustum_cull_entry(unit,unresolved,arena,c.context,c.visibility,0);},
+            "selected entry incorrectly retested flag1 and skipped its actual geometry service");
+        require(unit.words==original.words,"rejected selected entry changed its complete unit");
+        equal_arena(arena,c.before,"rejected selected entry changed its shared arena");
+    }
     banks[eligible.back()].geometry_resolved=false;fail(banks,c.context);
     banks.assign(source_banks.begin(),source_banks.end());banks[eligible.back()].geometry=nullptr;fail(banks,c.context);
     banks.assign(source_banks.begin(),source_banks.end());auto context=c.context;context.query_mode=1;fail(banks,context);

@@ -23,18 +23,18 @@ void MenuState::set_online_account(std::shared_ptr<OnlineAccount> client) {
   local_profile_accounts_={};
   if (online_voice_) online_voice_->leave();
   if (online_account_) online_account_->sign_out();
-  online_account_ = std::move(client); account_ = {}; account_name_.clear();
-  friend_join_serial_=0;
+  online_account_ = std::move(client); account_ = {}; party_flow_.account_name({});
+  party_flow_.friend_join_serial(0);
   pending_ui_sounds_.clear();
-  dismissed_party_invites_.clear();
+  party_flow_.clear_dismissed();
   if(discord_social_)discord_social_->bind_account(online_account_);
   online_voice_ = online_account_ ? std::make_shared<OnlineVoice>(online_account_) : nullptr;
-  voice_party_=false;
+  party_flow_.voice_party(false);
   voice_ = {};
 }
 void MenuState::set_online_voice(std::shared_ptr<OnlineVoice> client) {
   if (online_voice_) online_voice_->leave();
-  online_voice_=std::move(client);voice_party_=false;voice_={};
+  online_voice_=std::move(client);party_flow_.voice_party(false);voice_={};
 }
 void MenuState::voice_push_to_talk(bool held) {
   if (online_voice_) online_voice_->push_to_talk(held && frame().screen!=167);
@@ -43,97 +43,7 @@ bool MenuState::online_clan_screen(const MenuFrame &f) const {
   return (f.screen == 26 && f.context == 1) || f.screen == 217 || f.screen == 236 ||
       ((f.screen == 31 || f.screen == 211 || f.screen == 33) && f.context == clan_context);
 }
-void MenuState::update_online_account() {
-  if (!online_account_) return;
-  const auto identity = discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
-  if (identity) {
-    auto name = signed_in_;
-    if(name.empty())name=identity->username;
-    else {
-      const auto tag=profile_service_tags_.find(name);
-      online_account_->profile(appearance_for_profile(name),tag==profile_service_tags_.end()?std::string{}:tag->second);
-    }
-    online_account_->connect(name); account_name_ = name;
-  } else { online_account_->sign_out(); account_name_.clear(); }
-  auto next = online_account_->snapshot();
-  auto voice = online_voice_ ? online_voice_->snapshot() : OnlineVoiceSnapshot{};
-  if (next.revision == account_.revision && voice.revision == voice_.revision) return;
-  const auto notifications=frontend_party_notification_sounds(account_,next);
-  // Bound a delayed UI consumer while preserving one-shot ordered events.
-  for(const auto cue:notifications)if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(cue);
-  const bool departed_party=account_.party.has_value() && !next.party && next.authenticated;
-  // Sign-in (and a profile switch, which resets account_) reports a party the
-  // service retained from an earlier session. That is not a new join: ONLINE
-  // must still land on menu186 (Quickmatch/Optimatch/Custom Game) for every
-  // profile. Only membership gained while already authenticated enters lobby14.
-  const bool joined_party=account_.authenticated && !account_.party && next.party && next.authenticated;
-  auto previous_account=std::move(account_);
-  account_ = std::move(next);
-  std::erase_if(dismissed_party_invites_,[&](const auto &id){return std::none_of(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==id;});});
-  voice_ = std::move(voice);
-  // Discord acceptance uses the account worker outside the menu's command
-  // wrapper. Enter the actual party lobby only after authoritative membership,
-  // preserving an already open lobby or retained postgame report.
-  if(joined_party && !frame().vista_pcr && !launch &&
-     std::none_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;})) {
-    if(online_matchmaking_)online_matchmaking_->cancel_queue();
-    matchmaking_active_=quickmatch_pending_=false;
-    return_online();open(14);
-  }
-  if(party_voice_wanted_ && account_.party && account_.authenticated && !voice_party_ && !frame().vista_pcr) {
-    if(online_voice_)online_voice_->leave();
-    online_voice_.reset(); // Join the old device worker before switching groups.
-    online_voice_=std::make_shared<OnlineVoice>(online_account_,true);voice_party_=true;
-    online_voice_->join();voice_=online_voice_->snapshot();
-  }
-  if(departed_party && voice_party_) {
-    online_voice_->leave();party_voice_wanted_=false;
-  }
-  if(departed_party) {
-    const auto lobby=std::find_if(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;});
-    if(lobby!=stack_.end()) {
-      stack_.erase(lobby,stack_.end());
-      open(26,2); // Leave/removal disposes the party lobby, retaining ONLINE.
-    }
-  }
-  update_online_friend_join();
-  for (auto &f : stack_) {
-    if ((!online_clan_screen(f) && !online_party_screen(f) && !(native_friends() && online_friends_screen(f))) || f.screen == 33) continue;
-    const auto selected = f.selected; std::string focus;
-    if (selected < f.entries.size()) focus = f.entries[selected].label;
-    std::string member_focus;
-    const bool friend_roster=native_friends() && online_friends_screen(f) && (f.screen==26 || f.screen==216);
-    if(friend_roster && selected<f.entries.size() && f.entries[selected].destination==31) {
-      const auto index=unsigned(f.entries[selected].value);
-      if(index<previous_account.friends.size())member_focus=previous_account.friends[index].id;
-    }
-    if(f.screen==26 && f.context==1 && previous_account.clan && selected<f.entries.size()) {
-      const auto index=unsigned(f.entries[selected].value);
-      if(index<previous_account.clan->members.size())member_focus=previous_account.clan->members[index].id;
-    }
-    f.entries.clear();if(online_friends_screen(f))populate_online_friends(f);else if(online_party_screen(f))populate_online_party(f);else populate_online_clans(f);
-    f.selected = f.entries.empty() ? 0 : std::min(selected, unsigned(f.entries.size()-1));
-    // Party members may deliberately use identical screen names. Their
-    // server order is stable; display text cannot identify the selected row.
-    if(f.screen==31 && f.context==46 && !previous_account.friend_search && account_.friend_search) {
-      f.selected=0;
-    } else if(!member_focus.empty() && friend_roster) {
-      for(unsigned i=0;i<f.entries.size();++i) {
-        const auto index=unsigned(f.entries[i].value);
-        if(f.entries[i].destination==31 && index<account_.friends.size() && account_.friends[index].id==member_focus){f.selected=i;break;}
-      }
-    } else if(!member_focus.empty() && account_.clan) {
-      for(unsigned i=0;i<f.entries.size();++i) {
-        const auto index=unsigned(f.entries[i].value);
-        if(index<account_.clan->members.size() && account_.clan->members[index].id==member_focus){f.selected=i;break;}
-      }
-    } else if(!online_party_screen(f)) {
-      const auto it = std::find_if(f.entries.begin(),f.entries.end(),[&](const auto &e){return e.label == focus;});
-      if (it != f.entries.end()) f.selected = unsigned(it-f.entries.begin());
-    }
-  }
-  ++revision;
-}
+void MenuState::update_online_account(){account_flow_drive(false);}
 void MenuState::populate_online_clans(MenuFrame &f) const {
   const auto *m = target_member(account_,clan_target_);
   if (f.screen == 26) {
@@ -157,8 +67,8 @@ void MenuState::populate_online_clans(MenuFrame &f) const {
     f.entries.push_back({"Read Clan Messages",211,int(clan_context)});
     if (account_.clan->role >= 1) f.entries.push_back({"Message Clan",167,8});
     if (online_voice_) {
-      f.entries.push_back({!voice_party_ && (voice_.joined || voice_.connecting) ? "Leave Clan Voice" : "Join Clan Voice",-32,0});
-      if (!voice_party_ && voice_.joined) f.entries.push_back({voice_.microphone_muted ? "Unmute Microphone" : "Mute Microphone",-32,1});
+      f.entries.push_back({!party_flow_.voice_party() && (voice_.joined || voice_.connecting) ? "Leave Clan Voice" : "Join Clan Voice",-32,0});
+      if (!party_flow_.voice_party() && voice_.joined) f.entries.push_back({voice_.microphone_muted ? "Unmute Microphone" : "Mute Microphone",-32,1});
     }
     f.entries.push_back({"Leave Clan",-30,3});
   } else if (f.screen == 31) {
@@ -177,7 +87,7 @@ void MenuState::populate_online_clans(MenuFrame &f) const {
       else if (account_.clan->role >= 2 && account_.clan->role > m->role) {
         f.entries.push_back({"Change Clan Role",236,0}); f.entries.push_back({"Remove From Clan",-30,5});
       }
-      if (!m->self && !voice_party_ && voice_.joined) {
+      if (!m->self && !party_flow_.voice_party() && voice_.joined) {
         const bool muted=std::find(voice_.muted.begin(),voice_.muted.end(),m->id)!=voice_.muted.end();
         f.entries.push_back({muted ? "Unmute Voice" : "Mute Voice",-32,2});
       }
@@ -205,7 +115,7 @@ std::string MenuState::online_clan_column(const MenuFrame &f, unsigned row, unsi
   case OnlineClanPresence::Playing:label+=" - Playing Halo 2";break;
   default:break;
   }
-  if (!voice_party_ && voice_.joined) {
+  if (!party_flow_.voice_party() && voice_.joined) {
     if(std::find(voice_.muted.begin(),voice_.muted.end(),member.id)!=voice_.muted.end()) label+=" - muted";
     else if((member.self && voice_.transmitting) || std::find(voice_.talking.begin(),voice_.talking.end(),member.id)!=voice_.talking.end()) label+=" - talking";
   }
@@ -221,9 +131,9 @@ std::string MenuState::online_clan_text(const MenuFrame &f, unsigned i) const {
     if (i == 2) return account_.clan ? account_.clan->name : "No clan";
     if (i == 4) return account_.clan ? std::to_string(account_.clan->members.size()) +
         (account_.clan->members.size() == 1 ? " member" : " members") : "";
-    if (i == 6) return !account_.clan ? "" : !voice_party_ && voice_.joined
+    if (i == 6) return !account_.clan ? "" : !party_flow_.voice_party() && voice_.joined
         ? (voice_.microphone_muted ? "MIC MUTED" : "MIC ON") : "VOICE OFF";
-    if (i == 8) return !voice_party_ && online_voice_ && voice_.revision>1 ? (voice_.joined && voice_.microphone_muted ? "Clan voice - microphone muted." : voice_.message) : account_.message;
+    if (i == 8) return !party_flow_.voice_party() && online_voice_ && voice_.revision>1 ? (voice_.joined && voice_.microphone_muted ? "Clan voice - microphone muted." : voice_.message) : account_.message;
     return {};
   }
   if (f.screen == 236) {
@@ -249,7 +159,7 @@ std::string MenuState::online_clan_text(const MenuFrame &f, unsigned i) const {
   return i == 0 ? account_.message : "";
 }
 void MenuState::clan_command(OnlineClanCommand command) {
-  if (command.action=="leave" && !voice_party_ && online_voice_) online_voice_->leave();
+  if (command.action=="leave" && !party_flow_.voice_party() && online_voice_) online_voice_->leave();
   if (!online_account_ || !online_account_->command(std::move(command))) {
     unavailable("Wait for the ONLINE account connection or current clan operation to finish."); return;
   }
@@ -288,8 +198,8 @@ bool MenuState::accept_online_clans() {
   if (entry.destination==-5) { back(); return true; }
   if (entry.destination==-32 && online_voice_) {
     if(entry.value==0) {
-      if(voice_party_) {
-        online_voice_->leave();online_voice_.reset();party_voice_wanted_=voice_party_=false;
+      if(party_flow_.voice_party()) {
+        online_voice_->leave();online_voice_.reset();party_flow_.voice_wanted(false);party_flow_.voice_party(false);
         online_voice_=std::make_shared<OnlineVoice>(online_account_);online_voice_->join();
       } else if(voice_.joined || voice_.connecting)online_voice_->leave();else online_voice_->join();
     }

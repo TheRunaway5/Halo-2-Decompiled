@@ -1,0 +1,27 @@
+{
+  "src/network/online_match_session.cpp": {
+    "path": "build/test-results/native-publication-rust-20261101/before-src_network_online_match_session.cpp.txt",
+    "sha256": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e",
+    "bytes": 66335
+  },
+  "include/halo2/peer_authority_transfer.hpp": {
+    "path": "build/test-results/native-publication-rust-20261101/before-include_halo2_peer_authority_transfer.hpp.txt",
+    "sha256": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "bytes": 6177
+  },
+  "src/network/peer_authority_transfer.cpp": {
+    "path": "build/test-results/native-publication-rust-20261101/before-src_network_peer_authority_transfer.cpp.txt",
+    "sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "bytes": 24127
+  },
+  "rust/online_protocol/src/matchmaking_native_session.rs": {
+    "path": "build/test-results/native-publication-rust-20261101/before-rust_online_protocol_src_matchmaking_native_session.rs.txt",
+    "sha256": "0edcd771593582759df803e107d78a8017aa2bb83204ccec4c3f745156da2a24",
+    "bytes": 60191
+  },
+  "rust/online_protocol_bridge/src/lib.rs": {
+    "path": "build/test-results/native-publication-rust-20261101/before-rust_online_protocol_bridge_src_lib.rs.txt",
+    "sha256": "685374b52ffa54ba1ced4943d4721041ff0d61a1f44252c51d4d216040117574",
+    "bytes": 77987
+  }
+}

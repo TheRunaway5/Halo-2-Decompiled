@@ -1,0 +1,13 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_account_client_tests",
+    "native_account_client_cpp_reference",
+    "account_snapshot_cpp_replay",
+    "online_account_tests"
+  ],
+  "filter": "^(native_account_client_.*|account_snapshot_cpp_rust_replay|online_account_client|online_protocol_rust_build_helper)$",
+  "refresh": [
+    "cmake/OnlinePeers.cmake"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": 1752,
+  "native_io_observations": 4014,
+  "comparisons": 19646,
+  "fault_controls": 256,
+  "preserved_native_exception_identity": 256,
+  "differences": [],
+  "native_sha256": "4796f94af1f19b75f7507c02dffb2113b2f3d037d62a374a1d47bfa56d4e5d65",
+  "scope": "Captured modern native text methods versus actual Rust/CXX callbacks.\n\nThe enclosing run_tests.py/run_test.py owner removes generated build products.\nOnly this bounded report is retained. Native IO observations are synthetic;\nthis does not certify historical locale/session producers or installed input.\n"
+}

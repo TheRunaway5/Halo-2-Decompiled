@@ -24,4 +24,9 @@ MccSoundTimingPlan build(const MccSoundVanillaSource&,
 MccSoundTimingPlan build_with_permutation_times(const MccSoundVanillaSource&,
     const MccSoundVanillaSource&,const MccSoundRuntimePlan&,const Policy&,
     const mcc_sound_permutation_time_detail::Policy&);
+// Actual raw Source/class-qualified cohort. Uses the same finite production
+// policies and expected-projection implementation as Cache loading, while
+// retaining the generic Source stored-time contract and diagnostics.
+MccSoundTimingPlan build_class_qualified(const MccSoundVanillaSource&,
+    const MccSoundRuntimePlan&);
 } // namespace halo2::mcc_sound_timing_detail

@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "tests": 7,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-session-views-postgame-staging",
+    "--",
+    "python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "source_sha256": "f00d53c1b91ea46ca0d78f423d3745a72543fac2238531d0391fd02b93b5d9b2",
+  "scratch_parent_empty": true
+}

@@ -1,0 +1,74 @@
+{
+  "passed": false,
+  "cases": 536,
+  "mismatches": 24,
+  "first_mismatches": [
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 2147483648,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 2147483649,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 4294967294,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 4294967295,
+        "original": 0
+      },
+      "actual": 1
+    }
+  ],
+  "legacy_differences": 216,
+  "legacy_cancel_differences": 24,
+  "legacy_leave_differences": 192,
+  "minimal_leave_counterexample": {
+    "case": {
+      "kind": "leave",
+      "total": 3,
+      "local": 2,
+      "connections": 2,
+      "current_member": 0,
+      "host_member": 0,
+      "sparse": false,
+      "original": 140
+    },
+    "legacy": 141
+  },
+  "original_instruction_addresses": 167,
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "fixture_sha256": "33fd9f2d8f6727d0beb1360c67e872c8ecba5a902f667b60abf8e3575c506815",
+  "rust_source_sha256": "04573b04b2dd4d0f74e457077f2a51356cdebc1a5152a3d2e84187d4d2ad0c94",
+  "backend": "standalone current Rust owner",
+  "native_binary_sha256": null,
+  "scope": "Original progress cancellation consumers and leave-count caller/getters.\n\nPane and frozen UI clock observations are explicit inputs to2584AE. The\n2584C9 leave-count caller executes unchanged19475B/1946AA and their actual\nsession/membership getters over explicit synthetic session banks, stopping\nbefore dialog allocation. No original UI/network producer or live-flow claim.\n",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-input-host-20261102/halo2-test-s3yjwdq8",
+  "retained_large_artifacts": []
+}

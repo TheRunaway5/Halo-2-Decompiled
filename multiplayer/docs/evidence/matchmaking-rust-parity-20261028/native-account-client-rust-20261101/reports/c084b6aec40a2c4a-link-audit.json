@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "scope": "Actual compiled controller call boundaries, not whole-system original proof",
+  "objects": {
+    "rust_native_adapter": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/CMakeFiles/halo2_online_account.dir/src/network/online_account.cpp.o",
+      "sha256": "33887270cb32273a0d6c32a1eaeb4197f9fd7f53cd24c97ed3b6a5faca81dce7",
+      "rust_account_entrypoints": [
+        "U halo2::online_protocol_bridge::new_account_client(halo2::online_protocol_bridge::MatchmakingClientConfig const&, bool, bool, bool)",
+        "U halo2::online_protocol_bridge::account_client_poll(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_voice(halo2::online_protocol_bridge::AccountClient const&, bool, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_active(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_connect(halo2::online_protocol_bridge::AccountClient const&, rust::cxxbridge1::Str, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_pending(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_profile(halo2::online_protocol_bridge::AccountClient const&, rust::cxxbridge1::Slice<unsigned char const>, rust::cxxbridge1::Str, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_party_follower(bool, unsigned long)",
+        "U halo2::online_protocol_bridge::account_client_endpoint(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_shutdown(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_sign_out(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_snapshot(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_cadence_ms(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_configured(halo2::online_protocol_bridge::AccountClient const&)",
+        "U halo2::online_protocol_bridge::account_client_clan_command(halo2::online_protocol_bridge::AccountClient const&, rust::cxxbridge1::Str, rust::cxxbridge1::Str, unsigned int, bool, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_discord_link(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_party_command(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::AccountClientPartyCommand const&, unsigned int, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_refresh_steam(halo2::online_protocol_bridge::AccountClient const&, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_friend_command(halo2::online_protocol_bridge::AccountClient const&, rust::cxxbridge1::Str, rust::cxxbridge1::Str, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_client_discord_operation(halo2::online_protocol_bridge::AccountClient const&, unsigned long, halo2::online_protocol_bridge::NativeAccountClientIo const&)",
+        "U halo2::online_protocol_bridge::account_party_leader_left_postgame(bool, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::AccountClientPostgameMember const>)"
+      ]
+    },
+    "preserved_cpp_controller": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/CMakeFiles/native_account_client_cpp_reference.dir/tests/reference/account_client_before_rust_20261101/online_account_before.cpp.o",
+      "sha256": "ec5e34726e02f0673cec8acab760eaf66dbfa8181dc93f8565cd8949d2fe6a56",
+      "rust_account_entrypoints": []
+    }
+  },
+  "staged_io_header": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/online-protocol/Release/include/src/matchmaking_account_client.hpp",
+    "sha256": "b2b70aace6af82c89e2d230c7fc69a8cb07ffff6a2a7afb328f264fbd501d56a",
+    "matches_source": true
+  }
+}

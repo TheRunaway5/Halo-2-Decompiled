@@ -5,8 +5,10 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 using namespace halo2;
@@ -37,6 +39,22 @@ template<class F>void reject(const char* name,F fn) {
     try{fn();}catch(const FormatError& error){rejected.push_back({{"name",name},{"reason",error.what()}});return;}
     throw FormatError(std::string("Invalid bound-page control was admitted: ")+name);
 }
+struct ReferenceGeometry {
+    std::optional<std::string> previous;
+    explicit ReferenceGeometry(bool enabled) {
+        if(const auto* value=std::getenv("HALO2_REFERENCE_FRESH_DEPTH_GEOMETRY"))previous=value;
+        set(enabled?"1":"");
+    }
+    static void set(const char* value) {
+#ifdef _WIN32
+        _putenv_s("HALO2_REFERENCE_FRESH_DEPTH_GEOMETRY",value);
+#else
+        if(*value)setenv("HALO2_REFERENCE_FRESH_DEPTH_GEOMETRY",value,1);
+        else unsetenv("HALO2_REFERENCE_FRESH_DEPTH_GEOMETRY");
+#endif
+    }
+    ~ReferenceGeometry(){set(previous?previous->c_str():"");}
+};
 int run(int argc,char**argv) {
     need(argc==5,"Supply original Lockout, actual640 camera bank, compiled shaders and JSON report");
     for(unsigned n=1;n<=2;++n)if(!std::filesystem::is_regular_file(argv[n]))return 77;
@@ -69,6 +87,43 @@ int run(int argc,char**argv) {
     renderer.scene_bsp_atmosphere(cache.load_bsp_atmosphere(0));
     auto targets=renderer.target_resources();auto use=targets.acquire();
     auto owner=source_world_depth_input_tu15(memory,use,cache,mesh,resident,selection);
+    {
+        ReferenceGeometry reference(true);
+        const auto fresh=source_world_depth_input_tu15(memory,use,cache,mesh,resident,selection);
+        need(owner.selected_geometry().size()==fresh.selected_geometry().size() &&
+            !std::memcmp(owner.selected_geometry().data(),fresh.selected_geometry().data(),owner.selected_geometry().size_bytes()),
+            "Depth geometry run selection differs from per-vertex reference");
+    }
+    const auto vertices=owner.selected_geometry();
+    need(!vertices.empty(),"Depth geometry mutation controls require actual vertices");
+    auto changed=std::vector<Vertex>(vertices.begin(),vertices.end());
+    changed.front().source_stipple_level^=1u;
+    reject("changed selected vertex stipple",[&]{owner.validate_geometry(use,changed);});
+    reject("dropped selected triangle",[&]{owner.validate_geometry(use,vertices.subspan(3));});
+    owner.validate_resident_atlas(use,resident,resident.resident_vertices());
+    auto atlas=resident.resident_vertices();atlas.front().position.x+=1;
+    reject("changed resident atlas byte",[&]{owner.validate_resident_atlas(use,resident,atlas);});
+    std::map<SourceBspDrawKey,std::vector<Vertex>> draws;
+    for(const auto& v:vertices)draws[{v.material,v.lightmap,v.bsp_cluster,v.source_section,v.source_part}].push_back(v);
+    for(bool reference:{false,true}) {
+        ReferenceGeometry mode(reference);
+        for(auto& [key,payload]:draws) {
+            if(owner.independent_draw(key))continue;
+            need(owner.admits_draw(key),"Selected ordinary draw was not admitted");
+            owner.validate_draw(use,key,payload,false);
+            auto wrong=payload;wrong.back().position.z+=1;
+            reject("changed dynamic draw payload",[&]{owner.validate_draw(use,key,wrong,false);});
+            reject("dropped dynamic draw vertex",[&]{owner.validate_draw(use,key,std::span(payload).subspan(1),false);});
+        }
+        const auto merged=resident.merge(selection.bindings,{},unsigned(mesh.materials.size()),unsigned(mesh.lightmaps.size()+1));
+        for(const auto& token:merged.draws)if(token.storage==SourceBspVertexStorage::resident) {
+            if(owner.independent_draw(token.key))continue;
+            const auto payload=std::span(resident.resident_vertices()).subspan(token.first,token.count);
+            owner.validate_draw(use,token.key,payload,true);
+            auto wrong=std::vector<Vertex>(payload.begin(),payload.end());wrong.front().position.z+=1;
+            reject("changed resident draw payload",[&]{owner.validate_draw(use,token.key,wrong,true);});
+        }
+    }
     auto foreign_owner=owner;
     auto foreign_window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("Independent native attachment lease",0,0,640,480,
         SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);

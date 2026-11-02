@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "exit_code": 0,
+  "command": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/frontend_online_tests",
+    "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11",
+    "--callback-port",
+    "53917"
+  ],
+  "native_sha256": "90ab2cd66eaa4f27841293ee4f63ede60de0a2ad51c43d5418c8a41a1c49b5bc",
+  "stdout": "Shutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nSelected imported texture/font byte comparison passed on 25 ONLINE panel/context pairs.\n555120 bounded HD text vertices; 425621 mouse target projections across 9 aspect ratios.\nPASS native Quickmatch/Optimatch/playlists when configured, ONLINE discovery/details/refresh/scroll/expiry/failure/recovery, private Discord identity, chosen name, unobstructed panels, cancellation, sign-out and offline access using selected MCC-only assets and native MCC font prompts\nShutdown handler: cleanup.\n",
+  "stderr": "",
+  "scope": "No-service actual native menu/asset sampling repro; no HTTP account or match flow"
+}

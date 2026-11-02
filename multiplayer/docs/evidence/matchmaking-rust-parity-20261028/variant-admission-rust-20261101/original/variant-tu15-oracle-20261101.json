@@ -1,0 +1,59 @@
+{
+  "schema": "H2_TU15_MATCHMAKING_VARIANT_ORIGINAL_V1",
+  "passed": true,
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "validator": "0x1a7140",
+  "normalizer": "0x1a7170",
+  "no_locale_global": "0x4ecc1c",
+  "controls": 4835,
+  "groups": {
+    "retained": 4249,
+    "presets": 39,
+    "catalog": 547
+  },
+  "original_valid": 3158,
+  "original_invalid": 1677,
+  "controls_sha256": "2498351ca23bd5f4b97cb04702ed97cde010f7946580638fc4d964b4a2a59ec0",
+  "input_pins": {
+    "retained": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/tests/fixtures/game_variant_normalization_original.tsv",
+      "sha256": "b77d88f5ee0b0349d73d5f1e0e4cd691d68407784490fa4efaea7894582106f4"
+    },
+    "presets": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/rust/online_protocol/data/tu15-result-presets.json",
+      "sha256": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db"
+    },
+    "catalog": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/multiplayer/master_server/examples/matchmaking-online.json",
+      "sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670"
+    },
+    "rust": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/rust/online_protocol/src/matchmaking_variant.rs",
+      "sha256": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b"
+    }
+  },
+  "all_executed_instruction_bytes_verified": true,
+  "original_instructions": 564,
+  "instruction_invocations": 2677639,
+  "original_calls": 4835,
+  "original_executed_bytes_sha256": "4e18ebc89f391a7a30555eed404d806ce8b1abc6401896a56ca63bbf16142b1e",
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "caller_buffers_unchanged": true,
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2",
+  "compiler_command": [
+    "rustc",
+    "--edition=2024",
+    "--crate-name",
+    "variant_probe",
+    "-O",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-tu15-oracle/halo2-test-hvo94jea/probe.rs",
+    "-o",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-tu15-oracle/halo2-test-hvo94jea/variant-probe"
+  ],
+  "tool_sha256": "885744e0af3dda949dbe31f9fd97ecfbde8cd67113397da57f83bfd81a55e558",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-tu15-oracle/halo2-test-hvo94jea",
+  "retained_large_artifacts": [],
+  "full_native_flow_qualified": false,
+  "scope": "Compare read-only Rust admission with the unchanged TU1.5 variant validator.\n\nSynthetic buffers and NULL locale globals are explicit inputs. Validator,\nnormalizer, reset initializer and all called instructions execute unchanged.\nMatchmaking consumes only validity; it never substitutes the reset game.\nRun through tools/run_test.py. Compiler outputs stay in HALO2_TEST_SCRATCH.\n"
+}

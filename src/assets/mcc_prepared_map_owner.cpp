@@ -350,6 +350,39 @@ void scalar(MccPreparedMapOwner& out, const std::string& name, bool mandatory) {
             digest(bytes(raw)) == "1261274f49fbf8f8fd36e9a56f9b7a701a2bad1c5d84be168c69826a62484118",
             "retained native scalar table fingerprint differs");
 }
+void original_sounds(MccPreparedMapOwner& out,const Json& provenance,const Json& index) {
+    if(!provenance.contains("original_sound_catalog"))return;
+    require(out.indexed,"original sound catalog requires indexed prepared map owners");
+    const auto& pointer=provenance.at("original_sound_catalog");
+    require(pointer.is_object() && pointer.size()==5 &&
+        text(pointer,"schema")=="H2_PREPARED_ORIGINAL_SOUND_CATALOG_TU15_V1" &&
+        text(pointer,"path")=="original-sounds/catalog.json" && fingerprint(text(pointer,"sha256")) &&
+        extent(pointer,"bytes")>0 && extent(pointer,"bytes")<=4u*1024u*1024u,
+        "invalid original sound catalog pointer");
+    const auto& maps=pointer.at("maps");
+    require(maps.is_object()&&!maps.empty()&&maps.size()<=256,"invalid original sound catalog map set");
+    for(const auto& [name,record]:maps.items()) {
+        (void)relative(name);
+        const Json* found=nullptr;
+        for(const auto& row:index.at("maps"))if(text(row,"map")==name) {
+            require(!found,"ambiguous original sound map owner");found=&row;
+        }
+        require(found && record.is_object() && record.size()==3 &&
+            text(*found,"cache_role")=="scenario" &&
+            text(record,"input_sha256")==text(*found,"input_sha256") &&
+            extent(record,"input_bytes")==extent(*found,"input_bytes"),
+            "original sound map differs from the exact admitted encoded owner");
+        const auto original=text(record,"original_map");
+        require(relative(original).filename()==original && fs::path(original).extension()==".map",
+            "invalid original sound map context");
+    }
+    if(!out.binding||!maps.contains(out.binding->map_relative))return;
+    const auto raw=read(out,"original-sounds/catalog.json");
+    require(raw.size()==extent(pointer,"bytes") && digest(bytes(raw))==text(pointer,"sha256"),
+        "original sound catalog differs from preparation provenance");
+    out.original_sound_catalog=MccPreparedMapOwner::OriginalSoundCatalog{
+        out.cache_root/"original-sounds",text(pointer,"sha256"),text(maps.at(out.binding->map_relative),"original_map")};
+}
 }
 
 std::optional<MccPreparedMapOwner> admit_mcc_prepared_map_owner(const fs::path& map_input,
@@ -448,6 +481,7 @@ std::optional<MccPreparedMapOwner> admit_mcc_prepared_map_owner(const fs::path& 
             else if (out.binding->mode == MccNativeBankMode::AuthenticatedHudBootstrap)
                 scalar(out, out.binding->bootstrap_dependency.lexically_relative(root).generic_string() + "/function-tables.bin", true);
         }
+        original_sounds(out,provenance,index);
         return out;
     } catch (const MccNativeMapOwnerError&) { throw; }
       catch (const std::exception& error) { throw MccNativeMapOwnerError("Prepared MCC owner: " + std::string(error.what())); }

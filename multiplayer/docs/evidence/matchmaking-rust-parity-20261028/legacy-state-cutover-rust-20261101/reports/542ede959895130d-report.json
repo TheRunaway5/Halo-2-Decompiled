@@ -1,0 +1,187 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-tests.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-build.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "directory-production-abi.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_discovery_only",
+        "multiplayer.master_server.tests.test_http",
+        "multiplayer.master_server.tests.test_registry"
+      ],
+      "returncode": 0,
+      "log": "directory-regressions.log"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "production_activated": false,
+  "docker_image_executed": false,
+  "mode": "legacy-state-only",
+  "caddy": {
+    "version": "v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=",
+    "archive_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz",
+    "checksum_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_checksums.txt",
+    "archive_sha512": "a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7",
+    "archive_sha256": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+    "binary_sha256": "678ade3bfc088749c81a681adc603333ee0bb023b6a6cfe3c0f58bef8ff854e9",
+    "retained": false
+  },
+  "binary": {
+    "sha256": "f3432d311f3d3fb338c848f3928c55aa292e238000cd033d12e9ef2bba26db5a",
+    "bytes": 11481976,
+    "retained": false
+  },
+  "directory_abi": {
+    "sha256": "24a0f789d812a7a1415c25c2ec0b91c4713963647494dab4e922280c347b9d97",
+    "bytes": 4973928,
+    "retained": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "controls_sha256": "0ec88a96aa4e1a6573290bafc5688b5f0a0722a112bcb031081604077f0fc5cc",
+      "output": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/rust-state-cutover-20261101/run-01/attempt-01",
+      "passed": false,
+      "error": "ContentTypeError(RequestInfo(url=URL('http://127.0.0.1:48879/v1/matchmaking/transport'), method='GET', headers=<CIMultiDictProxy('Host': '127.0.0.1:48879', 'Authorization': 'Bearer <REDACTED>', 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'User-Agent': 'Python/3.14 aiohttp/3.14.3')>, real_url=URL('http://127.0.0.1:48879/v1/matchmaking/transport')), (), status=500, message='Attempt to decode JSON with unexpected mimetype: text/plain; charset=utf-8', headers=<CIMultiDictProxy('Content-Type': 'text/plain; charset=utf-8', 'Content-Length': '55', 'Date': 'Sun, 01 Nov 2026 23:26:26 GMT', 'Server': 'Python/3.14 aiohttp/3.14.3', 'Connection': 'close')>)",
+      "accepted_control_refresh": {
+        "before_sha256": "0ec88a96aa4e1a6573290bafc5688b5f0a0722a112bcb031081604077f0fc5cc",
+        "after_sha256": "1d68dba70975864b08c789ae6ba0adccbfef0d9731fbf1372be43b3eb7d439d6",
+        "compiler_inputs_changed": false
+      }
+    },
+    {
+      "attempt": 2,
+      "controls_sha256": "1d68dba70975864b08c789ae6ba0adccbfef0d9731fbf1372be43b3eb7d439d6",
+      "output": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/rust-state-cutover-20261101/run-01/attempt-02",
+      "passed": true
+    }
+  ],
+  "delivery": {
+    "passed": true,
+    "checks": [
+      "legacy HTTP/room completion creates nonempty hidden XP, unanimous result/admission, public PCR and two persistent players while excluding the guest",
+      "SQLite backup clones every populated table and both original signing keys into private owned storage",
+      "Rust opens the populated legacy clone without changing existing table contents, preserves canonical/public identities, profiles, social memberships, history and JWKS, and rejects old runtime grants",
+      "Rust replays the legacy party command without duplicating the party and commits a new canonical profile revision",
+      "the real legacy host process reopens Rust-written state and reads the same canonical/profile/social/history views and signing identity"
+    ],
+    "observations": {
+      "legacy_room_fixture": {
+        "observed": {
+          "persistent_xp_total": 100,
+          "real_start_elapsed_seconds": 10.049252730997978,
+          "physical_connections": 2,
+          "logical_seats": 3
+        },
+        "fixture": {
+          "compatibility": "halo2-native-queue-v10",
+          "declared": true,
+          "original_profile": false,
+          "real_gameplay": false,
+          "catalog_sha256": "b7d2506b1ecfe22f656017fa11a139030db456e61506406618abee2c5b7f90ca"
+        },
+        "adapter": "Legacy Python HTTP and production Rust ABI",
+        "real_gameplay": false
+      },
+      "startup_table_differences": {},
+      "rollback_table_differences": {},
+      "nonempty_tables": {
+        "carnage_player_summaries": 2,
+        "carnage_reports": 1,
+        "clan_members": 3,
+        "clan_requests": 4,
+        "clans": 2,
+        "clock_floor": 1,
+        "directory_revision": 1,
+        "eos_profile_outbox": 2,
+        "history_players": 4,
+        "master_identity": 1,
+        "match_result_admission": 1,
+        "match_result_players": 2,
+        "match_result_skill": 2,
+        "match_results": 1,
+        "matchmaking_ledger_lock": 1,
+        "parties": 1,
+        "party_members": 2,
+        "party_privacy": 1,
+        "party_requests": 3,
+        "player_customization": 1,
+        "player_friend_block_epoch": 1,
+        "player_friend_commands": 2,
+        "player_friend_tags": 4,
+        "player_friendships": 1,
+        "player_identities": 8,
+        "player_profiles": 4,
+        "players": 4,
+        "playlist_ranks": 2,
+        "playlist_skill": 2,
+        "report_schema": 1,
+        "social_voice_membership_epoch": 5,
+        "steam_login_sessions": 4,
+        "voice_blocks": 1
+      },
+      "baseline_table_hashes_sha256": "e0fcbfa4e1786820949110eee915f4d8d5c6e57204ea458e91e9d4bb74cf7e6b",
+      "source_state_unchanged": true
+    },
+    "state_fixture": true,
+    "real_production_snapshot": false,
+    "real_provider": false,
+    "original_live": false,
+    "played_world": false,
+    "docker_image_executed": false,
+    "service_image_rollback": false,
+    "host_process_state_rollback": true,
+    "installed_client_input": false,
+    "full_matchmaking_ready": false
+  },
+  "source_drift_after_validation": []
+}

@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/iteration-8",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "eos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/eos_verifier.rs",
+    "tools/test_rust_matchmaking_service.py",
+    "tools/rust_service_eos_controls.py"
+  ],
+  "source_files": 128,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/cargo/release/halo2-matchmaking-service",
+    "sha256": "e16e438365e594059c610d4f2ffcb60bf938da9be0fa2ff04d259322d2d22b90",
+    "bytes": 10508352,
+    "retained": false
+  },
+  "eos": {
+    "checks": [
+      "actual Rust JWKS route, configured signing identity and private persistent key",
+      "actual RS256 signature verifies against the public JWK; canonical account/name, issuer/audience and full120-second lifetime are bound without caller identity",
+      "SDK-receipt account check, immutable unique PUID binding, actual failed COMMIT rollback and exactly-once outbox revision/retry",
+      "revocation during actual body upload is rechecked before SDK IO and cannot persist a link",
+      "actual three-second SDK IO survives a distinct two-second queue timeout; duplicate in-flight principal is rejected without consuming another reply",
+      "account revocation while the actual worker owns a proof is rechecked after SDK IO and persists no identity",
+      "duplicate JSON from the actual worker retires/reaps that exact stream and a fresh process verifies the next account",
+      "real twenty-second verifier deadline kills/reaps its owned child; no stale reply reaches the following request",
+      "source-v16 full-options room grants issue real signed EOS tokens independent of account sessions; malformed hints never reach the verifier",
+      "failed room-proof COMMIT rolls back canonical and native proof publication; retry binds only SDK-verified PUIDs to real signal sockets and rejects forged identities",
+      "a forged peer identity is rejected and closes the actual room; SDK IO cannot publish a late proof after that teardown",
+      "real Rust process restart retains the signing key, canonical PUID and revision while retiring old capabilities; full readiness remains false"
+    ],
+    "provider": {
+      "queue_timeout_seconds": 2,
+      "owned_timeout_seconds": 20.00237107501016,
+      "retired_worker_pids": [
+        3569500,
+        3569530
+      ],
+      "real_sdk": false
+    },
+    "rooms": {
+      "compatibility": "halo2-native-queue-v16",
+      "physical_owners": 2,
+      "logical_seats": 3,
+      "real_signed_tokens": true,
+      "real_signal_sockets": true,
+      "real_sdk": false,
+      "played_world": false
+    },
+    "public_key_kid": "17eedc8cdfcbfd5e98ef79418bc7afe8",
+    "scope": "Real Rust EOS HTTP, RSA cryptography, SQL and owned worker IO; private SDK receipt/provider fixtures only. No real Epic authorization, native peer world, original or delivered acceptance."
+  }
+}

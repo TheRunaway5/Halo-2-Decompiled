@@ -96,6 +96,17 @@ async def main():
             row["description"] = ("Two clan parties of 6 to 8; opposing sizes differ by at most two. " if major else
                 "Two clan parties of 3 or 4; equal opposing sizes. ") + "Every member belongs to the same clan and chooses this playlist. Clan rank applies. Lockout Team Slayer validation rotation; custom search timing and radius."
             fixture["playlists"].append(row)
+        blocked_playlist = os.environ.get("H2_TEST_BLOCKED_PLAYLIST") == "1"
+        complete_playlist = os.environ.get("H2_TEST_COMPLETE_PLAYLIST") == "1"
+        if blocked_playlist or complete_playlist:
+            complete = json.loads((ROOT / "multiplayer/master_server/examples/matchmaking-online.json").read_bytes())
+            settings = {game["variant"]: game["settings"] for entry in complete["playlists"]
+                        for game in entry["games"] if game.get("settings") is not None
+                        and game["variant"] in ("Slayer", "Team Slayer")}
+            for row in fixture["playlists"]:
+                row["required_compatibility"] = "halo2-native-queue-v16"
+                for game in row["games"]:
+                    game["settings"] = settings[game["variant"]]
         path.write_text(json.dumps(fixture))
         verified, session_creations = [], []
         native_session_tokens = set()
@@ -109,8 +120,13 @@ async def main():
                 raise Problem(401, "Test authorization denied")
             verified.append(token)
             return "discord", "123456789012345678" if token == "t" else "999999999999999999"
+        # Both native workers and the fixture peer share loopback and use
+        # accelerated polling. Configure all aggregate fixture budgets; the
+        # production account/social/countdown budgets retain their owners.
         app = create_app(Settings(state=Path(temp), public_url="http://127.0.0.1:8080", allow_http=True,
-                                  rate_per_minute=100000, matchmaking_catalog=str(path)), verify)
+                                  rate_per_minute=100000, prefix_rate_per_minute=100000,
+                                  global_rate_per_minute=100000, matchmaking_catalog=str(path)), verify)
+        http_429=[]
         legacy_countdown = os.environ.get("H2_TEST_LEGACY_PARTY_COUNTDOWN") == "1"
         if legacy_countdown:
             from aiohttp import web
@@ -125,6 +141,8 @@ async def main():
                 return response
             app.middlewares.append(legacy_party_view)
         async def observe_session(request, response):
+            if response.status==429 and len(http_429)<8:
+                http_429.append(dict(method=request.method,path=request.path))
             if request.method=='POST' and request.path=='/v1/account/session' and request.headers.get('Authorization')=='Bearer t' and response.status==201:
                 native_account_tokens.add(json.loads(response.body)['token'])
             if request.headers.get('Authorization','').removeprefix('Bearer ') in native_account_tokens:
@@ -132,7 +150,8 @@ async def main():
             if (request.method=="POST" and request.path=="/v1/matchmaking/session" and
                     request.headers.get("Authorization")=="Bearer t" and response.status==201):
                 session_creations.append(True)
-                native_session_tokens.add(json.loads(response.body)["token"])
+                token = json.loads(response.body)["token"]
+                native_session_tokens.add(token)
             elif request.method=="POST" and request.path=="/v1/matchmaking/ticket" and response.status==201:
                 authorization=request.headers.get("Authorization", "")
                 token=authorization.removeprefix("Bearer ")
@@ -245,18 +264,24 @@ async def main():
                     300 if "--capture" in native_options or os.environ.get('H2_TEST_LOBBY_BUTTONS_GPU')=='1' else 120)
                 print(stdout.decode(), end="")
                 print(stderr.decode(), end="", file=sys.stderr)
-                if process.returncode not in (0,77) and os.environ.get('H2_TEST_LOBBY_BUTTONS')=='1':
-                    print('Sanitized account HTTP observations: '+json.dumps(account_observations),file=sys.stderr)
+                if process.returncode not in (0,77):
+                    from collections import Counter
+                    counts=Counter((row['method'],row['path'],row['status']) for row in account_observations)
+                    print('Sanitized account HTTP counts: '+json.dumps([
+                        dict(method=key[0],path=key[1],status=key[2],count=count)
+                        for key,count in sorted(counts.items())]),file=sys.stderr)
+                    print('Sanitized account HTTP tail: '+json.dumps(account_observations[-40:]),file=sys.stderr)
                 assert process.returncode in (0, 77), "Native menu/queue integration failed"
                 if process.returncode == 77: return 77
+                assert not http_429,'Native matchmaking exceeded an HTTP fixture budget: '+json.dumps(http_429)
                 if os.environ.get("H2_TEST_LOBBY_BUTTONS") == "1":
                     assert verified.count("t") >= 1 and len(session_creations) == 1, "Lobby buttons bypassed their authenticated session exchange"
-                    assert [playlist for _,playlist in native_queue_posts] == ([] if legacy_countdown else ["ranked"]), "Lobby buttons queued an unsupported or unintended search"
+                    assert [playlist for _,playlist in native_queue_posts] == ([] if legacy_countdown or blocked_playlist else ["ranked"]), "Lobby buttons queued an unsupported or unintended search"
                     assert not queue_during_consent, "Start queued before accepted playlist consent"
                     assert not api.core.proposals and not api.core.tickets, "Lobby button cancellation retained a live proposal/ticket"
                     assert all(s.screen_name == "Peer Pilot" for s in api.sessions.values()), "Lobby button fixture retained its native session after sign-out"
                     assert not any(row['status']==429 for row in account_observations),'Native lobby polling exceeded the actual account service budget'
-                    if not legacy_countdown:
+                    if not legacy_countdown and not blocked_playlist:
                         countdown_reads=[r['seconds'] for r in account_observations if r['method']=='GET' and r['path']=='/v1/party/countdown']
                         assert countdown_reads,'Native shared lobby never observed its dedicated countdown endpoint'
                         assert max(sum(t<=v<t+1 for v in countdown_reads) for t in countdown_reads)<=11,'Native countdown polling exceeded its ten-per-second cadence'

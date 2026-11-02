@@ -1,0 +1,50 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/iteration-7",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "voice",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/social_voice_http.rs"
+  ],
+  "source_files": 147,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/cargo/release/halo2-matchmaking-service",
+    "sha256": "0074f746539e4f8b8a6ec6be86b3ee9ebefe8691b343c6077a2e3137c214bdc5",
+    "bytes": 11443768,
+    "retained": false
+  },
+  "error": "{'error': 'AssertionError((<WSCloseCode.ABNORMAL_CLOSURE: 1006>, (1008,)))', 'completed_checks': ['actual Rust HTTP denies anonymous preference and clan/party voice requests before any media upgrade', 'private provider-bound replacement removes self blocks and rejects forged fields, duplicates, invalid IDs and oversized bodies; the full2000-subject record crosses the ordinary16KiB limit', 'actual deferred preference COMMIT failure retains the complete old snapshot; retry replaces only the verified canonical owner', 'Steam proof expiry after the actual SQLite write lock is re-read before preference mutation and cannot consume the current snapshot', 'real Rust process restart retains private preferences and canonical aliases while retiring old account grants', 'real party voice requires accepted membership and a current account grant; emitted audio carries the accepted opaque handle and never reaches another party', 'actual provider-bound Discord preference snapshots silence both directions while preserving third-party delivery; another participant cannot clear the blocker', 'clan and party channels use independent native registries, memberships, sequence streams and audiences', 'leader transfer preserves accepted streams; removal and same-identity SQL membership reincarnation retire only the old native channel incarnation'], 'timings': {}}"
+}

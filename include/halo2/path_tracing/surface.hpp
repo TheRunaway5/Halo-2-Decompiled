@@ -4,7 +4,7 @@
 
 namespace halo2::path_tracing {
 enum class SurfaceFamily : std::uint32_t {None=0,TerrainBlend=1,LeafDetail=2,LeafDetailPerVertex=3,
-    BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5};
+    BumpLeafCoverage=4,BumpLeafCoveragePerVertex=5,OpaqueDetail=6,TerrainBlendThreeStage=7};
 inline constexpr std::uint32_t surface_flag=64u,surface_magic=0x53525448u,surface_record_words=52u;
 struct SurfaceSource {
     SurfaceFamily family=SurfaceFamily::None;
@@ -43,6 +43,32 @@ inline constexpr std::array<std::uint32_t,60> bump_leaf_per_vertex{
     0x4a4b4a44,0x4b440000,0x08090000,0x052005d5,0x0c120000,0x0c080105,0xc0200000,0x1d050000,0,0,0,
     0x000030ca,0x000020d0,0x00010080,0x00000c00,0x000020d0,0x000100c5,0x00000050,0x00010050,
     0x00011108,0x00018421,0,0,0,0,0};
+// Authenticated opaque lightmap_tex_detail body. RGB constant15 belongs to
+// its separate baked specular branch, removed from the unlit diffuse color.
+// The full-program source oracle proves every color word10..25/43/44 is
+// independent of this unlit diffuse subgraph once baked specular is removed.
+// Keep every control word pinned; color constants remain authored data.
+inline constexpr std::array<std::uint32_t,60> opaque_detail{
+    0x45205518,0x15ccf5dc,0xccca80cd,0x19180000,0x1d1d1119,0x15150000,0x1d1d0000,0x0d180000,
+    0x0c200005,0x00001480,0,0,0,0,0x33000000,0x007d7db0,
+    0,0,0,0,0,0,0xc0000000,0,0,0,
+    0x000000c9,0x00000500,0x00010d00,0x00000090,0x00000059,0x000000d0,0x000000d0,0x00010040,
+    0x4a454a44,0x45440000,0x08090000,0x0b200bd5,0x0c120000,0x0c08010b,0x0b190000,0x1d050000,
+    0,0,0,0x000030ca,0x000020d0,0x00010080,0x00000c00,0x000020d0,0x000100cb,0x00010050,
+    0x00010050,0x00011108,0x00008421,0,0,0,0,0};
+// frozen_panels keeps the identical diffuse RGB subgraph but uses another
+// opaque output-alpha calculation. Admit that complete identity explicitly;
+// neither alpha calculation is eligible for raster testing or blending.
+inline constexpr auto opaque_detail_panel=[] {
+    auto words=opaque_detail;words[6]=0x1d1d8020;words[32]=0x00010d00;return words;
+}();
+// The three-stage detail_blend_texture source blends T1/T2 with T0.a, then
+// multiplies T0.rgb. This body has no fourth detail/color stage.
+inline constexpr std::array<std::uint32_t,60> terrain_three_stage{
+    0x3819181a,0,0,0,0,0,0,0,0x0c010002,0x00001c80,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x00000c00,0,0,0,0,0,0,0,
+    0x3809180a,0x0c080000,0,0,0,0,0,0,0,0x00ffffff,0,
+    0x00000c00,0x000100c0,0,0,0,0,0,0,0x00011102,0x00000421,0,0,0,0,0};
 inline bool controls(const PixelProgram& program,const std::array<std::uint32_t,60>& expected) {
     for(unsigned n=0;n<60;++n) {
         if((n>=10 && n<=25) || n==43 || n==44)continue;
@@ -54,8 +80,22 @@ inline ShaderVector argb(std::uint32_t c) {
     return {float((c>>16)&255u)/255.f,float((c>>8)&255u)/255.f,float(c&255u)/255.f,float(c>>24)/255.f};
 }
 }
+inline bool qualified_opaque_detail(const Material& material) {
+    if(!material.forward_pass || material.forward_blend || material.forward_raster.alpha_test ||
+       material.per_vertex_lighting || material.forward_pass_index>=material.passes.size())return false;
+    const auto uv=qualified_unlit_uv(material);
+    if(!uv || uv->family!=UnlitUvFamily::LightmapDetail)return false;
+    const auto& pass=material.passes[material.forward_pass_index];
+    if(pass.name!="shaders\\shader_passes\\lightmap\\lightmap_tex_detail" ||
+       pass.vertex_shader!="rasterizer\\vertex_shaders_xbox\\lightmap_perpixel_tex_detail")return false;
+    return surface_detail::controls(material.forward_program,surface_detail::opaque_detail) ||
+        surface_detail::controls(material.forward_program,surface_detail::opaque_detail_panel);
+}
 inline std::array<std::uint32_t,4> surface_constants(const Material& material,SurfaceFamily family) {
     const auto& w=material.forward_program.words;
+    // Family6 uses no color constants in diffuse RGB or representative alpha.
+    // Keep its resident record and image key invariant under color animation.
+    if(family==SurfaceFamily::OpaqueDetail)return {};
     if(family==SurfaceFamily::BumpLeafCoverage)return {w[13],w[22],w[43],w[44]};
     if(family==SurfaceFamily::BumpLeafCoveragePerVertex)return {w[15],w[17],w[43],w[44]};
     return {w[13],w[21],w[43],w[44]};
@@ -64,7 +104,14 @@ inline std::optional<SurfaceSource> qualified_surface(const Material& material) 
     if(!material.forward_pass || material.forward_blend || material.forward_pass_index>=material.passes.size())return {};
     const auto uv=qualified_unlit_uv(material);if(!uv)return {};
     const auto& pass=material.passes[material.forward_pass_index];SurfaceSource out;out.uv=*uv;
-    if(uv->family==UnlitUvFamily::Texture &&
+    if(qualified_opaque_detail(material)) {
+        out.family=SurfaceFamily::OpaqueDetail;out.stages=3;
+    } else if(uv->family==UnlitUvFamily::Texture &&
+       (pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture_zwrite" ||
+        pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_texture") &&
+       surface_detail::controls(material.forward_program,surface_detail::terrain_three_stage)) {
+        out.family=SurfaceFamily::TerrainBlendThreeStage;out.stages=7;
+    } else if(uv->family==UnlitUvFamily::Texture &&
        (pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_detail_texture_zwrite" ||
         pass.name=="shaders\\shader_passes\\texture_mapping\\detail_blend_detail_texture") &&
        surface_detail::controls(material.forward_program,surface_detail::terrain)) {
@@ -120,12 +167,14 @@ inline std::optional<SurfaceSource> qualified_surface(const Material& material) 
 inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uint32_t,4>& colors,
                                   const std::array<ShaderVector,4>& samples) {
     const auto sat=[](float value){return std::clamp(value,0.f,1.f);};ShaderVector result{};
-    if(family==SurfaceFamily::TerrainBlend) {
+    if(family==SurfaceFamily::TerrainBlend || family==SurfaceFamily::TerrainBlendThreeStage) {
         const auto gain=surface_detail::argb(colors[2]),bias=surface_detail::argb(colors[3]);
         const float mask=sat(samples[0][3]);
         for(unsigned c=0;c<3;++c) {
             const float blend=(1.f-mask)*std::max(samples[1][c],0.f)+mask*std::max(samples[2][c],0.f);
-            result[c]=sat(sat(2.f*sat(2.f*std::max(samples[0][c],0.f)*blend)*std::max(samples[3][c],0.f))*gain[c]+bias[c]);
+            const float base=sat(2.f*std::max(samples[0][c],0.f)*blend);
+            const float detail=family==SurfaceFamily::TerrainBlend? sat(2.f*base*std::max(samples[3][c],0.f)):base;
+            result[c]=sat(detail*gain[c]+bias[c]);
         }
         result[3]=sat((1.f-mask)*std::max(samples[1][3],0.f)+mask*std::max(samples[2][3],0.f));
     } else if(family==SurfaceFamily::LeafDetail || family==SurfaceFamily::LeafDetailPerVertex) {
@@ -135,6 +184,12 @@ inline ShaderVector surface_color(SurfaceFamily family,const std::array<std::uin
     } else if(family==SurfaceFamily::BumpLeafCoverage || family==SurfaceFamily::BumpLeafCoveragePerVertex) {
         for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
         result[3]=surface_detail::argb(colors[samples[2][3]>=.5f?0:1])[3];
+    } else if(family==SurfaceFamily::OpaqueDetail) {
+        for(unsigned c=0;c<3;++c)result[c]=sat(2.f*std::max(samples[0][c],0.f)*std::max(samples[1][c],0.f));
+        // This family has no raster alpha test or blending. Retain the
+        // existing T0 alpha representative; native baked-light/specular alpha
+        // is not claimed as unlit RGBA. Raw used-stage kills remain separate.
+        result[3]=sat(samples[0][3]);
     } else throw FormatError("Path Tracing unlit surface has an unknown native family");
     return result;
 }

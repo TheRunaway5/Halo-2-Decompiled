@@ -1,0 +1,246 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa",
+  "refreshed": [
+    {
+      "path": "src/network/peer_mesh_quality.cpp",
+      "before": "2bf73611941ddc5728e006e4b0c7662e6defaea5f8262bbd46663ec4bcec3f3f",
+      "after": "154eb33d60cade638b899b349995b8531887d52c833ea3071a356e500779f064"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "source_pin_parts": [
+    "iteration-2-source-pins-0.json",
+    "iteration-2-source-pins-1.json",
+    "iteration-2-source-pins-2.json",
+    "iteration-2-source-pins-3.json",
+    "iteration-2-source-pins-4.json",
+    "iteration-2-source-pins-5.json",
+    "iteration-2-source-pins-6.json",
+    "iteration-2-source-pins-7.json",
+    "iteration-2-source-pins-8.json",
+    "iteration-2-source-pins-9.json",
+    "iteration-2-source-pins-10.json",
+    "iteration-2-source-pins-11.json",
+    "iteration-2-source-pins-12.json",
+    "iteration-2-source-pins-13.json",
+    "iteration-2-source-pins-14.json",
+    "iteration-2-source-pins-15.json",
+    "iteration-2-source-pins-16.json",
+    "iteration-2-source-pins-17.json",
+    "iteration-2-source-pins-18.json",
+    "iteration-2-source-pins-19.json",
+    "iteration-2-source-pins-20.json",
+    "iteration-2-source-pins-21.json",
+    "iteration-2-source-pins-22.json",
+    "iteration-2-source-pins-23.json",
+    "iteration-2-source-pins-24.json",
+    "iteration-2-source-pins-25.json",
+    "iteration-2-source-pins-26.json",
+    "iteration-2-source-pins-27.json",
+    "iteration-2-source-pins-28.json",
+    "iteration-2-source-pins-29.json",
+    "iteration-2-source-pins-30.json",
+    "iteration-2-source-pins-31.json",
+    "iteration-2-source-pins-32.json",
+    "iteration-2-source-pins-33.json",
+    "iteration-2-source-pins-34.json",
+    "iteration-2-source-pins-35.json",
+    "iteration-2-source-pins-36.json",
+    "iteration-2-source-pins-37.json",
+    "iteration-2-source-pins-38.json",
+    "iteration-2-source-pins-39.json",
+    "iteration-2-source-pins-40.json",
+    "iteration-2-source-pins-41.json",
+    "iteration-2-source-pins-42.json",
+    "iteration-2-source-pins-43.json",
+    "iteration-2-source-pins-44.json",
+    "iteration-2-source-pins-45.json"
+  ],
+  "source_pin_sha256": "ff2c7e95e575e09fef240aca99269544d8992b54191ddb1f1cf00f7af86cb3f9",
+  "command": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "peer_mesh_quality_tests",
+    "--target",
+    "peer_mesh_quality_cpp_reference",
+    "--target",
+    "peer_mesh_quality_rust_replay",
+    "--target",
+    "peer_mesh_quality_direct_tests",
+    "--target",
+    "peer_mesh_quality_session_tests",
+    "--target",
+    "peer_host_session_tests",
+    "--target",
+    "peer_survivor_session_tests",
+    "--target",
+    "online_continuity_transport_tests",
+    "--target",
+    "rust_service_room_probe",
+    "--filter",
+    "^(peer_mesh_quality|peer_mesh_quality_cpp_rust_replay|peer_mesh_quality_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$",
+    "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Release/build-report.json",
+    "--retain-report",
+    "test-artifacts/peer-mesh-cpp-rust.json"
+  ],
+  "exit_code": 0,
+  "runner_report": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "peer_mesh_quality_tests",
+          "peer_mesh_quality_cpp_reference",
+          "peer_mesh_quality_rust_replay",
+          "peer_mesh_quality_direct_tests",
+          "peer_mesh_quality_session_tests",
+          "peer_host_session_tests",
+          "peer_survivor_session_tests",
+          "online_continuity_transport_tests",
+          "rust_service_room_probe"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(peer_mesh_quality|peer_mesh_quality_cpp_rust_replay|peer_mesh_quality_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 25608,
+        "sha256": "ddd7ff007adcc4db2d1c0218b93998cafc927560ddb6a1ae3d2d4fea6ad94122",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 2204,
+        "sha256": "6ef21da24acfd9cb9edf8177737e8881591ad1ced68b77cd3110cd27e0955e21",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "test-artifacts/peer-mesh-cpp-rust.json",
+        "status": "retained",
+        "bytes": 1496,
+        "sha256": "93f023d1fdb57c854e6c53f70ed5468ed841a72b4d72abb7e2b47e078df10c2f",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/test-artifacts/peer-mesh-cpp-rust.json"
+      }
+    ]
+  },
+  "binaries": {
+    "peer_mesh_quality_tests": {
+      "sha256": "45b1cade1e3c7ccf1bbe49096214aff31d2b3954e42de87fdaed0ed5f22f5785",
+      "bytes": 24406728
+    },
+    "peer_mesh_quality_cpp_reference": {
+      "sha256": "4945763c2396c4653ed0521c9cf90f189144f966eadfe8f384f6fe49c045bb86",
+      "bytes": 230016
+    },
+    "peer_mesh_quality_rust_replay": {
+      "sha256": "d712c5eb3a7550eaf8f278041703cfd74b3b24ffc6919dcbc44abb77e1a878f7",
+      "bytes": 24540000
+    },
+    "peer_mesh_quality_direct_tests": {
+      "sha256": "0c50319cd6a694a02e0356bb08bc47cac30dff5c9a9b1a3fde744eb91c730ee2",
+      "bytes": 26974464
+    },
+    "peer_mesh_quality_session_tests": {
+      "sha256": "6bb79df3590b69c730d8364717cda8cc400be6b009994d6f34063eb3487ad68f",
+      "bytes": 28148520
+    },
+    "peer_host_session_tests": {
+      "sha256": "2c32b60432a3feb8da811cccf2d423e41204b0d9dc3a0c654961e826aeab3fa5",
+      "bytes": 28220272
+    },
+    "peer_survivor_session_tests": {
+      "sha256": "c74bd6ec408a343290bb670b62bbe4c81ff56088b0498bd3b26c75ff8e10bd53",
+      "bytes": 28144168
+    },
+    "online_continuity_transport_tests": {
+      "sha256": "5c91e6b404259703e5a6e91d7e9c27b8f151fc6185d27c4b9d7ab9bddd7b5525",
+      "bytes": 28080664
+    },
+    "rust_service_room_probe": {
+      "sha256": "34aeefaed2ff09415eebe42d48aae77f9f2b318edca2b0e717be1123ece122bb",
+      "bytes": 28123824
+    }
+  },
+  "frozen_inputs_intact": true
+}

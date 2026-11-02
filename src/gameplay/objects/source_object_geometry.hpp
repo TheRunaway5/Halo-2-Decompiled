@@ -132,6 +132,8 @@ public:
     const Lod &at(unsigned lod)const{return lods.at(lod);}
     const ViewDraw &view(unsigned index)const{return views.at(index);}
     bool ordinary_lighting()const;
+    void validate_material_rebase(unsigned before,unsigned after)const;
+    void rebase_materials(unsigned before,unsigned after);
     unsigned first_material{},material_count{};
 private:
     struct LodChoice {SourceObjectLodInput input;SourceGeometryLodChoice choice;unsigned lod{};};

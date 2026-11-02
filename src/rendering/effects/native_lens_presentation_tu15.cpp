@@ -1,4 +1,5 @@
 #include "halo2/native_lens_presentation_tu15.hpp"
+#include "halo2/native_tu15_lens_query_slots.hpp"
 #include "halo2/source_lens_flare_tu15.hpp"
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_renderer_request_tu15.hpp"
@@ -214,7 +215,8 @@ void NativeLensPresentationTu15::suspend() {
         s.query.reset();
         // Actual renderer retirement discards GPU work, then whole original
         // slot retirement clears its corresponding private CPU request bank.
-        for(unsigned n=0;n<511;++n)s.call(0x20e30u,n);
+        for(unsigned n=0;n<native_tu15_lens_query_slot_count;++n)
+            native_tu15_retire_lens_query_slot(s.memory,n);
     }
 }
 }

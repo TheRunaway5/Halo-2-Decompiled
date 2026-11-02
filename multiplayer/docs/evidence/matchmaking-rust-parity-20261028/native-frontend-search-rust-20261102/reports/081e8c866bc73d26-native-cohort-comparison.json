@@ -1,0 +1,997 @@
+{
+  "schema": "halo2-native-source-cohort-comparison-v1",
+  "baseline_files": 19356,
+  "candidate_files": 19431,
+  "same_full_source_cohort": false,
+  "same_whole_client_ab_claim": false,
+  "changes": [
+    {
+      "path": "CMakeLists.txt",
+      "before": "869f3e5508f6cce808478aee61c4f2fbf8e1b7ab1b3bc322225abdfb8119678b",
+      "after": "99c512cdc6d486ec516f9c7e266d33f6a2a7aac27513d1245bd5bd6944c98b81",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/MultiplayerAudioContinuation.cmake",
+      "before": "8b4b827c63170b409c0b6d330800e323cc461b2229070c7d2804bd25fc240e6b",
+      "after": "44566f828db72306384de4d6d3d53fff8c8f1de5dc428b8deccb1eea41bcbf15",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/NativeTu15NormalizeVector.cmake",
+      "before": "c4c6ae32cf5666c6921c541cf9981ddf2996977b2d4df46639899011a0426bdc",
+      "after": "342a3a26e0a2507c4bb20616489cdae12f31216eb7de31656aa22c74ac816f81",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/NativeWeaponEffectsTu15.cmake",
+      "before": "257c3987c1f86ae414734438ada8a6dde80b46ebce0251ba9cdaebadaa263731",
+      "after": "ad4d31788b53e5eb3571a41f1e8d883840a66b93d56137c10579a7318d898e72",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/OnlinePeers.cmake",
+      "before": "0e4121c7e615b4e284d1a45cce180c2f3a4ebf8be0324765f0fa09c05e5b0c02",
+      "after": "30a6f9f89be533e64352869c96438ca3613525e101138c27b70a688787ef99f3",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "cmake/OnlineProtocolRust.cmake",
+      "before": "abceb337ff575395ac3070f23f997acb3a05c98802691e0cf01bcd08bb6dd537",
+      "after": "84a7101996531d764a9765a99d8b9b69de13a68cf34ce56af47caaf64ed82c22",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "cmake/PhysicsLiveWorldTu15.cmake",
+      "before": "60b47f3fd73c769f06a6ac6e832206f965bb31c9a7264dd191901b3b6649ad3c",
+      "after": "32007c6f4fe2bd95ac7411e1b6c3ba31eff9e646755ef7f55b48b896dd45063e",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/PhysicsMultiplayerAcceptance.cmake",
+      "before": "e11a5fb373288287c9f919409183105b9176f807e04a204dc0d77e6ce987afca",
+      "after": "11ab4ab7e2e68a805a2d507c8f196f037b1e88b3a8d7ba16b2a4d650e13cb50b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "cmake/WorkshopSceneryTests.cmake",
+      "before": "56f3fff7dff69e4e08eba4fd0bd1f5e1787e645dd90c6c4469de6ca2b3efac21",
+      "after": "73c08c1719d3a75f88ae0b221652196a04b055d9f986e8c978f9de2866223e86",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/frontend.hpp",
+      "before": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+      "after": "439b7612f4fee4f000f494571a638611f8ea67841f0931c4f4854be31a109594",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "include/halo2/frontend_matchmaking_search.hpp",
+      "before": null,
+      "after": "8977da0421a0fecc67891f65da69efdac716cf401aeffa6cb1793c87931c79ed",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "include/halo2/mcc_sound_variation_provider.hpp",
+      "before": "d3d1fb8560d37a8dfc27cf36c7068c1eee6fedde70cc70fd98abba77757976d2",
+      "after": "0d3f06ff9d9144001989359efcac7ed8bf3bc93c6a1bec10e4aa86f8bf834b60",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_contact_shape.hpp",
+      "before": "8099896d6d2651d3ca465772ec5f52c4a8da01569c715ad2aa24e3b9917fec72",
+      "after": "395260f6e17264b96788ee7c70027c06bfb13333d59682b77766326aeec7623a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_convex_agent_binding.hpp",
+      "before": "d24381a9b31a8db894dabd910497f8a136514f5567d966a391945ec81cfe3f9c",
+      "after": "09919dc484e369b9c6fa7c483c95a2c602a9024892efbb306ba971253513a118",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_convex_agent_factory.hpp",
+      "before": "1090e6cf330dd231dd954278d289e19ae2b70b4114408ab87a1c533746bea1b9",
+      "after": "5e096c4ec7c7586460d9f3b2208bf85ad6b72d824eeebb9b9feaea618ad9558a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_normalize_vector.hpp",
+      "before": "deb751e996a84755bf68373009c8ca2499c7729d0a761c12980611e59b1b498e",
+      "after": "3c1549f2dff7bf47b95568081836d2ed7d30707dd385d6027270d2005b57cf6c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_object_deletion_detaching_binding.hpp",
+      "before": null,
+      "after": "4c4500b74c020ad587f87647385b404f85e0d25846e57e9140ef2b47adde220a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_object_deletion_spatial_binding.hpp",
+      "before": null,
+      "after": "141942c55b3739954984852f48e557b78459794ac62f39412933921158d70a5a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_object_detachment.hpp",
+      "before": null,
+      "after": "0463e283d69f18e19b41fdf1a67de469c25a35d7761cda8a282f503fa607b43b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_object_spatial_packet.hpp",
+      "before": null,
+      "after": "321ba2c89667a93f3dac90d9a2b3a0d5d38df7b85c001d48f3e784c975ab4c75",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_pair_creation_queue_binding.hpp",
+      "before": null,
+      "after": "ccbe6127d3e2b02df1152b0f9ebf3fe825cfa6f68757eed310d311800fd2d89b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_pair_island_wake_binding.hpp",
+      "before": null,
+      "after": "a80a51831af6f48f3546eaad60aa2d8293c046ab9a62465edcc094fdb44a89b3",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_physics_frame_residuals.hpp",
+      "before": "0a3cabcf58c7128a15b1eb1f87965a666327d6cd4c51b7d4d8f36d52c5103306",
+      "after": "70b1db40ff8f94a702e62a3c4a8a6c8eeca2faf2120358e4d2cd23f43088d2ff",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_world_integration.hpp",
+      "before": "e75a4f92a11f995e3f9277def7cb48f95cf1cf0cccdbda6ca5d4d7426b22b37e",
+      "after": "361fe778fe0a776df44cd90253655219c1004b19927267c91a6fe74e4af6a4da",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/native_tu15_wrapped_factory_binding.hpp",
+      "before": null,
+      "after": "634f697e6655ea68745af0a881ddf6249ad87ca9680199910ff7f0a7c669ee93",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/physics_contact_record.hpp",
+      "before": "b28d8fb6799a6cea15de76e580a7b427fb913d283e12949ffbee82eb0695f025",
+      "after": "d99adc15eddd17e072f7238435d0dd944f99d1c8d399a0f7150003ae96271e4b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/physics_contact_runtime.hpp",
+      "before": "1249fc52829944ba78016f58c7818c2386c5b9c24d21e0361f588e5f01822b27",
+      "after": "5ffecc59a7c86aac05c2a26b9bf9d101f085751d787074467151e1c3d0a00878",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_bsp_resident_plan.hpp",
+      "before": "fa495a88e674572d50ca4efdecc4ddbfc231848989d138a950591d757230b4ab",
+      "after": "43fb38b51f660f32d295e617c43495567ee92990a59408458b153710e4324235",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_bsp_shader_scene.hpp",
+      "before": "c964ebf1d37cf2f805331429c733e782311ec4d7eea131b239d89de30b3043ee",
+      "after": "85386b9c477a8f5f34f7d2c797443c28355b7180b564837eb6228dc0ef43f287",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_model_depth_input.hpp",
+      "before": "e0136b3fd7f50c61d7bd2962b0e0ca277d630415046992bc70848fc2d2aeed93",
+      "after": "4da87814362a55140fec6e8bc1b4ccd235adc6e280a814e62d583d20a36fc17a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_object_name_lookup_tu15.hpp",
+      "before": null,
+      "after": "2926e14b38fd182b286b2098247173e3d897cf14ef6af0fcb8df249e00c31769",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_runtime_memory.hpp",
+      "before": "d52c6ca6673052f0ea5899d47eb2b047d2caaceef128c59b7da9c6b74b61ce46",
+      "after": "82057bed1632ed9ffa97f4bc69b82704b91b629b142f309183ff3cbd717f7cf9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_runtime_write_protection.hpp",
+      "before": "696955c734972bdab4a5956c0d5f1e6832c8e978aafd6159776fef52d7c36360",
+      "after": "404417ca4b62f1cc53d1ad790063d4384af0160285863d84237e48780fb94760",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_shadow_raw_plan.hpp",
+      "before": "4f0e27e907e1daf468d4167abec70eaf42f06ebbb8a332496aa9aa77496b1942",
+      "after": "5b64c47dc81b5b48d92ca7e85327e929f689fa67d0400d6ee8c3eef1f9080dde",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_shadow_scene.hpp",
+      "before": "147e8aa561a9be93d4d6f42b9527068978bef820ab6eed8c9843409119bd2137",
+      "after": "08360ede439bee65c2c3f641493844fec9acc64047e41399017722a63222ca97",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/source_transparent_parts.hpp",
+      "before": "27b7a11210328e7c13733580dd20cbf200d6238f4a4b3e950eb62086b64dd8b5",
+      "after": "44bbe6e53ce5ace14f48943c6d028d1d965c27937769baf72b2f3fee2250b7d4",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "include/halo2/world_effects.hpp",
+      "before": "936d62dec1f04661d70f633563b2ccb37cbfea2ee407019700b57357fad6ee2c",
+      "after": "7f2d5dec7992a6649bb89fe88a5d34ed394d9bf1002b4fc82c171f322f55c718",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "rust/online_protocol/src/lib.rs",
+      "before": "943baa29b996ff0c77a623fabf0bb2fc2cb7d3a0d8799c9dfa1d8145f469d2da",
+      "after": "fdf15e25368028586d63b10176ca3b515417aec4632bddced1571c2972231fd5",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_search.rs",
+      "before": null,
+      "after": "5a88b7a6dbdf2002641a5cb6867496158d063a373ae78295944017b5e6c3f920",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol/tests/matchmaking_frontend_search.rs",
+      "before": null,
+      "after": "c864f585060130ceb142355c49c7598b491003377f47d127c7e2148689bfc3fb",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol_bridge/build.rs",
+      "before": "8e3c0dfa34b4a4d083c51a88fcce0869d4f8814879e9e3380b7569172ee5286d",
+      "after": "6a9194072d7765c7fb44ad08de229f46e577cf1f0ed78e9cc5e8d6a6569d1543",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/lib.rs",
+      "before": "14d9b5d16188d16b4bde469aa6ca042abcc0767b3e91f033ed33b1c92fb56237",
+      "after": "2449b5d762bac936c191c8c90e0c3aea7905d81268622407a96613a6e09c564c",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_search.hpp",
+      "before": null,
+      "after": "1a4b23e3e8f73bb0b435225e76d9d249e55359c59b68fb59110c744ae36d2b27",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs",
+      "before": null,
+      "after": "7a67a96164c139398ed3a9a2092777b89b18f161923c2deb844133c3dfb4aff6",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/audio/mcc_sound_variation_provider.cpp",
+      "before": "f04d1e73844ed8191a415632d97bbc370267a0060df55b07435627e8ad4e445d",
+      "after": "1afa5a3da530b91ad6eb257b085c6a1144f6c33f354753f32842d69b5ef7a347",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/audio/mcc_sound_variation_provider_internal.hpp",
+      "before": "caa98975dcf80024df3e1279d62408e7455053ed3d72d3e96c8b4f22e510fad7",
+      "after": "35481b8898863dba6b7cee94b4c2e274d518a890555797fe425715b7db6670e9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/audio/multiplayer_audio.cpp",
+      "before": "8902409894f83ba7bc2c11d96cc4df2c21f52fbf90b893d4a8aeb6e772016a65",
+      "after": "00c7e3dfcbc38575561cab1f0eab1c0ec7715f3222413e1b253ea8c29939b56d",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/campaign/ai/source_ai_frame_tu15_generated.cpp",
+      "before": "6a3a4b79c52c7ceedb863b23d6e36e2fbec54608642f7ea02d95c5b6d6431dec",
+      "after": "c3ff9db77ed7f221d45c201f704f9911f235f7748c851d7481ae676227a58a53",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/gameplay/multiplayer/multiplayer_runtime.cpp",
+      "before": "c5f75ec45405a6f60087feaa95db4614286d531b49e67a41c34aea05c7d6411e",
+      "after": "d95b02c71f5647598dd33faafa926ce657b97460586fb12449642d3d451bcab3",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/gameplay/objects/source_object_name_lookup_tu15_generated.cpp",
+      "before": null,
+      "after": "df776f03cd2dca227f734b3137c4fbb1b8a3b5ff9091f53216dd0de3e55be093",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+      "before": "745f8a48198f4d39bacb26c43418f2ee3a97cdc4f5b407805743170dfd6d4d2e",
+      "after": "3630a68f6742a31593c72786ab8716f47698e858783f67d8a6e5ed6952dd13e9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/gameplay/weapons/native_weapon_marker_matrix_tu15_internal.hpp",
+      "before": "b9697307a19d9453ccc9014dc7ccf4eb2b4037c8635818d8a67a72a1b5b76d15",
+      "after": "379b355c62b4078004c73e229ba72c51a2c26318576c159144d63398204fcd05",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/native_tu15_contact_shape.cpp",
+      "before": "f4bb1165f6040d4be81bfe42c6b1f54acca02abaf4e7f95485d835aea67b8cda",
+      "after": "d79bea3b390ab3d51a9ccf8d045c93f6a92e69aaabf8d786d2964a5b88bf605c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/native_tu15_convex_agent_factory.cpp",
+      "before": "bfeb716aa8e01b6865ce76bacdb905b98b1386a2ea52ed449b01fb535b456d5a",
+      "after": "16353cae3042ac85d64ae1e085564e39d379d07c854a4bb7886f30e2cd73a81d",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/native_tu15_object_detachment.cpp",
+      "before": null,
+      "after": "381d0f194f7f5e156ee15fa3d5759ab7255478144745143b20207d9e7af1f7c9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/native_tu15_object_spatial_packet.cpp",
+      "before": null,
+      "after": "40ba5fcd873bd7291e41af353a2b35b6488bc5eba3142f0cb0253c0724fbddd9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/native_tu15_world_integration_residuals.cpp",
+      "before": "7fcec5847ebc88b4eefc824c426c4e6a4cdf3f06286a2fbab00674763f1520cb",
+      "after": "26c5a5f76900421393e37a833024d6d93d7e3ca4995755ff9700f556f2c2b722",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/physics_live_support_tu15_generated.cpp",
+      "before": "f44180a23a9039529037693f3a4db69fccb648e454c152203aada65457596d27",
+      "after": "a7e6d8b7e854e6ae92c9bd527abacf757187715cd03b6650d37d7fc987790b45",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/physics_live_world_tu15.cpp",
+      "before": "6dc706d41775904f1587464f0f6e3f175039821fa79c75024ba1bb4ff0983c16",
+      "after": "0e06cc96db9ed7a50a87ffa23b02fa9ab32adcf7150f69d521fe668eebe2e2ca",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp",
+      "before": "97cba260f21ec41b0a158acdd5d33f93af6bcbc0e0fea5aabb8d0b6988b9181a",
+      "after": "bdf6a19cfd3160e77d935087716a98e8df4654d03ef02bf7c8b2ea690e4622f9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/physics/vehicles/physics_vehicle_motion_generated.cpp",
+      "before": "81777a0bca4f00bc3f37aeb4881dd0969fbbeab53c3c3f0302bd79c107ac27d9",
+      "after": "d1c57ded482eb322e1219b1c597cd0eb0da7e9e7109cf3ce597dc2576d811671",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/effects/world_effects.cpp",
+      "before": "7a4d132dd5a4d73ee9e0b14c3309508f66473d8e9874a8f1a0c42786fc3b2c97",
+      "after": "48fabd88209a58ee80bc94081f24f7f835c73a253dce1e671e355ea16a602a36",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/models/source_model_effect_lights.cpp",
+      "before": "0158449c08c8ec82bd18b50cd5b312209e6043e72a7aaa6a31294c334150d10c",
+      "after": "6e6c99ee4dc59f56371d0cb906ae80886ba0f319ce0ac70b50601938be088961",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp",
+      "before": "32cb8afbee39a921374e74840fdb72391f37c68d2795fbb64d4cf61e1887249c",
+      "after": "f2080330f5e30c63692e9c4f2f41cc7cefd91e8a5d1f70dbb7be29c26e0f7b69",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/shadows/source_shadow_scene.cpp",
+      "before": "e80a3e125b88010e8e80ab197fc77f24201bfca2295e5609fef01b3abf19d51c",
+      "after": "fdd0eee7178e493cad10246a14c100105ade0913b22092a2fb98a66329675899",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/source_transparent_parts.cpp",
+      "before": "f2f46c3cc19b514e8abbf8769abbe5946d5e282183e8d57b0e4168a6a8ee6922",
+      "after": "92790c68df3aca437f99792a2e3c3a58b1a20d9acb1ffdc590067d5adc44b192",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/world/source_bsp_effect_lights.cpp",
+      "before": "3506909f49a294173d02fce6ef08d28c7ba8c3aef2b587c8f3b6a6f3b37e6456",
+      "after": "1fc4bdc12976d670f1fbbb91f50ae7f3a08f280ab79126403f7ed2bfc272c731",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/world/source_bsp_resident_plan.cpp",
+      "before": "c2dd5e5a5435d591cf32f57a6208bc865269a1c11151fcf2b334c7efba6bdc0c",
+      "after": "36199248725bf7713662c9a6f9857fbb00988b7deb6f6054b6aed803f0fcbe5e",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/world/source_bsp_shader_scene.cpp",
+      "before": "028711f72a42b54c973800909706eb273664c0cf5a83ff76e590824570d72ca1",
+      "after": "6488732bca0fe0ab4b15d38f8aa4d8e498b03fcbac02e71a0d39426adaa4e61c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/rendering/world/source_model_depth_input.cpp",
+      "before": "2bd06a478a82f99f059ba4011988987faa1910f64a28ff6e14db237bb98be7b9",
+      "after": "b7a9467bd5b9bc30db160079e8dca46a3878db6596fcde65daa8afa4f229946c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/runtime/source_runtime_memory.cpp",
+      "before": "1b545f46acf8af139d0a25050e2baf68d6cff8421c61f1b15938f26165a330f9",
+      "after": "793445346ceb67969a1f8637943f826974ff2cf97a5a9a7dce68d934da802bdf",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/runtime/source_runtime_write_protection.inc",
+      "before": "96bf290eb44cf06594830bfc11daccfd9490b1086402f540c1cc3842d03af315",
+      "after": "bf10b1a167362967a124d67f7006aa8f4339fd04872489fa9f23ab25bbfea8ba",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "before": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+      "after": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_matchmaking.cpp",
+      "before": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+      "after": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_lobby.cpp",
+      "before": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+      "after": "7ed120cc76bb2ea1a4980d64d59af1007ed9071271ce7b2541a6eaff2124d3f5",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_search.cpp",
+      "before": null,
+      "after": "69626b2f626f103d12f3f7a6dbace94dd4eddc4c1be92f03b335f605aa8ac850",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_search_bridge.cpp",
+      "before": null,
+      "after": "f525f48060fdfb5abdd2b73b597656e283414ebc53abe5c9efc30b5e0caf3c2f",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_party.cpp",
+      "before": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+      "after": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "before": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+      "after": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/fixtures/object_name_lookup_tu15.json",
+      "before": null,
+      "after": "badd906e9ecdef2b539fa173a27e78ddd641c784f64c3361526057bf01415b09",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/helpers/native_world_convex_factory_prefix_tu15.hpp",
+      "before": "8f01d39b536bb0e24a82191224a62730f921c236fdd6184f3d1b7d87a4d4176c",
+      "after": "4085a31427e85b837611e868aea3ef112f12e94f97e6fa43dbfdaa749d1547f1",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/helpers/original_sound_preparation_inputs.hpp",
+      "before": null,
+      "after": "f6ced1394d567cd4b297671913ee5b0045d7390c08d78875437285399a977655",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_frontend_search_rust_tests.cpp",
+      "before": null,
+      "after": "4d86c22d8404cf3ad80a235accd271426ceb927db3d11db7be6a06437c06e479",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/native_late_effect_light_tu15_tests.cpp",
+      "before": null,
+      "after": "b9a297331f383c1ae78f61ff1688f96ef068b1940f32efe7ac9b1a3f5c07a5f8",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_mcc_scenery_animation_world_tests.cpp",
+      "before": "3d8d9a7fe8ef4667ed2115087a6d250f677ca29bedfd306cec22380298d12aac",
+      "after": "0ca0c5477bb08d7034c919e130b8eb47efc622f447a1d97354dced5a3d438de4",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_tu15_normalize_storage_tests.cpp",
+      "before": null,
+      "after": "1ce56a1374873d38f6b5beccf25aab2193a47f18d52f59bc4a494c76e57bc11b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_tu15_normalize_vector_tests.cpp",
+      "before": "f9eca6a330482603a1de81baab169f1af8ebfdabec326f835ea918fc60a00455",
+      "after": "23b806e7086a71082b8e9762977b782a626052f911af2a3acba8e86527900735",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_tu15_object_detachment_tests.cpp",
+      "before": null,
+      "after": "a8e91d94e285693d02f31714c2bf357dcf2c5eb43f5986ef5f45a482881dd9c6",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_tu15_world_residuals_tests.cpp",
+      "before": "132967917e29dded2ef848bca21e08eb9e24a995bb760ebf36999786eac41bae",
+      "after": "5bfa48ac2e8d372cada4347497cd5d0f990c879f8c92e1187120c55aeb2a01a9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_weapon_effect_marker_matrix_tu15_tests.cpp",
+      "before": "d6763e7e53c4c98a69665babfa447a2c413261492154f037f64678761cadd967",
+      "after": "a9c3bc96e53aab54a9a8d96afb5cb15d4297ca939431aab33c327db64de551b8",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_weapon_effect_marker_mode_tu15_tests.cpp",
+      "before": null,
+      "after": "9b0ba9c5af276be613fe9ca5756cb6fc18874bb5b03a1636fe9784943b72474f",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_weapon_effect_marker_parent_composed_tu15_tests.cpp",
+      "before": null,
+      "after": "087e27b49ef78e21b527c1b577bf2928cd2875093fe4b0fddeb2df6ef0a4cb9f",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/native_weapon_effect_marker_parent_tu15_tests.cpp",
+      "before": null,
+      "after": "8681fc1c34e87f5337c5e6889f3f8b43a620f239926fcb3cc1afadf57ad9951b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/object_name_lookup_tu15_tests.cpp",
+      "before": null,
+      "after": "0c6ff2a836d232c3aadcaccfebbacef8ef95eebe11f1b3c604941a783cf84957",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/original_sound_preparation_cache_tests.cpp",
+      "before": "b3fb754290ba9d592bc2298f341be98bf900c2ce0c111e78617615d58d6ac875",
+      "after": "d9a0f63b8f657eaa8e72080b407e24ab81d85ab54335833a0414aedbe43b8079",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/original_sound_world_tu15_tests.cpp",
+      "before": null,
+      "after": "fc9506e36a41c4e59b7a457d936ac3cc2ab59ec6cee61bfd846e9de25fc8915e",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/physics_multiplayer_acceptance.cpp",
+      "before": "d97d38ea2f31f83cead664d20b4549854f77bf64d5bb424616dcb3ba5655bc64",
+      "after": "11710c7a6ef95f12d2e2b1ca2da766aa8ae9615bda08ce75fcaca5c52fa9591f",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc",
+      "before": null,
+      "after": "d3ee3e3bd1e7bba0eb0441b7978f0a29f64e596d230221f6f449c425cccbe988",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/reference/frontend_search_before_rust_20261102/provenance.json",
+      "before": "b14c3adb18eeaa4b13ca9b46e13cd25799d93262bd2ffffe8117730da3004780",
+      "after": "8b4fc58cc125538e5f7263157bb5b9e955e6995b5481cb058dc13eaa57423104",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/source_bsp_breakable_visibility_tu15_tests.cpp",
+      "before": "55ef5b54c070e0f4eec57c07ae78458c64bd1b24103aa903576cf8ab32de559c",
+      "after": "859f5759faa1f3065c26607d162c310cbf01a50cbf8d022049a4dc46b479efe7",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/source_model_depth_input_tests.cpp",
+      "before": "f411528e1acdfb4b9c297aff99b3a4991e96993f568908a10c87aeaf443ab66c",
+      "after": "0152475b6f2813a8568532f198d5747c7dc34b2bc6598d58588275f47394f963",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/source_runtime_memory_tests.cpp",
+      "before": "c7476165dbe1ecef34455d9e5678bcb93584f091553adf4341cd78b19abe7c4e",
+      "after": "09ecb0a636e22da4da4c4366319cb7dc409649368e754745e50a6da003fc0eda",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/source_runtime_policy_hold_tests.cpp",
+      "before": "ad1829881e3e89da2794d29d57a248b4ab4f561dc051bba98594c7a9b1875e3f",
+      "after": "5a69afc50a2e6d3009b4d1cb922c24d49bbcc7d05fe49df8c115743f79e91950",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/source_runtime_write_dispatch_reentrancy_tests.cpp",
+      "before": "3645040c67979f3a578a01480309bf71bf19016f6e5e1c845f920f6abb2bd3c8",
+      "after": "b6dcc140f71445191a616f7f8d9abc129c6d789de408a789cc8ce6044db58969",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tests/test_build_online_protocol_rust.py",
+      "before": "7e7b7d30080b89edcf5caa55844648c7660b4d384e3ad853d8592631d4765d4e",
+      "after": "f990b5c25abacd9895df74737bd574093b9945991d98b953a980c16a20db829a",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/test_native_frontend_search_rust.py",
+      "before": null,
+      "after": "b8901e53a99020a0ee6e35504d8f5e708b8f9b9c518da293ced82787bc70e824",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tests/world_effects_tests.cpp",
+      "before": "fd2517c030b113af9c58a00cce28dd03d8f9cf8de2293a84b836be5e9379269c",
+      "after": "680c5052d97c10118bf7ece49799ea6495d3cdbdd0024e5f68d203ba8c5fb0c9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/audit_native_weapon_paired_route_maps_tu15.py",
+      "before": "f07ee69a971c7b4a8415732202ab4ce9681abb8f7cb702790147af5f8a4adcd0",
+      "after": "d2bfc69a8ea9ddef8d2a721092769fcbf7dd659f9083642d2dc2493c9dc6abbe",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/build_launcher_engine.py",
+      "before": "ab32be9b8b9bed8cb1f27f048c2ded070a43246517a327cfb05f2a73511198dc",
+      "after": "7eba35a92715f1ef2fb294bbd8b2448c06fbea46e13dacda68739585648b4dad",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/build_online_protocol_rust.py",
+      "before": "7d354180d30f31603a3bab926ca98975f93cc019cb51c919322cc6fa9a66c949",
+      "after": "514c2656567a2a2941205be266c539a3d82bf4dc0910ab3649b4e1bfe62d6c56",
+      "declared_matchmaking_owner": true
+    },
+    {
+      "path": "tools/generate_physics_live_support_tu15.py",
+      "before": "efe5e358f4435bb278fa4ce0b30d876c7a0c6d8b6c8b53a4e3f114f07e9cb559",
+      "after": "9149cf1935b788020ce3cc7eb64c7b4d448ec08757b11800fe1ab97365f1157d",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/generate_source_object_name_lookup_tu15.py",
+      "before": null,
+      "after": "3d1b30704a91666a16b92c957bf86c46d903aadc6e5ccb701b09202c0e9be5a2",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/inventory_native_phantom_frame_before_tu15.py",
+      "before": null,
+      "after": "78bc83b06360643ee66136ea1675365ed08ac68d84a3d6afefea13339b4393c6",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/native_weapon_effect_paired_bridge_tu15.py",
+      "before": "1f24fe1082c2fa5d74f8706ae9957544253bf2d41fd6662affedb5ca5f05976a",
+      "after": "e97dc12dc5a457bd97cf3c2fbab39dcaab8cbf0f0ef12e83928dab29606ac6cb",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/native_weapon_effect_state_bridge_tu15.py",
+      "before": "1a6e324b8d066d1922b79823ecb1b59bca8739133fee15fba61fb4ea40c1ee7e",
+      "after": "771b5593cadcf402f877b3def1fa569f641d2fe4e88e0f1820b4baa5c63a59fb",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/oracle_object_name_lookup_tu15.py",
+      "before": null,
+      "after": "92459b5c4c8e9cb7aea38b1dd8cccc0ea8289e8778b7a8b0618d22cc4d5420ba",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/oracle_weapon_effect_marker_mode_tu15.py",
+      "before": null,
+      "after": "a05018af782154e9e486cb1bad525742795dbfb998c9da5cbc6af5318d6af713",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/oracle_weapon_effect_marker_parent_composed_tu15.py",
+      "before": null,
+      "after": "cd62fb9ce7c23f05fe0c5dd97523d0c1b8fd3438ae7089d5f377215e5bb1741e",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/oracle_weapon_effect_marker_parent_tu15.py",
+      "before": null,
+      "after": "25d999c7e44018fdaeb7f2f9a314517c3fb3b29fcb2bb189b6531e97b0be53fc",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_function_masked_cw_tu15.py",
+      "before": null,
+      "after": "bf8eece6b4fdce9b47fd45fde9aa44e61fa2c73e8569e53a6f0c57bf80ec3685",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_pair_creation_queue_world_binding_tu15.py",
+      "before": null,
+      "after": "f3c4bd61379b5afc5b7c464ad70daf252bfa0380a815d5d49297fb8ee9798f7b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_pair_delete_formal_tu15.py",
+      "before": null,
+      "after": "8b0bfbfcd9304996fa4a633fc01e1179eafa2bee59b12bb6d07b511e302abdcc",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_phantom_deletion_world_binding_tu15.py",
+      "before": null,
+      "after": "c0339536d7ad8b3c6c3239b17b1ded5c8a79bbe2776558fa487b3ad66cfe0fd8",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_phantom_spatial_world_binding_tu15.py",
+      "before": null,
+      "after": "cc01a9fb11fd1b07b354527b02d00a092a32f441bf06bc9bee42ccc442e95240",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_point_part_extended_binding_tu15.py",
+      "before": null,
+      "after": "79d61f2b2220c902f036efbfcd353396903c21b3fcffa86c670588ba120fa87c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_point_part_extended_world_binding_tu15.py",
+      "before": null,
+      "after": "d38e59026a805cb0d012c564f272f69e54c5f6b7a7b83928ba221d84ba130097",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/prepare_native_world_pair_island_wake_tu15.py",
+      "before": null,
+      "after": "91e695d00279b19c59e40daaa298a240fdce73ecb868c1d4a89e90d5ed20626c",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/probe_native_pair_delete_contact_census_tu15.py",
+      "before": null,
+      "after": "71d2537bcc6daa107b26e11179ee2bb17d80f76a6ccad2ee04ceb685c6231600",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_object_spatial_packet_tu15.py",
+      "before": null,
+      "after": "ae522f6faea99b750ff3d192c220bc7725b23ed95f56a9569dd35922913e535b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_pair_delete_formal_tu15.py",
+      "before": null,
+      "after": "9ab0a899e82f0cf0953cf2f9da1fc72f6fe72524cab7c724af05afdbe44c4bd3",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_point_part_extended_callback_tu15.py",
+      "before": null,
+      "after": "bfd6f312c9db20dcb9a595c766f602777a04446a25b388f5937d4aefbe9bb9f7",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_tu15_normalize_renderer.py",
+      "before": "71b734ba17aead282cc4d279b6ffc2e842d5df08790a91cce44d1b24ade3637c",
+      "after": "97df042832e7e324c3f344ae98cb334e51a9a89f674c446c4d6faba47ad3faf5",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_tu15_normalize_vector.py",
+      "before": "f5b0db15681811e166173b7c565819538cbcaabff16d24d76f1e9b69792d135b",
+      "after": "64114379c1359f3157d40a77d0de62c51922aeaf43b0512f24683f9d19606af9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_native_world_pair_island_wake_tu15.py",
+      "before": null,
+      "after": "5239c56044346f7e49638c6cd1bad808c01804b3f1d1bcb5c3454bd0bcd21143",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_original_sound_preparation_cache_tu15.py",
+      "before": null,
+      "after": "b2a93b21400d827f01bef8e93a11e562aac9f9e5eb57b3174ba87e2c00175bd1",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/qualify_source_runtime_native_write_policy.py",
+      "before": "d7c4e54ea4b2167aefe11f1a5d9f3e0fe818ab3a2d1d486381eec8218bf53990",
+      "after": "865f4c3fe871bf4c68a26700e731390971a7f3b9fa797a6a7c798b2e24dde4b1",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/report_native_activation_probe_cleanup_tu15.py",
+      "before": "f8a91ee0f79b90e3bad29b16106ecb3b1341951dfc8c5364fd1287b6f5d54556",
+      "after": "538e8359f29bbf8bf4b10d9e379b516806ab59821035481a5937347840afe4af",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/trace_native_physics_heap_writer_tu15.py",
+      "before": null,
+      "after": "92a2a18797cb4ff76c921190ce7a13b7a501be11b2b83417d0f5255d827dbf36",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_function_masked_cw_tu15.py",
+      "before": null,
+      "after": "0246208a3b752284ff14e49ecbd857abd29ba44e0eba3798a4ed3f884c8aa95f",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_gsk_agent_factory_actual_tu15.py",
+      "before": null,
+      "after": "10069a9aef13ca9409dfcb667ec8f64a4c4c057884aab6af5a85475a0f033f14",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_gsk_bd_actual_tu15.py",
+      "before": null,
+      "after": "dfb5b47630c5ae2f6226f713ba70c98fcbcda6e3b861c9a863e0f227729f3155",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_object_detachment_tu15.py",
+      "before": null,
+      "after": "795fd3f11def46c2576e5954d75b66932e2f213d3ad7dcdd838698494f89e28d",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_object_spatial_packet_tu15.py",
+      "before": null,
+      "after": "afea2c6fe13a15932dfeebc062fb9411a26d5813b6b752223787050925e0e022",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_pair_create_island_wake_tu15.py",
+      "before": null,
+      "after": "a9a3634d9f9b599bb879bef1248a80f5fdf775a8062751256ad9a3ae426b82ee",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_pair_creation_queue_binding_tu15.py",
+      "before": null,
+      "after": "bfdd74bfde7d8d04729d80dc88d965f06a1eefc9d5135548b502eb9d8ed530cb",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_pair_creation_queue_counter_truth_tu15.py",
+      "before": null,
+      "after": "8faec330da9dc9a96a9fbceb766eee5b176c30bc317c3bafc9ce5c5af3b15e43",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_pair_delete_native_children_tu15.py",
+      "before": null,
+      "after": "2f3ec0cfad20bb2a77d76c39c540c196667c9870292ded5e76a274e492b5ae9b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_pair_delete_tu15.py",
+      "before": null,
+      "after": "c6b745fb7a1c1966657b0fee919087135229b4dd6c248cc38f3fc844b64b4ac9",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_added_actual_tu15.py",
+      "before": null,
+      "after": "1c646f226d903b3cf0b2402f63926cfe6f894b9062e5e900f8116459ed89eaec",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_added_detaching_actual_tu15.py",
+      "before": null,
+      "after": "6b7a6cabd00e34c25c01e54da9b7eb1d275c819392d3f6413d272b0dd7dd6b92",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_added_spatial_actual_tu15.py",
+      "before": null,
+      "after": "aad0e6f181ba9441260f50b0beb49807e982569fe7e96b00df5db244a24bb731",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_deletion_world_counters_tu15.py",
+      "before": null,
+      "after": "dae021fee4671002011da199b787d0e469b70f12a437d3f1a22df8a9886e30c7",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_pair_create_frame_derived_tu15.py",
+      "before": null,
+      "after": "71fed061e8f34e51ebb3d452f288f6076c21ef71ca9e6ad592a4c6a113b71963",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_phantom_spatial_world_counters_tu15.py",
+      "before": null,
+      "after": "4f0a73d15c242fc20667a745bf462d1cd85d34170e67826d2f7bdcbbbdbaabba",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_point_part_extended_callback_tu15.py",
+      "before": null,
+      "after": "98ffea1363dc6adcc90fe5c7f44ca213f1eef1baa3418c99d72227584468d58b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_point_part_extended_world_counters_tu15.py",
+      "before": null,
+      "after": "95beaff308ca77457a7e2cbdd72dfefa5a8cbbc7c952f1c874c939a62938336f",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_point_part_gameplay_extended_tu15.py",
+      "before": null,
+      "after": "8fe0ef5eb29ffb85f88e98773c63dbf6390d3aed711a1efaf55c37be652659aa",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_tu15_normalize_mutations.py",
+      "before": "7c4d528bb0df173bdc85db1a44ba448dfb4fb10fde10cbad65f2d58ea3928616",
+      "after": "633c785aa73f00fc90225d7bfe6db07b53df21a32d26639b04d10f36cbeaf2ab",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_tu15_normalize_vector.py",
+      "before": "2620c0535f4f4772e030606cf34f1ed73bacf3297024017d033c236b8d8bf940",
+      "after": "df4f2ce112ed58272c980a98f5d225cc39a6e73f9efe86fe78ac15f5a8d333ad",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_weapon_effects_tu15.py",
+      "before": "da5eeec84cd82d7173968b257efaa5239d0840b3c483e2b9f0f5a09e59810f08",
+      "after": "53d800f43d3d26d95a0cd735b1e5712d39d60b37bb975e0f39d3ba1a0e83d75a",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_world_pair_island_wake_counters_tu15.py",
+      "before": null,
+      "after": "ece457da78670791456b30fda0e6e03113cdaca8e453ea93aa8a79cbe2403d98",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_world_pair_island_wake_tu15.py",
+      "before": null,
+      "after": "41fe0ff220000a0e9ffd47475feb478c27c9e6083a30c81accff5af9c0ad5d5b",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_native_wrapped_factory_actual_tu15.py",
+      "before": null,
+      "after": "de18a9433f3d3cd6eef82d7343e786e71913b656cd991e2a76edca20818de907",
+      "declared_matchmaking_owner": false
+    },
+    {
+      "path": "tools/validate_object_name_lookup_tu15.py",
+      "before": null,
+      "after": "5cef538c82f9ea40967e3098ac1717e415fbf84bef2bfe627d82af2c21b47d4a",
+      "declared_matchmaking_owner": false
+    }
+  ],
+  "declared_matchmaking_changes": 24,
+  "other_snapshot_changes": 140,
+  "scope": "Exact modern caller equivalence is established by captured-body replay; native menu outcomes are observed in separate frozen source cohorts after the first owner was terminated. Other snapshot changes prevent a same-whole-source causal equivalence claim.",
+  "retained_large_artifacts": []
+}

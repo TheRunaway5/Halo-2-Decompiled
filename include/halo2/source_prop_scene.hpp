@@ -35,6 +35,9 @@ struct SourcePropQueryState {
     std::uint32_t runtime_flags{};
     bool frozen{}; // Actual object+C1bit0, supplied by its cache/physics producer.
 };
+struct SourcePropMaterialOwner {
+    std::uint32_t object=0xffffffffu,definition=0xffffffffu;
+};
 //1D44F0 consumes the actual backend broadphase AABBs, expanded by the
 //maximum authored body margin for each original physics group. Shape bounds
 //are not a substitute for the backend's quantized bounds.
@@ -132,6 +135,9 @@ public:
     void observe_source_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,
         const ObjectLightingState&,bool,unsigned,std::span<const Vertex>)>);
     std::vector<std::uint32_t> source_render_models() const;
+    // Each placement owns its prepared material/LOD bank. Resolve only the
+    // current live salted owner; shader inputs still come from native BCB70.
+    std::optional<SourcePropMaterialOwner> material_owner(unsigned material) const;
     void begin_source_frame();
     bool retain_source_view(unsigned,std::span<const SourceLiveModelBaseDrawTu15>,
                             std::span<const Transform>,const SourceModelShaderView&);

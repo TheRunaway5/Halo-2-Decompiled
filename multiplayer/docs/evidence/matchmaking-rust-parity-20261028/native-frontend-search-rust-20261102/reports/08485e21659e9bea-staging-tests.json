@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/frontend-search-staging-20261102",
+    "--",
+    "python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "tests": 7,
+  "source_pins": {
+    "tools/build_online_protocol_rust.py": "514c2656567a2a2941205be266c539a3d82bf4dc0910ab3649b4e1bfe62d6c56",
+    "tests/test_build_online_protocol_rust.py": "f990b5c25abacd9895df74737bd574093b9945991d98b953a980c16a20db829a",
+    "cmake/OnlineProtocolRust.cmake": "84a7101996531d764a9765a99d8b9b69de13a68cf34ce56af47caaf64ed82c22",
+    "rust/online_protocol_bridge/build.rs": "6a9194072d7765c7fb44ad08de229f46e577cf1f0ed78e9cc5e8d6a6569d1543"
+  },
+  "retained_large_artifacts": []
+}

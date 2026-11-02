@@ -1,0 +1,44 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-7p64i2fs/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-7p64i2fs",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-7p64i2fs/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-7p64i2fs/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-7p64i2fs/cargo/release/halo2-matchmaking-service",
+    "bytes": 11043096,
+    "sha256": "2913d02adc4289cd67fb7efd3500d704beae154e2603bc0408bf60ba0b2673b9",
+    "retained": false
+  },
+  "mode": "native-steam-budget-only",
+  "error": "Native cancellation lookup did not reach the provider"
+}

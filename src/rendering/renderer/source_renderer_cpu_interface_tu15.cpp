@@ -1,4 +1,5 @@
 #include "halo2/source_renderer_tail_storage_tu15.hpp"
+#include "halo2/native_tu15_lens_query_slots.hpp"
 #include <stdexcept>
 namespace halo2 {
 void source_renderer_cpu_interface_initialize_tu15(SourceRuntimeMemory &memory,
@@ -12,7 +13,8 @@ void source_renderer_cpu_interface_initialize_tu15(SourceRuntimeMemory &memory,
         throw std::runtime_error("Renderer CPU interface requires its original cold arena/storage owners");
     // Literal12822..12840 zeroes the query bank, then initializes511 slots.
     const std::array<std::byte,0x40c0> empty{};memory.write(0x52dfd8u,empty);
-    for(unsigned n=0;n<511;++n)call(0x20e30u,n);
+    for(unsigned n=0;n<native_tu15_lens_query_slot_count;++n)
+        native_tu15_retire_lens_query_slot(memory,n);
     // Literal12842..12873 allocates0x34 and publishes its actual arena token.
     // Complete126850 retains the same cursor/CRC operations for this size.
     const auto pointer=call(0x126850u,0x34u);memory.view(pointer,0x34);

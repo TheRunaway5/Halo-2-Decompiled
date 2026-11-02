@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "tests": 7,
+  "command": [
+    "python3",
+    "-B",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-session-api-staging",
+    "--",
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_build_online_protocol_rust.py"
+  ],
+  "exit_code": 0,
+  "output": "Ran 7 tests in 0.018s; OK",
+  "scratch_removed": true
+}

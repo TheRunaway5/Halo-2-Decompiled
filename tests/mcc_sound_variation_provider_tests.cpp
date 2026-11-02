@@ -5,6 +5,9 @@
 #include "halo2/mcc_sound_timing_reference.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/audio.hpp"
+#include "halo2/source_runtime_resources.hpp"
+#include "halo2/mcc_sound_dat_resources_tu15.hpp"
+#include "halo2/multiplayer_audio.hpp"
 #include "audio/mcc_sound_variation_provider_internal.hpp"
 #include <algorithm>
 #include <atomic>
@@ -12,6 +15,9 @@
 #include <thread>
 #include <set>
 #include <cstring>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
 #include <nlohmann/json.hpp>
 
 using namespace halo2;
@@ -50,6 +56,7 @@ struct Fixture {
     MccRuntimeCacheDelivery delivery;
     std::shared_ptr<CountedMemory> memory=std::make_shared<CountedMemory>();
     std::shared_ptr<MccSoundTimingMemoryOwner> owner;
+    std::unique_ptr<SourceRuntimeResources> resources;
     std::uint32_t globals{},primary{},legacy{};
     Fixture(const Cache& c):cache(c),delivery(MccRuntimeCacheDelivery::plan(c,0x90000000u,0x60000000u,
         [this](MccSoundRuntimePlan&& p){sound.emplace(std::move(p));})){
@@ -73,18 +80,123 @@ struct Fixture {
             memory->bank.mount(at,encoded(value),SourceRuntimeMemory::Access::ReadWrite,
                 "literal canonical metadata publication binding test");
         owner=std::make_shared<MccSoundTimingMemoryOwner>(memory);
+        resources=std::make_unique<SourceRuntimeResources>(cache);
     }
     MccSoundVariationProvider provider()const{
-        return detail::make_mcc_sound_variation_provider(cache,cache,delivery,*sound,owner);
+        return detail::make_mcc_sound_variation_provider(cache,cache,delivery,*sound,*resources,owner);
     }
     std::uint32_t native(TagHandle h)const{return Bytes(memory->bank.view(delivery.index().table+h.index()*16u,16)).u32(8);}
 };
+// The caller supplies a distinct-inode clone below the active scratch owner.
+// Renaming or editing installation/reference DAT owners is never permitted.
+void retained_resources(Fixture& f,const MccSoundVariationProvider& provider,
+    const std::filesystem::path& clone,nlohmann::json& report) {
+    namespace fs=std::filesystem;const auto& cache=f.cache;const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+    need(scratch&&fs::is_directory(clone),"Retained-resource test needs its active owned clone");
+    const auto root=fs::canonical(clone),owner=fs::canonical(scratch);
+    need(root!=owner&&!root.lexically_relative(owner).empty()&&*root.lexically_relative(owner).begin()!="..",
+        "Retained-resource clone is outside its scratch owner");
+    need(!cache.original_sound_catalog(),"Retained prefix control requires an ordinary pre-catalog Cache");
+    std::optional<TagHandle> selected;std::vector<EncodedSound> expected;std::optional<MccSoundResourceRead> first;
+    for(const auto& sound:f.sound->sounds) {
+        if(sound.source_flags&0x800u)continue;
+        const Bytes header(f.memory->bank.view(sound.native_root,20));if(header.slice(10,1)[0]!=std::byte{1})continue;
+        const Bytes range(f.memory->bank.view(f.sound->blocks[4].address+header.u16(8)*12u,12));
+        if(!range.u16(10)||range.u16(10)>32)continue;
+        const auto definition=provider.load(cache,sound.sound);
+        if(std::to_integer<unsigned>(definition.sound[2])>=sound_class_count)continue;
+        SoundLocalRandom probe(0x5821b36du);
+        if(source_sound_gain(definition,probe)+source_sound_control_gain(definition,1)<=-64.f)continue;
+        const auto pitch=source_sound_control_pitch(definition,float(source_sound_pitch(definition,probe)),1);
+        if(source_sound_pitch_range(definition.pitch_ranges,-1,pitch)!=0)continue;
+        std::vector<EncodedSound> candidates;bool decodable=true;
+        for(unsigned p=0;p<definition.permutations.size();++p){auto encoded=cache.load_sound(sound.sound.value,0,p);
+            try{if(!decode_sound(encoded).frames())decodable=false;}catch(const FormatError&){decodable=false;}
+            candidates.push_back(std::move(encoded));}
+        if(!decodable)continue;selected=sound.sound;expected=std::move(candidates);break;
+    }
+    need(selected&&!expected.empty(),"Retained-resource test has no independently decodable sound");
+    const auto dat=f.resources->sound_dat_owner();
+    (void)cache.load_sound(selected->value,0,0,[&](const auto& request){if(!first)first=request;return dat->read_encoded(cache,request);});
+    std::set<fs::path> paths;for(const auto& sound:f.sound->sounds){const auto bank=sound.file==MccSoundDataFile::English?MccResourceBank::EnglishSounds:
+        sound.file==MccSoundDataFile::Remastered?MccResourceBank::RemasteredSounds:MccResourceBank::NeutralSounds;paths.insert(cache.mcc_resource_bank_path(sound.sound,bank));}
+    struct Hidden {
+        std::vector<std::pair<fs::path,fs::path>> files;
+        void restore(){while(!files.empty()){fs::rename(files.back().second,files.back().first);files.pop_back();}}
+        ~Hidden(){for(auto i=files.rbegin();i!=files.rend();++i){std::error_code ignored;fs::rename(i->second,i->first,ignored);}}
+    } hidden;
+    for(const auto& path:paths){
+        const auto relative=fs::canonical(path).lexically_relative(root);
+        need(!relative.empty()&&*relative.begin()!=".."&&fs::hard_link_count(path)==1,"DAT mutation escaped its private inode owner");
+        const fs::path target=path.string()+".retained-test-hidden";need(!fs::exists(target),"Owned DAT hiding path already exists");
+        fs::rename(path,target);hidden.files.emplace_back(path,target);}
+    unsigned controls{};const auto reject=[&](auto&& call){bool refused=false;try{call();}catch(const std::exception&){refused=true;}need(refused,"Retained-resource control was admitted");++controls;};
+    reject([&]{(void)cache.load_sound(selected->value,0,0);});
+    const auto unavailable_provider=f.provider();
+    for(unsigned p=0;p<expected.size();++p){const auto actual=unavailable_provider.encoded(cache,*selected,0,p);const auto& before=expected[p];
+        need(actual.data==before.data&&actual.codec==before.codec&&actual.sample_rate==before.sample_rate&&actual.channels==before.channels&&
+            actual.samples==before.samples&&actual.packet_chunks.size()==before.packet_chunks.size(),"Retained provider reopened or changed unavailable DAT data");
+        const auto a=decode_sound(actual),b=decode_sound(before);need(a.rate==b.rate&&a.stereo==b.stereo,"Unavailable DAT changed decoded PCM");}
+    const Cache foreign=cache;reject([&]{(void)dat->read_encoded(foreign,*first);});
+    std::optional<MultiplayerAudioSubmission> packet;const SdlSoundPlatformConfiguration manual{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}};
+    MultiplayerAudio audio(cache,0x5821b36du,manual,[&](const auto& value){packet=value;});audio.bind_native_sound_metadata(unavailable_provider);audio.listeners(std::array{Vec3{}});
+    need(bool(audio.play_impulse(selected->value))&&packet&&packet->pitch_range==0&&packet->permutation<expected.size(),"Uncached Audio failed with unavailable DAT paths");
+    const auto pcm=decode_sound(expected[packet->permutation]);need(packet->frames==pcm.frames(),"Unavailable DAT Audio changed its PCM extent");
+    const auto mixed=audio.render(256);need(mixed.size()==512&&std::ranges::all_of(mixed,[](auto v){return std::isfinite(v);}),"Unavailable DAT Audio returned invalid PCM");audio.stop();
+    hidden.restore();
+    {
+        const auto chunk=std::ranges::find_if(f.sound->chunks,[&](const auto& c){return c.gestalt==first->gestalt&&c.source_address==first->descriptor;});
+        need(chunk!=f.sound->chunks.end(),"Encoded mutation control lost its actual native descriptor");
+        const Bytes row(f.memory->bank.view(chunk->native_address,12));const auto size=row.u32(4)&0x3fffffffu;
+        const SourceSoundCacheReadTu15 request{chunk->native_address,row.u32(0),row.u32(4),(size+511u)&~511u};
+        const auto sector=f.resources->sound_cache(request);const auto path=cache.mcc_resource_bank_path(first->sound,first->bank);
+        std::fstream file(path,std::ios::in|std::ios::out|std::ios::binary);need(bool(file),"Cannot open private encoded-byte control");
+        char old{};file.seekg(first->file_offset);file.read(&old,1);need(bool(file),"Cannot read private encoded-byte control");
+        struct ByteRestore {std::fstream& file;std::uint32_t at;char byte;~ByteRestore(){file.clear();file.seekp(at);file.put(byte);file.flush();}} restore_byte{file,first->file_offset,old};
+        file.seekp(first->file_offset);file.put(old^1);file.flush();need(bool(file),"Cannot write private encoded-byte control");
+        need(cache.load_sound(selected->value,0,0).data!=expected.front().data,"Independent Cache reader did not observe the actual DAT mutation");
+        need(provider.encoded(cache,*selected,0,0).data==expected.front().data&&f.resources->sound_cache(request)==sector,
+            "An in-place DAT mutation changed retained PCM or native sector bytes");
+    }
+    {
+        Fixture matching_owner(cache);const auto matching_provider=matching_owner.provider();
+        need(matching_owner.resources->identity()==f.resources->identity()&&matching_owner.resources->sound_dat_owner()!=dat,
+            "Independent equal-byte resource owners did not retain equal content identity");
+        detail::require_mcc_sound_variation_resources(matching_provider,&provider,cache);
+        reject([&]{detail::require_mcc_sound_variation_world_resources(provider,cache,*matching_owner.resources);});
+    }
+    // Append outside every previously admitted sector, preserving all encoded
+    // payloads. Capture a real changed file owner without inventing a digest,
+    // resource identity, native readiness or lease, then restore its extent.
+    const auto path=cache.mcc_resource_bank_path(first->sound,first->bank);const auto extent=fs::file_size(path);
+    struct ExtentRestore {fs::path path;std::uintmax_t size;~ExtentRestore(){std::error_code ignored;fs::resize_file(path,size,ignored);}} restore{path,extent};
+    std::ofstream file(path,std::ios::binary|std::ios::app);file.put(char(0xa5));file.close();
+    need(bool(file)&&fs::file_size(path)==extent+1,"Cannot append the owned DAT mutation control");
+    Fixture changed_owner(cache);auto changed_provider=changed_owner.provider();
+    need(changed_owner.resources->identity()!=f.resources->identity(),"Actual changed DAT did not change the complete resource identity");
+    const auto reads=changed_owner.memory->reads.load();
+    reject([&]{detail::require_mcc_sound_variation_resources(changed_provider,&provider,cache);});
+    need(changed_owner.memory->reads==reads,"Resource preflight read native bytes");
+    reject([&]{detail::require_mcc_sound_variation_world_resources(provider,cache,*changed_owner.resources);});
+    detail::require_mcc_sound_variation_world_resources(provider,cache,*f.resources);
+    f.owner->rebind(f.memory);reject([&]{(void)provider.encoded(cache,*selected,0,0);});
+    const auto fresh=f.provider();detail::require_mcc_sound_variation_resources(fresh,&provider,cache);
+    reject([&]{detail::require_mcc_sound_variation_resources(changed_provider,&provider,cache);});
+    report.update(nlohmann::json{{"passed",true},{"selected_sound",selected->value},{"permutations",expected.size()},{"hidden_dat_files",paths.size()},
+        {"unavailable_paths_uncached_audio_verified",true},{"unavailable_paths_new_provider_verified",true},{"retained_pcm_byte_equal",true},{"actual_changed_dat_preflight_refused",true},
+        {"same_resources_stale_saved_epoch_admitted",true},{"foreign_world_resources_refused",true},{"negative_controls",controls},
+        {"equal_bytes_distinct_dat_preflight_admitted",true},
+        {"encoded_byte_mutation_isolated",true},{"typed_sector_mutation_isolated",true},
+        {"native_world_or_source_voice_verified",false},{"physical_device_or_waveform_verified",false}});
+}
 }
 int main(int argc,char**argv)try{
     if(argc==1 || (argc>1 && (!*argv[1] || !std::filesystem::is_regular_file(argv[1]))))return 77;
-    if(argc!=2&&argc!=3)return 2;
+    if(argc!=2&&argc!=3&&argc!=5)return 2;
     const auto cache_owner=std::make_shared<const Cache>(argv[1]);const auto &cache=*cache_owner;
     Fixture f(cache);auto provider=f.provider();
+    if(argc==5){need(std::string_view(argv[2])=="--retained-resources","Unknown retained resources mode");nlohmann::json report;
+        retained_resources(f,provider,argv[3],report);std::ofstream output(argv[4]);output<<report.dump(2)<<'\n';need(bool(output),"Cannot write retained-resource report");std::cout<<report.dump()<<'\n';return 0;}
     const auto publication=MccSoundMetadataPublication::create(cache_owner);
     nlohmann::json report{{"map",cache.name()},{"scope","Actual MCC canonical delivery/native metadata parser and epoch controls; explicit publication fixture, not original gameplay or Audio admission."}};
     unsigned assertions{},loaded{},unsupported{},empty{},corrected{},class_matches{},pcm_order{},pcm_pairs{},immutable_matches{},lift_pitches{},permutation_time_witnesses{};

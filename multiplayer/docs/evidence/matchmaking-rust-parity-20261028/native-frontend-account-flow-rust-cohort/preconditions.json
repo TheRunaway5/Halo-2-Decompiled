@@ -1,0 +1,17 @@
+{
+  "previous_goal_turn": "progress",
+  "previous_rust_passed": 686,
+  "previous_native_passed": 33,
+  "prior_scoped_sources_unchanged": true,
+  "reference_source_pins": {
+    "src/ui/frontend_clans.cpp": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a",
+    "src/ui/frontend_friends.cpp": "c135aabe9fe9d4daaf32e31e18452e2a15ffe0a1e96ebcf8150dafed77c059c7",
+    "include/halo2/frontend.hpp": "ea253326018ad1addeb7a2e21c8825087b8b443e8fa07359cc1d08b4cff276f7",
+    "src/ui/frontend_matchmaking_party_flow.cpp": "bf8e9e983ce78792ab6d1cb420d137f4db12294c991e45769975aa536c25acdd",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "1b054d88a69c16f64f372c109f58db58cf66c9999818b31bb7e628b53dc77276",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "654c09c08e680d9c12c61b8e54553494bc399a88ecf4c7042902ad743fd4ae1f",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "e68d11ad9729a04a2850e76e528e40f563b266a57361b04cde2444b960b79ee0",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "9c59cab70736e45da2712f5fedab101d6a71b8bec9efde09482e493c9a08a022"
+  },
+  "goal_complete": false
+}

@@ -7,6 +7,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <array>
+#include <algorithm>
 #include <bit>
 #include <cerrno>
 #include <cstdint>
@@ -34,17 +35,43 @@ std::uint32_t address(const J&o,const std::array<std::uint32_t,8>&r){std::uint32
 int main(int argc,char**argv){try{
  check(argc==5,"Supply original ELF, operand metadata, declared cases, output");std::ifstream mi(argv[2]),ci(argv[3]);const auto metadata=J::parse(mi),cases=J::parse(ci);std::map<std::uint32_t,J>sites;for(const auto&s:metadata.at("sites"))check(sites.emplace(s.at("instruction"),s).second,"Duplicate original instruction");const auto default_stop=metadata.at("stop").get<std::uint32_t>();J result=J::array();std::size_t total{};
  for(const auto&c:cases){const auto stop=c.value("stop_pc",default_stop);
+  const auto stop_entries=c.value("stop_before_entries",std::vector<std::uint32_t>{});
   Child child;child.pid=fork();check(child.pid>=0,"Cannot fork original geometry process");if(!child.pid){if(ptrace(PTRACE_TRACEME,0,nullptr,nullptr)<0)_exit(126);execl(argv[1],argv[1],nullptr);_exit(127);}
   int status{};auto wait=[&]{check(waitpid(child.pid,&status,0)==child.pid,"Original geometry wait failed");};wait();check(WIFSTOPPED(status),"Missing original exec stop");request(PTRACE_SETOPTIONS,child.pid,nullptr,reinterpret_cast<void*>(PTRACE_O_EXITKILL));request(PTRACE_CONT,child.pid);wait();check(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original declared-input bridge failed");
   for(const auto&b:c.at("banks"))memory(child.pid,b.at("address"),bytes(b.at("before")));
-  const auto initial=c.at("gp").get<std::array<std::uint32_t,8>>();user_regs_struct regs{};request(PTRACE_GETREGS,child.pid,nullptr,&regs);regs.rax=initial[0];regs.rcx=initial[1];regs.rdx=initial[2];regs.rbx=initial[3];regs.rsp=initial[4];regs.rbp=initial[5];regs.rsi=initial[6];regs.rdi=initial[7];regs.rip=c.at("entry").get<std::uint32_t>();regs.eflags=0x202;request(PTRACE_SETREGS,child.pid,nullptr,&regs);
-  user_fpregs_struct fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);fp.cwd=c.at("before_fp")[0];fp.swd=c.at("before_fp")[1];fp.mxcsr=c.at("before_fp")[2];fp.ftw=0;std::memset(fp.st_space,0,sizeof(fp.st_space));const auto depth=c.at("live_x87").size();const auto top=(fp.swd>>11u)&7u;for(unsigned n=0;n<depth;++n){const auto b=bytes(c.at("live_x87")[n]);check(b.size()==10,"Invalid declared extended input");std::memcpy(reinterpret_cast<std::byte*>(fp.st_space)+n*16,b.data(),10);fp.ftw|=1u<<((top+n)&7u);}for(unsigned n=0;n<32;++n)fp.xmm_space[n]=0x6b000000u+c.at("id").get<unsigned>()*37u+n;request(PTRACE_SETFPREGS,child.pid,nullptr,&fp);user_fpregs_struct entry_fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&entry_fp);check(entry_fp.cwd==fp.cwd&&entry_fp.swd==fp.swd&&entry_fp.mxcsr==fp.mxcsr,"Original declared controls were not installed exactly");
+  const auto initial=c.at("gp").get<std::array<std::uint32_t,8>>();user_regs_struct regs{};request(PTRACE_GETREGS,child.pid,nullptr,&regs);regs.rax=initial[0];regs.rcx=initial[1];regs.rdx=initial[2];regs.rbx=initial[3];regs.rsp=initial[4];regs.rbp=initial[5];regs.rsi=initial[6];regs.rdi=initial[7];regs.rip=c.at("entry").get<std::uint32_t>();regs.eflags=c.value("eflags",0x202u);request(PTRACE_SETREGS,child.pid,nullptr,&regs);
+  user_fpregs_struct fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);fp.cwd=c.at("before_fp")[0];fp.swd=c.at("before_fp")[1];fp.mxcsr=c.at("before_fp")[2];fp.ftw=0;std::memset(fp.st_space,0,sizeof(fp.st_space));const auto depth=c.at("live_x87").size();const auto top=(fp.swd>>11u)&7u;for(unsigned n=0;n<depth;++n){const auto b=bytes(c.at("live_x87")[n]);check(b.size()==10,"Invalid declared extended input");std::memcpy(reinterpret_cast<std::byte*>(fp.st_space)+n*16,b.data(),10);fp.ftw|=1u<<((top+n)&7u);}for(unsigned n=0;n<32;++n)fp.xmm_space[n]=0x6b000000u+c.at("id").get<unsigned>()*37u+n;if(c.contains("xmm"))for(unsigned n=0;n<8;++n)for(unsigned k=0;k<4;++k)fp.xmm_space[n*4+k]=c.at("xmm")[n][k];request(PTRACE_SETFPREGS,child.pid,nullptr,&fp);user_fpregs_struct entry_fp{};request(PTRACE_GETFPREGS,child.pid,nullptr,&entry_fp);check(entry_fp.cwd==fp.cwd&&entry_fp.swd==fp.swd&&entry_fp.mxcsr==fp.mxcsr,"Original declared controls were not installed exactly");
   std::vector<std::byte>stack(12);const std::array<std::uint32_t,3>args{c.value("return_pc",stop),c.at("matrix"),c.at("source")};for(unsigned n=0;n<3;++n)for(unsigned k=0;k<4;++k)stack[n*4+k]=std::byte(args[n]>>(k*8u));memory(child.pid,initial[4],stack);
   auto retained=[&](std::uint32_t p,unsigned n){for(const auto&b:c.at("banks")){const auto first=b.at("address").get<std::uint32_t>();if(p>=first&&std::uint64_t(p-first)+n<=b.at("before").get_ref<const std::string&>().size()/2)return true;}return false;};
-  J reads=J::array(),writes=J::array(),boundary=nullptr;std::set<std::uint32_t>executed;unsigned steps{},read_count{},write_count{};bool finished{};
+  J reads=J::array(),writes=J::array(),calls=J::array(),boundary=nullptr;std::set<std::uint32_t>executed;unsigned steps{},read_count{},write_count{};bool finished{};
   const auto fault=c.value("fault",J::object());const std::string phase=fault.value("phase","");const auto ordinal=fault.value("ordinal",0u);
-  for(;steps<5000;++steps){
-   request(PTRACE_GETREGS,child.pid,nullptr,&regs);const auto pc=std::uint32_t(regs.rip);if(pc==stop){finished=true;break;}const auto it=sites.find(pc);check(it!=sites.end(),"Original geometry escaped authenticated leaf bodies");executed.insert(pc);J pending_reads=J::array(),pending_writes=J::array();bool stop_before{};
+  const auto max_steps=c.value("max_steps",5000u);check(max_steps>0&&max_steps<=100000u,"Original declared instruction budget exceeds limit");
+  for(;steps<max_steps;++steps){
+   request(PTRACE_GETREGS,child.pid,nullptr,&regs);const auto pc=std::uint32_t(regs.rip);if(pc==stop||std::find(stop_entries.begin(),stop_entries.end(),pc)!=stop_entries.end()){finished=true;break;}const auto it=sites.find(pc);check(it!=sites.end(),"Original geometry escaped authenticated leaf bodies");executed.insert(pc);
+   // Optional read-only observations at genuine function entries. No PC,
+   // register, memory or callee outcome is changed by call tracing.
+   if(metadata.contains("trace_calls"))for(const auto& trace:metadata.at("trace_calls"))if(pc==trace.at("entry").get<std::uint32_t>()) {
+    const auto count=trace.value("arguments",0u);check(count<=16,"Original trace argument limit exceeded");
+    const auto raw=memory(child.pid,std::uint32_t(regs.rsp)+4u,count*4u);J args=J::array();
+    for(unsigned n=0;n<count;++n){std::uint32_t v{};std::memcpy(&v,raw.data()+n*4,4);args.push_back(v);}
+    J observed{{"entry",pc},{"arguments",args}};
+    if(trace.value("ecx",false))observed["ecx"]=std::uint32_t(regs.rcx);
+    if(trace.value("gp",false))observed["gp"]=gp(regs);
+    if(trace.value("xmm",false)) {
+     user_fpregs_struct current{};request(PTRACE_GETFPREGS,child.pid,nullptr,&current);
+     J lanes=J::array();for(unsigned reg=0;reg<8;++reg)lanes.push_back(J::array({current.xmm_space[4*reg],current.xmm_space[4*reg+1],current.xmm_space[4*reg+2],current.xmm_space[4*reg+3]}));
+     observed["xmm"]=std::move(lanes);
+    }
+    if(trace.contains("indirect"))for(const auto& input:trace.at("indirect")) {
+     const auto argument=input.at("argument").get<unsigned>(),words=input.at("words").get<unsigned>();
+     check(argument<count&&words<=16,"Original indirect trace limit exceeded");
+     const auto bank=memory(child.pid,args.at(argument).get<std::uint32_t>(),words*4u);J values=J::array();
+     for(unsigned n=0;n<words;++n){std::uint32_t v{};std::memcpy(&v,bank.data()+n*4,4);values.push_back(v);}
+     observed["indirect"]=values;
+    }
+    calls.push_back(observed);
+   }
+   J pending_reads=J::array(),pending_writes=J::array();bool stop_before{};
    for(const auto&o:it->second.at("operands")){const auto p=address(o,gp(regs)),n=o.at("bytes").get<unsigned>();if(!retained(p,n)){check(p<0x1000000u||p>=0x1004000u,"Original query escaped declared persistent operands");continue;}
     if(o.at("read").get<bool>()){if(phase=="before_read"&&read_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}++read_count;pending_reads.push_back(J{{"instruction",pc},{"address",p},{"bytes",n}});}
     if(o.at("write").get<bool>()){if(phase=="before_write"&&write_count==ordinal){boundary=J{{"phase",phase},{"instruction",pc},{"address",p},{"bytes",n}};stop_before=true;break;}pending_writes.push_back(J{{"instruction",pc},{"address",p},{"bytes",n},{"before",hex(memory(child.pid,p,n))}});}
@@ -57,7 +84,8 @@ int main(int argc,char**argv){try{
   }
   check(finished||!boundary.is_null(),"Original geometry did not reach its declared boundary");if(!phase.empty())check(!finished&&boundary.at("phase")==phase,"Original geometry prefix did not stop");request(PTRACE_GETREGS,child.pid,nullptr,&regs);request(PTRACE_GETFPREGS,child.pid,nullptr,&fp);if(finished){check(fp.cwd==entry_fp.cwd&&((fp.swd^entry_fp.swd)&0x3800u)==0&&fp.ftw==entry_fp.ftw,"Original path start changed live x87 topology");for(unsigned n=0;n<depth;++n)check(!std::memcmp(reinterpret_cast<const std::byte*>(fp.st_space)+n*16,reinterpret_cast<const std::byte*>(entry_fp.st_space)+n*16,10),"Original path start changed a live x87 input");}
   J banks=J::array();for(const auto&b:c.at("banks"))banks.push_back(J{{"address",b.at("address")},{"after",hex(memory(child.pid,b.at("address"),b.at("before").get_ref<const std::string&>().size()/2))}});
-  result.push_back(J{{"id",c.at("id")},{"completed",finished},{"boundary",boundary},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"live_x87_unchanged",finished},{"boundary_gp",gp(regs)},{"result_bits",fp.xmm_space[0]},{"pending_extended",!finished&&!boundary.is_null()&&boundary.value("instruction",0u)==0x266ef9u&&(boundary.value("phase",std::string{})=="before_write"||boundary.value("phase",std::string{})=="actual_write_fault")?hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space),10)):std::string{}},{"reads",reads},{"writes",writes},{"banks",banks},{"executed_sites",executed},{"original_instructions",steps}});total+=steps;
+  J boundary_xmm=J::array();for(unsigned n=0;n<8;++n)boundary_xmm.push_back(J::array({fp.xmm_space[n*4],fp.xmm_space[n*4+1],fp.xmm_space[n*4+2],fp.xmm_space[n*4+3]}));
+  result.push_back(J{{"calls",calls},{"boundary_xmm",boundary_xmm},{"boundary_eflags",std::uint32_t(regs.eflags)&~0x100u},{"id",c.at("id")},{"completed",finished},{"boundary",boundary},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"live_x87_unchanged",finished},{"boundary_gp",gp(regs)},{"result_bits",fp.xmm_space[0]},{"pending_extended",!finished&&!boundary.is_null()&&boundary.value("instruction",0u)==0x266ef9u&&(boundary.value("phase",std::string{})=="before_write"||boundary.value("phase",std::string{})=="actual_write_fault")?hex(std::span(reinterpret_cast<const std::byte*>(fp.st_space),10)):std::string{}},{"reads",reads},{"writes",writes},{"banks",banks},{"executed_sites",executed},{"original_instructions",steps}});if(c.contains("stop_before_entries"))result.back()["stopped_at"]=std::uint32_t(regs.rip);total+=steps;
  }
  std::ofstream out(argv[4]);out<<J{{"cases",result},{"original_instructions",total},{"instruction_patches",J::array()},{"supplied_original_outcomes",false}}.dump()<<'\n';check(bool(out),"Original geometry report failed");std::cout<<result.size()<<" physical original geometry cases, "<<total<<" unchanged instructions\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

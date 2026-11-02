@@ -1,0 +1,30 @@
+import hashlib,json,os,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/peer-authority-transfer-rust-20261101'
+mode=sys.argv[1];assert mode in ('red','green')
+inputs=json.loads((work/'native/inputs.json').read_text());build=Path(inputs['scratch'])/'build'
+sys.path.insert(0,str(root/'tests'))
+from test_peer_mesh_quality_replay import Replay
+scratch=Path(os.environ['HALO2_TEST_SCRATCH']);c=dict(session='42'*32,epoch=3,revision=5,peers=1,host=0)
+cases=[('empty_targets',[dict(op='new',id=0,self=0,context=c,limits={}),dict(op='publish',id=0,context=c,tick=0,bytes='aa',targets=[],now=0)]),
+       ('bad_constructor',[dict(op='new',id=0,self=256,context=c,limits={})])]
+result={'passed':False,'mode':mode,'scratch':str(scratch),'cases':[],
+    'scope':'Minimal paired public C++/Rust ABI exception-category control, not the installed playlist symptom or a native world/provider test',
+    'production_source_sha256':hashlib.sha256((Path(inputs['source'])/'src/network/peer_authority_transfer.cpp').read_bytes()).hexdigest(),
+    'retained_large_artifacts':[]}
+try:
+    for label,commands in cases:
+        here=scratch/label;here.mkdir();replay=Replay(build/'peer_authority_transfer_cpp_reference',build/'peer_authority_transfer_rust_replay',here)
+        difference=None;observations=[]
+        try:
+            for command in commands:
+                try:observations.append(replay.exchange(command))
+                except AssertionError as error:difference=error.args[0];break
+        finally:replay.close()
+        if mode=='red':assert difference and difference['reference']=={'error':True,'category':'invalid_argument'} and difference['rust']=={'error':True,'category':'exception'},difference
+        else:assert difference is None and observations[-1]=={'error':True,'category':'invalid_argument'},(difference,observations)
+        row={'case':label,'commands':commands,'observations':observations,'difference':difference,'exit_codes':[p.returncode for p in replay.children]}
+        assert row['exit_codes']==[0,0];result['cases'].append(row)
+    result['passed']=True
+finally:(work/('exception-repro-'+mode+'.json')).write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'passed':result['passed'],'expected_mode':mode,'cases':[c['case'] for c in result['cases']]}))

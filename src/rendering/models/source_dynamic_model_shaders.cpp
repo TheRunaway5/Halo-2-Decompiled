@@ -9,7 +9,7 @@
 
 namespace halo2 {
 SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderModel &model,
-    std::uint32_t render_model,unsigned implementation,std::optional<float> camouflage) {
+    std::uint32_t render_model,unsigned implementation,std::optional<float> camouflage,MaterialPreparer prepare) {
     if(implementation!=1 && implementation!=2 && implementation!=3)
         throw FormatError("model shader bank requires a proved lighting implementation");
     // The vector object stays fixed while new slots append; access roots by
@@ -33,7 +33,8 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
         // A part's literal compiled class may require a pass-specific input
         // operation after CPU posing. Other classes/programs share the
         // original resident slots, preserving all existing input values.
-        auto [input,first_input]=input_classes.try_emplace({source,origin->vertex_class});
+        const auto input_identity=origin->vertex_class|(prepare?(section.section+1u)<<8u:0u);
+        auto [input,first_input]=input_classes.try_emplace({source,input_identity});
         if(first_input) {
         std::vector<Material> resident;
         bool transformed=cpu_skin_material_inputs_required(cache,roots[source],origin->vertex_class);
@@ -42,7 +43,7 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
             throw FormatError("dynamic model shader differs from its source LOD bank");
         for(unsigned lod=1;lod<raw.lods.size();++lod) {
             auto material=raw;material.selected_shader_lod=lod;
-            if(!(implementation==1 ? prepare_world_material(cache,material,true) :
+            if(!(prepare ? prepare(material,section.section) : implementation==1 ? prepare_world_material(cache,material,true) :
                  implementation==3 ? prepare_default_object_material(cache,material,camouflage) :
                  prepare_dynamic_material(cache,material,{},true,camouflage)))
                 throw FormatError("dynamic model shader LOD requires unresolved source inputs: "+raw.name);
@@ -51,13 +52,15 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
             transformed=prepare_cpu_skin_material_inputs(cache,material,origin->vertex_class)||transformed;
             resident.push_back(std::move(material));
         }
-        const unsigned input_class=transformed?origin->vertex_class:0u;
+        const unsigned input_class=(transformed?origin->vertex_class:0u)|(prepare?(section.section+1u)<<8u:0u);
         input->second=input_class;
         auto &slots=slots_[{source,input_class}];
         if(slots.empty()) {
-            if(transformed) {
+            if(transformed || prepare) {
                 slots.push_back(unsigned(model.mesh.materials.size()));
                 auto root=roots[source];
+                if(prepare && !prepare(root,section.section))
+                    throw FormatError("model section shader requires unresolved source inputs: "+root.name);
                 (void)prepare_cpu_skin_material_inputs(cache,root,origin->vertex_class);
                 model.mesh.materials.push_back(std::move(root));
             } else slots.push_back(source);
@@ -72,6 +75,13 @@ SourceDynamicModelShaders::SourceDynamicModelShaders(const Cache &cache,RenderMo
         if(!inserted && (binding->second.source_material!=source || binding->second.input_class!=input->second))
             throw FormatError("dynamic model duplicate part changed its material");
     }
+}
+std::vector<unsigned> SourceDynamicModelShaders::material_slots(unsigned section)const {
+    std::vector<unsigned> result;
+    for(const auto&[identity,part]:parts_)if(identity.first==section)
+        for(const auto slot:slots_.at({part.source_material,part.input_class}))
+            if(std::find(result.begin(),result.end(),slot)==result.end())result.push_back(slot);
+    return result;
 }
 SourceDynamicModelShaders::PartSlots SourceDynamicModelShaders::select_parts(
     const SourceModelShaderCollector &collector,const SourceModelShaderView &view)const {

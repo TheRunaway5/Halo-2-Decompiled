@@ -17,7 +17,7 @@ import time
 from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
 
-from aiohttp import ClientSession, web
+from aiohttp import ClientSession, CookieJar, web
 from aiohttp.test_utils import TestServer
 from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.steam_login import OP, NS
@@ -26,10 +26,19 @@ from multiplayer.master_server.tests.test_matchmaking_http import catalog
 
 
 async def main(binary):
+    friends=os.environ.get('H2_TEST_STEAM_FRIENDS')=='1'
     with tempfile.TemporaryDirectory() as temp:
         root=Path(temp); (root/'catalog.json').write_text(json.dumps(catalog()))
         app=create_app(Settings(state=root, allow_http=True, public_url='http://127.0.0.1:1',
-                                steam_enabled=True, matchmaking_catalog=str(root/'catalog.json')))
+                                steam_enabled=True,steam_key='1'*32 if friends else '',matchmaking_catalog=str(root/'catalog.json')))
+        friend_responses=[]
+        @web.middleware
+        async def friend_response_receipt(request,handler):
+            response=await handler(request)
+            if request.method=='GET' and request.path=='/v1/account/steam-friends':
+                friend_responses.append((response.status,len(response.body)))
+            return response
+        app.middlewares.insert(0,friend_response_receipt)
         server=TestServer(app);await server.start_server()
         proxy_requests=[]
         async def proxy_trap(request):
@@ -46,11 +55,22 @@ async def main(binary):
             assert url==OP and allow_redirects is False and data['openid.mode']=='check_authentication'
             valid=hmac.compare_digest(data['openid.sig'],signature(data))
             return Response(('ns:'+NS+'\nis_valid:'+('true' if valid else 'false')+'\n').encode())
+        provider_calls=[]
+        def provider(url,*,params,allow_redirects):
+            assert allow_redirects is False and params['key']=='1'*32
+            provider_calls.append(url)
+            if 'GetFriendList' in url:
+                return Response(json.dumps({'friendslist':{'friends':[{'steamid':str(76561197960300000+i),'relationship':'friend'} for i in range(1000)]}}).encode())
+            ids=params['steamids'].split(',')
+            return Response(json.dumps({'response':{'players':[{'steamid':sid,'personaname':'Steam Player' if sid=='76561197960287930' else '"'*128,'personastate':1} for sid in ids]}}).encode())
         task=None
         try:
-            with patch.object(directory.session,'post',upstream):
+            with patch.object(directory.session,'post',upstream),patch.object(directory.session,'get',provider):
                 output=root/'authorization.txt'
-                task=await asyncio.create_subprocess_exec(str(Path(binary).resolve()),str(output),'Chosen Steam Pilot',
+                confirmation=root/'confirmation.txt'
+                extra=['--confirmation-file',str(confirmation)]
+                if friends:extra.extend(('--steam-friends','1000'))
+                task=await asyncio.create_subprocess_exec(str(Path(binary).resolve()),str(output),'Chosen Steam Pilot',*extra,
                     stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT,
                     env=dict(os.environ,H2_ACCOUNT_URL=directory.settings.public_url,H2_ACCOUNT_ALLOW_LOOPBACK_HTTP='1',
                         http_proxy=str(proxy.make_url('')),ALL_PROXY=str(proxy.make_url('')),no_proxy='',NO_PROXY=''))
@@ -67,15 +87,33 @@ async def main(binary):
                     'openid.return_to':callback,'openid.response_nonce':nonce,'openid.assoc_handle':'fixture',
                     'openid.signed':'op_endpoint,claimed_id,identity,return_to,response_nonce,assoc_handle'}
                 assertion['openid.sig']=signature(assertion)
-                async with ClientSession() as client:
+                async with ClientSession(cookie_jar=CookieJar(unsafe=True)) as client:
                     async with client.get(callback,params=assertion) as response:
                         assert response.status==200, await response.text()
-                stdout=await asyncio.wait_for(task.communicate(),10)
+                        confirm_url=str(response.url)
+                    for _ in range(100):
+                        if confirmation.exists() and confirmation.stat().st_size==12:break
+                        await asyncio.sleep(.05)
+                    else:raise RuntimeError('Native confirmation code did not reach the private fixture')
+                    code=confirmation.read_text();confirmation.unlink()
+                    assert len(code)==12 and all(c in '0123456789ABCDEF' for c in code)
+                    async with client.post(confirm_url,data={'code':code},headers={'Origin':directory.settings.public_url}) as response:
+                        assert response.status==200, await response.text()
+                stdout=await asyncio.wait_for(task.communicate(),20 if friends else 10)
+                if friends:
+                    assert len(friend_responses)==1 and friend_responses[0][0]==200
+                    assert 256*1024<friend_responses[0][1]<=1024*1024
+                    print('Fixture produced bounded Steam friend reply bytes:',friend_responses[0][1])
                 if task.returncode:raise RuntimeError(stdout[0].decode())
                 assert 'PASS' in stdout[0].decode()
                 assert not proxy_requests, 'Steam identity request reached ambient proxy'
                 assert tuple(directory.store.db.execute('SELECT screen_name,steam_name FROM player_profiles').fetchone())==('Chosen Steam Pilot','Steam Player')
                 assert not directory.clans.sessions, 'Native sign-out retained its account session'
+                if friends:
+                    assert 'PASS native Steam friend reply count 1000' in stdout[0].decode()
+                    assert sum('GetFriendList' in url for url in provider_calls)==1
+                    assert sum('GetPlayerSummaries' in url for url in provider_calls)==11
+                    print('PASS native1000-row Steam friend response over real libcurl/account HTTP, including escaped128-byte names and server Rust policy; fixture Steam provider')
                 print('PASS native Steam proof-bound login, real HTTP account session, chosen name, clan read, sign-out; fixture Steam provider')
         finally:
             if task and task.returncode is None:task.kill();await task.wait()

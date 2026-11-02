@@ -1,0 +1,29 @@
+# Opt-in candidate; apply after compose.production.yaml (not the Python
+# matchmaking overlay). No backend HTTP port is published.
+services:
+  directory:
+    environment:
+      H2_DIRECTORY_ONLY: "1"
+      H2_MATCHMAKING_CATALOG: ""
+  caddy:
+    image: caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e
+    volumes:
+      - ./Caddyfile.rust:/etc/caddy/Caddyfile:ro
+  matchmaking:
+    build: {context: ../.., dockerfile: multiplayer/master_server/Dockerfile.rust}
+    image: halo2-matchmaking-rust-local:v1
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    mem_limit: 512m
+    # Sharing Caddy's namespace preserves Rust's loopback-only proxy boundary.
+    network_mode: service:caddy
+    depends_on:
+      caddy: {condition: service_started, restart: true}
+    environment:
+      H2_MASTER_PUBLIC_URL: https://${MASTER_DOMAIN:?Set MASTER_DOMAIN}
+    volumes:
+      - master-data:/state
+      - ${MATCHMAKING_CATALOG:?Set MATCHMAKING_CATALOG}:/config/playlists.json:ro

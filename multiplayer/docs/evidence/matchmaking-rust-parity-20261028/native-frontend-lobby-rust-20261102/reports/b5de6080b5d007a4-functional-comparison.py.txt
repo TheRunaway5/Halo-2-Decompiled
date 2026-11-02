@@ -1,0 +1,52 @@
+import hashlib,json,re
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-rust-20261102'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+expected={
+ 'frontend_matchmaking_http':'Nonmember clan details lost the membership requirement',
+ 'frontend_matchmaking_gathering_http':'Matched/empty slot artwork is not an admitted source page',
+ 'frontend_clans_http':'ONLINE bitmaps missing selected imported sampling:',
+ 'frontend_parties_http':'ONLINE bitmaps missing selected imported sampling:'}
+def sections(path):
+ text=path.read_text();out={}
+ # CTest writes Start and result records in sequential --parallel 1 order.
+ rows=list(re.finditer(r'^\s*Start\s+\d+:\s+(\w+)\s*$',text,re.M))
+ for index,row in enumerate(rows):
+  part=text[row.end():rows[index+1].start() if index+1<len(rows) else len(text)]
+  result=re.search(r'Test\s+#\d+:\s+\w+\s+\.+\s*(Passed|\*\*\*Failed|\*\*\*Not Run|\*\*\*Skipped)',part)
+  assert result,(row.group(1),part[:300])
+  out[row.group(1)]={'passed':result.group(1)=='Passed','skipped':result.group(1) not in ('Passed','***Failed'),'text':part}
+ return out
+before=sections(work/'native/iteration-2/tests.log');after=sections(work/'native/iteration-4/tests.log')
+rows=[]
+for name,marker in expected.items():
+ b=before[name];a=after[name]
+ assert not b['skipped'] and not a['skipped']
+ shared=not b['passed'] and not a['passed'] and marker in b['text'] and marker in a['text']
+ improved=not b['passed'] and a['passed']
+ assert shared or improved,(name,b['passed'],a['passed'])
+ rows.append({'name':name,'captured_cpp_passed':b['passed'],'rust_passed':a['passed'],
+  'shared_failure':shared,'functional_improvement':improved,'shared_diagnostic':marker if shared else None})
+native=[]
+for i in range(1,6):
+ p=work/f'native/iteration-{i}-report.json';r=json.loads(p.read_text());log=work/f'native/iteration-{i}/tests.log'
+ tests=sections(log) if log.exists() and log.stat().st_size else {}
+ native.append({'iteration':i,'passed':r['passed'],'frozen_inputs_intact':r['frozen_inputs_intact'],
+  'successful_tests':[n for n,v in tests.items() if v['passed']],
+  'failed_tests':[n for n,v in tests.items() if not v['passed']],
+  'source_pin_sha256':r['source_pin_sha256'],'refreshed':r['refreshed'],
+  'steps':[(s['name'],s.get('exit_code')) for s in r['runner_report']['steps']]})
+assert native[0]['passed'] and len(native[0]['successful_tests'])==8
+assert native[4]['passed'] and native[4]['successful_tests']==['retail_frontend_lobby_policy']
+assert len(native[3]['successful_tests'])>=10
+required=set(native[0]['successful_tests'])|{'frontend_lobby_cpp_rust','online_protocol_rust_build_helper'}
+assert required<=set(native[3]['successful_tests'])
+assert all(r['frozen_inputs_intact'] for r in native)
+result={'passed':True,'scope':'Paired scoped controller/menu acceptance plus wider functional outcomes; shared failures remain failures',
+ 'cases':rows,'all_wider_functional_tests_passed':all(x['rust_passed'] for x in rows),
+ 'all_final_native_tests_passed':native[3]['passed'],'native_runs':native,
+ 'original_lobby_policy_test_exactly_restored':True,'target_collision_iteration':3,
+ 'retained_large_artifacts':[]}
+(work/'functional-comparison.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'paired':True,'scoped_native_passes':len(native[3]['successful_tests']),
+ 'wider_shared_failures':sum(x['shared_failure'] for x in rows),'restored_original_test_passed':True}))

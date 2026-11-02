@@ -1,0 +1,78 @@
+{
+  "passed": true,
+  "scope": "Actual native C++ object Rust-entry references and absence of C++ JSON/hash/signature policy symbols. Native resource/capability/poll orchestration remains explicit C++ work.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-link-audit/halo2-test-zl7864w5",
+  "object": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o",
+    "sha256": "261347d27321a46beb872cb7d93c1929c0fd9bf05b8f19758c52f639d54155f2"
+  },
+  "native_room": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/rust_service_room_probe",
+    "sha256": "2fe56ad08fda1259f514d80ecef619a20eb6506d6d8a795077745ec4021a6b6d",
+    "bytes": 28068288
+  },
+  "generated_header_sha256": "d49b9badc263853a2b2c29c6777e54638295f0ffac18d3387dce65200d27486d",
+  "rust_entry_references": [
+    "native_session_bind_audio",
+    "native_session_close_postgame",
+    "native_session_commit_allowed",
+    "native_session_committed",
+    "native_session_complete",
+    "native_session_confirm",
+    "native_session_datagram",
+    "native_session_direct",
+    "native_session_fail",
+    "native_session_failure",
+    "native_session_fence",
+    "native_session_fence_audio",
+    "native_session_flush",
+    "native_session_loaded",
+    "native_session_outgoing",
+    "native_session_packet_current",
+    "native_session_postgame",
+    "native_session_postgame_voice",
+    "native_session_preferences",
+    "native_session_receive",
+    "native_session_room_api",
+    "native_session_run",
+    "native_session_seals",
+    "native_session_selection",
+    "native_session_send",
+    "native_session_signal",
+    "native_session_text",
+    "native_session_view",
+    "native_session_voice",
+    "native_session_voice_enabled",
+    "native_session_voices",
+    "native_session_worker",
+    "native_session_world",
+    "new_native_session"
+  ],
+  "rust_entry_count": 34,
+  "cpp_json_crypto_policy_references": false,
+  "commands": [
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -DWITH_GZFILEOP -o CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/src/network/online_match_session.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/src/network/online_match_session.cpp",
+      "output": "CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/include -O3 -DNDEBUG -std=c++20 -o CMakeFiles/rust_service_room_probe.dir/tools/rust_service_room_probe.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/tools/rust_service_room_probe.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/tools/rust_service_room_probe.cpp",
+      "output": "CMakeFiles/rust_service_room_probe.dir/tools/rust_service_room_probe.cpp.o"
+    }
+  ],
+  "read_only_objects_unchanged": true,
+  "source_pins": {
+    "src/network/online_match_session.cpp": "eb501209d336ea06dea7a3d92de500f972e4aceb4f617bb246f4ee04808e89fc",
+    "include/halo2/native_matchmaking_socket.hpp": "105a3e0a9112e8a774e2f21accb1146dcbe38c65bbf4e2941cfed823c41ebd50",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "f03987950c519af626fcc73fead01312c08c691e91c0b8ed1b184e13086aa752",
+    "rust/online_protocol/src/matchmaking_native_control.rs": "ba6f23c095c4fcc5c1244a7a7b7175f7dff5c0dd47b650c418f9111df094e582",
+    "rust/online_protocol/src/matchmaking_native_socket.rs": "818ecdb2376800c1da6c85ab7e71562dd5c745ca0cdcf782a4dba1662715a587",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "3f13c239e5c38522c9fd8680c332c4489348b95cf13fb61f63a6e62451be120e",
+    "rust/online_protocol_bridge/src/lib.rs": "0f2a76bbfa15e5637dd7858c09226e98b4ab636a490f42bbabf0a3d9d2c2a856"
+  },
+  "retained_large_artifacts": []
+}

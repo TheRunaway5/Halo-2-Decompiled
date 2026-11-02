@@ -501,6 +501,7 @@ pub fn threshold(radius: i32, maximum: i32, config: &Configuration) -> Result<i3
 }
 
 /// Owns the search operands, selected configuration and exact sorted byte cache.
+#[derive(Clone)]
 pub struct Candidates {
     search: Search,
     config: Configuration,

@@ -1,0 +1,60 @@
+{
+  "unit": "halo2-mm-qos-frontend-qualified-20261101.service",
+  "initial_state": {
+    "ActiveState": "active",
+    "SubState": "running",
+    "RuntimeMaxUSec": "4h",
+    "MainPID": "3048229",
+    "Result": "success",
+    "ExecMainStatus": "0"
+  },
+  "runtime_limit_seconds": 14400,
+  "source_files": 13354,
+  "source_freeze_coherent": true,
+  "coordinator_sha256": "3a733d48770829377431a0da03d34c0c52d4a159b18ba8a488d052a3c629c6a9",
+  "cpp_rust_and_generator_tools_sources_frozen": true,
+  "retained_large_artifacts": [],
+  "final_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "MainPID": "0",
+    "Result": "success",
+    "ExecMainStatus": "0"
+  },
+  "owned_source_build_sdk_removed": true,
+  "validation_iterations": 2,
+  "unique_native_passes": 11,
+  "fixture_capture_failures": 1,
+  "rendered_focused_rerun_passed": true,
+  "source_drift_preserved": [
+    "cmake/NativeTu15SoundGpOutput.cmake",
+    "cmake/NativeTu15SoundPioResources.cmake",
+    "cmake/PhysicsLiveWorldTu15.cmake",
+    "include/halo2/native_tu15_body_policy.hpp",
+    "include/halo2/native_tu15_constraint_step_residuals.hpp",
+    "include/halo2/native_tu15_physics_frame_residuals.hpp",
+    "include/halo2/native_tu15_sound_wet_return_sources.hpp",
+    "include/halo2/native_tu15_world_integration.hpp",
+    "src/audio/dsp/native_tu15_sound_wet_return_sources.cpp",
+    "src/audio/runtime/source_runtime_sound_pio_resources.cpp",
+    "src/physics/native_tu15_body_policy.cpp",
+    "src/physics/native_tu15_constraint_step_residuals.cpp",
+    "src/physics/native_tu15_world_integration_residuals.cpp",
+    "src/physics/physics_live_world_tu15.cpp",
+    "tools/physics_test_cache.py",
+    "tools/prepare_native_body_policy_binding_tu15.py",
+    "tools/validate_native_constraint_binding_tu15.py",
+    "tools/validate_native_object_motion_activation_tu15.py",
+    "tools/validate_native_vehicle_flip_tu15.py",
+    "tools/validate_native_world_integration_tu15.py"
+  ],
+  "failed_freeze_unit_state": {
+    "LoadState": "loaded",
+    "ActiveState": "failed",
+    "SubState": "failed",
+    "MainPID": "0",
+    "Result": "exit-code",
+    "ExecMainStatus": "1"
+  }
+}

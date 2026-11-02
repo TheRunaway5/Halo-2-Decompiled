@@ -5,8 +5,17 @@
 #include <map>
 #include <memory>
 #include <tuple>
+#include <functional>
 
 namespace halo2 {
+class SourceShadowRawPassOwnerTu15;
+// Mint this capability freshly in the current World/collection scope. It
+// authenticates the complete selected pass and its resident address; it is
+// never a supplied readiness boolean or a cached cross-frame address token.
+using SourceTransparentGroupNativePassOwner = std::function<SourceShadowRawPassOwnerTu15(
+    const MenuWorldSourcePass &)>;
+void validate_source_transparent_group_pass_owner(const Cache &,const MenuWorldSourcePass &,
+    std::uint32_t descriptor_address,const SourceTransparentGroupNativePassOwner & = {});
 // Indices refer to the same owned frame's group command/base-unit banks.
 // Immutable pass metadata is shared so moving/copying that frame cannot leave
 // pointers into another frame or a temporary resolver. No pose is selected.
@@ -32,7 +41,7 @@ class SourceTransparentGroupPartBindings {
 public:
     explicit SourceTransparentGroupPartBindings(const Cache &cache):cache_(cache){}
     SourceTransparentGroupParts resolve(const SourceLiveTransparentGroupTu15 &,
-        std::span<const SourceLiveModelBaseDrawTu15>);
+        std::span<const SourceLiveModelBaseDrawTu15>,const SourceTransparentGroupNativePassOwner & = {});
 private:
     const Cache &cache_;
     using Key=std::tuple<std::uint32_t,unsigned,unsigned,unsigned,unsigned>;

@@ -1,0 +1,63 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n/master-source/rust/online_protocol/Cargo.toml",
+        "--lib"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_presence_owner_native",
+        "multiplayer.master_server.tests.test_online_population",
+        "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+        "multiplayer.master_server.tests.test_parties_http",
+        "multiplayer.master_server.tests.test_clans_http",
+        "multiplayer.master_server.tests.test_friends_http",
+        "multiplayer.master_server.tests.test_steam_friends",
+        "multiplayer.master_server.tests.test_couch_online"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "531d4978790f5b62fdaa5b9aba198ba6e66494a74235550e89e1bfd983f9aebf",
+    "bytes": 4093552,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

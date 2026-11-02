@@ -7,8 +7,11 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <map>
+#include <vector>
+#include <iostream>
 #include <optional>
 #include <set>
 #include <thread>
@@ -25,7 +28,15 @@ bool finite(const Transform &m) {
     const auto values=std::bit_cast<std::array<float,13>>(m);
     return std::ranges::all_of(values,[](float v){return std::isfinite(v);});
 }
-struct Store {std::uint32_t address;std::vector<std::byte> before;};
+// One journal entry: the original bytes live in a contiguous arena that the
+// executor thread keeps across frames, so a frame's thousands of observed
+// stores neither allocate nor return heap pages. Restore order and bytes are
+// those of the per-store copies this replaces.
+struct Store {std::uint32_t address;std::size_t offset,size;};
+std::vector<std::byte> &journal_arena() {
+    static thread_local std::vector<std::byte> arena;
+    return arena;
+}
 }
 void validate_source_presented_model_poses_tu15(std::span<const SourcePresentedModelPoseTu15> poses) {
     if(poses.size()>source_presented_model_owner_capacity_tu15)
@@ -54,10 +65,61 @@ struct SourcePresentedModelPoseScopeTu15::Impl {
     std::uint32_t frame{};std::set<std::uint32_t> already_built;
     std::unique_ptr<SourcePresentedModelInputBindingTu15> binding;
     const int exceptions=std::uncaught_exceptions();
-    std::vector<Store> stores;std::size_t bytes{};
+    // Entries index the executor's shared arena above this scope's base, so a
+    // scope that fails while another is live never touches the other's bytes.
+    std::vector<Store> stores;std::size_t bytes{};std::vector<std::byte> &arena=journal_arena();
+    const std::size_t arena_base=arena.size();
     explicit Impl(PhysicsLiveWorldTu15 &w):world(w),memory(w.memory()){}
+    void record(std::uint32_t address,std::span<const std::byte> before) {
+        stores.push_back({address,arena.size(),before.size()});
+        arena.insert(arena.end(),before.begin(),before.end());bytes+=before.size();
+    }
+    // HALO2_PRESENTED_SCOPE_CENSUS=1: every 120 frames, what the relocation
+    // journal touched — presented bodies by field offset, presented node
+    // banks, physical pages, and everything else by 64 KB region. Diagnostic
+    // only; it reads the journal and prints.
+    void census()const noexcept {
+        static const bool enabled=[]{const auto *e=std::getenv("HALO2_PRESENTED_SCOPE_CENSUS");return e && *e;}();
+        if(!enabled)return;
+        static unsigned frames=0;if(frames++%120u)return;
+        try {
+            struct Range{std::uint32_t first,end;};
+            std::vector<std::pair<std::uint32_t,Range>> bodies,banks;
+            for(const auto &[owner,pose]:poses) {
+                const auto body=world.source_object_body(owner);
+                bodies.push_back({owner,{body,body+0x200u}});
+                const auto at=body+word(memory,body+0x116u,2);
+                banks.push_back({owner,{at,at+std::uint32_t(pose.nodes.size()*sizeof(Transform))}});
+            }
+            std::map<std::uint32_t,std::pair<unsigned,std::size_t>> field,region;
+            unsigned physical=0,bank_stores=0,body_stores=0;std::size_t physical_bytes=0,bank_bytes=0,body_bytes=0;
+            for(const auto &st:stores) {
+                const auto a=st.address;bool classified=false;
+                for(const auto &[owner,r]:bodies)if(a>=r.first && a<r.end){auto &f=field[a-r.first];++f.first;f.second+=st.size;++body_stores;body_bytes+=st.size;classified=true;break;}
+                if(classified)continue;
+                for(const auto &[owner,r]:banks)if(a>=r.first && a<r.end){++bank_stores;bank_bytes+=st.size;classified=true;break;}
+                if(classified)continue;
+                if(a>=0x80000000u){++physical;physical_bytes+=st.size;continue;}
+                auto &g=region[a&~0xffffu];++g.first;g.second+=st.size;
+            }
+            std::cerr<<"Presented scope census: objects="<<poses.size()<<" stores="<<stores.size()<<" bytes="<<bytes
+                <<" | body stores="<<body_stores<<" ("<<body_bytes<<" B) node-bank stores="<<bank_stores<<" ("<<bank_bytes
+                <<" B) physical="<<physical<<" ("<<physical_bytes<<" B)\n  body fields:";
+            std::vector<std::pair<std::uint32_t,std::pair<unsigned,std::size_t>>> fields(field.begin(),field.end());
+            std::sort(fields.begin(),fields.end(),[](const auto &x,const auto &y){return x.second.first>y.second.first;});
+            for(std::size_t n=0;n<fields.size() && n<16;++n)std::cerr<<" +0x"<<std::hex<<fields[n].first<<std::dec<<"x"<<fields[n].second.first;
+            std::vector<std::pair<std::uint32_t,std::pair<unsigned,std::size_t>>> regions(region.begin(),region.end());
+            std::sort(regions.begin(),regions.end(),[](const auto &x,const auto &y){return x.second.second>y.second.second;});
+            std::cerr<<"\n  other regions:";
+            for(std::size_t n=0;n<regions.size() && n<10;++n)std::cerr<<" 0x"<<std::hex<<regions[n].first<<std::dec<<":"<<regions[n].second.first<<"/"<<regions[n].second.second<<"B";
+            std::cerr<<'\n';
+        }catch(...){}
+    }
     void restore()noexcept {
-        try{for(auto it=stores.rbegin();it!=stores.rend();++it)memory.write(it->address,it->before);stores.clear();}
+        census();
+        try{for(auto it=stores.rbegin();it!=stores.rend();++it)
+                memory.write(it->address,std::span<const std::byte>(arena).subspan(it->offset,it->size));
+            stores.clear();arena.resize(arena_base);}
         catch(...){std::terminate();}
     }
     ~Impl(){if(executor!=std::this_thread::get_id())std::terminate();binding.reset();restore();}
@@ -111,7 +173,7 @@ SourcePresentedModelPoseScopeTu15::SourcePresentedModelPoseScopeTu15(PhysicsLive
         const auto original=p.memory.view(at,pose.nodes.size()*sizeof(Transform));
         if(original.size()>16u*1024u*1024u-p.bytes)
             throw FormatError("Presented WORLD input exceeds its bounded original-node journal");
-        p.stores.push_back({at,{original.begin(),original.end()}});p.bytes+=original.size();
+        p.record(at,original);
     }
     // Observe only the adoption calls, not the later native render work. Thus
     // source cache/selection updates persist while temporary position/spatial
@@ -130,13 +192,22 @@ SourcePresentedModelPoseScopeTu15::SourcePresentedModelPoseScopeTu15(PhysicsLive
             // the same owners, so an older partial cache rollback is invalid.
             if(resources&&resources->persistent(at,n))return;
             if(n>16u*1024u*1024u-p.bytes)throw FormatError("Presented WORLD adoption exceeds its bounded store journal");
-            const auto b=p.memory.view(at,n);p.stores.push_back({at,{b.begin(),b.end()}});p.bytes+=n;
+            p.record(at,p.memory.view(at,n));
         });
         try {
+            // Diagnostic experiment (off by default): install the presented
+            // root position words directly instead of running the original
+            // relocation B95D0/B9460. Frame parity against the normal route
+            // shows whether the render kernels consume anything else from the
+            // relocation (cluster membership, attachment moves, node rebuild).
+            static const bool present_without_relocation=[]{
+                const auto *e=std::getenv("HALO2_EXPERIMENT_PRESENT_WITHOUT_RELOCATION");return e && *e;}();
             for(const auto &[owner,pose]:p.poses) {
                 const auto body=world.source_object_body(owner);
                 if(word(p.memory,body+0x14u)==~0u) {
-                    world.set_object_position(owner,pose.root.position);
+                    if(present_without_relocation)
+                        p.memory.write(body+0x64u,std::as_bytes(std::span(&pose.root.position,1)));
+                    else world.set_object_position(owner,pose.root.position);
                     p.memory.write(body+0x70u,std::as_bytes(std::span(&pose.root.basis[0],1)));
                     p.memory.write(body+0x7cu,std::as_bytes(std::span(&pose.root.basis[2],1)));
                     p.memory.write(body+0xa0u,std::as_bytes(std::span(&pose.root.scale,1)));

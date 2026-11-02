@@ -1,0 +1,673 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/Testing/Temporary/scratch/halo2-test-fo5ge11m/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/Testing/Temporary/scratch/halo2-test-fo5ge11m",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/Testing/Temporary/scratch/halo2-test-fo5ge11m/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/Testing/Temporary/scratch/halo2-test-fo5ge11m/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/Testing/Temporary/scratch/halo2-test-fo5ge11m/cargo/release/halo2-matchmaking-service",
+    "bytes": 11472664,
+    "sha256": "2c155ef07a0f528312eb37a5e09191bdeb4757e1ae8056148920c089f353d73f",
+    "retained": false
+  },
+  "mode": "frontend-buttons-only",
+  "frontend": {
+    "passed": true,
+    "case": "rendered",
+    "catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "source_catalog_unchanged": true,
+    "catalog": {
+      "compatibility": "halo2-native-queue-v16",
+      "maps": [
+        "00a_introduction",
+        "01a_tutorial",
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "mainmenu",
+        "midship",
+        "needle",
+        "shared",
+        "single_player_shared",
+        "street_sweeper",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ],
+      "playlists": [
+        {
+          "eligible": true,
+          "id": "rumble-pit"
+        },
+        {
+          "eligible": true,
+          "id": "double-team"
+        },
+        {
+          "eligible": true,
+          "id": "team-slayer"
+        },
+        {
+          "eligible": true,
+          "id": "team-skirmish"
+        },
+        {
+          "eligible": true,
+          "id": "team-training"
+        },
+        {
+          "eligible": true,
+          "id": "team-snipers"
+        },
+        {
+          "eligible": true,
+          "id": "team-hardcore"
+        },
+        {
+          "eligible": true,
+          "id": "team-swat"
+        },
+        {
+          "eligible": true,
+          "id": "big-team-battle"
+        },
+        {
+          "eligible": false,
+          "id": "minor-clan-match"
+        },
+        {
+          "eligible": false,
+          "id": "major-clan-match"
+        },
+        {
+          "eligible": true,
+          "id": "multi-team"
+        },
+        {
+          "eligible": true,
+          "id": "action-sack"
+        },
+        {
+          "eligible": true,
+          "id": "lab-test"
+        }
+      ],
+      "steam_handoff_fixture": true
+    },
+    "native_binary_sha256": "9eec8a5671aed716046e6cb99ae922437f92da35e0c0471c942eb12ebf43161e",
+    "native_log_bytes": 12982,
+    "native_log_sha256": "4bfb7495fd2b6fe4c04b64226838e81317d027477ca01db0f93f76742392452d",
+    "seconds": 32.378,
+    "publications_before": {
+      "results": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_teams": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "match_result_clan_skill": 0,
+        "carnage_reports": 0,
+        "carnage_players": 0,
+        "carnage_weapon_stats": 0,
+        "carnage_player_accuracy": 0,
+        "carnage_weapon_accuracy": 0
+      },
+      "xp": {
+        "playlist_skill": 0,
+        "clan_playlist_skill": 0
+      }
+    },
+    "publications_after": {
+      "results": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_teams": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "match_result_clan_skill": 0,
+        "carnage_reports": 0,
+        "carnage_players": 0,
+        "carnage_weapon_stats": 0,
+        "carnage_player_accuracy": 0,
+        "carnage_weapon_accuracy": 0
+      },
+      "xp": {
+        "playlist_skill": 0,
+        "clan_playlist_skill": 0
+      }
+    },
+    "actual_native_menu": true,
+    "rust_http_policy": true,
+    "python_api_or_coordinator": false,
+    "steam_provider_fixture": true,
+    "native_party_reply_io_delay_ms": 150,
+    "io_delay_source_sha256": "6ffed556b372df15c1fbb2c2149d40a1eedac7942a02a68a40c6687bfb68aaaa",
+    "genuine_steam": false,
+    "genuine_eos": false,
+    "gameplay_played": false,
+    "installed_input_verified": false,
+    "raw_outputs_owned": true,
+    "retained_large_artifacts": [],
+    "scope": "Unchanged full source catalog, actual native menu handlers and Rust service; private external Steam handoff. No played world, positive EOS, original Live or installed delivery claim.",
+    "rendered": {
+      "passed": true,
+      "observations": [
+        {
+          "actual_friends_capability": true,
+          "file": "online.ppm",
+          "lobby_countdown": -1,
+          "phase": "online",
+          "queue_status": 3,
+          "screen": 186,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "dee1adbf69f9aa99dc26bd2036cf94fd4f6cd46b2d016d13b6535af59065f572",
+          "decoded_rgb_sha256": "af2002c2d643d420d3570977a10f3d2a3cf3ec94a92ae68aeefd9ce46f8309de",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "pregame.ppm",
+          "lobby_countdown": -1,
+          "phase": "pregame",
+          "privacy": {
+            "mode": 0,
+            "revision": 1
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "ac571627bed09e64124a763e9334c49040aa009b0497cbf39ee230d04ef0d09e",
+          "decoded_rgb_sha256": "60035ee6e65ead0d7021f17bf4aaa217535fdedd9666b9ef5eb2ecc4057b9092",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "setup.ppm",
+          "lobby_countdown": -1,
+          "phase": "setup",
+          "privacy": {
+            "mode": 0,
+            "revision": 1
+          },
+          "queue_status": 3,
+          "screen": 23,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "2ecf78d8bcd78932ecd945a3dfa4319f4648af90730812907f1c0499a0fcdefe",
+          "decoded_rgb_sha256": "3e1917ea7a9bc29098d84245b527f1bee001f63b74b3beb46709c96e5ed11272",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-open.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-open",
+          "privacy": {
+            "mode": 0,
+            "revision": 1
+          },
+          "queue_status": 3,
+          "screen": 25,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "33e7a797a52e6a41e6ecba8e579c64a5509149bd28b98b357346e9aa79ba1bdd",
+          "decoded_rgb_sha256": "1a406cb4ba66354d9a91bdeeeef62a9ab138106a10e06f1c5ab547846b95fb24",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-invite-only.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-invite-only",
+          "privacy": {
+            "mode": 1,
+            "revision": 2
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "bdb2cd56f32b56294e450c17c869575bf1a4bc7c40f1bc5a201afe97507b29fe",
+          "decoded_rgb_sha256": "c91e7e0ed8cb3e1ea4c2840545ecb69316ab682b0d14f47b2edb8d233404b6e0",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-setup.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-setup",
+          "privacy": {
+            "mode": 1,
+            "revision": 2
+          },
+          "queue_status": 3,
+          "screen": 23,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "89f37279ccfae8a482c63add0ce6ed75d4b5dd7b89fc5bbcd600c702b5c453e7",
+          "decoded_rgb_sha256": "6df371e263d533265ccdd4d5eeb9888fa7532620c0fc51d2d41832d65389bb26",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-current.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-current",
+          "privacy": {
+            "mode": 1,
+            "revision": 2
+          },
+          "queue_status": 3,
+          "screen": 25,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "5d861bed1119825f258c8dd9180b8e0dfc09d92ea3d9e8e3336cfe7389897738",
+          "decoded_rgb_sha256": "a997c4657085bb63b1b54d141e223c32cca94df47d80df2576328004c215dd35",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-same-mode-return.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-same-mode-return",
+          "privacy": {
+            "mode": 1,
+            "revision": 3
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "6a87a5c0ba7894bf26b0ab9e527f73894cf08c21353504551b0884514cfe8163",
+          "decoded_rgb_sha256": "5c259bf4377ab551d4de3f5653312021ea94c5acccd20c1dd00f0c444fd2e16c",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-setup-reset.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-setup-reset",
+          "privacy": {
+            "mode": 1,
+            "revision": 3
+          },
+          "queue_status": 3,
+          "screen": 23,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "de0f4d86516f334432682a7943040d1e49c820c9f9f224273a91582031f43473",
+          "decoded_rgb_sha256": "7d42bce0f2b7be69d3476da95a959fc3feeb468719237b4de45f97979fb53b95",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-reset.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-reset",
+          "privacy": {
+            "mode": 1,
+            "revision": 3
+          },
+          "queue_status": 3,
+          "screen": 25,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "f22dbaeaf41e402ddb88391467ccb4b7de38ea78b5a0b20c1d8771c9f55df0d4",
+          "decoded_rgb_sha256": "65533122e2a38f874f2c3f3edede43ec4e3c38ee6e4a7b723cef64edc85c54ee",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "privacy-open-restored.ppm",
+          "lobby_countdown": -1,
+          "phase": "privacy-open-restored",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "632b7f2ae842aa21482e78e569b5c26b6b2e4a8f1a83b668dbc74537d962e73c",
+          "decoded_rgb_sha256": "7a86612d0f55f8fc86f2b155594f0d0d7fe3658d6d72be195ec8e02c9ebaf92e",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "setup-restored.ppm",
+          "lobby_countdown": -1,
+          "phase": "setup-restored",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 23,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "8c9e7369663c2d19e7e27b11a48b759c909cd3693addbe698fd4612eabc868b4",
+          "decoded_rgb_sha256": "eaaf378e0d770c0488f6375c52b93ddbd2e37aefed4ce06ef808fbb82d45cb4f",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "playlist.ppm",
+          "lobby_countdown": -1,
+          "phase": "playlist",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 237,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "addb6b48b6facc561ba03382f3e3c480e57cc52a148fdba2ec6c811be0ec64b4",
+          "decoded_rgb_sha256": "5ce0ab866f4c9dc990268d94dcfdcc2bfd38bbff514c60a6a5da519530068013",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "selected-lobby.ppm",
+          "lobby_countdown": -1,
+          "phase": "selected-lobby",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "335adbee0f26551bc3c07039ec1deed3de366a321059fbce0cbbd4d9ae418a2b",
+          "decoded_rgb_sha256": "66a6c42fd1faacdd4ca265d330f643c50a653b957a1bc8bcce02078a974e2e5c",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-start.ppm",
+          "lobby_countdown": 10,
+          "phase": "countdown-start",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "ecbff1e8ed6f611744258a5b51484f05136bebf77b12981a3749b33f3bb13830",
+          "decoded_rgb_sha256": "2d0f95394400e790e229297bd61e7f4dee4f9f11eb3f30d95104898f96376ade",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-cancel.ppm",
+          "lobby_countdown": -1,
+          "phase": "countdown-cancel",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "6409b9c6cd5050d516727f67e116eca1f2e756d69026ad9f25ec8380cbadc086",
+          "decoded_rgb_sha256": "72dec9bfe1a26f6b09ad63cdb419cc7f625f089f27fdd50feb4c3545d981de7a",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-restart.ppm",
+          "lobby_countdown": 10,
+          "phase": "countdown-restart",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "1bc3b117a829ff664effc9ce47c474ddc56563e5872d85851f7b1aed6d0cab99",
+          "decoded_rgb_sha256": "1002be98e1f542834f3989eb150857bad59eaa34e581978a9bec16efeb3a2093",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-3.ppm",
+          "lobby_countdown": 3,
+          "phase": "countdown-3",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "9c783d04ffb9ce7946f7e333feb72394d4524d314521645e1a53d2ac4c0c9511",
+          "decoded_rgb_sha256": "cb7791e00bb116f792ba6c83ef6384aae7a55029404dc1d8e42e24426fdc3adf",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-2.ppm",
+          "lobby_countdown": 2,
+          "phase": "countdown-2",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "4e12babd48191c17f10ad7b2b9089cbd539639245c11d627b55364b5dfd53272",
+          "decoded_rgb_sha256": "81ca6a42d43b79622f6b92a1eda092a8d5e441c6d9ee036213a031b317b8f208",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "countdown-1.ppm",
+          "lobby_countdown": 1,
+          "phase": "countdown-1",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "b43aebe3eec79001cdf7e5059fc8ca2da8ff234952025227ae5e24dad7cf770a",
+          "decoded_rgb_sha256": "7ad52405f00ae7d4c9d8284ac69051b9b4376880a4bc1a4d246d7cff17652310",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "search.ppm",
+          "lobby_countdown": -1,
+          "phase": "search",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 5,
+          "screen": 210,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "daa165e026e828d17620ec22bfa42f2f55fff61c10f8bc9d77bc267c8bb736e4",
+          "decoded_rgb_sha256": "31de1a7c412243eedc789e41035bbd918cfb93468067ff3ee54e42d760b9d848",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "leave-confirm.ppm",
+          "lobby_countdown": -1,
+          "phase": "leave-confirm",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 5,
+          "screen": 7,
+          "selected": 1,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "16097128078c8e4256552948224ab070e1f17e56753314c6ae5b7f1489264d94",
+          "decoded_rgb_sha256": "b7d7c0dcb726852945e3ecf4e507ea4ac97bd610fc50e11ec7897f15ed2eaa96",
+          "raw_retained": false
+        },
+        {
+          "actual_friends_capability": true,
+          "file": "returned-lobby.ppm",
+          "lobby_countdown": -1,
+          "phase": "returned-lobby",
+          "privacy": {
+            "mode": 0,
+            "revision": 4
+          },
+          "queue_status": 3,
+          "screen": 14,
+          "selected": 0,
+          "source_map_intro_clear": true,
+          "raw_bytes": 2073615,
+          "raw_sha256": "1d3b402f8acdd3789b55eae48b2477d2dec2d5d42f2310f36e1a63ca87beeccf",
+          "decoded_rgb_sha256": "ef30418dea5e1402ce025d2779c4dfc8f66ec3d80f2908f30422df212b48a56c",
+          "raw_retained": false
+        }
+      ],
+      "mouse_inputs": [
+        {
+          "actual_sdl_events": true,
+          "caption": "Change Match Settings...",
+          "direct_menu_activation": false,
+          "entry": 0,
+          "font_material": "font/conduit-12/original-role/1",
+          "height": 720,
+          "phase": "choose-matchmaking-playlist",
+          "screen": 23,
+          "width": 960,
+          "x": 141,
+          "y": 198
+        },
+        {
+          "actual_sdl_events": true,
+          "caption": "Rumble Pit",
+          "direct_menu_activation": false,
+          "entry": 0,
+          "font_material": "font/conduit-13/original-role/4",
+          "height": 720,
+          "phase": "playlist-row",
+          "screen": 237,
+          "width": 960,
+          "x": 133,
+          "y": 115
+        },
+        {
+          "actual_sdl_events": true,
+          "caption": "START GAME",
+          "direct_menu_activation": false,
+          "entry": 0,
+          "font_material": "font/conduit-13/original-role/4",
+          "height": 720,
+          "phase": "start-game",
+          "screen": 14,
+          "width": 960,
+          "x": 133,
+          "y": 115
+        }
+      ],
+      "retained_frames": [],
+      "actual_sdl_events": true,
+      "actual_sdl_mouse_events": true,
+      "actual_vulkan_frames": true,
+      "xbox_framebuffer_parity": false,
+      "physical_installed_input": false
+    }
+  }
+}

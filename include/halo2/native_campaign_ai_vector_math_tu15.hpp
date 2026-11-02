@@ -41,5 +41,10 @@ std::uint32_t native_campaign_ai_normalize_vector_tu15(SourcePhysicsContactMemor
 // No retained temporary address or guest/private stack is created.
 std::uint32_t native_campaign_ai_normalize_vector_value_tu15(const SourcePhysicsContactMemory &,
     std::array<std::uint32_t,3> &value,NativeTu15PhysicsFrameFp &);
+// Publications are buffered until arithmetic completes and the host FP
+// environment is restored; observer arithmetic cannot alter source flags.
+std::uint32_t native_campaign_ai_normalize_vector_value_tu15(const SourcePhysicsContactMemory &,
+    std::array<std::uint32_t,3> &value,NativeTu15PhysicsFrameFp &,
+    const std::function<void(unsigned,std::uint32_t)> &publish);
 
 }

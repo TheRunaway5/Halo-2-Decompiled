@@ -15,8 +15,16 @@
 #include <set>
 #include <map>
 #include <thread>
+#include <cstring>
+#include <cstdlib>
 using namespace halo2;
 namespace {
+Cache reference_cache(const std::filesystem::path& path){
+ // These offline original-map references include DLC links installed by the
+ // asset importer. Resolve the declared reference and its genuine disc
+ // resource owner; production Cache continues to reject linked paths.
+ return Cache(std::filesystem::canonical(path),std::filesystem::canonical("assets/disc/maps"));
+}
 std::vector<Vertex> material_vertices(const std::vector<Vertex>&world,const ObjectLightingBinding &binding){
  std::vector<Vertex> result;for(const auto&v:world)if(v.material>=binding.first_material &&
   v.material<binding.first_material+binding.material_count)result.push_back(v);return result;
@@ -29,7 +37,7 @@ void same_pose(const std::vector<Vertex>&a,const std::vector<Vertex>&b){
   throw FormatError("machine lifetime retained previous pose or advanced from render time");
 }
 void prepared_machine_birth(){
- Cache cache("assets/map-pack/maps/triplicate.map");auto content=cache.load_content(0,true);
+ Cache cache=reference_cache("assets/map-pack/maps/triplicate.map");auto content=cache.load_content(0,true);
  const auto at=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.type==7 && scenery_automatic_creation_allowed(o,2);});
  if(at==content.objects.end())throw FormatError("prepared machine fixture missing authored resource");
  const auto placement=std::size_t(at-content.objects.begin());
@@ -46,8 +54,35 @@ void prepared_machine_birth(){
  objects.destroy(born);scene.synchronize(objects);absent();
  std::cout<<"Prepared machine: no prebirth submission, actual deferred birth and retirement\n";
 }
+void solved_machine_pose_reuse(){
+ Cache cache=reference_cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
+ CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene machines(cache,content.objects,0,mesh,collision);
+ SceneObjects objects(content,0);machines.synchronize(objects);machines.update_pose(0,0,mesh);
+ for(const auto& owner:machines.effect_owners())objects.get(owner.object).solved_nodes=std::vector<Transform>(owner.nodes.begin(),owner.nodes.end());
+ const auto fresh=[](bool value){
+#ifdef _WIN32
+  _putenv_s("HALO2_REFERENCE_FRESH_MACHINE_POSES",value?"1":"");
+#else
+  if(value)setenv("HALO2_REFERENCE_FRESH_MACHINE_POSES","1",1);else unsetenv("HALO2_REFERENCE_FRESH_MACHINE_POSES");
+#endif
+ };
+ const auto vertices=[&](bool reference){fresh(reference);machines.synchronize(objects);machines.update_pose(0,0,mesh);
+  std::vector<Vertex> out;std::vector<ObjectLightingBinding> bindings;machines.append(out,bindings);return out;};
+ const auto same=[](const auto& a,const auto& b){if(a.size()!=b.size() || std::memcmp(a.data(),b.data(),a.size()*sizeof(Vertex)))
+  throw FormatError("Machine memoization changed complete posed vertex bytes");};
+ const auto original=vertices(true);same(original,vertices(false));same(original,vertices(false));
+ const auto checkpoint=machines.checkpoint();
+ for(const auto& owner:machines.effect_owners())objects.get(owner.object).solved_nodes->front().position.x+=.125f;
+ const auto changed=vertices(true);same(changed,vertices(false));same(changed,vertices(false));
+ if(changed.size()==original.size()&&!std::memcmp(changed.data(),original.data(),changed.size()*sizeof(Vertex)))
+  throw FormatError("Changed native machine WORLD input did not exercise invalidation");
+ auto prepared=machines.prepare_restore(checkpoint);
+ if(!machines.commit_restore(prepared))throw FormatError("Machine reuse checkpoint restore rejected");
+ std::vector<Vertex> restored;std::vector<ObjectLightingBinding> bindings;machines.append(restored,bindings);same(original,restored);
+ fresh(false);std::cout<<"Machine solved WORLD reuse: exact unchanged/changed/restored complete vertex bytes\n";
+}
 void triplicate_lifetimes(){
- Cache cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
+ Cache cache=reference_cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
  SceneObjects objects(content,0);scene.synchronize(objects);scene.update(0,0,{},1,mesh);
  const auto retained=objects;const auto resident_materials=mesh.materials.size();
@@ -149,7 +184,7 @@ void reference_devices(){
  const auto directory=std::filesystem::path(__FILE__).parent_path()/"fixtures";
  const auto reference=load_reference_player_state(directory/"retail_zanzibar_player.reference");
  if(reference.devices.size()!=2)throw FormatError("source device image fixture missing");
- Cache cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
+ Cache cache=reference_cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
  const auto reject=[&](std::vector<ReferenceDeviceState> bank){
   bool rejected=false;try{scene.set_reference_devices(bank,mesh);}catch(const FormatError&){rejected=true;}
@@ -264,7 +299,7 @@ void reference_devices(){
  std::cout<<"Source device image fixture: 2 matched placements, 314 consumed source bank words within measured bounds, frozen through synchronize/tick30\n";
 }
 void simulation_devices(){
- Cache cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
+ Cache cache=reference_cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene machines(cache,content.objects,0,mesh,collision);
  SceneObjects objects(content,0);SourceDeviceWorld devices(content);devices.synchronize(objects);
  machines.synchronize(objects,&devices);machines.update_pose(0,0,mesh);
@@ -322,7 +357,7 @@ void simulation_devices(){
  std::cout<<"Zanzibar simulation owner: shared control moves rendered gate, exact portal inputs, repeated-view stability\n";
 }
 void presentation_devices(){
- Cache cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
+ Cache cache=reference_cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
  SceneObjects objects(content,0);SourceDeviceWorld devices(content);devices.synchronize(objects);
  scene.synchronize(objects,&devices);scene.update_pose(0,0,mesh);
@@ -357,11 +392,11 @@ void presentation_devices(){
 }
 }
 int main(){try{
- prepared_machine_birth();reference_devices();triplicate_lifetimes();simulation_devices();presentation_devices();SourceMachineSceneStats totals;unsigned vertices=0,bindings=0,prt_banks=0;
+ solved_machine_pose_reuse();prepared_machine_birth();reference_devices();triplicate_lifetimes();simulation_devices();presentation_devices();SourceMachineSceneStats totals;unsigned vertices=0,bindings=0,prt_banks=0;
  const std::string maps=" ascension beavercreek burial_mounds coagulation colossus cyclotron foundation headlong lockout midship waterworks zanzibar containment warlock deltatap turf backwash dune elongation gemini triplicate ";
  for(const auto&directory:{"assets/disc/maps","assets/map-pack/maps"})for(const auto&entry:std::filesystem::directory_iterator(directory)){
   if(entry.path().extension()!=".map" || maps.find(" "+entry.path().stem().string()+" ")==std::string::npos)continue;
-  Cache cache(entry.path());auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
+  Cache cache=reference_cache(entry.path());auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
   // This original census covers the automatic initial MP2/current-BSP corpus.
   for(auto &o:content.objects)if(o.type==7 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
   SourceMachineScene scene(cache,content.objects,0,mesh,collision);

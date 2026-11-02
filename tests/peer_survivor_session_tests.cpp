@@ -33,7 +33,17 @@ int main(int argc,char **argv)try{
         options.direct_udp=true;options.peer_host_migration=true;options.survivor_cut_selection=mode!="mixed"||self!=4;
         sessions[self]=std::make_unique<OnlineMatchSession>(argv[1],d.at("id"),d.at("token"),self,roster,true,false,false,options);
     }
-    const auto healthy=[&]{for(auto &s:sessions)if(s)check(s->phase()!=OnlineMatchSession::Phase::Failed,s->error().c_str());};
+    bool ready_publication_started=false,predecessor_retired=false;
+    const auto healthy=[&]{for(auto &s:sessions)if(s&&s->phase()==OnlineMatchSession::Phase::Failed){
+        const auto learned=s->peer_migration();
+        // Exact Ready can complete the automatic fixed-survivor decision
+        // before this metadata fixture invalidates selection. Its excluded
+        // predecessor may retire; a failed survivor still fails the test.
+        const auto decision=learned?learned->decision:std::nullopt;
+        const bool expected=ready_publication_started&&decision&&decision->previous.host==s->self()&&
+            decision->next.peers==std::uint16_t(decision->previous.peers&~(1u<<s->self()))&&decision->voters==decision->next.peers;
+        check(expected,s->error().c_str());predecessor_retired=true;
+    }};
     wait([&]{healthy();for(auto &s:sessions)if(s&&s->phase()!=OnlineMatchSession::Phase::Loading)return false;return true;},"Selection loading timeout");
     for(auto &s:sessions)if(s)s->loaded(0x12345678,UiVariant{"Slayer",0,{}});
     wait([&]{healthy();for(auto &s:sessions)if(s&&s->phase()!=OnlineMatchSession::Phase::Running)return false;return true;},"Selection Running timeout");
@@ -125,6 +135,14 @@ int main(int argc,char **argv)try{
         const auto reserved=session.migration_preparation_request().request;
         check(reserved&&reserved->kind()==Kind::Retire&&reserved->id()==request->id(),
             "New silence replaced an outstanding real retirement reservation");
+        check(session.complete_migration_preparation(*retirement,inventory(peer))==Outcome::Refused&&
+            sessions[foreign]->complete_migration_preparation(*retirement)==Outcome::Refused&&
+            !(session.survivor_selection()->inventory_peers&(1u<<peer)),
+            "Foreign or inventory-bearing retirement completion consumed the actual reservation");
+        const auto still_retiring=session.migration_preparation_request();
+        check(still_retiring.outcome==Outcome::Retiring&&still_retiring.request&&
+            still_retiring.request->kind()==Kind::Retire&&still_retiring.request->id()==retirement->id(),
+            "Rejected completion lost the public retirement request or its exact ticket");
         // This metadata fixture created no native owners. Native/outer owner
         // refusal and actual destruction are covered by the paired MCC case.
         check(session.complete_migration_preparation(*retirement)==Outcome::Retryable,
@@ -181,6 +199,7 @@ int main(int argc,char **argv)try{
             check(sessions[host]->abort_common_cut(pending),"Real delayed predecessor Abort refused");
             wait([&]{healthy();for(auto p:survivors)if(!sessions[p]->survivor_selection()->failed)return false;return true;},"Delayed genuine Common Abort failed to invalidate advertised frozen inventory");
         }else{
+            ready_publication_started=true;
             auto wrong=round.seal;++wrong.id;
             for(auto p:survivors){check(!sessions[p]->prepare_peer_migration({p,context,wrong}),"Nonselected cut reached Ready");
                 check(sessions[p]->prepare_peer_migration({p,context,round.seal}),"Exact selected declared preparation could not publish Ready");}
@@ -193,7 +212,7 @@ int main(int argc,char **argv)try{
             sessions[p]->phase()==OnlineMatchSession::Phase::AwaitingWorld,
             "Failed selection restarted, replaced Ready, resumed gameplay or changed generation");}
     }
-    Json result{{"survivor_selection_case",mode},{"metadata_and_declared_native_fixture",true},
+    Json result{{"survivor_selection_case",mode},{"metadata_and_declared_native_fixture",true},{"predecessor_retired_after_actual_decision",predecessor_retired},
         {"master_gameplay_relay",false},{"native_or_rendered_migration",false}};
     {std::ofstream out(std::filesystem::path(argv[2]).parent_path()/"result.json");out<<result.dump(2);}
     std::cout<<"PASS authenticated survivor-selection "<<mode<<": explicit frozen inventory, fixed all-peer transcript, exact Ready gate and terminal failure\n";

@@ -1,0 +1,87 @@
+[
+  {
+    "path": "cmake/NativeWeaponEffectsTu15.cmake",
+    "frozen": "f583e5c79ba30e6c8c329e33d7ab93b6fccac7da986ef1ce7475e6bfa42e78a7",
+    "current": "8d02266bedad04de3922d18a9ae90b4681961f79a1b57e664170b71c000f7f7c"
+  },
+  {
+    "path": "cmake/WorkshopCollectionAgent.cmake",
+    "frozen": "4403f9aaf6e1bba3faa0a7f4ffe683a2d4d46b763751ce6812e3905d298ab922",
+    "current": "2ea3d394fcef0d881c0d1a4010ab2f246cbde2face2b43b8c3f9880efc67737d"
+  },
+  {
+    "path": "include/halo2/native_weapon_effect_dispatch_tu15.hpp",
+    "frozen": "e042fef98b8427950767c7596610b7d7f22e131685451e8cf547604e867c48c8",
+    "current": "cd365ff370a8a9127d9cd8bdb2c717295d9d2ad3acd923e818986b19ed523c80"
+  },
+  {
+    "path": "src/gameplay/units/death_cycle_runtime_tu15_generated.cpp",
+    "frozen": "48965bac95ef47885fc15509822d7cfcdb610e041db87b7e37d3ce3f349ffca7",
+    "current": "eb26b251e9ebfa8560978dba2a7a648f03b7171f4e5c8d9c3f5b4cf5ac1595b7"
+  },
+  {
+    "path": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "frozen": "45bf5705d1cfc15e37eaa9591c16cdfcd4b916ee7a9471af08c6414d0cce9b6e",
+    "current": "5a1e73f35b6a2c8424517aaa425b8b9be445a62409aab912957a18c95ab95d52"
+  },
+  {
+    "path": "src/physics/native_tu15_activation_services.cpp",
+    "frozen": "adbf15c552f113a580de07f525b3d30f4e2fd5c120ef56a2c50b3685eafb33cd",
+    "current": "35b85a3b3f9a361addb75e9bb8dbcbf2af6f8414a3ed41fd6011da8a8b92e947"
+  },
+  {
+    "path": "src/physics/native_tu15_collection_filter.cpp",
+    "frozen": "6c71bcdb17c7d4fcb6c468e03b695ac521eb58e93104f216063f22dde03517fc",
+    "current": "6539e56c88035d7f3c4c8299830574fea6a851b9d4d3a05d32038ae930d2d98c"
+  },
+  {
+    "path": "src/physics/physics_live_support_tu15_generated.cpp",
+    "frozen": "1cee6500f5f3b552363912d6103fc137c616bd66a9402787561c24ecbc512ade",
+    "current": "a56b27987a1c4beb3cf683661dec8858b814f390bcfe32515455d1d38796b1a7"
+  },
+  {
+    "path": "src/rendering/effects/source_effect_particle_frame_tu15_generated.cpp",
+    "frozen": "241b222ca4848d6a9bbcee6eedbd48b3ca1647bcb95dc91cccef1d793b31f5ab",
+    "current": "169f9366ec701db034b387187f3871291913341db4a3edb6b8b45c97303782ac"
+  },
+  {
+    "path": "src/runtime/source_authority_archive.hpp",
+    "frozen": "1a1bd48e1c744371d1dc0bc32309b56acb1d09b54d0d3dc06d7699beb0a59ee9",
+    "current": "186ddc6b972030aa74dd0af4d0bb76f0c0d05d90aa6d202a36ee04dd7f95190f"
+  },
+  {
+    "path": "tests/workshop_shape_type_tests.cpp",
+    "frozen": "d02812c79715477575a134dd176cf5ca09b9d18b19a6299bf19458018f087520",
+    "current": "6f9322d853ba86aaddccd82cb7b34e596b491c8b5380f17dac0a74bc5f03c5b6"
+  },
+  {
+    "path": "tools/generate_death_cycle_runtime_tu15.py",
+    "frozen": "41662277f8b45e363ace68b42999afd9c427c340103fe93a1b3cc5ed9c41a6ec",
+    "current": "0bdc20d46269454e48559a301a1d7de61309a3ad424b29bd260ab69556425f80"
+  },
+  {
+    "path": "tools/generate_effect_particle_frame_tu15.py",
+    "frozen": "11634244e62b5beb4d51287e9b3524e9ea1084d79a778cad9741f36b882f76d0",
+    "current": "74e58da39eb3e6e5659480ac5dd6fed5cb3b26ceec1954c4723781452435627e"
+  },
+  {
+    "path": "tools/generate_physics_live_support_tu15.py",
+    "frozen": "206f788ff58e3731119a9e90b3323ae6e53ff13195412d46834673c72f1fd0c4",
+    "current": "c28502c1bb480cd84dbeb29d90cd2ce3f631631464efbc1cda86cc28d8b0ce0a"
+  },
+  {
+    "path": "tools/oracle_workshop_shape_types_tu15.py",
+    "frozen": "2c6784f80765faec4924b822758ee2ee0dc99c7e6c57c00a6aac3eb181d066fb",
+    "current": "02df3e60acbe74a831266ebbf77c73e06c56e695562117471096b9987febd5cc"
+  },
+  {
+    "path": "tools/validate_native_weapon_effects_tu15.py",
+    "frozen": "02350a55654a00cd722fb1e2ea61c27a98839951cdadcf36b771d593d02c9759",
+    "current": "56dd664a46daeb734fafe857d9c5e40db38b6ad68096a6b96d25e11d08f09cae"
+  },
+  {
+    "path": "tools/validate_weapon_material_snapshot_tu15.py",
+    "frozen": "59f3c65a30e6aea613f453487f5f2ddced69e14810636359d8baa19af76daeef",
+    "current": "c973e152bbd6cbe096607b5ea2d10c56a5c4e40b35677abebfdbb4fea1f3cb94"
+  }
+]

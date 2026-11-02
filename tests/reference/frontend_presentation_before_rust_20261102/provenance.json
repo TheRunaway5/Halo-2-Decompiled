@@ -1,0 +1,11 @@
+{
+  "source_pins": {
+    "src/ui/frontend_matchmaking.cpp": "f38820e36f4b947b9abbdd316b8bcf887ec2869b7db508f3c406c89f0d942861",
+    "src/ui/frontend_party.cpp": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+    "src/ui/frontend_state.cpp": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+    "include/halo2/frontend.hpp": "52b40885fe4d48d6bfc7768bbdfcb2541fa93a0b2482f2848912db70298d82ae",
+    "tests/frontend_online_tests.cpp": "6943aa0492901a43c8ccfce8149c7b36af1c9b7ecdda0cbae875630d75e4e401"
+  },
+  "capture": "Before native presentation policy migration",
+  "required_reference_inputs": true
+}

@@ -6,10 +6,11 @@ namespace halo2 {
 // state are unread; these are native owners of those authenticated bodies.
 std::uint32_t native_tu15_contact_child_class_23() noexcept;
 std::uint32_t native_tu15_contact_child_class_24() noexcept;
-enum class NativeTu15ContactAgentFactory {owner_303c10,owner_3040d0};
+enum class NativeTu15ContactAgentFactory {owner_303c10,owner_3040d0,owner_2f3670,owner_2f5530};
 struct NativeTu15ContactAgentFactoryArguments {
-    // The source reads its fourth cdecl input after the real allocation and
-    // size-word publication. This reads input only, never an expected result.
+    // Read the actual fourth cdecl input after allocation.303C10/3040D0
+    // publish their size first;2F3670/2F5530 read it before the first store.
+    // This reads input only, never an expected result.
     std::function<std::uint32_t()> user_data;
 };
 // Actual2F3620. Only the verified fields are written, in source order. The
@@ -27,6 +28,9 @@ void native_tu15_release_contact_agent(SourcePhysicsContactMemory&,NativeTu15Con
 // owners. Allocate64 genuine bytes with class1A, publish the16-bit size40,
 // read user_data, arm native cleanup, construct2F3620, then publish the actual
 // derived vtable. No omitted byte is initialized and no FS chain is emulated.
+// Actual2F3670/2F5530 allocate the same64 bytes/class1A without an SEH frame.
+// They retain their own store sites/order: user data, size, optional base
+// vtable, child fields, maximum vectors, then the reversed derived vtable.
 NativeTu15ContactAgent native_tu15_create_contact_agent(SourcePhysicsContactMemory&,
     NativeTu15ContactAgentFactory,const NativeTu15ContactAgentFactoryArguments&,
     NativeTu15PhysicsFrameFp&,const NativeTu15ArrayGrowthServices&,

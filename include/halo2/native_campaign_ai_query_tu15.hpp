@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/physics_contact_record.hpp"
+#include "halo2/source_script.hpp"
 #include <optional>
 #include <string_view>
 
@@ -35,6 +36,11 @@ std::uint32_t native_campaign_ai_query_tu15(const SourcePhysicsContactMemory &,
 // native datum/member lookup; a missing starting-location match is null.
 std::uint32_t native_campaign_ai_actor_tu15(const SourcePhysicsContactMemory &,
     std::uint32_t packed_reference);
+//27CBB0: build a fresh HS list from retained actor/squad/group banks, including
+//swarm object chains. The supplied bank owns prepend order, salts and lifetime.
+//NONE returns NONE without allocating; allocation failure stops traversal.
+std::uint32_t native_campaign_ai_actors_tu15(const SourcePhysicsContactMemory &,
+    std::uint32_t packed_reference,const SourceHsObjectListServices &);
 //27DDA0 reads maintained squad/group combat counters. Actor references use
 //1EA090's activity/awareness/age gates and1AFBD0's inclusive behavior search.
 std::uint16_t native_campaign_ai_fighting_count_tu15(const SourcePhysicsContactMemory &,

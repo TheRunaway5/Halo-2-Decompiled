@@ -1,0 +1,22 @@
+--- captured/src/ui/frontend_clans.cpp
++++ current/src/ui/frontend_clans.cpp
+@@ -26,7 +26,7 @@
+   online_account_ = std::move(client); account_ = {}; account_name_.clear();
+   friend_join_serial_=0;
+   pending_ui_sounds_.clear();
+-  dismissed_party_invites_.clear();
++  party_flow_.clear_dismissed();
+   if(discord_social_)discord_social_->bind_account(online_account_);
+   online_voice_ = online_account_ ? std::make_shared<OnlineVoice>(online_account_) : nullptr;
+   voice_party_=false;
+@@ -69,7 +69,9 @@
+   const bool joined_party=account_.authenticated && !account_.party && next.party && next.authenticated;
+   auto previous_account=std::move(account_);
+   account_ = std::move(next);
+-  std::erase_if(dismissed_party_invites_,[&](const auto &id){return std::none_of(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==id;});});
++  std::vector<std::string> current_party_invites;
++  for(const auto &invite:account_.party_invitations)current_party_invites.push_back(invite.id);
++  party_flow_.prune(current_party_invites);
+   voice_ = std::move(voice);
+   // Discord acceptance uses the account worker outside the menu's command
+   // wrapper. Enter the actual party lobby only after authoritative membership,

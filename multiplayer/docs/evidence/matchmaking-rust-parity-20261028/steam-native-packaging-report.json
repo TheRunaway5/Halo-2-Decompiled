@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-ei21fzwc/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-ei21fzwc/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-steam-cmake-20261029/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-ei21fzwc/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "halo2_online_protocol_rust_build"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-steam-cmake-20261029/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-ei21fzwc/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^online_protocol_rust_build_helper$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-steam-cmake-20261029/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1883,
+      "sha256": "96c4c0d96bc6e32f7b10b97703b25c6a0c0d0ae2955e356b69e136dffab6e3b7",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-steam-cmake-20261029/evidence/online-protocol/Release/build-report.json"
+    }
+  ]
+}

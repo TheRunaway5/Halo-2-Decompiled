@@ -10,7 +10,7 @@ afterwards. Only the small reports you direct elsewhere remain.
 | `profile_run.sh` | One 4K-internal multiplayer run; timing summary, optional main-thread profile (`SAMPLE_DELAY` argument) or CPU ms/frame (`H2_CPUMON=1`) |
 | `ab.sh`, `ab_env.sh` | Interleaved A/B of two runtimes, or one runtime with/without one or more environment assignments; reports main-thread CPU ms/frame (`H2_PERF_REPORTS` = report directory) |
 | `parity.py` | Byte comparison of deterministic 3840×2160 captures between two runtimes (`VAR=VALUE,...@runtime` adds role environment) |
-| `analyze.py`, `buckets.py`, `callers.py`, `callers_inc.py`, `children.py`, `diffprof.py` | Self/inclusive profiles, cost buckets, caller/child breakdowns and profile diffs from `sampler.c` output |
+| `analyze.py`, `buckets.py`, `callees.py`, `callers.py`, `callers_inc.py`, `children.py`, `diffprof.py` | Self/inclusive profiles, cost buckets, caller/child breakdowns and profile diffs from `sampler.c` output |
 
 ```bash
 python3 tools/run_test.py -- tools/perf_4k60/profile_run.sh "$PWD/build/halo2_native" /tmp/reports base 4 300 ""
@@ -72,10 +72,11 @@ Reference (restore the translated/original route): `HALO2_REFERENCE_MAIN_CULL`,
 `HALO2_REFERENCE_MAIN_COMMANDS`, `HALO2_REFERENCE_CPU_SKINNING`,
 `HALO2_REFERENCE_SERIAL_NATIVE`, `HALO2_REFERENCE_SEAT_CANDIDATES`,
 `HALO2_REFERENCE_OBJECT_LOD_SKINS`, `HALO2_REFERENCE_SYNC_RENDER`.
-The banded cull and model-owned skin-admission cache are enabled by default.
-`HALO2_NATIVE_BANDED_CULL=0` restores the serial cull;
-`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` restores full per-pose admission. Empty
-values also disable either optimization. A cold model uses the full predicate;
+The model-owned skin-admission cache is enabled by default
+(`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` or an empty value restores full per-pose
+admission). The banded cull is opt-in (`HALO2_NATIVE_BANDED_CULL=1`): it is
+frame-identical but measured a net loss at its 0.10–0.16 ms per-view
+granularity (2026-10-31). A cold model uses the full predicate;
 only a repeated immutable bank builds its static summary.
 Opt-in native paths awaiting a frame-parity capture: `HALO2_NATIVE_SHADOW_COMMANDS`,
 `HALO2_GPU_OBJECT_SKINS` (measured slower; kept for reference).
@@ -125,3 +126,4 @@ four full-resolution cases before publication, with deterministic repeats of
 the first case. Runtime controls inherited from the caller are removed from
 both roles. The gate retains small hashes/reports and retires its raw frames.
 
+Use `callees.py` for frame maps: `children.py` only counts parents within DEPTH frames of the leaf, so its inclusive numbers are depth-limited; `callees.py PREFIX BINARY PARENT [CHILD]` counts every sample containing the parent and breaks it down by the next frame toward the leaf (`<self>` when the parent is the leaf).

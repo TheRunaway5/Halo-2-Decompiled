@@ -1,0 +1,17 @@
+{
+  "matchmaking_service": {
+    "passed": 20,
+    "failed": 0,
+    "ignored": 0
+  },
+  "online_protocol": {
+    "passed": 583,
+    "failed": 0,
+    "ignored": 2
+  },
+  "online_protocol_bridge": {
+    "passed": 65,
+    "failed": 0,
+    "ignored": 2
+  }
+}

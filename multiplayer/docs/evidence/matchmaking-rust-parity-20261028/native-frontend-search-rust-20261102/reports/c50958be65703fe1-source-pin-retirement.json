@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scope": "Lossless metadata-only deduplication of superseded source-hash inventories; original source/assets/references are untouched",
+  "replacement_reports": [
+    "reconstructed-baseline-initial-source-pins.json",
+    "reconstructed-baseline-tested-source-pins.json",
+    "reconstructed-interrupted-candidate-source-pins.json"
+  ],
+  "all_original_part_bytes_verified": true,
+  "retired_duplicate_pin_files": 147,
+  "reconstruction": "Load base map from the current candidate initial source-pin parts; remove remove_from_base, apply changed_values, order by Path-sorted keys or Path-sorted reconstructed baseline-initial keys followed by appended_keys; serialize 400-key chunks with json.dumps(indent=2) plus newline; verify each stored original SHA-256 and byte count",
+  "retained_large_artifacts": []
+}

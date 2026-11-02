@@ -1,0 +1,22 @@
+{
+  "src/rendering/bitmap_animation.cpp": {
+    "sha256": "be274f64fc9305398407e8989fac97745a536e253684f3bf5521ae8ee68c23ba",
+    "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source/src/rendering/bitmap_animation.cpp",
+    "current_same": true
+  },
+  "src/rendering/renderer/renderer.cpp": {
+    "sha256": "238eff0d8283a0108e1dc9a88fea7f024e60e6d5c352b212d71dcd3ae0679a5d",
+    "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source/src/rendering/renderer/renderer.cpp",
+    "current_same": true
+  },
+  "multiplayer/docs/online-vista-assets.md": {
+    "sha256": "aa613881c6856882fa9c584e9b8e0e13be867e90f87d540347b97429e3c0c2e7",
+    "source": "multiplayer/docs/online-vista-assets.md",
+    "current_same": true
+  },
+  "docs/FRONTEND_ONLINE_HD.md": {
+    "sha256": "553efde6f4bd5e59cbe70943eb93c436a422262f2105c0302fd6d5ffa7e38434",
+    "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source/docs/FRONTEND_ONLINE_HD.md",
+    "current_same": true
+  }
+}

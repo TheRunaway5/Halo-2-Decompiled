@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/iteration-4",
+  "commands": [],
+  "action": "rooms",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_room_controls.py"
+  ],
+  "source_files": 123,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/cargo/release/halo2-matchmaking-service",
+    "sha256": "66e469765165d7dbb38cbec5176629364b5a0292f58b9c941e953fc27cf31b68",
+    "bytes": 10058016,
+    "retained": false
+  },
+  "error": "('POST', '/v1/matchmaking/session', 201, {'error': None, 'fields': ['expires_in', 'token']})"
+}

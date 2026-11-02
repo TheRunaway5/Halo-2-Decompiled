@@ -1,6 +1,7 @@
 #include "halo2/mcc_sound_metadata_publication.hpp"
 #include "halo2/mcc_runtime_delivery.hpp"
 #include "halo2/mcc_sound_runtime_delivery.hpp"
+#include "halo2/prepared_original_sound_catalog_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -43,9 +44,15 @@ MccSoundMetadataPublication MccSoundMetadataPublication::create(std::shared_ptr<
   bool captured{};
   // These are serialized logical tokens, as in PhysicsLiveWorldTu15. No
   // runtime memory, fake globals, device state or World epoch is constructed.
-  const auto delivery=MccRuntimeCacheDelivery::plan(*out->cache,0x90000000u,0x60000000u,
-      [&](MccSoundRuntimePlan &&plan){require(!captured,"Duplicate immutable sound conversion");out->plan=std::move(plan);captured=true;});
+  const auto capture=[&](MccSoundRuntimePlan &&plan){require(!captured,"Duplicate immutable sound conversion");out->plan=std::move(plan);captured=true;};
+  const auto catalog=out->cache->original_sound_catalog();
+  const auto delivery=catalog?
+      MccRuntimeCacheDelivery::plan(*out->cache,0x90000000u,0x60000000u,capture,catalog->input(*out->cache)):
+      MccRuntimeCacheDelivery::plan(*out->cache,0x90000000u,0x60000000u,capture);
   require(captured,"Complete immutable sound conversion did not publish its sound plan");
+  require(out->plan.original==delivery.original_sound_owner() && bool(out->plan.original)==bool(catalog),
+      "Immutable sound metadata lost its admitted original resource owner");
+  if(out->plan.original)out->plan.original->require_plan(out->plan);
   const auto patch=[&](TagHandle owner,unsigned size)->const MccSoundRuntimePatch& {
     const auto found=std::ranges::find_if(out->plan.patches,[&](const auto &p){return p.owner==owner && p.after.size()==size && p.before.size()==size;});
     require(found!=out->plan.patches.end(),"Immutable sound conversion lost its actual projected root");
@@ -123,5 +130,12 @@ SoundVariationDefinition MccSoundMetadataPublication::load(const Cache &cache,Ta
     const auto used=owner.read(owner.plan.blocks[7].address+offset,size);out.used.assign(used.begin(),used.end());
   }
   return out;
+}
+EncodedSound MccSoundMetadataPublication::encoded(const Cache &cache,TagHandle sound,unsigned pitch,unsigned permutation)const {
+  const auto definition=load(cache,sound,pitch);
+  require(permutation<definition.permutations.size(),"Immutable sound PCM permutation escapes its admitted metadata");
+  if(impl_->plan.original && impl_->plan.original->contains(sound))
+    return impl_->plan.original->bank()->encoded(sound,pitch,permutation);
+  return cache.load_sound(sound.value,pitch,permutation);
 }
 }

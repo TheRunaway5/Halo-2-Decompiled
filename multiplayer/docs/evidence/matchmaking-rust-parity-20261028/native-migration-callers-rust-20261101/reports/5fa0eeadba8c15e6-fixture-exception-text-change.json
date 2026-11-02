@@ -1,0 +1,20 @@
+{
+  "source": "tests/native_migration_callers_tests.cpp",
+  "before_sha256": "e48fc74baf8fd87662c08a94999124bc883ee787edc4b1fcc0117c39a0c74039",
+  "after_sha256": "137651cd5ba0c8a091ef869bb1a8a77f7e24d968ffa145ce1db87b475912c5ff",
+  "changes": [
+    {
+      "before": "bool error{};Json selected=nullptr;",
+      "after": "bool error{};std::string exception;Json selected=nullptr;"
+    },
+    {
+      "before": "catch(const std::exception &){error=true;}",
+      "after": "catch(const std::exception &e){error=true;exception=e.what();}"
+    },
+    {
+      "before": "results.push_back({{\"error\",error},{\"selected\",selected}",
+      "after": "results.push_back({{\"error\",error},{\"exception\",exception},{\"selected\",selected}"
+    }
+  ],
+  "purpose": "Compare exact propagated refusal details, not only refusal status"
+}

@@ -1,10 +1,11 @@
 """Bounded SQLite registry. Only the origin master can advance a listing."""
+import copy
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 
-from .protocol import (MAX_RECORDS, MAX_LEASE, SKEW, VERSION, canonical, parse, fields,
+from .protocol import (MAX_RECORDS, MAX_LEASE, MAX_DISCOVERY, MAX_PAGE, SKEW, VERSION, canonical, parse, fields,
                        integer, identifier, master_id, server_id, metadata, require, signed, verified)
 
 MAX_OWNER_ACTIVE_CREDENTIALS = 8
@@ -39,7 +40,21 @@ class Store:
         CREATE TABLE IF NOT EXISTS origin_quarantine(origin TEXT PRIMARY KEY, until INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS local_listing_revisions(server TEXT PRIMARY KEY REFERENCES credentials(server),
           revision INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS directory_revision(id INTEGER PRIMARY KEY CHECK(id=1), value INTEGER NOT NULL);
+        INSERT OR IGNORE INTO directory_revision VALUES(1,0);
+        CREATE TRIGGER IF NOT EXISTS directory_insert AFTER INSERT ON records BEGIN
+          UPDATE directory_revision SET value=value+1 WHERE id=1; END;
+        CREATE TRIGGER IF NOT EXISTS directory_delete AFTER DELETE ON records BEGIN
+          UPDATE directory_revision SET value=value+1 WHERE id=1; END;
+        CREATE TRIGGER IF NOT EXISTS directory_update AFTER UPDATE ON records
+          WHEN OLD.envelope != NEW.envelope OR OLD.origin != NEW.origin OR OLD.server != NEW.server
+            OR OLD.expires != NEW.expires OR OLD.revision != NEW.revision BEGIN
+          UPDATE directory_revision SET value=value+1 WHERE id=1; END;
         """)
+        self._cache_revision = None
+        self._snapshot = []
+        self._snapshot_bytes = b"[]"
+        self._public = []
         from .protocol import public_hex
         self.key, self.id, self.lease, self.clock = key, master_id(public_hex(key)), lease, clock
         with self.db:
@@ -217,31 +232,82 @@ class Store:
                 "last_heartbeat": value["last_heartbeat"], "expires_at": value["expires_at"],
                 "reachability": "unverified", **value["metadata"]}
 
-    def discover(self, filters=None):
+    def _directory_cache(self):
+        # A durable revision also observes writes by other SQLite connections.
+        # Clock/nonces/account writes do not invalidate these projections.
+        with self.db:
+            revision = self.db.execute("SELECT value FROM directory_revision WHERE id=1").fetchone()[0]
+            if revision == self._cache_revision:
+                return
+            rows = self.db.execute("SELECT envelope FROM records ORDER BY origin,server")
+            records, raw_records, public = [], [], []
+            for row in rows:
+                raw = bytes(row[0])
+                envelope = parse(raw)
+                records.append(envelope)
+                raw_records.append(raw)
+                value = envelope["payload"]
+                if value["state"] == "active" and value["metadata"]["visibility"] == "public":
+                    projection = self.public(value)
+                    public.append(((value["origin_master_id"], value["server_id"]),
+                                   value["expires_at"], projection, canonical(projection)))
+            self._snapshot = records
+            self._snapshot_bytes = b"[" + b",".join(raw_records) + b"]"
+            self._public = public
+            self._cache_revision = revision
+
+    def _discover(self, filters=None, after=None, server=None):
         filters = filters or {}
         allowed = {"game_version", "map", "gametype", "region", "server_type", "available_slots"}
         require(filters.keys() <= allowed, "Unknown discovery filter")
         slots = integer(int(filters.get("available_slots", "0")), 0, 16)
         with self.db:
             now = self.now()
-            rows = self.db.execute("SELECT envelope FROM records WHERE expires>? ORDER BY origin,server", (now,)).fetchall()
-        results = {}
-        for row in rows:
-            value = parse(row[0])["payload"]
-            data = value["metadata"]
-            if value["state"] != "active" or data["visibility"] != "public":
+        self._directory_cache()
+        for key, expires, data, raw in self._public:
+            if expires <= now or (after is not None and key <= after) or (server is not None and key[1] != server):
                 continue
             if any(data.get(k) != v for k, v in filters.items() if k != "available_slots"):
                 continue
             if data["max_players"] - data["players"] < slots:
                 continue
-            # An origin authenticates only its own namespace, never another
-            # registry's portable server identity.
-            results[(value["origin_master_id"], value["server_id"])] = self.public(value)
-        return sorted(results.values(), key=lambda value: (value["origin_master_id"], value["server_id"]))
+            yield key, data, raw
+
+    def discover(self, filters=None):
+        return [data.copy() for _, data, _ in self._discover(filters)]
+
+    def discover_one(self, server, filters=None):
+        for _, _, raw in self._discover(filters, server=server):
+            return raw
+        require(False, "Server not found", 404)
+
+    def discovery_page(self, filters, cursor=None, limit=MAX_PAGE):
+        integer(limit, 1, MAX_PAGE)
+        after = None
+        if cursor is not None:
+            parts = cursor.split(".")
+            require(len(parts) == 2, "Invalid discovery cursor")
+            after = tuple(identifier(part) for part in parts)
+        records, size, last, more = [], 0, None, False
+        for key, _, raw in self._discover(filters, after):
+            # Reserve JSON framing plus the longest continuation cursor.
+            if len(records) == limit or size + len(raw) + 1 > MAX_DISCOVERY - 128:
+                more = True
+                break
+            records.append(raw)
+            size += len(raw) + 1
+            last = key
+        require(not more or last is not None, "Listing exceeds discovery size limit", 503)
+        continuation = b',"next_cursor":' + canonical(".".join(last)) if more else b""
+        return b'{"servers":[' + b",".join(records) + b']' + continuation + b'}'
 
     def snapshot(self):
-        return [parse(row[0]) for row in self.db.execute("SELECT envelope FROM records ORDER BY origin,server")]
+        self._directory_cache()
+        return copy.deepcopy(self._snapshot)
+
+    def snapshot_bytes(self):
+        self._directory_cache()
+        return self._snapshot_bytes
 
     def nonce(self, peer, nonce):
         identifier(nonce)

@@ -120,14 +120,19 @@ class PartyActivityTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(self.queue, "room_facts", return_value=rooms(who)):
             await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])
         a = self.parties.db.execute("SELECT player FROM player_profiles WHERE discord_username='pilot_one'").fetchone()[0]
-        self.directory.voice_blocks.blocks[who] = {self.directory.voice_blocks.subject(a)}
+        from .test_voice_blocks import numeric_owners
+        owners=numeric_owners(self.directory)
+        async def preference(owner,blocked):
+            response=await self.client.put('/v1/account/voice-blocks',headers={'Authorization':'Bearer '+owner},json={'blocked':blocked})
+            self.assertEqual(response.status,200,await response.text())
+        await preference('two',[owners['one']])
         await self.command(self.b, "join_activity", 403, join_secret=link["join_secret"])
-        self.directory.voice_blocks.blocks.clear()
-        self.directory.voice_blocks.blocks[a] = {self.directory.voice_blocks.subject(who)}
+        await preference('two',[])
+        await preference('one',[owners['two']])
         await self.command(self.b, "join_activity", 403, join_secret=link["join_secret"])
         self.assertIsNone((await self.view(self.b))["party"])
         self.assertEqual(len((await self.view(self.a))["party"]["members"]), 1)
-        self.directory.voice_blocks.blocks.clear()
+        await preference('one',[])
         with patch.object(self.queue, "room_facts", return_value=rooms(a)):
             await self.activity(self.a, 409)
             await self.command(self.b, "join_activity", 409, join_secret=link["join_secret"])

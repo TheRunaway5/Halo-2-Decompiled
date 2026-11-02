@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "scope": "Initial C++ reference fixture declarations, not production policy",
+  "fixture_sha256": "7ec111c2648dd6dc4e09affccdbdf85397a9ac5c08513ea7a298815260e0dcb8",
+  "observed_errors": [
+    "'null_datum' was not declared in this scope",
+    "no match for operator= between array<byte,132> and array<unsigned char,132>"
+  ],
+  "followup": "Actual native constant and byte-array return type restored; exact captured policy bodies unchanged"
+}

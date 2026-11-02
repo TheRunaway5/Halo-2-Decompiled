@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "all_owned_scratch_removed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-bridge-20261102/halo2-test-kegh51i5",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-k4c5iqni",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-wgiov56y",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-skx75qub",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-core-20261102/halo2-test-20zs2etq",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-core-20261102/halo2-test-r62pscto",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-full-rust-20261102/halo2-test-8d3a0gbv",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-5t79cfvk",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102/halo2-test-sn5hjzd1",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102/halo2-test-sn5hjzd1/build/Testing/Temporary/scratch/halo2-test-hqjmgzf1",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102/halo2-test-sn5hjzd1/build/Testing/Temporary/scratch/halo2-test-lrw2fuor",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102/halo2-test-sn5hjzd1/build/Testing/Temporary/scratch/halo2-test-tlclkvg3",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-ilcv_uno",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-qvnatp98"
+  ],
+  "removed_empty_parents": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-core-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-full-rust-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-staging-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-link-audit-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-inventory-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-script-syntax-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-pin-retirement-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-qualification-20261102"
+  ],
+  "sdk_archive_borrowed_read_only_preserved": true,
+  "native_owner_exit_code": 0,
+  "first_native_owner_terminated_and_cleaned": true,
+  "source_pin_metadata_losslessly_deduplicated": true,
+  "retained_large_artifacts": []
+}

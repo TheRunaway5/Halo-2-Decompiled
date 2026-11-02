@@ -1,0 +1,16 @@
+{
+  "observed_utc": "2026-11-01T03:26:13.403868+00:00",
+  "directories": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u",
+      "bytes": 168086680,
+      "owned": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-cmake/halo2-test-t6w5japn",
+      "bytes": 1006889406,
+      "owned": true
+    }
+  ],
+  "retained_large_artifacts": []
+}

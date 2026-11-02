@@ -1,0 +1,30 @@
+{
+  "active_native_session_id": 57516,
+  "active_scratch": ".local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9",
+  "cohort": "native-candidate",
+  "component_iteration": 1,
+  "component_tests_passed": [
+    "frontend_search_cpp_rust",
+    "frontend_lobby_cpp_rust",
+    "online_protocol_rust_build_helper"
+  ],
+  "native_iteration": 2,
+  "native_validation_status": "building",
+  "rust_tests_passed": 605,
+  "cpp_rust_sequences": 3763,
+  "cpp_rust_operations": 5563,
+  "variant_controls": 532,
+  "first_native_owner_exit_code": 143,
+  "first_native_owner_scratch_removed": true,
+  "all_goal_criteria_preserved": true,
+  "finish_before_turn_end": [
+    "Complete native iteration2; retain the three bounded qualified frontend report.json files only",
+    "Run after-link audit and source-link qualification while the same owner is alive",
+    "Run functional-comparison report; account for the distinct baseline/candidate source cohorts",
+    "Quit the native FIFO, poll session57516 to exit0, run cleanup-owned.py.txt and verify no large artifacts",
+    "Refresh goal checkpoint; finalize.py.txt validates criteria, updates docs/ledger, deduplicates bounded reports and removes work dir"
+  ],
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "full_goal_complete": false
+}

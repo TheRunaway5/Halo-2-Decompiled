@@ -68,16 +68,8 @@ struct OnlineParty {
 // A member who is not the leader is that follower here. The service reports
 // who still holds the completed match's room open; the leader has left it
 // once this member is there and the leader is not.
-inline bool online_party_follower(const OnlineParty &p) { return !p.leader && p.members.size()>1; }
-inline bool online_party_leader_left_postgame(const OnlineParty &p) {
-  if(!online_party_follower(p))return false;
-  bool self{},leader{};
-  for(const auto &m:p.members) {
-    if(m.self)self=m.postgame==true;
-    if(m.leader)leader=m.postgame==false;
-  }
-  return self && leader;
-}
+bool online_party_follower(const OnlineParty &);
+bool online_party_leader_left_postgame(const OnlineParty &);
 struct OnlineAccountSnapshot {
   bool authenticated{}, busy{};
   std::string message;

@@ -179,6 +179,13 @@ private:
     SourceBspMergedDrawPlan expected_bsp_;
     std::vector<SourceBspDrawKey> selected_draws_;
     std::vector<SourceBspDrawKey> independent_draws_;
+    struct GeometryRun {std::size_t first{},count{};};
+    struct DrawGeometry {
+        SourceBspDrawKey key;
+        std::size_t count{};
+        std::vector<GeometryRun> runs;
+    };
+    std::vector<DrawGeometry> draw_geometry_;
     struct WaterOwner {
         unsigned root{};
         const Material* material{};

@@ -20,6 +20,9 @@ void mount_native_tu15_renderer_request_data(SourceRuntimeMemory& memory) {
     memory.mount(0x4922aa,std::array<std::byte,16>{},SourceRuntimeMemory::Access::ReadWrite,"source16A10 outer and safe rectangles");
     memory.mount(0x4922c0,std::array<std::byte,8>{},SourceRuntimeMemory::Access::ReadWrite,"source169D0 cold display fields");
     memory.mount(0x4922e0,std::array<std::byte,2>{},SourceRuntimeMemory::Access::ReadWrite,"source169D0 refresh field");
+    // Independent loader-zeroed .data byte. Original123E8 publishes the
+    // actual display setting; projection/water consumers read this byte.
+    memory.mount(0x4922e2,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,"source123E8 cold widescreen flag");
     memory.mount(0x4922e8,std::array<std::byte,20>{},SourceRuntimeMemory::Access::ReadWrite,"source display option copies and operands");
     memory.mount(0x515e90,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,"source cold graphics-device binding");
     memory.mount(0x412728,std::array<std::byte,8>{},SourceRuntimeMemory::Access::ReadWrite,"source12560 SDK allocation-size inputs");

@@ -26,10 +26,12 @@ template<class Sink> void copy_point(const SourcePhysicsContactMemory &memory,
     for(unsigned axis=0;axis<3;++axis)sink(axis,read(memory,source+axis*4u),sites[axis]);
 }
 template<class Sink> void permute_point(const SourcePhysicsContactMemory &memory,
-    std::uint32_t source,std::int16_t axis,std::uint8_t variant,const Sink &sink) {
+    std::uint32_t source,std::int16_t axis,std::uint8_t variant,const Sink &sink,
+    const NativeCampaignAiProjectionCoordinateObserverTu15 &coordinate={}) {
     const auto offset=(std::uint32_t(std::int32_t(axis))*2u+variant)*6u;
     const auto z_index=std::int16_t(read(memory,0x44acb4u+offset,2));
     const auto z=read(memory,source+std::uint32_t(std::int32_t(z_index))*4u);
+    if(coordinate)coordinate({NativeCampaignAiProjectionCoordinateTu15::Stage::PermutedZ,z});
     const auto y_index=std::int16_t(read(memory,0x44acb2u+offset,2));
     const auto x_index=std::int16_t(read(memory,0x44acb0u+offset,2));
     const auto y=read(memory,source+std::uint32_t(std::int32_t(y_index))*4u);
@@ -58,12 +60,17 @@ bool ordered_equal(__m128 left,__m128 right) {
     return equal && ordered;
 }
 template<class Input,class Sink> void transform_point(const SourcePhysicsContactMemory &memory,
-    std::uint32_t matrix,const Input &input,const Sink &sink) {
+    std::uint32_t matrix,const Input &input,const Sink &sink,
+    const NativeCampaignAiProjectionCoordinateObserverTu15 &coordinate={}) {
     auto scale=scalar(read(memory,matrix));
     const bool unit_scale=ordered_equal(scale,scalar(read(memory,0x46a0d0u)));
-    auto x=scalar(input(0)),y=scalar(input(1)),z=scalar(input(2));
+    auto x=scalar(input(0));
+    if(coordinate)coordinate({NativeCampaignAiProjectionCoordinateTu15::Stage::LocalX,word(x)});
+    auto y=scalar(input(1)),z=scalar(input(2));
     if(!unit_scale) {
-        x=multiply(scale,x);scale=scalar(read(memory,matrix));
+        x=multiply(scale,x);
+        if(coordinate)coordinate({NativeCampaignAiProjectionCoordinateTu15::Stage::ScaledLocalX,word(x)});
+        scale=scalar(read(memory,matrix));
         y=multiply(scale,y);scale=scalar(read(memory,matrix));z=multiply(scale,z);
     }
     // Each output is published before the next matrix row is read. Matrix,
@@ -84,7 +91,8 @@ template<class Input,class Sink> void transform_point(const SourcePhysicsContact
     sum=add(sum,scalar(read(memory,matrix+0x30)));sink(2,word(sum),0x145131);
 }
 template<class Sink> bool resolve_frame(const SourcePhysicsContactMemory &memory,
-    std::uint16_t frame,std::uint32_t source,const Sink &sink) {
+    std::uint16_t frame,std::uint32_t source,const Sink &sink,
+    const NativeCampaignAiProjectionCoordinateObserverTu15 &coordinate={}) {
     if(frame==0xffffu){copy_point(memory,source,sink,{0x21885b,0x218860,0x218866});return true;}
     const auto frames=read(memory,0x505e78u);
     const auto frame_row=frames+std::uint32_t(std::int32_t(std::int16_t(frame)))*16u;
@@ -103,19 +111,19 @@ template<class Sink> bool resolve_frame(const SourcePhysicsContactMemory &memory
             const auto variant=std::uint8_t(read(memory,frame_row+0xb,1));
             const auto axis=std::int16_t(std::int8_t(read(memory,frame_row+0xa,1)));
             std::array<std::uint32_t,3> local{};
-            permute_point(memory,source,axis,variant,[&](unsigned n,std::uint32_t value,std::uint32_t){local[n]=value;});
+            permute_point(memory,source,axis,variant,[&](unsigned n,std::uint32_t value,std::uint32_t){local[n]=value;},coordinate);
             const auto offset=std::int16_t(read(memory,body+0x116,2));
             const auto matrix=body+std::uint32_t(std::int32_t(offset))+std::uint32_t(node)*0x34u;
-            transform_point(memory,matrix,[&](unsigned n){return local[n];},sink);return true;
+            transform_point(memory,matrix,[&](unsigned n){return local[n];},sink,coordinate);return true;
         }
     }
     copy_point(memory,source,sink,{0x218824,0x218829,0x218831});return false;
 }
 template<class Sink> void project_point(const SourcePhysicsContactMemory &memory,
-    std::uint32_t point,const Sink &sink) {
+    std::uint32_t point,const Sink &sink,const NativeCampaignAiProjectionCoordinateObserverTu15 &coordinate={}) {
     const auto frame=std::uint16_t(read(memory,point+0xc,2));
     if(frame==0xffffu)copy_point(memory,point,sink,{0x218b51,0x218b56,0x218b5c});
-    else if(!resolve_frame(memory,frame,point,sink))
+    else if(!resolve_frame(memory,frame,point,sink,coordinate))
         copy_point(memory,point,sink,{0x218b3d,0x218b42,0x218b48});
 }
 template<class Function> auto with_simd(NativeTu15PhysicsFrameFp &fp,Function function) {
@@ -188,14 +196,15 @@ std::uint32_t native_campaign_ai_point_distance_squared_tu15(SourcePhysicsContac
 #endif
 }
 std::array<std::uint32_t,3> native_campaign_ai_project_point_value_tu15(
-    const SourcePhysicsContactMemory &memory,std::uint32_t point,NativeTu15PhysicsFrameFp &fp) {
+    const SourcePhysicsContactMemory &memory,std::uint32_t point,NativeTu15PhysicsFrameFp &fp,
+    const NativeCampaignAiProjectionCoordinateObserverTu15 &coordinate) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     return with_simd(fp,[&]{std::array<std::uint32_t,3> result{};
-        project_point(memory,point,[&](unsigned n,std::uint32_t value,std::uint32_t){result[n]=value;});
+        project_point(memory,point,[&](unsigned n,std::uint32_t value,std::uint32_t){result[n]=value;},coordinate);
         return result;
     });
 #else
-    (void)memory;(void)point;(void)fp;
+    (void)memory;(void)point;(void)fp;(void)coordinate;
     throw std::runtime_error("Exact native campaign point geometry backend unavailable");
 #endif
 }

@@ -68,6 +68,20 @@ target_link_libraries(halo2_renderer PUBLIC halo2_pstencil_render)
 set(PSTENCIL_2003_BUILD "" CACHE PATH "Local May 2003 Halo 2 build for original-code comparisons")
 set(PSTENCIL_REFERENCE_PYTHON "${Python3_EXECUTABLE}" CACHE FILEPATH "Python with Unicorn for the optional pStencil original-code test")
 if(BUILD_TESTING)
+    add_executable(pstencil_player_colors_gpu_tests tests/pstencil/player_colors_gpu_tests.cpp)
+    target_link_libraries(pstencil_player_colors_gpu_tests PRIVATE halo2_renderer)
+    add_dependencies(pstencil_player_colors_gpu_tests halo2_shaders)
+    find_program(PSTENCIL_XVFB_RUN xvfb-run)
+    set(PSTENCIL_PLAYER_COLORS_MAP "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map" CACHE FILEPATH
+        "Loaded multiplayer cache for pStencil player-color GPU regression")
+    if(PSTENCIL_XVFB_RUN)
+        add_test(NAME pstencil_player_colors_gpu COMMAND ${PSTENCIL_XVFB_RUN} -a
+            $<TARGET_FILE:pstencil_player_colors_gpu_tests> "${PSTENCIL_PLAYER_COLORS_MAP}")
+        add_test(NAME pstencil_elite_colors_gpu COMMAND ${PSTENCIL_XVFB_RUN} -a
+            $<TARGET_FILE:pstencil_player_colors_gpu_tests> "${PSTENCIL_PLAYER_COLORS_MAP}" 3)
+        set_tests_properties(pstencil_player_colors_gpu pstencil_elite_colors_gpu
+            PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE)
+    endif()
     add_executable(pstencil_texture_accumulation_context_tests tests/pstencil/texture_accumulation_context_tests.cpp src/pstencil/detail.cpp)
     target_link_libraries(pstencil_texture_accumulation_context_tests PRIVATE halo2_pstencil)
     if(EXISTS "${PROJECT_SOURCE_DIR}/analysis/pstencil/texture-accumulation-inputs-v1/current-cairo/inputs.json")

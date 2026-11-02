@@ -15,7 +15,16 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-MAPS = ROOT / 'assets/imported/mcc-dire-valley-polish-20261023/halo2/h2_maps_win64_dx11'
+def _selected_maps():
+    """The launcher-selected cache's map directory (H2_MAPS overrides)."""
+    if os.environ.get('H2_MAPS'):
+        return Path(os.environ['H2_MAPS'])
+    try:
+        cache = json.loads((ROOT / 'gameplay-runtime-selection.json').read_text()).get('cache', '')
+    except (OSError, ValueError):
+        cache = ''
+    return ROOT / (cache or 'assets/imported/mcc-dire-valley-polish-20261023') / 'halo2/h2_maps_win64_dx11'
+MAPS = _selected_maps()
 SIZE = (3840, 2160)
 DEFAULT_CASES = ['4:90:0:0', '4:150:10:110', '1:150:10:110']
 
@@ -54,7 +63,8 @@ def log_tail(path):
 
 
 def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch,
-            map_name='coagulation', maps=MAPS, size=SIZE, timeout_seconds=600):
+            map_name='coagulation', maps=MAPS, size=SIZE, timeout_seconds=600,
+            extra_arguments=()):
     runtime = Path(runtime).resolve()
     scratch = Path(scratch).resolve()
     maps = Path(maps).resolve()
@@ -71,6 +81,7 @@ def capture(runtime, name, players, tick, first, last, role_env=None, *, scratch
                '--mp-input-script', str(script), '--mp-capture-tick', str(tick),
                '--mp-reference-tick-cadence', '--mp-reference-render-fraction', '0',
                '--mp-reference-auxiliary-seed', '1', '--screenshot', str(image), '--mute']
+    command.extend(extra_arguments)
     log = scratch / f'{name}.log'
     timeout_status = scratch / f'{name}.timeout'
     timeout_status.unlink(missing_ok=True)

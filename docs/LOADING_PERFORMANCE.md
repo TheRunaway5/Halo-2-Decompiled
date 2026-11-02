@@ -1,5 +1,9 @@
 # Native loading performance
 
+For the October29 launcher-window and Play handoff improvements, including
+bounded multi-core shader validation, see
+[launcher startup performance](LAUNCHER_STARTUP_PERFORMANCE.md).
+
 The native renderer uploads startup textures in bounded batches rather than
 submitting, waiting and retiring staging allocations separately for every image.
 Each batch retains at most 128 staging allocations or 32 MiB of pixel payload;

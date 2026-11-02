@@ -16,6 +16,8 @@
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include <algorithm>
 #include <array>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <map>
 #include <new>
@@ -343,6 +345,10 @@ struct SourceSceneryScene::Impl {
         if(model.bones.empty())throw FormatError("SCEN model has no source query node0");
         if(s.solved_nodes) {
             if(s.solved_nodes->empty())throw FormatError("SCEN source owner has no current WORLD node0");
+            const auto* fresh=std::getenv("HALO2_REFERENCE_FRESH_SCENERY_POSES");
+            if(!(fresh && *fresh) && s.world_nodes.size()==s.solved_nodes->size() &&
+               !std::memcmp(s.world_nodes.data(),s.solved_nodes->data(),s.world_nodes.size()*sizeof(Transform)))
+                return;
             s.world_nodes=*s.solved_nodes;
             s.node0=s.solved_nodes->front();
             const auto posed=pose_lods(s,[&](const RenderModel &m){return skin_model_world_nodes(m,*s.solved_nodes);});
@@ -701,7 +707,7 @@ bool SourceSceneryScene::retain_source_view(unsigned view,std::span<const Source
             if(binding->second==~0u)continue;
             if(impl_->unresolved_materials.contains(binding->second))throw FormatError("Native SCEN selected unresolved shader inputs");
             selected.vertices.push_back(posed[n]);selected.vertices.back().material=binding->second;
-            selected.vertices.back().source_stipple_level=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+            selected.vertices.back().source_stipple_level=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16));
             selected.ordinals.push_back(n);
         }
         retained.sections.push_back(std::move(selected));

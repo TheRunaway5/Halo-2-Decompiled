@@ -1,0 +1,15 @@
+import json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-view-rust-20261102'
+info=json.loads((work/'native/inputs.json').read_text());assert not Path(info['scratch']).exists()
+names=['native','core','component','component-corrected','rust','stager','linkage']
+rows=[]
+for name in names:
+ p=root/'.local/test-scratch'/('frontend-party-view-'+name+'-20261102')
+ children=sorted(child.name for child in p.iterdir())if p.exists()else[]
+ rows.append(dict(path=str(p),children=children,empty=not children))
+assert all(r['empty']for r in rows)
+before=json.loads((work/'native-before-cleanup.json').read_text())
+result=dict(owned_scratch_removed=True,parents=rows,completed_native_removed_regular_bytes=before['regular_bytes'],retained_large_artifacts=[],original_assets_references_other_owners_and_selected_runtimes_preserved=True)
+(work/'cleanup.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(dict(owned_parents_empty=len(rows),removed_native_regular_bytes=before['regular_bytes'],retained_large_artifacts=[])))

@@ -1,0 +1,427 @@
+{
+  "schema": "halo2-source-pins-lossless-delta-v1",
+  "base": "native-candidate/inputs.json initial_source_pin_parts",
+  "label": "baseline-initial",
+  "base_map_sha256": "933d2b96a4dd9f99bb65280d87a34624a7d6e039b8eb6a5bf22d73b362697bc4",
+  "map_sha256": "7d2ea1aa3518d792e3462a59ca1cdf0fe0f3b506a546469c1c705b21d908f3f6",
+  "order": "path-sorted",
+  "initial_order_set": "baseline-initial",
+  "appended_keys": [],
+  "changed_values": {
+    "CMakeLists.txt": "869f3e5508f6cce808478aee61c4f2fbf8e1b7ab1b3bc322225abdfb8119678b",
+    "cmake/MultiplayerAudioContinuation.cmake": "8b4b827c63170b409c0b6d330800e323cc461b2229070c7d2804bd25fc240e6b",
+    "cmake/NativeTu15NormalizeVector.cmake": "c4c6ae32cf5666c6921c541cf9981ddf2996977b2d4df46639899011a0426bdc",
+    "cmake/NativeWeaponEffectsTu15.cmake": "257c3987c1f86ae414734438ada8a6dde80b46ebce0251ba9cdaebadaa263731",
+    "cmake/OnlinePeers.cmake": "0e4121c7e615b4e284d1a45cce180c2f3a4ebf8be0324765f0fa09c05e5b0c02",
+    "cmake/OnlineProtocolRust.cmake": "abceb337ff575395ac3070f23f997acb3a05c98802691e0cf01bcd08bb6dd537",
+    "cmake/PhysicsLiveWorldTu15.cmake": "60b47f3fd73c769f06a6ac6e832206f965bb31c9a7264dd191901b3b6649ad3c",
+    "cmake/PhysicsMultiplayerAcceptance.cmake": "e11a5fb373288287c9f919409183105b9176f807e04a204dc0d77e6ce987afca",
+    "cmake/WorkshopSceneryTests.cmake": "56f3fff7dff69e4e08eba4fd0bd1f5e1787e645dd90c6c4469de6ca2b3efac21",
+    "include/halo2/frontend.hpp": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+    "include/halo2/mcc_sound_variation_provider.hpp": "d3d1fb8560d37a8dfc27cf36c7068c1eee6fedde70cc70fd98abba77757976d2",
+    "include/halo2/native_tu15_contact_shape.hpp": "8099896d6d2651d3ca465772ec5f52c4a8da01569c715ad2aa24e3b9917fec72",
+    "include/halo2/native_tu15_convex_agent_binding.hpp": "d24381a9b31a8db894dabd910497f8a136514f5567d966a391945ec81cfe3f9c",
+    "include/halo2/native_tu15_convex_agent_factory.hpp": "1090e6cf330dd231dd954278d289e19ae2b70b4114408ab87a1c533746bea1b9",
+    "include/halo2/native_tu15_normalize_vector.hpp": "deb751e996a84755bf68373009c8ca2499c7729d0a761c12980611e59b1b498e",
+    "include/halo2/native_tu15_physics_frame_residuals.hpp": "0a3cabcf58c7128a15b1eb1f87965a666327d6cd4c51b7d4d8f36d52c5103306",
+    "include/halo2/native_tu15_world_integration.hpp": "e75a4f92a11f995e3f9277def7cb48f95cf1cf0cccdbda6ca5d4d7426b22b37e",
+    "include/halo2/physics_contact_record.hpp": "b28d8fb6799a6cea15de76e580a7b427fb913d283e12949ffbee82eb0695f025",
+    "include/halo2/physics_contact_runtime.hpp": "1249fc52829944ba78016f58c7818c2386c5b9c24d21e0361f588e5f01822b27",
+    "include/halo2/source_bsp_resident_plan.hpp": "fa495a88e674572d50ca4efdecc4ddbfc231848989d138a950591d757230b4ab",
+    "include/halo2/source_bsp_shader_scene.hpp": "c964ebf1d37cf2f805331429c733e782311ec4d7eea131b239d89de30b3043ee",
+    "include/halo2/source_model_depth_input.hpp": "e0136b3fd7f50c61d7bd2962b0e0ca277d630415046992bc70848fc2d2aeed93",
+    "include/halo2/source_runtime_memory.hpp": "d52c6ca6673052f0ea5899d47eb2b047d2caaceef128c59b7da9c6b74b61ce46",
+    "include/halo2/source_runtime_write_protection.hpp": "696955c734972bdab4a5956c0d5f1e6832c8e978aafd6159776fef52d7c36360",
+    "include/halo2/source_shadow_raw_plan.hpp": "4f0e27e907e1daf468d4167abec70eaf42f06ebbb8a332496aa9aa77496b1942",
+    "include/halo2/source_shadow_scene.hpp": "147e8aa561a9be93d4d6f42b9527068978bef820ab6eed8c9843409119bd2137",
+    "include/halo2/source_transparent_parts.hpp": "27b7a11210328e7c13733580dd20cbf200d6238f4a4b3e950eb62086b64dd8b5",
+    "include/halo2/world_effects.hpp": "936d62dec1f04661d70f633563b2ccb37cbfea2ee407019700b57357fad6ee2c",
+    "rust/online_protocol/src/lib.rs": "943baa29b996ff0c77a623fabf0bb2fc2cb7d3a0d8799c9dfa1d8145f469d2da",
+    "rust/online_protocol_bridge/build.rs": "8e3c0dfa34b4a4d083c51a88fcce0869d4f8814879e9e3380b7569172ee5286d",
+    "rust/online_protocol_bridge/src/lib.rs": "14d9b5d16188d16b4bde469aa6ca042abcc0767b3e91f033ed33b1c92fb56237",
+    "src/audio/mcc_sound_variation_provider.cpp": "f04d1e73844ed8191a415632d97bbc370267a0060df55b07435627e8ad4e445d",
+    "src/audio/mcc_sound_variation_provider_internal.hpp": "caa98975dcf80024df3e1279d62408e7455053ed3d72d3e96c8b4f22e510fad7",
+    "src/audio/multiplayer_audio.cpp": "8902409894f83ba7bc2c11d96cc4df2c21f52fbf90b893d4a8aeb6e772016a65",
+    "src/campaign/ai/source_ai_frame_tu15_generated.cpp": "6a3a4b79c52c7ceedb863b23d6e36e2fbec54608642f7ea02d95c5b6d6431dec",
+    "src/gameplay/multiplayer/multiplayer_runtime.cpp": "c5f75ec45405a6f60087feaa95db4614286d531b49e67a41c34aea05c7d6411e",
+    "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp": "745f8a48198f4d39bacb26c43418f2ee3a97cdc4f5b407805743170dfd6d4d2e",
+    "src/gameplay/weapons/native_weapon_marker_matrix_tu15_internal.hpp": "b9697307a19d9453ccc9014dc7ccf4eb2b4037c8635818d8a67a72a1b5b76d15",
+    "src/physics/native_tu15_contact_shape.cpp": "f4bb1165f6040d4be81bfe42c6b1f54acca02abaf4e7f95485d835aea67b8cda",
+    "src/physics/native_tu15_convex_agent_factory.cpp": "bfeb716aa8e01b6865ce76bacdb905b98b1386a2ea52ed449b01fb535b456d5a",
+    "src/physics/native_tu15_world_integration_residuals.cpp": "7fcec5847ebc88b4eefc824c426c4e6a4cdf3f06286a2fbab00674763f1520cb",
+    "src/physics/physics_live_support_tu15_generated.cpp": "f44180a23a9039529037693f3a4db69fccb648e454c152203aada65457596d27",
+    "src/physics/physics_live_world_tu15.cpp": "6dc706d41775904f1587464f0f6e3f175039821fa79c75024ba1bb4ff0983c16",
+    "src/physics/runtime/native_tu15_normalize_vector_bridge.hpp": "97cba260f21ec41b0a158acdd5d33f93af6bcbc0e0fea5aabb8d0b6988b9181a",
+    "src/physics/vehicles/physics_vehicle_motion_generated.cpp": "81777a0bca4f00bc3f37aeb4881dd0969fbbeab53c3c3f0302bd79c107ac27d9",
+    "src/rendering/effects/world_effects.cpp": "7a4d132dd5a4d73ee9e0b14c3309508f66473d8e9874a8f1a0c42786fc3b2c97",
+    "src/rendering/models/source_model_effect_lights.cpp": "0158449c08c8ec82bd18b50cd5b312209e6043e72a7aaa6a31294c334150d10c",
+    "src/rendering/renderer/source_scene_device_constructor_tu15_generated.cpp": "32cb8afbee39a921374e74840fdb72391f37c68d2795fbb64d4cf61e1887249c",
+    "src/rendering/shadows/source_shadow_scene.cpp": "e80a3e125b88010e8e80ab197fc77f24201bfca2295e5609fef01b3abf19d51c",
+    "src/rendering/source_transparent_parts.cpp": "f2f46c3cc19b514e8abbf8769abbe5946d5e282183e8d57b0e4168a6a8ee6922",
+    "src/rendering/world/source_bsp_effect_lights.cpp": "3506909f49a294173d02fce6ef08d28c7ba8c3aef2b587c8f3b6a6f3b37e6456",
+    "src/rendering/world/source_bsp_resident_plan.cpp": "c2dd5e5a5435d591cf32f57a6208bc865269a1c11151fcf2b334c7efba6bdc0c",
+    "src/rendering/world/source_bsp_shader_scene.cpp": "028711f72a42b54c973800909706eb273664c0cf5a83ff76e590824570d72ca1",
+    "src/rendering/world/source_model_depth_input.cpp": "2bd06a478a82f99f059ba4011988987faa1910f64a28ff6e14db237bb98be7b9",
+    "src/runtime/source_runtime_memory.cpp": "1b545f46acf8af139d0a25050e2baf68d6cff8421c61f1b15938f26165a330f9",
+    "src/runtime/source_runtime_write_protection.inc": "96bf290eb44cf06594830bfc11daccfd9490b1086402f540c1cc3842d03af315",
+    "src/ui/frontend_clans.cpp": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+    "src/ui/frontend_matchmaking.cpp": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+    "src/ui/frontend_matchmaking_lobby.cpp": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+    "src/ui/frontend_party.cpp": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+    "src/ui/frontend_state.cpp": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+    "tests/helpers/native_world_convex_factory_prefix_tu15.hpp": "8f01d39b536bb0e24a82191224a62730f921c236fdd6184f3d1b7d87a4d4176c",
+    "tests/native_mcc_scenery_animation_world_tests.cpp": "3d8d9a7fe8ef4667ed2115087a6d250f677ca29bedfd306cec22380298d12aac",
+    "tests/native_tu15_normalize_vector_tests.cpp": "f9eca6a330482603a1de81baab169f1af8ebfdabec326f835ea918fc60a00455",
+    "tests/native_tu15_world_residuals_tests.cpp": "132967917e29dded2ef848bca21e08eb9e24a995bb760ebf36999786eac41bae",
+    "tests/native_weapon_effect_marker_matrix_tu15_tests.cpp": "d6763e7e53c4c98a69665babfa447a2c413261492154f037f64678761cadd967",
+    "tests/original_sound_preparation_cache_tests.cpp": "b3fb754290ba9d592bc2298f341be98bf900c2ce0c111e78617615d58d6ac875",
+    "tests/physics_multiplayer_acceptance.cpp": "d97d38ea2f31f83cead664d20b4549854f77bf64d5bb424616dcb3ba5655bc64",
+    "tests/reference/frontend_search_before_rust_20261102/provenance.json": "b14c3adb18eeaa4b13ca9b46e13cd25799d93262bd2ffffe8117730da3004780",
+    "tests/source_bsp_breakable_visibility_tu15_tests.cpp": "55ef5b54c070e0f4eec57c07ae78458c64bd1b24103aa903576cf8ab32de559c",
+    "tests/source_model_depth_input_tests.cpp": "f411528e1acdfb4b9c297aff99b3a4991e96993f568908a10c87aeaf443ab66c",
+    "tests/source_runtime_memory_tests.cpp": "c7476165dbe1ecef34455d9e5678bcb93584f091553adf4341cd78b19abe7c4e",
+    "tests/source_runtime_policy_hold_tests.cpp": "ad1829881e3e89da2794d29d57a248b4ab4f561dc051bba98594c7a9b1875e3f",
+    "tests/source_runtime_write_dispatch_reentrancy_tests.cpp": "3645040c67979f3a578a01480309bf71bf19016f6e5e1c845f920f6abb2bd3c8",
+    "tests/test_build_online_protocol_rust.py": "7e7b7d30080b89edcf5caa55844648c7660b4d384e3ad853d8592631d4765d4e",
+    "tests/world_effects_tests.cpp": "fd2517c030b113af9c58a00cce28dd03d8f9cf8de2293a84b836be5e9379269c",
+    "tools/audit_native_weapon_paired_route_maps_tu15.py": "f07ee69a971c7b4a8415732202ab4ce9681abb8f7cb702790147af5f8a4adcd0",
+    "tools/build_launcher_engine.py": "ab32be9b8b9bed8cb1f27f048c2ded070a43246517a327cfb05f2a73511198dc",
+    "tools/build_online_protocol_rust.py": "7d354180d30f31603a3bab926ca98975f93cc019cb51c919322cc6fa9a66c949",
+    "tools/generate_physics_live_support_tu15.py": "efe5e358f4435bb278fa4ce0b30d876c7a0c6d8b6c8b53a4e3f114f07e9cb559",
+    "tools/native_weapon_effect_paired_bridge_tu15.py": "1f24fe1082c2fa5d74f8706ae9957544253bf2d41fd6662affedb5ca5f05976a",
+    "tools/native_weapon_effect_state_bridge_tu15.py": "1a6e324b8d066d1922b79823ecb1b59bca8739133fee15fba61fb4ea40c1ee7e",
+    "tools/qualify_native_tu15_normalize_renderer.py": "71b734ba17aead282cc4d279b6ffc2e842d5df08790a91cce44d1b24ade3637c",
+    "tools/qualify_native_tu15_normalize_vector.py": "f5b0db15681811e166173b7c565819538cbcaabff16d24d76f1e9b69792d135b",
+    "tools/qualify_source_runtime_native_write_policy.py": "d7c4e54ea4b2167aefe11f1a5d9f3e0fe818ab3a2d1d486381eec8218bf53990",
+    "tools/report_native_activation_probe_cleanup_tu15.py": "f8a91ee0f79b90e3bad29b16106ecb3b1341951dfc8c5364fd1287b6f5d54556",
+    "tools/validate_native_tu15_normalize_mutations.py": "7c4d528bb0df173bdc85db1a44ba448dfb4fb10fde10cbad65f2d58ea3928616",
+    "tools/validate_native_tu15_normalize_vector.py": "2620c0535f4f4772e030606cf34f1ed73bacf3297024017d033c236b8d8bf940",
+    "tools/validate_native_weapon_effects_tu15.py": "da5eeec84cd82d7173968b257efaa5239d0840b3c483e2b9f0f5a09e59810f08"
+  },
+  "remove_from_base": [
+    "include/halo2/frontend_matchmaking_search.hpp",
+    "include/halo2/native_tu15_object_deletion_detaching_binding.hpp",
+    "include/halo2/native_tu15_object_deletion_spatial_binding.hpp",
+    "include/halo2/native_tu15_object_detachment.hpp",
+    "include/halo2/native_tu15_object_spatial_packet.hpp",
+    "include/halo2/native_tu15_pair_creation_queue_binding.hpp",
+    "include/halo2/native_tu15_pair_island_wake_binding.hpp",
+    "include/halo2/native_tu15_wrapped_factory_binding.hpp",
+    "include/halo2/source_object_name_lookup_tu15.hpp",
+    "rust/online_protocol/src/matchmaking_frontend_search.rs",
+    "rust/online_protocol/tests/matchmaking_frontend_search.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_search.hpp",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs",
+    "src/gameplay/objects/source_object_name_lookup_tu15_generated.cpp",
+    "src/physics/native_tu15_object_detachment.cpp",
+    "src/physics/native_tu15_object_spatial_packet.cpp",
+    "src/ui/frontend_matchmaking_search.cpp",
+    "src/ui/frontend_matchmaking_search_bridge.cpp",
+    "tests/fixtures/object_name_lookup_tu15.json",
+    "tests/helpers/original_sound_preparation_inputs.hpp",
+    "tests/native_frontend_search_rust_tests.cpp",
+    "tests/native_late_effect_light_tu15_tests.cpp",
+    "tests/native_tu15_normalize_storage_tests.cpp",
+    "tests/native_tu15_object_detachment_tests.cpp",
+    "tests/native_weapon_effect_marker_mode_tu15_tests.cpp",
+    "tests/native_weapon_effect_marker_parent_composed_tu15_tests.cpp",
+    "tests/native_weapon_effect_marker_parent_tu15_tests.cpp",
+    "tests/object_name_lookup_tu15_tests.cpp",
+    "tests/original_sound_world_tu15_tests.cpp",
+    "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc",
+    "tests/test_native_frontend_search_rust.py",
+    "tools/generate_source_object_name_lookup_tu15.py",
+    "tools/inventory_native_phantom_frame_before_tu15.py",
+    "tools/oracle_object_name_lookup_tu15.py",
+    "tools/oracle_weapon_effect_marker_mode_tu15.py",
+    "tools/oracle_weapon_effect_marker_parent_composed_tu15.py",
+    "tools/oracle_weapon_effect_marker_parent_tu15.py",
+    "tools/prepare_native_function_masked_cw_tu15.py",
+    "tools/prepare_native_pair_creation_queue_world_binding_tu15.py",
+    "tools/prepare_native_pair_delete_formal_tu15.py",
+    "tools/prepare_native_phantom_deletion_world_binding_tu15.py",
+    "tools/prepare_native_phantom_spatial_world_binding_tu15.py",
+    "tools/prepare_native_point_part_extended_binding_tu15.py",
+    "tools/prepare_native_point_part_extended_world_binding_tu15.py",
+    "tools/prepare_native_world_pair_island_wake_tu15.py",
+    "tools/probe_native_pair_delete_contact_census_tu15.py",
+    "tools/qualify_native_object_spatial_packet_tu15.py",
+    "tools/qualify_native_pair_delete_formal_tu15.py",
+    "tools/qualify_native_point_part_extended_callback_tu15.py",
+    "tools/qualify_native_world_pair_island_wake_tu15.py",
+    "tools/qualify_original_sound_preparation_cache_tu15.py",
+    "tools/trace_native_physics_heap_writer_tu15.py",
+    "tools/validate_native_function_masked_cw_tu15.py",
+    "tools/validate_native_gsk_agent_factory_actual_tu15.py",
+    "tools/validate_native_gsk_bd_actual_tu15.py",
+    "tools/validate_native_object_detachment_tu15.py",
+    "tools/validate_native_object_spatial_packet_tu15.py",
+    "tools/validate_native_pair_create_island_wake_tu15.py",
+    "tools/validate_native_pair_creation_queue_binding_tu15.py",
+    "tools/validate_native_pair_creation_queue_counter_truth_tu15.py",
+    "tools/validate_native_pair_delete_native_children_tu15.py",
+    "tools/validate_native_pair_delete_tu15.py",
+    "tools/validate_native_phantom_added_actual_tu15.py",
+    "tools/validate_native_phantom_added_detaching_actual_tu15.py",
+    "tools/validate_native_phantom_added_spatial_actual_tu15.py",
+    "tools/validate_native_phantom_deletion_world_counters_tu15.py",
+    "tools/validate_native_phantom_pair_create_frame_derived_tu15.py",
+    "tools/validate_native_phantom_spatial_world_counters_tu15.py",
+    "tools/validate_native_point_part_extended_callback_tu15.py",
+    "tools/validate_native_point_part_extended_world_counters_tu15.py",
+    "tools/validate_native_point_part_gameplay_extended_tu15.py",
+    "tools/validate_native_world_pair_island_wake_counters_tu15.py",
+    "tools/validate_native_world_pair_island_wake_tu15.py",
+    "tools/validate_native_wrapped_factory_actual_tu15.py",
+    "tools/validate_object_name_lookup_tu15.py"
+  ],
+  "reconstructed_parts": [
+    {
+      "name": "source-pins-0.json",
+      "sha256": "2867e2c571c3257f5355c1a352809258e464cb498191bfa1653500e23015d2a3",
+      "bytes": 43837
+    },
+    {
+      "name": "source-pins-1.json",
+      "sha256": "ed68b02e7329213a2e0f41c880424cec071f185b7c1bf20f9621ea9769496832",
+      "bytes": 46332
+    },
+    {
+      "name": "source-pins-2.json",
+      "sha256": "3fa2a45f0f12fbc6500947b907685ebaa1f430a85013ebf14f585d2e04fb0dc2",
+      "bytes": 48910
+    },
+    {
+      "name": "source-pins-3.json",
+      "sha256": "cfb520c1ae5d52a442b6b89d46ec979fc2a09e5938d8f5a9c07fe6f501e22b25",
+      "bytes": 45903
+    },
+    {
+      "name": "source-pins-4.json",
+      "sha256": "75f76a37e7fec3abd3b58dbf1b3a028c92efa3f510defdc198c6a76552626bb2",
+      "bytes": 47587
+    },
+    {
+      "name": "source-pins-5.json",
+      "sha256": "8753cf76fb76aac64d5872b41c0e074cf1200457528c00409ef989fec5b306da",
+      "bytes": 46971
+    },
+    {
+      "name": "source-pins-6.json",
+      "sha256": "f88974147381d2e00d2d78c8dedd5c256d25fc3b003cd64942e2844909a0868f",
+      "bytes": 49743
+    },
+    {
+      "name": "source-pins-7.json",
+      "sha256": "e6147885c2018e8d92d64fc778681dff25fa526b65debb5195d3b426589f9206",
+      "bytes": 56950
+    },
+    {
+      "name": "source-pins-8.json",
+      "sha256": "cf938629e1f88786d0e897d7e9765b9eab969e2e94afb49f4d33a0756c16cbc6",
+      "bytes": 49953
+    },
+    {
+      "name": "source-pins-9.json",
+      "sha256": "d4b1b64401b2fb7b1e007bac79dc6e617b380c6d58aebacec0d0325b01f04513",
+      "bytes": 49345
+    },
+    {
+      "name": "source-pins-10.json",
+      "sha256": "e7f3a1698ba28be3359cad6666e9bdb61cee5608d95e7780fec0398524c962ef",
+      "bytes": 48275
+    },
+    {
+      "name": "source-pins-11.json",
+      "sha256": "ad662c9ecd82b38a54b66fe17055478a9afefd623d508514743c43256ad911b6",
+      "bytes": 49007
+    },
+    {
+      "name": "source-pins-12.json",
+      "sha256": "c86718f4e78056dd6faeadcf6716853cb256d4deda0e0888d0ae27d5820400c6",
+      "bytes": 45524
+    },
+    {
+      "name": "source-pins-13.json",
+      "sha256": "b2e50e7c04279ac53609af360302da36be7fd13330ba51b361f5c3e77fb1bbf2",
+      "bytes": 47811
+    },
+    {
+      "name": "source-pins-14.json",
+      "sha256": "bee6534db9a9284d70427a8f5058b8ca547465f6c1e611b32b76e72fccdc4e37",
+      "bytes": 53760
+    },
+    {
+      "name": "source-pins-15.json",
+      "sha256": "19c4f5e758659b43ec40a1c85ab3ce4f11cbab6c883df7d7c4f9ad0ce802185e",
+      "bytes": 53921
+    },
+    {
+      "name": "source-pins-16.json",
+      "sha256": "415da1c6f3c81b1e0d3bdab49e0673544b1abded020a62c2bb6ce1550253428e",
+      "bytes": 58335
+    },
+    {
+      "name": "source-pins-17.json",
+      "sha256": "b6ec8ce01a5543c037b5205bf2a65d4d1349223db86ba9af4b1fb47c029330bd",
+      "bytes": 50471
+    },
+    {
+      "name": "source-pins-18.json",
+      "sha256": "87fca77e14a31c1ae2d4e5164000f69707b07fed6955d572ab108c90ff6cdc67",
+      "bytes": 51424
+    },
+    {
+      "name": "source-pins-19.json",
+      "sha256": "201b01b565bfd2b597e34777c4f6b23553618fd9156bf162bae7e97de5197f13",
+      "bytes": 54585
+    },
+    {
+      "name": "source-pins-20.json",
+      "sha256": "62860fd5baf140a5b3f5cc8f2c35e7183bfad2484bc0a27ffc8fdb099b1d3355",
+      "bytes": 48442
+    },
+    {
+      "name": "source-pins-21.json",
+      "sha256": "95dce933b43ce9c0425ec8a7d577fc1371876d0230e05991d023c9e66f96c5dd",
+      "bytes": 44829
+    },
+    {
+      "name": "source-pins-22.json",
+      "sha256": "8434c5283c81664b44106a5677fe9bb12d6cc41be6a36eb4ceffefaa77dd6c3d",
+      "bytes": 48676
+    },
+    {
+      "name": "source-pins-23.json",
+      "sha256": "65954a48ed6a3a7d8f599ab7c657934582cd49a2c8407754d11d0101b1f10675",
+      "bytes": 46156
+    },
+    {
+      "name": "source-pins-24.json",
+      "sha256": "5cea24e4b52345ed09a1d598ce958e889e28edc744f9986dca0faac8d8e91c93",
+      "bytes": 46621
+    },
+    {
+      "name": "source-pins-25.json",
+      "sha256": "f459ac330adc681c6386557a09431cb932859a7aa70695ebe6af73a624763a95",
+      "bytes": 45658
+    },
+    {
+      "name": "source-pins-26.json",
+      "sha256": "a62e05645ee21bf94c03796f5f8bd71bc6607f2e005d9908cb96da275bfe97fd",
+      "bytes": 44755
+    },
+    {
+      "name": "source-pins-27.json",
+      "sha256": "bfc3d9606b1c805f1a933cbed764a5d3b8d89a29a0e8eb601b0684493e2582d7",
+      "bytes": 46071
+    },
+    {
+      "name": "source-pins-28.json",
+      "sha256": "a45789d2691d71a306f085b2d2f77a55d5f5f283ee5dd87b2042358ca72b831a",
+      "bytes": 46035
+    },
+    {
+      "name": "source-pins-29.json",
+      "sha256": "336f581a9c9b5aafd9bb178165c599360cf5f2bbf48bf160e777cc20a725269b",
+      "bytes": 46888
+    },
+    {
+      "name": "source-pins-30.json",
+      "sha256": "6e3a852ad25cb338f9a74f181573e73ee1b706757971fcbb4885709e9ff21020",
+      "bytes": 45920
+    },
+    {
+      "name": "source-pins-31.json",
+      "sha256": "0226f0c894dc9eaf8237028474fed9b6dfedce2fcabbb5d2cadcfa5af05b1994",
+      "bytes": 48162
+    },
+    {
+      "name": "source-pins-32.json",
+      "sha256": "c54ad3142d5f24391c23512d56b7c398a90499c2f44d51bb7f0238e3cb45fefd",
+      "bytes": 46848
+    },
+    {
+      "name": "source-pins-33.json",
+      "sha256": "2dfbad6bad9733c369a7b435aaf80b58e87b097677ec8603046b3c711a87337d",
+      "bytes": 46003
+    },
+    {
+      "name": "source-pins-34.json",
+      "sha256": "f794b436843b958904fe347196c2f79469919dc6a7db82f5007e1fe3fbb23730",
+      "bytes": 46287
+    },
+    {
+      "name": "source-pins-35.json",
+      "sha256": "73616879f4848c1986286ae6e5008c31b7cf95c271c09803d214a3994cb9c9c6",
+      "bytes": 58305
+    },
+    {
+      "name": "source-pins-36.json",
+      "sha256": "5c69c7227565f820dc44d289ba44e9c8ce462cc2e513cad8029f20a1cfc959dc",
+      "bytes": 62247
+    },
+    {
+      "name": "source-pins-37.json",
+      "sha256": "92baef9a98a5563581b2cdf62bea3f8f37fbeaa0b2a9ecc3d06348c29d1d723e",
+      "bytes": 62076
+    },
+    {
+      "name": "source-pins-38.json",
+      "sha256": "312876cd5ecf474fd7ea7093cf48e32e818d1ea0574b68007ea0b86c8a4b429f",
+      "bytes": 92406
+    },
+    {
+      "name": "source-pins-39.json",
+      "sha256": "376890ad81b4490255cbf4994b09caa3cdb877b0d0ad132c4eb7e3992898fab5",
+      "bytes": 88306
+    },
+    {
+      "name": "source-pins-40.json",
+      "sha256": "d9c56f8cd726ca2393699334b0a9b46cf09870b34da147f46166425f2fca0ab2",
+      "bytes": 59284
+    },
+    {
+      "name": "source-pins-41.json",
+      "sha256": "509bd381dde4f0d25958dc15daa169f37c0e53fa6b3a5c2f645cabf2fdec447a",
+      "bytes": 51981
+    },
+    {
+      "name": "source-pins-42.json",
+      "sha256": "615bf967a0b407568103649fe91d13b35e71d42e5329fb229615fbaef3052c22",
+      "bytes": 51607
+    },
+    {
+      "name": "source-pins-43.json",
+      "sha256": "f2d28aa1c3bac403750bbc4a2147326cdc521a16191e09dfce2c917c4668daa2",
+      "bytes": 51580
+    },
+    {
+      "name": "source-pins-44.json",
+      "sha256": "8d4d2138e6fd9d0df1dca5e3122b8cfdc189b7ab62e01a5ea51c3fb29aae4d6e",
+      "bytes": 57632
+    },
+    {
+      "name": "source-pins-45.json",
+      "sha256": "d1cfcdf88d3392557850767b444e1d4021adc994bc0c1233898e0067f8f431fe",
+      "bytes": 51766
+    },
+    {
+      "name": "source-pins-46.json",
+      "sha256": "bb950ae0ffe8f854d383de926df3ef1ab750efe4acd515288c51ccaa55a9b176",
+      "bytes": 47644
+    },
+    {
+      "name": "source-pins-47.json",
+      "sha256": "202371a8529fcbd2c787322c25c1323fa61409828ef4c891d24dcb3e4d6913fb",
+      "bytes": 49685
+    },
+    {
+      "name": "source-pins-48.json",
+      "sha256": "0bb8625ec5f221e418dbe6ff6e124818d64beccc569487ddfe4fe5faa37dc460",
+      "bytes": 17092
+    }
+  ],
+  "all_original_part_bytes_verified": true,
+  "files": 19356
+}

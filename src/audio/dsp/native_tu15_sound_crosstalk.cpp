@@ -33,8 +33,7 @@ bool overlaps(std::uintptr_t left,std::uintptr_t right) {
     return left<right+bytes&&right<left+bytes;
 }
 }
-Result process(const Controls& control,State& state,const std::array<Input,4>& inputs,
-               const std::array<Output,4>& outputs,std::span<ArithmeticTrace,64> trace) {
+void validate_controls(const Controls& control) {
     validate(control.entry_status);
     constexpr auto unsupported=(3u<<10)|(1u<<12)|(1u<<13)|(1u<<14)|(1u<<15)|
         (1u<<16)|(1u<<17)|(1u<<18)|(1u<<20);
@@ -43,6 +42,10 @@ Result process(const Controls& control,State& state,const std::array<Input,4>& i
     if(control.state_relative!=AddressingMode::linear||
        control.first_output!=AddressingMode::linear||control.second_output!=AddressingMode::linear)
         throw std::invalid_argument("State-relative or output addressing mode is outside the recovered domain");
+}
+Result process(const Controls& control,State& state,const std::array<Input,4>& inputs,
+               const std::array<Output,4>& outputs,std::span<ArithmeticTrace,64> trace) {
+    validate_controls(control);
     validate(state.flags);
     for(auto coefficient:state.coefficients)validate(coefficient);
     for(const auto& pair:state.pairs) {

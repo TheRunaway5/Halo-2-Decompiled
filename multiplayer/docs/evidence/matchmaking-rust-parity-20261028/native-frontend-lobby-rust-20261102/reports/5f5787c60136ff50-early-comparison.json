@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scope": "Exact modern native pregame caller and input branches versus Rust; UI/account IO is declared, not installed delivery or original Live proof",
+  "cases": 976,
+  "commands": 4387,
+  "native_refusals": 11,
+  "wrapper_native_exception_identity_controls": 976,
+  "mismatches": [],
+  "sha256": "3080cb0227bb7338e013986c97f02dc5b212a0e54f1dcbe2730ca9e68e91416d",
+  "input_sha256": "f18a8272f5821471657d879d40c8cf8843273cedd66615db1dd0ea9e2597d85f",
+  "native_preamble": [],
+  "binary_sha256": "0abc0b141447efa8c68681feaea207a07bdc7dfac5f080d08af7fc2488730287"
+}

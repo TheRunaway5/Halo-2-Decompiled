@@ -1,6 +1,7 @@
 #include "halo2/source_game_variant.hpp"
 #include "halo2/frontend.hpp"
 #include "halo2/multiplayer.hpp"
+#include "halo2/matchmaking_variant.hpp"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -49,6 +50,8 @@ void oracle(const FrontendContent &content,const std::filesystem::path &fixture)
       auto v=buffer(before);const auto original=v;const auto expected=buffer(after);
       check(source_game_variant_valid(v)==bool(valid) && v.bytes==original.bytes,
             "copy validation differs or mutates caller: "+label);
+      check(matchmaking_variant_valid(v.bytes)==bool(valid) && v.bytes==original.bytes,
+            "Rust matchmaking admission differs or mutates caller: "+label);
       check(source_game_variant_normalize(v,locale?reset_title:std::u16string{})==bool(valid) &&
             v.bytes==expected.bytes,"complete source reset/preservation differs: "+label);
       ++rows;
@@ -70,14 +73,20 @@ void runtime() {
         "native field alias failed to preserve ordered source writes");
   const auto alias=slayer_rules({"Field Alias",0,{{92,1}}});
   check(alias.death_loss,"native capability gate rejects original same-field alias");
-  const auto ignored=slayer_rules({"Absent Descriptor",0,{{112,1},{0xffffffffu,1}}});
+  const auto ignored=slayer_rules({"Absent Descriptor",0,{{112,1}}});
   check(ignored.score_limit==25,"absent source descriptor changed or rejected native settings");
+  auto absent=source_game_variant_default(0);const auto unchanged=absent.bytes;
+  for(const auto parameter:{-1,112,2147483647})source_game_variant_set(absent,parameter,1);
+  check(absent.bytes==unchanged,"raw original absent descriptor changed source data");
   auto rejects=[](UiVariant variant) {
     try{(void)slayer_rules(variant);}catch(const FormatError&){return;}
     throw FormatError("native admission ignored source-invalid buffer");
   };
   rejects({"Bad Score",0,{{2,32768}}});
   rejects({"Bad Weapon Byte",0,{{89,255}}});
+  // High-bit UI keys are a distinct native extension namespace. Original
+  // setter no-ops must not bypass its unknown-extension rejection policy.
+  rejects({"Unknown Native Extension",0,{{0xffffffffu,1}}});
   rejects({"Unfinished Sensor",0,{{20,0}}});
   std::cout<<"PASS native canonical fields, source numeric ranges, aliases, bit/byte writes and retained unsupported gates\n";
 }

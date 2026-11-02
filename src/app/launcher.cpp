@@ -286,11 +286,13 @@ bool current_build(const fs::path &root,const fs::path &build) {
       fs::weakly_canonical(source)==root &&
       fs::weakly_canonical(directory)==fs::weakly_canonical(build);
 }
-Installation locate() {
+bool has_frontend_selection(const fs::path &root);
+Installation locate(bool frontend_only=false) {
 #ifdef __APPLE__
   if(const auto layout=halo2::macos_application_layout()) {
     Installation installed{layout->data,{},layout->data/"build",{},layout->resources,true};
     bind_installation(installed);
+    if(frontend_only && has_frontend_selection(installed.root))return installed;
     if(const auto selected=selected_prebuilt_runtime(installed);!selected.empty()) {
       installed.runtime=selected;
     } else {
@@ -341,6 +343,10 @@ Installation locate() {
     }
     const Installation source_installation{project,{},build};
     bind_installation(source_installation);
+    // A separately selected menu runtime owns ordinary Play. Do not hash all
+    // multiplayer maps/shaders before opening its home or launching its intro.
+    // frontend_runtime() still authenticates that explicit selection below.
+    if(frontend_only && has_frontend_selection(project))return source_installation;
     const auto selected=selected_prebuilt_runtime(source_installation);
     if(!selected.empty())binaries.insert(binaries.begin(),selected);
     const auto gameplay=local_gameplay(source_installation);
@@ -607,7 +613,16 @@ int main(int argc, char **argv) {
       if(argument=="--prepared-mcc-cache-root" || argument.starts_with("--prepared-mcc-cache-root="))
         throw std::runtime_error("The prepared MCC cache root is authored by the launcher, not a user option.");
     }
-    auto installation = locate();
+    bool frontend_only=true;
+    for(int i=1;i<argc;++i) {
+      const std::string argument=argv[i];
+      for(const auto *option:{"--native-test","--multiplayer","--play","--campaign",
+          "--simulate","--host","--join","--dedicated","--preview-mcc","--setup",
+          "--setup-only","--mcc-source","--prepare-mcc-gameplay","--update",
+          "--build-engine","--launcher-info","--help","-h"})
+        if(argument==option)frontend_only=false;
+    }
+    auto installation = locate(frontend_only);
     if(argc==2 && std::string(argv[1])=="--build-engine") {
       const auto helper=installation.tool("build_launcher_engine.py");
       if(installation.packaged || !fs::is_regular_file(installation.root/"CMakeLists.txt") || !fs::is_regular_file(helper))
@@ -657,8 +672,9 @@ int main(int argc, char **argv) {
           has("--menu-sweep") || has("--menu-maps") || has("--menu-movie")) &&
         (native_requested || has("--multiplayer") || has("--play") || has("--campaign") ||
          has("--simulate") || has("--host") || has("--join") || has("--dedicated"));
-    bool native_test=!qualified_multiplayer_cli && native_gameplay_test_available(installation,sources);
-    auto frontend_owner=qualified_multiplayer_cli?fs::path{}:frontend_runtime(installation,sources);
+    const bool home=!launch_game && !preview && !setup && !update && supplied.empty();
+    bool native_test=!home && !frontend_only && !qualified_multiplayer_cli && native_gameplay_test_available(installation,sources);
+    auto frontend_owner=(home || qualified_multiplayer_cli)?fs::path{}:frontend_runtime(installation,sources);
     bool frontend=!frontend_owner.empty();
     if(has("--launcher-info")) {
       const bool stale_frontend=has_frontend_selection(installation.root) && !frontend;
@@ -729,12 +745,12 @@ int main(int argc, char **argv) {
       const auto status=run_tool(std::move(arguments));
       if(status==20)return 0;
       if(status)return status;
-      installation=locate();sources=read_sources(installation.root);
+      installation=locate(frontend_only);sources=read_sources(installation.root);
       auto next=supplied;
       next.insert(next.begin(),"--launch-game");
       if(!has_frontend_selection(installation.root))
         if(const auto forwarded=forward_to_release_launcher(installation,std::move(next));forwarded)return *forwarded;
-      native_test=native_gameplay_test_available(installation,sources);
+      native_test=!frontend_only && native_gameplay_test_available(installation,sources);
       frontend_owner=frontend_runtime(installation,sources);frontend=!frontend_owner.empty();
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
@@ -793,7 +809,7 @@ int main(int argc, char **argv) {
       const auto status=run_tool({installation.python(),tool.string(),"--root",
           installation.root.string(),"--build-dir",installation.build.string()});
       if(status)return status;
-      installation=locate();rebuilt=true;
+      installation=locate(frontend_only);rebuilt=true;
       if(!installation.runtime.empty())fs::remove(update_pending);
     }
     if(!frontend_route && installation.runtime.empty())throw std::runtime_error(
@@ -803,8 +819,9 @@ int main(int argc, char **argv) {
       throw std::runtime_error("The built runtime does not support MCC content preview. Update the source and rebuild this installation.");
     if(native_test && !sources.playable && !preview && !frontend_route && !native_gameplay_test_available(installation,sources))
       throw std::runtime_error("Native gameplay test validation changed. Relaunch to use the MCC content preview or validate the updated build.");
-    if(frontend_route && frontend_runtime(installation,sources)!=frontend_owner)
-      throw std::runtime_error("Independent MCC frontend validation changed before launch.");
+    // Frontend admission runs after Play (or once for a direct CLI launch).
+    // It already checks selection/executable identities after all resources;
+    // no setup/build mutates that route between admission and exec below.
     const auto execution_runtime=frontend_route?frontend_owner:installation.runtime;
     std::vector<std::string> arguments{execution_runtime.string()};
     if(multiplayer_route) {

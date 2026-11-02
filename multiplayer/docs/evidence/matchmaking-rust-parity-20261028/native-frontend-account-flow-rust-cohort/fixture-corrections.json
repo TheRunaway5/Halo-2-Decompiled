@@ -1,0 +1,30 @@
+{
+  "core-initial": {
+    "corrected_report": "core-corrected/report.json",
+    "all_changed_frozen_inputs": {
+      "rust/online_protocol/tests/matchmaking_frontend_account_flow.rs": {
+        "before": "6f32f0bb8c9dc358f3d370e672531aaa49c0ac43bce653208159a7c477e573bb",
+        "after": "272db7155049385ced4b37fbd77e281646b3f89bd92f4f455118f15b24cf784e"
+      },
+      "include/halo2/multiplayer.hpp": {
+        "before": "3108e18b1cb7a6f9fb8ecea0bb0bba73cf492ac8032d2e27e87d5ab4b52ecfc3",
+        "after": "a280a919789f61051a7c8a91ef119fc548c48fea63e94727de955e1a936baa24"
+      },
+      "include/halo2/muzzle_effects.hpp": {
+        "before": "27c0f3f523ec4fedc62bbf725e07213c8c3781ad52afdaa8cd22caadb2e4ea96",
+        "after": "b20d235e9e620feedaccb5fc8c3b851189b8465c7aa6aa824342678bd134e025"
+      }
+    },
+    "owned_production_policy_changed": false
+  },
+  "native-component": {
+    "corrected_report": "native-component-corrected/report.json",
+    "all_changed_frozen_inputs": {
+      "tests/native_frontend_account_flow_rust_tests.cpp": {
+        "before": "22f8eb476f387b36bee226aa4f8a7a90a7dfaf7806584349252b98eed93a12dc",
+        "after": "266b28fec30c9e51bfec87daa59f301b3f2de9c5ea45083c74a55743fdf451ae"
+      }
+    },
+    "owned_production_policy_changed": false
+  }
+}

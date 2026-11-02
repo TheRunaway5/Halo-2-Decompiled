@@ -47,8 +47,14 @@ class OriginalNativeTeamBalance(unittest.TestCase):
             [sorted((weights[p] for p in team),reverse=True) for team in proposal.teams])
 
     def test_original_hopper_caller_fixture_through_service_abi(self):
+        self.check_hopper_caller_fixture('matchmaking_assignment_original.json')
+
+    def test_tu15_hopper_caller_fixture_through_service_abi(self):
+        self.check_hopper_caller_fixture('matchmaking_assignment_tu15_original.json')
+
+    def check_hopper_caller_fixture(self, name):
         import struct
-        fixture=json.loads((Path(__file__).resolve().parents[3]/'tests/fixtures/matchmaking_assignment_original.json').read_text())
+        fixture=json.loads((Path(__file__).resolve().parents[3]/'tests/fixtures'/name).read_text())
         lib=native()
         for case in fixture['cases']:
             with self.subTest(case=case):

@@ -1,0 +1,104 @@
+{
+  "passed": false,
+  "status": "failed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map",
+        "-DHALO2_MCC_PARTY_UI_TEST_CACHE=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-progress-rust-20261102/native/iteration-3/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "native_frontend_progress_rust_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-progress-rust-20261102/native/iteration-3/build.log",
+      "exit_code": 2
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": true,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "test-artifacts/frontend-progress-policy.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/frontend-search-policy.json",
+      "status": "not produced"
+    },
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 27246,
+      "sha256": "e684fe59f69cbe6d012c2ada45766942a66dc557593ec6a01ebbadf2ef7599b1",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-progress-rust-20261102/native/iteration-3/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 3562,
+      "sha256": "4557128ab89bcb0761747a5300e4dbee8524584cc3fc27d2a99dff92dde0a19e",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-progress-rust-20261102/native/iteration-3/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "test-artifacts/source-admissions-cpp-rust.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/authority-transfer-cpp-rust.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/snapshot-candidate-cpp-rust.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/native-receive-dispatch.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/native-session-access.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/native-migration-callers.json",
+      "status": "not produced"
+    },
+    {
+      "path": "test-artifacts/native-session-api.json",
+      "status": "not produced"
+    }
+  ]
+}

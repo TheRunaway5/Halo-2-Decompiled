@@ -1,0 +1,451 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_PARTY_FLOW_RUST_V1",
+  "goal_turn": "progress",
+  "goal_status": "active",
+  "component_passed": true,
+  "full_goal_complete": false,
+  "original_whole_system_parity": false,
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_frontend_party_flow.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs",
+  "native_io": "src/ui/frontend_matchmaking_party_flow.cpp",
+  "native_abi_adapter": "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+  "policy": {
+    "party_actions_and_target_state_owned_by_rust": true,
+    "privacy_pending_state_owned_by_rust": true,
+    "old_cpp_target_dismissal_tab_privacy_fields_removed": true,
+    "all_ten_party_command_bindings_preserved": true,
+    "private_join_context_and_all_command_fields_preserved": true,
+    "native_bytes_and_full_width_scalars_preserved": true,
+    "absent_and_explicit_false_acknowledgments_distinct": true,
+    "same_mode_privacy_setter_preserved": true,
+    "native_io_order_and_exception_identity_preserved": true,
+    "cpp_action_policy_fallback": false,
+    "unsafe_core_rust": false
+  },
+  "rust": {
+    "counts": {
+      "online_protocol": {
+        "passed": 556,
+        "failed": 0,
+        "ignored": 2
+      },
+      "online_protocol_bridge": {
+        "passed": 65,
+        "failed": 0,
+        "ignored": 2
+      },
+      "matchmaking_service": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "total_passed": 641,
+    "new_controls": 15,
+    "existing_ignored": 4,
+    "suite_passed": true,
+    "report": "rust/report.json",
+    "shared_native_rust_input_count": 253,
+    "shared_native_rust_input_mismatches": []
+  },
+  "build_helper": {
+    "passed": true,
+    "tests": 7,
+    "command": [
+      "python3",
+      "tools/run_test.py",
+      "--scratch-root",
+      ".local/test-scratch/frontend-party-flow-build-helper-20261102",
+      "--",
+      "python3",
+      "-B",
+      "tests/test_build_online_protocol_rust.py"
+    ],
+    "result_source": "Successful tool result in current turn"
+  },
+  "modern_comparison": {
+    "passed": true,
+    "cases": 5439,
+    "state_observations": 7090,
+    "native_io_observations": 7193,
+    "fault_observations": 54,
+    "preserved_native_exception_identity": 54,
+    "differences": [],
+    "native_exit_code": 0,
+    "native_output_lines": 5439,
+    "stderr": "",
+    "native_sha256": "8e05cedc210626e2502f73644deb63adf9084830c5a629c78b6404c4affc8879",
+    "scope": "Compare captured native party callers with the actual Rust/CXX controller.\n\nWorker, frame, member and voice observations are declared synthetic IO. This\nqualifies modern caller/state equivalence, not original Live services, native\ndevice internals, physical input or installed runtime delivery. Raw outputs\nstay inside the enclosing run_tests.py/run_test.py scratch lifecycle.\n",
+    "admitted_native_framing": [
+      "Shutdown handler: initialize.",
+      "Shutdown handler: cleanup."
+    ],
+    "transport_error": null
+  },
+  "late_resource_regression": {
+    "red_before_fix": true,
+    "green_after_fix": true,
+    "source": "Captured MenuState::act_invite_notice reads the queue resource after the accepted worker callback",
+    "regression": "rust/online_protocol/tests/matchmaking_frontend_party_flow.rs",
+    "before_report": "core-late-resource-red/report.json"
+  },
+  "native_state_controls": {
+    "same_controller_reentry": true,
+    "copy_assignment_move_independent": true,
+    "pending_frame_context_revision_and_serial_preserved": true
+  },
+  "fresh_original": {
+    "execution": false,
+    "cases": 0,
+    "original_live_worker_identity_voice_admission_producers_qualified": false
+  },
+  "native": {
+    "passing_checks": [
+      {
+        "name": "frontend_party_cpp_rust",
+        "seconds": 0.29
+      },
+      {
+        "name": "frontend_party_flow_cpp_rust",
+        "seconds": 0.43
+      },
+      {
+        "name": "frontend_presentation_cpp_rust",
+        "seconds": 0.18
+      },
+      {
+        "name": "frontend_progress_cpp_rust",
+        "seconds": 0.18
+      },
+      {
+        "name": "frontend_search_cpp_rust",
+        "seconds": 0.73
+      },
+      {
+        "name": "frontend_lobby_cpp_rust",
+        "seconds": 0.18
+      },
+      {
+        "name": "rust_frontend_clans_http",
+        "seconds": 4.04
+      },
+      {
+        "name": "rust_frontend_lobby_blocked",
+        "seconds": 74.61
+      },
+      {
+        "name": "rust_frontend_lobby_complete",
+        "seconds": 77.37
+      },
+      {
+        "name": "rust_frontend_lobby_rendered",
+        "seconds": 105.82
+      },
+      {
+        "name": "frontend_online_identity",
+        "seconds": 2.14
+      },
+      {
+        "name": "frontend_online_lobby_buttons",
+        "seconds": 6.34
+      },
+      {
+        "name": "frontend_online_lobby_legacy_countdown",
+        "seconds": 1.09
+      },
+      {
+        "name": "frontend_online_lobby_blocked_playlist",
+        "seconds": 0.93
+      },
+      {
+        "name": "frontend_online_lobby_complete_playlist",
+        "seconds": 6.44
+      },
+      {
+        "name": "frontend_online_lobby_buttons_gpu",
+        "seconds": 31.53
+      },
+      {
+        "name": "frontend_matchmaking_http",
+        "seconds": 44.14
+      },
+      {
+        "name": "frontend_matchmaking_gathering_http",
+        "seconds": 44.1
+      },
+      {
+        "name": "frontend_clans_http",
+        "seconds": 3.55
+      },
+      {
+        "name": "frontend_parties_http",
+        "seconds": 30.63
+      },
+      {
+        "name": "mcc_frontend_parties_http",
+        "seconds": 32.78
+      },
+      {
+        "name": "retail_frontend_lobby_policy",
+        "seconds": 0.09
+      },
+      {
+        "name": "original_party_countdown_kernels",
+        "seconds": 0.09
+      }
+    ],
+    "passing_count": 23,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "all_requested_checks_passed": true,
+    "baseline_passed": true,
+    "baseline_tests": 3,
+    "pre_change_inputs_equal_previous_passing_receipt": 28,
+    "frozen_inputs_intact": true,
+    "final_cohort_matches_passing_component_cohort": true,
+    "declared_changed_files": 23,
+    "declared_changes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "db93c8cba077214cd139d4af7fe388ee349956ad8b5358b1eb86265802f73b16",
+        "after": "718763ddae6a1668a1bd151c5dbac703ec94c218bdc3a24489c1352a99ebade7"
+      },
+      {
+        "path": "cmake/OnlineProtocolRust.cmake",
+        "before": "8aafd53628a6efb3718607dab0b4d13835d6edabb8529ff4a58ee0fad8e3588a",
+        "after": "85018512390348d1db3358578a224ad2a5587192bdffeea1c37cb8cc90348d44"
+      },
+      {
+        "path": "include/halo2/frontend.hpp",
+        "before": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+        "after": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494"
+      },
+      {
+        "path": "rust/online_protocol/src/lib.rs",
+        "before": "1d1e470dbd10e2084258469273ad7c0695cbc2536297f97663f7bff4b4d8a259",
+        "after": "fdc674127fde30440139cab5a73993607d93d0d38a501d1e69b018cb95fd4196"
+      },
+      {
+        "path": "rust/online_protocol_bridge/build.rs",
+        "before": "9185c294d9143d098d67e3ff3fd721dc16459d50b72ed693e87d9cf85ddb30b6",
+        "after": "7533af0f1e0bd1a5299a0aeceaca095707a41748f4b0ac207780cd7de98e95d2"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/lib.rs",
+        "before": "e180aa1e397b00c6064a71cc48a970b675c6a7a578e21e54b2fc21e74d9ec0ec",
+        "after": "a448104284f484390e0481d9c1f4325a6d0cabe5c8fcff239e581cf8f3894001"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+        "before": "f24041d1bdb73d348235c2365e28616bc4327b0bea5b1e0b62bb36919e4f9922",
+        "after": "8b401092dfc3e3fb4958fb6077505b1ab6619eb87369bd5d44d39929625c0ada"
+      },
+      {
+        "path": "src/ui/frontend_clans.cpp",
+        "before": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+        "after": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a"
+      },
+      {
+        "path": "src/ui/frontend_party.cpp",
+        "before": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+        "after": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6"
+      },
+      {
+        "path": "src/ui/frontend_state.cpp",
+        "before": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+        "after": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf"
+      },
+      {
+        "path": "tests/native_frontend_party_rust_tests.cpp",
+        "before": "7d0d155d242f0d66abb17d86942b9526d77704dc42afa55434a33fc0d9002c3a",
+        "after": "e3c3d68d9290cc20f297c37d192a32a22aa55bb40e897f6c30c2625e93154fe2"
+      },
+      {
+        "path": "tests/test_build_online_protocol_rust.py",
+        "before": "7581780ea7b5e45b3d36e8a77d9e741f10fc6593c990ead28aa1eac48cc714fd",
+        "after": "6154c815fcf9fdbc67df2583dd88638a1e22b7745279a0c400bb31edd6ece015"
+      },
+      {
+        "path": "tools/build_online_protocol_rust.py",
+        "before": "785a79470c56ae6d54d5af1978ac84b6aa4636ca4cf84158ad797c704337f904",
+        "after": "54ae081ada86748eb89ebcfb0d120fbe1c8248b394a829507996d1c86cab56cb"
+      },
+      {
+        "path": "rust/online_protocol/src/matchmaking_frontend_party_flow.rs",
+        "before": null,
+        "after": "654c09c08e680d9c12c61b8e54553494bc399a88ecf4c7042902ad743fd4ae1f"
+      },
+      {
+        "path": "rust/online_protocol/tests/matchmaking_frontend_party_flow.rs",
+        "before": null,
+        "after": "f28f12c2dab6408db89c9c3db8b5d2b536df76926a5b6a7609cf1bec01edcf93"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs",
+        "before": null,
+        "after": "dc51b99c64d13d74319498fa1a01b5018f8f694111de2df4ab8454629ed55e75"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.hpp",
+        "before": null,
+        "after": "44a2f33de5777250046fb61942d22a6a4094d0976364c1950b2c80d852b68868"
+      },
+      {
+        "path": "include/halo2/frontend_matchmaking_party_flow.hpp",
+        "before": null,
+        "after": "a954eec5f17e4aef26f67b5c5555390d3e5aa8206aa0758cf2694cba7a9e7dea"
+      },
+      {
+        "path": "src/ui/frontend_matchmaking_party_flow.cpp",
+        "before": null,
+        "after": "bf8e9e983ce78792ab6d1cb420d137f4db12294c991e45769975aa536c25acdd"
+      },
+      {
+        "path": "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+        "before": null,
+        "after": "1894fcc1aaa9aa90cd0c67844f7e1d3e5c844e2e450beca20498674559350927"
+      },
+      {
+        "path": "tests/native_frontend_party_flow_rust_tests.cpp",
+        "before": null,
+        "after": "54dff3ee48d4c3261ecddbf5424b5741339351f209155c17a2831afc61b5f3b0"
+      },
+      {
+        "path": "tests/test_native_frontend_party_flow_rust.py",
+        "before": null,
+        "after": "894ce19ed81a745d6b1f3d8a45a7e41998c06746a0c4d0798bc77c064e1ed728"
+      },
+      {
+        "path": "tests/generate_frontend_party_flow_reference.py",
+        "before": null,
+        "after": "c896cd18f40fceaf7bd5f63e8fc0c5b14eb9c6d149c0c997e210d584c5aedcdc"
+      }
+    ],
+    "actual_sdl_vulkan_privacy_playlist_start_passed": true,
+    "vulkan_party_pixel_controls": [
+      1,
+      2
+    ],
+    "party_fixture_zero_429_checks": 2,
+    "full_native_matchmaking_and_gathering_flows_passed": true,
+    "binaries": {
+      "frontend_online_tests": {
+        "sha256": "4e5aa2aff8c6fb6767d10e86d733d0fecfce2ac66a048cfb47b33e1a1b0f0427",
+        "bytes": 260030296
+      },
+      "frontend_online_lobby_buttons_tests": {
+        "sha256": "40d07ef056cb44205a89cb729955be63ce5da0509c28c4b633f29ab46c727d16",
+        "bytes": 260963496
+      },
+      "native_frontend_party_rust_tests": {
+        "sha256": "0b23b1a1d2fec7fde184584bddb2a98b53545acb5169b02a92b6904cb654faba",
+        "bytes": 26080736
+      },
+      "native_frontend_presentation_rust_tests": {
+        "sha256": "4796f94af1f19b75f7507c02dffb2113b2f3d037d62a374a1d47bfa56d4e5d65",
+        "bytes": 26025040
+      },
+      "native_frontend_progress_rust_tests": {
+        "sha256": "8ac0c3a08e05a369ffd463e23323ed1babdd40f0fd17775522978d7a43d6a6c4",
+        "bytes": 26040072
+      },
+      "native_frontend_search_rust_tests": {
+        "sha256": "7dc7a5fdcc9e1a709243eacd3f206a9ed664a9ecebd0a059c6244b3ce8c668ca",
+        "bytes": 26186288
+      },
+      "frontend_matchmaking_lobby_rust_tests": {
+        "sha256": "1f3d4e72f6e097186e5c61d0481c5a2b5b5f927b84381565f15df2315d0ff6ba",
+        "bytes": 26021200
+      },
+      "frontend_lobby_policy_tests": {
+        "sha256": "e5414dd9f0585e07a6f2b23f8a5486dead362ce7899da42bbe620141b73ea1bf",
+        "bytes": 37848
+      },
+      "party_countdown_kernel_tests": {
+        "sha256": "bea923fc7c8d15319df961c8ef39a4312a8de55379a8a9f611c935eab02ec30d",
+        "bytes": 25884592
+      },
+      "native_frontend_party_flow_rust_tests": {
+        "sha256": "8e05cedc210626e2502f73644deb63adf9084830c5a629c78b6404c4affc8879",
+        "bytes": 26202368
+      }
+    },
+    "final_report": "native/iteration-4-report.json"
+  },
+  "framing": {
+    "initial_cmake_comparison_failed": true,
+    "actual_probe": "replay-framing-probe.json",
+    "exact_native_boundary_pair_admitted": true,
+    "unexpected_output_missing_operations_malformed_json_and_process_failure_rejected": true
+  },
+  "sources": {
+    "scoped_pins": {
+      "cmake/OnlinePeers.cmake": "718763ddae6a1668a1bd151c5dbac703ec94c218bdc3a24489c1352a99ebade7",
+      "cmake/OnlineProtocolRust.cmake": "85018512390348d1db3358578a224ad2a5587192bdffeea1c37cb8cc90348d44",
+      "include/halo2/frontend.hpp": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+      "include/halo2/frontend_matchmaking_party_flow.hpp": "a954eec5f17e4aef26f67b5c5555390d3e5aa8206aa0758cf2694cba7a9e7dea",
+      "rust/online_protocol/src/lib.rs": "fdc674127fde30440139cab5a73993607d93d0d38a501d1e69b018cb95fd4196",
+      "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "654c09c08e680d9c12c61b8e54553494bc399a88ecf4c7042902ad743fd4ae1f",
+      "rust/online_protocol/tests/matchmaking_frontend_party_flow.rs": "f28f12c2dab6408db89c9c3db8b5d2b536df76926a5b6a7609cf1bec01edcf93",
+      "rust/online_protocol_bridge/build.rs": "7533af0f1e0bd1a5299a0aeceaca095707a41748f4b0ac207780cd7de98e95d2",
+      "rust/online_protocol_bridge/src/lib.rs": "a448104284f484390e0481d9c1f4325a6d0cabe5c8fcff239e581cf8f3894001",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs": "8b401092dfc3e3fb4958fb6077505b1ab6619eb87369bd5d44d39929625c0ada",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.hpp": "44a2f33de5777250046fb61942d22a6a4094d0976364c1950b2c80d852b68868",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "dc51b99c64d13d74319498fa1a01b5018f8f694111de2df4ab8454629ed55e75",
+      "src/ui/frontend_clans.cpp": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a",
+      "src/ui/frontend_matchmaking_party_flow.cpp": "bf8e9e983ce78792ab6d1cb420d137f4db12294c991e45769975aa536c25acdd",
+      "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "1894fcc1aaa9aa90cd0c67844f7e1d3e5c844e2e450beca20498674559350927",
+      "src/ui/frontend_party.cpp": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+      "src/ui/frontend_state.cpp": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf",
+      "tests/generate_frontend_party_flow_reference.py": "c896cd18f40fceaf7bd5f63e8fc0c5b14eb9c6d149c0c997e210d584c5aedcdc",
+      "tests/native_frontend_party_flow_rust_tests.cpp": "54dff3ee48d4c3261ecddbf5424b5741339351f209155c17a2831afc61b5f3b0",
+      "tests/native_frontend_party_rust_tests.cpp": "e3c3d68d9290cc20f297c37d192a32a22aa55bb40e897f6c30c2625e93154fe2",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend.hpp.reference": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend_clans.cpp.reference": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend_online_lobby_buttons_tests.cpp.reference": "539a8e16ded9590931f93cad7f5ba3201c2e47f776a15f715d2fd9ca7f8aa72a",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend_online_tests.cpp.reference": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend_party.cpp.reference": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+      "tests/reference/frontend_party_flow_before_rust_20261102/frontend_state.cpp.reference": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+      "tests/reference/frontend_party_flow_before_rust_20261102/online_account.hpp.reference": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b",
+      "tests/reference/frontend_party_flow_before_rust_20261102/provenance.json": "123041ecdefebbb14a9ec5596782481ab9977593375f88953838ed1f421fb6cc",
+      "tests/test_build_online_protocol_rust.py": "6154c815fcf9fdbc67df2583dd88638a1e22b7745279a0c400bb31edd6ece015",
+      "tests/test_native_frontend_party_flow_rust.py": "894ce19ed81a745d6b1f3d8a45a7e41998c06746a0c4d0798bc77c064e1ed728",
+      "tools/build_online_protocol_rust.py": "54ae081ada86748eb89ebcfb0d120fbe1c8248b394a829507996d1c86cab56cb"
+    },
+    "source_pin_report": "implementation-source-pins.json",
+    "before_cpp_capture": "tests/reference/frontend_party_flow_before_rust_20261102/provenance.json",
+    "lobby_policy_test_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae"
+  },
+  "storage": {
+    "owned_scratch_removed": true,
+    "cleanup_report": "cleanup.json",
+    "retained_large_artifacts": [],
+    "required_small_reference_inputs": "tests/reference/frontend_party_flow_before_rust_20261102"
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "remaining": [
+    "Native party menu/text policy, lobby presentation kernels, remaining account-refresh/party-join/departure and voice-intent decisions, plus all remaining matching-related C++/Python policy/state",
+    "Complete original callers and native identity/seat/voice/selectability producers, historical profiles/service ordering and arbitration for all 53 owners",
+    "Every required family/profile/topology/unshortened natural outcome, departure/host continuity, results/PCR/return/requeue route",
+    "Genuine providers, physical installed Linux input, delivered client/library/service/catalog/feature identities and restart/retry/configuration/rollback acceptance; all 12 GAP and G01-G12 criteria"
+  ],
+  "documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "5c0d0722807992f36ea10ce141432e2155c9479da58b7cef8e479feda2fc1edf",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "999744d8f17830e1f4d5b3e5fcb711b1b19407d2cf8de432f95b39c92899bc07",
+    "rust/online_protocol/README.md": "e90af0bbf1e9370a3ac2754f1dd861dcb6fad9bdef091ce77364910bdbb0f2a1"
+  }
+}

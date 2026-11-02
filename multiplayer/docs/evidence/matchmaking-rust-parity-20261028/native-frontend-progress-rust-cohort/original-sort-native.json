@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "original_execution_passed": true,
+  "cases": 852,
+  "mismatches": 0,
+  "first_counterexamples": [],
+  "legacy_stable_sort_differences": 316,
+  "legacy_first_counterexamples": [
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": true,
+      "teams": false,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    }
+  ],
+  "original_instruction_addresses": 474,
+  "original_instruction_visits": 3781380,
+  "original_comparator_calls": 15841,
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "backend": "native CXX/Rust wrapper",
+  "rust_source_sha256": "f813e005033fa092aafdc323c9e5c88c2e320e0cb09d46f16683800f7fb70a34",
+  "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393",
+  "scope": "Unchanged TU1.5 progress sort caller through its real original callees.\n\nExplicit synthetic session/player banks; stops before widget allocation.\nNo networking, source slot producer or delivered runtime claim.\n",
+  "fixture_sha256": "d722bfd679bd56e4d2d06aad7e126c79def1aa54615412eb4c217a6999e8652e",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-sort-original-20261102/halo2-test-mba4oh3q",
+  "retained_large_artifacts": []
+}

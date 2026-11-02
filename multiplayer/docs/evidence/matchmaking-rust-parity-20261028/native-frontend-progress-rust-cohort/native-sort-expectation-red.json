@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "exit_code": 1,
+  "command": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/frontend_online_tests",
+    "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11",
+    "--callback-port",
+    "57735"
+  ],
+  "native_sha256": "3ee773e788db31e82b4193230cdfd97e379d0efa66800a9e9637b7d59018714b",
+  "stdout": "Shutdown handler: initialize.\nShutdown handler: cleanup.\n",
+  "stderr": "Team order differs\n",
+  "scope": "No-service actual native menu/asset sampling repro; no HTTP account or match flow"
+}

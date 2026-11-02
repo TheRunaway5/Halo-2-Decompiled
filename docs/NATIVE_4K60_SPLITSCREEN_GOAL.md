@@ -631,10 +631,11 @@ cannot relink: the other session's regenerated
   teardown endpoints. The observer still estimates main-thread CPU only;
   it excludes worker CPU and is not a timestamp taken at the frame boundary.
 
-The banded cull and lazy model-owned skin-admission cache are now enabled by
-default. `HALO2_NATIVE_BANDED_CULL=0` restores the serial walk and
-`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` restores the full per-pose predicate;
-empty values also restore those reference routes. The final frozen native
+The lazy model-owned skin-admission cache is enabled by default
+(`HALO2_NATIVE_SKIN_ADMISSION_CACHE=0` or empty restores the full per-pose
+predicate). The banded cull went back to opt-in (`HALO2_NATIVE_BANDED_CULL=1`)
+on 2026-10-31: identical frames, but +0.05–0.065 ms wall per view with no
+main-thread CPU gain at its granularity. The final frozen native
 build and eleven focused CTests pass. Cache default, explicit-on, zero and
 empty controls also pass in Release and ASan/UBSan. A final 4p tick30 capture
 also matches with both defaults against both explicit zero reference controls,
@@ -853,6 +854,104 @@ Remaining dispatch glue (≈1.3 ms/frame) is structural: each unit dispatcher
 builds a `LiveState` and `FpScope` per call and `State::required` saves and
 reloads the full register file around every cross-unit call.
 
+## Status 2026-10-31/11-01 (tree running again)
+
+- Tooling follows the launcher-selected cache (`gameplay-runtime-selection.json`,
+  now the v7 sky/water import); the October-23 import aborts at the sky
+  authentication. `callees.py` replaces depth-limited `children.py` numbers.
+- Parity (three cases, 3840×2160): banded cull on/off identical, admission
+  cache on/off identical, sync/overlap identical.
+- Banded cull measured a net loss at its granularity (+0.05–0.065 ms wall per
+  view, CPU unchanged) → back to opt-in. Admission cache: `geometry_bind`
+  −0.06 ms, kept on.
+- Frame CPU is 42.5 ms (was 33.6 on the 26th). New since then, from the other
+  session's presented-pose scope (`source_presented_model_pose_tu15.cpp`,
+  Oct 28): 19.4% of the frame ≈ 8 ms — B95D0→B9460 full object relocation
+  per presented object (≈5 ms: Havok body move 1CD620 chain, attachments
+  BF050 chain, cluster re-registration BA630) plus per-store heap journaling
+  and restore (≈3 ms, of which ≈1.9 ms is allocation grow/trim churn).
+  Fix in tree: one journal arena reused across frames (same restore order
+  and bytes). The relocation itself needs a native kernel or a presentation
+  path that does not run the gameplay relocation; coordinate with that
+  session.
+- The scope also gates the render overlap off (`!presented_model_scope` at
+  the draw site), so the overlap has been inactive since Oct 28 although the
+  startup line prints "enabled" (the line now names disabling conditions).
+  Releasing the scope before the draw restores the overlap if no consumer of
+  its binding runs during/after the draw (being checked).
+- `state()` 4%: `find_unowned_range` is gone from it (gap fix); new costs are
+  `object_loop_emitters` 1.5% and `completed_body_world_nodes` 1.3%.
+- Every run sits at 19.9 fps (60/3 vsync quantization, 6.7 ms acquire):
+  compare main-thread CPU and per-phase timings, not fps.
+
+## Validated 2026-11-01 (arena journal + scope release before the draw)
+
+- `source_shadow_presentation_tu15` passes; parity (three 4K cases) identical
+  for new-vs-previous binary, scope-through-draw on/off, and sync-vs-overlap.
+- Interleaved A/B, host loaded 3–25 by concurrent builds (magnitudes
+  indicative only, direction unambiguous): previous binary 50–54 ms
+  main-thread CPU → new 32–36 ms; scope released before the draw (overlap
+  active) vs kept through the draw: 32–37 vs 38–39 ms (−4.6 ms mean).
+  Per-phase: `host_pre_render` 40–43 → 21–23 ms, view-0 camera/lighting
+  (holds the scope constructor) 9.5–10.1 → 7.4–8.0 ms, shared pre-view
+  7.3–7.8 → 5.3–5.7 ms. Frames left the 60/3 vsync bucket (27–30 fps).
+  Re-measure on a quiet host before quoting.
+
+## Per-view threading: design review outcome (2026-11-01)
+
+Five read-only mappers, three independent designs and two adversarial judges
+(parity skeptic, performance realist) reviewed the per-view loop:
+
+- **Full phase split (translated phase A, native consumers in parallel):
+  refuted.** Pool workers start jobs with the SSE sticky flags masked off, so
+  the GPU-skin admission predicate (which requires the precision flag already
+  set on the executing thread) would flip on workers and the skin set would
+  differ nondeterministically; the headline gain also required moving the
+  other session's first-person blocks.
+- **Per-view software pipelining (view i's natives while view i+1's
+  translated phase runs): refuted.** Data races on `object_view` and on the
+  vectors the model-view assembly spans while the worker still appends.
+- **Adopted: an intra-view posing lane on the existing overlap thread.** For
+  each view, after the translated phase, static world and `object_view`
+  construction, the pure-native posing (vehicles, corpses, third-person
+  bodies and secondary weapons) runs as one sequential job on the persistent
+  `OverlapThread` while the main thread runs the executor-asserted scene owners
+  and the loose world weapons; join before the body stamp. The job prologue
+  restores the dispatching thread's floating-point environment and the lane
+  is taken only when GPU-skin admission is already in effect on the main
+  thread. Nominal −1.8 ms/frame (range −0.8 to −2.7). Lands in two steps:
+  lambda wrapping with the original call order (parity by construction),
+  then the lane with join-time asserts; `HALO2_REFERENCE_SERIAL_POSING=1`
+  restores the sequential order. Full plan, captures and risks are in the
+  workflow journal (`subagents/workflows/wf_12ed7388-c05/journal.jsonl`).
+
+## Posing lane status and priority order (2026-11-01)
+
+Commit A (lambda wrapping of `pose_vehicles`, `main_objects`, `world_weapons`,
+`pose_corpses`, `pose_bodies`; original call order) is in the tree, validated
+by parity against the previous binary. Commit B (the lane) is not started.
+Write-set accounting for commit B, from the code: the lane blocks push into
+`model_object_draws[i]` (vehicles at the front, corpses/bodies after the
+loose weapons), append body vertices into `world` through `append_unit_base`
+/`append_selected` (so `model_depth_selections[i]` and
+`unit_skin_submissions[i]` entries carry `.first` offsets that need a rebase
+after a splice), fill `vehicle_vertices[i]`, `corpse_vertices[i]`,
+`bindings`, `collect_pstencil_lightmap(i, …)`, and the lane-only caches
+`vehicle_light_cache`, `vehicle_previous_lods`, `corpse_light_cache`,
+`object_light_cache[j]`; `submitted_unit_base[i]` is a set shared with the
+loose weapons (order-free). The overlap thread clears SSE/x87 sticky flags
+before a job, so the lane job must restore the dispatching thread's
+environment first and the lane is taken only when GPU-skin admission already
+holds on the main thread.
+
+Priority after the current validations: (1) the presented-pose relocation
+(B95D0→B9460, ≈5 ms; experiment and journal census in the tree; needs the
+other session's design call), (2) posing lane commit B (≈1.8 ms), (3) the
+40E80 remainder 41C70→41970→C0700 kernel (≈0.5 ms), (4) the two translated
+`state()` publications 18F9B0 (static loop emitters, 0.6 ms) and BF640 body
+nodes (0.5 ms), (5) HUD constant animation and dynamic-shader vertex copies
+(≈0.8 ms each, native code).
+
 ## Next structural step (proposed): split the per-view loop into phases
 
 The per-view loop (≈18 ms at 4p/4K) interleaves translated work that must run
@@ -1070,3 +1169,72 @@ the order above.
   fail in roughly one view per frame because the Xbox-sized geometry cache is
   full; check MCC resource sizes against that budget before calling it
   faithful.
+
+
+## Native TU1.5 30BD0 normalization
+
+Each TU1.5 normalizer copy has a guarded semantic kernel and retains its
+SHA-qualified literal body. The MP11 animation copy is qualifier-only: its
+public service adapter does not opt into native ownership. The admission gate
+preserves instrumented instruction/store paths and requires ordinary committed
+storage. The live owner additionally leases write policies, refusing unknown
+observers and guards that can affect its vector or stack writes. Camera-receipt
+invalidation is the sole explicitly admitted semantic observer.
+Raw adapters require writable direct pages for vector and stack writes. The
+guarded live owner may instead prove exact committed writable extents, including
+sub-page owners and page crossings, before acquiring the same policy lease.
+These const views grant no mutable borrow or write-policy exemption. The two
+constants may use exact four-byte read views; adjacent unowned bytes stay
+inaccessible.
+
+`HALO2_REFERENCE_NORMALIZE_VECTOR=1` selects the retained normalizer bodies.
+`HALO2_REFERENCE_LITERAL_INSTRUCTIONS=1` also disables this shortcut.
+`HALO2_REFERENCE_FP_LIGHT_UP=1` disables it in the translated31B30 oracle, so
+that reference cannot accidentally use the same native normalization template
+as the complete light-up kernel being checked.
+
+`HALO2_NATIVE_NORMALIZE_STATS=1` reports native admissions, per-renderer-site
+admissions/refusals and first/last admission ordinals, required-owner entries,
+and write-lease refusal reasons before world teardown.
+Refusals count gate attempts: a required-owner shortcut and the reached body
+can both decline one call. The433-case light graph verifies live ABI, bank and
+cursor equivalence; it is reference-graph coverage. Production renderer
+qualification separately requires positive renderer admissions and deterministic
+frame equality with the normalizer reference switch, plus zero constant-owner
+refusals in the candidate, using the positive one-player workload in
+`tools/qualify_native_tu15_normalize_renderer.py` under `tools/run_test.py`.
+Original TU1.5 `2C470` disables dynamic object shadows for 2/3/4 local players.
+Split-screen frame comparisons therefore cannot require shadow-basis calls;
+do not enable those shadows to satisfy a counter. Campaign projected cameras
+provide a separate repeated-renderer workload through literal C3DC0→166C90.
+`tools/qualify_native_tu15_normalize_campaign.py` compares 1 and 30 rendered
+frames under natural campaign timing. Its image hashes are diagnostics, not
+deterministic pixel-parity evidence.
+See `analysis/renderer-native-normalizer-20261101/validation.json` for the
+current bounded evidence and remaining qualification work.
+
+## Native TU1.5 shadow projection arithmetic
+
+The live shadow root uses controlled SSE gates for fade, minimum radius and
+ordered opacity, then `native_tu15_shadow_basis_32340` for 32459..32635,
+including both complete 30BD0 calls, and a typed numeric tail for 32656..327D4
+and 32817..32852. The direction epsilon comparison uses the unrounded x87
+magnitude. The tail consumes actual C3AB0 projection words for its half extents,
+virtual distance and eye, and preserves source 0−x and operand order. Ordered
+opacity gates reject NaNs; the radius clamp keeps the original minimum on an
+unordered comparison. The centre is read after 31F40.
+
+Physical unchanged-i386 qualification covers 364 cases, 2,548 disjoint instruction
+blocks, ordered prefix publications, gate FP state and tail FP state under GCC
+and Clang ASan/UBSan. A compact typed input/output fixture also runs without the
+owned executable; it contains no raw memory banks or executable bytes. See
+`analysis/renderer-native-shadow-basis-20261102/validation.json` for current
+integration status. This retires the live host approximation of these numeric
+blocks; complete 32340 ABI, 320A0 visibility, local-light/publication owners and
+original-framebuffer visual acceptance remain separate work.
+
+`HALO2_NATIVE_SHADOW_BASIS_STATS=1` reports actual gate, admitted-root, numeric
+prefix and numeric-tail counts at process exit. The finite renderer comparison
+requires positive prefix/tail counts and unchanged pixels against the frozen
+engine before this numeric conversion; it does not substitute for an Xbox
+framebuffer reference.

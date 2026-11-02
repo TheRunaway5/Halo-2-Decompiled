@@ -54,7 +54,7 @@ fn to_cut(cut: Option<protocol::Cut>) -> ffi::MigrationPreparationCut {
     }
 }
 
-fn to_decision(decision: Option<protocol::Decision>) -> ffi::HostAgreementDecision {
+pub(super) fn to_decision(decision: Option<protocol::Decision>) -> ffi::HostAgreementDecision {
     match decision {
         Some(decision) => ffi::HostAgreementDecision {
             present: true,

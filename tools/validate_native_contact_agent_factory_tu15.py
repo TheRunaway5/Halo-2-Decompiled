@@ -11,7 +11,7 @@ def metadata():
  from capstone import CS_AC_READ,CS_AC_WRITE
  from capstone.x86 import X86_OP_MEM
  code=_Code(Xbe(NEW_DEFAULT),'.text');rows={}
- for e in(0xa9520,0xab4b0,0x303c10,0x3040d0,0x2f3620,0x2f0380,0x37ed40,0x149da0,0x149e00,0x233250,0x233420):
+ for e in(0xa9520,0xab4b0,0x303c10,0x3040d0,0x2f3670,0x2f5530,0x2f3620,0x2f0380,0x37ed40,0x149da0,0x149e00,0x233250,0x233420):
   for p in sorted(complete_body(code,e).code):
    i=code.at(p);memory=[]
    if i.mnemonic!='lea':
@@ -41,6 +41,18 @@ def main():
    for site,stop in((0x2f3631,0x2f3647),(0x2f365c,0x2f3660)):rows.append(dict(name=f'factory_{owner:x}_armed_observer_{site:x}',kind='factory',owner=owner,exception=True,observer_after=site,stop_before=stop,source_action=True))
    rows.append(dict(name=f'factory_{owner:x}_derived_prewrite',kind='factory',owner=owner,exception=True,reject_write_offset=0,write_occurrence=1,stop_before=0x30411a if second else 0x303c5a,source_action=True))
    rows.append(dict(name=f'factory_{owner:x}_derived_observer',kind='factory',owner=owner,exception=True,observer_after=0x30411a if second else 0x303c5a,stop_before=0x304120 if second else 0x303c60,source_action=True))
+  for owner in(0x2f3670,0x2f5530):
+   reversed=owner==0x2f5530
+   rows.extend((dict(name=f'bv_factory_{owner:x}',kind='factory',owner=owner),dict(name=f'bv_release_{owner:x}',kind='release',owner=owner)))
+   for value in(0,0xffffffff,0x80000000,0x7f800001,0x7fc12345):rows.append(dict(name=f'bv_userdata_{owner:x}_{value:x}',kind='factory',owner=owner,user_data=value))
+   for injection,stop in(('allocate_before',0x149da0),('allocate_after',0x2f5548 if reversed else 0x2f3688),('user_data',0x2f5548 if reversed else 0x2f3688)):
+    rows.append(dict(name=f'bv_{owner:x}_{injection}',kind='factory',owner=owner,exception=True,injection=injection,stop_before=stop))
+   sites=((8,0x2f554b),(4,0x2f554e),(0xc,0x2f5564),(0x10,0x2f5567),(0x14,0x2f556a),(0x30,0x2f5575),(0x20,0x2f5579),(0,0x2f557d))if reversed else((8,0x2f368b),(4,0x2f368e),(0,0x2f3694),(0xc,0x2f36aa),(0x10,0x2f36ad),(0x14,0x2f36b0),(0x30,0x2f36bb),(0x20,0x2f36bf))
+   for offset,site in sites:rows.append(dict(name=f'bv_{owner:x}_prewrite_{offset:x}',kind='factory',owner=owner,exception=True,reject_write_offset=offset,stop_before=site))
+   for site,stop in(((0x2f554b,0x2f554e),(0x2f5575,0x2f5579),(0x2f557d,0x2f5583))if reversed else((0x2f368b,0x2f368e),(0x2f3694,0x2f369a),(0x2f36bb,0x2f36bf))):
+    rows.append(dict(name=f'bv_{owner:x}_observer_{site:x}',kind='factory',owner=owner,exception=True,observer_after=site,stop_before=stop))
+   for rounding in range(4):
+    for denormal in(0,0x40,0x8000,0x8040):rows.append(dict(name=f'bv_controls_{owner:x}_{rounding}_{denormal:x}',kind='factory',owner=owner,control_word=0x27f|(rounding<<10),status=0x400,mxcsr=0x1f80|(rounding<<13)|denormal))
   for rounding in range(4):
    for denormal in(0,0x40,0x8000,0x8040):rows.append(dict(name=f'constructor_controls_{rounding}_{denormal:x}',kind='constructor',control_word=0x27f|(rounding<<10),status=0x400,mxcsr=0x1f80|(rounding<<13)|denormal))
   fixture=scratch/'cases.json';save(fixture,dict(cases=rows));instructions=scratch/'instructions.json';save(instructions,metadata())
@@ -50,6 +62,7 @@ def main():
    ('wrong_class','noexcept{return 23;}','noexcept{return 22;}',1),
    ('wrong_maximum','std::byte{0xff}','std::byte{0xfe}',8),
    ('wrong_derived_vtable','0x41d01cu','0x41d03cu',1),
+   ('wrong_bv_vtable','m.word(0x2f557du,p,0x41cb9cu)','m.word(0x2f557du,p,0x41cb58u)',1),
    ('early_cleanup_arm','const auto user_data=arguments.user_data();cleanup.arm();','cleanup.arm();const auto user_data=arguments.user_data();',1),
    ('wrong_ctor_order','m.word(0x2f362eu,p+8u,user_data);m.word(0x2f3631u,p,0x41cb58u);','m.word(0x2f3631u,p,0x41cb58u);m.word(0x2f362eu,p+8u,user_data);',1)):
    assert text.count(needle)==count,(name,text.count(needle));variants[name]=text.replace(needle,replacement,1);(project/'src'/f'{name}.cpp').write_text(variants[name])

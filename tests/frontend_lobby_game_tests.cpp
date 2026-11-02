@@ -117,7 +117,9 @@ int main(int argc, char **argv) try {
       ++difficulty;
     } else throw FormatError("unknown original lobby fixture case");
   }
-  check(icons==12 && defaults==784 && quick==70 && maps==27 && sorts==144 && help==144 && counts==28 && difficulty==7,
+  // The preserved fixture also includes the original unknown-choice value8:
+  // parameter10 binds its title+separator with no matching option label.
+  check(icons==12 && defaults==784 && quick==71 && maps==27 && sorts==144 && help==144 && counts==28 && difficulty==7,
         "original lobby game-panel coverage changed");
   check(!frontend_lobby_variant_type(7) && !frontend_lobby_parameter_default(7, 0) &&
         !frontend_lobby_parameter_default(0, 112) && !frontend_lobby_player_count_string(-1) &&

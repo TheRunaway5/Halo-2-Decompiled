@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-full-rust/halo2-test-8xl0lm4g",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-full-rust/halo2-test-jv452lcv",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-audit/halo2-test-ccxnz0kf",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-audit/halo2-test-45h34f5a",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-format": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-audit": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay": []
+  },
+  "native_unit_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "Result": "success"
+  },
+  "retained_large_artifacts": [],
+  "preserved": "Original assets/reference evidence, previous frozen inputs, selected runtimes and unrelated active work",
+  "bounded_reports_exactly_deduplicated": true
+}

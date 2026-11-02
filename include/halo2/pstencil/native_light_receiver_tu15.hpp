@@ -12,7 +12,7 @@ struct NativeLightReceiver {
     std::uint32_t context{},visibility_bank{};
     bool shadow_enabled{}; // Actual31E15/31650 caller byte, before31177's layer10 gate.
 };
-// Exact31E27..31E9A caller of whole134C00. Consumes a live full light
+// Exact31E27..31ED5 caller of whole134C00/31650 and native31C10. Consumes a live full light
 // generation and wholeC3DC0 cameras. The ordinary camera/queues must already
 // have their real native publication. This advances native query state;
 // consume/copy its queues before another secondary query reuses them.

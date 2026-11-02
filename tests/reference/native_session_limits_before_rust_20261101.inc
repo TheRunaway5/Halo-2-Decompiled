@@ -1,0 +1,8 @@
+AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false,bool terminal=false){
+  AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
+  limits.features|=authority_feature_source_presented_model_poses;
+  if(snapshot_candidates)limits.features|=authority_feature_source_snapshot_candidate;
+  if(survivor_selection)limits.features|=authority_feature_survivor_selection;
+  if(terminal){limits.features&=~authority_feature_source_common_cut;limits.features|=authority_feature_source_admitted_camera;}
+  return limits;
+}

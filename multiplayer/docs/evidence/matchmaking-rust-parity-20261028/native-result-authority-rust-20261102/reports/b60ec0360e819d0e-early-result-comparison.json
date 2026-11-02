@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "scope": "Exact captured modern C++ result caller policy versus Rust over declared gameplay/profile/rank/writer IO; not original arbitration or played-world proof",
+  "commands": 4748,
+  "accepted": 834,
+  "rejected": 3914,
+  "io_refusals": 82,
+  "native_exception_identity_checks": 82,
+  "mismatches": [],
+  "sha256": "bc372dbbcf73c51c597e40df7116d426ab3757da0468c66d37ee3349eee61ee2",
+  "operations": {
+    "publish": 316,
+    "validate": 4432
+  },
+  "native_preamble": [
+    "Shutdown handler: initialize."
+  ],
+  "binary_sha256": "472f5dedcf0abb99d43ed13f4ec103a3ea8fb423871ee4de7d4f61ceb2e4673f"
+}

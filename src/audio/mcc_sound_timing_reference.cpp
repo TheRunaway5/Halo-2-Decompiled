@@ -1,4 +1,5 @@
 #include "halo2/mcc_sound_timing_reference.hpp"
+#include "halo2/mcc_original_sound_runtime_delivery_tu15.hpp"
 #include "audio/mcc_sound_geometry_apply.hpp"
 #include "audio/mcc_sound_timing_reference_profile.hpp"
 #include "audio/mcc_sound_vanilla_reference_profile.hpp"
@@ -196,6 +197,7 @@ std::vector<MccSoundTimingPermutationReference> permutation_catalog(
 }
 Projection expected_projection(const MccSoundVanillaSource&source,const MccSoundVanillaSource&s,const MccSoundRuntimePlan&actual,bool require_stored,
     std::span<const KeyRecord> refs,const mcc_sound_permutation_time_detail::Policy* fixture_policy,bool classes,std::span<const MccSoundGeometryResource> geometry){
+    require(!actual.original,"Original sound publication requires its joined native timing/resource admission");
     const auto p_policy=fixture_policy?*fixture_policy:permutation_policy::canonical();
     const auto permutation_proof=[&](const MccSoundRuntimePlan&base){
         return classes?mcc_sound_permutation_time_detail::build_class_qualified(source,s,base,p_policy):
@@ -317,10 +319,110 @@ MccSoundVanillaPayload payload_facts(const Reader&r,const MccSoundRuntimeDefinit
     const std::array rates{22050u,44100u,32000u,48000u},channels{1u,2u,2u,4u};require(def.codec.sample_rate<rates.size()&&def.codec.encoding<channels.size(),"Timing actual codec is unsupported");MccSoundVanillaPayload out{sha,0,def.codec.encoding==2?4u:def.codec.compression,rates[def.codec.sample_rate],channels[def.codec.encoding],0,std::to_integer<unsigned>(snd.slice(2,1)[0]),{}};require(out.codec<=5&&out.sound_class<54,"Timing actual compression/class differs");const auto pcm=info.u32(0);require(pcm&&(out.codec==4||pcm%(out.channels*2)==0),"Timing actual PCM/container extent differs");out.samples=out.codec==4?0:pcm/(out.channels*2);require(out.samples<=out.sample_rate*600ull,"Timing actual resource is excessive");
     for(unsigned i=0;i<count;++i){const Bytes row(r.row(chunks,first+i,16));const auto n=row.u32(4)&0x1fffffffu;require(n&&n<=128u*1024*1024-out.encoded_bytes,"Timing actual encoded extent is invalid");out.encoded_bytes+=n;out.packets.push_back({n,row.u32(8),bool(row.u32(4)&0x20000000u)});}return out;
 }
+// A replacement bank is a separate original data authority. Authenticate the
+// complete retained parent through the ordinary projection first, retain its
+// unrelated diagnostics, and join the entire sealed replacement set atomically.
+// No MCC owner is promoted to Authenticated by original asset admission.
+MccSoundTimingPlan join_original(const MccSoundVanillaSource& source,
+    const MccSoundRuntimePlan& native,const MccSoundTimingPlan& parent){
+    const auto& prior=Access::get(parent);const auto& lineage=native.original;
+    require(bool(lineage),"Original timing join lacks its immutable lineage");lineage->require_plan(native);
+    require(prior&&prior->count&&prior->globals_root&&!prior->native.original&&
+        plan_digest(prior->native)==plan_digest(lineage->parent()),
+        "Original timing join lacks the independently admitted complete parent projection");
+    auto out=std::make_shared<Access::Plan>(*prior);out->native=native;out->permutation_bank=native.blocks[5].address;
+    const auto rebase=[&](std::uint32_t at,std::size_t bytes){
+        for(unsigned n=0;n<11;++n){const auto b=prior->native.blocks[n];
+            if(b.count>0&&at>=b.address&&std::uint64_t(at)-b.address+bytes<=std::uint64_t(b.count)*strides[n])
+                return add(native.blocks[n].address,at-b.address);
+        }
+        require(std::uint64_t(at)+bytes<=prior->native.address||
+            std::uint64_t(prior->native.address)+prior->native.bytes.size()<=at,
+            "Original timing join found an input outside the preserved typed prefix tables");
+        return at;
+    };
+    out->bindings.clear();out->details.clear();
+    require(prior->bindings.size()==prior->details.size(),"Original timing parent input catalog differs");
+    for(std::size_t n=0;n<prior->bindings.size();++n){auto b=prior->bindings[n];
+        if(lineage->contains(b.sound))continue;
+        b.native_range=rebase(b.native_range,12);b.native_permutation=rebase(b.native_permutation,16);
+        auto detail=prior->details[n];for(auto& c:detail.checks)c.address=rebase(c.address,c.bytes.size());
+        out->bindings.push_back(std::move(b));out->details.push_back(std::move(detail));
+    }
+    std::erase_if(out->stored,[&](const auto& x){return lineage->contains(x.sound);});
+    std::erase_if(out->permutations,[&](const auto& x){return lineage->contains(x.sound);});
+    std::erase_if(out->gaps,[&](const auto& x){return lineage->contains(x.sound);});
+    for(auto& p:out->permutations){p.native_range=rebase(p.native_range,12);p.native_permutation=rebase(p.native_permutation,16);}
+    out->roots.clear();out->root_index.clear();
+    for(const auto& p:native.patches){const auto t=out->tag_index.find(p.owner.value);
+        if(t!=out->tag_index.end()&&(t->second.group==TagGroup{"snd!"}.value||t->second.group==TagGroup{"ugh!"}.value)){
+            Check c{t->second.root,p.after,false};require(out->root_index.emplace(c.address,c).second,"Original timing root owners alias");out->roots.push_back(std::move(c));
+        }
+    }
+    require(out->roots.size()==prior->roots.size(),"Original timing join changed complete root coverage");
+    const auto bank=lineage->bank();require(bool(bank),"Original timing join lost its resource bank");
+    for(const auto& binding:lineage->bindings()){
+        const auto& m=binding.bank->metadata();
+        const auto def=std::ranges::find(native.sounds,binding.sound,&MccSoundRuntimeDefinition::sound);
+        require(def!=native.sounds.end()&&def->file==MccSoundDataFile::Original,"Original timing join lost its full-salt native definition");
+        const auto header=native_bytes(*out,source,def->native_root,20);const Bytes snd(header);
+        require(std::to_integer<unsigned>(header[3])<3&&std::to_integer<unsigned>(header[4])<3&&std::to_integer<unsigned>(header[5])<5,
+            "Original timing format escapes original duration arrays");
+        const auto copy=[](auto from,auto& to){require(from.size()==to.size(),"Original timing immutable row extent differs");std::ranges::copy(from,to.begin());};
+        MccSoundTimingStoredReference stored{binding.sound,def->gestalt,def->source_root,def->native_root,
+            std::bit_cast<std::int32_t>(snd.u32(16)),{}};copy(header,stored.expected_native_header);out->stored.push_back(stored);
+        for(unsigned pitch=0;pitch<m.pitch_ranges.size();++pitch){const auto& authored=m.pitch_ranges[pitch];
+            const auto nr=add(native.blocks[4].address,std::uint64_t(snd.u16(8)+pitch)*12);
+            const auto range=native_bytes(*out,source,nr,12);const Bytes r(range);
+            require(r.u16(10)==authored.permutations.size()&&source.string_id(Bytes(native_bytes(*out,source,
+                add(native.blocks[2].address,std::uint64_t(r.u16(0))*4),4)).u32(0))==authored.name,
+                "Original timing pitch interval or native named identity differs");
+            for(unsigned permutation=0;permutation<authored.permutations.size();++permutation){const auto& authored_perm=authored.permutations[permutation];
+                const auto np=add(native.blocks[5].address,std::uint64_t(r.u16(8)+permutation)*16);
+                const auto row=native_bytes(*out,source,np,16);const Bytes p(row);
+                require(source.string_id(Bytes(native_bytes(*out,source,add(native.blocks[2].address,std::uint64_t(p.u16(0))*4),4)).u32(0))==authored_perm.name,
+                    "Original timing permutation lost its native named identity");
+                const auto encoded=bank->encoded(binding.sound,pitch,permutation);
+                require(encoded.name==m.name&&!encoded.data.empty()&&encoded.data.size()==p.u32(8),
+                    "Original duration SampleSize differs from its actual encoded resource");
+                MccSoundVanillaPayload facts{digest(encoded.data),encoded.data.size(),encoded.codec,encoded.sample_rate,
+                    encoded.channels,encoded.samples,encoded.sound_class,{}};
+                for(const auto& chunk:encoded.packet_chunks)facts.packets.push_back({chunk.bytes,chunk.pcm_bytes,chunk.reset_after});
+                const auto key=mcc_sound_timing_detail::named_key(m.name,authored.name,authored_perm.name);
+                const auto source_range=Bytes(m.sound).u16(8)+pitch,source_perm=Bytes(authored.literal).u16(8)+permutation;
+                const MccSoundOriginalTimingOperands operands{std::uint32_t(encoded.data.size()),
+                    std::to_integer<std::uint8_t>(header[3]),std::to_integer<std::uint8_t>(header[4]),std::to_integer<std::uint8_t>(header[5])};
+                out->bindings.push_back({binding.sound,def->gestalt,def->source_root,def->native_root,source_range,source_perm,
+                    nr,np,pitch,permutation,m.name,authored.name,authored_perm.name,key,facts.sha256,operands});
+                Detail detail{facts,{}};add_check(detail,*out,source,def->native_root,20);add_check(detail,*out,source,nr,12,true);add_check(detail,*out,source,np,16);
+                add_check(detail,*out,source,add(native.blocks[0].address,std::uint64_t(snd.u16(6))*56),56);
+                add_check(detail,*out,source,add(native.blocks[1].address,std::uint64_t(std::to_integer<unsigned>(header[11]))*20),20);
+                add_check(detail,*out,source,add(native.blocks[3].address,std::uint64_t(r.u16(2))*10),10);
+                add_check(detail,*out,source,add(native.blocks[2].address,std::uint64_t(r.u16(0))*4),4);
+                add_check(detail,*out,source,add(native.blocks[2].address,std::uint64_t(p.u16(0))*4),4);out->details.push_back(std::move(detail));
+                MccSoundTimingPermutationReference reference{binding.sound,def->gestalt,def->source_root,def->native_root,
+                    source_range,source_perm,nr,np,pitch,permutation,p.u16(6),key,facts.sha256,{},{},{}};
+                copy(header,reference.expected_native_header);copy(range,reference.expected_native_range);copy(row,reference.expected_native_permutation);
+                out->permutations.push_back(reference);
+            }
+        }
+    }
+    return Access::plan(std::move(out));
+}
 }
 namespace mcc_sound_timing_detail {
 Digest named_key(std::string_view path,std::string_view range,std::string_view permutation){Hash h;constexpr char domain[]="H2_TU15_SOUND_TIMING_KEY_V1";h.bytes(std::as_bytes(std::span(domain,sizeof(domain))));h.text(path);h.text(range);h.text(permutation);return h.finish();}
 MccSoundTimingPlan build_impl(const MccSoundVanillaSource&source,const MccSoundVanillaSource&fingerprint,const MccSoundRuntimePlan&native,const Policy&policy,bool require_stored,const mcc_sound_permutation_time_detail::Policy* fixture_policy=nullptr,bool classes=false,std::span<const MccSoundGeometryResource> geometry={}){
+    if(native.original){
+        try{
+            native.original->require_plan(native);
+            const auto parent=build_impl(source,fingerprint,native.original->parent(),policy,require_stored,fixture_policy,classes,geometry);
+            return join_original(source,native,parent);
+        }catch(const std::exception& e){
+            auto rejected=std::make_shared<Access::Plan>();rejected->gaps.push_back({{}, {},0,0,MccSoundTimingGapKind::InvalidNativeProjection,e.what()});
+            return Access::plan(std::move(rejected));
+        }
+    }
     Reader r(source);const auto refs=records(policy);auto out=std::make_shared<Access::Plan>();std::set<std::tuple<unsigned,unsigned,std::string,Digest>> unique;
     for(const auto&p:policy.owners)require(unique.emplace(p.handle.value,p.root,p.path,p.metadata).second,"Timing policy owner is ambiguous");
     for(const auto&[_,t]:r.tags)if(t->address&&t->group=="ugh!"){
@@ -402,6 +504,9 @@ bool same_owner(const Access::Bound&bound,const std::shared_ptr<const MccSoundTi
 mcc_sound_timing_detail::Policy canonical_timing_policy(){return {timing_known_owners,std::as_bytes(std::span(timing_reference_bytes,sizeof(timing_reference_bytes)-1)),timing_unavailable_pitch_keys};}
 }
 MccSoundTimingPlan build_mcc_sound_timing_reference(const MccSoundVanillaSource&s,const MccSoundRuntimePlan&p){return mcc_sound_timing_detail::build(s,s,p,canonical_timing_policy());}
+MccSoundTimingPlan mcc_sound_timing_detail::build_class_qualified(const MccSoundVanillaSource&s,const MccSoundRuntimePlan&p){
+    return build_impl(s,s,p,canonical_timing_policy(),false,nullptr,true);
+}
 MccSoundTimingPlan build_mcc_sound_timing_reference(const Cache&c,const MccSoundRuntimePlan&p,const std::function<std::uint32_t(std::uint32_t,std::size_t)>&relocate){
     require(c.is_mcc(),"Timing reference requires MCC source ownership");
     const MccSoundVanillaSource s{{c.tags(),[&](auto a,auto n){return c.read_tag_bytes(a,n);},[&](TagHandle h){return c.mcc_sound_gestalt_owner(h).handle();},relocate},[&](auto id){return c.string_id(id);},[&](TagHandle h,unsigned pitch,unsigned permutation){const auto sound=c.load_sound(h.value,pitch,permutation);MccSoundVanillaPayload out{digest(sound.data),sound.data.size(),sound.codec,sound.sample_rate,sound.channels,sound.samples,sound.sound_class,{}};for(const auto&chunk:sound.packet_chunks)out.packets.push_back({chunk.bytes,chunk.pcm_bytes,chunk.reset_after});return out;}};

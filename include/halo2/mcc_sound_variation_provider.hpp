@@ -11,8 +11,9 @@ struct MccSoundVariationProviderAccess;
 // Owned metadata from an actual converted native World. The opaque lease
 // retains its source memory and epoch; a provider can outlive the World but
 // rejects after teardown or any restore, including identical-byte restores.
-// Cache retains the actual MCC DAT/PCM resources and must still outlive its
-// World. Its address is borrowed equality only, never an ownership token.
+// The provider retains the exact World DAT snapshots and original resource
+// replacements. Cache metadata must still outlive its World. Cache's address
+// is borrowed equality only, never an ownership token.
 class MccSoundVariationProvider final {
     struct NativeBindingData;
     struct NativeHeldData;
@@ -32,6 +33,14 @@ public:
     // an Audio bank's private selection state remains a separate owner.
     SoundVariationDefinition load(const Cache& expected_owner,TagHandle sound,
                                   unsigned pitch=0)const;
+    // Owned encoded bytes from the same admitted metadata/resource mapping.
+    // Checks the current namespace, immutable permutation and selected chunk
+    // descriptors in one retained read transaction. Original replacements use
+    // their sealed bank; preserved sounds use the same retained DAT snapshots
+    // as native I/O through Cache's shared metadata/packet parser.
+    // Runtime chunk handles at+8 remain source-owned and are not inspected.
+    EncodedSound encoded(const Cache& expected_owner,TagHandle sound,
+                         unsigned pitch,unsigned permutation)const;
     // Transferable target admission: retains metadata/Cache, only a weak
     // native-scope identity. It never retains a live gate or timing mutex.
     class NativeBinding {

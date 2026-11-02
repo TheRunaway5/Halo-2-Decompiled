@@ -4,8 +4,10 @@
 #include "halo2/model_scale_reset.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/source_object_draw_collector.hpp"
+#include "halo2/source_prt.hpp"
 #include <array>
 #include <memory>
+#include <set>
 
 namespace halo2 {
 struct SourceLiveModelBaseDrawTu15;
@@ -30,6 +32,9 @@ public:
     SourceCampaignModel(const Cache &,std::uint32_t definition,std::uint32_t variant=0);
     void prepare_materials(const Cache &,Mesh &destination,bool per_vertex_scenery=false);
     void rebase_materials(unsigned previous_geometry_count,unsigned next_geometry_count);
+    bool section_materials()const{return section_materials_;}
+    std::vector<SourcePrtMaterialBank> prt_banks(std::uint32_t owner,
+        std::span<const SourceLiveModelBaseDrawTu15>)const;
     const RenderModel &hierarchy()const{return *lods_[5];}
     std::span<const ModelScaleReset> scale_resets()const{return scale_resets_;}
     // Immutable tag names remain resident; the live source world still owns
@@ -69,5 +74,10 @@ private:
     std::unique_ptr<SourceDynamicModelShaders> baked_shaders_;
     unsigned baked_material_base_{};
     std::string baked_failure_;
+    std::optional<SourcePrtDefinition> prt_;
+    bool section_materials_{};
+    std::unique_ptr<SourceDynamicModelShaders> default_shaders_;
+    unsigned default_material_base_{};
+    std::set<unsigned> prt_materials_;
 };
 }

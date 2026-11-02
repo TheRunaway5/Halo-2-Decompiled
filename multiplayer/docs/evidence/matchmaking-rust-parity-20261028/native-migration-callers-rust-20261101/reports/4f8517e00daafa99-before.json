@@ -1,0 +1,10 @@
+{
+  "scope": "Modern pre-migration Session caller only; not original Live service or Xbox executable evidence",
+  "production_use": false,
+  "source": "src/network/online_match_session.cpp",
+  "source_sha256": "32d4d6057eb8bb03f3e6b2ecfdcfbaac09c51e6a309ce562fd1819f3283923b5",
+  "source_bytes": 77451,
+  "extraction": "tests/reference/native_migration_callers_before_rust_20261101.inc",
+  "extraction_sha256": "031f585c93bd9e7c2f513bda5bccf51846593804acaec080565b940dfe5c977a",
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048"
+}

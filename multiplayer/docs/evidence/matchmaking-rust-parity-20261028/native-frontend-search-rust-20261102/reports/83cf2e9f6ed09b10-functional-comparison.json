@@ -1,0 +1,165 @@
+{
+  "passed": true,
+  "scope": "Observed native baseline and Rust-candidate functional outcomes; the interrupted baseline build was replaced by a fresh frozen cohort with declared unrelated dependency changes, so this is not a same-whole-source A/B proof",
+  "cases": [
+    {
+      "name": "frontend_matchmaking_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "Nonmember clan details lost the membership requirement"
+    },
+    {
+      "name": "frontend_matchmaking_gathering_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "Matched/empty slot artwork is not an admitted source page"
+    },
+    {
+      "name": "frontend_clans_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "ONLINE bitmaps missing selected imported sampling:"
+    },
+    {
+      "name": "frontend_parties_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "ONLINE bitmaps missing selected imported sampling:"
+    }
+  ],
+  "all_wider_functional_tests_passed": false,
+  "all_final_native_tests_passed": false,
+  "native_runs": [
+    {
+      "cohort": "native",
+      "iteration": 1,
+      "passed": false,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "rust_frontend_lobby_blocked",
+        "rust_frontend_lobby_complete",
+        "rust_frontend_lobby_rendered",
+        "frontend_online_lobby_buttons",
+        "frontend_online_lobby_legacy_countdown",
+        "frontend_online_lobby_blocked_playlist",
+        "frontend_online_lobby_complete_playlist",
+        "retail_frontend_lobby_policy",
+        "original_party_countdown_kernels"
+      ],
+      "failed_tests": [
+        "frontend_matchmaking_http",
+        "frontend_matchmaking_gathering_http",
+        "frontend_clans_http",
+        "frontend_parties_http"
+      ],
+      "source_pin_sha256": "7d2ea1aa3518d792e3462a59ca1cdf0fe0f3b506a546469c1c705b21d908f3f6",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          8
+        ]
+      ]
+    },
+    {
+      "cohort": "native-candidate",
+      "iteration": 1,
+      "passed": true,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "online_protocol_rust_build_helper",
+        "frontend_search_cpp_rust",
+        "frontend_lobby_cpp_rust"
+      ],
+      "failed_tests": [],
+      "source_pin_sha256": "933d2b96a4dd9f99bb65280d87a34624a7d6e039b8eb6a5bf22d73b362697bc4",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          0
+        ]
+      ]
+    },
+    {
+      "cohort": "native-candidate",
+      "iteration": 2,
+      "passed": false,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "rust_frontend_lobby_blocked",
+        "rust_frontend_lobby_complete",
+        "rust_frontend_lobby_rendered",
+        "frontend_online_lobby_buttons",
+        "frontend_online_lobby_legacy_countdown",
+        "frontend_online_lobby_blocked_playlist",
+        "frontend_online_lobby_complete_playlist",
+        "retail_frontend_lobby_policy",
+        "original_party_countdown_kernels"
+      ],
+      "failed_tests": [
+        "frontend_matchmaking_http",
+        "frontend_matchmaking_gathering_http",
+        "frontend_clans_http",
+        "frontend_parties_http"
+      ],
+      "source_pin_sha256": "933d2b96a4dd9f99bb65280d87a34624a7d6e039b8eb6a5bf22d73b362697bc4",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          8
+        ]
+      ]
+    }
+  ],
+  "final_unique_successful_tests": [
+    "frontend_lobby_cpp_rust",
+    "frontend_online_lobby_blocked_playlist",
+    "frontend_online_lobby_buttons",
+    "frontend_online_lobby_complete_playlist",
+    "frontend_online_lobby_legacy_countdown",
+    "frontend_search_cpp_rust",
+    "online_protocol_rust_build_helper",
+    "original_party_countdown_kernels",
+    "retail_frontend_lobby_policy",
+    "rust_frontend_lobby_blocked",
+    "rust_frontend_lobby_complete",
+    "rust_frontend_lobby_rendered"
+  ],
+  "baseline_same_full_source_cohort": false,
+  "prior_owner_interrupted": true,
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "all_owned_scratch_removed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-result-authority-rust-20261102/halo2-test-t5cryxus",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-result-link-audit-20261102/halo2-test-u425b_wm",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-bridge-check-20261102/halo2-test-s8029300",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-core-initial-20261102/halo2-test-9k9fyn5i",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-full-rust-20261102/halo2-test-kdz8tk2_",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102/halo2-test-ade1fmc7"
+  ],
+  "owned_parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-result-authority-rust-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-result-link-audit-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-bridge-check-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-core-initial-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-full-rust-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    }
+  ],
+  "native_owner_exit_code": 0,
+  "removed_native_owner_bytes": 5350539006,
+  "retained_large_artifacts": [],
+  "preserved": "Original assets, references, foreign source work and selected runtimes"
+}

@@ -1,0 +1,16 @@
+{
+  "initial_component_and_authenticated_helper_comparisons_passed": true,
+  "initial_rust_684_passed": true,
+  "additional_original_map_team_fixture_test_685_passed": true,
+  "final_rust_686_passed": true,
+  "source_correction": {
+    "reason": "Fresh unchanged19A2CE execution rejects member IDs outside0..15; make that explicit instead of wrapping wider native shifts",
+    "original_report": "original-wide-team/report.json",
+    "observations": "original-wide-team/observations.json",
+    "fixture": "tests/fixtures/frontend_lobby_signed_team_original.json",
+    "native_final_iteration": 2
+  },
+  "goal_complete": false,
+  "initial_native_test_pass_stopped_after_known_source_supersession": "superseded-initial-test-stop.json",
+  "initial_native_build_succeeded": true
+}

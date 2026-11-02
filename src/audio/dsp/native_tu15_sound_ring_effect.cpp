@@ -85,9 +85,7 @@ struct Extent{std::uintptr_t begin,end;};
 Extent extent(const void* p,std::size_t n){const auto b=reinterpret_cast<std::uintptr_t>(p);if(!p||n>std::numeric_limits<std::uintptr_t>::max()-b)throw std::invalid_argument("invalid reverb span");return{b,b+n};}
 bool overlaps(Extent a,Extent b){return a.begin<b.end&&b.begin<a.end;}
 void validate(const State& s,const Workspace& workspace,std::span<Word,32> input,const std::array<std::span<Word,32>,4>& outputs,const Controls& c,ArithmeticTrace* trace){
-    constexpr Word forbidden=(3u<<10)|(1u<<12)|(1u<<13)|(1u<<14)|(1u<<15)|(1u<<16)|(1u<<17)|(1u<<18)|(1u<<20)|(1u<<21);
-    word(c.entry_status);if(c.entry_status&forbidden)throw std::invalid_argument("unsupported reverb entry status");
-    for(auto m:c.modifiers)if(m!=0xffffffu)throw std::invalid_argument("unsupported reverb addressing mode");
+    validate_controls(c);
     std::array<Extent,22> extents{};extents[20]=extent(&workspace,sizeof workspace);extents[0]=extent(&s,sizeof s);extents[1]=extent(input.data(),input.size_bytes());for(unsigned j=0;j<4;j++)extents[2+j]=extent(outputs[j].data(),outputs[j].size_bytes());
     for(unsigned j=0;j<14;j++){const auto& ring=s.rings[j];if(ring.words.size()!=ring_words[j]||ring.write_byte_cursor>=ring.words.size()*4||ring.write_byte_cursor%16)throw std::invalid_argument("unsupported reverb history geometry");extents[6+j]=extent(ring.words.data(),ring.words.size()*sizeof(Word));for(auto x:ring.words)word(x);}
     if(trace)extents[21]=extent(trace,sizeof *trace);
@@ -114,6 +112,11 @@ void validate(const State& s,const Workspace& workspace,std::span<Word,32> input
     if(check.fade.pending_mask&&check.fade.sample_count==0){begin_fade_group(check);if(check.fade.selected_read>30||check.fade.selected_write>13)throw std::invalid_argument("reverb fade advance exceeds typed descriptor owner");}
     else if(check.fade.pending_mask&&check.fade.sample_count==0x80){const auto delay=current_fade_tap(check);(void)delayed_cursor(check,check.fade.selected_read,check.fade.selected_write,Word(std::max<std::int64_t>(signed_word(delay)-0x40,0)));}
 }
+}
+void validate_controls(const Controls& c){
+    constexpr Word forbidden=(3u<<10)|(1u<<12)|(1u<<13)|(1u<<14)|(1u<<15)|(1u<<16)|(1u<<17)|(1u<<18)|(1u<<20)|(1u<<21);
+    word(c.entry_status);if(c.entry_status&forbidden)throw std::invalid_argument("unsupported reverb entry status");
+    for(auto m:c.modifiers)if(m!=0xffffffu)throw std::invalid_argument("unsupported reverb addressing mode");
 }
 void process(State& s,Workspace& workspace,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,const Controls& controls,ArithmeticTrace* trace){
     validate(s,workspace,input,outputs,controls,trace);

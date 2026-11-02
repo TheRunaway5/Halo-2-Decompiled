@@ -74,8 +74,8 @@ struct HudPresentationLayout {
   Vec2 center, offset;
   float scale{};
 };
-// Corner HUD presentation uses the whole player cell. Keep its original
-// center separately so changing edge padding cannot move aiming widgets.
+// Full-screen HUD keeps its authored inset; split-screen HUD uses the cell's
+// corners. Keep the original center so edge padding cannot move aiming widgets.
 HudPresentationLayout hud_presentation_layout(HudViewport reference,
                                              unsigned width, unsigned height);
 // Omitted preferences retain the original aspect-selected grid for reference

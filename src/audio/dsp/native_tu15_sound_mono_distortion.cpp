@@ -51,7 +51,7 @@ void validate(const FilterCoefficients& c) {
 }
 void validate(const FilterHistory& h) {validate(h.previous_input);validate(h.older_input);validate(h.previous_output);validate(h.older_output);}
 }
-void process(const Controls& control,Parameters& p,State& s,std::span<const Word24,32> input,std::span<Word24,32> output) {
+void validate_controls(const Controls& control) {
     // This candidate admits the actual traced entry modes only. DSP56300
     // alternate SA/SM modes and S0 scaling-down are separate arithmetic modes.
     if(control.entry_scaling!=ScalingMode::none || control.arithmetic_saturation || control.sixteen_bit_arithmetic || control.double_precision_multiply)
@@ -59,6 +59,9 @@ void process(const Controls& control,Parameters& p,State& s,std::span<const Word
     if(control.state_relative!=AddressingMode::linear)throw std::invalid_argument("Unsupported original state-relative addressing mode");
     for(auto mode:{control.coefficients,control.input,control.output,control.history})
         if(mode!=AddressingMode::linear)throw std::invalid_argument("Original address mode is outside recovered domain");
+}
+void process(const Controls& control,Parameters& p,State& s,std::span<const Word24,32> input,std::span<Word24,32> output) {
+    validate_controls(control);
     validate(p.gain);validate(p.before_clip);validate(p.after_clip);validate(s.flags);validate(s.last_dry_word);validate(s.before_clip);validate(s.after_clip);
     for(auto w:input)validate(w);
     for(auto w:output)validate(w);

@@ -8,7 +8,9 @@ runtime=$(readlink -f "$runtime")
 shift 6 || shift $#
 here=$(dirname "$(readlink -f "$0")")
 root=$(cd "$here/../.." && pwd)
-maps=${H2_MAPS:-$root/assets/imported/mcc-dire-valley-polish-20261023/halo2/h2_maps_win64_dx11}
+# Default to the launcher-selected cache so captures use the maps the game authenticates against.
+selected_cache=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('cache',''))" "$root/gameplay-runtime-selection.json" 2>/dev/null || true)
+maps=${H2_MAPS:-$root/${selected_cache:-assets/imported/mcc-dire-valley-polish-20261023}/halo2/h2_maps_win64_dx11}
 maps=$(readlink -f "$maps")
 map=${H2_MAP:-coagulation}
 scratch=$HALO2_TEST_SCRATCH
@@ -126,6 +128,8 @@ EOF
 python3 -c "print('elapsed %.1f s' % ($end - $start))" | tee "$report/$label.elapsed"
 cp "$scratch/timing.tsv" "$report/$label.timing.tsv"
 grep -a "Native main cull" "$scratch/run.log" | tail -40 > "$report/$label.cull.txt" || true
+grep -a "Render overlap" "$scratch/run.log" | head -3 > "$report/$label.overlap.txt" || true
+grep -a -A2 "Presented scope census" "$scratch/run.log" | tail -12 > "$report/$label.census.txt" || true
 if [[ -f "$scratch/cpumon.txt" ]]; then
   python3 - "$scratch/cpumon.txt" "$frames" <<'PY' | tee "$report/$label.cpu.txt"
 import sys

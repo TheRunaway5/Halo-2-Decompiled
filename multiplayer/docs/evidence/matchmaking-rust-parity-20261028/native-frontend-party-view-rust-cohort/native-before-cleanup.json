@@ -1,0 +1,9 @@
+{
+  "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-native-20261102/halo2-test-9n5lcc3j",
+  "regular_bytes": 6357540118,
+  "regular_files": 63093,
+  "symlink_files_not_followed": 2107,
+  "validation_passed": true,
+  "requested_native_tests": 28,
+  "retained_large_artifacts": []
+}

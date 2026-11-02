@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "scope": "Exact preserved-reference/production authority public-API and wire comparison.\n\nClocks, private byte banks, authenticated endpoint inputs and explicit native\nvalidation calls are declared fixtures. No original Live, genuine provider,\nprepared world or installed runtime claim is made. Exceptions compare as flags.\n",
+  "reference": {
+    "scope": "Exact prior modern reliable authority exchange, including its existing Rust poll-cursor leaf; not original Xbox XNet/Live wire",
+    "source": "src/network/peer_authority_transfer.cpp",
+    "sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "bytes": 24127,
+    "captured_at_utc": "2026-11-01T17:56:43.301700+00:00",
+    "production_use": false,
+    "header": {
+      "source": "include/halo2/peer_authority_transfer.hpp",
+      "reference": "tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp",
+      "sha256": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+      "bytes": 6177
+    }
+  },
+  "production_source_sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+  "comparison_role": "preserved_cpp_vs_configured_production; qualification identifies the compiled production owner",
+  "binaries": {
+    "cpp": "b7e8b3b87329a12e82ec41c4ea72d6d9e67091fe9f8a20e371878d48bef89ddc",
+    "rust": "af0ad9185bd0071ef731f8b6bfc88616bec624679e34d78a6139bcb1a27aba8b"
+  },
+  "native_world": false,
+  "original_xnet": false,
+  "retained_large_artifacts": [],
+  "commands": 14939,
+  "packet_outputs": 4332,
+  "receives": 4004,
+  "state_reads": 1286,
+  "corpus_and_observations_sha256": "07dc48a678d1495efeed6d4c64d76e38e966e443577d2473b3f313d3b74d9f5e",
+  "sdk_diagnostics": [
+    "Shutdown handler: initialize.",
+    "Shutdown handler: initialize."
+  ],
+  "native_exit_codes": [
+    0,
+    0
+  ]
+}

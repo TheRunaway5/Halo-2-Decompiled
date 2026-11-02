@@ -88,7 +88,6 @@ private:
     std::vector<SourceBspDrawGeometry> clusters_,definitions_;
     std::vector<SourceBspDrawInstance> instances_;
     std::vector<Transform> transforms_;
-    bool lightmap_matches_{};
     void prepare_bsp(PhysicsLiveWorldTu15 &,const SourceBspAdmission &);
 };
 }

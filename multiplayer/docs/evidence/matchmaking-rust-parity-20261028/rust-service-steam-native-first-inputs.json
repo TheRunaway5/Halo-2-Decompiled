@@ -1,0 +1,34 @@
+{
+  "schema": "H2_RUST_SERVICE_STEAM_NATIVE_INPUTS_V1",
+  "before_sha256": "85ef5159fb49ba6e66b92fac3fc6f27cc56b2c6505f211b0b05d6a60d273952f",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4394,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70/native-source",
+  "copied_source_bytes": 167430354,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "85ef5159fb49ba6e66b92fac3fc6f27cc56b2c6505f211b0b05d6a60d273952f",
+  "changed": [],
+  "current_source_drift": [
+    "include/halo2/source_workshop_script_actions.hpp",
+    "rust/matchmaking_service/src/steam_http.rs",
+    "src/campaign/scripting/source_workshop_script_actions.cpp",
+    "src/campaign/scripting/source_workshop_script_builtins_tu15_generated.cpp",
+    "src/gameplay/simulation.cpp"
+  ]
+}

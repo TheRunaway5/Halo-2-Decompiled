@@ -2,6 +2,23 @@
 
 Started October 28, 2026. Goal status: **active; incomplete**.
 
+October30 user clarification: cutscene audio, sound effects and dialogue must
+also be 1:1 native kernels. Full campaign completion requires their generic
+original scheduling, playback, mixing/spatial behavior and composed delivery.
+The [current audio scope](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md) records the
+remaining owners and acceptance requirements; the whole audio gate stays open.
+
+November2 user clarification: presentation must match OG Xbox, with resolution
+scaling for modern displays and native kernels. The supplied Arbiter comparison
+shows a character shading discrepancy. Original material passes, lighting,
+camera composition and display-mode behavior are the authority; PC framing
+extensions and component-only numerical matches do not establish that match.
+The [display-owner audit](../analysis/campaign-camera-20261030/original-display-aspect-owner-audit-r1/report.json)
+authenticates the original console-mode query and its projection/aperture
+consumers. Current PC drawable-aspect adaptation remains a separate extension.
+The user identifies the reference as TU1.5 but does not know its widescreen
+setting; the video's aspect ratio does not establish that setting.
+
 Implement the missing capabilities in [the audit](CAMPAIGN_NATIVE_KERNEL_AUDIT_20261028.md) as generic native semantic TU1.5 kernels, so imported tags, authored Halo scripts, AI and cinematic sequences run with original behavior. The native Halo script VM may interpret game-script data. Xbox CPU emulation, instruction lifting, executable-backed gameplay and per-mission replacements do not qualify. Original executable execution is an independent offline reference only.
 
 ## Completion contract
@@ -104,19 +121,833 @@ Checked items are the specific implementation or verification milestones named h
 - [x] **K80:** native reached observer-to-render camera packet and retirement of its old generated body;277 original cases, all74 admitted sites, seven rejected mutations, compiler/sanitizer and exact repeat checks pass. Both reached call sites use the native boundary; the35-site default-camera branch remains explicitly open.
 - [x] **K81:** restored the genuine one-byte mutable arena flag used by the view producer. Original loader/constructor/xref authentication, the fresh cold-data ownership/checkpoint regression and actual producer writes pass. No surrounding zero bank or camera outcome is supplied.
 - [x] **K82:** texture-camera preparation now requests a real readable scene attachment at native resolution. The independent real-GPU regression passes with no camera materials/upscaling, real backing handles, presentation/readback and stale-resource checks; existing alias/depth/resize tests also pass. Campaign first-frame/progression acceptance remains separate.
+- [x] **K83 component:** native `156E40` global fade/per-player flash sampling and finite/zero transition curves;519 physical original cases,223 fault prefixes,271 admitted sites, seven rejected mutations, GCC/Clang/actual-core sanitizers and exact repeat pass. Actual `2B8EC` binding is wired; exceptional CRT handlers and composed graphics/progression remain open.
+- [x] **K84:** restored the exact one-byte mutable widescreen storage at `4922E2`. Original loader/initializer/xref proof and the fresh production cold/checkpoint regression pass; the actual GPU run clears this missing-data boundary. Platform settings initialization and complete rendering remain separate.
+- [x] **K85 component:** native `170820` model hierarchy composition, `144BF0` basis, `144CF0` packed pose and shared `145560` product;576 physical originals, all271 sites,379 fault prefixes, eight rejected mutations, compiler/sanitizer and exact-repeat checks pass. Actual sky caller is wired; composed graphics and physical Xbox reciprocal-estimate qualification remain open.
+- [x] **K86:** restored the independent four-byte mutable render-target selector `4920D8`. Whole-field original ownership, actual fresh cold extent/mutation/checkpoint regression and the next composed GPU observation pass this storage gate. No target publication or completed frame is supplied.
 - [x] **Storage:** completed checkpoint validation builds, offline executables and raw banks were removed; required reference data and compact evidence are recorded in the checkpoint manifests.
 
 ## Immediate unchecked steps
 
-- [ ] **New Game launch:** qualify the actual menu/difficulty → fresh campaign world → The Heretic authored startup/camera → The Armory → player control flow. Actual imported Heretic metadata has one valid player start. A stale frontend mission selection and missing next-map handoff are being corrected; no complete native-only run is accepted yet.
+- [ ] **New Game launch:** qualify the actual menu/difficulty → fresh campaign world → The Heretic authored startup/camera → The Armory → player control flow. Fresh New Game selection and the catalog-driven next-map adapter are implemented; imported Heretic metadata has one valid player start. No complete rendered or native-only progression run is accepted yet.
 - [x] **New Game menu regression:** linked actual-MCC validation of all four difficulties, stale Select Level state, cancellation and absent Resume passes in coherent cohort v1.
+- [x] **Continuous live New Game menu:** actual title/profile creation → Campaign → New Game → each difficulty → fresh Heretic passes in one native process. Easy/Normal/Heroic/Legendary retain0/1/2/3 and render10/8/7/7 frames; all exit cleanly with zero script/content faults. XTest key events use owned X11 displays/private profiles; no --campaign/--map/--menu-action/--simulate bypass is used. Installed launcher remains unchanged.
+- [x] **Requested campaign test build:** separate `Halo2-Campaign-Test` launcher and retained V10 iteration1 package use selected V7 assets and isolated test preferences. The exact delivered launcher passes real Normal menu selection into fresh Heretic with15 campaign frames; independent packaged Heretic6-frame and Armory1-frame RTX5080 checks also pass with zero script faults. The reported inactive texture-camera renewal crash is cleared. The normal launcher selection is unchanged; full campaign/native-only closure remains open.
 - [x] **New Game cold startup:** coherent v2 iteration1 starts authored Heretic threads and reaches120 ticks with zero script faults and no injected script/squad. Actual native reset1/FOV1/control1 calls are observed; current native scenario lookup and release-reset regression are included. This is bounded startup acceptance, with full cinematic/native-only closure still open.
-- [ ] **New Game renderer startup:** qualify the actual hardware-rendered introduction and genuine captured-frame crossfade consumer. V3 passes both restored data owners and reaches real texture-camera target setup, which lacks an explicitly requested readable scene attachment at native resolution. The real allocation fix and independent GPU regression are staged for v4.
-- [ ] **New Game progression:** naturally reach Heretic `game_won`, load the catalog-selected Armory into a fresh world, retain difficulty and reach authored training/player control.
-- [ ] **New Game native closure:** replace the remaining generated camera/director and completion/save/request owners, then qualify the composed route without lifted runtime paths.
+- [x] **New Game rendered Heretic:** V9 iteration1 renders2154 actual RTX5080 frames, reaches authored level_finished with zero script faults, and naturally loads a fresh Armory world with Normal difficulty preserved. This qualifies functional rendered Heretic and catalog handoff; framebuffer parity, native-only closure, and separate crossfade-owner claims remain open.
+- [x] **Armory first frame:** frozen V10 iteration1 with the selected V7 assets renders an actual RTX5080 frame with zero HS/content faults, one machine-view packet and66 machine GPU draws. Genuine PRT resources, live coefficients and immutable per-view ownership are wired. Separate full training/player-control acceptance remains open.
+- [x] **Campaign machine packet ownership:** actual Armory ordinary/secondary view0 captures own disjoint vertex, PRT and depth storage; the first capture stays unchanged after the second. Wrong selected ordinals, rebase-stale generations and retired resources are rejected. Both private packet modes also submit one actual GPU frame. Authored secondary-view activation and framebuffer parity remain open.
+- [x] **K87:** exact473628 mutable file-backed1.0 storage passes fresh production cold/checkpoint ownership and the133-check/49-negative portable main-view contract in v6. The actual GPU continuation clears this field and reaches the texture-camera caller bug. Original HS global444 and actual write ownership are authenticated; no field outcome is preset.
+- [x] **K88 component/integration:** native2B700→14CDB0 BSP selection passes268 physical originals, all76 sites,95 read-fault prefixes, compiler/sanitizer, eight mutations and exact repeat. The actual2B7E6 binding is wired and its CMake fixture/admission regressions pass; composed campaign graphics remain separate.
+- [x] **K89 component/integration:** native2F950 view-rectangle calculation passes550 physical originals, all124 sites,270 prefixes, compiler/sanitizer, eight mutations and exact repeat. Both actual2B8B4/13C8A bindings are wired and its CMake fixture/admission regressions pass; composed graphics remain separate.
+- [x] **K90 retirement:** compiled and independently verified removal of both lifted camera helper bodies, exact three native bridges and unchanged21 other retained bodies/address mapping. All four combined packet/BSP/rectangle/admission regressions pass. The producer has23 legacy bodies; the full native camera closure remains open.
+- [x] **K91 component:** generic native27D7D0/27DA40 awareness commands pass924 original comparisons,576 reachable sites,700 fault prefixes, eight actual faults, compiler/sanitizer checks, nine meaningful mutations and exact repeat. These update existing perception links; live World ABI and shared HS floating-point authority are separate pending integration gates.
+- [x] **AI awareness World integration:** actual2AF0F0/2AF13F held-ABI bindings are wired through the native World dispatcher after1812 transports and35 original caller packets pass. The intro has not yet exercised this route; public script-host FP authority remains open.
+- [x] **K92 component/retirement:** native2F5E0/2F620/2F690 grid, tile and rectangle layout passes775 physical comparisons, all173 sites, compiler/sanitizer checks, eight mutations and exact original repeat. Five combined fixture/admission regressions pass after removing the three lifted bodies and preserving all eight native bridges. The producer now has20 legacy bodies; original RAM RMW-cut qualification is explicit.
+- [x] **K93 projection storage:** exact read-only four-byte46A260/46A670 operands pass fresh production cold/checkpoint, write-rejection and GPU continuation in v7 iteration2. The11-span original fixed-data preflight found these two gaps; actual rendering now clears both. Dynamic projection inputs remain outside this finite data preflight.
+- [x] **New Game first GPU frames:** actual production v7 iteration2 renders six frames on the RTX5080, reaches tick11 with zero script faults and a real checkpoint, and records six native packet/BSP/rectangle/flash/model calls plus18 native layout calls. No injected script, squad, input or completion is used; full introduction, crossfade and Armory handoff remain open.
+- [x] **K94 component:** additive native null-camera projection and actual380450 initializer pass683 new physical comparisons,503 prefixes, all35 null/three initializer sites, compiler/sanitizer checks, eight mutations and exact repeat. Existing277-case nonnull reference stays unchanged. Full typed x87 contexts are explicit; sparse ABI exports retain a required-owner boundary.
+- [x] **K95 active-ABI component:** awareness binding passes all924 canonical cases through1812 transports plus35 unchanged physical caller packets, compiler/sanitizer and seven negative controls. It consumes genuine held GP arguments, retained FP and actual return words; no source argument prepeek or fresh policy is supplied.
+- [x] **Default-camera initializer activation:** V8 iteration2 passes the actual fresh cold/checkpoint owner and renders six frames with authentic380450 initialization observed once. The World bootstrap marker is translated to the sealed binder's explicit bootstrap identity; the original CRT caller remains unchanged.
+- [ ] **Null-camera live activation:** the new null-only World route is wired and component-qualified; the current introduction records zero null-camera calls, so actual live activation remains unobserved.
+- [x] **K96 projection component/integration:** native2FB50/2FD70 and internal typed144090 pass original whole/prefix comparisons,535 sites, independent FP publication-order witnesses, GCC/Clang/sanitizers and nine rejected mutations. Both old producer bodies are retired; actual V8 rendering records12 native projection calls. Shadow144090 callers remain separately gated.
+- [x] **K97 frame-policy component/integration:** native2C470 passes332 original cases with the paired query component,101 controlled prefixes, five faults, compiler/sanitizer checks and eight rejected mutations. Only the exact229B9E caller is routed; V8 records six calls. The25940 backend-query and shadow duplicate remain open.
+- [x] **K98 transition-participant component:** native154F80/155190/1550B0/CE340 pass676 physical cases, all430 sites, compiler/sanitizer checks, ten rejected mutations and14 native compositions against28 actual caller packets. Production completion191750 integration remains open.
+- [x] **K99 save-metadata component:** native1ACDE0/1AD350/1AD300/1ACFC0 pass1124 physical cases, all214 sites, eight actual faults, compiler/sanitizer checks, ten rejected mutations and13 actual191799 caller profiles. Genuine save/request/session orchestration and live activation remain open.
+- [x] **K100 BSP admission transport:** the independent original caller trace distinguishes the owner-NONE request flag from the cluster/instance selector. Eight regression profiles now pass, including zero-alpha ordering, opposite prepared residency, failed-request dropping and mask allocation. The real cluster1/47 control rejected174 pages with blocking disabled; the original failure is retained as normal nonresidency. V9 iteration1 clears the actual failure and completes Heretic on hardware.
+- [x] **K101 shadow inverse component:** exact TU1.5 C4879→144090 binding passes303 original frames/prefixes/faults, compiler/sanitizer checks, ten rejected mutations and exact repeat. Real C487E continuation and disjoint record/save/RET storage are required. Combined runtime duplicate retirement and captured-client activation remain pending.
+- [x] **K102 initialized CRT component:** real-thread32C075/330179 lookup and retained seed update pass323 original cases,15 actual transition-caller packets, compiler/sanitizer checks, ten rejected mutations and exact repeat. This covers35 of50 source sites;15 postallocation sites, allocation/fatal services and production activation remain open.
+- [x] **K103 Shadow duplicate retirement component:**147 production bodies remain after removing2C470/144090;146 unrelated bodies and all1420 address-map pairs stay byte-identical. The sole C4879 bridge is native; independent fresh12 physical policies preserve full GP/defined flags/count/stores through the test-only historical helper and compare native semantic data. GCC/sanitizers pass. Original optional12+3 fixture is unavailable and remains unqualified. Captured-client activation is pending in v9 iteration2.
+- [x] **K104 session-support component:** native606A0/7E7F0/599B0 pass1034 physical cases, all102 sites,23 genuine caller packets, compiler/sanitizer checks, ten rejected mutations and exact repeat. Parent session/UI/network orchestration and runtime binding remain open; the address-query caller's live EDX obligation is explicit.
+- [x] **K105 direct native frame-policy transport component/integration:** explicit prepared-source-call root domain consumes actual EAX view count, preserves opaque ABI/FP, and authenticates real60300000 RET after stores. Existing332-case suite plus180 original-data root transports and late/missing/wrong-return controls pass GCC/sanitizers; canonical literal229B9E binding/core stay unchanged. V10 iteration1 observes six actual native root calls in six GPU frames.
+- [x] **K106 timer data component:** complete38-site five-record retirement algorithm passes253 original cases, ten rejected mutations, compilers/sanitizers, captured-input exact repeat and independent fresh-clock structural checks. Genuine private World Milliseconds producer binding and outer77AB0/77AF0 volatile EAX liveness remain open; no clock/default or completion result is invented.
+- [x] **K107 timer caller component:** the typed return and all four actual callsite bindings pass253 state cases plus185 genuine caller profiles, GCC/Clang/ASan/UBSan, exact original replay and25 rejected semantic mutations. Actual EAX, late return-word reads and RET8 transport are retained. World clock routing and local duplicate retirement remain pending.
+- [ ] **Shared HS awareness context:** provide the native script host's genuine retained floating-point authority before routing its public awareness commands. The qualified nested World binding alone does not complete this host gate.
+- [x] **Natural Heretic handoff:** genuine authored completion loads catalog-selected Armory into a fresh world with Normal difficulty retained. V9 iteration1 observes both initial scenarios, real first-map completion and no supplied script/squad/input/completion.
+- [ ] **Armory training/player control:** continue beyond the accepted first frame and qualify authored training, input, player control and progression.
+- [ ] **New Game native closure:** replace the remaining generated camera/director and completion/save/request owners, then qualify the composed route without lifted runtime paths. Primary completion191750 retains15 calls, including real options/participant preparation154F80/155190, session64FD0 and request191580/UI5A080. The current catalog-driven host handoff does not qualify that full original lifecycle.
 - [ ] Implement the two next actual v5 owners: behavior/query initializer `278460` and navigation selector `1C9F10`, with their complete real dependency graphs.
 - [ ] **K20/K23 composition:** finish remaining native actor/order-reset dependencies and qualify the composed reset.
 - [ ] Finish authored orders, full playback/speech, HS scheduling, map/save lifecycle, co-op and all final acceptance gates listed below.
+
+Latest delivery evidence: [test-build receipt](../analysis/campaign-native-new-game-20261028/user-test-build-20261029.json), [actual delivered launcher](../analysis/campaign-native-new-game-20261028/user-test-build-packaged-menu-normal.json), [packaged Heretic](../analysis/campaign-native-new-game-20261028/user-test-build-packaged-intro-v2.json), [packaged Armory](../analysis/campaign-native-new-game-20261028/user-test-build-packaged-armory.json) and [incremental checkpoint19/cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-19.json). The requested retained package is separate from the unchanged normal launcher. The old V10 disposable source/build is removed.
+
+Latest component evidence: [actual Armory GPU](../analysis/campaign-native-new-game-camera-20261028/campaign-machine-armory-v10-selected-v7-baseline.json), [actual packet lifetime/ownership](../analysis/campaign-native-new-game-camera-20261028/campaign-machine-packet-v10-selected-v7.json), [typed timer caller qualification](../analysis/campaign-native-session-timers-20261029/proof-v2.json) and [October30 actual timer World integration](../analysis/campaign-native-session-timers-20261030/world-integration/proof.json). These close the named checked milestones; full training and authored secondary-view activation remain open.
+
+### October 30 continuation
+
+The original conversation ended during timer World integration. Its later
+[unchanged packaged training observation](../analysis/campaign-native-new-game-20261028/packaged-natural-training-v1.json)
+completed Heretic naturally, rendered six Armory frames and then stopped at
+the actual `1B0195 -> 1BBB50` AI descriptor callback. This is the next observed
+Armory gameplay boundary; the earlier rendering smoke is not training acceptance.
+
+- [x] **K108 component:** native `1BBB50` authored two-area query and the exact
+  `1B0195` AX16/RET4 binding pass271 original calls/prefixes, all44 new-owner
+  sites,538 typed/binding comparisons, GCC/Clang/sanitizers, eight meaningful
+  mutation controls and an identical independent original repeat. The
+  [current component proof](../analysis/campaign-native-ai-actor-callback-20261030/component-proof-v2.json)
+  records324 observed closure sites and the authenticated descriptor/caller.
+  Its450,605-byte original fixture is required input. All completed component
+  scratch is removed; no binary, raw bank or capture is retained.
+- [x] **K108 shared iterator/integration edit:** the existing first-area query
+  now uses the same semantic iterator. All480 previous original cases,720
+  typed/binding comparisons and five previous mutations pass GCC/Clang and
+  sanitizers. The actual World route, main CMake module and read-only activity
+  diagnostic are staged; current source pins are in the proof above.
+- [x] Observe K108 through the real authored Armory continuation. The frozen
+  [client cohort](../analysis/campaign-native-armory-20261030/cohort-v1/current-source-cohort.json)
+  executes the native callback once during natural Master Guns birth, with
+  zero script faults, then stops at `1B0D1C -> 1BBEC0` at tick10. Both shared
+  area regressions pass. [Cleanup](../analysis/campaign-native-armory-20261030/cohort-v1/cleanup.json)
+  verifies the finite source/build owner removed and launcher selections
+  unchanged. This does not qualify complete Armory training.
+- [x] **K106/K107 bounded timer World integration:** the
+  [integration proof](../analysis/campaign-native-session-timers-20261030/world-integration/proof.json)
+  records four actual77AB0 calls/64 native timer calls, adjusted wrap,
+  capture/replay, cached/inactive behavior and exact local-body retirement.
+  The real public map/session lifecycle precedes the anchor; the production
+  clock boundary guard is unchanged. The original storage audit authenticates
+  642 cold bytes, with exact native-factory ownership/checkpoint tests passing.
+  Earlier failures remain recorded; all completed owners are removed.
+- [x] **K109 geometry component:** six native direction/inverse/frame/difference
+  owners pass1,143 original cases through all328 new-owner sites, including357
+  prefixes and six real missing-source faults.136 disjoint completed private
+  inverse-frame outputs, GCC/Clang/actual-core sanitizers, nine mutations and
+  exact original repeat also pass. [Proof and cleanup](../analysis/campaign-native-ai-frame-geometry-20261028/proof-20261030.json)
+  retain the234,809-byte canonical v2 input and preserve the initial diagnostic
+  reference. Original native algorithms are unchanged. Numeric World routing,
+  partial private outputs and actual1C9F10/navigation search remain open.
+- [x] **K110 path-influence component:** native27C520 passes358 original
+  calls/prefixes/faults through all98 root sites,174 completed private outputs,
+  GCC/Clang/actual-core sanitizers, ten mutations and exact original repeat.
+  [Proof and cleanup](../analysis/campaign-native-ai-path-influence-20261030/proof.json)
+  retain the426,549-byte canonical v2 reference and initial diagnostic input.
+  The frozen client compiles/links this and the shared frame module. Numeric
+  World transport, full-stack/unmasked FP and complete navigation remain open.
+- [x] **K111 area-choice component:** native1BBEC0/1BBBD0 authored selection
+  passes877 original calls/prefixes/faults through all206 root sites, including
+  score FP,32-candidate limit, mask reset/retry and mutable reads. GCC/Clang,
+  actual-core sanitizers and nine mutations pass. [Proof](../analysis/campaign-native-ai-area-choice-20261030/proof.json)
+  records canonical/diagnostic inputs and completed scratch cleanup. Both
+  previous area suites pass full reruns with the shared zone accessor.
+- [x] **K111 numeric binding:**421 original real CALL/RET8/argument/return
+  packets, including411 interrupted prefixes, pass full FP/live values,
+  retained writes and lazy input order. GCC/Clang/actual-core sanitizers,
+  eight transport mutations and exact original repeat pass. The eight-byte
+  original distance-penalty operand and real cold-factory regression pass.
+  [Current proof](../analysis/campaign-native-ai-area-choice-20261030/proof.json)
+  preserves the earlier component source/report and verifies completed cleanup.
+- [x] **K111 bounded natural Armory integration:** the
+  [cohort-v2 client](../analysis/campaign-native-armory-20261030/cohort-v2/current-source-cohort.json)
+  executes both native area callbacks once, then reaches the next missing
+  `1B0AD9 ->1BBEE0` owner at tick10. Both frozen iterations pass all five
+  component/timer tests, with zero content/script faults. Full Armory training
+  remains open. [Cleanup](../analysis/campaign-native-armory-20261030/cohort-v2/cleanup.json)
+  verifies source/build removed, no checkout drift and launcher selections
+  unchanged; no executable or frame is retained.
+- [x] **K112 retained path-result component:** native27A460 cost, clearance,
+  parent reversal and direction pass468 original calls/prefixes/faults,
+  including all146 reachable root sites and a checked ordinary-frame invariant
+  for two guard sites. GCC/Clang/actual-core sanitizers, seven mutations and
+  independent original repeat pass. [Proof](../analysis/campaign-native-navigation-frontier-20261030/path-result-proof.json)
+  records19,082 reads/2,143 stores, shared private points, the full353-case
+  previous segment regression and completed cleanup. Numeric World routing,
+  full search and documented exceptional/private-frame profiles stay open.
+- [x] **K114 action identities:** native26C510 history,26C850/277D40 goal
+  definitions and generic16E940 salted lookup pass354 original cases through
+  all124 sites,1,570 ordered reads/148 stores, five true faults,56 rejected
+  prefixes and four mutable timelines. GCC/Clang/actual-core sanitizers,
+  twelve mutations and independent exact repeat pass. [Proof](../analysis/campaign-native-ai-actions-20261030/identity-proof.json)
+  records canonical/initial references and completed scratch cleanup. Numeric
+  World binding and whole action-planner composition remain open.
+- [x] **K115 remaining path distance:** native200C00 and real shared frame
+  geometry pass309 physical originals through all84 root/224 closure sites,
+  12,781 ordered reads,162 rejected reads/five true faults and eight exact
+  pending-quantity boundaries. GCC/Clang/actual-core sanitizers, nine mutations
+  and independent exact repeat pass. [Proof](../analysis/campaign-native-ai-actions-20261030/path-distance-proof.json)
+  verifies cleanup and the required407,411-byte fixture. Numeric World binding
+  and retirement of the previous generated body remain open.
+- [ ] **K113 next natural Armory owner:** implement whole1BBEE0 and its real
+  action-selection/publication dependencies. The126-site root and initial
+  200C00/26A2E0/26C3C0/26C510 graphs are authenticated. Existing native area
+  choice and arena/resource owners are dependencies; missing action outcomes
+  must remain fatal until their actual algorithms are implemented. K114/K115
+  close native data dependencies only. The next movement/publication dependency
+  audit authenticates15-site200960 and426-site200D30; full navigation-search
+  and action-begin dependencies remain substantial and unresolved.
+- [x] **K115 two numeric callers:** native200C00 transport for actual1B8938
+  and1BBF3B passes1,092 original cases, including792 prefixes,10 true faults,
+  14 late RET cuts,28 pending results and44,044 reads. Eleven mutations,
+  GCC/Clang/actual-source sanitizers and independent exact repeat pass.
+  [Proof](../analysis/campaign-native-ai-actions-20261030/path-distance-binding-proof.json)
+  records real coordinate publications, all completed scratch cleanup and
+  frozen compilation of the actual World/caller objects. The routes are wired;
+  live execution, five other numeric callers and generated-body retirement
+  remain open. Shared point/distance/result/area regressions all pass.
+- [x] **K116 dialogue-envelope kernel:** native21F860 resolves actual
+  sound/range/permutation resources and samples its normalized byte envelope.
+  All70 original sites,454 physical cases,7,729 ordered reads,63 prefixes,
+  three true faults, pending scalar/late RET and full x87/MMX preservation pass.
+  [Proof](../analysis/campaign-native-audio-20261030/speech-envelope-proof.json)
+  records actual-manager registration, GCC/Clang/sanitizers, eleven semantic
+  mutations, exact original repeat and completed scratch cleanup. This is one
+  dialogue dependency; full cutscene/SFX/dialogue audio, the still-closed
+  forty-entry campaign gate and generated-speech retirement remain open.
+- [x] **K117 dialogue-level smoothing:** native18F7A0 and its real generic
+  object lookup pass218 physical original cases through all65 closure sites,
+  including ordered faults, complete SIMD and x87/MMX preservation. Twenty
+  unchanged original caller-fragment cases include absent and zero envelopes;
+  all still execute smoothing. Twelve separate observer cases expose its
+  additional diagnostic read and instrumentation failures. The actual root
+  registry/module cohort passes GCC, Clang, ASan/UBSan, the454-case envelope
+  regression and17 compiling semantic controls. The final header's text-only
+  supplement passes3/3 ordinary CMake tests with an exact inverse-diff proof.
+  [Scope and evidence](CAMPAIGN_NATIVE_SPEECH_SMOOTHING_TU15.md) retain actual
+  caller GP/arithmetic-flags retirement and original operand limits. The
+  generated body, full speech/facial/playback chain, forty-owner campaign
+  audio gate and audio launcher acceptance remain open.
+
+### October 30 presentation follow-up
+
+- [x] **User-reported missing opening dialogue:** V12 restores the authored
+  route and matches all36 nonmuted opening recordings in actual output.
+  Most Arbiter/Prophet replies were inaudible in V7. A natural private-sink reproduction
+  observes the actual Arbiter cue at1115 and Prophet reply at1304 decoded and
+  consuming, but submitted at-6400 hundredths dB. The unselected V10 candidate
+  binds the genuine native metadata provider and restores the authored direct
+  route. Its [actual unmuted replay](../analysis/campaign-dialogue-20261030/actual-v10-package/capture.json)
+  reaches5731 with those voices submitted at-400/-600 hundredths dB, then
+  rejects a stale metadata owner during checkpoint Reset. Dispatch Reset before
+  reading the replaced World owner, and verify actual output for all36
+  nonmuted authored opening lines through the complete restore/handoff.
+  Muted graphics captures and voice-queue diagnostics do not close this gate.
+  V11's [full output check](../analysis/campaign-dialogue-20261030/actual-v11-package/audio-validation.json)
+  passes the natural intro/Reset boundary without audio faults and matches35
+  recordings before the next scenario. The remaining x01_0200_pcc crowd bed
+  has an original/MCC authored-15dB gain; its mixed-output measurement remains
+  unresolved. Preserve that authored gain and the35/36 red result while
+  checking independent waveform intervals. V12's
+  [actual output review](../analysis/campaign-dialogue-20261030/actual-v12-package/audio-evidence-review.json)
+  matches all36 recordings at the unchanged0.25 correlation threshold. The
+  quiet crowd bed passes the predeclared disjoint0–2s and4–6s interval method
+  with the same independently inferred start; its actual native packet retires
+  all395,520 source/output frames successfully. Natural intro/Reset is clean.
+  The separate whole-utterance mixture experiment remains red on two unrelated
+  controls and is not used to change that result. V12 is now selected by the
+  verified test launcher; the later Armory crash and full DSP/Xbox parity stay open.
+  The staged final V13 [actual-output review](../analysis/campaign-dialogue-20261030/actual-v13-package/audio-evidence-review.json)
+  also matches all36 recordings with the same helper/thresholds, clean natural
+  Reset, and successful full395,520-frame crowd packet retirement. Both tested
+  interval lengths and the separate red mixture experiment remain recorded;
+  no metric was tuned after capture. Its natural Armory continuation again
+  stops at tick10 in the same missing1BBEE0 owner. V13 is now selected by
+  `Halo2-Campaign-Test.sh`. Its [actual published-script run](../analysis/campaign-camera-20261030/current-final-v13-published-launcher-execution.json)
+  reaches natural1454 through the real Normal menu, compares1,317 camera
+  pairs without a mismatch, and reports no Vulkan errors. Its separate full
+  [camera/Earth replay](../analysis/campaign-camera-20261030/current-final-v13-camera-earth-execution.json)
+  compares4,057 camera pairs without a mismatch, reaches5304, and preserves
+  the sampled Earth right-edge strip. The November1 user report and
+  [corner-specific recheck](../analysis/campaign-camera-20261030/earth-corner-followup-r1/retained-corner-red.json)
+  show that V13 still exposes the poster edge at the far upper-right corner:
+  the old strip excluded those rows and is not full Earth-pan acceptance.
+  These bounded checks leave the recorded
+  Armory, complete native audio, hologram image-quality and whole-campaign
+  gates open.
+- [ ] **User-reported hologram dark patches/flicker:** the visible effect and
+  command ledger are integrated, but image quality remains unresolved. The
+  actual3400 frame shows the artifact. Three completed V10 frames in the
+  [matched capture](../analysis/campaign-camera-20261030/hologram-depth-v10-before/capture.json)
+  retain RGB, D24 and exact body/overlay inputs. Their21 matched cases per
+  frame have identical WORLD positions and camera rows;4,902 triangle orders
+  differ only by cyclic rotation. Determine the actual fragment-depth failure
+  and restore the original primitive/W-depth path while preserving authored
+  raster state. The later V12 correction is selected for its qualified improvement;
+  the broader image-quality gate remains open.
+  The [attachment control](../analysis/campaign-camera-20261030/hologram-depth-v10-before/head-depth-attachment-probe.json)
+  reproduces22 self-covered pixels rejected by the current body/native-overlay
+  depth pair; only changing the body to original ordered W reconstruction
+  restores all22 with identical33,070-pixel coverage. The dedicated current-group
+  implementation passes focused ownership/GPU tests. V12 passes all30 coherent
+  CTests without skips and35 strict shader guards. Its
+  [exact natural3400 comparison](../analysis/campaign-camera-20261030/hologram-depth-v12-after-current-single3400/matched-v2-qa.json)
+  preserves all21 body/overlay input owners, WORLD position bits, original
+  primitive order, camera and raster state; all21 attachment-proven live
+  self-rejections clear with zero Vulkan errors. Two earlier natural captures
+  missed3400 and remain recorded as red comparisons. Broader dark stippling
+  remains visible; full image-quality resolution and Xbox framebuffer parity
+  are still open.
+  An independently checked immutable-cache/actual-ledger join recovers all11
+  overlay index ranges, including strip degenerates and parity. The
+  [controlled full-overlay coverage check](../analysis/campaign-camera-20261030/hologram-depth-v12-after-current-single3400/all-parts-actual-depth-coverage.json)
+  seeds actual completed D24 and preserves it exactly; much of the residual
+  dark pattern lies in passing coverage. Constant-color coverage does not
+  qualify the authored pixel program. A later
+  [actual input witness](../analysis/campaign-camera-20261030/hologram-stipple-hw-v12-visible/hardware-input-witness.json)
+  finds full stipple level16 on all15,666 Regret/throne vertices; the shader's
+  level-below16 discard cannot explain that captured pattern. The retained
+  [authenticated TU1.5 image](../analysis/campaign-camera-20261030/original-hologram-reference-attempt-2.json)
+  is a qualitative reference with a different pose, not framebuffer parity.
+  The [paired body-attribute audit](../analysis/campaign-camera-20261030/hologram-body-attribute-conduit-audit.json)
+  confirms a concrete MCC CPU-loader tangent/binormal swap: all17,553 packed
+  basis words match the paired Original geometry, whose declaration assigns
+  tangent before binormal. The staged MCC-only axes correction preserves
+  Vista output and MCC float precision. Its reader oracle and genuine full-Cache
+  regression pass: all41,706 packed components and physical FLOAT inputs match.
+  The [fresh common-source natural-render A/B](../analysis/campaign-camera-20261030/hologram-body-basis-current-ab-final.json)
+  preserves all23,840 nonbasis words across745 selected head vertices and
+  witnesses exactly4,470 swapped basis words. All selected material/module
+  joins pass. Actual shader phases differ, and scene-copy pixels and other
+  critical inputs are unobserved, so causal RGB equivalence is unqualified.
+  Both images retain the dark contour/stippling; no image improvement is claimed.
+  A subsequent [CPU-only complete vertex-program comparison](../analysis/campaign-camera-20261030/hologram-full-vs-actual-report.json)
+  evaluates both actual745-vertex head captures. Corrected axes reduce maximum
+  lighting/vector errors from roughly0.71/1.40 to0.0010/0.0029, but the actual
+  imported FLOAT inputs still fail the predeclared2e-5 tolerance against raw
+  packed-basis inputs. A separate control that skins the actual packed basis
+  matches all16 reference output registers bit for bit; scalar position error
+  is already zero before the observed position prefix is retained. This is a
+  CPU arithmetic-reference/input-path result, not GPU/NV2A precision or a pixel
+  cause. No production precision change follows from that control.
+  The bounded [pixel/scene-copy observation plan](../analysis/campaign-camera-20261030/hologram-next-pixel-scene-copy-plan.json)
+  has now run in a fresh private coherent cohort. The
+  [independently joined actual capture](../analysis/campaign-camera-20261030/scene-copy-actual-current-640-20261101/bounded-independent-review.json)
+  identifies source frame4719/tick3400/group0/head section9 and the actual
+  copy fence, mapped uniforms and selected native program. All307,200 target
+  channels match the four-tap reference within the unchanged2-byte bound
+  (maximum0.5000023); the main image has zero changed channels. Actual BODY
+  stage3 binds the exact3992521855 normalization asset: six faces, seven mips,
+  all42 uploaded rows and the authored/effective sampler match. Two authored
+  pass candidates share those same asset/sampler inputs; this does not choose
+  a new template/LOD. Eight focused CTests,35 shader guards and24 positive/88
+  negative actual-device ownership controls pass, without changing any of the
+  3,308 baseline shader modules. The private observer is unactivated. The dark
+  pattern remains visible; the later binding observation below closes only
+  actual BODY2D/overlay target identity. Fragment inputs and whole-pixel/
+  Original framebuffer comparisons remain open. The
+  [cleanup receipt](../analysis/campaign-camera-20261030/scene-copy-source-cohort/completed-cleanup.json)
+  verifies removal of the completed source/build/capture owner and six
+  superseded helpers; bounded reference captures and diagnostic sources total
+  4,111,668 bytes. Test-only Vulkan1.3 fixture admission and the actual cache
+  link dependency were imported with guarded preimages; no shader or production
+  rendering behavior changed in that compatibility correction.
+  The [second actual capture](../analysis/campaign-camera-20261030/hologram-bindings-capture-independent-review/report.json)
+  joins source frame4439/tick3400, camera/group0/head9, all12,360 source hashes,
+  the actual copy fence and overlay descriptor31/raw10/current upload epoch.
+  Ten focused CTests,35 guards and all3,308 unchanged shader modules pass.
+  The [native asset review](../analysis/campaign-camera-20261030/hologram-bindings-actual-current-640-20261101/body-native-asset-review.json)
+  matches all BODY0–2 uploaded bytes/mips/formats/static frame0 and samplers to
+  regret_head/skin_human/regret_head_bump under the captured LOD0/template0/
+  implementation2. BODY0 is an uploaded texture, so the proposed accumulation
+  readback is not activated for this head. Overlay stage0 binds the exact
+  recorded target19. The independent pixel comparison again checks307,200
+  channels (maximum0.5000015 within2) and zero main-image changes. The dark
+  pattern remains visibly open; actual fragment samples/inputs/combiner and
+  temporal behavior are the next boundaries, including overlay stages1–3.
+  The private observer was not imported or published. Its
+  [cleanup](../analysis/campaign-camera-20261030/hologram-bindings-source-cohort/completed-cleanup.json)
+  verifies removal of2,752,205,401 source/build bytes and six completed helpers;
+  required actual references/private source evidence total4,900,824 bytes.
+  The initial bundler symlink failure and metadata-parent ownership correction
+  are retained separately; canonical content stayed hash-identical and the
+  successful baseline/diagnostic builds consume fully private44+4 data files.
+  A new private [fragment observer component](../analysis/campaign-camera-20261030/hologram-overlay-fragment-witness-candidate/component-gpu.json)
+  passes18 controlled RTX5080 cases across both menu shader variants. All
+  RGBA bytes, meaningful24-bit depth and stencil remain byte-exact against
+  unchanged baseline modules, with zero Vulkan validation errors. Default-off/
+  pre-draw read refusal, exact fence/generation ownership and bounded overflow
+  are checked. The inputs combine actual retained target19 with declared
+  synthetic scanline/noise images and perspective geometry; they do not
+  qualify authored overlay1–3 payloads or a live pixel cause. The separately
+  [reviewed bank API](../analysis/campaign-camera-20261030/hologram-fragment-bank-api-independent-review/report.json)
+  bounds the actual mapped448-byte upload mirror and selected module/variant
+  identity, while leaving GPU completion and frame/group/command joins to its
+  consumer. R4's successful diagnostic guard excludes temporal upscaling;
+  its packet therefore retains zero raster offset and selects the ordinary
+  menu variant. This is source-proved variant identity, while direct bank/
+  module observation remains a separate gate. The fresh
+  [actual bank capture](../analysis/campaign-camera-20261030/hologram-bank-source-cohort-r2/actual-bank-transport-acceptance-v2.json)
+  now joins source frame4677/tick3400/group0 to all11 actual448-byte uploads,
+  selected ordinary-menu module and33 overlay image bindings. Its coherent
+  12,545-source cohort passes eight baseline and ten diagnostic CTests plus
+  35 shader guards; all3,308 baseline shader modules remain unchanged. A
+  strict pose-schema correction accepts the native ostream's integer1,
+  preserving the earlier rejected result and rejecting booleans/other values.
+  The [pixel comparison](../analysis/campaign-camera-20261030/scene-copy-pixel-review-r2/report.json)
+  again checks307,200 channels within the existing2-byte bound
+  (maximum0.501381) and zero main-image changes. The
+  [native asset join](../analysis/campaign-camera-20261030/hologram-overlay-native-asset-join-r2/report.json)
+  reproduces all33 selected frame/mip/upload/view/sampler tuples: authored
+  scanlines at stages1/3 and noise at2, each with six mips. Actual frame0/count1
+  is derived from the native animation owner at the captured group clock.
+  The subsequent [exact-image component](../analysis/campaign-camera-20261030/hologram-overlay-exact-image-component-r2/component-gpu.json)
+  passes20 unchanged-versus-observed GPU cases with those real payloads and
+  bank, zero RGBA/D24/stencil differences and zero validation errors. Geometry
+  and UV controls remain synthetic; its completed-frame depth seed does not
+  establish the pre-overlay visibility frontier. The private
+  [runtime API component](../analysis/campaign-camera-20261030/hologram-runtime-fragment-observer-r1/gpu-qualification.json)
+  then passes12 native raw-geometry/program cases and156 lifecycle refusals,
+  including a genuine pending submitting fence, with identical RGBA/D24/
+  stencil and zero validation errors. The reviewed private integration then
+  passes ten coherent CTests and35 shader guards. Its
+  [fresh natural fragment replay](../analysis/campaign-camera-20261030/hologram-fragment-scalar-replay-r1/actual-r3-report.json)
+  joins frame5177/tick3400/group0, all11 overlay draws and81 actual shader
+  records. Every recorded sample/combiner replay agrees at rounded UNORM-byte
+  precision (maximum error0 within the predeclared1-byte bound). Actual
+  scene-copy comparison again passes307,200 channels within2 bytes and leaves
+  the main image unchanged. The dark pattern remains visible. These records
+  can include late depth failures; neither their append order nor their absence
+  establishes visibility or blending. Actual BODY uploaded vertices and
+  fragment/coverage ownership are the next boundaries. No production rendering patch,
+  hologram defect resolution or new launcher build follows from these checks.
+  The private [head upload witness](../analysis/campaign-camera-20261030/hologram-body-input-diagnostic-candidate/manifest.json)
+  now captures the actual152-byte expanded vertex stream,3712-byte material,
+  optional2544-byte mapped bank,128 pushed bytes and three selected shader
+  identities. Its [capture helper](../analysis/campaign-camera-20261030/hologram-body-capture-helper-candidate/root-independent-review.json)
+  preserves the combined final8MiB budget. Review caught and corrected a false
+  rejection of the real material constants by normalizing the pipeline-control
+  comparison exactly as Renderer does. The fresh private build passes ten
+  CTests,35 shader guards and all3308 baseline/two observer module identities.
+  Its native capture stops at tick48 before the requested frame; no completed
+  head input or replay follows. The helper discarded native error facts when
+  frame selection raised. A bounded failure-reporting successor passes40 CPU
+  controls; actual cause diagnosis remains required. The failed source/build
+  owner is removed and its small partial diagnostics are retained.
+  The next frozen R6 cohort passes both Rust/C++ bridge checks, all ten
+  focused tests,35 shader guards and all baseline/observer module checks.
+  It stops before native startup because the canonical snapshot copier was
+  edited by concurrent work after the cohort was frozen. No startup or head
+  capture ran, and the entire source/build owner is removed. The next pipeline
+  must guard the tools actually consumed by each phase while preserving the
+  frozen source proof; this pre-startup refusal gives no native crash diagnosis.
+  R8 then passes ordinary menu startup and naturally reaches tick3409 with
+  native exit0 and no native/Vulkan errors. The capture reader rejects the
+  actual two-word material/LOD identity because it expects a scalar, so BODY
+  bytes and texture export are not accepted. Its
+  [cleanup receipt](../analysis/campaign-camera-20261030/hologram-head-source-cohort-r8/execution/completed-cleanup.json)
+  verifies source/build removal and1,085,594 bytes of required frame/diagnostic
+  references. The [corrected reader](../analysis/campaign-camera-20261030/hologram-body-material-schema-r1/manifest.json)
+  accepts the actual UInt32 pair and a genuinely absent unused vertex bank;
+  all three joined SPIR-V modules must prove no set0/binding7 use. It passes306
+  author CPU controls and18 independent controls; actual new capture remains
+  required. R9 freezes12,841 files after preserving concurrent water and
+  network changes. Its six bridge/ten focused checks,35 shader guards,3308
+  baseline modules and ordinary startup pass. The natural head run again
+  exits0 without native/Vulkan errors, then rejects a pipeline operand
+  conjunction after accepting the material pair. Only1,035,182 bytes of
+  frame/diagnostic references remain; its owner is removed. The lost full
+  input cannot be reconstructed from the PNG. A source-based C++ witness
+  demonstrates that compatible main/continuation passes can have different
+  handles, invalidating the old universal handle-equality requirement. This
+  does not establish which predicate failed in R9. The next private observer
+  records actual pass creation operands and the corrected reader requires
+  their strict compatibility. A separate bounded, explicitly unaccepted
+  scene/BODY/module retention path supports offline diagnosis after future
+  profile refusals. Those attempts did not qualify the full BODY capture or
+  controlled replay.
+  The [R11 cohort](../analysis/campaign-camera-20261030/hologram-head-source-cohort-r11/terminal.json)
+  subsequently passes eight bridge tests, ten focused tests,35 shader guards,
+  all3308 unchanged baseline modules and ordinary startup. Natural capture
+  reaches3410 with native exit0 and validation0. The exact BODY input,
+  three SPVs and four Cache texture exports are accepted; source/build/runtime
+  scratch is removed. Required capture references total3,064,820 bytes.
+  The [actual controlled GPU replay](../analysis/campaign-camera-20261030/hologram-body-replay-actual-r11-independent-review/receipt.json)
+  joins frame3958/tick3400,347472 BODY bytes and the captured compatible
+  render-pass creation operands. All nine profiles repeat RGBA/D24/stencil
+  exactly within each profile on the RTX5080, with zero validation or cleanup
+  errors. The retained baseline and diffuse-white PNGs total88,007 bytes.
+  Alpha-test enable was already0 and all2244 stipple values already16, so
+  those two controls changed no input bytes. Texture replacements change
+  color; equal depth-change counts do not prove cross-profile depth equality.
+  The BODY opaque state agrees with its authored pass, and the separate
+  hologram override does not suppress the ordinary BODY draw. Actual posed
+  basis/lighting were subsequently checked against actual GPU outputs: the
+  [vertex observer](../analysis/campaign-camera-20261030/hologram-body-vertex-actual-r11-r1/report.json)
+  records all2244 vertices without changing BGRA, canonical D24 or stencil.
+  The fixed native source prefix matches all posed positions and basis bits;
+  the complete55-instruction source program matches all stage coordinates
+  exactly and its other fields within the declared tolerance. No vertex or
+  pose discrepancy was found. Actual material choice, pixel samples and live
+  composition remain open.
+  This is capture/replay acceptance, not a hologram fix, temporal/Original
+  framebuffer proof or new launcher publication.
+  The [predeclared comparison](../analysis/campaign-camera-20261030/hologram-body-basis-ab-predeclared.json)
+  requires actual selected materials, constants, pose and phase controls before
+  assigning RGB differences to that correction. The axes patch is staged in
+  V13, whose32 CTests and35 guards pass, and is now launcher-delivered.
+  The broader artifact remains open.
+- [ ] **November1 opening feedback:** the user confirms audible audio now works,
+  but reports overly bright crowd NPCs, absent mouth movement, flickering
+  black hologram faces and the Earth corner defect above. The latest supplied
+  V13 log also confirms the same post-loading Armory tick10 failure below.
+  The [speech lookup integration](../analysis/campaign-mouth-20261101/unit-speech-symbols-r1/root-integration.json)
+  corrects only the two Original `phonemes` and `mouth_closed` lookup operands
+  after an authenticated full-name join to the MCC cache. The original graph
+  lookup and sampling routines remain responsible for their results. The
+  [integrated CMake test](../analysis/campaign-mouth-20261101/unit-speech-symbols-r1/official-cmake-after-integration/report.json)
+  executes and passes. Subsequent natural-opening observations find channel2
+  and nonzero weights for all five recorded speech owners. A bounded
+  [same-shot temporal capture](../analysis/campaign-native-audio-20261031/mouth-temporal-actual-r2-r1/root-visual-review.json)
+  shows visible mouth/jaw movement for one speaking Prophet; this does not
+  qualify every speaking character or Original timing/framebuffer parity.
+  A later [19-frame Arbiter capture](../analysis/campaign-native-audio-20261031/mouth-arbiter-actual-r3-epoch1-wide-r1/root-visual-review.json)
+  shows visible mouth/mandible movement in camera13, with79 real device-clock,
+  channel2 and nonzero-weight observations. The earlier five-tick attempt
+  retained only one completed frame and remains a failed collection.
+  The first combined diagnostic run failed on its own fresh-output
+  guard when the next scenario constructed another observer; its
+  [cleanup receipt](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r1/execution/completed-cleanup.json)
+  preserves that failed collection separately from the user's Armory failure.
+  The [actual overlay GPU comparison](../analysis/campaign-camera-20261030/hologram-overlay-vertex-actual-r11-r1/report.json)
+  preserves all rendered planes when observation is enabled, but finds WORLD
+  bit differences at117 of745 source vertices and clip differences at163.
+  The [ordered-arithmetic GPU successor](../analysis/campaign-camera-20261030/hologram-overlay-ordered-actual-r11-r1/report.json)
+  matches all745 BODY WORLD and clip positions bit for bit with unchanged
+  captured inputs. Its four-path catalog proposal passed the focused CTest
+  in a private runtime. Actual live binding, visible flicker acceptance and
+  new launcher delivery remain open.
+- [ ] **TU1.5 Arbiter shading comparison:** the user's version-confirmed
+  reference shows much stronger gold armor highlights. The [actual epoch6
+  capture](../analysis/campaign-camera-20261030/arbiter-shading-actual-r5-epoch6-r1/capture.json)
+  joins54 real draws to two completed images at1401/1402. The [input audit](../analysis/campaign-camera-20261030/arbiter-shading-actual-input-analysis-r1/report-r2.json)
+  checks the joined lighting words, authored light-color literals,12 assembled
+  shader-control routes, environment blend/depth states and eight actual bound
+  carapace texture joins. These checks establish no shading correction or
+  framebuffer parity. The seven-level normalization cube is a distinct
+  external input; it is not a mismatched carapace texture. The source-pinned
+  alpha chain and [bounded GPU observation plan](../analysis/campaign-camera-20261030/arbiter-shading-actual-input-analysis-r1/alpha-observation-plan-r2.json)
+  target accumulation, destination alpha and environment contribution. A
+  private diagnostic mip-row guard was corrected to count six cubemap faces;
+  no shader brightness or blend behavior was changed.
+  The [second user reference](../analysis/campaign-camera-20261030/arbiter-user-reference-20261102-r2/reference.json)
+  adds an escorted-Arbiter view; its update version, source URL and console
+  display mode remain unknown. The authored scene10 escort segment is a
+  [candidate match](../analysis/campaign-camera-20261030/arbiter-reference-shot-match-r1/report.json),
+  not an established exact frame. The private alpha diagnostic passes57 CPU
+  controls across three profiles and an [eight-case GPU copy/resume probe](../analysis/campaign-camera-20261030/arbiter-alpha-gpu-diagnostic-r1/gpu-neutrality-root-r4-review.json).
+  An actual renderer compile caught a local cleanup-type scope error; its
+  reviewed correction now passes the R6 epoch3 full build, speech test and
+  both focused CTests. Actual opt-in alpha/depth capture and visible shading
+  correction remain pending; the probe does not establish Xbox parity.
+- [ ] **Actual post-cutscene crash:** the user's log reaches01a_tutorial and
+  fails at tick10 in actual root1D0670, callback1B0AD9→1BBEE0. The tight native
+  Armory reproduction matches its actor, descriptor and GP/stack packet.
+  A read-only observer of the actual natural handoff establishes actor byte40
+  is zero: Original1BBF1B branches to the early return at1BC094 before mode4
+  selection/publication. The [corrected native early owner](../analysis/campaign-native-ai-actions-20261030/action-root-early-integration-r2/report.json)
+  passes focused tests and independent review. The [actual R3 replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r3/execution/captures/capture-001-epoch-001/root-review.json)
+  passes that original boundary and reaches the next missing callback,
+  1B0F56→1BC0A0. Its [complete14-site native owner](../analysis/campaign-native-ai-actions-20261030/action-armory-post-callback-r1/report.json)
+  passes both association branches and focused tests; private epoch2 runtime
+  validation is pending. Verify the natural handoff into controllable gameplay; deeper
+  nonzero actor routes still require their genuine dependency closure.
+  The later [R4 epoch2 natural replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r4/execution/captures/capture-002-epoch-002/capture.json)
+  passes those early callbacks and the real workspace/primary allocator path,
+  then exits at Armory25 on actual26B2AC→1D2CF0. Collection success is separate
+  from that runtime failure. Its expired source/build owner is removed;
+  [reference cleanup](../analysis/campaign-camera-20261030/opening-five-issues-r5-earth-rebase-r1/inventory-and-R4-cleanup.json)
+  verifies21,028,079 bytes of required bounded replay references.
+  The [native Origin/marker/plan continuation closure](../analysis/campaign-native-ai-actions-20261030/action-root-origin-binding-r3/report.json)
+  has1,303 retained comparisons and128 hostile FP controls per compiler
+  profile, plus independent source reviews. The [fresh R5 admission](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/refresh-001/root-review.json)
+  composes35 exact imports while preserving newer canonical changes. Its
+  epoch3 build and both focused CTests pass. The [actual R5 natural replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/execution/captures/capture-002-epoch-003/capture.json)
+  passes the Origin boundary and reaches Armory25, where actual26A33E→26BA30
+  remains an unowned collection call. This is a collected runtime failure,
+  not a completed handoff into controllable gameplay. The next native
+  collection/selection closure and real-memory RMW capability pass three
+  compiler profiles and nine compiled negatives. The [14-file epoch4 admission](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/refresh-004/root-review.json)
+  passes the coherent official build and speech test. Its [natural replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/execution/captures/capture-003-epoch-004/root-review.json)
+  passes collection and reaches actual candidate count3, then refuses the
+  genuine nonzero selector continuation26A3F6→26A42E at Armory25. The Plan
+  policy bytes are not yet observed. Its9,100,147 bytes of required bounded
+  references are retained and raw capture scratch is removed. The crash and
+  controllable-gameplay acceptance remain open. V13 remains selected by the
+  campaign test launcher.
+  The [epoch6 admission](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/refresh-006/root-review.json)
+  adds the qualified nonzero selector, policy, filter, real DWORD RMW adapter
+  and workspace initializer. Its official build and speech test pass. The
+  [actual replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/execution/captures/capture-005-epoch-006/root-review.json)
+  instead reaches an earlier policy dependency at275F31. Authenticated call
+  bytes identify275BA0, returning to275F36;275CB0 is a later conditional call.
+  The filter/RMW/initializer branches are not live-qualified by that replay.
+  The private cohort's finite three-hour owner has expired and its source,
+  build and exact owned processes are [verified removed](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r5/execution/completed-cleanup.json).
+  Its five bounded replay collections retain39,991,899 bytes of required
+  diagnostics; selected V13 remains unchanged. Fresh R6 is frozen for reviewed
+  rebasing and current-input qualification before another full build.
+  The [R6 actual replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r6/execution/captures/capture-001-epoch-001/root-review.json)
+  passes275BA0 with an actual nonzero AL and reaches275F3E→275CB0,
+  returning to275F43. The current epoch3 replay reproduces the same GP/stack
+  refusal after a passing full build, speech test and two focused CTests.
+  The handoff still terminates at Armory25; neither controllable gameplay
+  nor the genuine children of275CB0 are qualified. Required bounded replay
+  references total19,948,884 bytes across these two R6 collections; their
+  raw capture scratch is removed. The finite R6 source/build owner remains
+  active for the opt-in shading capture. V13 remains launcher-selected.
+  Five [private native safety dependencies](../analysis/campaign-native-ai-actions-20261030/safety-components-root-review-v3.json)
+  (269CA0/269BF0/269B60/269A60/269940) pass7,315 unchanged original cases,259 reachable sites, exact ordered
+  reads/stores, raw byte returns, SIMD status/lanes and original x87/MMX
+  preservation. GCC, Clang, separate-core sanitizers,38 semantic controls and15
+  immutable-table rejection controls pass. The new269940 component preserves
+  both original argument-cell publications in the retained alias domain and
+  the pending extended quantity at a rejected conversion store. Its pinned
+  four-byte commit also survives a forced observer allocation failure after
+  publication. It requires the actual next extended tag empty; two genuine
+  occupied-tag controls are refused, and four source-proven unreachable sites
+  are not forced into coverage. These are unactivated typed components; numeric caller transport,
+  genuine selection/publication and controllable Armory remain open.
+  The [private26C1E0 candidate constructor](../analysis/campaign-native-ai-actions-20261030/action-selection-candidate/goal-candidate-report.json)
+  also passes572 original calls/prefixes through all64 root/288 closure sites,
+  composing real native goal-definition and frame-projection dependencies.
+  Ordered data/partial stores, MXCSR, raw return and source aliases match;
+  GCC, Clang, separate-core sanitizers and five semantic controls pass. Its
+  [operand audit](../analysis/campaign-native-ai-actions-20261030/action-selection-candidate/goal-candidate-observer-read-audit.json)
+  authenticates a missing TEST-memory read annotation in the offline observer.
+  Numeric GP/SIMD/private-frame transport, data ownership and activation remain open.
+  The [private26C740 actor lookup](../analysis/campaign-native-ai-actions-20261030/action-selection-candidate/script-actor-lookup-report.json)
+  passes125 physical original calls/prefixes,81 closure sites and1,080 ordered
+  reads, using the real native267A30/267A40 hash/equality and140DB0 bucket
+  chain for the four-byte payload owner. GCC, Clang, sanitizers and five
+  semantic controls pass. Its observer authenticates zero-count REP as
+  performing no memory access; original instruction bytes are unchanged.
+  Numeric REP/private-frame transport, stack aliases, caller integration and
+  action-selection activation remain open.
+  The [private26C0B0 goal filter](../analysis/campaign-native-ai-actions-20261030/goal-filter-candidate/root-review.json)
+  composes the real goal definition, actor lookup, point projection and native
+  distance arithmetic. All433 original calls/prefixes,98 root sites and422
+  reachable closure sites match, including the nonpopping FST to the original
+  goal argument and its later reread. GCC, Clang, separate objects, sanitizers,
+  fourteen semantic controls and a reserved-store allocation-failure control
+  pass; the shared production vector owner is unchanged. Actual caller
+  argument/stack ownership, private-projection aliases, four specific empty
+  FP tags, numeric transport and selection activation remain open.
+  The [private area-reference append](../analysis/campaign-native-ai-actions-20261030/area-references-candidate/root-review.json)
+  composes real2A78A0/202AB0 and matches266 original calls/prefixes, all130
+  sites, signed/wrapping count publications and single-instruction two-byte
+  RMW observation order. Compiler/sanitizer checks and thirteen semantic
+  controls pass. The admitted two-word seen workspace requires source-phase
+  index0..63 authority; no clamp or inferred512 bound is supplied. Real
+  workspace/alias/lifetime/RMW binding and whole enumeration remain open.
+  The private [26BBD0/26BE90 enumeration replay](../analysis/campaign-native-ai-actions-20261030/enumeration-candidate/existing-reference-native-wide-lifetime-report.json)
+  now passes1,817 retained physical reference cases (199 complete and1,618
+  prefixes),163,402 semantic reads and68,049 semantic writes/publications.
+  GCC, Clang and separate-unit sanitizers pass; all26 native memory-contract
+  controls and eleven mutants pass. The exact four-byte lookup copy commits
+  before fallible observation, and wide-load span permission is revoked on its
+  final call-data release while retained bytes survive. The prior stale-span
+  acceptance and broader JSON-allocation failures remain recorded as red.
+  This is an explicitly projected data proof: coverage is1,011/1,024 sites,
+  full numeric boundary comparisons are zero, and activation is false.
+  Original alias/access-fault witnesses, remaining composed coverage, caller
+  bounds/lifetimes and the live adapter stay open. The native-only continuation
+  used the unchanged7,412,198-byte reference after automated review stopped
+  further original-code execution; no tracing was retried. Completed scratch
+  owners are removed, and the independent lifetime review preserves these limits.
+  The [private200960 target reset](../analysis/campaign-native-ai-actions-20261030/target-reset-candidate/report.json)
+  matches165 physical original calls/prefixes across all15 sites,320 ordered
+  reads and952 stores, including every before/after store boundary, mutable
+  pool/global aliases and the held actor-row result. GCC, Clang, sanitizers
+  and nine semantic controls pass; its28,310-byte compressed reference is
+  retained and completed scratch owners are removed. Numeric caller/private
+  frame transport, genuine200D30/publication closure and Armory activation
+  remain open.
+  The bounded [200D30 publication dependency audit](../analysis/campaign-native-ai-actions-20261030/publication-dependencies/audit.json)
+  authenticates426 sites,32 calls,26 direct callees and all six switch targets.
+  Nine existing semantic component sources match their selected proofs; two
+  private candidates are separate, and fifteen direct entries have no
+  established semantic owner in that audit. Actual27B340 search under27B2B0,
+  navigation preparation27A640 and request construction2A8440 remain major
+  dependencies. Four shared arena-integration files have drifted from their
+  proof epoch and require refreshed integration validation. No publication or
+  gameplay success is supplied by this inventory.
+  New private native data work remains unactivated. The
+  [27B0D0 query-target publisher](../analysis/campaign-native-ai-actions-20261030/query-target-candidate/report.json)
+  has168 authored native controls across three compiler groups and eight
+  rejected mutants; no independent Original whole-leaf cases exist in the
+  declared retained search. The real471-site27BD30 neighbor implementation
+  composes existing native218780 frame geometry and278E60/FF1A0 jump owners,
+  retaining their410 Original child comparisons separately. Its
+  [explicit physical-tag variant](../analysis/campaign-native-ai-actions-20261030/path-neighbors-tag-authority-candidate/report.json)
+  passes346 authored controls and eleven mutants, including all eight TOP
+  rotations and the actual five next physical x87 tag slots. The independent
+  review finds no new defect; actual caller tag authority and whole-parent
+  Original/numeric/fault proof remain open. The forced ring can append row64
+  and return65, so a guessed global64 bound is not supplied. The
+  [E9600 object-component word candidate](../analysis/campaign-native-ai-actions-20261030/object-component-word-candidate/report.json)
+  adds a genuine typed caller-local value and optional retained-word output:
+  228 authored native controls per compiler group and nine compiled mutants
+  pass. Static bytes authenticate all nine leaf sites and the real200DFD
+  caller; unchanged Original leaf/caller comparisons and private-output binding
+  remain open. Completed native/static scratch is removed for all three.
+  The private [202970 special-link predicate](../analysis/campaign-native-ai-actions-20261030/special-link-candidate/report.json)
+  reuses the existing186E70 collision bitmap owner for its exact byte-channel
+  186E30 profile. Its1,328 authored controls per compiler group and nine
+  compiled mutants pass; the reused owner's187 Original cases remain child
+  evidence. An independent source review verifies the signed chain, first-kind7
+  policy, lazy byte/DWORD inputs and negated bit result. Whole202970/search
+  Original comparisons and caller binding remain open, with no activation and
+  all three owned static/native/seal scratch paths removed.
+  The private [218C40 distance/cost interface](../analysis/campaign-native-ai-actions-20261030/distance-root-candidate/report.json)
+  preserves the extended square root across its rounded distance publication,
+  lazy prior-cost DWORD read, addition and influence BYTE read. Typed owned
+  points reuse the existing projection body. All299 authored controls per
+  compiler group,778 point/910 query-start child cases and five compiled
+  mutants pass; actual next-slot tag authority is explicit. Independent
+  whole-leaf/search comparisons, private publication/alias and partial
+  projection fault transport remain open. All four completed scratch owners
+  are removed. Whole search also needs genuine inherited upper-word bytes:
+  the source writes a WORD neighbor kind and later copies its whole DWORD,
+  and similarly copies a private framed point's fourth DWORD after a WORD
+  frame publication. Those inherited bytes cannot be guessed or zero-filled.
+  The private [owned27C520 interface](../analysis/campaign-native-ai-actions-20261030/path-influence-owned-candidate/report.json)
+  now passes268 authored controls per compiler group and six compiled mutants,
+  with358 retained influence/1,143 frame/778 point child regressions. Typed
+  endpoint inversion and the actual next physical x87 slot are explicit;
+  the new API's actual-tag Original comparisons and caller activation remain
+  open. Its completed scratch is removed.
+  The [whole504-site27B340 semantic search](../analysis/campaign-native-ai-actions-20261030/whole-search-candidate/report.json)
+  is now implemented privately with the actual heap, neighbor, framed-point,
+  difference, influence and special-link owners. The frozen49-file/21-unit
+  cohort passes1,016 authored checks per GCC/Clang/ASan+UBSan group, including
+  860 source-memory fault prefixes and96 FP profiles; ten compiled wrong
+  variants are rejected. The same cohort replays778 point,1,143 frame,410
+  jump and358 influence child cases, including the typed112-frame subset.
+  Source order, single-WORD decrement ownership, signed indices/priorities,
+  full-DWORD heap copy, collision/update behavior and inherited-byte refusal
+  remain explicit. Authored noncanonical address cases do not establish real
+  caller allocation consistency. Whole-search Original/caller comparisons
+  remain zero; production storage/RMW, padding/tag authorities, partial caller
+  FP/alias transport and activation stay open. The
+  [next-owner inventory](../analysis/campaign-native-ai-actions-20261030/query-wrapper-next-owner-inventory/report.json)
+  authenticates the distinct40-site27B2B0 dispatcher,117-site27B100 query start
+  and336-site27A640 result materializer. The dispatcher needs a real retry
+  WORD increment owner and fresh count read;27A460 does not replace27A640.
+  The subsequent [private27B2B0/27B100 composition](../analysis/campaign-native-ai-actions-20261030/query-wrapper-candidate/report.json)
+  implements that dispatcher and query-start entry-tag/pending interface.
+  Three compiler groups pass165 wrapper controls, including78 sampled memory
+  prefixes,12 retry-RMW controls and32 FP profiles, plus214 query-start tag/
+  pending controls and the unchanged910-case legacy child regression. The910
+  additional paired contexts use explicitly authored entry tags; they do not
+  establish Original full-tag authority. Seven wrapper and five child mutants
+  are rejected, and an independent review verifies source/read/store/FP order.
+  The wrapper preserves the actual2048-DWORD forward hash fill, held MAX,
+  conditional real search and single-WORD retry increment. Actual DF, storage/
+  padding/tag authority, Original whole-wrapper/caller and27A640/200D30 live
+  composition remain open. Its eight completed owners are removed; no large
+  artifacts or production changes are retained.
+  A [separate policy extension](../analysis/campaign-native-ai-actions-20261030/whole-search-policy-controls/report.json)
+  keeps the sealed search cohort unchanged and checks real Type2 zero/nonzero
+  subtype depth, Type5 penalty/depth and forced-ring width equality/rejection.
+  All five authored cases and six targeted mutants pass three compiler groups,
+  alongside the unchanged1016-case cohort and retained child regressions.
+  Its helper-only initial type-ledger failure is retained; source algorithms
+  are unchanged and all completed extension scratch is removed.
+  The [27A640 dependency inventory](../analysis/campaign-native-ai-actions-20261030/path-materializer-owner-inventory/report.json)
+  keeps its six distinct callees separate. The private
+  [1B0E10 three-slot writer](../analysis/campaign-native-ai-actions-20261030/route-slot-candidate/report.json)
+  now authenticates all51 sites and passes201 authored controls per compiler
+  group,144 memory/permission prefixes and ten compiled mutants. It preserves
+  the held full-DWORD priority read, first-free override, signed priority/tie
+  policy and six interleaved WORD stores/lazy input reads. Independent review
+  finds no concrete defect within its semantic AL-only scope. Original/caller
+  comparisons and live ownership remain open; all four completed owners are
+  removed, with no production changes or large artifacts retained. The real
+  27AAA0/279100/2CBEE0/2CE030 algorithms remain separate required route work.
+  The genuine70-site [2029E0 edge iterator](../analysis/campaign-native-ai-actions-20261030/route-edge-iterator-candidate/report.json)
+  now passes370 authored controls per compiler group,103 fault prefixes and
+  ten rejected mutants. Its signed WORD traversal budget and ordered link/
+  edge publications remain literal; no extra traversal cap is added to the
+  native owner. The [279100 inventory](../analysis/campaign-native-ai-actions-20261030/route-link-endpoints-candidate/report.json)
+  authenticates the real model/collision dependencies and the caller's full
+  DWORD link read at node+14; its inherited upper WORD cannot be fabricated.
+  Original/caller proof and the parent route remain open.
+  The private [2185E0/1F7E00 object-frame dependency](../analysis/campaign-native-ai-actions-20261030/route-object-frame-candidate/report.json)
+  passes55 authored cases and55 fault prefixes in three compiler groups;
+  [27A310 exclusion lookup](../analysis/campaign-native-ai-actions-20261030/route-contact-children-candidate/report.json)
+  passes117 authored cases, including maximum signed count and repeating
+  sign-extended mask bits. Independent source reviews preserve their typed
+  return/output limits. The genuine [276090 segment-contact dependency](../analysis/campaign-native-ai-actions-20261030/route-segment-contact-candidate/report.json)
+  composes202970/186E70 and passes42 authored cases and256 before/after fault
+  prefixes per compiler group. Root review exposed an FP/read-order defect:
+  COMISS must precede the Output-owner read, even when that read faults. A new
+  regression fails the old source, passes the correction and rejects a mutant
+  restoring the bug. Actual private-cursor2762A0 composition, whole caller/
+  Original proof and Armory progression remain open; these are unactivated.
+  A subsequent [whole2762A0 traversal candidate](../analysis/campaign-native-ai-actions-20261030/route-segment-traversal-candidate/report.json)
+  composes all three genuine children through typed cursor, point, contact and
+  association owners. Its55 authored cases,2048 fault prefixes,80 FP profiles
+  and32 mutants pass three compiler groups from private pinned source copies;
+  the previous child regressions also pass. An
+  [independent source review](../analysis/campaign-native-ai-actions-20261030/route-segment-traversal-candidate/root-independent-source-review.json)
+  confirms the stated typed-data and masked-FP boundaries.
+  No private stack addresses, extra traversal caps or supplied collision
+  outcomes are introduced. Whole279100/model/collision, independent Original/
+  caller proof, production binding and the Armory crash remain open.
+  No Armory or launcher success is inferred. All completed compiler/static/
+  seal scratch is removed, with no new large artifacts retained.
+  The [202660 area classifier and six real children](../analysis/campaign-native-ai-actions-20261030/route-collision-area-candidate/report.json)
+  add307 actual sites,107 authored cases,154 fault prefixes and61 FP profiles
+  in three compiler groups, with34 rejected mutants. The
+  [146-site pose descriptor dependency](../analysis/campaign-native-ai-actions-20261030/route-pose-descriptor-candidate/report.json)
+  implements the actual signed strided search, hierarchy and distinct ID
+  normalization rules. Root source reviews confirm both private components;
+  actual caller/Original proof, production binding and the crash remain open.
+  The actual101-site pose iterator and279-site pool composition also pass
+  private compiler controls and source review. The next
+  [448-site resource allocator composition](../analysis/campaign-native-ai-actions-20261030/route-resource-allocator-candidate/report.json)
+  exposed a genuine ring-tail defect during independent review: undersized
+  candidate windows must survive for later gap accumulation. The corrected
+  algorithm passes the [independent three-mode regression](../analysis/campaign-native-ai-actions-20261030/route-resource-allocator-independent-review/report.json);
+  preserved buggy source fails all three. This remains a private DATA profile
+  with ready callbacks. Actual asynchronous retirement, caller/Original proof,
+  production activation and the Armory crash remain open.
+- [x] The separate camera-v2 candidate passes its three CMake tests and an
+  actual New Game/Normal replay through tick5300 with subtitles enabled.
+  All6,533 native camera frames preserve the source pose; the within-animation
+  cut and Earth right-edge regressions pass. Original animation cadence and
+  wider-PC framing limits are explicit in
+  [the camera report](CAMPAIGN_CAMERA_CUTS_20261030.md). The normal selected
+  runtime remains unchanged.
+- [x] **Original-mode Regret hologram and test delivery:** final-v7 passes
+  thirteen CTests and the natural opening through tick5302 with zero Vulkan
+  errors. All4,427 camera frames preserve the source pose; the Earth gate
+  passes and the actual tick3400 frame visibly shows Regret's authored
+  hologram. The source-ordered ledger covers1,095 scene copies and12,045 raw
+  overlay draws, retaining source ranges separately from submitted triangles.
+  `Halo2-Campaign-Test.sh` and the original bare launcher select this immutable
+  candidate; its real menu/Normal/1453 replay observes the exact ELF and passes
+  camera/overlay checks. [Delivery](../analysis/campaign-camera-20261030/final-v7-delivery.json)
+  records that historical selection. The newer
+  [V12 delivery](../analysis/campaign-camera-20261030/current-v12-delivery.json)
+  selects immutablebc46f8e2 through the same `.sh` entry point. All30 CTests
+  and35 shader guards pass; the complete natural5302 replay preserves5,800
+  source camera frames, Earth framing and the ordered overlay ledger. Actual
+  `.sh`/Normal launch independently observes that ELF through1455 with zero
+  camera mismatches or Vulkan errors. The newer
+  [V13 delivery](../analysis/campaign-camera-20261030/current-final-v13-delivery.json)
+  selects immutable064c1d54:32 CTests/35 guards, actual36-clip audio output
+  through Reset,4,057 full camera/Earth comparisons and1,317 actual `.sh`
+  camera comparisons pass. Its owned source/build and unselected A/B packages
+  are removed; the requested V13 package and required references are retained
+  with paths/sizes in the cleanup receipt. Whole campaign/audio/native-only/Xbox
+  framebuffer gates remain open.
+- [x] **pStencil cold backing and resident implementation boundary:** final-v7 and pre-hologram
+  camera-v2 both fail before frame1 while reading49219C. Pinned TU1.5 proves
+  four omitted loader-zero writable banks totaling180bytes. V8 adds only
+  those exact per-world owners and passes fourteen CTests, including fresh
+  ownership, writes, checkpoints, isolation and24 foreign-overlap controls.
+  Actual V9 clears that read and exposes a logical Cache/native resident
+  implementation-pointer comparison in projected lighting; all306 resident
+  bytes match. V11's fresh current-World pass-owner correction and captured
+  tuple regression pass the coherent16-test cohort with no skips. Its
+  [actual pStencil replay](../analysis/campaign-camera-20261030/pstencil-v11-resident-positive/capture.json)
+  uses real Normal menu selection and renders86 campaign frames through40
+  ticks, with zero script faults/Vulkan errors and the exact packaged image
+  observed. Both former pre-frame failures are cleared. Full pStencil opening,
+  hologram image quality and Armory progression remain separate gates. V13
+  is now the delivered Original-mode test build; full V13 pStencil playback
+  is not established by the bounded V11 check.
 
 ## Current finite work queue
 
@@ -342,4 +1173,36 @@ Checked work must link the exact report, source hashes, command, limitations and
 - GPU iteration2: [actual hardware failure](../analysis/campaign-native-new-game-frontend-20261028/cohort-v2/graphics-cold-iteration2.json) proves45C55C is now available and stops at229BB4 on genuine mutable4F2968. [Original arena-byte proof](../analysis/campaign-native-new-game-20261028/graphics-view-reset-data-owner.json) authenticates the exact one-byte loader-zero `.data` field and five whole-byte references. [Prepared producer audit](../analysis/campaign-native-new-game-20261028/graphics-producer-prepared-profile.json) validates all33 required absolute data pairs using45 real production cold owners; no further gap exists in that bounded profile. The wider37-pair closure retains its explicit missing default-camera5320AC field. The arena fix and mutable/checkpoint regression are staged for the new GPU batch. The v2 finite worker expired while these gates were being finished; its owned source/build were removed and its passing cold receipts and failing graphics reports remain. No rendered frame or Armory handoff is claimed.
 - Eleventh implementation checkpoint: [bounded evidence manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-11.json) links80 passed component/reference/bounded-runtime reports,583 matching current source pins and77 required original inputs totaling52,968,847 bytes. All251 recorded completed component scratch paths are absent; [checkpoint runner cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-11-cleanup.json) independently verifies its own scratch removal. Nine changed consumer/storage/test-helper files remain explicitly unmatched by a current component pin. The earlier coherent v2 cold receipts remain bounded historical successes; its failing graphics and expired final status are preserved separately. Coherent v3 now builds12,156 captured files with explicit owned cold-data/GPU acceptance before initial CTest cleanup. Whole renderer, Armory progression, native-only and launcher gates remain open.
 - K81/v3: [actual graphics gate](../analysis/campaign-native-new-game-frontend-20261028/cohort-v3/graphics-batch.json) records a fresh passing cold-data build/execution, including the one-byte arena owner and mutable/checkpoint regression. [GPU failure](../analysis/campaign-native-new-game-frontend-20261028/cohort-v3/graphics-cold.json) clears both missing-source-data boundaries, then stops before the first frame because native-resolution texture-camera preparation has no readable scene attachment. The long run is correctly omitted; v3 does not execute/qualify its three subsequent CTests after the failed pre-test hook. All owned v3 source/build/GPU scratch is removed. The staged renderer fix requests actual offscreen color images before realization, retains the existing guards and has [independent lifecycle review](../analysis/campaign-native-new-game-20261028/graphics-readable-scene-integration-review.json); real GPU acceptance remains pending.
-- K82/v4: [actual GPU regression](../analysis/campaign-native-new-game-frontend-20261028/cohort-v4/iteration-0/renderer-framebuffer-alias.json) passes the independent native-resolution/no-camera-material case before any forced double buffering, plus the existing940,800-pixel depth/stencil and alias/resize/retirement checks, with zero validation messages. Texture-camera requests latch the genuine readable-attachment requirement before swapchain realization; the native renderer allocates its real color images and preserves guards, epochs and real capture acknowledgments. Raw PPM outputs are removed by the child owner. Repeated-image equality is not full pixel/visual parity, and inactive target18/20 does not qualify active copy/sampling. The actual campaign GPU gate is running separately.
+- K82/v4: [actual GPU regression](../analysis/campaign-native-new-game-frontend-20261028/cohort-v4/iteration-0/renderer-framebuffer-alias.json) passes the independent native-resolution/no-camera-material case before any forced double buffering, plus the existing940,800-pixel depth/stencil and alias/resize/retirement checks, with zero validation messages. Texture-camera requests latch the genuine readable-attachment requirement before swapchain realization; the native renderer allocates its real color images and preserves guards, epochs and real capture acknowledgments. Raw PPM outputs are removed by the child owner. Repeated-image equality is not full pixel/visual parity, and inactive target18/20 does not qualify active copy/sampling. [Actual campaign GPU failure](../analysis/campaign-native-new-game-frontend-20261028/cohort-v4/iteration-0/graphics-cold.json) clears this attachment boundary and reaches the missing `2B8EC→156E40` screen-flash sampler before frame1. The long progression test is correctly omitted. V4's finite worker expired and its owned source/build storage is removed; no launcher runtime is promoted.
+- K83: [screen-flash proof](../analysis/campaign-native-new-game-camera-20261028/flash-proof.json) qualifies519 physical originals,294 complete calls and223 prefixes through all actual read/store boundaries in six representative profiles. Native global fades and per-player flashes preserve lazy/overlapping publications, actual curve/classification/descriptor data and hardware SIMD/x87 policy. Both mutable CRT policies pass; seven compiled mutations, GCC/Clang/actual-core sanitizers and independent exact repeat pass. The197,949-byte required original reference is retained and all completed component scratch is removed. [Independent review](../analysis/campaign-native-new-game-20261028/screen-flash-integration-review.json) records271 of370 sites, explains99 uncovered sites and verifies the actual void caller/24-byte output/RET transport. Other computed CRT handlers and the real3334F0 error callback retain explicit required-owner boundaries; no outcome is supplied. Thirty-two data pairs use existing authentic owners, with no new mount. The early live World binding and status activity counter are wired; coherent v5 actual client/GPU validation remains in progress and full New Game stays open.
+- Twelfth implementation checkpoint: [bounded evidence manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-12.json) links85 passed component/reference/bounded-GPU reports,643 matching current source pins and78 required original inputs totaling53,166,796 bytes. All260 recorded completed component scratch paths are absent; [runner cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-12-cleanup.json) also verifies the proof/checkpoint owners. Four changed storage/call/test/helper files remain explicitly unmatched by a current component pin. Coherent New Game v5 captures12,209 current files and builds the actual client with the native screen-flash binding; this active owned build is separate from completed component cleanup. Full rendered intro, Armory handoff, native-only and launcher gates remain open.
+- K84/v5 iteration1: [original owner proof](../analysis/campaign-native-new-game-20261028/graphics-4922e2-data-owner.json) authenticates the independent one-byte loader-zeroed mutable widescreen field and actual platform-flags producer123B0/123E8. [Fresh cold receipt](../analysis/campaign-native-new-game-20261028/graphics-4922e2-cold-receipt.json) passes exact extent/access, separate neighbors, real native mutation and checkpoint preservation. The [actual GPU gate](../analysis/campaign-native-new-game-frontend-20261028/cohort-v5/iteration-1/graphics-cold.json) clears4922E2 and reaches the missing sky-model composition owner3EAFF→170820 before frame1. No preset widescreen outcome or completed settings initializer is supplied. The finite consumer preflight also identifies the separate4920D8 render-target word; its exact backing/regression is staged with K85 for v5's final declared refresh.
+- K85: [model hierarchy proof](../analysis/campaign-native-new-game-camera-20261028/model-pose-proof.json) qualifies576 physical originals,194 complete calls and379 prefixes, all271 sites and401,083 unchanged instructions. Private13-word affine values, real parent/output storage, lazy tolerance initialization, actual sibling/child queue order and the255-cell original capacity are preserved. The shared product exposes a real numeric Y/Z contribution; [discarding it](../analysis/campaign-native-new-game-20261028/model-pose-carry-negative/report.json) loses the original invalid sticky bit before the next tolerance read. All seven other mutations, GCC/Clang/actual-core sanitizers and exact repeat pass. Existing marker and private-marker-value regressions are requalified after the shared input seam. The423,987-byte original reference is required input. [Independent caller review](../analysis/campaign-native-new-game-20261028/model-pose-integration-review.json) admits actual3EAFF's valid disjoint argument frame and verifies retired outputs; arbitrary corrupt private-stack ABI and physical Xbox RCPSS estimate parity remain outside this proof. No local matrix acquires a fabricated source address. Completed component scratch is removed.
+- K86/v5 iteration2: [target storage receipt](../analysis/campaign-native-new-game-20261028/graphics-4920d8-cold-receipt.json) links the original four-byte owner and fresh production cold/checkpoint execution. [Actual hardware GPU gate](../analysis/campaign-native-new-game-frontend-20261028/cohort-v5/iteration-2/graphics-cold.json) clears the model owner and target storage, then stops before frame1 at473628. Independent renderer regressions pass again; long progression and the three later CTests are correctly omitted. All three captured source iterations remain unchanged; the final owned source/build/raw GPU trees are removed. No first frame, crossfade, Armory handoff or launcher delivery is claimed. Next work is the finite view-prefix data-owner preflight, starting with actual473628.
+- Thirteenth implementation checkpoint: [bounded evidence manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-13.json) links92 passed component/reference/bounded-GPU reports,654 then-current source pins and79 required original inputs totaling53,590,783 bytes. All269 recorded completed component scratch paths are absent; [final v5/proof cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-13-cleanup.json) separately verifies the failed metadata probe, refresh coordinators and final source/build owner. Three then-current changed storage/call/helper files remain unmatched. This checkpoint predates staged473628 and its test/helper changes; those are not qualified by the older source pins. [Finite473628 preflight](../analysis/campaign-native-new-game-20261028/graphics-473628-preflight.json) records exact original1.0 bytes, mutable HS registration,27 typed consumer spans and the sole missing field. V6 builds12,343 captured files with that fix and new main-view contract; its active owned storage is separate from completed cleanup. Whole native engine, introduction, Armory and launcher gates remain open.
+- K87/v6: [storage receipt](../analysis/campaign-native-new-game-20261028/graphics-473628-cold-receipt.json) records fresh production cold/checkpoint ownership,133 portable main-view checks/49 negatives and independent renderer GPU success. The actual introduction clears473628 and stops before frame1 at inactive-camera renewal. [Minimized GPU diagnosis](../analysis/campaign-native-new-game-20261028/texture-camera-renewal/diagnosis-proof.json) repeats that exact guard twice with current, unsubmitted targets; omitting only renewal allows one genuine presentation/readback. Main now renews only frames with a rendered secondary view, preserving the renderer guard. V6's attempted source refresh rejects a concurrent unrelated test edit before execution; its source/build and all six probe owners are removed. Production acceptance of the caller fix remains pending.
+- K88: [BSP-selection proof](../analysis/campaign-native-new-game-camera-20261028/bsp-selection-proof.json) qualifies268 physical originals, all76 sites,95 prefixes, four actual faults and exact repeat, with GCC/Clang/sanitizers and eight rejected mutations. Signed packed24-bit BSP traversal, source floating-point operation order and lazy previous-leaf/cluster repair are native algorithms. Only actual2B7E6 is ABI-admitted; arbitrary14CDB0 numeric routing remains absent. The59,889-byte original reference is required input; completed scratch is removed.
+- K89: [view-rectangle proof](../analysis/campaign-native-new-game-20261028/view-rectangle/component-proof.json) qualifies550 physical originals, all124 sites,270 prefixes and215 disjoint native-value profiles, with exact repeat, compiler/sanitizer checks and eight rejected mutations. Both actual2B8B4 and13C8A callers use the native helper. Private rectangle values share the semantic algorithm without fabricated guest storage. The134,333-byte original reference is required input; completed scratch is removed.
+- K90: [three-leaf retirement validation](../analysis/campaign-native-new-game-camera-20261028/three-leaf-retirement-validation/report.json) compiles the23-body legacy producer and all six sealed packet/BSP/rectangle core/binding units, then passes four fixture/admission regressions. It authenticates all five native CALL bridges,20 retained public admissions,21 byte-identical unrelated bodies and the two bridge-only parents by inverse edit. The selected-address mapping is unchanged. No generator/lowerer was run, no fixture was changed and the35-site null-camera boundary remains explicit. Whole native camera/framebuffer/campaign qualification stays open.
+- Fourteenth implementation checkpoint: [bounded manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-14.json) links98 passed component/bounded diagnostic reports,685 then-current source pins and81 required original inputs totaling53,785,005 bytes. All317 recorded completed scratch paths are absent, including nested task owners now checked by the aggregator. An explicitly retired unsealed rectangle capture is recorded separately; the sealed v2 and all prior required references remain intact. [Cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-14-cleanup.json) confirms v6 source/build, refresh and retirement/checkpoint owners removed. Four current changed source files remain unqualified by a matching component pin. Fresh v7 captures12,433 files with the actual inactive-renewal fix and both native camera leaves; its owned build/production GPU validation is active and separate from completed cleanup.
+- Refresh lifecycle: [transaction proof](../analysis/campaign-native-new-game-20261028/refresh-transaction/proof.json) preserves the deterministic old partial-copy failure and passes12 focused regressions. Declared inputs stage and authenticate before publication; failed capture preserves frozen bytes/mtimes and permits an explicit same-sequence replacement within the original deadline and three-rejection bound. Partial I/O publication rolls back and iteration registration consumes frozen CMake. Independent read-only review found no material issue. This controller validation supplies no gameplay result.
+- Completion dependency recovery: [primary root inventory](../analysis/campaign-native-new-game-20261028/completion-primary-frontier.json) authenticates96 sites/15 calls in191750 and the real191580→5A080 tail. [Dependency inventory](../analysis/campaign-native-new-game-20261028/completion-dependencies-primary-frontier.json) identifies call-free98-site154F80 options/participant preparation,248-site155190 fixup and the genuine session/UI/request dependencies. These are read-only original CFG observations, not implemented kernels or supplied callbacks; actual clocks, options, participant storage and original continuation remain required before native lifecycle acceptance.
+- K91: [awareness proof](../analysis/campaign-native-ai-awareness-20261029/proof.json) qualifies216 complete original calls,700 fault prefixes and eight actual memory faults through576 reachable sites of the590-site gameplay/support graph, with14 primary-gated exclusions. GCC/Clang/actual-core ASan/UBSan, nine meaningful mutations and exact physical repeat pass; the core remains unchanged. The signed-tickrate/unsigned variant is retained as an observed modulo-WORD equivalence, with a meaningful negative-rate-clamp control separately rejected. Native commands traverse real clumps/perception groups/properties and publish awareness/deadlines without inventing perception, visibility or allocation. Actual CW/SW/TAG,80 x87 value bytes and MXCSR are preserved; independently observed asynchronous host FIP/FOP/FDP metadata changes are outside that preservation claim. The3,829,263-byte required original fixture is retained and completed scratch is removed. World active-ABI bindings and shared HS context integration remain pending.
+
+- Fifteenth implementation checkpoint: [bounded manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-15.json) links100 passed component/bounded diagnostic reports,692 matching current pins and82 required original inputs totaling57,614,268 bytes. All326 recorded completed component scratch paths are absent; [checkpoint cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-15-cleanup.json) also verifies completed delivery/aggregation owners. The active v7 source/build is separate; this manifest does not qualify rendered introduction, Armory handoff, native-only or launcher behavior.
+
+- K92: [native layout proof](../analysis/campaign-native-new-game-camera-20261028/view-layout-proof.json) qualifies775 physical cases through all173 original sites,120 prefixes, eight actual signed divide traps and three actual unmapped faults. GCC/Clang/actual-core sanitizers, eight meaningful mutations and exact original repeat pass. Six original ADD-WORD before-write cuts authenticate only the one pending source read by site/address/width/value; arbitrary side-effecting device output and write-fault equivalence are outside this ordinary-RAM caller profile. The135,170-byte v2 original fixture is required input and completed scratch is removed. [Six-leaf retirement proof](../analysis/campaign-native-new-game-camera-20261028/six-leaf-retirement-proof.json) passes all five combined tests, verifies20 retained legacy bodies/17 public entries/eight original CALL bridges and preserves the canonical packet/null guard. Only229A90 changes in this retirement step, by three verified native bridges;19 other bodies and the address mapping remain unchanged. No generator/lowerer runs. Fresh v7 iteration1 captures these changes for composed GPU validation.
+- K93 primary/preflight: [literal ownership](../analysis/campaign-native-new-game-20261028/graphics-projection-literal-ownership.json) authenticates exactly8988083B at46A260 and0000103F at46A670, both four-byte read-only `.rdata` fields consumed by2FB50 at2FCA6/2FC86. [Finite cold preflight](../analysis/campaign-native-new-game-20261028/graphics-projection-fixed-data-preflight.json) links a private probe to unchanged borrowed v7 object/archive inputs and finds these two gaps among11 original2FB50/2FD70 fixed extents. Its expected failed status is retained. Both exact mounts and extent/write-rejection/checkpoint regressions are captured in refresh1; fresh execution is pending. No dynamic pointer result, projection value or completed frame is supplied.
+
+- K93/rendered startup: [actual production receipt](../analysis/campaign-native-new-game-20261028/graphics-projection-literals-cold-receipt.json) records fresh cold/checkpoint/write-rejection and six real RTX5080 frames from v7 iteration2, with zero script faults and native packet/BSP/rectangle/flash/model counts6 and layout18. The longer run reaches authored scene02 then fails at the transparent descriptor ownership join. All three v7 source snapshots remain unchanged and its expired finite owner is removed; no whole-introduction or Armory acceptance is inferred.
+- K94: [null-camera component proof](../analysis/campaign-native-new-game-20261028/packet-default/component-proof.json) covers683 new originals/503 prefixes/all35 null+three initializer sites, exact repeat, compiler/sanitizer checks and eight negative controls, while preserving the old277 reference byte-for-byte. [Data/activation receipt](../analysis/campaign-native-new-game-20261028/packet-default/data-activation-receipt.json) validates all14 actual cold extents/bytes and the new5320AC zero/RW/native backing/checkpoint owner; bootstrap380450 is authenticated at CRT index79, before381710 at222. Root routes only the actual null packet or initializer through this new kernel. Combined production activation remains pending in v8.
+- K95: [active-ABI binding proof](../analysis/campaign-native-ai-awareness-20261029/binding-proof.json) transports924 canonical cases through1812 checks and35 physical caller packets, with GCC/Clang/sanitizers, seven binding mutations and exact original repeat. Held GP aliases eliminate argument-memory prepeek; actual retained FP and the late real return word are preserved. Root dispatch is staged; no public HS fresh policy is manufactured and shared script-host context remains open.
+- Transparent ownership diagnosis: [private actual GPU capture](../analysis/campaign-native-new-game-20261028/transparent-implementation/diagnostic-2/capture.json) reproduces the scene02 guard with unchanged borrowed engine inputs. [Minimal real-World replay](../analysis/campaign-native-new-game-20261028/transparent-implementation/resident-replay/report.json) proves Cache1D4325C maps to captured resident9137B1DC and all306 implementation bytes match. [Independent review](../analysis/campaign-native-new-game-20261028/transparent-implementation/independent-owner-review.json) confirms the candidate fresh typed owner for each descriptor, unchanged selection/descriptor values, strict foreign/missing/damaged-owner rejection and preserved OG canonical path. The new native contract is a v8 pre-GPU gate; syntax/review alone do not qualify that runtime path. [Debug retirement](../analysis/campaign-native-new-game-20261028/transparent-implementation/debug-retirement.json) records removal of private instrumented executables/worker copies and supersession of the one-off logging helper by the persistent regression.
+- Sixteenth implementation checkpoint: [bounded manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-16.json) links109 passed component/bounded diagnostic reports,722 matching current pins and84 required original inputs totaling57,932,538 bytes. All409 recorded completed generated paths are absent; [cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-16-cleanup.json) verifies the three unchanged v7 snapshots and its removed source/build. Fresh v8 captures12,527 files including the transparent fix, native default-camera activation, awareness bindings and genuine transparent-owner contract before GPU. Its explicitly owned active storage is separate from completed cleanup. Full introduction, Armory, native-only and launcher gates remain open.
+
+- Seventeenth implementation checkpoint: [bounded manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-17.json) links117 passed component/bounded reports,773 matching pins and88 required original inputs totaling67,697,894 bytes. [Cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-17-cleanup.json) verifies423 completed generated paths absent, including the expired v8 source/build and private BSP diagnostic. [V8 bounded startup](../analysis/campaign-native-new-game-20261028/v8-bounded-startup-receipt.json) records actual cold/main-view/transparent contracts and six RTX5080 frames: projection12, policy6 and default initializer1. The later natural run remains failed at real BSP admission; no complete introduction is claimed. Fresh v9 is an explicitly owned temporary build, including the full-log parser correction and sealed save-metadata module.
+- Latest component evidence: [projection and FP ordering](../analysis/campaign-native-new-game-camera-20261028/projection-proof.json), [safe frame-policy retirement](../analysis/campaign-native-new-game-20261028/frame-policy/retirement-proof.json), [participants](../analysis/campaign-native-transition-participants-20261029/proof.json), [save metadata](../analysis/campaign-native-transition-save-metadata-20261029/proof.json), and [full-log parsing regression](../analysis/campaign-native-new-game-20261028/graphics-log-parser/report.json). Remaining target-query/shadow/host FP/platform lifecycle gates stay explicit.
+
+- Live menu evidence: [all four continuous cases](../analysis/campaign-native-new-game-20261028/live-menu/continuous-menu-acceptance.json). The same frozen v9 iteration1 client reaches the [actual Armory shader boundary](../analysis/campaign-native-new-game-frontend-20261028/cohort-v9/iteration-1/graphics-progression.json); both the unresolved PRT ownership and the absence of launcher delivery remain explicit. [Native ownership review](../analysis/campaign-native-new-game-camera-20261028/armory-material-native-ownership-review.json) rules out a shader default or residency omission as a valid fix.
+
+- Eighteenth implementation checkpoint: [bounded manifest](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-18.json) links130 passed component/bounded reports,1103 current matching pins and92 required canonical original inputs totaling68,189,602 bytes. [Cleanup](../analysis/campaign-native-kernels-20261028/implementation-checkpoint-18-cleanup.json) verifies585 completed generated paths absent, including every v9 source/build/private display. [Live menu](../analysis/campaign-native-new-game-20261028/live-menu/continuous-menu-acceptance.json) passes all4 difficulties; [bounded Heretic handoff](../analysis/campaign-native-new-game-20261028/v9-heretic-handoff-milestone.json) records2154 hardware frames and fresh Armory startup. V9 final full client build and580 Armory resource checks passed; legacy MP fixture-path admission stopped that batch before GPU. The test now explicitly resolves genuine DLC/disc references while production link rejection remains unchanged. V10 is an explicitly owned active build; its first snapshot predates this final test-only resolver and will require declared refresh. Campaign PRT packet, affected MP behavior, actual Armory rendering, full native-only closure and launcher delivery remain open.

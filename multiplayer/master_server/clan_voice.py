@@ -1,137 +1,92 @@
-"""Opt-in clan Opus relay. Native extension, separate from game voice routing.
+"""Temporary WebSocket/audio IO for the Rust private social voice relay.
 
-No recording. TLS terminates at the operator's reverse proxy. Each queued frame
-is checked against current account sessions and clan membership before delivery.
+Rust owns current authorization, memberships, generations, framing, budgets,
+queues and delivery. Python retains sockets, wake events and send deadlines.
 """
 import asyncio
 import contextlib
 import time
-import uuid
 from aiohttp import web, WSMsgType
-from .protocol import require
+from .protocol import Problem
+from .native_social_voice import Relay
+from .native_party_directory import run
 
 
 class Peer:
-    def __init__(self, key, player, clan, socket):
-        self.key, self.player, self.clan, self.socket = key, player, clan, socket
-        self.queue = asyncio.Queue(maxsize=5)
+    def __init__(self,identifier,socket):
+        self.id,self.socket=identifier,socket
+        self.wake=asyncio.Event()
 
 
 class ClanVoice:
-    group_name = "Clan"
-    def __init__(self, accounts):
-        self.accounts = accounts
-        self.peers = {}
+    kind='clan'
+    def __init__(self,accounts):
+        self.accounts,self.directory=accounts,accounts.directory
+        self.db,self.wall,self.clock=accounts.db,accounts.wall,time.monotonic
+        self.peers={}
+        self.relay=Relay(self,self.kind)
+        run(self,'relay_schema',family='voice')
 
-    def member(self, who):
-        return self.accounts.member(who)
+    def call(self,mode,**body):return run(self,mode,family='voice',body=body)
 
-    def identity(self, who):
-        return who
-
-    def valid(self, peer):
-        session = self.accounts.sessions.get(peer.key)
-        member = self.member(peer.player)
-        return (session is not None and session.expires > self.accounts.clock()
-                and session.player == peer.player and member is not None
-                and member[0] == peer.clan)
-
-    async def writer(self, peer):
-        while not peer.socket.closed:
-            if not self.valid(peer):
-                await peer.socket.close(code=1008, message=b"Voice authorization ended")
-                return
-            try:
-                source, packet = await asyncio.wait_for(peer.queue.get(), .5)
-            except asyncio.TimeoutError:
-                continue
-            if (self.valid(source) and self.valid(peer)
-                    and self.accounts.directory.voice_blocks.allowed(source.player, peer.player)):
-                # A slow reader never stalls the microphone or other listeners.
-                try:
-                    await asyncio.wait_for(peer.socket.send_bytes(packet), .25)
-                except (asyncio.TimeoutError, ConnectionError):
-                    await peer.socket.close(code=1011)
+    async def writer(self,peer):
+        try:
+            while not peer.socket.closed:
+                peer.wake.clear()
+                result=self.call('poll',peer=peer.id)
+                if result.get('close'):
+                    await peer.socket.close(code=result['code'])
                     return
+                if result.get('packet'):
+                    await asyncio.wait_for(peer.socket.send_bytes(bytes.fromhex(result['packet'])),.25)
+                elif not result.get('again'):
+                    try:await asyncio.wait_for(peer.wake.wait(),.5)
+                    except asyncio.TimeoutError:pass
+        except Problem:
+            await peer.socket.close(code=1008)
+        except (asyncio.TimeoutError,ConnectionError):
+            await peer.socket.close(code=1011)
 
-    async def connect(self, request):
-        key, who = self.accounts.session(request)
-        member = self.member(who)
-        require(member is not None, "Join an available "+self.group_name.lower()+" before joining voice", 403)
-        require(len(self.peers) < 256 or who in self.peers, "Voice service is full", 503)
-        require(sum(p.clan == member[0] and p.player != who for p in self.peers.values()) < 16,
-                self.group_name+" voice is full (16 players)", 409)
-        socket = web.WebSocketResponse(heartbeat=10, max_msg_size=262, compress=False)
+    async def connect(self,request):
+        key,who=self.accounts.session(request)
+        run(self,'preflight',who,family='voice',account_key=key)
+        socket=web.WebSocketResponse(heartbeat=10,max_msg_size=262,compress=False)
         await socket.prepare(request)
-        peer = Peer(key, who, member[0], socket)
-        # Recheck admission after the asynchronous HTTP upgrade.
-        if (not self.valid(peer) or (len(self.peers) >= 256 and who not in self.peers)
-                or sum(p.clan == peer.clan and p.player != who for p in self.peers.values()) >= 16):
+        try:attached=run(self,'attach',who,family='voice',account_key=key)
+        except Problem:
             await socket.close(code=1008)
             return socket
-        old = self.peers.get(who)
-        self.peers[who] = peer
-        if old:
-            await old.socket.close(code=1008, message=b"Voice connected elsewhere")
-        sender = asyncio.create_task(self.writer(peer))
-        credits, previous, sequence = 10., time.monotonic(), -1
+        peer=Peer(attached['peer'],socket)
+        self.peers[peer.id]=peer
+        old=self.peers.get(attached['replaced'])
+        if old:await old.socket.close(code=1008,message=b'Voice connected elsewhere')
+        sender=asyncio.create_task(self.writer(peer))
         try:
             async for message in socket:
-                if not self.valid(peer) or self.peers.get(who) is not peer:
-                    await socket.close(code=1008)
+                result=self.call('frame',peer=peer.id,binary=message.type==WSMsgType.BINARY,
+                                 packet=message.data.hex() if message.type==WSMsgType.BINARY else '')
+                if result.get('close'):
+                    await socket.close(code=result['code'])
                     break
-                if message.type != WSMsgType.BINARY:
-                    await socket.close(code=1003)
-                    break
-                packet = message.data
-                now = time.monotonic()
-                credits = min(10., credits + (now - previous) * 50.)
-                previous = now
-                # version + monotonic u32 sequence + one 20ms Opus packet.
-                value = int.from_bytes(packet[1:5], "big")
-                if not 6 <= len(packet) <= 261 or packet[0] != 1 or value <= sequence or credits < 1:
-                    await socket.close(code=1008, message=b"Invalid voice frame")
-                    break
-                sequence = value
-                credits -= 1
-                delivered = packet[:1] + uuid.UUID(self.identity(who)).bytes + packet[1:]
-                for listener in tuple(self.peers.values()):
-                    if (listener is peer or listener.clan != peer.clan or not self.valid(listener)
-                            or not self.accounts.directory.voice_blocks.allowed(who, listener.player)):
-                        continue
-                    if listener.queue.full():
-                        listener.queue.get_nowait()
-                    listener.queue.put_nowait((peer, delivered))
+                for identifier in result.get('wake',()):
+                    listener=self.peers.get(identifier)
+                    if listener:listener.wake.set()
+        except Problem:
+            await socket.close(code=1008)
         finally:
-            if self.peers.get(who) is peer:
-                del self.peers[who]
+            self.peers.pop(peer.id,None)
+            if self.relay._handle:
+                with contextlib.suppress(Problem):self.call('detach',peer=peer.id)
             sender.cancel()
-            with contextlib.suppress(asyncio.CancelledError, ConnectionError, asyncio.TimeoutError):
-                await sender
+            with contextlib.suppress(asyncio.CancelledError,ConnectionError,asyncio.TimeoutError):await sender
             await socket.close()
         return socket
 
-    async def close(self, app):
+    async def close(self,app):
         await asyncio.gather(*(p.socket.close(code=1001) for p in tuple(self.peers.values())))
 
 
 class PartyVoice(ClanVoice):
-    """Passive accepted-party audience outside an active gameplay session.
-
-    Authentication, bounded queues and codec framing reuse the native clan
-    relay. Membership and wire identities come only from accepted parties.
-    """
-    group_name = "Party"
-
-    def __init__(self, accounts, parties):
+    kind='party'
+    def __init__(self,accounts,parties):
         super().__init__(accounts)
-        self.parties = parties
-
-    def member(self, who):
-        if self.parties.playing(who):
-            return None
-        party = self.parties.party(who)
-        return party[:2] if party else None
-
-    def identity(self, who):
-        return self.parties.db.execute("SELECT handle FROM party_members WHERE player=?", (who,)).fetchone()[0]

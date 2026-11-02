@@ -1,0 +1,15 @@
+{
+  "command": [
+    "python3",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-qos-ready-green/halo2-test-14pqzjum/source/tests/test_rust_service_qos_controls.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-qos-ready-green/halo2-test-14pqzjum",
+  "source_pins": {
+    "tools/rust_service_qos_controls.py": "992b15614ade8403708264d3cfbf45ae0e589513d186465b3fdac40949a46334",
+    "tests/test_rust_service_qos_controls.py": "ed66d328d28da0bcb809762ead3b10fafad993aa5d3a9b8ad221ebc6055fe39e"
+  },
+  "retained_large_artifacts": []
+}

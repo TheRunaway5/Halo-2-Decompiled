@@ -1,0 +1,42 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "rust/online_protocol/src/lib.rs",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs",
+    "rust/online_protocol/tests/matchmaking_frontend_party_flow.rs",
+    "rust/online_protocol_bridge/src/lib.rs",
+    "rust/online_protocol_bridge/build.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.hpp",
+    "include/halo2/frontend.hpp",
+    "include/halo2/frontend_matchmaking_party_flow.hpp",
+    "src/ui/frontend_party.cpp",
+    "src/ui/frontend_state.cpp",
+    "src/ui/frontend_clans.cpp",
+    "src/ui/frontend_matchmaking_party_flow.cpp",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+    "cmake/OnlinePeers.cmake",
+    "cmake/OnlineProtocolRust.cmake",
+    "tools/build_online_protocol_rust.py",
+    "tests/test_build_online_protocol_rust.py",
+    "tests/native_frontend_party_rust_tests.cpp",
+    "tests/native_frontend_party_flow_rust_tests.cpp",
+    "tests/test_native_frontend_party_flow_rust.py",
+    "tests/generate_frontend_party_flow_reference.py",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend_party.cpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend_state.cpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend_clans.cpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend.hpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/online_account.hpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend_online_tests.cpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/frontend_online_lobby_buttons_tests.cpp.reference",
+    "tests/reference/frontend_party_flow_before_rust_20261102/provenance.json"
+  ],
+  "targets": [
+    "native_frontend_party_flow_rust_tests",
+    "native_frontend_party_rust_tests"
+  ],
+  "filter": "^(frontend_party_flow_cpp_rust|frontend_party_cpp_rust)$"
+}

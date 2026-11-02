@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Admit qualified BC6C0/DC4C0 only into the still-owned destruction cohort."""
+import difflib
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+from native_damage_region_eligibility_kernel_tu15 import install_damage_region_eligibility,install_object_region_query
+
+ROOT=Path(__file__).resolve().parents[1]
+
+
+def sha(path):
+    with Path(path).open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
+
+
+def main():
+    scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True);source=scratch/'source'
+    base=ROOT/'build/test-results/vehicle-destruction-phantom-live-20261101'
+    prior_path=base/'reversed-list-production-refresh.json';report=json.loads(prior_path.read_text())
+    prior=json.loads((base/'reversed-list-eight/refresh.json').read_text())
+    assert Path(report['scratch'])==scratch
+    qualification_path=ROOT/'build/test-results/vehicle-destruction-pending-eligibility-20261101/v4/report.json'
+    qualification=json.loads(qualification_path.read_text());assert qualification['passed']
+    critical=['include/halo2/native_tu15_object_regions.hpp','include/halo2/native_tu15_damage_region_eligibility.hpp',
+        'include/halo2/source_damage_region_eligibility_observation_tu15.hpp',
+        'src/gameplay/objects/source_object_regions_native_tu15_internal.hpp',
+        'src/gameplay/objects/source_damage_region_eligibility_native_tu15_internal.hpp',
+        'tests/native_tu15_damage_region_eligibility_tests.cpp']
+    assert all(sha(ROOT/name)==qualification['source_hashes'][name] for name in critical)
+    manifest=json.loads((base/'cohort/source/source-manifest.json').read_text())
+    expected=dict(manifest['source_files_sha256'])
+    expected.update({name:patch['after'] for name,patch in report['patches'].items()})
+    expected['tests/destruction_runtime_tu15_tests.cpp']=prior['fixture_refresh']['after']
+    expected['CMakeLists.txt']=prior['registered_cmake_sha256']
+    # Check the actual transitive support-header closure used by the passing
+    # native component, against this frozen world's headers before admission.
+    component=scratch/'eligibility-v4/project'
+    dependency=subprocess.run(['c++','-MM','-std=c++20','-I'+str(component/'include'),'-I'+str(component/'src'),
+        str(component/'tests/native_tu15_damage_region_eligibility_tests.cpp')],check=True,capture_output=True,text=True)
+    dependencies=dependency.stdout.replace('\\\n',' ').split()[1:];verified={}
+    for item in dependencies:
+        path=Path(item)
+        if not path.is_relative_to(component):continue
+        relative=str(path.relative_to(component))
+        if relative in critical or not (source/relative).is_file():continue
+        assert sha(path)==sha(source/relative),relative
+        verified[relative]=sha(path)
+    patches=report['patches'];resumed=[]
+    def install(name,text):
+        path=source/name;assert not path.is_symlink(),name
+        assert path.resolve().is_relative_to(source),name
+        before=path.read_text() if path.exists() else ''
+        if path.exists():
+            if name in expected:assert sha(path)==expected[name],name
+            else:
+                # Reconcile only matching, newly declared owned files after
+                # the initial attempt stopped at a borrowed data directory.
+                assert sha(path)==sha(ROOT/name),name
+                resumed.append(name)
+        path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
+        patches[name]=dict(before=hashlib.sha256(before.encode()).hexdigest() if before else None,
+            after=sha(path),refreshed_mtime_ns=path.stat().st_mtime_ns,
+            diff='\n'.join(difflib.unified_diff(before.splitlines(),text.splitlines(),fromfile='before/'+name,tofile='after/'+name)))
+    for name in critical+['tools/validate_native_damage_region_eligibility_tu15.py','tools/native_damage_region_eligibility_kernel_tu15.py',
+        'cmake/NativeTu15DamageRegionEligibility.cmake']:
+        install(name,(ROOT/name).read_text())
+    for name in ['tests/fixtures/native_tu15_damage_region_eligibility.json.gz',
+                 'tests/fixtures/native_tu15_damage_region_eligibility.json',
+                 'tests/data/native_tu15_region_descriptor_counts.bin.gz']:
+        path=source/name
+        if not path.resolve().is_relative_to(source):
+            # The original cohort borrows tests/data read-only. Authenticate
+            # the required numeric input through that existing mount; never
+            # write through it or replace the directory's ownership.
+            assert sha(path)==sha(ROOT/name),name
+            patches[name]=dict(before=None,after=sha(path),borrowed_reference_input=True,borrowed_path=str(path.resolve()))
+            continue
+        if path.exists():assert sha(path)==sha(ROOT/name),name
+        path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((ROOT/name).read_bytes())
+        patches[name]=dict(before=None,after=sha(path),refreshed_mtime_ns=path.stat().st_mtime_ns)
+    for name,installer in [('src/gameplay/units/source_damage_delivery_runtime_generated.cpp',install_damage_region_eligibility),
+                           ('src/physics/physics_live_support_tu15_generated.cpp',install_object_region_query)]:
+        install(name,installer((source/name).read_text()))
+    name='CMakeLists.txt';before=(source/name).read_text();anchor='include(cmake/NativeTu15PendingResponse.cmake)\n'
+    assert before.count(anchor)==1
+    install(name,before.replace(anchor,anchor+'include(cmake/NativeTu15DamageRegionEligibility.cmake)\n'))
+    # The ordinary cohort helper owns the subsequent fixture refresh; include
+    # its new hash now so its whole-source authentication is unambiguous.
+    name='tests/destruction_runtime_tu15_tests.cpp';install(name,(ROOT/name).read_text())
+    report.update(previous_production_refresh=str(prior_path),cmake_sha256=sha(source/'CMakeLists.txt'),
+        qualification={'path':str(qualification_path),'sha256':sha(qualification_path),
+            'scope':'399 declared complete original ABI cases, all77 instruction sites,11 fault prefixes; native signed count exhaustive65536 and both observation/FP conventions; seven rejected mutations'},
+        verified_frozen_transitive_headers=verified,unrelated_root_world_changes_not_imported=True)
+    report['reconciled_partial_refresh_files']=resumed
+    report['original_qualified_dependency_closure'].update({name:qualification['source_hashes'][name] for name in critical})
+    target=base/'region-eligibility-production-refresh.json';target.write_text(json.dumps(report,indent=2)+'\n')
+    print(json.dumps({'applied':True,'transitive_frozen_headers_verified':len(verified),'receipt':str(target)}))
+
+
+if __name__=='__main__':main()

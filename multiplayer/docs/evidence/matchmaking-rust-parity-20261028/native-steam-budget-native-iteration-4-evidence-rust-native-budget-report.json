@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-4j_k07uf/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-4j_k07uf",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-4j_k07uf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-4j_k07uf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-4j_k07uf/cargo/release/halo2-matchmaking-service",
+    "bytes": 11040800,
+    "sha256": "9e0e82801831cfcc94d9b3b40720e0caf628562f8e2c6ef84caacf7fa5e8a521",
+    "retained": false
+  },
+  "mode": "native-steam-budget-only",
+  "native_budget": {
+    "qualified": true,
+    "checks": [
+      "actual native Steam browser/account clients admit the complete bounded thousand-friend response from Rust",
+      "actual native SteamLogin/browser proof/code/poll and OnlineAccount/clan/sign-out use real Rust HTTP; only upstream Steam verification/profile IO is a fixture",
+      "actual native default Curl accepts the full thousand-row lookup after eleven real three-second provider calls",
+      "actual native Steam browser/account clients admit the complete bounded thousand-friend response from Rust",
+      "actual native SteamLogin/browser proof/code/poll and OnlineAccount/clan/sign-out use real Rust HTTP; only upstream Steam verification/profile IO is a fixture",
+      "actual native client waits behind an owned provider lookup and completes its own full thousand-row request within the native owner deadline",
+      "actual native cold invitation survives a five-second upstream lookup after the unshortened sixty-second cache expiry and commits exactly one command/invitation",
+      "native sign-out and destruction cancel an active extended-budget lookup within2.5 seconds through the existing Curl stop-token progress callback"
+    ],
+    "timings": {
+      "slow_lookup_seconds": 37.15369488899887,
+      "queued_lookup_seconds": 66.07775351199962,
+      "cold_cache_wait_seconds": 61.10502260700741,
+      "cold_invitation_seconds": 5.052587835001759,
+      "native_cancel_seconds": 0.7948585830017691
+    },
+    "cases": "all",
+    "real_provider": false,
+    "native_world": false,
+    "fixture": {
+      "source_sha256": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+      "upstream_only": true
+    }
+  }
+}

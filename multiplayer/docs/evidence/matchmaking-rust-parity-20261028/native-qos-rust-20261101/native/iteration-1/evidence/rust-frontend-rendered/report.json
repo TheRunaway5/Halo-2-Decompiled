@@ -1,0 +1,44 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i/cargo/release/halo2-matchmaking-service",
+    "bytes": 11449128,
+    "sha256": "c64e3238492abaff3a04005e91fddda78f922974f9978e3effb7075a15dcc704",
+    "retained": false
+  },
+  "mode": "frontend-buttons-only",
+  "error": "[Errno 2] No such file or directory: '/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-xj7zpn4i/frontend/lobby-buttons-gpu/observations.json'"
+}

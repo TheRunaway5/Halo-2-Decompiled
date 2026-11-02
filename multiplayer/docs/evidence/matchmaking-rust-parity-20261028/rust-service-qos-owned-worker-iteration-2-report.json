@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/iteration-2",
+  "commands": [],
+  "action": "qos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_qos_controls.py"
+  ],
+  "source_files": 118,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/cargo/release/halo2-matchmaking-service",
+    "sha256": "24d7a327443b5a21e14b3558b00242ebd54a7f784c6259d8a663bdb6625c4124",
+    "bytes": 9471312,
+    "retained": false
+  },
+  "error": "('Search handshake', 101, 101, {'connection': 'upgrade, close', 'upgrade': 'websocket', 'message': 'Invalid connection header'})"
+}

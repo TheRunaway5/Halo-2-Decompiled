@@ -68,7 +68,7 @@
   "glsl": "shaders/native-programs/world/water-copy-combiner.glsl",
   "glsl_sha256": "20176d5427c9477da5e1ba70520fd67c2a6e50731bda84db36ce3fcfad3400b7",
   "lowerer": "tools/native_world_fragment_kernel.py",
-  "lowerer_sha256": "e2a442311b62283c19cad594a86b2ebd7a7ce1e784412ee7e80fbcbc7dc01d57",
+  "lowerer_sha256": "d6b6abadba1b1f0403c469928b004fc4f0cc623e1d3bf9bf6905fe4f7f5d026a",
   "runtime_instruction_interpreter": false,
   "scope": "Complete source-owned copy combiner; sampling coordinates and four authored scene taps unchanged"
 }

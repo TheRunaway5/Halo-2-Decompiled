@@ -1,0 +1,65 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-6d83l8wu/master-source/rust/online_protocol/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs",
+        "--lib"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-6d83l8wu/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_profile_owner_native",
+        "multiplayer.master_server.tests.test_player_profile",
+        "multiplayer.master_server.tests.test_history_owner_native",
+        "multiplayer.master_server.tests.test_carnage_history",
+        "multiplayer.master_server.tests.test_accuracy_reporting",
+        "multiplayer.master_server.tests.test_eos_profile_offload"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-6d83l8wu/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-6d83l8wu",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-6d83l8wu/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "40b46d445700cf72cf945763cf35345ca290ccc78f373068ad8ca2c2ed2d2af6",
+    "bytes": 4024840,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

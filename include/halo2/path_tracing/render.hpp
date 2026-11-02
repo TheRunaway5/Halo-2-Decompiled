@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <memory>
 #include <span>
+#include "halo2/native_world_kernel.hpp"
 
 namespace halo2::path_tracing {
 struct Scene;
@@ -56,6 +57,12 @@ public:
     // Repeated same-extent calls select the next world/foreground phase
     // without changing descriptors or allocating resources while recording.
     void prepare_visibility(VkExtent2D,const VkViewport& actual_viewport);
+    // Current admitted ordinary camera/raster only. This immutable per-view
+    // bank stays separate from PT's per-draw quality/material push words.
+    void prepare_source_depth(std::array<float,4> viewport,std::array<float,4> clip_range);
+    void bind_source_depth(VkCommandBuffer,VkDescriptorSet,std::uint32_t,
+        std::span<const std::byte> camera,std::uint32_t material_index,
+        const NativeWorldKernelEntry&,bool visibility=false,bool lighting=false)const;
     void begin_visibility(VkCommandBuffer);
     void bind_visibility(VkCommandBuffer,VkDescriptorSet material,std::uint32_t dynamic_bank_offset,
                          std::span<const std::byte> camera,std::uint32_t material_index)const;

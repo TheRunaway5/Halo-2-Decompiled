@@ -464,6 +464,10 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // words here. Keep its storage cold until that clock publication runs.
     memory.mount(0x4920c0u,std::array<std::byte,8>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold submitted screen-clock double");
+    // Independent loader-zeroed target selector. Actual132CF/132DB and
+    // later target/restore owners publish it; no submitted target is preset.
+    memory.mount(0x4920d8u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold submitted render-target selector");
     // Original13EAD0 writes this separate byte at13EB25 when starting
     // the actual cinematic. Preserve its loader-zeroed backing only.
     memory.mount(0x515ef5u,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,
@@ -495,6 +499,16 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
             "native TU1.5 authored map-world CRT scalar operand");
     memory.mount(0x55d6e4u,std::array<std::byte,16>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold map-world CRT scalar destinations");
+    // Separate loader-zeroed .data DWORD. Actual380450 publishes the
+    // default FOV from46AB88 at its authenticated CRT phase; no preset here.
+    memory.mount(0x5320acu,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold default camera FOV destination");
+    // Independent original .rdata DWORDs consumed at2FC86/2FCA6.
+    // Keep their exact encoded operands and read-only four-byte extents.
+    for(const auto [address,bits]:std::array<std::pair<std::uint32_t,std::uint32_t>,2>{{
+        {0x46a260u,0x3b088889u},{0x46a670u,0x3f100000u}}})
+        memory.mount(address,encode(std::array{bits}),SourceRuntimeMemory::Access::ReadOnly,
+            "native TU1.5 authored camera projection operand");
     // Actual383130 invokes30BAE0 to construct the static contact agent.
     memory.mount(0x48cdc4u,std::array<std::byte,12>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold static contact-agent destination");
@@ -1000,6 +1014,18 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 cold simulation clock override policy");
     memory.mount(0x51d04cu,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold simulation clock override value");
+    // Complete77AB0 publishes these two independent original BSS bytes.
+    memory.mount(0x51d01cu,std::array<std::byte,2>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold session timer parent policy fields");
+    // Complete77AB0 selects sixteen slots; complete777E0 consumes the state
+    // and timestamp DWORDs at slot*98 in each of five groups at stride99C.
+    // These exact pairs lie in original loader-zeroed .data. Declare only
+    // the consumed fields: group headers and other record bytes stay absent.
+    // Original initialization and timer owners still produce all live state.
+    for(unsigned group=0;group<5;++group)for(unsigned slot=0;slot<16;++slot)
+        memory.mount(0x515f70u+group*0x99cu+slot*0x98u,std::array<std::byte,8>{},
+            SourceRuntimeMemory::Access::ReadWrite,
+            "native TU1.5 cold session timer state and timestamp fields");
     // Complete B9960 copies the authored forward/up defaults into its fresh
     // object-build request. These are immutable source operands, not poses.
     // Original F5F44 and the other direct consumers audited in v861 read
@@ -1042,6 +1068,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 authored 22ECB0 retained heap scalar normalization operand");
     share_immutable_word(memory,0x46a0ecu,0x38d1b717u,
         "native TU1.5 authored 1CE845 physical representation scalar operand");
+    // Complete1BBBD0 subtracts distance times this original QWORD at1BBDA6.
+    // Keep its full binary64 representation and exact immutable extent.
+    memory.mount(0x46a328u,encode(std::array{0x9999999au,0x3fb99999u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored area-choice distance penalty operand");
     // Original2508DC/250905 compare their actual x87 results with this
     // single authored dword operand. Adjacent scalar owners are excluded.
     share_immutable_word(memory,0x456670u,0x38d1b717u,
@@ -2967,6 +2998,10 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // interfaces. Their following authored interfaces begin41CA94/41CA9C.
     declare_dispatch(0x41ca8cu,std::array{0x2f0a50u,0x30ba80u},
         "native TU1.5 authored 2F0F7E contact stack query identity");
+    // Actual2F73E2 publishes this separate reversed-pair collector. Its
+    // current virtual+4 forwards the two descriptors through30B960.
+    declare_dispatch(0x41ca40u,std::array{0x2f0a50u,0x30b960u},
+        "native TU1.5 authored 2F73E2 reversed contact stack query identity");
     declare_dispatch(0x41ca94u,std::array{0x2f0a20u,0x30ba90u},
         "native TU1.5 authored 2F1122 contact stack query identity");
     declare_dispatch(0x41cce8u,std::array{

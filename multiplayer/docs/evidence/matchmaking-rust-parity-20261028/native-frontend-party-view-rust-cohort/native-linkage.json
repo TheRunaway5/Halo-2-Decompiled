@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "required_rust_entries": [
+    "frontend_party_view_populate",
+    "frontend_party_view_text"
+  ],
+  "missing": [],
+  "undefined_rust_entry_observations": [
+    "                 U halo2::online_protocol_bridge::frontend_party_view_text(unsigned int, halo2::online_protocol_bridge::NativeFrontendPartyViewIo const&)",
+    "                 U halo2::online_protocol_bridge::frontend_party_view_populate(halo2::online_protocol_bridge::FrontendPartyFlow const&, halo2::online_protocol_bridge::NativeFrontendPartyViewIo const&)"
+  ],
+  "production_adapter_flow_imports": [
+    "                 U halo2::FrontendMatchmakingPartyFlow::text[abi:cxx11](unsigned int, halo2::online_protocol_bridge::NativeFrontendPartyViewIo const&) const",
+    "                 U halo2::FrontendMatchmakingPartyFlow::populate(halo2::online_protocol_bridge::NativeFrontendPartyViewIo const&) const"
+  ],
+  "single_native_adapter_translation_unit": true,
+  "compile_owner": "halo2_systems",
+  "native_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-native-20261102/halo2-test-9n5lcc3j/build/libhalo2_frontend_party_flow.a",
+    "sha256": "53ecb42cc2d3dde19335d8d2f6b3e2c1b30c434b8b5bc890e39a4376925102db",
+    "bytes": 20546
+  },
+  "native_adapter": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-native-20261102/halo2-test-9n5lcc3j/build/CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_party_view.cpp.o",
+    "sha256": "ceee9837b341564e0c2b08a1733b95ac7158ed462b6c2dac3b1d0256d4a90dcb",
+    "bytes": 1142928
+  },
+  "scope": "Actual CMake pimpl imports the two Rust party-view entries; actual MenuState adapter imports only those typed pimpl calls. Component linkage, not installed delivery.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-linkage-20261102/halo2-test-ij8qoiar",
+  "retained_large_artifacts": []
+}

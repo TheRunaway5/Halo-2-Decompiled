@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/multiplayer_snapshot_origin.hpp"
 #include <memory>
+#include <functional>
 
 namespace halo2 {
 struct MultiplayerOptions;
@@ -19,7 +20,11 @@ public:
     ~SourceShadowPresentationOwner();
     SourceShadowPresentationOwner(const SourceShadowPresentationOwner &)=delete;
     SourceShadowPresentationOwner &operator=(const SourceShadowPresentationOwner &)=delete;
-    bool adopt(const LanClient&,const AcceptedShadowCut&,const MultiplayerSnapshotOrigin &current);
+    // Optional foreground loading pump at completed preparation phases. It
+    // may send current neutral input; it must not receive, reenter this owner,
+    // borrow either private World or claim a completed native acknowledgement.
+    bool adopt(const LanClient&,const AcceptedShadowCut&,const MultiplayerSnapshotOrigin &current,
+        const std::function<void()> &loading_progress = {});
     MultiplayerObjectRuntime *world(const LanClient&,const MultiplayerSnapshotOrigin &current)const;
     // Read-only scene/device replica from that same closed native cut. This
     // never substitutes for the ordinary gameplay/prediction Match.

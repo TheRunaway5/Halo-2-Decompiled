@@ -1,0 +1,92 @@
+[
+  {
+    "path": "cmake/NativeWeaponEffectsTu15.cmake",
+    "frozen": "530891c924e7fd0dcf3cbb6f658c3407ec2da141b78890e2f11e3848e980263e",
+    "current": "73abbf51cad1997bdfaa544e7f51e18ca23adb02fb6c48e75f9864012e9b07f7"
+  },
+  {
+    "path": "cmake/WorkshopUnitControls.cmake",
+    "frozen": "5602d6e096ca0c6a0725c0781777095d892433994fc850212e5aa71b296253fb",
+    "current": "618f11456bbff600f0171194e22b67fd5ccde4892dd505f86aa11917cd515239"
+  },
+  {
+    "path": "include/halo2/native_weapon_effect_dispatch_tu15.hpp",
+    "frozen": "b4b7f7ed4acc832ec8d898c36cb744fc1769bd80b786f64abdb3444296539b6d",
+    "current": "fd592423c359878d2932dbe58b931ded6e0bc786ea2198873630308b0e69dc05"
+  },
+  {
+    "path": "src/gameplay/units/death_cycle_runtime_tu15_generated.cpp",
+    "frozen": "7e17a5a66f5f477fcf6a75dbc53ded437b9efc63c6190ed5e92bc97299d7fe19",
+    "current": "4d4d1ebe431f32abe52234a5da7b3a26dc3d20cd7cb772039cf7a19f5106d936"
+  },
+  {
+    "path": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "frozen": "b6d7263487f6fb6bd0dbc9bbe09c9806b94bda133dd443ff505ad4c635ff7b6b",
+    "current": "9fcd21888313732ff967e5c156259a94d946fbb3a42d76b19d5e3bda4de367c5"
+  },
+  {
+    "path": "src/physics/physics_live_support_tu15_generated.cpp",
+    "frozen": "252ff0d658b9882e193c90d9315d5086086810b88367b8c40dc293e0ecf6aea6",
+    "current": "149523a5721dbb9307d7c4798978a7a8e7231877cf60d53c3c1ed223e044ef11"
+  },
+  {
+    "path": "tests/fixtures/weapon_effect_initialization_tu15_original.json",
+    "frozen": "93ed08d44c19558694c0ed4e102ebda819d189215c8f4b4c125d2c9094a588a9",
+    "current": "5a5e81c72f2cd32e610e516de39e57d909e800e1eb5958ba53f02fd8d1221440"
+  },
+  {
+    "path": "tests/native_weapon_effect_initialization_tu15_tests.cpp",
+    "frozen": "b4fe1b87afde8363b601d3148d4f6787ff77780e98480f1cdb0e27a2a102d0ab",
+    "current": "d97fe243508b6019471ecee319e463a7e5856d7ba4c1464b7d389bbcb682c2a5"
+  },
+  {
+    "path": "tools/build_launcher_engine.py",
+    "frozen": "142d10b9975e072189a76ee47ed2fbbdf386e822d447a72dca5b1d05f15d2570",
+    "current": "dbc4173998661df9d3430655e7108fbe772c2632d85587c457f376abab589d74"
+  },
+  {
+    "path": "tools/generate_death_cycle_runtime_tu15.py",
+    "frozen": "9f391386ef911773186dee9a2ba7cff8e35c60ac5c1b655118e259919454812d",
+    "current": "c868a2f8e9e87fcb574c5c1733a38262c7133d78b1d5543c75df8be0653dcd2b"
+  },
+  {
+    "path": "tools/generate_physics_live_support_tu15.py",
+    "frozen": "62fe190d3400e1273764931318e762cd42198b3c66c8bf5a4ede877023ca3890",
+    "current": "f84908bfc024307299e228c8efe0f688c46b2b88399ad33984974b4bc337e980"
+  },
+  {
+    "path": "tools/native_weapon_effect_state_bridge_tu15.py",
+    "frozen": "061e27c84b05f6aea7984f2e4c2a655eb8d8df366c649aec4f400ca749e9cae3",
+    "current": "070384323a982e9a351893b9f2e8f7a29a8fb1c55cfb65d896f8998c9fede638"
+  },
+  {
+    "path": "tools/observe_native_region_transition_tu15.cpp",
+    "frozen": "580887f5aee06a49481234fcbb1702f6e07df47a5514275e977fdd42abf9cf6f",
+    "current": "8e539ff75fa61b627bcdac3ce558f7750ef02b87c3bce5d9cc2f5056a280c2c5"
+  },
+  {
+    "path": "tools/oracle_weapon_effect_initialization_tu15.py",
+    "frozen": "bbaa2fe2d6fed528240973fc282e62df8fb19953f013507ed18ffe4b737afe45",
+    "current": "48f6e7f55ff30c60a0e1434bbecd6ab1c0a03b4f1c717318fd3bf83565ae384a"
+  },
+  {
+    "path": "tools/qualify_native_region_transition_actual_tu15.py",
+    "frozen": "5159f1f39a3be65097f2ef74590300c88697c19ef0d8b8b00dce257a2da003bc",
+    "current": "407d2e6ff6989ddf370ea6f6fa1242bb62fda295c4dbf88a0544344f81b5d1c8"
+  },
+  {
+    "path": "tools/test_workshop_candidate_sweep.py",
+    "frozen": "924d32aef54e652d0af3c765cc226cbb5d0b84a39c13f2b54b87315028bd6760",
+    "current": "98bb152a7a47dfda5c5b5061678ac2744ce4712a0856b9e49f57faa66cfef80d"
+  },
+  {
+    "path": "tools/validate_native_weapon_effects_tu15.py",
+    "frozen": "7e1a00941f7ed84271a158ea7ec2cc773316cc1a8c9705be94225f908f7a36ea",
+    "current": "ee14c98c5c227bdd52f11d6c979efa85da5120f21bcae813d130ae63882d7581"
+  },
+  {
+    "path": "tools/validate_weapon_material_snapshot_tu15.py",
+    "frozen": "dabb2438a3cf231118df1143ce89988fa0125a4cd17e33573ba03e2fba3e4161",
+    "current": "bad423eab1bed9dc9b1a44f65b349e27451a874aec4fc4f787f64c29d846c992"
+  }
+]

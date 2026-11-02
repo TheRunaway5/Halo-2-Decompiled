@@ -128,7 +128,7 @@ class PartyApi:
         elif route in ('command','steam'):
             steam=None
             if route=='steam':
-                steam=await self.directory.steam_friends.lookup(who)
+                steam=await self.directory.steam_friends.lookup(who,account_key=key,body=body)
                 # A provider await cannot retain an expired account grant.
                 key,who=self.directory.clans.session(request)
             run(self,'command',who,account_key=key,body=body,steam=steam)

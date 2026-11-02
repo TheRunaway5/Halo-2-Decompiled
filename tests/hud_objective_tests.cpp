@@ -184,8 +184,10 @@ int main(int argc,char **argv)try {
         std::floor((v.safe.left+v.safe.right)*.5f),
         oldy=(anchor==0 || anchor==1)?v.safe.top:(anchor==2 || anchor==3)?v.safe.bottom:
         std::floor((v.safe.top+v.safe.bottom)*.5f);
-    const float l=v.outer.left*width/640+8*scale,r=v.outer.right*width/640-8*scale,
-        t=v.outer.top*height/480+8*scale,b=v.outer.bottom*height/480-8*scale;
+    const float l=v.outer.left*width/640+(players==1?v.safe.left-v.outer.left:8)*scale,
+        r=v.outer.right*width/640+(players==1?v.safe.right-v.outer.right:-8)*scale,
+        t=v.outer.top*height/480+(players==1?v.safe.top-v.outer.top:8)*scale,
+        b=v.outer.bottom*height/480+(players==1?v.safe.bottom-v.outer.bottom:-8)*scale;
     const float center_x=std::floor(((v.outer.left*width/640-left)/scale+v.safe.left-v.outer.left+
         (v.outer.right*width/640-left)/scale+v.safe.right-v.outer.right)*.5f)*scale+left,
         center_y=std::floor(((v.outer.top*height/480-top)/scale+v.safe.top-v.outer.top+
@@ -200,7 +202,7 @@ int main(int argc,char **argv)try {
     ++geometry_cases;
   }
   check(geometry_cases==860,"Objective/shield/radar source geometry coverage changed");
-  std::cout<<geometry_cases<<" objective, shield fill/outline and radar outline quad shapes match disc/TU1.5 at desktop corner anchors\n";
+  std::cout<<geometry_cases<<" objective, shield fill/outline and radar outline quad shapes match disc/TU1.5 at preserved single-view and split corner anchors\n";
 #if defined(HALO2_OBJECTIVE_GPU)
   if(argc==4) {
     phase="Vulkan objective rendering";

@@ -1,0 +1,330 @@
+{
+  "passed": true,
+  "baseline": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4",
+  "refreshed": [
+    {
+      "path": "rust/online_protocol/src/lib.rs",
+      "before": "4a704bc7f71d9a0ba217a10c3051c1c23fdc20395ccb62f0fde3442c97c3fa3d",
+      "after": "1d1e470dbd10e2084258469273ad7c0695cbc2536297f97663f7bff4b4d8a259"
+    },
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_party.rs",
+      "before": null,
+      "after": "10eb7bd764ad18e8d54ba0fba0cb49ecf806c2b59102406345dd77b718ee1982"
+    },
+    {
+      "path": "rust/online_protocol/tests/matchmaking_frontend_party.rs",
+      "before": null,
+      "after": "5c22741a27c21f623712f64be12b06457ae05985f2acfaa80afef0ea64e9ede4"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/lib.rs",
+      "before": "a37fde1cfb8bc91d3d8bba42e50ac570c2e36fc5e037522e74fd8822d0b8ab2c",
+      "after": "e180aa1e397b00c6064a71cc48a970b675c6a7a578e21e54b2fc21e74d9ec0ec"
+    },
+    {
+      "path": "rust/online_protocol_bridge/build.rs",
+      "before": "8fdb1e8c7d0dc9dfaf0cf149768a18eec2972fa3c44b214f0434d1a0b5d143de",
+      "after": "9185c294d9143d098d67e3ff3fd721dc16459d50b72ed693e87d9cf85ddb30b6"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+      "before": null,
+      "after": "f24041d1bdb73d348235c2365e28616bc4327b0bea5b1e0b62bb36919e4f9922"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party.hpp",
+      "before": null,
+      "after": "b16ebfb203d27c19e0b3c5c21fbbb29f083a025d96cf6874506f1d5105ded639"
+    },
+    {
+      "path": "include/halo2/frontend_matchmaking_party.hpp",
+      "before": null,
+      "after": "e3d48708e3a54b8769b90e3cd4dd1238ec6bf423cf02ed937598ba05e442e6bc"
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_party_bridge.cpp",
+      "before": null,
+      "after": "f7b710d26851bffe08206b458daacf590b8c29b6ea293c3a16f28612d6239306"
+    },
+    {
+      "path": "src/ui/frontend_party.cpp",
+      "before": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+      "after": "7b217e70531d0431dfa0ed65d086cb3bfba7084dad2019f86ea7867dba50498e"
+    },
+    {
+      "path": "cmake/OnlinePeers.cmake",
+      "before": "2e1838a334c81eb45d4caf2a1af8f6bd35201f9d7e43eb0f4895619468e86f73",
+      "after": "db93c8cba077214cd139d4af7fe388ee349956ad8b5358b1eb86265802f73b16"
+    },
+    {
+      "path": "cmake/OnlineProtocolRust.cmake",
+      "before": "2bd18b7e6004cdb510692be66b57f01b9a50aff925b734eb779e61984d8e4cd9",
+      "after": "8aafd53628a6efb3718607dab0b4d13835d6edabb8529ff4a58ee0fad8e3588a"
+    },
+    {
+      "path": "tools/build_online_protocol_rust.py",
+      "before": "bba465ce63e1df655fb19da0203de11b589438cc66687f12c2531a376a83dded",
+      "after": "785a79470c56ae6d54d5af1978ac84b6aa4636ca4cf84158ad797c704337f904"
+    },
+    {
+      "path": "tests/test_build_online_protocol_rust.py",
+      "before": "22c37a854aa8944ea90142ace71bf4327b839b1ffddb83e006fff39a9e6c6681",
+      "after": "7581780ea7b5e45b3d36e8a77d9e741f10fc6593c990ead28aa1eac48cc714fd"
+    },
+    {
+      "path": "tests/native_frontend_party_rust_tests.cpp",
+      "before": null,
+      "after": "7d0d155d242f0d66abb17d86942b9526d77704dc42afa55434a33fc0d9002c3a"
+    },
+    {
+      "path": "tests/generate_frontend_party_reference.py",
+      "before": null,
+      "after": "e57d83105d930169a05ab21fb139c23f62be90625560fa5aa35c0403db24b0e3"
+    },
+    {
+      "path": "tests/test_native_frontend_party_rust.py",
+      "before": null,
+      "after": "d700a9880ef7e79500a58e8a2f6cae38775d5e7fa63ed57d9fd9cba62be0265f"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "source_pin_parts": [
+    "iteration-3-source-pins-0.json",
+    "iteration-3-source-pins-1.json",
+    "iteration-3-source-pins-2.json",
+    "iteration-3-source-pins-3.json",
+    "iteration-3-source-pins-4.json",
+    "iteration-3-source-pins-5.json",
+    "iteration-3-source-pins-6.json",
+    "iteration-3-source-pins-7.json",
+    "iteration-3-source-pins-8.json",
+    "iteration-3-source-pins-9.json",
+    "iteration-3-source-pins-10.json",
+    "iteration-3-source-pins-11.json",
+    "iteration-3-source-pins-12.json",
+    "iteration-3-source-pins-13.json",
+    "iteration-3-source-pins-14.json",
+    "iteration-3-source-pins-15.json",
+    "iteration-3-source-pins-16.json",
+    "iteration-3-source-pins-17.json",
+    "iteration-3-source-pins-18.json",
+    "iteration-3-source-pins-19.json",
+    "iteration-3-source-pins-20.json",
+    "iteration-3-source-pins-21.json",
+    "iteration-3-source-pins-22.json",
+    "iteration-3-source-pins-23.json",
+    "iteration-3-source-pins-24.json",
+    "iteration-3-source-pins-25.json",
+    "iteration-3-source-pins-26.json",
+    "iteration-3-source-pins-27.json",
+    "iteration-3-source-pins-28.json",
+    "iteration-3-source-pins-29.json",
+    "iteration-3-source-pins-30.json",
+    "iteration-3-source-pins-31.json",
+    "iteration-3-source-pins-32.json",
+    "iteration-3-source-pins-33.json",
+    "iteration-3-source-pins-34.json",
+    "iteration-3-source-pins-35.json",
+    "iteration-3-source-pins-36.json",
+    "iteration-3-source-pins-37.json",
+    "iteration-3-source-pins-38.json",
+    "iteration-3-source-pins-39.json",
+    "iteration-3-source-pins-40.json",
+    "iteration-3-source-pins-41.json",
+    "iteration-3-source-pins-42.json",
+    "iteration-3-source-pins-43.json",
+    "iteration-3-source-pins-44.json",
+    "iteration-3-source-pins-45.json",
+    "iteration-3-source-pins-46.json",
+    "iteration-3-source-pins-47.json",
+    "iteration-3-source-pins-48.json",
+    "iteration-3-source-pins-49.json"
+  ],
+  "source_pin_sha256": "6dc852c419c53f5ebc01230249064187f6eeb2d0c8ad78a369b89f8865476c1d",
+  "command": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "native_frontend_party_rust_tests",
+    "--filter",
+    "^frontend_party_cpp_rust$",
+    "--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map",
+    "--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+    "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "test-artifacts/frontend-presentation-policy.json",
+    "--retain-report",
+    "test-artifacts/frontend-progress-policy.json",
+    "--retain-report",
+    "test-artifacts/frontend-search-policy.json",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Release/build-report.json",
+    "--retain-report",
+    "test-artifacts/source-admissions-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/authority-transfer-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/snapshot-candidate-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/native-receive-dispatch.json",
+    "--retain-report",
+    "test-artifacts/native-session-access.json",
+    "--retain-report",
+    "test-artifacts/native-migration-callers.json",
+    "--retain-report",
+    "test-artifacts/native-session-api.json"
+  ],
+  "exit_code": 0,
+  "runner_report": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map",
+          "-DHALO2_MCC_PARTY_UI_TEST_CACHE=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "native_frontend_party_rust_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^frontend_party_cpp_rust$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "test-artifacts/frontend-presentation-policy.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/frontend-progress-policy.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/frontend-search-policy.json",
+        "status": "not produced"
+      },
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 2257,
+        "sha256": "5fea785fad73393847d687c6b6e3ad15768fbe33dc79d224564b1be082cc9470",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 3801,
+        "sha256": "2f7e6ae3c6ab49e1462723e8fc30cfe4d190197bce6c8b8d9d3c51efa541ca54",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-party-policy-rust-20261102/native/iteration-3/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "test-artifacts/source-admissions-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/authority-transfer-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/snapshot-candidate-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-receive-dispatch.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-session-access.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-migration-callers.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-session-api.json",
+        "status": "not produced"
+      }
+    ]
+  },
+  "binaries": {
+    "native_frontend_party_rust_tests": {
+      "sha256": "7f3a25008de32cceb70587cf234367341f46e2c26e3ebe631cacb52fa8f37609",
+      "bytes": 25965432
+    }
+  },
+  "frozen_inputs_intact": true
+}

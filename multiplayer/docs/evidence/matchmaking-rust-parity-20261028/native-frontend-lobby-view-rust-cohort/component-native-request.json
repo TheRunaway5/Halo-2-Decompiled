@@ -1,0 +1,40 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "cmake/OnlinePeers.cmake",
+    "cmake/OnlineProtocolRust.cmake",
+    "rust/online_protocol/src/lib.rs",
+    "rust/online_protocol/src/matchmaking_frontend_lobby_view.rs",
+    "rust/online_protocol/tests/matchmaking_frontend_lobby_view.rs",
+    "rust/online_protocol_bridge/src/lib.rs",
+    "rust/online_protocol_bridge/build.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.hpp",
+    "include/halo2/frontend_lobby_game.hpp",
+    "src/ui/frontend_lobby.cpp",
+    "src/ui/frontend_lobby_game_bridge.cpp",
+    "tools/build_online_protocol_rust.py",
+    "tests/test_build_online_protocol_rust.py",
+    "tests/generate_frontend_lobby_view_reference.py",
+    "tests/native_frontend_lobby_view_rust_tests.cpp",
+    "tests/test_native_frontend_lobby_view_rust.py",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_party.cpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.cpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.hpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game.hpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend.hpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_policy_tests.cpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game_tests.cpp.reference",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/provenance.json",
+    "tests/frontend_lobby_game_tests.cpp"
+  ],
+  "targets": [
+    "native_frontend_lobby_view_rust_tests",
+    "frontend_lobby_policy_tests",
+    "frontend_lobby_game_tests",
+    "variant_write_order_tests",
+    "frontend_online_tests"
+  ],
+  "filter": "^(frontend_lobby_view_cpp_rust|retail_frontend_lobby_policy|retail_frontend_lobby_game|original_game_variant_write_order|frontend_parties_http|frontend_clans_http)$"
+}

@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "owned_units": [
+    {
+      "unit": "halo2-native-session-20261101.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "MainPID": "0"
+    },
+    {
+      "unit": "halo2-native-session-qualified-20261101.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "MainPID": "0"
+    },
+    {
+      "unit": "halo2-native-session-continuity-20261101.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "MainPID": "0"
+    }
+  ],
+  "all_owned_units_stopped": true
+}

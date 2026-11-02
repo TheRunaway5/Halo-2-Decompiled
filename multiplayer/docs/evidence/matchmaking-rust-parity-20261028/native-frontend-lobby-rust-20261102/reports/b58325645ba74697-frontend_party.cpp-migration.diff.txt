@@ -1,0 +1,85 @@
+--- src/ui/frontend_party.cpp captured-before
++++ src/ui/frontend_party.cpp rust-wired
+@@ -184,14 +184,14 @@
+     const bool original=detail::mcc_frontend_content(content_);
+     const auto localized=[&](std::uint32_t sid){return original?detail::og_matchmaking_layout::original_string(14,sid):detail::frontend_compiled_localized(content_,screen,sid);};
+     const auto authored=[&](unsigned index){return original?detail::og_matchmaking_layout::original_text(14,2,index):content_.localized(screen,pane.texts.at(index).string);};
+-    if(i==0 && online_lobby_countdown_>=0) {
++    if(i==0 && online_lobby_.seconds()>=0) {
+       const auto view=lobby_view();
+       if(view) {
+         const auto policy=frontend_lobby_presentation(view->input);
+         if(policy.status_string)return expand(localized(*policy.status_string));
+       }
+     }
+-    if(i==0 && online_lobby_matchmaking_ && account_.party && !account_.party->countdown_supported &&
++    if(i==0 && online_lobby_.matchmaking() && account_.party && !account_.party->countdown_supported &&
+         !selected_playlist_.empty())return online_lobby_start_error();
+     if(i==0)return account_.party_message; // Real service errors; no invented authored idle/voice status.
+     if(i==1 || i==2 || i==3 || i==48)return expand(authored(i));
+@@ -272,42 +272,8 @@
+   }
+   ++revision;
+ }
+-void MenuState::update_online_lobby_leave() {
+-  if(!online_lobby_leave_pending_ || account_.busy)return;
+-  if(account_.party) {
+-    // A refused mutation leaves the actual party and its confirmation intact.
+-    if(!account_.party_message.empty())online_lobby_leave_pending_=false;
+-    return;
+-  }
+-  // 25132E/251345 ->199E3C ->199E2E leaves both A and B; profile/login
+-  // remains signed in. Wait for the accepted-party reply before disposing UI.
+-  online_lobby_leave_pending_=false;
+-  if(online_matchmaking_)online_matchmaking_->sign_out();
+-  matchmaking_active_=quickmatch_pending_=false;matchmaking_={};
+-  selected_playlist_.clear();online_lobby_matchmaking_=online_lobby_playlist_pending_=false;
+-  online_lobby_countdown_party_.clear();cancel_online_lobby_countdown();
+-  reset_online_matchmaking_progress();launch.reset();
+-  while(stack_.size()>1 && frame().screen!=6)stack_.pop_back();
+-  ++revision;
+-}
+-std::string MenuState::online_lobby_start_error() const {
+-  if(!online_account_ || !account_.authenticated)return "Sign in to ONLINE before starting matchmaking.";
+-  if(!account_.party)return "Create or join a party before starting matchmaking.";
+-  if(!account_.party->leader)return "Only the party leader can start matchmaking.";
+-  if(!online_lobby_matchmaking_ || selected_playlist_.empty())return "Choose a matchmaking playlist in Game Setup first.";
+-  if(!online_matchmaking_)return "No matchmaking service is configured.";
+-  if(!account_.party->countdown_supported)
+-    return "This ONLINE service does not support the shared lobby countdown. Update the server before starting matchmaking.";
+-  if(account_.busy)return "Wait for the current ONLINE operation to finish, then start matchmaking.";
+-  const auto playlist=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+-      [&](const auto&p){return p.id==selected_playlist_;});
+-  if(playlist==matchmaking_.playlists.end() || !playlist->eligible)
+-    return "The selected playlist is unavailable. Choose a playlist in Game Setup.";
+-  if(!std::all_of(account_.party->members.begin(),account_.party->members.end(),
+-      [&](const auto&m){return m.ready_playlist==playlist->id;}))
+-    return "Every party member must select this playlist before matchmaking can start.";
+-  return {};
+-}
++
++
+ bool MenuState::accept_online_party() {
+   const auto f=frame();if(!online_party_screen(f))return false;
+   if(f.entries.empty() || f.selected>=f.entries.size())return true;
+@@ -329,19 +295,7 @@
+   }
+   // 250B1E consumes A/Start before the focused button while the countdown
+   // runs, so even Game Setup focus shortens it through25106C/19A78E.
+-  if(f.screen==14 && (online_lobby_countdown_>=0 || entry.destination==-17)) {
+-    // 0x25106C ->0x19A78E(controller,10,3).
+-    if(const auto error=online_lobby_start_error();!error.empty()) {
+-      pending_ui_sounds_.push_back(FrontendUiSound::Error);unavailable(error);return true;
+-    }
+-    const auto playlist=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+-        [&](const auto&p){return p.id==selected_playlist_;});
+-    if(!online_account_->party_command({"countdown_start",{},playlist->id,playlist->revision})) {
+-      pending_ui_sounds_.push_back(FrontendUiSound::Error);
+-      unavailable("The ONLINE operation changed before Start Game was accepted. Wait for it to finish, then try again.");
+-    } else update_online_account();
+-    return true;
+-  }
++  if(online_lobby_input(0,entry.destination))return true;
+   if(f.screen==14 && entry.destination>0){if(!account_.party || account_.party->leader)open(unsigned(entry.destination),unsigned(entry.value));return true;}
+   if(f.screen==26 && entry.destination==31) {
+     const auto i=unsigned(entry.value);party_target_version_=0;

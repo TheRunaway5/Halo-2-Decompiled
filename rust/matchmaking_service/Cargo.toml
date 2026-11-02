@@ -1,0 +1,35 @@
+[package]
+name = "halo2-matchmaking-service"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "MIT"
+
+[dependencies]
+halo2-online-protocol = { path = "../online_protocol" }
+axum = { version = "=0.8.9", default-features = false, features = ["http1", "tokio", "ws"] }
+hyper = { version = "=1.12.0", default-features = false, features = ["http1", "server"] }
+hyper-util = { version = "=0.1.21", default-features = false, features = ["tokio", "service"] }
+tokio = { version = "=1.54.1", features = ["rt-multi-thread", "net", "sync", "time", "signal", "macros", "process", "io-util"] }
+rusqlite = { version = "=0.41.0", features = ["bundled", "limits"] }
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"
+curl = { version = "=0.4.50", default-features = false, features = ["ssl"] }
+form_urlencoded = "=1.2.2"
+getrandom = "=0.2.16"
+base64 = "=0.22.1"
+openssl = "=0.10.81"
+chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "=1.1.4", features = ["fs", "process"] }
+
+[dev-dependencies]
+rusqlite = { version = "=0.41.0", features = ["hooks"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+overflow-checks = true

@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "all_owned_scratch_removed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-baseline-link-20261102/halo2-test-sfzgynou",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-bridge-20261102/halo2-test-21_1g8qu",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-core-20261102/halo2-test-p685_m91",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-36ve1df1",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-full-rust-20261102/halo2-test-t61jt3to",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-native-link-20261102/halo2-test-6u6pn6ib",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-20261102/halo2-test-j3_zk8yo",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-controls-20261102/halo2-test-eud94zwa",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-rust-20261102/halo2-test-dwnf1_3e"
+  ],
+  "owned_parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-baseline-link-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-bridge-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-core-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-full-rust-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-native-link-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-controls-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-rust-20261102",
+      "live_children": [],
+      "empty_parent_removed": true
+    }
+  ],
+  "native_owner_exit_code": 0,
+  "removed_native_owner_bytes": 5669122640,
+  "working_reports_removed": false,
+  "retained_large_artifacts": [],
+  "original_test_restored_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+  "unrelated_scratch_and_source_snapshots_preserved": true
+}

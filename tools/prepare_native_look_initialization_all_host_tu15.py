@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Reuse the qualified constructor block at all three same-contract Host sites."""
+import argparse,difflib,json,shutil
+from pathlib import Path
+from prepare_native_look_initialization_world_tu15 import ROOT,EXISTING,source_file,sha,save
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--parent-stage',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);parent=a.parent_stage.resolve();pins=json.loads((parent/'source-pins.json').read_text());assert pins['qualified'];assert sha(parent/'source-pins.json')=='9e97c2f7f9435846d472a4364d203ee0fc3f02ee83c1fb4b2b013c52ef9a2cfb';shutil.copytree(parent/'staged',a.output/'staged');stage=a.output/'staged';rel='src/physics/physics_live_world_tu15.cpp';text=(stage/rel).read_text();before_v1=text
+ start=text.index('        if(!initialized) {',text.index('    void prepare_player_look('));end=text.index('        // Native zoom selection',start);block=text[start:end];assert block.endswith('        }\n');inner=block[len('        if(!initialized) {\n'):-len('        }\n')]
+ camera='            auto a=frame({});a.gp[0]=0;a.gp[1]=unit;run_actual(0x18a0c0u,a);\n';reorient='            auto construct=frame({});construct.gp[0]=0;construct.gp[1]=unit;\n            run_actual(0x18a0c0u,construct);\n';assert text.count(camera)==1 and text.count(reorient)==1
+ text=text.replace(camera,inner).replace(reorient,inner);assert text.count(inner)==3 and 'run_actual(0x18a0c0u'not in text;(stage/rel).write_text(text)
+ pins['staged_hashes'][rel]=sha(stage/rel);pins.update(qualified=False,peer_review_pending=True,production_applied=False,live_qualified=False,parent_stage_manifest=str((parent/'source-pins.json').relative_to(ROOT)),parent_stage_manifest_sha256=sha(parent/'source-pins.json'),scope='Same qualified92-site native constructor/FP-field/source-observer block at all three fresh index0/unit Host sites: player_camera_packet, prepare_player_look, reorient_retained_input. Each prior volatile output is unused. No generated internal caller or18A300/CD4A0 admission.',host_constructor_callers=['player_camera_packet current-unit fallback','prepare_player_look new-unit boundary','reorient_retained_input uninitialized record'],remaining=['Visible positive constructor initialization and strict multiplayer frame/camera validation','Source-generated internal18A0C0 call sites remain original until their actual call-boundary proof','Whole18A300/CD4A0 native closure remains open'])
+ deltas=[]
+ for relative in EXISTING:
+  before=source_file(Path(pins['base_source_root']),relative).read_text();after=(stage/relative).read_text();assert sha(source_file(Path(pins['base_source_root']),relative))==pins['base_hashes'][relative],relative;deltas.append(''.join(difflib.unified_diff(before.splitlines(keepends=True),after.splitlines(keepends=True),fromfile='a/'+relative,tofile='b/'+relative)))
+ (a.output/'delta.patch').write_text(''.join(deltas));(a.output/'from-v1.patch').write_text(''.join(difflib.unified_diff(before_v1.splitlines(keepends=True),text.splitlines(keepends=True),fromfile='a/'+rel,tofile='b/'+rel)))
+ proof={'passed':True,'parent_stage_sha256':sha(parent/'source-pins.json'),'exact_same_native_block_occurrences':3,'block_sha256':__import__('hashlib').sha256(inner.encode()).hexdigest(),'remaining_old_constructor_dispatches_in_livecpp':0,'formals':'Fresh frame, index0, actual validated unit; only CW/status/MXCSR/depth fields passed','no_gp_postimages':True,'no_caller_consumes_prior_volatile_outputs':True,'caller_audit':['player_camera_packet continues to fresh call_actual157FE0; old constructor frame is local to prior else block','prepare_player_look continues with native zoom field publication then fresh18A300 frame','reorient_retained_input continues with authored forward DATA then fresh18A2A0 frame'],'preserved_original_caller_conditions':True,'coherent_world_inputs_unchanged':{}}
+ for compiler in('gcc','clang'):
+  q=ROOT/'analysis/physics'/('native-look-initialization-world-model-'+compiler+'-20261102-first')/'report.json';r=json.loads(q.read_text());assert r['passed']
+  # Only LiveCPP changed since the qualified stage. The coherent World
+  # executable does not compile this Host owner; each of its138 source
+  # inputs is identical. The new Host blocks are separately compiled below.
+  assert rel not in r['compiled_cpp_closure'];assert [name for name,h in pins['staged_hashes'].items()if h!=json.loads((parent/'source-pins.json').read_text())['staged_hashes'].get(name)]==[rel]
+  proof['coherent_world_inputs_unchanged'][compiler]={'report':str(q.relative_to(ROOT)),'report_sha256':sha(q),'compiled_cpp_count':r['compiled_cpp_count'],'all_four_models_passed':True}
+ save(a.output/'caller-reuse-proof.json',proof);pins['caller_reuse_proof']={'path':str((a.output/'caller-reuse-proof.json').relative_to(ROOT)),'sha256':sha(a.output/'caller-reuse-proof.json')};save(a.output/'source-pins.json',pins);print(a.output/'source-pins.json')
+if __name__=='__main__':main()

@@ -38,7 +38,7 @@ def generated(profile):
             aliases.append(row)
         elif row.get("xbox_name", row["name"]) != row["name"]:
             raise ValueError("changed builtin name lacks verified semantic ownership")
-        if len(row["arguments"]) > 7:
+        if len(row["arguments"]) > 8:
             raise ValueError("builtin argument extent exceeds compiled schema")
         args = ",".join(map(str, row["arguments"]))
         lines.append(f'    {{{row["mcc_opcode"]},{target if target is not None else 65535},'

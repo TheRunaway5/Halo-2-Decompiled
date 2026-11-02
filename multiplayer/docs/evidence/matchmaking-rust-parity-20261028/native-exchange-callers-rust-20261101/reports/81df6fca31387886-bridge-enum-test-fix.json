@@ -1,0 +1,12 @@
+{
+  "scope": "Test-only CXX enum lacks Debug required by assert_eq; compare the exact underlying enum representation instead. No production policy or ABI change.",
+  "source": "rust/online_protocol_bridge/src/matchmaking_native_exchange.rs",
+  "before_sha256": "0b43f2c1dd8578e4f65a472f3c9179ab6dec03ef0d5e92e8eeafe70ce57b0159",
+  "after_sha256": "35b3270846f6c5f66bab73a5eb723deb637910a9876fb63c0ded0aa32865b6a2",
+  "inverse_change": {
+    "after": "assert_eq!(to_action(action(v).unwrap()).repr, v.repr);",
+    "before": "assert_eq!(to_action(action(v).unwrap()), v);"
+  },
+  "failed_source_reconstructed_exactly": true,
+  "failed_exit_code": 101
+}

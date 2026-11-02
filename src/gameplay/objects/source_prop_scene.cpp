@@ -571,7 +571,7 @@ bool SourcePropScene::retain_source_view(unsigned view,std::span<const SourceLiv
         if(std::find(sections.begin(),sections.end(),section)==sections.end())return false;
         const SourceModelShaderCollector collector{0,draw.coverage};
         auto selected=prop.geometry.selected_section_world(draw.lod,section,collector,shader_view,nodes);
-        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16));
         for(auto& vertex:selected.vertices)vertex.source_stipple_level=stipple;
         if(selected.prt_lighting)return false;
         count+=selected.vertices.size();
@@ -600,6 +600,13 @@ void SourcePropScene::append_source_models(std::vector<ModelObjectDraw>& out,con
         }
         source->submitted=true;
     }
+}
+std::optional<SourcePropMaterialOwner> SourcePropScene::material_owner(unsigned material)const {
+    impl_->own();
+    for(const auto& prop:impl_->props)if(prop.active && prop.handle!=0xffffffffu &&
+        material>=prop.geometry.first_material && material-prop.geometry.first_material<prop.geometry.material_count)
+        return SourcePropMaterialOwner{prop.handle,prop.object_definition};
+    return {};
 }
 const SourcePropSceneStats&SourcePropScene::stats()const{impl_->own();return impl_->counts;}
 std::vector<SourceSceneEffectOwner> SourcePropScene::effect_owners() const {

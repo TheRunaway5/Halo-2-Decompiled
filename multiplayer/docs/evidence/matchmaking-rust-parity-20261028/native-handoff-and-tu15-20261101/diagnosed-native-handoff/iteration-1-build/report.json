@@ -1,0 +1,57 @@
+{
+  "passed": false,
+  "status": "built",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-1-build/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "rust_service_native_handoff_probe"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-1-build/build.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": true,
+  "validation_not_run": true,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1880,
+      "sha256": "827f3aadfcb1b86c8aed2ca7bcc0563fbba2d900e44cfb696758815a85897aa8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-1-build/evidence/online-protocol/Release/build-report.json"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_search_rust_tests"
+  ],
+  "filter": "^frontend_search_cpp_rust$"
+}

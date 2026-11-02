@@ -1,0 +1,10 @@
+{
+  "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-validation.json",
+  "retained_report_count": 67,
+  "retained_report_bytes": 2838619,
+  "reference_fixture_bytes": 6572,
+  "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-evidence-corrected/halo2-test-gq_7uv22",
+  "retained_large_artifacts": [],
+  "all_owned_scratch_removed": true,
+  "duplicate_report_sources_removed": true
+}

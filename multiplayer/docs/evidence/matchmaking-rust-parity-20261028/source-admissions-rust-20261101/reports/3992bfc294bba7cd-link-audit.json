@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "object_sha256": "b36a53311039ac38f34045664189cbb20f3a3944bca6dbdb6efd535199db70a8",
+  "rust_entries": {
+    "new_peer_source_admissions": [
+      "U halo2::online_protocol_bridge::new_peer_source_admissions(unsigned int, unsigned short, halo2::online_protocol_bridge::SourceAdmissionsContext const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::SourceAdmissionsSeat const>)"
+    ],
+    "peer_source_admissions_resume": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_resume(unsigned int, unsigned short, halo2::online_protocol_bridge::SourceAdmissionsContext const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::SourceAdmissionsSeat const>, halo2::online_protocol_bridge::SourceAdmissionsAccepted const&)"
+    ],
+    "peer_source_admissions_context": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_context(halo2::online_protocol_bridge::PeerSourceAdmissions const&)"
+    ],
+    "peer_source_admissions_replace": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_replace(halo2::online_protocol_bridge::PeerSourceAdmissions&, halo2::online_protocol_bridge::SourceAdmissionsContext const&, halo2::online_protocol_bridge::SourceAdmissionsContext const&)"
+    ],
+    "peer_source_admissions_publish": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_publish(halo2::online_protocol_bridge::PeerSourceAdmissions&, halo2::online_protocol_bridge::SourceAdmissionsContext const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::SourceAdmissionsPlayer const>)"
+    ],
+    "peer_source_admissions_accepted": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_accepted(halo2::online_protocol_bridge::PeerSourceAdmissions const&)"
+    ],
+    "peer_source_admissions_confirmed": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_confirmed(halo2::online_protocol_bridge::PeerSourceAdmissions const&, unsigned int)"
+    ],
+    "peer_source_admissions_poll": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_poll(halo2::online_protocol_bridge::PeerSourceAdmissions&, unsigned long, unsigned int)"
+    ],
+    "peer_source_admissions_receive": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_receive(halo2::online_protocol_bridge::PeerSourceAdmissions&, unsigned int, rust::cxxbridge1::Slice<unsigned char const>)"
+    ],
+    "peer_source_admissions_is_packet": [
+      "U halo2::online_protocol_bridge::peer_source_admissions_is_packet(rust::cxxbridge1::Slice<unsigned char const>)"
+    ]
+  },
+  "cpp_parser_crypto_policy_dependencies": [],
+  "final_rust_native_source_mismatch": [],
+  "current_critical_source_drift": [],
+  "source_pins": {
+    "src/network/peer_source_admissions.cpp": "659d28ed210e2f78380b5854bcb4975e11f7acc60b7b28c4dd248bb8b2875ef0",
+    "include/halo2/peer_source_admissions.hpp": "be76c306511b28d52b518e6e6aa43c76ff5d44dd515e133b3e071318ff6b7d46",
+    "rust/online_protocol/src/peer_source_admissions.rs": "ab798f8ccd3798b5a3d86748e10bff647317cd3c563444b361ec85d2c0e475fc",
+    "rust/online_protocol/src/lib.rs": "c0722c6f087e512ba9df3194e6ad1bad105a0b93484f54a4efbdfe82f953dea0",
+    "rust/online_protocol_bridge/src/peer_source_admissions.rs": "664df104b397b81920b92a5db5bbaebb2a32dd78f4ee08bdf14ec245d69cb31d",
+    "rust/online_protocol_bridge/src/lib.rs": "685374b52ffa54ba1ced4943d4721041ff0d61a1f44252c51d4d216040117574",
+    "cmake/OnlinePeers.cmake": "9554a88ee04ced4c6f301976895145009ac7f77a0fcd9c5a3e7147484f4ef99f",
+    "tests/peer_source_admissions_replay.cpp": "ea308988bd79d818b48eddd9b20c63578afaebfc7b33fccc6093ff58d39eea70",
+    "tests/test_peer_source_admissions_replay.py": "319454fa1e920e180f3252b0a3c6f9938be99596adf1e3c4059b81b38828ec2c",
+    "tests/peer_source_admissions_tests.cpp": "0cc3ae192da58caeaec4ec19954c6c0272e2da71d302561e5c660f288c25068c"
+  },
+  "reference_source_sha256": "afd234af56b8aa24ab0d5503b63b162bcb095b07e108ab11c8e74921e359522f",
+  "scope": "Compiled native source-admission wrapper reaches all ten Rust owners; no original XNet, native world or installed-runtime acceptance",
+  "retained_large_artifacts": []
+}

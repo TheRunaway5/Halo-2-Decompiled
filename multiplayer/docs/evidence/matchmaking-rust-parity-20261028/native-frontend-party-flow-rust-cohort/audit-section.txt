@@ -1,0 +1,58 @@
+## Native party actions and privacy acknowledgment state in Rust (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-party-flow-rust-validation.json).
+The safe `matchmaking_frontend_party_flow` controller now owns native party
+action routing and targets, invitation versions/tabs/dismissals and the complete
+pending privacy acknowledgment. The corresponding C++ fields and action/privacy
+branches are removed from the party menu, account refresh and generic menu.
+Rust selects all ten party commands, friend/clan invitation targets, primary or
+signed-local player routing, voice operations, retained navigation and privacy
+refusal/acknowledgment effects. C++ keeps actual worker/device operations, cached
+snapshot encoding, locale/rendering and primitive menu effects. There is no
+C++ action-policy fallback, and no Rust state guard spans a native callback.
+
+All command fields remain byte-exact, including private join context, optional
+privacy, full-width version/revision/serial and opaque identities. An absent
+privacy result remains pending; an explicit false result rejects. The actual
+party context and originating frame identity prevent an old acknowledgment
+from closing another editor. Same-mode changes still invoke the authenticated
+setter and require its fresh revision. The initial Rust port used queue
+presence captured before the worker accepted an invitation. It now reads that
+resource afterward, matching the captured C++ caller. The regression is red
+before that correction and green afterward.
+
+The full Rust suite passes 641 tests (556 protocol,65 bridge,20 service), with
+four existing platform-dependent ignores. Fifteen new controller controls pass,
+along with seven bridge-staging checks. Captured modern C++ methods and privacy
+fragments agree with the actual native Rust/CXX adapter across 5,439 cases,
+7,090 state observations and 7,193 native IO observations. All 54 injected native
+exception observations retain their actual exception objects or nonstandard
+values. Native callbacks reenter the same privacy owner without deadlock, and
+copy/assignment/move controls preserve independent target, dismissal and pending
+state. No original Live identity, worker, voice or admission producer is inferred
+from these declared synthetic IO observations; fresh original execution is zero.
+
+The CMake-linked comparison additionally emits its existing native shutdown
+initializer/cleanup framing. A probe identifies the exact pair around a valid
+matching JSON response and exit0. The replay driver admits only that exact
+boundary pair and rejects unexpected output, missing operations, malformed
+responses and process failures. The initial framing failure and correction are
+retained; no comparison assertion was waived.
+
+The final unchanged native cohort passes 23 checks with no skips: six Rust/CXX
+policy comparisons, original lobby/countdown fixtures, native and standalone
+Rust service flows, legacy and explicit MCC clan UI, actual SDL/Vulkan privacy
+and playlist/Start input, complete matchmaking/gathering HTTP flows and rendered
+one-/two-player party emblem controls. Owned native/Cargo/compiler/probe scratch
+is removed, with bounded reports, commands, source hashes and required small
+reference inputs retained. No installed runtime or production service is replaced.
+
+Party menu/text policy, native lobby presentation kernels and the remaining
+account refresh, party join/departure and voice intent decisions still require
+Rust ownership. Complete original producers and all 53 owners, historical/service
+recovery, every required family/profile/topology/unshortened natural outcome/
+continuity/results/PCR/return route, genuine providers and installed Linux
+restart/retry/configuration/rollback delivery remain open. All twelve GAP
+records, 53 algorithm IDs, G01-G12 criteria and the active objective remain
+unchanged; whole-system parity stays uncertified.
+

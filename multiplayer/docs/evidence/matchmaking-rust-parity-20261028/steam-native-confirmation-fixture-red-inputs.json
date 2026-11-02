@@ -1,0 +1,32 @@
+{
+  "schema": "H2_STEAM_NATIVE_INPUTS_V1",
+  "before_sha256": "b7be8cf698c1e83620d903fd415bae481ea21af44b85969b232b1ab0125c25da",
+  "after_sha256": "b7be8cf698c1e83620d903fd415bae481ea21af44b85969b232b1ab0125c25da",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4277,
+  "changed": [],
+  "returncode": 8,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-utm8xjhr/native-source",
+  "copied_files": 4277,
+  "copied_source_bytes": 166351657,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "current_source_drift": [
+    "CMakeLists.txt"
+  ],
+  "source_control": "Owned CMake/Rust/backend/C++/headers and selected tooling/tests. Required external/original asset inputs remain borrowed read-only. Native source data and build outputs are removed by the owner.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-utm8xjhr",
+  "retained_large_artifacts": []
+}

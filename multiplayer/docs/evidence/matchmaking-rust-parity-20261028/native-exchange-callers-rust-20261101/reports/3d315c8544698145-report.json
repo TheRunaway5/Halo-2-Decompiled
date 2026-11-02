@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "peer_source_admissions_tests",
+        "peer_source_admissions_cpp_reference",
+        "peer_source_admissions_rust_replay",
+        "peer_authority_transfer_tests",
+        "peer_host_session_tests",
+        "peer_survivor_session_tests",
+        "peer_mesh_quality_session_tests",
+        "online_continuity_transport_tests",
+        "online_peer_transport_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^(peer_source_admissions|peer_source_admissions_cpp_rust_replay|peer_authority_transfer|online_peer_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-native/halo2-test-dzu8d781/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 29888,
+      "sha256": "57cf42aee2502a4ec2960c0b74bbbf28536f3dce36987c0655c0311867b09e53",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 2678,
+      "sha256": "5d3c2a3765d1b01d6407265d9e30c0480b6e6f7d67cbcdeabaadc68e899f3ca5",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "test-artifacts/source-admissions-cpp-rust.json",
+      "status": "retained",
+      "bytes": 1509,
+      "sha256": "e8c44af11312f7de5f525a7a4a33ab3be649707e0daa0e48dabd537db575e3e9",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-exchange-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/source-admissions-cpp-rust.json"
+    }
+  ]
+}

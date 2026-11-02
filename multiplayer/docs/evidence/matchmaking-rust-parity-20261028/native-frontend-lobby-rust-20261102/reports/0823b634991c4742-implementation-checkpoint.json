@@ -1,0 +1,65 @@
+{
+  "previous_goal_turn": "progress",
+  "scope": "Complete native pregame countdown state, Start eligibility and Start/Back/X/Leave caller; C++ keeps actual input, native account IO and UI effects",
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_frontend_lobby.rs": "2bd52f45c3f6caecbcde51ce7d74c455556b9e00d52403c6885ae7e79048f8bb",
+    "rust/online_protocol/tests/matchmaking_frontend_lobby.rs": "c7eecd581b180696e9bbcd73e9f7ffb846e800e272b7199aea786d21062067aa",
+    "rust/online_protocol/src/lib.rs": "943baa29b996ff0c77a623fabf0bb2fc2cb7d3a0d8799c9dfa1d8145f469d2da",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby.rs": "dd7ff39cbe1212b82e31614b53f732c2e2f6b25915fc9092e4b8fa771bf12839",
+    "rust/online_protocol_bridge/src/lib.rs": "14d9b5d16188d16b4bde469aa6ca042abcc0767b3e91f033ed33b1c92fb56237",
+    "include/halo2/frontend.hpp": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+    "include/halo2/frontend_matchmaking_lobby.hpp": "f5d4b0c7fa44063b6ca2a37d9bd5a2b186414e3c162f1a467a9c688620a5b5b7",
+    "src/ui/frontend_matchmaking_lobby.cpp": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+    "src/ui/frontend_matchmaking_lobby_bridge.cpp": "01ed8c1b7d95bc4fa156e53d11503e93535ffda8d43b252a6bf126c43278893c",
+    "src/ui/frontend_state.cpp": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+    "src/ui/frontend_party.cpp": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+    "src/ui/frontend_matchmaking.cpp": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+    "cmake/OnlinePeers.cmake": "7a12e49205bbb4881705c9eff53165c2dd9a7c76e7c10e8354e79a3d3a80cfde",
+    "tests/frontend_matchmaking_lobby_rust_tests.cpp": "f6725b387bde4d104e54699f2361dcaec31f6823ed7c2c40b76b859c08e92da3",
+    "tests/test_frontend_lobby_policy.py": "da5d0cf47cf311fd51c481fb0c489fde82e69de7312a82fdeb00f36bd8e0f42d"
+  },
+  "rust_tests": 591,
+  "new_rust_tests": 13,
+  "modern_replay": {
+    "cases": 976,
+    "commands": 4387,
+    "mismatches": 0,
+    "native_refusals": 11,
+    "actual_wrapper_identity_reentry_controls": 976
+  },
+  "fresh_original": {
+    "complete_writer_calls": 1536,
+    "paired_writer_controls": 768,
+    "tu15_timer_press_writer_controls": 40,
+    "unchanged_rust_references": true
+  },
+  "active_native_owner": {
+    "session_id": 26525,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-rust-20261102/halo2-test-dwnf1_3e",
+    "iteration": 4,
+    "queued_next_iteration": 5,
+    "description": "Rust-wired build active; additional preserved-original test queued"
+  },
+  "next": [
+    "Retain native baseline frontend reports",
+    "Run Rust-wired native replay and same frontend suite using official worker, jobs2/testjobs1",
+    "Audit production linkage/source cohort identity and genuine UI results",
+    "Retire owner and verify complete cleanup",
+    "Write bounded receipt and top-level progress entry without altering 12 gaps,53 IDs or G01-G12"
+  ],
+  "all_native_tests_passed": false,
+  "native_qualification_pending": true,
+  "full_goal_complete": false,
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "retained_large_artifacts": [],
+  "baseline_scoped_native_tests_passed": 8,
+  "baseline_broader_failures": 4,
+  "source_collision_corrected": true,
+  "original_test_exactly_restored": true,
+  "compiled_rust_entries": 17,
+  "rust_native_shared_inputs": 2984,
+  "borrowed_reference_inputs": 474,
+  "unused_foreign_reference_exclusions": 0,
+  "production_sdk_replay_passed": true
+}

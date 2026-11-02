@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-native/halo2-test-x6oxi06p",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-full-rust/halo2-test-pfo2ycbv",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-audit/halo2-test-3m19ltj8",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-audit/halo2-test-lixelsm8",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-probe/halo2-test-3ut93k2n"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-audit": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-probe": []
+  },
+  "native_unit_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead"
+  },
+  "retained_large_artifacts": [],
+  "bounded_reports_exactly_deduplicated": true,
+  "preserved": "Original assets/reference inputs, prior snapshots, selected runtimes and unrelated work"
+}

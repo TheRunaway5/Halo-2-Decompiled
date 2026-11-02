@@ -1,6 +1,7 @@
 #include "halo2/source_campaign_lighting_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/frontend_model_lighting.hpp"
+#include "halo2/native_tu15_render_script_flags.hpp"
 #include <cstring>
 namespace halo2 {
 namespace {
@@ -39,5 +40,13 @@ void source_campaign_object_lighting_tu15(PhysicsLiveWorldTu15 &world,std::uint3
     const auto old=Bytes(world.memory().view(address,4)).u32(0);
     const auto value=active?old|0x01000000u:old&0xfeffffffu;
     world.write_source_call_input(address,std::as_bytes(std::span(&value,1)));
+}
+void source_campaign_warthog_chaingun_light_tu15(PhysicsLiveWorldTu15 &world,bool enabled) {
+    native_tu15_warthog_chaingun_light_enable(world.memory(),std::uint8_t(enabled),
+        [&](auto address,auto bytes){world.write_source_call_input(address,bytes);});
+}
+void source_campaign_object_cinematic_visibility_tu15(PhysicsLiveWorldTu15 &world,std::uint32_t object,bool visible) {
+    native_tu15_object_cinematic_visibility(world.memory(),object,std::uint8_t(visible),
+        [&](auto address,auto bytes){world.write_source_call_input(address,bytes);});
 }
 }

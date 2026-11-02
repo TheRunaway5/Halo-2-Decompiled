@@ -98,7 +98,7 @@ SourceBspAdmission source_bsp_admission(const SourceBspAdmissionBsp &bsp,
     if(visible.clusters.size()>128 || visible.groups.size()>6 || visible.frustums.size()>512 ||
         in.cluster_capacity<1 || in.instance_capacity<1 || in.cluster_capacity>32768 ||
         in.instance_capacity>32768 || in.containing_fog.size()!=bsp.clusters.size() ||
-        in.mode>1 || (in.flags&~0x2a1u))throw FormatError("unsupported source BSP admission context");
+        in.mode>1 || (in.flags&~0x6a1u))throw FormatError("unsupported source BSP admission context");
     SourceBspAdmission out;out.cluster_entries.fill(0xff);
     if(in.flags&0x20)return out;
     const auto spheres=visible.sphere_bank();

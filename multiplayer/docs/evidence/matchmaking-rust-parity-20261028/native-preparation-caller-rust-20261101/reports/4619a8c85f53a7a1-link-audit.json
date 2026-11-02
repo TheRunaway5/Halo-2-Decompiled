@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+  ],
+  "object_sha256": "a0650a97125e476ee470ed2fa1628a095da95f4fde4c265b57406dd507994d57",
+  "rust_entries": {
+    "native_preparation_authorize": true,
+    "native_preparation_request": true,
+    "native_preparation_complete": true,
+    "native_preparation_freeze": true,
+    "native_preparation_invalidate": true,
+    "native_preparation_retiring": true
+  },
+  "cpp_parser_crypto_dependencies": [],
+  "rust_native_source_count": 3396,
+  "final_rust_native_source_mismatch": [],
+  "current_critical_source_drift": [],
+  "source_pins": {
+    "src/network/online_match_session.cpp": "f9d5f2932c0f202d5c50dc63d6049b98571869b1b9b71f368441c65bf315a4d6",
+    "rust/online_protocol/src/matchmaking_native_preparation.rs": "3af72f06a113a0a453652ce8e08d7b6678b847488c6299a9702ead603e20845e",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "2ab92202ebc270b242c9c6b6e5b42ba89a16bd18ef565a78b8dc0931fee4c6b8",
+    "rust/online_protocol/src/lib.rs": "a10bf5c0ece7851a3f21b2c369edc08847c1986a37be0f929961d44450f55522",
+    "rust/online_protocol/tests/matchmaking_native_session.rs": "d16cb0c8f3b95f5029ea3e2c3c7bcf8f0311b00dfe8a49345e1bef570179e824",
+    "rust/online_protocol_bridge/src/matchmaking_native_preparation.rs": "78dd25079fce9873d61d57ba59aafd9e415e9b14a1f1d93a34c2d190a9444e7c",
+    "rust/online_protocol_bridge/src/matchmaking_native_preparation.hpp": "b13720655ec857890d29fa6e7cc458564932102749b21248940f8a0eadfbb98a",
+    "rust/online_protocol_bridge/src/matchmaking_native_publication.rs": "4bbfafd1fe837d5d71c955df301f615dd97ba9fe3745ac402a4f8d4c9ef9dea5",
+    "rust/online_protocol_bridge/src/lib.rs": "2fe83d6b76d79a8d7db5457a23cb094e9ce00892a6d918905f5b3174cb62cdb6",
+    "rust/online_protocol_bridge/build.rs": "83a171127e0e813e4e2b5afc6205109b2d2e9244ba6463f94570795656d49615",
+    "cmake/OnlineProtocolRust.cmake": "5e0ec8c33077e1aa9f6ab091bb671053b90f25bb5cbec4342f1251006ef8f373",
+    "tools/build_online_protocol_rust.py": "360eb2aad0497c9954b446a86eb352dfb038347cddfe350e2581b89c4e2cefc7",
+    "tests/test_build_online_protocol_rust.py": "d43e17c56a0191a5486f355371909e866bd628bb5eaaa4c76bff838be247b228",
+    "tests/peer_survivor_session_tests.cpp": "b84ae30d13d96ca60592e8b5cdcecb68078f99dbdcc25003f0d5d0f9e32750c7"
+  },
+  "scope": "Compiled native Session references the Rust caller. Actual lease/world/device ownership and original/provider/delivered acceptance are not inferred.",
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-audit/halo2-test-e4y8960o",
+  "retained_large_artifacts": []
+}

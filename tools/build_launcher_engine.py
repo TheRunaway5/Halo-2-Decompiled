@@ -28,6 +28,20 @@ ROOT = Path(__file__).resolve().parents[1]
 # These are retained reference/component stages, with no admitted production
 # caller. Their existence must not be mistaken for delivered functionality.
 SEPARATE_COMPONENTS = {
+    'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp': 'Zoom journal delivery requires its complete multiplayer state/wire cohort; selected-protocol builds may retain this component without admitting that newer route',
+    'src/campaign/scripting/source_workshop_unit_controls_tu15_generated.cpp': 'Standalone HS unit-control evaluators; live unit/input scheduling and MCC admission remain open',
+    'src/campaign/scripting/source_workshop_camera_start_tu15_generated.cpp': 'Standalone camera HS reference; production wrapper uses the linked shared Workshop module; MCC camera admission remains open',
+    'src/campaign/source_workshop_titles_tu15_generated.cpp': 'Standalone title setter/lifecycle component; shared World/presentation scheduling and script admission remain open',
+    'src/physics/native_tu15_collision_component.cpp': 'Standalone surface-component resolver; shared/object-kind owners and an admitted production resolver caller remain open',
+    'src/physics/native_tu15_collision_surface_shape.cpp': 'Standalone authored surface-shape constructor without an admitted production surface caller',
+    'src/physics/native_tu15_contact_point_removal.cpp': 'Standalone contact-point removal/listener composition without an admitted production removal caller',
+    'src/physics/native_tu15_contact_query.cpp': 'Standalone typed cached-contact query without an admitted production query caller',
+    'src/physics/native_tu15_convex_contact_query.cpp': 'Standalone convex query/result composition without an admitted production query caller',
+    'src/physics/native_tu15_island_partition_graph.cpp': 'Standalone partition graph constructor/union/compression without an admitted production graph caller',
+    'src/physics/native_tu15_pair_creation_queues.cpp': 'Standalone body-pair merge/deferred queues without an admitted production queue caller',
+    'src/physics/native_tu15_phantom_pair_create.cpp': 'Standalone phantom overlap creation without an admitted production pair caller',
+    'src/physics/native_tu15_simplex_face_selection.cpp': 'Standalone simplex face selection/refinement without an admitted production simplex caller',
+    'src/campaign/ai/native_campaign_ai_speech_visibility_tu15.cpp': 'Standalone typed speech-visibility component without an admitted production speech caller',
     'src/app/launcher.cpp': 'Launcher entry points, separate from the engine',
     'src/app/weapon_launcher.cpp': 'Separate weapons investigation launchers',
     'src/audio/dsp/sound_gp_cpu_tu15.cpp': 'GP instruction core requires its actual platform consumer',
@@ -87,10 +101,352 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def tu15_gameplay_reference(explicit=None):
+    """Bind the owned English TU1.5 image used by original-data CTests."""
+    explicit = explicit or os.environ.get('HALO2_TU15_GAMEPLAY_XBE')
+    if explicit:
+        candidates = [Path(explicit)]
+    else:
+        data = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share')
+        candidates = sorted((data / 'halo2-native/imports').glob(
+            'halo2-dlc-*/Halo 2 DLC/content/u5English/default.xbe'))
+    for candidate in candidates:
+        path = candidate.expanduser().resolve(strict=True)
+        if path.is_file() and 0 < path.stat().st_size <= 64 * 1024 * 1024:
+            pin = digest(path)
+            if pin == '21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd':
+                return dict(path=str(path), bytes=path.stat().st_size, sha256=pin)
+        if explicit:
+            raise RuntimeError('Original-data qualification requires the owned English TU1.5 gameplay image')
+    return None
+
+
 TOOL_SOURCE_SUFFIXES = frozenset({'.py','.pyi','.sh','.bash','.bat','.c','.cc','.cpp','.cxx',
     '.h','.hpp','.hxx','.inl','.inc','.s','.S','.cmake','.json','.jsonl','.tsv','.csv',
     '.txt','.md','.rst','.yaml','.yml','.toml','.glsl','.vert','.frag','.geom','.comp',
     '.fx','.cs','.java','.xml','.ini','.config','.proto','.def','.idl','.rc','.tt','.ttinclude','.zlib'})
+
+GRENADE_SHADOW_CASES = {
+    'neutral': ('coagulation.map', None),
+    'frag': ('coagulation.map', 0),
+    'plasma': ('midship.map', 1),
+    'receiver': ('zanzibar.map', None),
+}
+SMG_WARTHOG_INPUT = Path('tests/fixtures/smg_warthog_loop_audio_inputs.tsv')
+SMG_WARTHOG_METADATA = SMG_WARTHOG_INPUT.with_suffix('.json')
+SMG_WARTHOG_SHARED = ('mainmenu.map', 'shared.map', 'single_player_shared.map')
+
+
+def smg_warthog_reference(source, maps):
+    """Pin the actual qualified input tape borrowed by this frozen build."""
+    script, metadata_path = source / SMG_WARTHOG_INPUT, source / SMG_WARTHOG_METADATA
+    if (script.is_symlink() or not script.is_file() or not 0 < script.stat().st_size <= 1024 * 1024 or
+            metadata_path.is_symlink() or not metadata_path.is_file() or
+            not 0 < metadata_path.stat().st_size <= 65536):
+        raise RuntimeError('SMG Warthog audio reference lacks its bounded qualified input tape and metadata')
+    try:
+        metadata = json.loads(metadata_path.read_text())
+    except (ValueError, OSError) as error:
+        raise RuntimeError('SMG Warthog audio reference has malformed metadata') from error
+    script_pin, map_pin = digest(script), digest(maps / 'coagulation.map')
+    if (not isinstance(metadata, dict) or type(metadata.get('capture_tick')) is not int or
+            not 600 <= metadata['capture_tick'] <= 1800 or
+            metadata.get('input_script_sha256') != script_pin or metadata.get('map_sha256') != map_pin):
+        raise RuntimeError('SMG Warthog audio reference does not authenticate its tape, map and capture tick')
+    return dict(input_script=str(script.resolve()), input_script_sha256=script_pin,
+        reference_metadata_path=str(metadata_path.resolve()), reference_metadata=metadata,
+        reference_metadata_sha256=digest(metadata_path), capture_tick=metadata['capture_tick'],
+        map_sha256=map_pin)
+
+
+def smg_warthog_audio_qualification(build, source, maps, output, executable_pin, reference):
+    """Require positive native17E160 execution from the exact candidate ELF."""
+    prefix = 'SMG Warthog audio qualification'
+    path = output / 'validation/evidence/smg-warthog-audio.json'
+    log = path.with_suffix('.log')
+    if (path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 524288 or
+            log.is_symlink() or not log.is_file() or not 0 < log.stat().st_size <= 131072):
+        raise RuntimeError(prefix + ' lacks its bounded native report and log')
+    try:
+        data = json.loads(path.read_text())
+    except (ValueError, OSError) as error:
+        raise RuntimeError(prefix + ' has a malformed native report') from error
+    if not isinstance(data, dict) or any(not isinstance(data.get(key), dict) for key in
+            ('native', 'retained_log', 'input_projection', 'input_schedule', 'capture', 'shadow_draws')):
+        raise RuntimeError(prefix + ' has an incomplete native report')
+    positive = lambda value, minimum=1: type(value) is int and value >= minimum
+    salted = lambda value: type(value) is int and 0 < value < 0xffffffff and value >> 16 != 0
+    hashed = lambda value: isinstance(value, str) and bool(re.fullmatch('[0-9a-f]{64}', value))
+    tick = reference['capture_tick']
+    native, retained = data['native'], data['retained_log']
+    valid = (data.get('schema') == 'HALO2_NATIVE_SMG_WARTHOG_AUDIO_REPLAY_V1' and
+        data.get('passed') is True and data.get('expect') == 'complete' and type(data.get('exit_code')) is int and data['exit_code'] == 0 and
+        data.get('runtime') == str((build / 'halo2_native').resolve()) and data.get('runtime_sha256') == executable_pin and
+        data.get('map') == str((maps / 'coagulation.map').resolve()) and data.get('map_sha256') == reference['map_sha256'] and
+        data.get('shared_maps') == str(maps.resolve()) and data.get('input_script') == reference['input_script'] and
+        data.get('input_script_sha256') == reference['input_script_sha256'] and
+        data.get('reference_metadata_path') == reference['reference_metadata_path'] and
+        data.get('reference_metadata_sha256') == reference['reference_metadata_sha256'] and
+        data.get('reference_metadata') == reference['reference_metadata'] and
+        data.get('capture_tick') == tick and data.get('ticks') == tick and type(data.get('players')) is int and data['players'] == 1 and
+        data.get('viewport') == [640, 480] and data.get('graphics_mode') == 'Original' and
+        data.get('runtime_cache_source') == 'MCC' and data.get('mute') is False and data.get('audio_driver') == 'dummy' and
+        data.get('scratch_removed') is True and data.get('inputs_unchanged') is True and
+        data.get('exact_audio_owner_error') is False and data.get('unknown_option_error') is False and
+        data.get('native_error_diagnostic') is False and positive(data.get('frames')) and
+        type(data.get('capture_frame_count')) is int and data['capture_frame_count'] == 1 and data.get('retained_large_artifacts') == [] and
+        retained.get('bytes') == log.stat().st_size and retained.get('sha256') == digest(log) and
+        type(retained.get('tail_truncated')) is bool and
+        data['input_projection'].get('legacy_cli_projection_omits_accept') is True)
+    schedule = data['input_schedule']
+    valid = valid and (positive(schedule.get('rows'), 2) and schedule['rows'] <= tick and
+        schedule.get('first_key') == 0 and schedule.get('last_key') == schedule['rows'] - 1 and
+        schedule.get('last_key') < tick and schedule.get('contiguous') is True and
+        type(schedule.get('first_fire_key')) is int and 0 < schedule['first_fire_key'] < schedule['rows'] and
+        positive(schedule.get('fire_rows'), 61) and positive(schedule.get('reload_rows')))
+    expected_inputs = [build / 'halo2_native', source / SMG_WARTHOG_INPUT, maps / 'coagulation.map',
+        *(maps / name for name in SMG_WARTHOG_SHARED), source / SMG_WARTHOG_METADATA]
+    expected_pins = {str(item.resolve()): dict(path=str(item.resolve()), bytes=item.stat().st_size,
+        sha256=digest(item)) for item in expected_inputs}
+    before, after = data.get('input_pins_before'), data.get('input_pins_after')
+    valid = valid and (isinstance(before, list) and before == after and len(before) == len(expected_pins) and
+        all(isinstance(item, dict) and isinstance(item.get('path'), str) and
+            item == expected_pins.get(item['path']) for item in before) and
+        len({item['path'] for item in before}) == len(expected_pins))
+    player, mode, audio, target = (native.get(key) for key in ('player', 'mode3', 'audio', 'target'))
+    if not all(isinstance(item, dict) for item in (player, mode, audio, target)):
+        raise RuntimeError(prefix + ' lacks native player, target, mode3 or audio evidence')
+    valid = valid and (native.get('schema') == 'HALO2_NATIVE_LOOP_AUDIO_LOCATION_V1' and
+        native.get('collector_schema') == 'HALO2_SOURCE_LOOP_AUDIO_LOCATION_TU15_V1' and
+        native.get('passed') is True and native.get('qualified') is True and type(native.get('run_result')) is int and native['run_result'] == 0 and
+        native.get('map') == str((maps / 'coagulation.map').resolve()) and native.get('graphics_mode') == 'Original' and
+        native.get('runtime_cache_source') == 'MCC' and native.get('mute') is False and
+        native.get('requested_capture_tick') == tick and native.get('final_tick') == tick and native.get('captured_tick') is True and
+        all(positive(native.get(key)) for key in ('input_samples', 'submitted_frames', 'shadow_generate_draws', 'shadow_apply_draws')) and
+        positive(native.get('native_projectile_publications'), 20) and
+        all(salted(player.get(key)) for key in ('source_player', 'source_unit', 'source_weapon', 'weapon_definition', 'expected_smg_definition')) and
+        player.get('weapon_definition') == player.get('expected_smg_definition') and
+        positive(player.get('rounds_consumed'), 61) and positive(player.get('shot_transitions')) and
+        all(positive(player.get(key)) for key in ('reload_commands', 'reload_transfers', 'reload_rounds')) and
+        all(type(player.get(key)) is int and player[key] == 0 for key in
+            ('identity_changes', 'post_pin_non_smg_inputs', 'input_errors', 'input_read_failures')) and
+        all(positive(audio.get(key)) for key in ('packets', 'smg_packets', 'reload_packets')) and
+        type(audio.get('invalid_packets')) is int and audio['invalid_packets'] == 0 and
+        mode.get('observer_bound') is True and mode.get('baseline_recorded') is True and mode.get('baseline_frozen') is True and
+        positive(mode.get('entries')) and positive(mode.get('returns')) and mode['entries'] == mode['returns'] and
+        all(positive(mode.get(key)) for key in ('validated_entries', 'successful_returns',
+            'post_fire_successful_returns', 'target_owned_post_fire_successful_returns')) and
+        salted(target.get('owner')) and salted(target.get('definition')) and target.get('precondition_observed') is True and
+        target.get('smg_damage_observed') is True and
+        all(type(target.get(key)) in (int, float) and math.isfinite(target[key])
+            for key in ('body_before_smg', 'minimum_body_after_smg')) and
+        target['body_before_smg'] > target['minimum_body_after_smg'] >= 0 and
+        positive(target.get('post_smg_vitality_samples'), 2) and
+        all(type(target.get(key)) is int for key in ('first_smg_command_tick', 'first_smg_damage_tick')) and
+        type(mode.get('first_shot_tick')) is int and
+        0 < target['first_smg_command_tick'] <= target['first_smg_damage_tick'] < tick and
+        mode['first_shot_tick'] <= target['first_smg_damage_tick'] and
+        all(type(mode.get(key)) is int and mode[key] >= 0 for key in
+            ('new_generation_successful_returns', 'preexisting_target_owned_successful_returns')) and
+        positive(mode.get('post_fire_successful_ticks'), 2) and
+        all(type(mode.get(key)) is int and mode[key] == 0 for key in
+            ('invalid_calls', 'read_failures', 'unfinished_calls', 'late_baseline_inputs')))
+    if valid:
+        valid = (mode['new_generation_successful_returns'] + mode['preexisting_target_owned_successful_returns'] ==
+            mode['target_owned_post_fire_successful_returns'] and
+            mode['post_fire_successful_ticks'] <= mode['target_owned_post_fire_successful_returns'] <=
+            mode['post_fire_successful_returns'] <= mode['successful_returns'] <= mode['validated_entries'] <= mode['entries'])
+        if mode['preexisting_target_owned_successful_returns']:
+            valid = valid and (target.get('precondition_observed') is True and
+                positive(mode.get('precondition_target_owned_successful_returns')) and
+                mode.get('precondition_generation_seen') is True and positive(mode.get('precondition_generation_count')))
+        if target.get('precondition_observed') is True:
+            precondition = native.get('precondition')
+            grenade_keys = schedule.get('grenade_keys')
+            valid = valid and (isinstance(precondition, dict) and precondition.get('observed') is True and
+                type(precondition.get('grenade_commands')) is int and precondition['grenade_commands'] == 1 and
+                type(schedule.get('grenade_rows')) is int and schedule['grenade_rows'] == 1 and
+                isinstance(grenade_keys, list) and len(grenade_keys) == 1 and type(grenade_keys[0]) is int and
+                0 <= grenade_keys[0] < schedule['first_fire_key'] and
+                all(type(precondition.get(key)) in (int, float) and math.isfinite(precondition[key])
+                    for key in ('body_before', 'body_after')) and
+                precondition['body_before'] > precondition['body_after'] > 0)
+            if valid:
+                births, detonations = precondition.get('grenade_projectiles'), precondition.get('grenade_detonations')
+                valid = (isinstance(births, list) and isinstance(detonations, list) and
+                    0 < len(births) <= 64 and 0 < len(detonations) <= 64)
+                if valid:
+                    actual, released = set(), False
+                    for event in births:
+                        if not (isinstance(event, dict) and salted(event.get('projectile')) and salted(event.get('definition')) and
+                            type(event.get('type')) is int and event['type'] == 0 and type(event.get('released')) is bool and
+                            event.get('player') == player['source_player'] and event.get('unit') == player['source_unit']):
+                            valid = False
+                            break
+                        actual.add((event['projectile'], event['definition']))
+                        released |= event['released']
+                    valid = valid and len(actual) == 1 and released
+                    for event in detonations:
+                        if not (isinstance(event, dict) and salted(event.get('projectile')) and salted(event.get('definition')) and
+                            (event['projectile'], event['definition']) in actual and
+                            event.get('player') == player['source_player'] and event.get('unit') == player['source_unit'] and
+                            positive(event.get('serial')) and type(event.get('tick')) is int and 0 <= event['tick'] < tick and
+                            type(mode.get('first_shot_tick')) is int and event['tick'] < mode['first_shot_tick']):
+                            valid = False
+                            break
+    first, last, shot = (mode.get(key) for key in
+        ('first_success_source_tick', 'last_success_source_tick', 'first_shot_source_tick'))
+    valid = valid and all(type(value) is int for value in (first, last, shot)) and 0 <= shot <= first < last <= tick
+    samples = mode.get('samples')
+    valid = valid and isinstance(samples, list) and 0 < len(samples) <= 64
+    if valid:
+        for sample in samples:
+            bits = sample.get('output_bits') if isinstance(sample, dict) else None
+            if not (isinstance(sample, dict) and sample.get('caller_return') == 0x18fa4a and
+                all(salted(sample.get(key)) for key in ('effect', 'loop', 'effect_definition', 'loop_definition',
+                    'effect_object_owner', 'effect_object_definition')) and
+                sample['effect_object_owner'] == target['owner'] and sample['effect_object_definition'] == target['definition'] and
+                type(sample.get('new_generation')) is bool and type(sample.get('precondition_generation_seen')) is bool and
+                (sample['new_generation'] or sample['precondition_generation_seen']) and
+                (not sample['new_generation'] or positive(mode['new_generation_successful_returns'])) and
+                (sample['new_generation'] or positive(mode['preexisting_target_owned_successful_returns'])) and
+                type(sample.get('tick')) is int and first <= sample['tick'] <= last and
+                type(sample.get('eax')) is int and 0 <= sample['eax'] <= 0xffffffff and sample['eax'] & 255 and
+                isinstance(bits, list) and len(bits) == 7 and all(type(value) is int and
+                    0 <= value <= 0xffffffff and value & 0x7f800000 != 0x7f800000 for value in bits)):
+                valid = False
+                break
+            if sample['precondition_generation_seen'] and not (
+                target.get('precondition_observed') is True and mode.get('precondition_generation_seen') is True and
+                positive(mode.get('precondition_target_owned_successful_returns')) and positive(mode.get('precondition_generation_count')) and
+                type(sample.get('precondition_first_seen_source_tick')) is int and
+                0 <= sample['precondition_first_seen_source_tick'] < shot):
+                valid = False
+                break
+        valid = valid and len({sample['tick'] for sample in samples}) >= 2
+    capture = data['capture']
+    valid = valid and (capture.get('width') == 640 and capture.get('height') == 480 and
+        capture.get('bytes') == 640 * 480 * 3 + len(b'P6\n640 480\n255\n') and hashed(capture.get('sha256')) and
+        all(positive(data['shadow_draws'].get(key)) for key in
+            ('world_native_shadow_generate_prepared_draws', 'world_native_shadow_apply_prepared_draws')))
+    if not valid:
+        raise RuntimeError(prefix + ' did not complete its exact candidate, SMG, mode3, audio and rendered capture evidence')
+    return dict(passed=True, report=str(path), report_sha256=digest(path), runtime_sha256=executable_pin,
+        log=str(log), log_sha256=digest(log), map_sha256=reference['map_sha256'],
+        input_script_sha256=reference['input_script_sha256'], reference_metadata_sha256=reference['reference_metadata_sha256'],
+        capture_tick=tick, frames=data['frames'], native_projectile_publications=native['native_projectile_publications'],
+        new_generation_successful_returns=mode['new_generation_successful_returns'],
+        target_owned_post_fire_successful_returns=mode['target_owned_post_fire_successful_returns'],
+        preexisting_target_owned_successful_returns=mode['preexisting_target_owned_successful_returns'],
+        target_owner=target['owner'], target_definition=target['definition'],
+        post_fire_successful_ticks=mode['post_fire_successful_ticks'], rounds_consumed=player['rounds_consumed'],
+        reload_transfers=player['reload_transfers'],
+        scope='Exact candidate ELF replays retained ordinary SMG inputs through actual mode3 audio owners and rendered capture; '
+              'the legacy projection omits accept and does not assert complete Controls or Warthog damage identity')
+
+
+def grenade_shadow_qualification(build, maps, output, executable_pin, map_pins):
+    """Require completed native grenade/shadow cases from this exact executable."""
+    cases = []
+    for kind, (map_name, grenade_type) in GRENADE_SHADOW_CASES.items():
+        path = output / 'validation/evidence' / f'grenade-shadow-{kind}.json'
+        if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 1024 * 1024:
+            raise RuntimeError(f'Grenade shadow qualification lacks a bounded {kind} report')
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict) or any(not isinstance(data.get(field), dict)
+                for field in ('shadow_draws', 'checks', 'capture', 'retained_log')):
+            raise RuntimeError(f'Grenade shadow qualification has a malformed {kind} report')
+        draws = data.get('shadow_draws', {})
+        ticks = data.get('grenade_ticks', [])
+        owners = data.get('grenade_owners', [])
+        definitions = data.get('grenade_definitions', [])
+        retained_log = path.with_suffix('.log')
+        log_receipt = data['retained_log']
+        valid = (data.get('passed') is True and data.get('case') == kind and
+            data.get('runtime') == str((build / 'halo2_native').resolve()) and
+            data.get('runtime_sha256') == executable_pin and
+            data.get('map') == str((maps / map_name).resolve()) and
+            data.get('map_sha256') == map_pins[map_name] and
+            data.get('graphics_mode') == 'Original' and data.get('viewport') == [1280, 720] and
+            data.get('capture_tick') == 160 and data.get('exit_code') == 0 and
+            type(data.get('frames')) is int and data['frames'] > 0 and
+            type(data.get('ticks')) is int and data['ticks'] > 0 and data.get('players') == 1 and
+            data.get('exact_missing_section_error') is False and data.get('scratch_removed') is True and
+            data.get('runtime_and_map_unchanged') is True and
+            isinstance(ticks, list) and isinstance(owners, list) and isinstance(definitions, list) and
+            type(data.get('native_grenade_admitted_observations')) is int and
+            data['native_grenade_admitted_observations'] == data.get('native_grenade_observations') and
+            not retained_log.is_symlink() and retained_log.is_file() and
+            0 < retained_log.stat().st_size <= 4 * 65536 and
+            log_receipt.get('bytes') == retained_log.stat().st_size and
+            log_receipt.get('sha256') == digest(retained_log) and
+            all(data.get('checks', {}).get(check) is True for check in
+                ('exact_tick_and_complete_surface', 'actual_shadow_gpu_submissions',
+                 'native_grenade_lifecycle_or_neutral_control', 'no_missing_shadow_section')) and
+            all(type(draws.get(field)) is int and draws[field] > 0 for field in
+                ('world_native_shadow_generate_prepared_draws', 'world_native_shadow_apply_prepared_draws')))
+        if grenade_type is None:
+            valid = valid and type(data.get('native_grenade_observations')) is int and \
+                data['native_grenade_observations'] == 0 and not ticks and not owners and not definitions and \
+                data.get('grenade_types') == [] and data.get('detonation_serial') == 0
+        else:
+            valid = valid and type(data.get('native_grenade_observations')) is int and \
+                data['native_grenade_observations'] >= 2 and data.get('grenade_types') == [grenade_type] and \
+                type(data.get('detonation_serial')) is int and data['detonation_serial'] > 0 and \
+                len(ticks) >= 2 and all(type(tick) is int and 20 <= tick <= 160 for tick in ticks) and \
+                ticks == sorted(set(ticks)) and \
+                isinstance(owners, list) and bool(owners) and all(type(owner) is int and
+                    0 < owner < 0xffffffff and owner >> 16 for owner in owners) and \
+                bool(definitions) and all(type(definition) is int and
+                    0 < definition < 0xffffffff and definition >> 16 for definition in definitions)
+        capture = data.get('capture', {})
+        valid = valid and capture.get('bytes') == 1280 * 720 * 3 + len(b'P6\n1280 720\n255\n') and \
+            isinstance(capture.get('sha256'), str) and bool(re.fullmatch('[0-9a-f]{64}', capture['sha256']))
+        if not valid:
+            raise RuntimeError(f'Grenade shadow qualification did not complete the actual {kind} native case')
+        cases.append(dict(case=kind, passed=True, map=map_name, map_sha256=map_pins[map_name],
+            report=str(path), report_sha256=digest(path), runtime_sha256=executable_pin,
+            frames=data['frames'], ticks=data['ticks'],
+            native_grenade_observations=data['native_grenade_observations'],
+            native_grenade_admitted_observations=data['native_grenade_admitted_observations'],
+            log=str(retained_log), log_sha256=digest(retained_log),
+            detonation_serial=data['detonation_serial']))
+    return dict(passed=True, cases=cases,
+        scope='Actual neutral/receiver controls, frag/plasma native lifecycles, and ordinary shadow GPU submission')
+
+
+def friends_footer_qualification(output, source_cohort):
+    """Require every footer fixture case from the frozen qualification build."""
+    path = output / 'validation/evidence/friends-footer-anchor.json'
+    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 1024 * 1024:
+        raise RuntimeError('Friends footer qualification lacks a bounded report')
+    data = json.loads(path.read_text())
+    if (not isinstance(data, dict) or data.get('passed') is not True or
+            not isinstance(data.get('cases'), list) or len(data['cases']) != 39 or
+            not all(isinstance(case, dict) and case.get('passed') is True for case in data['cases']) or
+            type(data.get('rendered_cases')) is not int or data['rendered_cases'] not in (0, 13)):
+        raise RuntimeError('Friends footer qualification requires all 39 passing fixture cases')
+    return dict(passed=True, report=str(path), report_sha256=digest(path), cases=39,
+        rendered_cases=data['rendered_cases'], source_inventory_sha256=source_cohort['inventory_sha256'],
+        scope='MCC Friends footer layout and pointer fixture in the frozen source/build cohort; '
+              'rendered_cases=0 qualifies CPU layout and pointer behavior')
+
+
+def loop_audio_location_qualification(output, source_cohort):
+    """Require actual source-owner replay, including passive observer parity."""
+    path = output / 'validation/evidence/loop-audio-locations.json'
+    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 1024 * 1024:
+        raise RuntimeError('Loop audio location qualification lacks a bounded report')
+    data = json.loads(path.read_text())
+    if (not isinstance(data, dict) or data.get('passed') is not True or
+            any(type(data.get(key)) is not int or data[key] != expected for key, expected in
+                (('cases', 22), ('comparisons', 44), ('mode3_cases', 6), ('mode2_cases', 16))) or
+            data.get('original_xbe_sha256') != '21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd'):
+        raise RuntimeError('Loop audio location qualification requires all 22 original-call cases with observer parity')
+    return dict(passed=True, report=str(path), report_sha256=digest(path), cases=22,
+        comparisons=44, mode3_cases=6, mode2_cases=16,
+        source_inventory_sha256=source_cohort['inventory_sha256'],
+        scope='Complete mode2/mode3 source owners in the frozen build; exact original traces, writes and hardware ABI')
 
 
 def tool_source_path(path):
@@ -229,13 +585,27 @@ def wiring(graph, root):
     unregistered = sorted(p.relative_to(root).as_posix() for p in (root / 'src').rglob('*.cpp')
                           if p.relative_to(root).as_posix() not in platform_sources
                           if p.relative_to(root).as_posix() not in registered)
-    missing = sorted((set(isolated) | set(unregistered)) - SEPARATE_COMPONENTS.keys())
+    boundaries = dict(SEPARATE_COMPONENTS)
+    # The standalone camera wrapper is a reference for the shared runtime
+    # body. Its boundary must not hide loss of that actual production owner.
+    if 'src/campaign/scripting/source_workshop_script_builtins_tu15_generated.cpp' not in linked:
+        boundaries.pop('src/campaign/scripting/source_workshop_camera_start_tu15_generated.cpp', None)
+    # The ordinary checkout admits zoom delivery in halo2_systems. Only the
+    # deliberately preserved older state/wire cohort may isolate that file;
+    # an accidental missing production link must still fail the source audit.
+    zoom = 'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp'
+    zoom_policy = root / 'cmake/NativeWeaponEffectsTu15.cmake'
+    zoom_text = zoom_policy.read_text() if zoom_policy.is_file() else ''
+    if ('# This selected-protocol cohort retains the later zoom journal delivery as' not in zoom_text or
+            'target_sources(halo2_systems PRIVATE ' + zoom + ')' in zoom_text):
+        boundaries.pop(zoom, None)
+    missing = sorted((set(isolated) | set(unregistered)) - boundaries.keys())
     return dict(passed=not missing, engine_targets=sorted(closure), engine_sources=sorted(linked),
                 separate_components=isolated,
                 other_platform_sources=platform_sources,
                 unregistered_sources=unregistered, unexpected_unwired_sources=missing,
-                component_boundaries={s: SEPARATE_COMPONENTS[s] for s in sorted(set(isolated) | set(unregistered))
-                                      if s in SEPARATE_COMPONENTS},
+                component_boundaries={s: boundaries[s] for s in sorted(set(isolated) | set(unregistered))
+                                      if s in boundaries},
                 scope='Transitive library links and direct object-source ownership; separate components require real callers before runtime acceptance')
 
 
@@ -571,6 +941,17 @@ def weapon_audio(build, source, maps, image, output, build_report):
     return report
 
 
+def eos_client_configuration(root, explicit, prior):
+    """Keep configured ONLINE builds configured across ordinary rebuilds."""
+    if explicit is not None:
+        return Path(explicit).resolve(strict=True)
+    candidates = []
+    if prior is not None and prior.get('runtime'):
+        candidates.append((root / prior['runtime']).with_name('eos-client.env'))
+    candidates.append(root / '.local/eos-setup/client.env')
+    return next((path for path in candidates if path.is_file()), None)
+
+
 def worker(args):
     from gameplay_runtime_selection import SELECTION, selected_gameplay_runtime
     from mcc_onboarding import REGISTRY, private_cache, selected
@@ -649,6 +1030,10 @@ def worker(args):
     from custom_assets import inventory as custom_asset_inventory, install as install_custom_assets
     asset_pins = custom_asset_inventory(root)
     map_pins = {name: digest(maps / name) for name in names}
+    grenade_map_pins = {name: digest(maps / name)
+                        for name, _ in GRENADE_SHADOW_CASES.values()}
+    smg_reference = smg_warthog_reference(source, maps)
+    gameplay_reference = tu15_gameplay_reference(getattr(args, 'tu15_gameplay_reference_xbe', None))
     destination = root / 'bin/engine-builds' / uuid.uuid4().hex
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -664,6 +1049,9 @@ def worker(args):
                   limits=['No full gameplay, Xbox framebuffer or audio parity claim'])
     report['reused_active_owned_build'] = reuse_owned_build
     report['build_configuration'] = configuration
+    report['grenade_shadow_maps'] = grenade_map_pins
+    report['smg_warthog_reference'] = smg_reference
+    report['tu15_gameplay_reference'] = gameplay_reference
     # A reused qualification belongs to this declared source/build pair, which
     # can intentionally differ from a concurrently edited working tree. Record
     # its exact inventory rather than calling that tree the current sources.
@@ -687,8 +1075,88 @@ def worker(args):
                    '--target', 'frontend_custom_variant_settings_tests',
                    '--target', 'frontend_custom_match_settings_tests',
                    '--target', 'frontend_match_customization_tests',
+                   '--target', 'frontend_online_tests',
+                   '--target', 'loop_audio_locations_tu15_tests',
+                   '--target', 'native_weapon_effect_iterator_tu15_tests',
+                   '--target', 'native_weapon_effect_iterator_callers_tu15_tests',
+                   '--target', 'mcc_resident_reflection_template_tests',
+                   '--target', 'frontend_mcc_submenus_tests',
+                   '--target', 'steam_workshop_menu_tests', '--target', 'steam_workshop_cache_tests',
+                   '--target', 'workshop_mod_probe',
+                   '--target', 'workshop_bloom_tests', '--target', 'workshop_script_contract_tests',
+                   '--target', 'workshop_ai_activation_tests', '--target', 'workshop_ai_activation_contract_tests',
+                   '--target', 'workshop_unit_entry_tests',
+                   '--target', 'workshop_ai_actors_tests',
+                   '--target', 'campaign_ai_scalar_defaults_tu15_tests', '--target', 'native_tu15_cold_data_tests',
+                   '--target', 'native_tu15_base_lock_tests', '--target', 'workshop_shape_type_tests',
+                   '--target', 'workshop_wrapped_agent_tests',
+                   '--target', 'workshop_collection_agent_tests', '--target', 'workshop_collection_filter_tests',
+                   '--target', 'cinematic_bloom_tests', '--target', 'mcc_script_layout_tests',
+                   '--target', 'native_mcc_script_builtin_tests', '--target', 'native_mcc_script_command_tests',
+                   '--target', 'script_mcc_legacy_command_tests', '--target', 'script_clock_builtin_tests',
+                   '--target', 'native_mcc_script_world_tests',
+                   '--target', 'native_mcc_scenery_animation_world_tests',
+                   '--target', 'native_mcc_scenery_animation_gpu_tests',
+                   '--target', 'workshop_scenery_start_tests',
+                   '--target', 'object_name_lookup_tu15_tests',
+                   '--target', 'workshop_empty_prop_content_tests',
+                   '--target', 'workshop_navigation_content_tests',
+                   '--target', 'workshop_camera_shared_tests',
+                   '--target', 'native_tu15_world_residuals_tests',
+                   '--target', 'source_bsp_breakable_visibility_tu15_tests',
+                   '--target', 'source_model_depth_input_tests',
+                   '--target', 'world_effects_tests',
+                   '--target', 'native_late_effect_light_tu15_tests',
+                   '--target', 'native_tu15_ui_script_startup_tests',
+                   '--target', 'mcc_native_tex_bump_tests',
+                   '--target', 'mcc_native_pc_world_programs_probe',
+                   '--target', 'mcc_native_vehicle_restoration_probe',
+                   '--target', 'mcc_native_character_shared_probe',
+                   '--target', 'object_function_symbol_tu15_tests',
+                   '--target', 'mcc_native_meter_tests',
+                   '--target', 'mcc_native_sky_cooked_probe', '--target', 'workshop_sky_curve_tests',
+                   '--target', 'mcc_native_world_animated_probe',
+                   '--target', 'mcc_native_env_illum_three_channel_probe',
+                   '--target', 'mcc_native_tiling_specular_probe',
                    '--filter', '^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
                    'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap|native_mcc_split_screen_menu_startup|'
+                   'native_mcc_grenade_shadow_neutral|native_mcc_grenade_shadow_frag|native_mcc_grenade_shadow_plasma|'
+                   'native_mcc_grenade_shadow_receiver|'
+                   'native_mcc_friends_footer_anchor|'
+                   'original_tu15_loop_audio_locations|'
+                   'native_weapon_effect_iterator_tu15|native_weapon_effect_iterator_frame_tu15|'
+                   'native_weapon_effect_iterator_support_tu15|native_weapon_effect_iterator_death_tu15|'
+                   'native_mcc_smg_warthog_audio|'
+                   'mcc_resident_reflection_template|'
+                   'mcc_shared_env_illum|mcc_native_pc_world_programs|mcc_native_pc_world_programs_generator|'
+                   'mcc_native_pc_world_programs_source_controls|mcc_native_vehicle_restoration|mcc_native_vehicle_restoration_generator|'
+                   'mcc_native_character_shared|mcc_native_character_shared_generator|mcc_native_character_shared_actual_source|'
+                   'object_function_symbol_namespace|'
+                   'mcc_native_meter|mcc_native_meter_generator|mcc_native_meter_actual_source|'
+                   'mcc_frontend_submenus|mcc_frontend_selection_stability|'
+                   'steam_workshop_content|steam_workshop_sweep_acceptance|steam_workshop_menu|steam_workshop_cache|'
+                   'workshop_bloom_controls|workshop_script_contracts|original_cinematic_bloom_tu15|'
+                   'workshop_ai_activation|workshop_ai_activation_contracts|workshop_unit_entry|'
+                   'workshop_ai_actors|'
+                   'mcc_native_sky_cooked|mcc_native_sky_cooked_generator|workshop_sky_curves|'
+                   'native_tu15_base_lock_reference|workshop_shape_types|'
+                   'workshop_wrapped_agent|'
+                   'workshop_collection_agent|workshop_collection_filter|'
+                   'mcc_native_world_animated|mcc_native_world_animated_generator|'
+                   'mcc_native_env_illum_three_channel|mcc_native_env_illum_three_channel_generator|'
+                   'mcc_native_tiling_specular|mcc_native_tiling_specular_generator|'
+                   'original_campaign_ai_scalar_defaults_tu15|original_workshop_ai_aim_scalar_defaults_tu15|native_tu15_cold_data|'
+                   'mcc_script_signature_layout|mcc_script_signature_profile|'
+                   'native_mcc_script_clock_getters|native_mcc_script_commands|native_mcc_script_installed_commands|'
+                   'mcc_script_legacy_command_simulation|mcc_script_clock_initializer_runtime|'
+                   'native_mcc_script_world_commands|'
+                   'native_mcc_scenery_animation_(bootstrap|hs|named_hs|lifecycle|render_consumer|relative_consumer|inactive_control|gpu|relative_gpu)|'
+                   'workshop_scenery_start|'
+                   'original_object_name_lookup_tu15|original_workshop_camera_shared|'
+                   'workshop_empty_prop_content|workshop_navigation_content|native_world_residuals_model_tu15|'
+                   'source_bsp_breakable_visibility_tu15|native_source_model_depth_owners|'
+                   'native_world_light_material_catalog|native_late_effect_light_creation|'
+                   'original_tu15_hs_scalar_cast_constructor|'
                    'native_request_protocol|native_session_configuration|native_session_configuration_loading|native_custom_variant_settings|'
                    'original_frontend_custom_match_settings|native_mcc_frontend_custom_match_settings|original_frontend_match_customization|native_mcc_frontend_match_customization)$',
                    '--jobs', str(args.jobs), '--test-jobs', '1',
@@ -698,12 +1166,33 @@ def worker(args):
                    '--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON',
                    '--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(root),
                    '--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(root),
+                   '--cmake-arg=-DHALO2_WORKSHOP_TEST_CACHE=' + str(cache[0]),
                    '--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=' + str(maps / default_map),
+                   '--cmake-arg=-DHALO2_OBJECT_FUNCTION_MCC_MAP=' + str(maps / 'coagulation.map'),
+                   '--cmake-arg=-DHALO2_MCC_NATIVE_LIBRARY_DIRECTORY=' + str(maps.parent.parent / 'native-shaders'),
+                   '--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE=' + str(cache[0]),
+                   '--cmake-arg=-DHALO2_MCC_WATER_MAP_DIRECTORY=' + str(maps),
                    '--cmake-arg=-DHALO2_BUNDLE_MOVIES=OFF',
                    '--cmake-arg=-DHALO2_LAUNCHER_RUNTIME_DIR=' + str(destination),
                    '--cmake-arg=-DHALO2_RUNTIME_SHADER_DIR=' + str(destination / 'shaders'),
                    '--retain-report', 'engine-targets.txt',
-                   '--retain-report', 'multiplayer-menu-startup.json']
+                   '--retain-report', 'multiplayer-menu-startup.json',
+                   '--retain-report', 'friends-footer-anchor.json',
+                   '--retain-report', 'loop-audio-locations.json',
+                   '--retain-report', 'smg-warthog-audio.json',
+                   '--retain-report', 'smg-warthog-audio.log',
+                   '--retain-report', 'mcc-submenus.json',
+                   '--retain-report', 'mcc-selection-stability.json',
+                   '--retain-report', 'workshop-empty-prop-content.json',
+                   '--retain-report', 'workshop-navigation-content.json',
+                   '--retain-report', 'tiling.json',
+                   '--retain-report', 'native-late-effect-light-creation.json',
+                   '--retain-report', 'source-model-depth-owners.json']
+        if gameplay_reference:
+            command.append('--cmake-arg=-DHALO2_TU15_GAMEPLAY_XBE=' + gameplay_reference['path'])
+        for kind in GRENADE_SHADOW_CASES:
+            command.extend(['--retain-report', f'grenade-shadow-{kind}.json',
+                            '--retain-report', f'grenade-shadow-{kind}.log'])
         # A present kit bank changes the actual loading path. Require its
         # submitted-frame handoffs and the fresh/reuse onboarding regressions
         # before a candidate can replace either selected launcher runtime.
@@ -725,7 +1214,7 @@ def worker(args):
         sdk_archive = root / 'EOS-SDK-58105819-Release-v1.19.2.1.zip'
         if sdk_archive.is_file():
             command.append('--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=' + str(sdk_archive))
-        client_config = getattr(args, 'eos_client_config', None)
+        client_config = eos_client_configuration(root, getattr(args, 'eos_client_config', None), prior)
         if client_config:
             command.append('--cmake-arg=-DHALO2_EOS_CLIENT_CONFIG=' + str(client_config.resolve(strict=True)))
         # The executables/tests bind their compiled default to the canonical
@@ -758,6 +1247,13 @@ def worker(args):
             'report':str((destination/'shaders/production-shaders.json').relative_to(root)),
             'report_sha256':staged_shader_proof['package']['sha256']}
         print('Checking the complete qualification suite against the staged production shader bank…',flush=True)
+        required_captures = ['multiplayer-menu-startup.json', 'friends-footer-anchor.json',
+                             'loop-audio-locations.json', 'smg-warthog-audio.json', 'smg-warthog-audio.log']
+        required_captures.extend(f'grenade-shadow-{kind}.{suffix}'
+            for kind in GRENADE_SHADOW_CASES for suffix in ('json', 'log'))
+        for name in required_captures:
+            (build/name).unlink(missing_ok=True)
+            (output/'validation/evidence'/name).unlink(missing_ok=True)
         result=subprocess.run(command,cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
         if result.returncode:
             raise RuntimeError('Engine launcher or loading checks failed; see '+str(output/'validation'))
@@ -769,6 +1265,8 @@ def worker(args):
             raise RuntimeError('Engine qualification requires completed passing CTest checks')
         if source_hashes(source)!=pins:
             raise RuntimeError('Frozen engine source changed during qualification')
+        if smg_warthog_reference(source, maps) != smg_reference:
+            raise RuntimeError('SMG Warthog audio reference changed during qualification')
         if digest(build/'halo2_native')!=executable_pin:
             raise RuntimeError('Engine executable changed after its shader bank was staged')
         if validate_native_package(destination/'shaders',
@@ -781,10 +1279,18 @@ def worker(args):
             build_only_report_sha256=digest(build_output/'report.json'))
         menu_startup_path=output/'validation/evidence/multiplayer-menu-startup.json'
         menu_startup=json.loads(menu_startup_path.read_text())
-        if menu_startup.get('passed') is not True or menu_startup.get('frames',0)<1:
+        if (menu_startup.get('passed') is not True or menu_startup.get('frames',0)<1 or
+                menu_startup.get('runtime_sha256')!=executable_pin):
             raise RuntimeError('Engine qualification requires the real non-reference split-screen menu Start')
         report['split_screen_menu_startup']=dict(passed=True,report=str(menu_startup_path),
-            report_sha256=digest(menu_startup_path),frames=menu_startup['frames'])
+            report_sha256=digest(menu_startup_path),frames=menu_startup['frames'],
+            runtime_sha256=menu_startup['runtime_sha256'])
+        report['grenade_shadow_residency'] = grenade_shadow_qualification(
+            build, maps, output, executable_pin, grenade_map_pins)
+        report['friends_footer_anchor'] = friends_footer_qualification(output, report['source_cohort'])
+        report['loop_audio_locations'] = loop_audio_location_qualification(output, report['source_cohort'])
+        report['smg_warthog_audio'] = smg_warthog_audio_qualification(
+            build, source, maps, output, executable_pin, smg_reference)
         # An active frozen cohort can predate CMake's custom-source target.
         # Asset delivery has its own current, pinned owner, so stage it through
         # this coordinator even when that older build did not create a bank.
@@ -858,7 +1364,8 @@ def worker(args):
             if digest(runtime) != executable_pin:
                 raise RuntimeError('Packaged renderer executable changed after its compiled shader qualification')
         if (source_hashes(source) != pins or custom_asset_inventory(root) != asset_pins or
-                any(digest(maps / name) != pin for name, pin in map_pins.items())):
+                any(digest(maps / name) != pin for name, pin in map_pins.items()) or
+                any(digest(maps / name) != pin for name, pin in grenade_map_pins.items())):
             raise RuntimeError('Frozen engine source or MCC maps changed during validation; existing runtime retained')
         if not prepare_only and (selection.read_bytes() if selection.is_file() else None) != previous:
             raise RuntimeError('Another task changed the launcher selection during validation; its selection retained')
@@ -934,9 +1441,11 @@ def main():
     parser.add_argument('--status', action='store_true')
     parser.add_argument('--runtime', type=Path)
     parser.add_argument('--eos-client-config', type=Path,
-                        help='Package shared untrusted game client settings and enable EOS online services')
+                        help='Override shared game settings; defaults to the selected ONLINE runtime or local EOS setup')
     parser.add_argument('--weapon-audio-reference-xbe', type=Path,
                         help='Require component and repeated MCC weapon audio checks using this original reference XBE')
+    parser.add_argument('--tu15-gameplay-reference-xbe', type=Path,
+                        help='Owned English TU1.5 image for original-data CTests; defaults to the authenticated installed DLC import')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--reuse-owned-build', action='store_true',
                         help='Reuse source/build inside an active run_test.py coordinator; requires --worker')

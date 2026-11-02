@@ -1,0 +1,18 @@
+{
+  "scope": "Native test accidentally accessed a private convenience method; replaced with public retirement request/outcome/ticket assertions, no API visibility or policy change",
+  "failed_build_exit_code": 2,
+  "source": "tests/peer_survivor_session_tests.cpp",
+  "before_sha256": "a4acb31556a8f9dad4ea0bf6a80ea02e3ed95fca57a7ede00c43df98bded6fdc",
+  "after_sha256": "b84ae30d13d96ca60592e8b5cdcecb68078f99dbdcc25003f0d5d0f9e32750c7",
+  "failed_source_reconstructed_exactly": true,
+  "inverse_changes": [
+    {
+      "after": "        const auto still_retiring=session.migration_preparation_request();\n        check(still_retiring.outcome==Outcome::Retiring&&still_retiring.request&&\n            still_retiring.request->kind()==Kind::Retire&&still_retiring.request->id()==retirement->id(),\n            \"Rejected completion lost the public retirement request or its exact ticket\");\n",
+      "before": ""
+    },
+    {
+      "after": "            sessions[foreign]->complete_migration_preparation(*retirement)==Outcome::Refused&&\n",
+      "before": "            sessions[foreign]->complete_migration_preparation(*retirement)==Outcome::Refused&&\n            session.migration_preparation_retiring()&&\n"
+    }
+  ]
+}

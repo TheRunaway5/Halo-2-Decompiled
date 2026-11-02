@@ -79,6 +79,8 @@ void run(const char* path) {
         for(unsigned reg:{3u,5u,6u,7u})check(abi.gp[reg]==gp[reg],name+": callee-saved listener GPR differs");
         check(abi.gp[4]==row.at("after_gp")[4],name+": listener return stack differs");
         for(unsigned reg:{3u,5u,6u,7u})check(abi.gp[reg]==row.at("after_gp")[reg],name+": actual original nonvolatile differs");
+        for(unsigned reg=0;reg<8;++reg)if(kernel->contract.gp_full&(1u<<reg))
+            check(abi.gp[reg]==row.at("after_gp")[reg],name+": actual original GPR contract differs");
         if(entry==0x12a810u)check(abi.gp[0]==row.at("after_gp")[0],name+": selected listener differs");
         if(entry==0x2287b0u || entry==0x2531e0u)check((abi.gp[0]&255u)==(row.at("after_gp")[0].get<unsigned>()&255u),name+": listener low-byte result differs");
         if(entry==0x12a810u || entry==0x12a930u || entry==0x253070u)check(abi.xmm[0]==row.at("after_xmm0").get<std::array<std::uint32_t,4>>(),name+": listener distance/scale differs "+J(abi.xmm[0]).dump()+"/"+row.at("after_xmm0").dump());

@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-1w5dbang/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-uz64lx6h/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-1w5dbang/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-voice-native-qualified-cmake-20261029/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-1w5dbang/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "online_voice_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-voice-native-qualified-cmake-20261029/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-1w5dbang/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^online_(voice_codec|voice_http|party_voice_http|protocol_rust_build_helper)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-voice-native-qualified-cmake-20261029/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-uz64lx6h/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-uz64lx6h/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1877,
+      "sha256": "821b246428a1f5e6aeab80707db2bac7069b5a2de83f708c3ad4e55548df1fca",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-voice-native-qualified-cmake-20261029/evidence/online-protocol/Release/build-report.json"
+    }
+  ]
+}

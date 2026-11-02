@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-publication-staging",
+    "--",
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_build_online_protocol_rust.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests": 7,
+  "scope": "Existing mock Cargo/compiler universal/selected-SDK/header staging tests; no positive provider or cross-platform runtime claim",
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "d6516a57e211d44db9d9bef6ffea6880ba59284bb5695fa7a42892bd8f54474d",
+    "tools/build_online_protocol_rust.py": "5b7857e231d639d70923792c000fa8ec3851305a3177c5efbcf77140544ae80d"
+  },
+  "retained_large_artifacts": []
+}

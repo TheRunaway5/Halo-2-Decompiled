@@ -1,36 +1,8 @@
 #include "halo2/pstencil/native_incident.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
-#include "halo2/source_bsp_admission.hpp"
 #include <bit>
 #include <cmath>
-#include <set>
 namespace halo2::pstencil {
-void prepare_native_incident_geometry_tu15(PhysicsLiveWorldTu15& world,const SourceBspAdmission& main) {
-    const auto& memory=world.memory();
-    const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
-    const auto half=[&](std::uint32_t p){return Bytes(memory.view(p,2)).u16(0);};
-    const auto root=word(0x4ecc18u);
-    if(!root)throw FormatError("pStencil native incident lost its current BSP");
-    std::set<std::uint32_t> sections;
-    for(const auto& row:main.clusters) {
-        if(row.id>=word(root+0x9cu))throw FormatError("pStencil native incident cluster escapes the current BSP");
-        sections.insert(word(root+0xa0u)+row.id*0xb0u);
-    }
-    for(const auto& row:main.instances) {
-        if(row.id>=word(root+0x140u))throw FormatError("pStencil native incident instance escapes the current BSP");
-        const auto definition=std::bit_cast<std::int16_t>(half(word(root+0x144u)+row.id*0x58u+0x34u));
-        if(definition<0 || unsigned(definition)>=word(root+0x138u))
-            throw FormatError("pStencil native incident instance has no authored definition");
-        sections.insert(word(root+0x13cu)+unsigned(definition)*0xc8u);
-    }
-    for(const auto section:sections) {
-        if(!half(section+0x24u))continue;
-        bool ready=world.request_render_geometry(2u,section+0x28u);
-        if(!ready)ready=world.request_render_geometry(0u,section+0x28u);
-        if(!ready || !word(section+0x50u))
-            throw FormatError("pStencil native incident BSP resource did not complete");
-    }
-}
 std::optional<NativeIncident> native_incident_tu15(PhysicsLiveWorldTu15& world,
     std::uint32_t object,float metric) {
     if(!std::isfinite(metric))throw FormatError("pStencil native incident requires a finite native lighting metric");

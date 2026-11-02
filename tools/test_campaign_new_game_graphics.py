@@ -26,6 +26,20 @@ def sha(path):
         return hashlib.file_digest(stream,'sha256').hexdigest()
 
 
+def parse_graphics_lines(lines):
+    """Collect ordered observations from the complete log, not its diagnostic tail."""
+    report=dict(vulkan_devices=[],rendered_frames=[])
+    for line in lines:
+        line=line.rstrip('\r\n')
+        device=re.fullmatch(r'Vulkan device: (.*)',line)
+        if device:
+            report['vulkan_devices'].append(device.group(1))
+        frames=re.fullmatch(r'Rendered (\d+) frames',line)
+        if frames:
+            report['rendered_frames'].append(int(frames.group(1)))
+    return report
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--runtime',type=Path,required=True)
@@ -84,8 +98,8 @@ def main():
     report['log_sha256']=sha(log);report['log_bytes']=log.stat().st_size
     with log.open(errors='replace') as stream:
         report.update(parse_campaign_lines(stream))
-    report['vulkan_devices']=re.findall(r'^Vulkan device: (.*)$',text,re.MULTILINE)
-    report['rendered_frames']=list(map(int,re.findall(r'^Rendered (\d+) frames$',text,re.MULTILINE)))
+    with log.open(errors='replace') as stream:
+        report.update(parse_graphics_lines(stream))
     report['runtime_sha256_after']=sha(runtime)
     report['runtime_unchanged']=report['runtime_sha256_after']==report['runtime_sha256']
     report['trace_unavailable']=not trace.is_file()

@@ -40,6 +40,9 @@ struct SourceShaderStipple {
     std::array<std::uint32_t,32> rows{}; //1C1B0/3F8CC0 32×32 source pattern.
 };
 SourceShaderStipple source_shader_instance_stipple(std::uint8_t alpha);
+// Same original selector and floating-point operations, without materializing
+// the 32-row pattern when a vertex payload needs only the level.
+std::uint8_t source_shader_instance_stipple_level(std::uint8_t alpha);
 // Main2234E0→2B5D0→12A50 frame descriptor, unrelated to MSAA sample count.
 inline constexpr std::int32_t source_shader_gameplay_frame_type=3;
 //44370 literal25-layer table; view frame types4..7 force15680 mode0.

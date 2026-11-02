@@ -20,6 +20,7 @@ foreach(stage IN ITEMS vert frag)
         DEPENDS shaders/path_tracing/world.${stage} shaders/path_tracing/scene.glsl shaders/path_tracing/emission.glsl
             shaders/path_tracing/lighting_filter.glsl shaders/path_tracing/surface.glsl
             shaders/path_tracing/color_guide.glsl shaders/path_tracing/surface_ray.glsl shaders/path_tracing/emitter_sampling.glsl
+            shaders/path_tracing/source_indirect.glsl
             shaders/source_alpha_test.glsl shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
 endforeach()
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/lighting.frag.spv
@@ -30,6 +31,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/light
     DEPENDS shaders/path_tracing/world.frag shaders/path_tracing/scene.glsl shaders/path_tracing/emission.glsl
         shaders/path_tracing/lighting_filter.glsl shaders/path_tracing/surface.glsl shaders/source_alpha_test.glsl
         shaders/path_tracing/color_guide.glsl shaders/path_tracing/surface_ray.glsl shaders/path_tracing/emitter_sampling.glsl
+        shaders/path_tracing/source_indirect.glsl
         shaders/source_stipple.glsl shaders/world_depth_fragment.glsl VERBATIM)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing/depth.frag.spv
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders/path_tracing
@@ -81,6 +83,28 @@ if(BUILD_TESTING)
         "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/coagulation.map"
         "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-surface.json")
     set_tests_properties(path_tracing_source_surface PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(path_tracing_opaque_surface_source_tests tests/path_tracing/opaque_surface_source_tests.cpp)
+    target_link_libraries(path_tracing_opaque_surface_source_tests PRIVATE halo2_path_tracing nlohmann_json::nlohmann_json)
+    target_compile_options(path_tracing_opaque_surface_source_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-ffp-contract=off>
+        $<$<CXX_COMPILER_ID:MSVC>:/fp:strict>)
+    add_test(NAME path_tracing_source_opaque_surface COMMAND path_tracing_opaque_surface_source_tests
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/coagulation.map"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/coagulation.map"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-opaque-surface.json")
+    set_tests_properties(path_tracing_source_opaque_surface PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(path_tracing_panel_surface_source_tests tests/path_tracing/panel_surface_source_tests.cpp)
+    target_link_libraries(path_tracing_panel_surface_source_tests PRIVATE halo2_path_tracing nlohmann_json::nlohmann_json)
+    target_compile_options(path_tracing_panel_surface_source_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-ffp-contract=off>
+        $<$<CXX_COMPILER_ID:MSVC>:/fp:strict>)
+    add_test(NAME path_tracing_source_panel_surface COMMAND path_tracing_panel_surface_source_tests
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-source-panel-surface.json")
+    set_tests_properties(path_tracing_source_panel_surface PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
     add_executable(path_tracing_scene_tests tests/path_tracing/scene_tests.cpp)
     target_link_libraries(path_tracing_scene_tests PRIVATE halo2_path_tracing)
     add_test(NAME path_tracing_scene COMMAND path_tracing_scene_tests)
@@ -98,6 +122,20 @@ if(BUILD_TESTING)
     option(HALO2_PATH_TRACING_NATIVE_DENOISE_TESTS
         "Run the2560x1388 no-upscaler Path Tracing noise regression" OFF)
     set(path_tracing_gpu_test_names path_tracing_gpu)
+    add_test(NAME path_tracing_source_indirect COMMAND path_tracing_gpu_tests
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders --source-indirect)
+    set_tests_properties(path_tracing_source_indirect PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
+    list(APPEND path_tracing_gpu_test_names path_tracing_source_indirect)
+    add_test(NAME path_tracing_opaque_detail COMMAND path_tracing_gpu_tests
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders --opaque-detail)
+    set_tests_properties(path_tracing_opaque_detail PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
+    list(APPEND path_tracing_gpu_test_names path_tracing_opaque_detail)
+    add_test(NAME path_tracing_panel_detail COMMAND path_tracing_gpu_tests
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders --panel-detail
+        "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/path-tracing-panel-detail.json")
+    set_tests_properties(path_tracing_panel_detail PROPERTIES RUN_SERIAL TRUE SKIP_RETURN_CODE 77 TIMEOUT 90)
+    list(APPEND path_tracing_gpu_test_names path_tracing_panel_detail)
     if(HALO2_PATH_TRACING_NATIVE_DENOISE_TESTS)
         add_test(NAME path_tracing_grazing_normal COMMAND path_tracing_gpu_tests
             ${CMAKE_CURRENT_BINARY_DIR}/shaders --grazing-normal)

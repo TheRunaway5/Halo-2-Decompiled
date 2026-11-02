@@ -24,6 +24,12 @@
 using namespace halo2;
 namespace {
 void require(bool condition,const char *message){if(!condition)throw FormatError(message);}
+Cache reference_cache(const std::filesystem::path& map,const std::filesystem::path& shared={}) {
+    // Original DLC fixture links borrow the real disc shared-resource owner.
+    // Explicit MCC fork cases supply their own imported shared directory.
+    return Cache(std::filesystem::canonical(map),std::filesystem::canonical(
+        shared.empty()?std::filesystem::path("assets/disc/maps"):shared));
+}
 bool same(Vec3 a,Vec3 b){return std::bit_cast<std::uint32_t>(a.x)==std::bit_cast<std::uint32_t>(b.x) &&
     std::bit_cast<std::uint32_t>(a.y)==std::bit_cast<std::uint32_t>(b.y) &&
     std::bit_cast<std::uint32_t>(a.z)==std::bit_cast<std::uint32_t>(b.z);}
@@ -48,7 +54,7 @@ bool same_lifetime(const MultiplayerSceneRuntimeValues::SceneryQueryLifetime &a,
 }
 struct Counts {unsigned models{},baked{},dynamic{},unresolved{},streams{},baked_vertices{},empty{},idle{};};
 Counts verify(const std::filesystem::path &path) {
-    Cache cache(path);auto content=cache.load_content(0,true);
+    auto cache=reference_cache(path);auto content=cache.load_content(0,true);
     // Retain the original automatic initial MP2/current-BSP fixture corpus.
     for(auto &o:content.objects)if(o.type==6 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
     const auto lighting=cache.load_bsp_lighting(0);CollisionWorld collision(content.collision);Counts counts;
@@ -147,6 +153,34 @@ Counts verify(const std::filesystem::path &path) {
     require(close_bindings.size()==far_bindings.size(),"SCEN lowerLOD lost dynamic owner binding");
     for(unsigned i=0;i<close_bindings.size();++i)require(close_bindings[i].state.source_values()==far_bindings[i].state.source_values(),
         "SCEN later view replaced the first owner lighting result");
+    // Repeated completed native nodes must retain every posed byte. A later
+    // changed node bank must invalidate that reuse, including after restore.
+    for(const auto& owner:scene.effect_owners())
+        objects.get(owner.object).solved_nodes=std::vector<Transform>(owner.nodes.begin(),owner.nodes.end());
+    const auto submitted=[&] {
+        std::vector<Vertex> result;std::vector<ObjectLightingBinding> bindings;
+        scene.append_view(result,bindings,view(0,0,0x80000));return result;
+    };
+    scene.synchronize(objects);scene.update_pose(0,1,mesh);
+    const auto retained=submitted();
+    require(retained.size()==close.size() && (retained.empty() ||
+        !std::memcmp(retained.data(),close.data(),retained.size()*sizeof(Vertex))),
+        "SCEN unchanged completed nodes changed exact posed bytes");
+    const auto moving=std::find_if(close_selected.begin(),close_selected.end(),[](const auto& draw){return draw.vertices>0;});
+    if(moving!=close_selected.end()) {
+        const auto actor=std::find_if(objects.objects().begin(),objects.objects().end(),
+            [&](const auto& object){return object.placement==moving->source_object;});
+        require(actor!=objects.objects().end(),"SCEN node invalidation lost its full owner");
+        const auto handle=actor->handle;const auto original=*objects.get(handle).solved_nodes;
+        for(auto& node:*objects.get(handle).solved_nodes)node.position.x+=.25f;
+        scene.synchronize(objects);scene.update_pose(0,2,mesh);const auto changed=submitted();
+        require(changed.size()==retained.size() && std::memcmp(changed.data(),retained.data(),changed.size()*sizeof(Vertex)),
+            "SCEN changed completed nodes reused an old posed stream");
+        objects.get(handle).solved_nodes=original;
+        scene.synchronize(objects);scene.update_pose(0,3,mesh);const auto restored=submitted();
+        require(restored.size()==retained.size() && !std::memcmp(restored.data(),retained.data(),restored.size()*sizeof(Vertex)),
+            "SCEN restored completed nodes failed exact pose invalidation");
+    }
     // Hidden owners must neither retain a new sphere nor advance LOD/query.
     const auto before=reads;for(const auto &object:objects.objects())objects.visible(object.handle,false);
     scene.synchronize(objects);scene.update_pose(1,1,mesh);
@@ -159,8 +193,9 @@ Counts verify(const std::filesystem::path &path) {
         <<" exact source incident/RGB vertices, "<<counts.idle<<" admitted initial idle controllers\n";
     return counts;
 }
-void independent_effect_forks() {
-    Cache cache("assets/map-pack/maps/gemini.map");auto content=cache.load_content(0,true);
+void independent_effect_forks(const std::filesystem::path &map="assets/map-pack/maps/gemini.map",
+    const std::filesystem::path &shared={}) {
+    auto cache=reference_cache(map,shared);auto content=cache.load_content(0,true);
     CollisionWorld collision(content.collision);Mesh mesh;
     SourceSceneryScene scenery(cache,content.objects,0,mesh,collision);
     SourceMachineScene machines(cache,content.objects,0,mesh,collision);
@@ -222,7 +257,7 @@ void independent_effect_forks() {
     std::cout<<"PASS independent prepared SCEN/MACH/BLOC effects forks: latest45/46/47 versus native32/33, separate callback/checkpoint owners, original rewind rejection and unchanged GPU slots/pass/bank identities\n";
 }
 void prepared_scenery_birth() {
-    Cache cache("assets/disc/maps/ascension.map");auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/ascension.map");auto content=cache.load_content(0,true);
     const auto at=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto&o){
         return o.type==6 && scenery_automatic_creation_allowed(o,2) && cache.load_initial_model_selection(o.definition,o.variant).resolved();});
     require(at!=content.objects.end(),"Deferred SCEN fixture has no authored resource");
@@ -246,7 +281,7 @@ void prepared_scenery_birth() {
     std::cout<<"Prepared SCEN: no prebirth draw/query, actual deferred birth and retirement\n";
 }
 void lifetime_inputs() {
-    Cache cache("assets/map-pack/maps/elongation.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/map-pack/maps/elongation.map");const auto content=cache.load_content(0,true);
     const auto found=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto &o) {
         return o.type==6 && scenery_automatic_creation_allowed(o,2) &&
             !cache.load_source_object_color_definition(o.definition).channels.empty();
@@ -305,7 +340,7 @@ void lifetime_inputs() {
     std::cout<<"SCEN lifetime: full generation/birth, supplied historical selections, destroyed geometry and cached-state reset\n";
 }
 void animation_input() {
-    Cache cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
     CollisionWorld collision(content.collision);Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision);
     SceneObjects objects(content,0);scene.synchronize(objects);bool rejected=false;
     try{scene.update_pose(0,0,mesh);}catch(const FormatError &){rejected=true;}
@@ -397,7 +432,7 @@ void animation_input() {
     std::cout<<"SCEN animation: two actual moving initial clips require explicit retained owner/time service\n";
 }
 void checkpoint_roundtrip() {
-    Cache cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
     CollisionWorld collision(content.collision);Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision);
     SceneObjects objects(content,0);unsigned animation_calls{},query_calls{},birth_calls{},reentrant_calls{};
     MultiplayerSceneRuntimeValues callback_values;
@@ -576,7 +611,7 @@ void callback_auxiliary_values() {
         std::ranges::none_of(values.object_light_alive,[](auto alive){return alive;})&&
         std::ranges::none_of(values.object_light_reported,[](auto reported){return reported;}),
         "Scene callback values changed the actual empty object-light defaults");
-    Cache prop_cache("assets/disc/maps/lockout.map");const auto prop_content=prop_cache.load_content(0,true);
+    auto prop_cache=reference_cache("assets/disc/maps/lockout.map");const auto prop_content=prop_cache.load_content(0,true);
     SceneObjects prop_objects(prop_content,0);const auto prop=std::find_if(prop_objects.objects().begin(),prop_objects.objects().end(),[&](const auto &o){
         return o.handle!=null_datum&&prop_content.objects.at(o.placement).type==11&&
             prop_cache.load_initial_model_selection(prop_content.objects.at(o.placement).definition,
@@ -590,7 +625,7 @@ void callback_auxiliary_values() {
     const auto initial=values.prop_initial_state.capture(prop->handle,authored.definition,
         prop_cache.load_object_shadow_definition(authored.definition),nodes.front(),prop->scale);
     values.prop_query_handles.insert(prop->handle);values.actual_prop_regions=selected;
-    Cache portal_cache("assets/map-pack/maps/gemini.map");const auto portal_content=portal_cache.load_content(0,true);
+    auto portal_cache=reference_cache("assets/map-pack/maps/gemini.map");const auto portal_content=portal_cache.load_content(0,true);
     CollisionWorld collision(portal_content.collision);Mesh mesh;
     SourceMachineScene machines(portal_cache,portal_content.objects,0,mesh,collision);
     SceneObjects objects(portal_content,0);machines.synchronize(objects);
@@ -633,7 +668,9 @@ void callback_auxiliary_values() {
 }
 int main(int argc,char **argv) {
     try {
-        if(argc==2 && std::string_view(argv[1])=="--fork-effects-only"){independent_effect_forks();return 0;}
+        if(argc>=2 && argc<=4 && std::string_view(argv[1])=="--fork-effects-only"){
+            independent_effect_forks(argc>=3?std::filesystem::path(argv[2]):std::filesystem::path("assets/map-pack/maps/gemini.map"),
+                argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});return 0;}
         Counts total;
         const auto add=[&](const auto &path){const auto c=verify(path);total.models+=c.models;total.baked+=c.baked;
             total.dynamic+=c.dynamic;total.unresolved+=c.unresolved;total.streams+=c.streams;total.baked_vertices+=c.baked_vertices;total.idle+=c.idle;};

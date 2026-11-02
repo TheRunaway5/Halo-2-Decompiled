@@ -2,6 +2,7 @@
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_execution_codec.hpp"
 #include "halo2/source_live_shadow_storage_tu15.hpp"
+#include <string_view>
 
 namespace {
 void equal(Owner &a,Owner &b){check(encode_source_authority(a.authority->checkpoint(binding))==
@@ -11,8 +12,22 @@ void restore(Owner &a,Owner &b){
     const auto owner=world.authority_backing_owner();
     const auto saved=a.authority->checkpoint(binding);
     {auto cancelled=b.authority->prepare(saved,binding);
-        check(world.authority_backing_revision()==revision,"Unpublished preparation changed the backing revision");}
+        // The actual native preparation owns the staging barrier. Renderer
+        // receipts cannot be observed through that unpublished transaction.
+        const auto denied=[&](auto query) {
+            bool blocked=false;
+            try{query();}catch(const FormatError &error) {
+                blocked=std::string_view(error.what())=="TU1.5 world requires its available retained executor";
+            }
+            check(blocked,"Unpublished native staging exposed a renderer backing receipt");
+        };
+        denied([&]{(void)world.authority_backing_revision();});
+        denied([&]{(void)world.authority_backing_owner();});
+    }
     check(world.authority_backing_revision()==revision,"Cancelled preparation changed the backing revision");
+    const auto cancelled_owner=world.authority_backing_owner();
+    check(!owner.expired() && !owner.owner_before(cancelled_owner) && !cancelled_owner.owner_before(owner),
+        "Cancelled preparation changed the independent world lifetime identity");
     auto prepared=b.authority->prepare(saved,binding);
     check(b.authority->commit(std::move(prepared)),"Shadow-storage replay repair failed");
     check(world.authority_backing_revision()==revision+1,"Successful native bank publication did not retire renderer bindings");
@@ -67,9 +82,28 @@ int main(int argc,char **argv)try {
     rejects([&]{replica.authority->replay_execution_phase(phase,[&]{
         (void)replica.world->memory().mutable_view(retained.hash,4);
     });});rejects([&]{replica.authority->checkpoint(binding);});restore(host,replica);
-    rejects([&]{host.authority->capture_execution_phase([&]{
-        const std::array<std::byte,4> changed{std::byte{0x15}};host.world->memory().write(retained.hash,changed);
-    });});restore(host,replica);
+    const auto healthy=encode_source_authority(host.authority->checkpoint(binding));
+    const auto original=word(host.world->memory(),retained.hash);
+    std::array<std::byte,4> changed;
+    for(unsigned i=0;i<changed.size();++i)changed[i]=std::byte(((original^1u)>>(i*8u))&0xffu);
+    bool recording_rejected=false;
+    try{host.authority->capture_execution_phase([&]{host.world->memory().write(retained.hash,changed);});}
+    catch(const std::exception &error){
+        recording_rejected=std::string_view(error.what())==
+            "Incomplete or failed native execution phase; untracked detail="+std::to_string(retained.hash);
+        std::cout<<"Rejected: "<<error.what()<<'\n';
+    }
+    check(recording_rejected,"Untracked native write did not reject its incomplete recording");
+    check(word(host.world->memory(),retained.hash)==(original^1u),
+        "Rejected recording discarded the actual completed host write");
+    check(encode_source_authority(host.authority->checkpoint(binding))!=healthy,
+        "Completed host write was omitted from its complete coupled checkpoint");
+    check(encode_source_authority(replica.authority->checkpoint(binding))==healthy,
+        "Rejected host recording mutated the independent healthy replica");
+    // The native operation completed; only its untracked recording failed.
+    // The full host checkpoint remains valid. Repair the divergent bytes from
+    // the exact healthy replica through a complete native transaction.
+    restore(replica,host);
     const auto tick=host.authority->capture_execution_phase([&]{host.step({});});
     replica.authority->replay_execution_phase(tick);equal(host,replica);
     std::cout<<"PASS actual TU1.5 shadow activation/reset/insertion, validation-only admission, independent native rebind, exact coupled replay and guarded write rejection/repair\n";

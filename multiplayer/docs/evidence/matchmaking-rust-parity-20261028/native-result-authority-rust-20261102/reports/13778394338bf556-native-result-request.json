@@ -1,0 +1,14 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_result_authority_tests",
+    "online_pcr_family_tests",
+    "team_change_tu15_tests",
+    "multiplayer_engine_combat_tu15_tests"
+  ],
+  "filter": "^(native_result_authority_cpp_rust|online_pcr_family_carriers|original_team_change_tu15|native_mcc_multiplayer_accuracy_tu15|online_protocol_rust_build_helper)$",
+  "refresh": [
+    "tests/reference/native_results_before_rust_20261102/online_postgame_policy.cpp.inc",
+    "tests/reference/native_results_before_rust_20261102/provenance.json"
+  ]
+}

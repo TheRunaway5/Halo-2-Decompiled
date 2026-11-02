@@ -44,3 +44,26 @@ target_link_libraries(campaign_water_material_tu15_tests PRIVATE halo2_cache)
 add_executable(campaign_scenery_regions_tu15_tests EXCLUDE_FROM_ALL
     tests/campaign_scenery_regions_tu15_tests.cpp)
 target_link_libraries(campaign_scenery_regions_tu15_tests PRIVATE halo2_renderer)
+
+# Late native effects must have real material resources before GPU upload.
+# Reuse the actual acceptance runtime configuration, including late shader flags.
+add_executable(native_late_effect_light_tu15_tests EXCLUDE_FROM_ALL
+    tests/native_late_effect_light_tu15_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+target_link_libraries(native_late_effect_light_tu15_tests PRIVATE
+    $<TARGET_PROPERTY:physics_multiplayer_acceptance,LINK_LIBRARIES>)
+target_compile_definitions(native_late_effect_light_tu15_tests PRIVATE
+    $<TARGET_PROPERTY:physics_multiplayer_acceptance,COMPILE_DEFINITIONS>)
+add_dependencies(native_late_effect_light_tu15_tests halo2_shaders)
+if(UNIX AND NOT APPLE AND EXISTS "${HALO2_MCC_WATER_MAP_DIRECTORY}/zanzibar.map")
+    find_program(HALO2_LATE_LIGHT_XVFB xvfb-run)
+    if(HALO2_LATE_LIGHT_XVFB)
+        add_test(NAME native_late_effect_light_creation
+            COMMAND "${HALO2_LATE_LIGHT_XVFB}" -a -s "-screen 0 1280x720x24 -nolisten tcp"
+                $<TARGET_FILE:native_late_effect_light_tu15_tests>
+                "${HALO2_MCC_WATER_MAP_DIRECTORY}/zanzibar.map" "${HALO2_MCC_WATER_MAP_DIRECTORY}"
+                "@HALO2_TEST_SCRATCH@/late-light"
+                "${CMAKE_CURRENT_BINARY_DIR}/native-late-effect-light-creation.json")
+        set_tests_properties(native_late_effect_light_creation PROPERTIES TIMEOUT 240
+            ENVIRONMENT "SDL_VIDEODRIVER=x11;HALO2_PROBE_FRAMES=120;HALO2_PROBE_LIGHT_VEHICLE_CHOICE=2;XDG_DATA_HOME=@HALO2_TEST_SCRATCH@/data;XDG_CONFIG_HOME=@HALO2_TEST_SCRATCH@/config;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/pipelines;MESA_SHADER_CACHE_DIR=@HALO2_TEST_SCRATCH@/mesa;__GL_SHADER_DISK_CACHE_PATH=@HALO2_TEST_SCRATCH@/nvidia")
+    endif()
+endif()

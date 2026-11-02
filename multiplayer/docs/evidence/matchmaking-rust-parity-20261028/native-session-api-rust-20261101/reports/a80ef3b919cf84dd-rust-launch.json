@@ -1,0 +1,28 @@
+{
+  "unit": "halo2-mm-session-api-rust-20261101",
+  "command": [
+    "systemd-run",
+    "--user",
+    "--unit=halo2-mm-session-api-rust-20261101",
+    "--collect",
+    "--property=RuntimeMaxSec=4h",
+    "--property=TimeoutStopSec=30",
+    "--property=KillMode=mixed",
+    "--working-directory=/home/eric/Developer/Halo-2-Decompiled",
+    "--property=StandardOutput=append:/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-api-rust-20261101/rust-coordinator.log",
+    "--property=StandardError=append:/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-api-rust-20261101/rust-coordinator.log",
+    "python3",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_test.py",
+    "--scratch-root",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-rust",
+    "--",
+    "python3",
+    "-B",
+    "-u",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-api-rust-20261101/full-rust.py.txt"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "Running as unit: halo2-mm-session-api-rust-20261101.service; invocation ID: 9ef37a8660c9402da96a0736530f40b9\n"
+}

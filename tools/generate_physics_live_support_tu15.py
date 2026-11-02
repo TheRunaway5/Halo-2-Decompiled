@@ -24,7 +24,7 @@ def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def generate(a,paired,process_heap=False,*,complete_listings=False,
              runtime_header=None,runtime_function=None,extra_instruction=None,
              extra_preamble='',instruction_guard=None,extra_instruction_factory=None,
-             code_override=None):
+             code_override=None,preserve_selected_addresses=False,retained_selected_addresses=()):
     assert paired['image']=='English TU1.5' and paired['original_sha256']==NEW_PIN
     assert sha(NEW_DEFAULT)==NEW_PIN
     complete_listings=True
@@ -39,12 +39,13 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
     for p,q in instruction_map.items():
         assert p not in addresses or addresses[p]==q
         addresses[p]=q
-    used_addresses=set();branches={};lowered={};externals={}
+    used_addresses=set(retained_selected_addresses);branches={};lowered={};externals={}
+    assert used_addresses<=addresses.keys()
     def imm(p):
         p&=0xffffffff
         if p in addresses:
             used_addresses.add(p)
-            if addresses[p]==p:return f'0x{p:x}u'
+            if addresses[p]==p and not preserve_selected_addresses:return f'0x{p:x}u'
             return f'selected(0x{p:x}u,s.image)'
         return f'0x{p:x}u'
     def name(i,op):return i.reg_name(op.reg)
@@ -499,6 +500,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             lines.append('if(source_has_presented_model_pose_tu15(s.memory))source_validate_presented_model_frame_tu15(s.memory,r(s.memory,s.gp[4]+4u,4),r(s.memory,0x4c6854u,4));')
         if entry==0xd91d0:
             lines.append('SourcePhysicsEntryObservation area_diagnostic(s.memory,0xd91d0u,[&]{return s.save();});')
+        if entry==0xd9a30:
+            lines.append('SourcePhysicsEntryObservation object_damage_diagnostic(s.memory,0xd9a30u,[&]{return s.save();});')
         if entry==0x21f590:
             assert hashlib.sha256(b''.join(bytes(i.bytes) for i in ins)).hexdigest()== \
                 '6cab0fba83a56a36f6f934ef61eb96eb2105140cee8ac5c9039574ed918810f7'
@@ -528,6 +531,15 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 value=get(i,i.operands[-1]);assert translated.count(value)==1
                 translated=translated.replace(value,
                     f'source_object_function_compiled_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
+            if entry==0x1102a0 and i.address in (0x1102e9,0x110314):
+                # Only these two compiled unit-speech names enter the actual
+                # World's immutable Cache namespace. The whole original
+                # 1E5360 graph lookup, channel and12weight producers stay raw.
+                symbol={0x1102e9:0x08000145,0x110314:0x0c00024d}[i.address]
+                assert i.mnemonic=='push' and i.operands[0].type==2 and i.operands[0].imm==symbol
+                value=get(i,i.operands[0]);assert translated.count(value)==1
+                translated=translated.replace(value,
+                    f'source_unit_speech_channel_symbol_tu15(s.memory,0x{i.address:x}u,'+value+')')
             if entry==0x17b1f0 and i.address in (0x17b232,0x17b2ec,0x17b35d):
                 # Compiled symbol identity is an input namespace, not an
                 # authored marker value. Retain the complete original branch,
@@ -1019,7 +1031,7 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     preamble+='std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{p:x}u:return 0x{addresses[p]:x}u;' for p in sorted(used_addresses))+'default:throw std::runtime_error("Unbound original contact executable address");}}\n'
     preamble+='std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{q:x}u:return 0x{p:x}u;' for p,q in sorted(branches.items()))+'default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}\n'
     preamble+='\n'.join(f'static void run_{p:x}(WorldState &);' for p in ENTRIES)+'\n'
-    if all(p in addresses and addresses[p]==p for p in ENTRIES):
+    if not preserve_selected_addresses and all(p in addresses and addresses[p]==p for p in ENTRIES):
         preamble+='static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){'+''.join(f'case 0x{p:x}u:run_{p:x}(s);return;' for p in ENTRIES)+'default:s.required(site,target,tail);return;}}\n'
     else:
         preamble+='static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){'+''.join(f'if(target==selected(0x{p:x}u,s.image)){{run_{p:x}(s);return;}}' for p in ENTRIES)+'s.required(site,target,tail);}\n'
@@ -1075,13 +1087,15 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     # unused definition or unrelated declarations into every recovered module:
     # that makes unchanged modules drift whenever this owner is extended.
     body_source='\n\n'.join(bodies)
+    if 'SourceObjectAttachmentScopeTu15 ' not in body_source:
+        preamble=preamble.replace('#include "halo2/source_object_attachment_tu15.hpp"\n','')
     if 0x3ddc0 in ENTRIES:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_presented_model_pose_tu15.hpp"')
     if 'SourceFirstPersonActionObserverTu15::entry(' in body_source:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_first_person_action_tu15.hpp"')
-    if 'SourcePhysicsEntryObservation area_diagnostic' in body_source:
+    if 'SourcePhysicsEntryObservation ' in body_source:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
     if any(name in body_source for name in ('source_effect_compiled_symbol_tu15(',
@@ -1089,6 +1103,9 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
             'source_object_function_compiled_symbol_tu15(')):
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_effect_compiled_symbols_tu15.hpp"')
+    if 'source_unit_speech_channel_symbol_tu15(' in body_source:
+        preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
+            '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_unit_speech_channel_symbols_tu15.hpp"')
     if 'source_vehicle_compiled_symbol_tu15(' in body_source:
         preamble=preamble.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
             '#include "physics/runtime/physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_compiled_symbols_tu15.hpp"')
@@ -1107,12 +1124,64 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     if not any(name in body_source+extra_preamble for name in ('MccSound','project_mcc_sound_')):
         preamble=preamble.replace('#include "halo2/mcc_sound_tag_layout.hpp"\n','')
     generated=preamble+body_source+ending
+    if any(entry in ENTRIES for entry in (0xbcfb0,0xbac70,0x3e9b0,0x158290)):
+        from renderer_native_replacements import replace_render_ownership_bodies
+        generated=replace_render_ownership_bodies(generated,ENTRIES)
+    if 0x20e30 in ENTRIES:
+        # Retire every local copy, including BA340's object-lens cleanup in
+        # live support. A world dispatch hook cannot intercept a local call.
+        from renderer_native_replacements import replace_lens_query_slot_body
+        generated=replace_lens_query_slot_body(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_earlier_owners
+    generated=install_native_effect_earlier_owners(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_location_copies
+    generated=install_native_effect_location_copies(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_marker_matrix
+    generated=install_native_effect_marker_matrix(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_marker_parent
+    generated=install_native_effect_marker_parent(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_marker_mode
+    generated=install_native_effect_marker_mode(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_marker_lookup
+    generated=install_native_effect_marker_lookup(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_marker_emission
+    generated=install_native_effect_marker_emission(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_advance
+    generated=install_native_effect_advance(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_random_range
+    generated=install_native_effect_random_range(generated)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_frame
+    generated=install_native_effect_frame(generated)
+    if 0x18be00 in ENTRIES:
+        from native_weapon_effect_integer_bridge_tu15 import install_native_sound_local
+        generated=install_native_sound_local(generated)
+    if 0x16e6a0 in ENTRIES:
+        from native_weapon_effect_datum_bridge_tu15 import install_native_effect_datum
+        generated=install_native_effect_datum(generated)
+    if 0x17dce0 in ENTRIES:
+        from native_weapon_effect_iterator_bridge_tu15 import install_native_effect_iterator
+        generated=install_native_effect_iterator(generated)
+    if any(entry in ENTRIES for entry in (0x17b130,0x17dc60)):
+        from native_weapon_effect_state_bridge_tu15 import install_native_effect_state
+        generated=install_native_effect_state(generated)
+    if any(entry in ENTRIES for entry in (0x17b0d0,0x17e5e0)):
+        from native_weapon_effect_state_bridge_tu15 import install_native_effect_initialization
+        generated=install_native_effect_initialization(generated)
+    if any(entry in ENTRIES for entry in (0x17afb0,0x17b960)):
+        from native_weapon_effect_state_bridge_tu15 import install_native_effect_allocation
+        generated=install_native_effect_allocation(generated)
     if 0xd80a0 in ENTRIES:
         from native_damage_model_kernel_tu15 import install_actual_model_lookup
         generated=install_actual_model_lookup(generated)
+    if 0xbc6c0 in ENTRIES:
+        from native_damage_region_eligibility_kernel_tu15 import install_object_region_query
+        generated=install_object_region_query(generated)
     if all(entry in ENTRIES for entry in (0x15cb60,0x15cc70,0x15cd30,0x15cdf0)):
         from native_vehicle_choice_kernel_tu15 import install_native_vehicle_choice
         generated=install_native_vehicle_choice(generated)
+    if 0x30bd0 in ENTRIES:
+        from native_normalize_vector_bridge_tu15 import install_native_normalizer
+        generated=install_native_normalizer(generated,'Tu15Literal')
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(generated)

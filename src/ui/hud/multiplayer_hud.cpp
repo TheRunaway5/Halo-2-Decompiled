@@ -521,9 +521,8 @@ MultiplayerHud::MultiplayerHud(HudContent content,
     const auto sampled_font=hud_sampled_font_path(ui_assets,selector,names[selector]);
     const bool sampled_text=!ui_assets.empty() && std::filesystem::is_regular_file(sampled_font);
     if(native_mcc_fonts || sampled_text) {
-      // MCC's authenticated native fonts own the colored controller/keycap
-      // glyphs. Keep their actual advances and physical atlas; optional legacy
-      // redraws belong only to the separately selected non-MCC reference route.
+      // Native fonts retain advances and ordinary key-label text. Controller
+      // and keycap artwork is selected from our independent prompt banks.
       const auto button_source=native_mcc_fonts?font_source.directory:hud_menu_asset_directory(ui_assets);
       action_button_fonts_[i]=native_mcc_fonts?font_bank->raw(selector):
           std::make_shared<const RetailFont>(load_retail_font(hud_sampled_font_path(button_source,selector,names[selector])));
@@ -1380,8 +1379,12 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
       if(y+font.ascent+font.descent>viewport.safe.bottom)break;
       x+=kern;
       const float l=x+g.bearing_x,t=y+font.ascent-g.bearing_y,r=l+g.width,b=t+g.height;
-      const auto uv=retail_font_sample_uvs(font,c,0,0,g.width,g.height);
-      quad(l,t,r,b,uv,action_materials_[f],tint);x+=g.advance+g.bearing_x;previous=c;
+      auto uv=retail_font_sample_uvs(font,c,0,0,g.width,g.height);
+      auto material=action_materials_[f];
+      if(prompt_artwork_)if(const auto sample=prompt_artwork_->sample(f?5:6,c,prompt_devices_[view],g,0,0,g.width,g.height)) {
+        uv=sample->uv;material=sample->material;
+      }
+      quad(l,t,r,b,uv,material,tint);x+=g.advance+g.bearing_x;previous=c;
     }
   }
   if(s.defusal && s.defusal_rules && defusal_objectives_ && target_camera &&

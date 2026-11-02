@@ -82,3 +82,25 @@ frames as lossless PNGs (at most 1 MiB each and 8 MiB total), a contact sheet,
 pixel dimensions, hashes, actual menu panes, actual service serial/value, and SDL
 input receipts. With that variable unset, no frames are retained. The contact
 sheet is labeled resampling of the captured pixels, not a generated UI image.
+
+The native pregame UI controller is now matchmaking_frontend_lobby.rs, reached
+through typed CXX and the value-semantics FrontendMatchmakingLobby handle.
+Its shared-countdown observation, consumed serial, counted party and pending
+Leave state live in Rust. Start authorization/consent and A/B/X/Leave command
+decisions are Rust policy; C++ performs actual account/queue calls and applies
+widget/input/sound effects after Rust returns. A failed command cannot invent
+countdown progress or an accepted departure. No local UI clock replaces the
+service's publication. [Qualification](evidence/matchmaking-rust-parity-20261028/native-frontend-lobby-rust-validation.json)
+keeps exact modern C++ comparison, unchanged-XBE leaves, rendered private-service
+flow, wider functional failures and installed-delivery requirements separate.
+The remaining native frontend search/launch controller and full goal stay open.
+
+The subsequent source frontend search/launch port is
+`matchmaking_frontend_search.rs`. It owns search consent and retained playlist/
+profile state, party search notices, progress clocks and observation of B's
+published countdown. Native IO transfers the actual admitted transport and
+validates the actual cache before Rust requests publication; an unavailable
+transport is retried without inventing a local B timer.
+[Qualification](evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+keeps modern caller equivalence, rendered private-service input, the four wider
+functional failures and original/provider/installed-delivery scope separate.

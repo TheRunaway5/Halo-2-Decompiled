@@ -7,7 +7,7 @@ for the banks with different PC padding or page counts. See the
 [source correspondence audit](../multiplayer/docs/online-vista-assets.md).
 The Xbox caches continue to own gameplay assets.
 
-The foreground keeps its authored proportions on a centered 640×480 canvas.
+The main foreground keeps its authored proportions on a centered 640×480 canvas.
 The PC definition adapter uses the original height/1200 raster transform.
 Decorative tracks and frame edges extend across widescreen margins; text,
 buttons, dialogs and mouse targets use the same uniform foreground scale.
@@ -110,3 +110,54 @@ in `UiDraw::rendering_gaps`. The native port retains its source definition and
 does not substitute an Xbox pass. This verification therefore establishes HD
 sampling for the rendered GUI; it does not certify that every PC GUI shader or
 postgame feature is implemented. See [the PCR bridge](VISTA_PCR_SCREEN_BRIDGE.md).
+
+## Compact Friends panel at the window edge, October 29
+
+The independent original screen-27 Friends footer follows the drawable's
+bottom-left corner. Its source bitmap, fonts, prompt artwork and uniform scale
+are preserved, including the source one-pixel bottom crop. The ordinary menu
+foreground retains its centered canvas. Only the footer's vertices and pointer
+rectangles receive the edge translation; reserved material copies give that
+channel a full-surface viewport/scissor without changing other menu passes.
+
+`native_mcc_friends_footer_anchor` exercises actual `FrontendPainter` draws and
+authenticated Players navigation at 13 aspect/resize steps for Xbox,
+PlayStation and keyboard/mouse prompts (39 cases). The matrix includes 4:3,
+16:9, 16:10, ultrawide, the supplied 2554×1401 screenshot ratio, odd dimensions,
+5:4, portrait and a return to 4:3 on the same painter. It checks actual physical
+panel bounds, unchanged proportions, visible-glyph mouse targets, removal of
+disjoint old hit locations and stability of the other lobby vertices.
+
+The old painter fails at 1280×720 with its panel left edge 160 pixels inward.
+The corrected painter passes all 39 cases and the existing ONLINE identity
+regression. Thirteen actual Vulkan frames from the combined source cohort
+match their requested dimensions. Ultrawide and portrait frames were visually
+reviewed; raw captures and duplicate build files are removed after review.
+Small lossless reference PNGs, source hashes and bounded reports are under
+[`build/test-results/friends-bottom-left-20261029`](../build/test-results/friends-bottom-left-20261029/working-status.json).
+The test uses an isolated loopback identity fixture and does not mutate real
+friend relationships. Both installed launchers now select the qualified
+`102cfdd654364b7b80b72ad4fb848c2f` runtime. Independent read-only launcher checks
+verified the runtime, source inventory and publication hashes after all 29
+release tests, 13 packaged map/player checks and four frontend checks passed.
+The guarded publication updated the launcher binaries and preserved the
+previous selected native runtime. The component build, raw captures and final
+verification scratch were removed; the selected runtime/resources are retained
+(3,151,874,255 bytes). Exact pins and evidence are recorded in
+[`acceptance.json`](../build/test-results/friends-bottom-left-20261029/acceptance.json).
+
+The source search controller and launch admission now use safe Rust through
+`FrontendMatchmakingSearch`; native snapshots, profile writers, map validation,
+widgets and physical input remain native IO/effects. Consent acknowledgements
+and the service's published B countdown gate search/launch. [Qualification](../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+records the rebuilt Linux client's SDL/Vulkan playlist/Start checks, 5,563 exact
+modern C++/Rust operations and the four unchanged broader frontend failures.
+Physical installed input and full original/provider/gameplay delivery stay open.
+
+The source progress screen now receives roster source/slot, placeholder,
+rank/speaker and input decisions from Rust; native code retains actual
+appearance/voice observations, localization and drawing.
+[Qualification](../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-progress-rust-validation.json)
+restores original unstable tie ordering, signed cancel timing and player-seat
+leave-dialog counts. Four broader frontend failures remain red, and this
+qualification does not replace the selected Linux runtime.

@@ -49,6 +49,7 @@
 #include "halo2/source_decal_draw.hpp"
 #include "halo2/source_contrail_draw.hpp"
 #include "halo2/source_shader_fog.hpp"
+#include "halo2/source_hologram_group.hpp"
 #include <SDL.h>
 #include <array>
 #include <functional>
@@ -106,6 +107,7 @@ struct ModelObjectDraw {
     std::span<const ModelSkinSubmission> deferred_skins;
     const SourceModelDepthInput* source_model_depth{};
     std::optional<SourceModelDepthSelection> source_model_selection;
+    std::optional<std::uint32_t> source_object; // Full salted group/body owner.
 };
 // Read-only CPU metadata for the material image cache at uniform upload.
 // A draw may instead bind a baked lightmap, accumulation/scope/water target,
@@ -283,6 +285,8 @@ struct ModelView {
     // implementation, FP projection, primary and submitted vertex count.
     std::function<void(std::uint32_t,unsigned,unsigned,bool,float,unsigned)> completed_camouflage_draw_observer;
     std::span<const ModelObjectDraw> objects;
+    std::span<const SourceHologramGroupDraw> hologram_groups;
+    std::function<void(const SourceHologramGroupSubmission &)> completed_hologram_submission_observer;
     std::optional<ScopeCopyFrame> scope;
     // Actual 2C490 bank for original world/first-person pass scheduling.
     std::optional<SourceGeometryLodPolicy> source_render_policy;
@@ -531,6 +535,9 @@ public:
     void scene_bloom_threshold(float);
     void campaign_cinematic_bloom(bool,const CinematicBloomOverride &);
     void campaign_cinematic_crossfade(const CinematicCrossfadeFrame &);
+    // Completed observer aspect for the ordinary PC cinematic presentation.
+    // Empty restores the existing non-campaign overlay policy.
+    void campaign_cinematic_letterbox_aspect(std::optional<float>);
     bool cinematic_crossfade_captured()const;
     void scene_color_filter(std::optional<PixelProgram>);
     void scene_light_volumes(std::vector<LightVolumeInstance>,

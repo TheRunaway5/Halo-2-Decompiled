@@ -7,6 +7,7 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 using namespace halo2;
 namespace {
@@ -55,6 +56,73 @@ void submitted_view_storage(const SourceRuntimeMemory& cold) {
     std::cout<<"PASS submitted-view storage: complete cold64B RW startup owner, shared serial/viewport "
         "backing and live checkpoint contents\n";
 }
+void session_timer_fields(const SourceRuntimeMemory& cold) {
+    const auto saved=cold.checkpoint();
+    SourceRuntimeMemory live;live.restore(saved);
+    const auto& flags=region(saved,0x51d01cu);
+    check(flags.bytes.size()==2 && flags.access==SourceRuntimeMemory::Access::ReadWrite &&
+        flags.owner=="native TU1.5 cold session timer parent policy fields" &&
+        std::ranges::all_of(flags.bytes,[](auto byte){return byte==std::byte{};}),
+        "Cold session timer parent lost its two loader-zeroed policy fields");
+    constexpr std::array policies{std::byte{0x5b},std::byte{0xe7}};
+    live.write(0x51d01cu,policies);
+    for(unsigned group=0;group<5;++group)for(unsigned slot=0;slot<16;++slot) {
+        const auto address=0x515f70u+group*0x99cu+slot*0x98u;
+        const auto& bank=region(saved,address);
+        check(bank.bytes.size()==8 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+            bank.owner=="native TU1.5 cold session timer state and timestamp fields" &&
+            !bank.page_bytes && bank.committed.empty() &&
+            std::ranges::all_of(bank.bytes,[](auto byte){return byte==std::byte{};}),
+            "Cold session timer lost an exact loader-zeroed state/timestamp pair");
+        rejects([&]{(void)cold.view(address-1u,1);},"Timer pair borrowed a preceding payload field");
+        rejects([&]{(void)cold.view(address+8u,1);},"Timer pair borrowed a following payload field");
+        const auto backing=live.native_address(address,8);
+        check(backing.value>0xffffffffu && live.native_address(address+4u,4).value==backing.value+4u,
+            "Timer state and timestamp detached from their shared native backing");
+        std::array<std::byte,8> changed{};
+        for(unsigned n=0;n<8;++n)changed[n]=std::byte((group*61u+slot*13u+n*7u+3u)&255u);
+        live.write(address,changed);
+        check(live.native_address(address,8)==backing &&
+            std::ranges::equal(live.view(address,8),changed),"Timer publication replaced native backing");
+    }
+    const auto published=live.checkpoint();SourceRuntimeMemory restored;restored.restore(published);
+    const auto restored_state=restored.checkpoint();
+    check(std::ranges::equal(restored.view(0x51d01cu,2),policies) &&
+        region(restored_state,0x51d01cu).owner==flags.owner &&
+        !restored.is_read_only(0x51d01cu,2),"Restored timer parent lost live policy fields");
+    for(unsigned group=0;group<5;++group)for(unsigned slot=0;slot<16;++slot) {
+        const auto address=0x515f70u+group*0x99cu+slot*0x98u;
+        const auto& bank=region(published,address);
+        check(!restored.is_read_only(address,8) &&
+            region(restored_state,address).owner==bank.owner &&
+            std::ranges::equal(restored.view(address,8),bank.bytes),
+            "Restored session timer reset live state or lost its mutable owner");
+        rejects([&]{(void)restored.view(address+8u,1);},"Restored timer borrowed adjacent payload");
+        check(std::ranges::all_of(cold.view(address,8),[](auto byte){return byte==std::byte{};}),
+            "Cold timer factory shared a live mutation or ran an initializer");
+    }
+    std::cout<<"PASS session timers: two parent policy bytes and 80 exact cold8B RW pairs, native backing and live checkpoint state; payload gaps absent\n";
+}
+void area_choice_operand(SourceRuntimeMemory &memory) {
+    constexpr std::uint32_t address=0x46a328u;
+    constexpr std::array expected{std::byte{0x9a},std::byte{0x99},std::byte{0x99},std::byte{0x99},
+        std::byte{0x99},std::byte{0x99},std::byte{0xb9},std::byte{0x3f}};
+    const auto saved=memory.checkpoint();const auto& bank=region(saved,address);
+    check(bank.bytes.size()==8 && bank.access==SourceRuntimeMemory::Access::ReadOnly &&
+        bank.owner=="native TU1.5 authored area-choice distance penalty operand" &&
+        std::ranges::equal(memory.view(address,8),expected),
+        "Cold area-choice distance penalty lost its exact original immutable QWORD");
+    rejects([&]{(void)memory.view(address,9);},"Area-choice penalty borrowed adjacent source data");
+    bool rejected{};
+    try{memory.write(address,std::array<std::byte,8>{});}catch(const std::runtime_error &){rejected=true;}
+    check(rejected && std::ranges::equal(memory.view(address,8),expected),
+        "Original area-choice penalty admitted a write or changed on rejection");
+    SourceRuntimeMemory restored;restored.restore(saved);
+    check(restored.is_read_only(address,8) && region(restored.checkpoint(),address).owner==bank.owner &&
+        std::ranges::equal(restored.view(address,8),expected),
+        "Restored area-choice penalty lost original bytes or ownership");
+    std::cout<<"PASS area-choice penalty: exact8B authored immutable operand, rejected writes and checkpoint ownership\n";
+}
 void view_angle_scalar(SourceRuntimeMemory& memory) {
     constexpr std::array expected{std::byte{0xc3},std::byte{0xf5},std::byte{0x48},std::byte{0x3f}};
     const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,0x45c55cu);
@@ -70,6 +138,59 @@ void view_angle_scalar(SourceRuntimeMemory& memory) {
     check(restored.is_read_only(0x45c55cu,4) &&
         std::ranges::equal(restored.view(0x45c55cu,4),expected),
         "Cold checkpoint restore lost the original view-angle scalar");
+}
+void camera_projection_operands(SourceRuntimeMemory& memory) {
+    const auto saved=memory.checkpoint();
+    for(const auto [address,bits]:std::array<std::pair<std::uint32_t,std::uint32_t>,2>{{
+        {0x46a260u,0x3b088889u},{0x46a670u,0x3f100000u}}}) {
+        std::array<std::byte,4> expected{};
+        for(unsigned i=0;i<4;++i)expected[i]=std::byte(bits>>(i*8u));
+        const auto& bank=region(saved,address);
+        check(bank.bytes.size()==4 && bank.access==SourceRuntimeMemory::Access::ReadOnly &&
+            bank.owner=="native TU1.5 authored camera projection operand" &&
+            std::ranges::equal(memory.view(address,4),expected),
+            "Cold world lost an exact original camera projection literal");
+        rejects([&]{(void)memory.view(address,5);},"Camera projection literal borrowed adjacent data");
+        bool write_rejected=false;
+        try {memory.write(address,std::array<std::byte,4>{});}
+        catch(const std::runtime_error& error) {
+            write_rejected=std::string_view(error.what())==
+                "Original runtime write to read-only owner native TU1.5 authored camera projection operand";
+        }
+        check(write_rejected && std::ranges::equal(memory.view(address,4),expected),
+            "Original camera projection literal admitted a write or changed on rejection");
+        SourceRuntimeMemory restored;restored.restore(saved);
+        check(restored.is_read_only(address,4) &&
+            std::ranges::equal(restored.view(address,4),expected),
+            "Checkpoint restore changed original camera projection ownership");
+    }
+}
+void default_camera_fov(const SourceRuntimeMemory& cold) {
+    constexpr std::uint32_t address=0x5320acu;
+    const auto saved=cold.checkpoint();const auto& bank=region(saved,address);
+    check(bank.bytes.size()==4 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="native TU1.5 cold default camera FOV destination" &&
+        !bank.page_bytes && bank.committed.empty() &&
+        std::ranges::all_of(cold.view(address,4),[](auto value){return value==std::byte{};}),
+        "Cold default camera FOV lost its exact loader-zeroed DWORD owner");
+    cold.validate_mutable_view(address,4);
+    rejects([&]{(void)cold.view(address,5);},"Default camera FOV borrowed an adjacent field");
+    SourceRuntimeMemory live;live.restore(saved);const auto backing=live.native_address(address,4);
+    check(backing.value>0xffffffffu && live.native_address(address+3u,1).value==backing.value+3u,
+        "Default camera FOV lost its actual wide contiguous native backing");
+    constexpr std::array changed{std::byte{0xd3},std::byte{0x6a},std::byte{0x91},std::byte{0xc7}};
+    live.write(address,changed);
+    check(live.native_address(address,4)==backing && std::ranges::equal(live.view(address,4),changed),
+        "Live default camera FOV publication detached or reset its native backing");
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(!restored.is_read_only(address,4) && region(restored.checkpoint(),address).owner==bank.owner &&
+        region(restored.checkpoint(),address).bytes.size()==4 &&
+        std::ranges::equal(restored.view(address,4),changed),
+        "Checkpoint restore reset or detached actual default camera FOV state");
+    rejects([&]{(void)restored.view(address,5);},"Restored default camera FOV borrowed adjacent storage");
+    check(std::ranges::all_of(cold.view(address,4),[](auto value){return value==std::byte{};}),
+        "Default camera FOV cold factory ran an initializer or shared a live mutation");
+    std::cout<<"PASS default camera FOV: exact4B cold zero/RW/native backing and live checkpoint state; initializer unexecuted\n";
 }
 void arena_view_flag(const SourceRuntimeMemory& memory) {
     const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,0x4f2968u);
@@ -88,6 +209,60 @@ void arena_view_flag(const SourceRuntimeMemory& memory) {
         restored.view(0x4f2968u,1)[0]==std::byte{0xa5} &&
         region(restored.checkpoint(),0x4f2968u).owner==bank.owner,
         "Checkpoint restore reset or detached the live arena/view flag");
+}
+void widescreen_flag(const SourceRuntimeMemory& memory) {
+    constexpr std::uint32_t address=0x4922e2u;
+    const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,address);
+    check(bank.bytes.size()==1 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="source123E8 cold widescreen flag" && memory.view(address,1)[0]==std::byte{},
+        "Cold world lost the independent original loader-zeroed widescreen flag");
+    check(region(checkpoint,0x4922e0u).bytes.size()==2 && region(checkpoint,0x4922e8u).bytes.size()==20,
+        "Widescreen field changed its separately owned display neighbors");
+    rejects([&]{(void)memory.view(address,2);},"Widescreen flag borrowed adjacent display state");
+    SourceRuntimeMemory live;live.restore(checkpoint);
+    const auto backing=live.native_address(address,1);
+    live.write(address,std::array{std::byte{0xa5}});
+    check(live.native_address(address,1)==backing && live.view(address,1)[0]==std::byte{0xa5},
+        "Live widescreen flag lost its actual mutable backing");
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(!restored.is_read_only(address,1) && restored.view(address,1)[0]==std::byte{0xa5} &&
+        region(restored.checkpoint(),address).owner==bank.owner,
+        "Checkpoint restore reset or detached the live widescreen flag");
+}
+void submitted_target_selector(const SourceRuntimeMemory& memory) {
+    constexpr std::uint32_t address=0x4920d8u;
+    const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,address);
+    check(bank.bytes.size()==4 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="native TU1.5 cold submitted render-target selector" &&
+        std::ranges::all_of(memory.view(address,4),[](auto v){return v==std::byte{};}),
+        "Cold world lost the independent original render-target selector");
+    rejects([&]{(void)memory.view(address,5);},"Target selector borrowed adjacent submitted state");
+    SourceRuntimeMemory live;live.restore(checkpoint);const auto backing=live.native_address(address,4);
+    constexpr std::array value{std::byte{0x12},std::byte{},std::byte{},std::byte{}};
+    live.write(address,value);
+    check(live.native_address(address,4)==backing,"Target selector detached from native backing");
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(!restored.is_read_only(address,4) && std::ranges::equal(restored.view(address,4),value) &&
+        region(restored.checkpoint(),address).owner==bank.owner,
+        "Checkpoint restore reset or detached the submitted target selector");
+}
+void authored_render_scale(const SourceRuntimeMemory& memory) {
+    constexpr std::uint32_t address=0x473628u;
+    const auto checkpoint=memory.checkpoint();const auto& bank=region(checkpoint,address);
+    constexpr std::array authored{std::byte{},std::byte{},std::byte{0x80},std::byte{0x3f}};
+    check(bank.bytes.size()==4 && bank.access==SourceRuntimeMemory::Access::ReadWrite &&
+        bank.owner=="native TU1.5 authored mutable main view render scale" &&
+        std::ranges::equal(memory.view(address,4),authored),
+        "Cold world lost the exact original writable render-scale initializer");
+    rejects([&]{(void)memory.view(address,5);},"Render scale borrowed adjacent debug state");
+    SourceRuntimeMemory live;live.restore(checkpoint);const auto backing=live.native_address(address,4);
+    constexpr std::array changed{std::byte{},std::byte{},std::byte{},std::byte{0x3f}};
+    live.write(address,changed);check(live.native_address(address,4)==backing,
+        "Mutable render scale detached from its actual native backing");
+    SourceRuntimeMemory restored;restored.restore(live.checkpoint());
+    check(!restored.is_read_only(address,4) && std::ranges::equal(restored.view(address,4),changed) &&
+        region(restored.checkpoint(),address).owner==bank.owner,
+        "Checkpoint restore reset the actual mutable render scale");
 }
 void animation_mask_scratch(const SourceRuntimeMemory &cold) {
     const auto saved=cold.checkpoint();const auto &bank=region(saved,0x56e060u);
@@ -282,12 +457,19 @@ int main()try {
     }
     auto memory=native_tu15_world_memory(clock);
     view_angle_scalar(memory);
+    camera_projection_operands(memory);
+    default_camera_fov(memory);
     arena_view_flag(memory);
+    widescreen_flag(memory);
+    submitted_target_selector(memory);
+    authored_render_scale(memory);
     halo2::test::perception_default_ownership(memory);
     submitted_view_storage(memory);
     animation_mask_scratch(memory);
     name_mapping_operands(memory);
     saved_session_storage(memory);
+    session_timer_fields(memory);
+    area_choice_operand(memory);
     const auto checkpoint=memory.checkpoint();
     check(std::ranges::equal(memory.view(clock.address,4),clock.bytes),
         "Cold factory changed the supplied retained clock bytes");

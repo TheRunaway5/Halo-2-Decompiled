@@ -1,5 +1,6 @@
 #include "halo2/collision.hpp"
 #include <bit>
+#include <cstring>
 #include <iostream>
 using namespace halo2;
 namespace {
@@ -56,6 +57,13 @@ std::vector<CollisionTriangle> mesh(unsigned first, unsigned count,
   return result;
 }
 void exercise(const CollisionWorld &composed, const CollisionWorld &flat) {
+  const auto a=composed.authority_checkpoint(),b=flat.authority_checkpoint();
+  check(a.order==b.order && a.nodes.size()==b.nodes.size(),"Concurrent collision construction changed partition/tie order");
+  for(unsigned n=0;n<a.nodes.size();++n) {
+    const auto& x=a.nodes[n];const auto& y=b.nodes[n];
+    check(same(x.low,y.low)&&same(x.high,y.high)&&x.begin==y.begin&&x.end==y.end&&x.left==y.left&&x.right==y.right,
+          "Concurrent collision construction changed exact original node words");
+  }
   for (int x = -8; x <= 8; ++x)
     for (int y = -8; y <= 8; ++y) {
       const Vec3 origin{float(x) / 4, float(y) / 4, 3};

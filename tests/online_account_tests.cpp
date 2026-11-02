@@ -76,7 +76,8 @@ int main() {
       auto bad=options;bad.endpoint=endpoint;OnlineAccount client(login,bad,http);client.connect("Chosen Pilot");
       check(!client.snapshot().authenticated && !client.snapshot().busy,"Unsafe account origin accepted");
     }
-    for(const auto &body:{std::string("{\"clan\":null,\"invitations\":[],\"clan\":null}"),std::string(65537,' '),std::string("{\"clan\":{},\"invitations\":[{\"id\":\"x\",\"name\":\"partial\"}]}")}) {
+    for(const auto &body:{std::string("{\"clan\":null,\"invitations\":[],\"clan\":null}"),std::string(65537,' '),std::string("{\"clan\":{},\"invitations\":[{\"id\":\"x\",\"name\":\"partial\"}]}"),
+        Json{{"clan",nullptr},{"invitations",Json::array()},{"padding",std::string(256*1024,'x')}}.dump()}) {
       OnlineAccount client(login,options,[&](const auto &r,std::stop_token)->OnlineMatchmakingResponse {
         if(r.url.ends_with("/session") && r.method=="POST")return {201,Json{{"token",token},{"expires_in",900}}.dump()};
         return {200,body};

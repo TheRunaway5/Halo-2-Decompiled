@@ -1,0 +1,16 @@
+{
+  "tools/windows/package_runtime.py": "adeb38b5ace3d4dc3ca909d67a32c984b223be26d30d623f315baddfab8eeacf",
+  "tools/windows/prepare_loading_vorbis.py": "5f91d679eed78deb055054530411845f36337c79c9959f83f7b53e1b429941d2",
+  "tools/windows/prepare_sdk.py": "f7075d8dec0554595ad52bf093529c07bb105b6d609ca5dfaf0435842ce81060",
+  "tools/windows/sdk-lock.json": "92213c3a093dca88449d65d9ed5f502e46891d374d77748650810736d2a7ab3f",
+  "tools/windows/test_loading_pcm.py": "b3e733e72a3881ebd1b13d9a8d147492fbd4991258662a065c372e784057361d",
+  "tools/windows/test_needle_graphics.py": "dcece9f6814c4b556d867f00a56d133ac18c227ab29fe6e7f652591833bc58f1",
+  "tools/windows/test_onboarding_import.py": "6b3a386c510566e4b71a03fd5945d9014dbd9dac7b658cd8486e4932922aaad9",
+  "tools/windows/test_runtime.py": "bad92db307520cf97c22424c30a72ffad1e59745ef7e1471573828bac98903a2",
+  "tools/windows_shader_binding.py": "0cd93f059728a476a65a0745877989cf9cbf85710e4cd3af8c2065469409cb90",
+  "tools/world_triangle_vertex.py": "3d853c922bef648cd09519728f34fba113de49a15cfca34986c66a0c33ca74bc",
+  "tools/xbox_tu15_reference_storage.py": "5149316a5fa945d12e4561102b1a0b09a7329cd7a68425f056da1b8b9eed53df",
+  "tools/xbox_tu15_spawn_reference_weapon.py": "432a1dd433adca0793971e921e255ce691e19bdfffb09e55295d830217e25836",
+  "tools/xemu_capture_hook.c": "b907c7080dfdfa41e5a8a28389bb91516733223d7a2eca8d0bc4e434ed8de659",
+  "tools/xemu_gl_capture_control.c": "840838a374f88690c647d63107ec59d654f5fe0ac0249ec4f52b7f0a5d51c19e"
+}

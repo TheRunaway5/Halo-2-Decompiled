@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Lower complete original TU1.5 lens query geometry and completion owners."""
 import argparse
+from renderer_native_replacements import replace_lens_query_slot_body
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -95,7 +96,7 @@ def main():
                             'source_run_lens_query_tu15')
     source = source.replace('source_physics_live_support_tu15_owns_entry',
                             'source_lens_query_tu15_owns_entry')
-    args.output.write_text(source)
+    args.output.write_text(replace_lens_query_slot_body(source))
     manifest = args.directory / 'generation.json'
     report = json.loads(manifest.read_text())
     report.update(generated_cpp_sha256=sha(args.output),

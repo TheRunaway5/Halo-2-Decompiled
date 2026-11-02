@@ -24,6 +24,8 @@ void choose(MenuState& state,unsigned row,unsigned screen) {
 int main(int argc,char** argv)try {
   const bool two_players=argc>1 && std::string_view(argv[argc-1])=="--two-players";
   if(two_players)--argc;
+  const bool end_match=argc>1 && std::string_view(argv[argc-1])=="--end-match";
+  if(end_match)--argc;
   const unsigned player_count=two_players?2:1;
   const bool visible=std::getenv("H2_TEST_VISIBLE")!=nullptr;
   std::array<std::int32_t,2> inputs{100,101};
@@ -296,7 +298,9 @@ int main(int argc,char** argv)try {
       ++loaded;flow->world_loaded(match,slots);
     };
     options.session_world_update=[&](const auto& match) {
-      ++updates;const auto close=flow->world_update(match);observe_initial_view(match);return close;
+      ++updates;const auto close=flow->world_update(match);observe_initial_view(match);
+      if(end_match && match.state().tick==2)prepared.match.request_end_match();
+      return close;
     };
     options.session_audio_update=[&](float volume,const auto& gains){flow->world_audio_update(volume,gains);};
     MultiplayerRuntimeOutcome outcome;
@@ -411,7 +415,12 @@ int main(int argc,char** argv)try {
         outcome.authoritative_banks && outcome.reason==MultiplayerExitReason::session_world_close &&
         outcome.state->results_finalized && outcome.state->game_over_complete() && flow->lifecycle_kind()==4 &&
         flow->has_report() && flow->player_activation_count()==player_count && first_view_bound,
-        "Actual normal expiry did not reach its source-owned postgame handoff with one initial activation");
+        "Actual match ending did not reach its source-owned postgame handoff with one initial activation");
+    if(end_match) {
+      check(outcome.state->tick<options.prepared_world->rules.time_ticks,
+          "End Match waited for ordinary time-limit expiry");
+      std::cout<<"PASS requested early End Match finalized actual results at tick "<<outcome.state->tick<<'\n';
+    }
     if(argc==5) {
       // CPU acceleration ends at the same real world-close result. Explicitly
       // invoke the production resource boundary omitted by the headless branch.

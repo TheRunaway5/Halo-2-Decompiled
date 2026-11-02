@@ -1,0 +1,30 @@
+import hashlib,json,os,shutil,stat
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-lobby-view-rust-20261102';iteration=1
+record=json.loads((work/f'native-restart/iteration-{iteration}-report.json').read_text());assert record['passed'] and record['frozen_inputs_intact']
+component=json.loads((work/'native/iteration-2-report.json').read_text())
+component_pins={}
+for name in component['source_pin_parts']:component_pins.update(json.loads((work/'native'/name).read_text()))
+final_pins={}
+for name in record['source_pin_parts']:final_pins.update(json.loads((work/'native-restart'/name).read_text()))
+production=[name for name in json.loads((work/'declared-refresh.json').read_text()) if name.startswith(('src/','include/','rust/','cmake/'))]
+assert all(component_pins[name]==final_pins[name]for name in production)
+
+(work/'accepted-native-iteration.json').write_text(json.dumps(dict(iteration=iteration,folder='native-restart',source_pin_sha256=record['source_pin_sha256']),indent=2)+'\n')
+scratch=Path(record['scratch']);source=Path(record['source']);build=scratch/'build'
+output=work/'native-final-artifacts';output.mkdir()
+receipts=[]
+for p in sorted((build/'test-artifacts').glob('*.json')):
+ assert not p.is_symlink() and p.stat().st_size<=1048576
+ shutil.copyfile(p,output/p.name);receipts.append(dict(path=p.name,sha256=hashlib.sha256(p.read_bytes()).hexdigest(),bytes=p.stat().st_size))
+assert (output/'frontend-lobby-view-policy.json').is_file()
+(work/'native-final-artifact-retention.json').write_text(json.dumps(dict(reports=receipts,retained_large_artifacts=[]),indent=2)+'\n')
+regular_bytes=files=links=0
+for current,dirs,names in os.walk(scratch,followlinks=False):
+ dirs[:]=[d for d in dirs if not (Path(current)/d).is_symlink()]
+ for name in names:
+  p=Path(current)/name;s=p.lstat()
+  if stat.S_ISREG(s.st_mode):files+=1;regular_bytes+=s.st_size
+  elif stat.S_ISLNK(s.st_mode):links+=1
+(work/'native-before-cleanup.json').write_text(json.dumps(dict(scratch=str(scratch),regular_files=files,regular_bytes=regular_bytes,file_symlinks_not_followed=links,borrowed_asset_directories_not_followed=True,retained_large_artifacts=[]),indent=2)+'\n')
+print(json.dumps(dict(accepted_native_iteration=iteration,regular_bytes_before_cleanup=regular_bytes,bounded_reports_copied=len(receipts))))

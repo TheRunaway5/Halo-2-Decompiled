@@ -32,8 +32,10 @@ struct SourceTransparentParticleRange {
 struct SourceContrailDraw;
 struct SourceTransparentContrailDraw {const SourceContrailDraw *draw{};};
 struct SourceTransparentLightVolumeDraw {const SourceLightVolumeDraw *draw{};};
+struct SourceHologramGroupDraw;
+struct SourceTransparentHologramGroupDraw {const SourceHologramGroupDraw *draw{};};
 using SourceTransparentDrawBinding=std::variant<std::monostate,
-    SourceTransparentGeometryDraw,SourceTransparentParticleRange,SourceTransparentShaderGeometryDraw,SourceTransparentLightVolumeDraw,SourceTransparentContrailDraw>;
+    SourceTransparentGeometryDraw,SourceTransparentParticleRange,SourceTransparentShaderGeometryDraw,SourceTransparentLightVolumeDraw,SourceTransparentContrailDraw,SourceTransparentHologramGroupDraw>;
 // Snapshot of one1E370 drain, before40870 restores count. Bindings are indexed
 // by absolute command ordinal, including the prefix and null callbacks. Every
 // nonnull callback in[first,count) requires its actual completed service.

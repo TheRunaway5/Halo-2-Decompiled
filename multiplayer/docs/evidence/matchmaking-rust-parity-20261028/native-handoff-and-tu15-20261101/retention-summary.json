@@ -1,0 +1,13 @@
+{
+  "native_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-native-handoff-failclosed-validation.json",
+  "original_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/tu15-assignment-corridor-validation.json",
+  "retained_report_count": 120,
+  "retained_report_bytes": 5109151,
+  "original_fixture_bytes": 242090,
+  "all_test_owners_removed": true,
+  "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-tu15-evidence-corrected/halo2-test-m3fvts0l",
+  "retained_large_artifacts": [],
+  "report_writer_removed": true,
+  "owned_scratch_parent_count": 10,
+  "duplicate_report_sources_removed": true
+}

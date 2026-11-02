@@ -74,6 +74,7 @@ SourceTransparentBspParts Cache::load_source_transparent_bsp_parts(std::size_t i
     std::map<std::uint32_t,SourceTransparentPart> shaders;
     const auto shader=[&](SourceTransparentPart &p) {
         if(p.material<0 || std::size_t(p.material)>=material_count)return;
+        p.breakable_surface=std::to_integer<std::uint8_t>(m.slice(materials+std::size_t(p.material)*32+28,1)[0]);
         p.shader=m.u32(materials+std::size_t(p.material)*32+12);
         if(p.shader==0xffffffffu)return;
         if(!shaders.contains(p.shader))shaders.emplace(p.shader,load_source_transparent_shader(p.shader));

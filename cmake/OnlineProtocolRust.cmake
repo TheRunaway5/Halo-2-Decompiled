@@ -94,6 +94,29 @@ function(halo2_add_online_protocol)
         "${root}/rust/online_protocol/data/*")
     list(APPEND inputs "${module}/Cargo.toml" "${module}/Cargo.lock" "${module}/build.rs"
         "${module}/src/eos_sdk.hpp" "${module}/src/eos_sdk.cpp"
+        "${module}/src/matchmaking_client.hpp"
+        "${module}/src/matchmaking_native_qos.hpp"
+        "${module}/src/matchmaking_native_session.hpp"
+        "${module}/src/matchmaking_native_peers.hpp"
+        "${module}/src/matchmaking_native_publication.hpp"
+        "${module}/src/matchmaking_native_preparation.hpp"
+        "${module}/src/matchmaking_native_exchange.hpp"
+        "${module}/src/peer_snapshot_candidate.hpp"
+        "${module}/src/matchmaking_native_receive.hpp"
+        "${module}/src/matchmaking_native_access.hpp"
+        "${module}/src/matchmaking_native_migration.hpp"
+        "${module}/src/matchmaking_native_api.hpp"
+        "${module}/src/matchmaking_account_client.hpp"
+        "${module}/src/matchmaking_native_results.hpp"
+        "${module}/src/matchmaking_frontend_search.hpp"
+        "${module}/src/matchmaking_frontend_presentation.hpp"
+        "${module}/src/matchmaking_frontend_party.hpp"
+        "${module}/src/matchmaking_frontend_party_flow.hpp"
+        "${module}/src/matchmaking_frontend_party_view.hpp"
+        "${module}/src/matchmaking_frontend_lobby_query.hpp"
+        "${module}/src/matchmaking_frontend_account_flow.hpp"
+        "${module}/src/matchmaking_frontend_friends.hpp"
+        "${module}/src/matchmaking_frontend_lobby_view.hpp"
         "${module}/rust-toolchain.toml" "${root}/rust/online_protocol/Cargo.toml"
         "${root}/rust/online_protocol/rust-toolchain.toml"
         "${root}/rust/online_security_ffi/Cargo.toml" "${root}/rust/online_security_ffi/Cargo.lock"
@@ -107,12 +130,58 @@ function(halo2_add_online_protocol)
     add_custom_command(OUTPUT "${output}/${archive}" "${output}/native-libs.rsp" "${output}/${security_library}"
         "${output}/${worker}"
         "${output}/include/halo2-online-protocol-bridge/src/lib.rs.h"
+        "${output}/include/src/matchmaking_client.hpp"
+        "${output}/include/src/matchmaking_native_qos.hpp"
+        "${output}/include/src/matchmaking_native_session.hpp"
+        "${output}/include/src/matchmaking_native_peers.hpp"
+        "${output}/include/src/matchmaking_native_publication.hpp"
+        "${output}/include/src/matchmaking_native_preparation.hpp"
+        "${output}/include/src/matchmaking_native_exchange.hpp"
+        "${output}/include/src/peer_snapshot_candidate.hpp"
+        "${output}/include/src/matchmaking_native_receive.hpp"
+        "${output}/include/src/matchmaking_native_access.hpp"
+        "${output}/include/src/matchmaking_native_migration.hpp"
+        "${output}/include/src/matchmaking_native_api.hpp"
+        "${output}/include/src/matchmaking_account_client.hpp"
+        "${output}/include/src/matchmaking_native_results.hpp"
+        "${output}/include/src/matchmaking_frontend_search.hpp"
+        "${output}/include/src/matchmaking_frontend_presentation.hpp"
+        "${output}/include/src/matchmaking_frontend_party.hpp"
+        "${output}/include/src/matchmaking_frontend_party_flow.hpp"
+        "${output}/include/src/matchmaking_frontend_party_view.hpp"
+        "${output}/include/src/matchmaking_frontend_lobby_query.hpp"
+        "${output}/include/src/matchmaking_frontend_account_flow.hpp"
+        "${output}/include/src/matchmaking_frontend_friends.hpp"
+        "${output}/include/src/matchmaking_frontend_lobby_view.hpp"
         "${output}/include/rust/cxx.h" "${output}/build-report.json"
         COMMAND "${Python3_EXECUTABLE}" "${root}/tools/build_online_protocol_rust.py" ${arguments}
         DEPENDS ${inputs} VERBATIM USES_TERMINAL)
     add_custom_target(halo2_online_protocol_rust_build DEPENDS "${output}/${archive}"
         "${output}/${security_library}" "${output}/${worker}"
         "${output}/include/halo2-online-protocol-bridge/src/lib.rs.h"
+        "${output}/include/src/matchmaking_client.hpp"
+        "${output}/include/src/matchmaking_native_qos.hpp"
+        "${output}/include/src/matchmaking_native_session.hpp"
+        "${output}/include/src/matchmaking_native_peers.hpp"
+        "${output}/include/src/matchmaking_native_publication.hpp"
+        "${output}/include/src/matchmaking_native_preparation.hpp"
+        "${output}/include/src/matchmaking_native_exchange.hpp"
+        "${output}/include/src/peer_snapshot_candidate.hpp"
+        "${output}/include/src/matchmaking_native_receive.hpp"
+        "${output}/include/src/matchmaking_native_access.hpp"
+        "${output}/include/src/matchmaking_native_migration.hpp"
+        "${output}/include/src/matchmaking_native_api.hpp"
+        "${output}/include/src/matchmaking_account_client.hpp"
+        "${output}/include/src/matchmaking_native_results.hpp"
+        "${output}/include/src/matchmaking_frontend_search.hpp"
+        "${output}/include/src/matchmaking_frontend_presentation.hpp"
+        "${output}/include/src/matchmaking_frontend_party.hpp"
+        "${output}/include/src/matchmaking_frontend_party_flow.hpp"
+        "${output}/include/src/matchmaking_frontend_party_view.hpp"
+        "${output}/include/src/matchmaking_frontend_lobby_query.hpp"
+        "${output}/include/src/matchmaking_frontend_account_flow.hpp"
+        "${output}/include/src/matchmaking_frontend_friends.hpp"
+        "${output}/include/src/matchmaking_frontend_lobby_view.hpp"
         "${output}/include/rust/cxx.h" "${output}/native-libs.rsp")
     add_library(halo2_online_protocol_rust STATIC IMPORTED GLOBAL)
     set_target_properties(halo2_online_protocol_rust PROPERTIES IMPORTED_LOCATION "${output}/${archive}")
@@ -132,6 +201,8 @@ function(halo2_add_online_protocol)
     endforeach()
     add_dependencies(halo2_eos_sdk_worker halo2_online_protocol_rust_build)
     add_library(halo2_online_protocol STATIC "${root}/src/network/online_voice_protocol.cpp"
+        "${root}/src/network/original_matchmaking_readiness.cpp"
+        "${root}/src/network/matchmaking_variant.cpp"
         "${root}/src/platform/native_request_protocol.cpp" "${root}/src/runtime/authority_archive_protocol.cpp"
         "${root}/src/platform/source_replay_policy.cpp" "${root}/src/platform/lan_packet_auth.cpp"
         "${root}/src/network/snapshot_stream.cpp")
@@ -158,6 +229,9 @@ function(halo2_add_online_protocol)
     if(BUILD_TESTING)
         add_test(NAME online_protocol_rust_build_helper COMMAND "${Python3_EXECUTABLE}" -B
             "${root}/tests/test_build_online_protocol_rust.py")
+        add_test(NAME rust_service_qos_ready_reader COMMAND "${Python3_EXECUTABLE}" -B
+            "${root}/tests/test_rust_service_qos_controls.py")
+        set_tests_properties(rust_service_qos_ready_reader PROPERTIES TIMEOUT 30)
         add_executable(online_voice_protocol_tests "${root}/tests/online_voice_protocol_tests.cpp")
         target_link_libraries(online_voice_protocol_tests PRIVATE halo2_online_protocol Threads::Threads)
         add_test(NAME online_voice_protocol COMMAND online_voice_protocol_tests)

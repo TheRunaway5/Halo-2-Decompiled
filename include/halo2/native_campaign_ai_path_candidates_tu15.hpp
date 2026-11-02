@@ -12,4 +12,9 @@ void native_campaign_ai_path_segment_candidate_tu15(SourcePhysicsContactMemory &
     std::uint32_t start, std::uint32_t end, std::uint32_t query,
     std::uint32_t destination, NativeTu15PhysicsFrameFp &,
     const SourcePhysicsContactRecordObserver & = {});
+// Same algorithm for composed native projected points. The retained query
+// and original scalar remain lazy; outputs stay ordinary native values.
+std::array<std::uint32_t,3> native_campaign_ai_path_segment_candidate_value_tu15(
+    const SourcePhysicsContactMemory &,const std::array<std::uint32_t,3> &start,
+    const std::array<std::uint32_t,3> &end,std::uint32_t query,NativeTu15PhysicsFrameFp &);
 }

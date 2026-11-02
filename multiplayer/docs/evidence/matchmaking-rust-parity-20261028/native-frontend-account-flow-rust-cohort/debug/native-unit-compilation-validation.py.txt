@@ -1,0 +1,12 @@
+import hashlib,json,re
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-account-flow-rust-20261102';info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source'])
+units=json.loads((build/'compile_commands.json').read_text());names=[n for n in json.loads((work/'declared-scope.json').read_text())if n.startswith('src/')and n.endswith('.cpp')];rows=[]
+for name in names:
+ matches=[u for u in units if u['file']==str(source/name)];assert len(matches)==1,name
+ unit=matches[0];match=re.search(r'(?:^| )-o ([^ ]+)',unit['command']);assert match,name
+ obj=build/match[1];assert obj.is_file(),name
+ rows.append(dict(path=name,source_sha256=hashlib.sha256((source/name).read_bytes()).hexdigest(),object=str(obj.relative_to(build)),object_sha256=hashlib.sha256(obj.read_bytes()).hexdigest(),object_bytes=obj.stat().st_size,command=unit['command']))
+assert len(rows)==12
+report=dict(passed=True,affected_production_translation_units=rows,count=len(rows),scope='All twelve changed production C++ units compile in the frozen native cohort. This does not establish installed-client delivery.',retained_large_artifacts=[])
+(work/'native-unit-compilation.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(passed=True,compiled=len(rows))))

@@ -1,0 +1,17 @@
+{
+  "stage": "All449Rustand14nativechecksPASS initialfrozeniteration; fullCpp/Rustreplay166k? readactualreplayreport. FinalCPPmutex/earlyunrelatedrouting restoredoriginalscope, fullnativeiteration2requested. NeedfinalnativeRoomHTTP,objectaudit,docs/cleanup.",
+  "before_mesh_sha": "9aa494b43b13c22bb3cb5fd06ba85c38e8540e328419557c45282dbe5a2e5fe8",
+  "reference": "tests/reference/peer_mesh_quality_before_rust_20261101.cpp",
+  "referenceHeader": "tests/reference/peer_mesh_quality_before_rust_20261101/halo2/peer_mesh_quality.hpp",
+  "preflight": "build/test-results/peer-mesh-rust-preflight-20261101/report.json",
+  "expectedRustCounts": {
+    "protocol": 372,
+    "bridge": 57,
+    "service": 20,
+    "total": 449
+  },
+  "scope": "modernH2QOmeasurementcontract, not originalXNet. Full12gaps53IDs+G01-G12open. NativeactualWorld/Readyresourcesneverfabricated. Keepgoalactive.",
+  "remainingCpp": "peerworker scheduling/pollbudgets/agreementrotation andnativecapability/resource/orchestration",
+  "native_fifo": ".local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/control.fifo",
+  "native_unit": "halo2-peer-mesh-host-rust-20261101.service"
+}

@@ -1,0 +1,36 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 101
+    }
+  ],
+  "action": "steam_friends",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/main.rs",
+    "rust/matchmaking_service/src/database.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/steam_friends.rs",
+    "rust/matchmaking_service/src/steam_friends_provider.rs",
+    "rust/matchmaking_service/src/connection_budget.rs",
+    "rust/matchmaking_service/src/steam_friends_http.rs"
+  ],
+  "source_files": 141,
+  "error": "Rust build/test failed"
+}

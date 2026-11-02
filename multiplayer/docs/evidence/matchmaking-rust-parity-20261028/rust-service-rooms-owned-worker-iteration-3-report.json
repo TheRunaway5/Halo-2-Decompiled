@@ -1,0 +1,51 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/iteration-3",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "rooms",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/room_io.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "tools/rust_service_room_controls.py"
+  ],
+  "source_files": 123,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/cargo/release/halo2-matchmaking-service",
+    "sha256": "66e469765165d7dbb38cbec5176629364b5a0292f58b9c941e953fc27cf31b68",
+    "bytes": 10058016,
+    "retained": false
+  },
+  "error": "Rust service failed before listener: Rust matchmaking service: Complete hopper options require an updated native client (400)\n"
+}

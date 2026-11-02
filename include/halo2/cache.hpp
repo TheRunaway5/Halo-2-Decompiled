@@ -201,6 +201,9 @@ struct Material {
     std::vector<std::byte> vertex_program;
     ShaderConstants program_constants{};
     std::shared_ptr<const VertexProgramBank> vertex_bank;
+    // A residency declaration is insufficient for these section-owned PRT
+    // passes. Every submitted owner must supply its completed native bank.
+    bool requires_owner_prt_bank{};
     std::optional<SourceVertexDeclaration> vertex_declaration;
     SourceWorldVertexInputTransform world_vertex_input_transform=SourceWorldVertexInputTransform::Preserve;
     std::array<ShaderTextureState,4> texture_states{};
@@ -338,6 +341,7 @@ struct SourceRuntimeCacheTagView;
 struct SourceRuntimeCacheBspImage;
 struct SourceRuntimeCacheAnimationImage;
 struct MccPreparedMapOwner;
+class PreparedOriginalSoundCatalogBindingTu15;
 // Exact relocation fields already verified/applied by the preserved native
 // library importer. Offsets belong to this allocation; file/resource offsets
 // are not included. owner retains the full salted directory identity.
@@ -346,6 +350,15 @@ struct PreservedNativePointerMap {
     std::uint32_t address{}, bytes{};
     std::vector<std::pair<std::uint32_t,std::uint32_t>> pointers;
 };
+enum class MccResourceBank { Textures, EnglishSounds, NeutralSounds, RemasteredSounds };
+// Exact encoded-sound request from the resident MCC metadata parser. Source
+// descriptors are logical tag addresses, never host pointers or native handles.
+struct MccSoundResourceRead {
+    TagHandle sound,gestalt;
+    MccResourceBank bank{};
+    std::uint32_t descriptor{},file_offset{},bytes{};
+};
+
 class Cache {
     friend std::vector<const Tag*> indexed_tag_owners(const Cache&,TagQuery);
 public:
@@ -374,6 +387,12 @@ public:
     bool is_vista() const { return vista_; }
     bool is_mcc() const { return mcc_; }
     bool is_custom_mcc() const { return mcc_ && custom_mcc_; }
+    bool preserves_mcc_authoring() const { return mcc_ && preserve_mcc_authoring_; }
+    // Immutable asset binding admitted by the prepared map's exact provenance.
+    // Native memory, publication and voice eligibility have separate owners.
+    std::shared_ptr<const PreparedOriginalSoundCatalogBindingTu15> original_sound_catalog()const {
+        return original_sound_catalog_;
+    }
     const std::string& scenario() const { return scenario_; }
     std::int16_t load_source_geometry_scenario_type() const; // Literal primaryscnr+10 for2F970.
     const std::filesystem::path& shared_directory() const { return shared_directory_; }
@@ -471,6 +490,9 @@ public:
     // Offline shader compilation can request complete program/pass metadata
     // without decoding texture images or preparing drawable adapters.
     Material load_material(std::uint32_t shader, bool hud = false, bool load_images = true) const;
+    // Immutable authored pass/LOD metadata. Retained by this cache's backing
+    // owner and invalidated with import-time tag writes; no drawable adapters.
+    std::shared_ptr<const Material> load_material_metadata(std::uint32_t shader) const;
     // Original King2BE670 follows matg+16C/mulg runtime+534 settings pointer
     // and reads settings+C4. No tag-name or variant-name selection.
     std::uint32_t load_multiplayer_hill_shader() const;
@@ -483,12 +505,19 @@ public:
     std::vector<PredictedResource> structure_resources(std::size_t bsp,int section,
                                                        bool definition) const;
     EncodedSound load_sound(std::uint32_t datum, unsigned pitch = 0, unsigned permutation = 0) const;
+    using MccSoundResourceReader=std::function<std::vector<std::byte>(const MccSoundResourceRead&)>;
+    // Same metadata/codec/packet parser, with explicitly retained MCC bytes.
+    // An empty reader or a non-MCC Cache rejects; there is no file fallback.
+    EncodedSound load_sound(std::uint32_t,unsigned,unsigned,const MccSoundResourceReader&)const;
     // Exact salted MCC directory owner used by load_mcc_sound. Local and
     // shared sound indices must never be resolved against a guessed gestalt.
     const Tag& mcc_sound_gestalt_owner(TagHandle sound) const {
         if(!mcc_)throw FormatError("Sound gestalt ownership requires an MCC cache");
         return mcc_sound_gestalt(sound.value);
     }
+    // Resource ownership follows the exact merged directory tag. Authored
+    // local DATs and inherited shared DATs may use the same numeric offsets.
+    std::filesystem::path mcc_resource_bank_path(TagHandle, MccResourceBank) const;
     // Retail125F10's first-pitch/first-permutation compressed chunk request.
     // Xbox cache only; this performs no PCM decode or playback admission.
     std::optional<std::vector<std::byte>> load_sound_prediction_chunk(std::uint32_t datum) const;
@@ -697,7 +726,13 @@ private:
     bool vista_{};
     bool mcc_{};
     bool custom_mcc_{};
-    std::vector<std::uint32_t> mcc_sound_gestalts_;
+    bool preserve_mcc_authoring_{};
+    std::shared_ptr<const PreparedOriginalSoundCatalogBindingTu15> original_sound_catalog_;
+    struct MccTagResourceOwner {
+        std::uint32_t sound_gestalt=0xffffffffu;
+        bool inherited{}, split_banks{};
+    };
+    std::vector<MccTagResourceOwner> mcc_resource_owners_;
     std::vector<bool> mcc_native_shaders_;
     bool pc_geometry() const { return vista_ || mcc_; }
     std::size_t source_file_size_{};
@@ -710,9 +745,10 @@ private:
     void initialize_vista();
     void initialize_mcc(const MccPreparedMapOwner*);
     void initialize_mcc_native_shaders(const MccPreparedMapOwner*);
+    void admit_mcc_weapon_zoom_sounds();
     BitmapResource load_mcc_bitmap_resource(std::uint32_t,unsigned) const;
     Texture load_mcc_bitmap(std::uint32_t,unsigned,std::span<const std::byte>) const;
-    EncodedSound load_mcc_sound(std::uint32_t,unsigned,unsigned) const;
+    EncodedSound load_mcc_sound(std::uint32_t,unsigned,unsigned,const MccSoundResourceReader& = {}) const;
     std::uint32_t mcc_sound_class_tag(bool) const;
     const Tag& mcc_sound_gestalt(std::uint32_t) const;
     void initialize_tag_directory(const Bytes&, std::size_t index, std::int64_t header_magic);

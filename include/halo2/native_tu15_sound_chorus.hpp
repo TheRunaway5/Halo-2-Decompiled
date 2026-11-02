@@ -32,4 +32,6 @@ struct SampleTrace {
 void process(const Controls&,const Parameters&,State&,Bindings declared,
              std::span<Word24,401> history,std::span<SampleTrace,32> trace);
 Parameters authored_parameters();
+// Shared by the processor and graph composition; checks modes/geometry only.
+void validate_controls(const Controls&);
 } // namespace halo2::tu15_sound_chorus

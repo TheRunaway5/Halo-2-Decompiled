@@ -1,0 +1,73 @@
+{
+  "scope": "Read-only inventory of remaining native policy, not a complete goal audit or closure proof",
+  "entries": [
+    {
+      "source": "src/network/peer_authority_transfer.cpp",
+      "sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+      "lines": 311,
+      "anchors": {
+        "struct PeerAuthorityTransfer::Impl": [
+          42
+        ],
+        "void expire(": [
+          84
+        ],
+        "AuthorityCutSeal PeerAuthorityTransfer::publish(": [
+          112
+        ],
+        "std::vector<AuthorityTransferPacket> PeerAuthorityTransfer::poll(": [
+          173
+        ],
+        "bool PeerAuthorityTransfer::receive(": [
+          216
+        ]
+      },
+      "remaining": "C++ still owns reliable authority codec/hash, sender/receiver state, chunk windows, retries/deadlines, credit, acknowledgements, rejected/delivered cuts and replacement/reset policy; the Rust poll cursor is only a leaf. Port complete policy while preserving actual shared byte/resource IO."
+    },
+    {
+      "source": "src/network/peer_snapshot_candidate.cpp",
+      "sha256": "72f688a535322fec3237b156e682fb5a5308d929b3ca023e3a8cce320dda795b",
+      "lines": 343,
+      "anchors": {
+        "struct PeerSnapshotCandidate::Impl": [
+          43
+        ],
+        "PeerSnapshotCandidate::begin": [
+          177
+        ],
+        "PeerSnapshotCandidate::poll": [
+          254
+        ],
+        "PeerSnapshotCandidate::receive": [
+          266
+        ]
+      },
+      "remaining": "C++ still owns snapshot protocol/control/transfer policy. Preserve actual private delivery identity, native buffer/borrower and lease ownership as genuine IO when moving metadata state and caller policy to Rust."
+    },
+    {
+      "source": "src/network/online_match_session.cpp",
+      "sha256": "161d5d98ddeb2cbde1895f173b749382154b90405e88ae432549c95cd2cc5325",
+      "lines": 1006,
+      "anchors": {
+        "AuthorityTransferLimits source_transfer_limits(": [
+          59
+        ],
+        "void datagram(": [
+          491
+        ],
+        "std::vector<unsigned> OnlineMatchSession::local_slots()": [
+          766
+        ],
+        "std::shared_ptr<PeerSnapshotCandidate> OnlineMatchSession::snapshot_candidates()": [
+          761
+        ],
+        "void OnlineMatchSession::pump_postgame_voice()": [
+          977
+        ]
+      },
+      "remaining": "Remaining C++ receive dispatch/phase/epoch/history rules, feature-limit construction, native resource views, local-seat selection and postgame pump decisions. This receipt does not claim those are Rust-owned."
+    }
+  ],
+  "original_live_recovery": false,
+  "all_g01_g12_still_open": true
+}

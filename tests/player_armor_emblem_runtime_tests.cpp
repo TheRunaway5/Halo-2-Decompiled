@@ -74,11 +74,13 @@ struct Host {
 };
 }
 int main(int argc,char **argv)try {
-  check(argc==3 || argc==4 || argc==5,"Supply repository and output directories, and optional teams mode");
+  check(argc==3 || argc==4 || argc==5,"Supply repository and output directories, and optional armor mode");
   const bool switching=argc==5 && std::string_view(argv[3])=="teams-switch";
+  const bool personal=argc==5 && std::string_view(argv[3])=="personal";
+  const bool native_map=switching || personal;
   const bool lan=argc==4 && std::string_view(argv[3])=="teams-lan";
   const bool teams=switching || (argc==4 && (std::string_view(argv[3])=="teams" || lan));
-  check(argc==3 || teams,"Unknown armor runtime mode");
+  check(argc==3 || teams || personal,"Unknown armor runtime mode");
   if(!std::getenv("DISPLAY"))return 77;
   SDL_SetMainReady();
   std::optional<VirtualPads> pads;if(switching)pads.emplace();
@@ -95,10 +97,13 @@ int main(int argc,char **argv)try {
     options.variant={"Team Slayer",0,{{2,0},{10,0},{89,5},{91,1}}};
     options.selected_teams={0,1,1,0};
   }
-  if(switching) {
+  if(native_map) {
     options.map=argv[4];options.shared_maps=options.map.parent_path();options.gameplay_xbe.clear();
     if(!std::filesystem::is_regular_file(options.map))return 77;
-    options.source_object_world=true;options.frames=0;options.capture_tick=240;
+    options.source_object_world=true;
+  }
+  if(switching) {
+    options.frames=0;options.capture_tick=240;
     options.variant.values.set(22,1);options.input_instances.assign(pads->ids.begin(),pads->ids.end());
   }
   const std::array<std::array<std::uint8_t,9>,4> appearances{{
@@ -112,7 +117,7 @@ int main(int argc,char **argv)try {
     host=std::make_unique<Host>(options);
     options.join=host->transport.join_address();options.capture_players=4;
   }
-  Cache cache(options.map,options.shared_maps,switching?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(options.gameplay_xbe));
+  Cache cache(options.map,options.shared_maps,native_map?std::shared_ptr<const OriginalData>{}:OriginalData::load_xbe(options.gameplay_xbe));
   const auto assets=cache.load_full_scoreboard_assets();
   const auto &palette=assets.palette;
   std::array<std::int8_t,4> accepted_teams{0,1,1,0};bool requested{},respawned{};unsigned requested_views{};
@@ -145,6 +150,19 @@ int main(int argc,char **argv)try {
   };
   std::set<unsigned> players;unsigned programs=0;
   options.player_armor_observer=[&](unsigned player,const Material &actual) {
+    if(personal && player<4) {
+      check(bool(actual.object_render_colors),"FFA armor has no object color bank");
+      ObjectColors selected;
+      for(unsigned channel=0;channel<4;++channel)
+        selected[channel]=std::bit_cast<Vec3>(palette.at(appearances[player][channel]));
+      const auto expected=source_object_render_colors(selected);
+      for(unsigned channel=0;channel<4;++channel)
+        if(length(actual.object_render_colors->at(channel)-expected[channel])>=1e-6f)
+          throw FormatError("FFA armor lost selected personal color: player="+std::to_string(player)+
+              " channel="+std::to_string(channel)+" material="+actual.name+
+              " actual="+std::to_string(pack_object_lighting_rgb(actual.object_render_colors->at(channel)))+
+              " expected="+std::to_string(pack_object_lighting_rgb(expected[channel])));
+    }
     if(teams && player<4) {
       check(bool(actual.object_render_colors),"Team armor has no object color bank");
       const auto expected=source_object_render_colors({{

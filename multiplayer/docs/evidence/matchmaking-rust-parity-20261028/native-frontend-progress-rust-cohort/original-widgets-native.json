@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "cases": 191,
+  "whole_original_calls": 382,
+  "bounded_category_selectors": 191,
+  "bounded_original_tip_selectors": 191,
+  "original_instructions": 110,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "scope": "Bounded unchanged TU1.5 matchmaking widget decisions versus native kernels.\n\nTitle and game-icon routines run in full (the icon's bitmap owner is absent).\nThe option-category selector stops before its original external goof lookup;\nno external UI/tag/session callee is replaced or claimed to have executed.\nThe downloaded-tip LCG/index and signed15-second clock comparison are bounded\noriginal blocks with explicit inputs. Whole screen/helper byte correspondence\nis separate from these bounded calls.\n",
+  "backend": "native CXX/Rust wrapper",
+  "rust_source_sha256": "f813e005033fa092aafdc323c9e5c88c2e320e0cb09d46f16683800f7fb70a34",
+  "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393",
+  "native_source_sha256": "3042a2a66e0267701047665777028fbeb44236a01b8e2140f2737d4a05f7d489",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-native-widgets-original-20261102/halo2-test-4h6jl6f3",
+  "scratch_retained": false
+}

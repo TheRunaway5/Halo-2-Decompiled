@@ -1,0 +1,353 @@
+[
+  {
+    "iteration": 1,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-1/tests.log",
+    "source_pin_sha256": "9485ee1cb8ebc409709b6de0d9c9254ea590f8242791f8e25f3563f5c8ee0ce7",
+    "declared_refreshes": []
+  },
+  {
+    "iteration": 2,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-2/tests.log",
+    "source_pin_sha256": "2de16dbeb15ade436a1300fbd4651b86fc0509f2da948285a5c10c9ee0c88f9d",
+    "declared_refreshes": [
+      {
+        "path": "rust/online_protocol/src/matchmaking_account_client.rs",
+        "before": null,
+        "after": "4a8a72c66af7b525e467086c5c0f8e2256fd0752796abb664d299b8db07de6fd"
+      },
+      {
+        "path": "rust/online_protocol/src/lib.rs",
+        "before": "82b2c8a35a2a89423fce558527f5e8765596a20e68771b3abe3c81c3ca89da43",
+        "after": "786b5b4abef34d1ed0970d1ee9d7fdf5fc84c62c416995763c7de2c1e82d3bb1"
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-3/tests.log",
+    "source_pin_sha256": "4cc341a1c17f2b7744433c8bbb9ce9b68c28bcb2f2ec872aa3f72f841cb5069a",
+    "declared_refreshes": [
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_account_client.rs",
+        "before": null,
+        "after": "1d6a93664bdb96679c129f357480f57fe09b1dc3e0ac9a69d6f121510fb1c9d6"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_account_client.hpp",
+        "before": null,
+        "after": "b2b70aace6af82c89e2d230c7fc69a8cb07ffff6a2a7afb328f264fbd501d56a"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/lib.rs",
+        "before": "bc28ec4c490fb2621985ff9ea71b597b77f6196d01105456e35defa765dc3d88",
+        "after": "06ce508c9b0dda58bed27192de8c1fcafb3c5a83caace53df20befefcd5c237b"
+      },
+      {
+        "path": "rust/online_protocol_bridge/build.rs",
+        "before": "f1dd47ccb7cdee050a6d83834c17e1de40fc2120b3aa91da4f6e4ce164e25f69",
+        "after": "1517c96937003785e0c42f530ce61eefb13598cf51b4c15ceab16bffa9160c72"
+      },
+      {
+        "path": "cmake/OnlineProtocolRust.cmake",
+        "before": "596dfa31707bbe7420503591b521dab10c769134e0d956db64c645d7d4be208e",
+        "after": "55ec5323a83ad5ea2252da8db9befe854e003a363d6343f6ad2cf33147e3ed29"
+      },
+      {
+        "path": "tools/build_online_protocol_rust.py",
+        "before": "e3dd3159220301a3e4c75975bb101d0ac8b6499ac1c486f3c27c998c3ae86868",
+        "after": "f5fc4e5cd3f70530c35f2981097861ce5649cdf95d7950ccbeccf498a9dc1f1e"
+      },
+      {
+        "path": "tests/test_build_online_protocol_rust.py",
+        "before": "aaa9477cb0b876df957cfa87aff539fe7c9642152a3ff1f29361eb7c0e0a35da",
+        "after": "e10bde1101a7773e233a7f7cc1b8f480108be91bbe21246a1168d1e9228a2672"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-4/tests.log",
+    "source_pin_sha256": "798c42328fdf3b8e898f80cfe82aa3db0a59f81dadf9671989986f769665188e",
+    "declared_refreshes": [
+      {
+        "path": "src/network/online_account.cpp",
+        "before": "75704c0462560aab673f4159b2829e2ecaee4e7a5a5785fae33d761fce6c6a6e",
+        "after": "d401bf821381142ff12bbba700d6219368a3861489ef50e8f667460d42616257"
+      },
+      {
+        "path": "include/halo2/online_account.hpp",
+        "before": "9ca0ad4f64573f90635e62ae426c2a183f31159afd150986085ada89c97337bf",
+        "after": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b"
+      },
+      {
+        "path": "rust/online_protocol/src/matchmaking_account_client.rs",
+        "before": "4a8a72c66af7b525e467086c5c0f8e2256fd0752796abb664d299b8db07de6fd",
+        "after": "e67b14761c472ce7deb87c212a7cf47939608165f5ccecbfb905b4b58bbf6cec"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_account_client.rs",
+        "before": "1d6a93664bdb96679c129f357480f57fe09b1dc3e0ac9a69d6f121510fb1c9d6",
+        "after": "0fffa1ada79427cafb0e371090c681be77f0b22869dbaca40d85f906bca2e075"
+      }
+    ]
+  },
+  {
+    "iteration": 5,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-5/tests.log",
+    "source_pin_sha256": "798c42328fdf3b8e898f80cfe82aa3db0a59f81dadf9671989986f769665188e",
+    "declared_refreshes": []
+  },
+  {
+    "iteration": 6,
+    "passed": false,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-6/tests.log",
+    "source_pin_sha256": "a4e79a6b83986cb760e6b13a66739f64388a5b79eba7a8587dbaa65dc072b562",
+    "declared_refreshes": [
+      {
+        "path": "rust/online_protocol/tests/matchmaking_account_client.rs",
+        "before": null,
+        "after": "f1b7abb88ea4c59a7f5bdbcff25708969f743242c282a25f77b2dc83815b1d19"
+      },
+      {
+        "path": "tests/native_account_client_tests.cpp",
+        "before": null,
+        "after": "cbc71c308d5608934a262864406fb4a923964e7124e5dee73bb46e174f11251e"
+      },
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "a6a2a1d2b1309aaea9a7a1dfecdcf51aeaaf0c9d053624028bdadba2c092f312",
+        "after": "e01ccab81e524e66376bda0f2ff60bb8e5ffe636f255b477b38fcb503d31dd17"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/online_account.cpp.inc",
+        "before": null,
+        "after": "75704c0462560aab673f4159b2829e2ecaee4e7a5a5785fae33d761fce6c6a6e"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/online_account_before.cpp",
+        "before": null,
+        "after": "971b509c068c28efabd2f2ca5500de97929921dc509c95c8e1d88c2a4e8d3b44"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/provenance.json",
+        "before": null,
+        "after": "cf79d6838807368ba3a3ab597babdba39885e01d66bfccd93365a731cbf2a1f8"
+      }
+    ]
+  },
+  {
+    "iteration": 7,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-7/tests.log",
+    "source_pin_sha256": "ac80c8553d6629b4ae3d04a4de301ea5a92c0000e0a92a8cdc80871e0bd2b120",
+    "declared_refreshes": [
+      {
+        "path": "src/network/online_account.cpp",
+        "before": "d401bf821381142ff12bbba700d6219368a3861489ef50e8f667460d42616257",
+        "after": "f5fe8610a7b6f50deddb09f716a248c7267d8bb91616761fdfac56db26b12b28"
+      },
+      {
+        "path": "rust/online_protocol/src/matchmaking_account_client.rs",
+        "before": "e67b14761c472ce7deb87c212a7cf47939608165f5ccecbfb905b4b58bbf6cec",
+        "after": "8e0e7b157b48d2017ba21d80d1aafbe41e979a56488ae81e581cc6554d106a89"
+      },
+      {
+        "path": "rust/online_protocol/tests/matchmaking_account_client.rs",
+        "before": "f1b7abb88ea4c59a7f5bdbcff25708969f743242c282a25f77b2dc83815b1d19",
+        "after": "2deeaf8e661b1716ed6b290cfe1b835af324e3c985376a3bec7bbb16b21036df"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_account_client.rs",
+        "before": "0fffa1ada79427cafb0e371090c681be77f0b22869dbaca40d85f906bca2e075",
+        "after": "6aee3fa1af494f4f756164dc51b20ef589866e6c94e923f256d85eb4e959034a"
+      }
+    ]
+  },
+  {
+    "iteration": 8,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-8/tests.log",
+    "source_pin_sha256": "871eac4c2fc8ee7af56fdb80fa7d3bd335d083fbd2d130261b678c2ea038f709",
+    "declared_refreshes": [
+      {
+        "path": "src/network/online_account.cpp",
+        "before": "f5fe8610a7b6f50deddb09f716a248c7267d8bb91616761fdfac56db26b12b28",
+        "after": "a7172fb00bc7e66d0a5cc04c516fbb7f5b7f39c0e373b0ca14f23a776817ef7f"
+      },
+      {
+        "path": "rust/online_protocol/tests/matchmaking_account_client.rs",
+        "before": "2deeaf8e661b1716ed6b290cfe1b835af324e3c985376a3bec7bbb16b21036df",
+        "after": "b687ebb38da1f6c219007d9bf565f5d9587573ef82069fa4650b80e3c55e9c14"
+      },
+      {
+        "path": "tests/native_account_client_tests.cpp",
+        "before": "cbc71c308d5608934a262864406fb4a923964e7124e5dee73bb46e174f11251e",
+        "after": "db0017d9dc187071ecd30d0aa6200fa74b06a32ceb7d5d9e156a74bc1955afd5"
+      },
+      {
+        "path": "tests/test_native_account_client.py",
+        "before": null,
+        "after": "154b264f6e05aa4992b2f41505ec8dce9e6f98800212a21e8928e1aeab10333b"
+      },
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "e01ccab81e524e66376bda0f2ff60bb8e5ffe636f255b477b38fcb503d31dd17",
+        "after": "9a8bf4fe756ed5efbe18bd25fd749dbd04fac20d2486b32c5d2b7f40e962e521"
+      }
+    ]
+  },
+  {
+    "iteration": 9,
+    "passed": false,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-9/tests.log",
+    "source_pin_sha256": "a1eb7ac182ad9a1b72e37080cdf72a9ab2edd942c244d1009380335e2ed056aa",
+    "declared_refreshes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "9a8bf4fe756ed5efbe18bd25fd749dbd04fac20d2486b32c5d2b7f40e962e521",
+        "after": "c303e623a4c183dddb86a751399d91182a1e88b262aa9f2b685c3929e0ae5dfa"
+      },
+      {
+        "path": "tests/account_snapshot_cpp_replay.cpp",
+        "before": null,
+        "after": "b6c1810f50f2319b22d5c21294ebd97cc241c6028ae64e59be5895cc0ce4d700"
+      },
+      {
+        "path": "tests/test_account_snapshot_replay.py",
+        "before": null,
+        "after": "eaa629b4abf36a2eb8c5137db154a9c875a615bd841b646792264816775f88f8"
+      },
+      {
+        "path": "rust/online_protocol/examples/account_snapshot_replay.rs",
+        "before": null,
+        "after": "a3d96d5af679d934b3ca55e7eb8e174cb6e4fdb2e25d61756ed8588f7201a393"
+      }
+    ]
+  },
+  {
+    "iteration": 10,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-10/tests.log",
+    "source_pin_sha256": "57e325369898a0237f36d4c4c7040a1bd1ee7f6dce5c95192eb71a8ff6d14dcb",
+    "declared_refreshes": [
+      {
+        "path": "tests/test_account_snapshot_replay.py",
+        "before": "eaa629b4abf36a2eb8c5137db154a9c875a615bd841b646792264816775f88f8",
+        "after": "00b566ca8ae0d1fb6a59989e5e7dbc277266dc389a75104afc83b08acb71dbb5"
+      }
+    ]
+  },
+  {
+    "iteration": 11,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-11/tests.log",
+    "source_pin_sha256": "6acdaba8df95e17c702e8e54ecba57646ce7a5a76c010c52a52e070829cd3e93",
+    "declared_refreshes": [
+      {
+        "path": "rust/online_protocol/tests/matchmaking_account_client.rs",
+        "before": "b687ebb38da1f6c219007d9bf565f5d9587573ef82069fa4650b80e3c55e9c14",
+        "after": "4245224b636baec51f65e391d3d3879ff3992758be9eb6d069b2215405f7ea75"
+      }
+    ]
+  },
+  {
+    "iteration": 12,
+    "passed": false,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-12/tests.log",
+    "source_pin_sha256": "609ca4ca9da86b44c4be42f81c774fe634e056df499931f924a227cf09a69b51",
+    "declared_refreshes": [
+      {
+        "path": "src/network/online_account.cpp",
+        "before": "a7172fb00bc7e66d0a5cc04c516fbb7f5b7f39c0e373b0ca14f23a776817ef7f",
+        "after": "62074185ff45d2473dd90d7d829e51edf7809770b88eb0daa4b98f658e3f8cac"
+      },
+      {
+        "path": "tests/native_account_client_tests.cpp",
+        "before": "db0017d9dc187071ecd30d0aa6200fa74b06a32ceb7d5d9e156a74bc1955afd5",
+        "after": "063f3acee5ef3ce17ca1fa3629859cc8503988d26936dd28191f670c2fdf14d3"
+      }
+    ]
+  },
+  {
+    "iteration": 13,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-13/tests.log",
+    "source_pin_sha256": "fa1704e6019ee11424aab28bb70af0c0eb9be9ca1819025f088636b2213e577e",
+    "declared_refreshes": [
+      {
+        "path": "tests/native_account_client_tests.cpp",
+        "before": "063f3acee5ef3ce17ca1fa3629859cc8503988d26936dd28191f670c2fdf14d3",
+        "after": "e02588f2e1771dce0f7c2adf41607143323c9411a725a6480b64adbecfed9495"
+      },
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "c303e623a4c183dddb86a751399d91182a1e88b262aa9f2b685c3929e0ae5dfa",
+        "after": "dc7a9eb02e84b4919ee71069b3d7a3a483a8b780fc5b415b75c8e60a86317cb6"
+      }
+    ]
+  },
+  {
+    "iteration": 14,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-14/tests.log",
+    "source_pin_sha256": "6014b6da4999599fadc4435e09c07936e40b349b837531aa6396448c7564c904",
+    "declared_refreshes": [
+      {
+        "path": "tests/test_account_snapshot_replay.py",
+        "before": "00b566ca8ae0d1fb6a59989e5e7dbc277266dc389a75104afc83b08acb71dbb5",
+        "after": "b9e1bafb41f528b91b3c12eca4476588ad6f10c8a2814a8b3d383d71b193caa4"
+      }
+    ]
+  },
+  {
+    "iteration": 15,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-15/tests.log",
+    "source_pin_sha256": "3fc58ed6eaa9aea1310a666855266cb910fc83ae56172f65d2d9512890b3e0a2",
+    "declared_refreshes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "dc7a9eb02e84b4919ee71069b3d7a3a483a8b780fc5b415b75c8e60a86317cb6",
+        "after": "1533bbd7ef14e298b9a33aabe36d9c2fbd2a6fc657340331b6873f3b08add464"
+      },
+      {
+        "path": "tests/test_account_frontend_comparison.py",
+        "before": null,
+        "after": "38ae61914a996f1193409ffdb7b7f7dbf7e4f16e8fe9effd05ce4bb3e796b4c8"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/online_account_before.cpp",
+        "before": "971b509c068c28efabd2f2ca5500de97929921dc509c95c8e1d88c2a4e8d3b44",
+        "after": "52534cab0fe3249515da8d6015b56b3d6285cbeeb10a853d01f121ea6fb74627"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/provenance.json",
+        "before": "cf79d6838807368ba3a3ab597babdba39885e01d66bfccd93365a731cbf2a1f8",
+        "after": "2bf18e874885a9aceeade18cba1bc9d05c7b0f31d203821ac12d6b78e147e6a8"
+      },
+      {
+        "path": "tests/reference/account_client_before_rust_20261101/online_account.hpp.reference",
+        "before": null,
+        "after": "9ca0ad4f64573f90635e62ae426c2a183f31159afd150986085ada89c97337bf"
+      }
+    ]
+  },
+  {
+    "iteration": 16,
+    "passed": true,
+    "test_log": "build/test-results/native-account-client-rust-20261101/native/iteration-16/tests.log",
+    "source_pin_sha256": "a5a29961856e788d1f821c851102d828e7bc962f56271b017bba1c3897832317",
+    "declared_refreshes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "1533bbd7ef14e298b9a33aabe36d9c2fbd2a6fc657340331b6873f3b08add464",
+        "after": "b3225a684957558e3e8613ada3b3e786706ef7b0fd81e5aa6f6d9222a1a1b852"
+      }
+    ]
+  }
+]

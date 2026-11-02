@@ -1,0 +1,31 @@
+Traceback (most recent call last):
+  File "/home/eric/Developer/Halo-2-Decompiled/tools/test_rust_matchmaking_delivery.py", line 145, in main
+    report["delivery"] = controls.qualify(source, scratch / ("delivery-%02d" % attempt), binary, library,
+                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                           caddy_binary, shim, attempt_output)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/tools/rust_service_state_controls.py", line 177, in qualify
+    generated = rooms.relay(binary, fixture_root,
+                            source / "multiplayer/master_server/examples/matchmaking-online.json", Legacy)
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/tools/rust_service_room_controls.py", line 255, in relay
+    try:asyncio.run(run())
+        ~~~~~~~~~~~^^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/tools/rust_service_room_controls.py", line 158, in run
+    await http('GET','/v1/matchmaking/transport',500,grants[0])
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj/source/tools/rust_service_room_controls.py", line 113, in http
+    result=await response.json()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/site-packages/aiohttp/client_reqrep.py", line 778, in json
+    raise ContentTypeError(
+    ...<7 lines>...
+    )
+aiohttp.client_exceptions.ContentTypeError: 500, message='Attempt to decode JSON with unexpected mimetype: text/plain; charset=utf-8', url='http://127.0.0.1:48879/v1/matchmaking/transport'

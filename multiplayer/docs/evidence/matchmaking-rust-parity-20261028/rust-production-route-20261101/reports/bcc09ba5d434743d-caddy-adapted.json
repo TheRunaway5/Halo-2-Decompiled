@@ -1,0 +1,142 @@
+{
+  "admin": {
+    "disabled": true
+  },
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            "127.0.0.1:42005"
+          ],
+          "routes": [
+            {
+              "match": [
+                {
+                  "host": [
+                    "localhost"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "request_body",
+                          "max_size": 49152
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "reverse_proxy",
+                                  "transport": {
+                                    "protocol": "http",
+                                    "response_header_timeout": 10000000000,
+                                    "write_timeout": 10000000000
+                                  },
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:55257"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/v1/masters",
+                            "/v1/servers",
+                            "/v1/servers/*",
+                            "/v1/credentials",
+                            "/v1/credentials/*",
+                            "/v1/admin/credentials",
+                            "/v1/admin/credentials/*",
+                            "/v1/federation/sync"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "reverse_proxy",
+                                  "transport": {
+                                    "protocol": "http",
+                                    "response_header_timeout": 100000000000,
+                                    "write_timeout": 10000000000
+                                  },
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:38243"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ],
+          "tls_connection_policies": [
+            {
+              "match": {
+                "sni": [
+                  "localhost"
+                ]
+              },
+              "certificate_selection": {
+                "any_tag": [
+                  "cert0"
+                ]
+              }
+            },
+            {}
+          ],
+          "automatic_https": {
+            "disable": true
+          }
+        }
+      }
+    },
+    "tls": {
+      "certificates": {
+        "load_files": [
+          {
+            "certificate": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/delivery-02/test-ca.pem",
+            "key": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/delivery-02/test-key.pem",
+            "tags": [
+              "cert0"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

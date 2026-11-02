@@ -1,0 +1,306 @@
+{
+  "date": "2026-10-29",
+  "result": "All three findings patched in local source; no production deployment or Security Cloud rescan.",
+  "findings": [
+    {
+      "id": "csf_e563eaf3d5bb25ee52ec970e",
+      "title": "MCC import can follow nested links or swapped directories outside the selected donor",
+      "fix": [
+        "Shared DonorTree pins each POSIX directory with openat/O_NOFOLLOW and reads the admitted file descriptor.",
+        "Windows rejects reparse points on opened handles and retains every ancestor without write/delete sharing before pathname enumeration or child opens.",
+        "Inventory/copy validate device/inode ownership and source metadata; MCC and Vista directory imports use the same helper.",
+        "Copied files use POSIX 0600 or a protected Windows DACL granting the importing user SID and SYSTEM. Vista archive outputs use the same private writer."
+      ],
+      "before_fix": [
+        "Directory-swap regression enumerated outside secret.bin.",
+        "Final-file replacement wrote replacement bytes before rejecting the source change.",
+        "Permissive umask produced mode 0666 instead of 0600."
+      ]
+    },
+    {
+      "id": "csf_015abbaa0b3a8d1d666e6113",
+      "title": "Rotating source addresses can exhaust all pending Steam login slots",
+      "fix": [
+        "Four unverified entries per exact source, eight per source prefix, 128 anonymous entries globally.",
+        "Failed/cancelled unverified entries remain anonymous for quota purposes.",
+        "Anonymous starts have a separate 16-request burst and 60/minute refill.",
+        "Anonymous state cannot occupy the remaining provider-verified/completing reserve in the 1000-entry bank."
+      ],
+      "before_fix": "After one verified flow, 999 rotating addresses consumed the remaining shared pending slots."
+    },
+    {
+      "id": "csf_526b38cc8d16b01f3f27096f",
+      "title": "IPv6 source rotation can pin the shared rate limiter and block new clients",
+      "fix": [
+        "Separate O(1) LRU tables for exact sources, prefixes, principals, anonymous devices, pinned peers, and global controls.",
+        "At capacity, evict one oldest bucket instead of rejecting all unseen sources or scanning all entries.",
+        "Default IPv6 /64 prefix allowance: 1200/minute, 512 initial requests; IPv4-mapped addresses normalize into IPv4 accounting.",
+        "Independent service allowance: 6000/minute, 2048 initial requests, 64 concurrent HTTP handlers.",
+        "Upgraded WebSockets release HTTP slots; aggregate limiter metrics contain no client addresses."
+      ],
+      "before_fix": "4096 recent exact-source keys caused a new legitimate IP and its principal to fail before routing."
+    }
+  ],
+  "validation": {
+    "backend": {
+      "tests": 80,
+      "passed": true,
+      "source_frozen": true,
+      "coverage": [
+        "4097 IPv6 addresses with unrelated-prefix admission",
+        "full-cache eviction without sweeps",
+        "principal/peer quotas survive source churn",
+        "1001 rotating login starts with a verified login completing afterward",
+        "global anonymous-start burst",
+        "HTTP concurrency release and WebSocket upgrades",
+        "Steam proof/confirmation, existing directory limits, 14-player clan matchmaking, voice and two-process federation"
+      ],
+      "security_files_still_match_frozen_cohort": [
+        "multiplayer/master_server/service.py",
+        "multiplayer/master_server/steam_login.py",
+        "multiplayer/master_server/request_admission.py",
+        "multiplayer/master_server/tests/test_source_admission_security.py"
+      ],
+      "unrelated_concurrent_source_drift": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_sessions.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs",
+        "rust/online_protocol/src/matchmaking_room_control.rs",
+        "rust/online_protocol/src/matchmaking_accounts.rs",
+        "multiplayer/master_server/player_presence.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_match_transport.py",
+        "multiplayer/master_server/tests/test_parties_http.py",
+        "multiplayer/master_server/tests/test_online_population.py"
+      ]
+    },
+    "imports": {
+      "cmake_checks_passed": 4,
+      "python_cases": 52,
+      "passed": true,
+      "windows_native_case_skipped_on_linux": 1,
+      "current_import_hashes_match_manifest": true
+    },
+    "windows_api": {
+      "passed_under_wine": true,
+      "native_windows_qualified": false,
+      "checks": [
+        "same admitted file handle identity",
+        "explicit user-SID private file readback",
+        "directory junction rejection"
+      ],
+      "notes": [
+        "Wine Z: root reports a reparse point and is rejected; the Windows API fixture used C: within an owned Wine prefix.",
+        "An initial owner-rights alias ACL failed readback and was replaced with an explicit importing-user SID."
+      ]
+    },
+    "limitations": [
+      "Focused fixtures and API tests, not a production saturation benchmark.",
+      "Wine exercises the Windows API branch but does not establish native Windows/NTFS ACL or junction qualification.",
+      "The frozen backend cohort passed; unrelated concurrent source changes are listed instead of claimed as validated.",
+      "Installed assets, reference evidence, launcher-selected runtimes and running production services were preserved."
+    ]
+  },
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+    "https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-gettokeninformation"
+  ],
+  "runs": [
+    {
+      "report": "build/test-results/source-admission-red/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-k2r9oxhk",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-k2r9oxhk/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_source_admission_security"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/source-admission-focused/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-aoc33zxy",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-aoc33zxy/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_source_admission_security",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_http"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/source-admission-green/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-jfdfh7gv",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-jfdfh7gv/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_source_admission_security",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_http",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_processes"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/source-admission-verified/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0ds4m460",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-0ds4m460/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_source_admission_security",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_http",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_processes",
+            "multiplayer.master_server.tests.test_security_capacity",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_security_scan_20261025_directory"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/donor-security-cmake/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-6cd0usrm",
+      "scratch_removed": true,
+      "commands": []
+    },
+    {
+      "report": "build/test-results/donor-security-final/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_oohd5qe",
+      "scratch_removed": true,
+      "commands": []
+    },
+    {
+      "report": "build/test-results/donor-security-windows/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-m0bwi2ic",
+      "scratch_removed": true,
+      "commands": []
+    },
+    {
+      "report": "build/test-results/donor-security-windows-cdrive/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-9xgvbazx",
+      "scratch_removed": true,
+      "commands": []
+    },
+    {
+      "report": "build/test-results/donor-security-windows-verified/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-hgc7v8f4",
+      "scratch_removed": true,
+      "commands": []
+    }
+  ],
+  "source_sha256": {
+    "multiplayer/master_server/service.py": "23ea2f6fd81e0655460a5b58aca7bb0718dc83fa15bede8c9a8077e05626b99d",
+    "multiplayer/master_server/steam_login.py": "a699c0eb8ea0b18b0f63f731a334516d8915599eee49070e2a2dabbcbcfde608",
+    "multiplayer/master_server/request_admission.py": "86c29230d1be01ce6bca34857a24c8ed683dbffe16209ad493b2678870ce22c2",
+    "multiplayer/master_server/tests/test_source_admission_security.py": "566c57e5959b5b98877317f48bd019fa982e3f5de7d02e65034ab26ddd5ba58b",
+    "tools/donor_tree.py": "7200c3983ab36eebb36f13868f265cc74a84468e23bd0a451f037fcb6b1bb627",
+    "tools/audit_rendering.py": "9c16fcc8387d3d67d7dfb8e624c8601586df71c6e4e5e2e376495d6e852574d2",
+    "tools/prepare_mcc_gameplay.py": "dd08d93586f7b1db39d41f4f72499474c05fabfca75ceec23faff8a9f6a9d203",
+    "tools/setup_assets.py": "9ca9b13ab04d530dcec5893fde8bb9ec816c673dc1e1ead7205d7e6fbb47d36e",
+    "tests/test_donor_tree_security.py": "991b4fe5efaab62ddf177f872c215953d3e7b1901f87345536236ba7e2777e1c",
+    "tests/test_mcc_source_inventory.py": "abdb7d6aaf7e7518f1ddc6181bd9f6500aca73c0956f1e562de7d368262773f8",
+    "tests/test_setup_assets.py": "56a785bb391d4b8b6d54252c3c1414f75448047a00de93bae0b7df75629f15a1",
+    "tests/test_mcc_gameplay_preparation.py": "214113474e6ff5e282ff7a28c628e4c9fd35af94b690f2effe4092a8c99f9cce",
+    "CMakeLists.txt": "798539681ae526886dec61c2326b7cdffdd21f9b5764bfef19a0e1ec2ae8d0ed",
+    "multiplayer/docs/security.md": "13603044a9c1094f3a7939c37196f92da2abb0fa44bbf2d68b35dd2621d1b9c5"
+  },
+  "retained_large_artifacts": []
+}

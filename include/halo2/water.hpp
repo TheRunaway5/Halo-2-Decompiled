@@ -28,6 +28,11 @@ struct WaterFrame {
 WaterFrame water_frame(const WaterDefinition &, Vec3 eye, Vec3 forward,
                        float vertical_fov, float viewport_aspect,
                        bool anamorphic = false);
+// Camera+0x30 bank used by the submitting scene projection: top, left,
+// bottom, right in physical pixels. HUD/widget coordinates are not this bank.
+WaterFrame water_frame(const WaterDefinition &, Vec3 eye, Vec3 forward,
+                       float vertical_fov, const std::array<std::int16_t,4> &camera_outer,
+                       bool anamorphic = false);
 Vec3 water_world_position(const WaterFrame &, Vec3 local);
 // Retail352E0 mode1 samples the active color target four times. 34100 offsets
 // by a quarter destination pixel mapped through the source/destination ratio.

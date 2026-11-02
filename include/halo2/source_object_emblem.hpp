@@ -23,4 +23,9 @@ std::array<Vec3,2> source_player_emblem_colors(const SourcePlayerConfiguration &
 ObjectColors source_player_appearance_colors(const SourcePlayerConfiguration &,
     std::int16_t team,bool neutral,std::span<const std::array<std::uint32_t,3>> palette,
     std::span<const std::array<std::uint32_t,3>> team_palette);
+// Multiplayer presentation resolves the original producer's arguments from
+// the match mode and accepted membership for live and detached player bodies.
+ObjectColors source_multiplayer_player_colors(const SourcePlayerConfiguration &,
+    bool team_mode,std::int16_t membership,std::span<const std::array<std::uint32_t,3>> palette,
+    std::span<const std::array<std::uint32_t,3>> team_palette);
 }

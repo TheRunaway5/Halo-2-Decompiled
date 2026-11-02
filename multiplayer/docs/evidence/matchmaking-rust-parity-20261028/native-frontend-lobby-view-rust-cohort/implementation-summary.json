@@ -1,0 +1,629 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_LOBBY_VIEW_RUST_V1",
+  "goal_turn": "progress",
+  "goal_status": "active",
+  "component_passed": true,
+  "full_goal_complete": false,
+  "original_whole_system_parity": false,
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_frontend_lobby_view.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.rs",
+  "native_io": "src/ui/frontend_lobby_game_bridge.cpp",
+  "native_abi_adapter": "src/ui/frontend_lobby.cpp",
+  "policy": {
+    "lobby_presentation_and_quick_options_owned_by_rust": true,
+    "cpp_kernel_policy_fallback": false,
+    "unsafe_core_rust": false,
+    "guarded_optional_bindings_preserved": true,
+    "signed_full_width_scalars_and_opaque_bytes_preserved": true,
+    "authored_holes_duplicates_first_choice_and_override_before_guard_preserved": true,
+    "native_io_order_and_exception_identity_preserved": true,
+    "actual_gameplay_defaults_remain_native_typed_io": true
+  },
+  "rust": {
+    "counts": {
+      "matchmaking_service": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      },
+      "online_protocol": {
+        "passed": 568,
+        "failed": 0,
+        "ignored": 2
+      },
+      "online_protocol_bridge": {
+        "passed": 65,
+        "failed": 0,
+        "ignored": 2
+      }
+    },
+    "total_passed": 653,
+    "new_controls": 12,
+    "existing_ignored": 4,
+    "suite_passed": true,
+    "report": "rust/report.json",
+    "shared_native_rust_input_count": 257,
+    "shared_native_rust_input_mismatches": []
+  },
+  "build_helper": {
+    "passed": true,
+    "command": [
+      "python3",
+      "tools/run_test.py",
+      "--scratch-root",
+      ".local/test-scratch/frontend-lobby-view-build-helper-20261102",
+      "--",
+      "python3",
+      "-B",
+      "tests/test_build_online_protocol_rust.py"
+    ],
+    "tests": 7,
+    "exit_code": 0,
+    "source_pins": {
+      "tools/build_online_protocol_rust.py": "37fe22ad3ca85fa0c37a940cff18b08df76f1a81ee71415017c4a42744f775b8",
+      "tests/test_build_online_protocol_rust.py": "c91253430fdfcf828fc8a33891f35f9bce560ec12fdf60ebf7186e1c205551b7"
+    },
+    "scratch_parent_empty": true,
+    "retained_large_artifacts": []
+  },
+  "modern_comparison": {
+    "passed": true,
+    "cases": 5927,
+    "native_io_observations": 1176,
+    "production_adapter_comparisons": 387,
+    "fault_controls": 14,
+    "preserved_native_exception_identity": 14,
+    "differences": [],
+    "native_sha256": "c7e4fabedf7caa275bc4531a47515b37267ee81ff5c38785b6b6a5d2fefb5374",
+    "scope": "Captured modern C++ lobby kernels versus actual Rust/CXX policy and IO.\n\nNative cache/query facts are controlled. Original executable cases have their\nown unchanged fixture comparators. This does not certify the installed client,\nhistorical Live producers or full OG framebuffer parity.\n"
+  },
+  "fresh_original": {
+    "passed": true,
+    "steps": [
+      {
+        "command": [
+          "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz/source/analysis/frontend/lobby/oracle-game-panel.py"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz/source/analysis/frontend/lobby/oracle-header-policy.py"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz/source/unknown-choice.py",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz/source/analysis/frontend/lobby/oracle-game-panel.py",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz/source/unknown-choice.json"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "unknown_choice": {
+      "engine": 0,
+      "ordinal": 1,
+      "parameter": 10,
+      "stored_value": 8,
+      "custom": 1,
+      "text": "Round Time Limit: ",
+      "lookups": [
+        [
+          "e6340414",
+          "160018ed",
+          "Round Time Limit"
+        ]
+      ],
+      "original_functions": [
+        "19d220",
+        "2373be",
+        "2374f0",
+        "25092c"
+      ],
+      "supplied_native_formatter": false,
+      "passed": true
+    },
+    "fixtures": {
+      "frontend-lobby-game-original.tsv": {
+        "unchanged": false,
+        "reference_sha256": "82c6f2d4827063e3b2ca7d1695973b9f79f55a324677b1e80ed6f824122a8577",
+        "fresh_sha256": "f42006a39bb4a97cd0ecb3bd838005b5a670d009e526b489e60155611ca039d9",
+        "rows": 1217,
+        "semantic_lines_equal": false,
+        "unchanged_except_independently_executed_unknown_choice": true
+      },
+      "frontend_lobby_header_original.tsv": {
+        "unchanged": true,
+        "reference_sha256": "074c5625c96e0f7534efdd572212c18cb02bcd425adaf3d6e6854dd21a6b8900",
+        "fresh_sha256": "074c5625c96e0f7534efdd572212c18cb02bcd425adaf3d6e6854dd21a6b8900",
+        "rows": 1172,
+        "semantic_lines_equal": true
+      }
+    },
+    "source_pins": {
+      "analysis/frontend/lobby/oracle-game-panel.py": "e0e85d989bfb837e40e93905aed4ac0af99ac10374c1906e908475e4750998b3",
+      "analysis/frontend/lobby/oracle-header-policy.py": "d2c71c6aab5fcf71910361ce277d351c3ec4ce89703e3d916eb529a144c82480",
+      "analysis/frontend/lobby/game-panel-original.json": "0cc741844dd4df49d13e278f2db3da1d3e14762d5d2a96b5f174aa2051a9f4bd"
+    },
+    "originals": {
+      "assets/disc/default.xbe": {
+        "sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+        "bytes": 4861952
+      },
+      "assets/disc/maps/mainmenu.map": {
+        "sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+        "bytes": 59670016
+      }
+    },
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102/halo2-test-_480n_oz",
+    "version": "Pinned supplied retail Xbox executable; this receipt does not relabel it as TU1.5",
+    "retained_large_artifacts": []
+  },
+  "native_linkage": {
+    "passed": true,
+    "single_policy_translation_unit": true,
+    "compile_owner": "halo2_frontend_lobby_view",
+    "command": [
+      "nm",
+      "-C",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/build/libhalo2_frontend_lobby_view.a"
+    ],
+    "sha256": "5a37939061d3264e121161b7db07f3d5311ae24271938524aba37ef29f9d6740",
+    "bytes": 32882,
+    "required_rust_entries": [
+      "session",
+      "pane",
+      "protocol",
+      "presentation",
+      "variant_type",
+      "game_icon",
+      "quick_category",
+      "difficulty",
+      "help",
+      "player_count",
+      "player_count_string",
+      "default_value",
+      "quick_options"
+    ],
+    "missing": [],
+    "undefined_rust_entry_observations": [
+      "                 U halo2::online_protocol_bridge::lobby_view_pane(int, int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_session(halo2::online_protocol_bridge::LobbyViewSession const&)",
+      "                 U halo2::online_protocol_bridge::lobby_view_protocol(int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_presentation(halo2::online_protocol_bridge::LobbyViewInput const&)",
+      "                 U halo2::online_protocol_bridge::lobby_view_help(int, int, int, int, int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_game_icon(int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_difficulty(short)",
+      "                 U halo2::online_protocol_bridge::lobby_view_player_count(int, int, int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_variant_type(unsigned int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_default_value(unsigned int, unsigned int, halo2::online_protocol_bridge::NativeFrontendLobbyViewIo const&)",
+      "                 U halo2::online_protocol_bridge::lobby_view_quick_options(unsigned int, rust::cxxbridge1::Slice<unsigned char const>, unsigned long, halo2::online_protocol_bridge::NativeFrontendLobbyViewIo const&)",
+      "                 U halo2::online_protocol_bridge::lobby_view_quick_category(int)",
+      "                 U halo2::online_protocol_bridge::lobby_view_player_count_string(int)"
+    ],
+    "scope": "Actual CMake archive imports the thirteen Rust policy entries; this is component linkage proof, not installed client delivery",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-linkage-20261102/halo2-test-3l7p959x",
+    "retained_large_artifacts": []
+  },
+  "native": {
+    "validation_configuration": "Release with native C++ -O1 -DNDEBUG, Rust release defaults, two build jobs and one test job",
+    "interrupted_previous_cohort": "native-interruption.json",
+    "passing_checks": [
+      {
+        "name": "frontend_party_cpp_rust",
+        "seconds": 0.3
+      },
+      {
+        "name": "frontend_lobby_view_cpp_rust",
+        "seconds": 0.24
+      },
+      {
+        "name": "frontend_party_flow_cpp_rust",
+        "seconds": 0.54
+      },
+      {
+        "name": "frontend_presentation_cpp_rust",
+        "seconds": 0.19
+      },
+      {
+        "name": "frontend_progress_cpp_rust",
+        "seconds": 0.19
+      },
+      {
+        "name": "frontend_search_cpp_rust",
+        "seconds": 0.99
+      },
+      {
+        "name": "frontend_lobby_cpp_rust",
+        "seconds": 0.28
+      },
+      {
+        "name": "original_game_variant_write_order",
+        "seconds": 0.59
+      },
+      {
+        "name": "rust_frontend_clans_http",
+        "seconds": 4.54
+      },
+      {
+        "name": "rust_frontend_lobby_blocked",
+        "seconds": 84.83
+      },
+      {
+        "name": "rust_frontend_lobby_complete",
+        "seconds": 86.24
+      },
+      {
+        "name": "rust_frontend_lobby_rendered",
+        "seconds": 114.53
+      },
+      {
+        "name": "frontend_online_identity",
+        "seconds": 2.85
+      },
+      {
+        "name": "frontend_online_lobby_buttons",
+        "seconds": 7.09
+      },
+      {
+        "name": "frontend_online_lobby_legacy_countdown",
+        "seconds": 1.29
+      },
+      {
+        "name": "frontend_online_lobby_blocked_playlist",
+        "seconds": 1.09
+      },
+      {
+        "name": "frontend_online_lobby_complete_playlist",
+        "seconds": 6.49
+      },
+      {
+        "name": "frontend_online_lobby_buttons_gpu",
+        "seconds": 32.79
+      },
+      {
+        "name": "frontend_matchmaking_http",
+        "seconds": 44.81
+      },
+      {
+        "name": "frontend_matchmaking_gathering_http",
+        "seconds": 44.67
+      },
+      {
+        "name": "frontend_clans_http",
+        "seconds": 3.54
+      },
+      {
+        "name": "frontend_parties_http",
+        "seconds": 31.85
+      },
+      {
+        "name": "mcc_frontend_parties_http",
+        "seconds": 33.39
+      },
+      {
+        "name": "retail_frontend_lobby",
+        "seconds": 0.39
+      },
+      {
+        "name": "retail_frontend_lobby_policy",
+        "seconds": 0.08
+      },
+      {
+        "name": "retail_frontend_lobby_game",
+        "seconds": 0.13
+      },
+      {
+        "name": "original_party_countdown_kernels",
+        "seconds": 0.09
+      }
+    ],
+    "passing_count": 27,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "all_requested_checks_passed": true,
+    "frozen_inputs_intact": true,
+    "declared_changed_files": 21,
+    "declared_changes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "718763ddae6a1668a1bd151c5dbac703ec94c218bdc3a24489c1352a99ebade7",
+        "after": "359200cdefefb7ae605bb437c51492f73f2c2426c53621bb6cdcbe288d8a44f1"
+      },
+      {
+        "path": "cmake/OnlineProtocolRust.cmake",
+        "before": "85018512390348d1db3358578a224ad2a5587192bdffeea1c37cb8cc90348d44",
+        "after": "0eb9fa4ab89ec72c089656e4e9cc929664629962fd423effcf5941ab6c60aa57"
+      },
+      {
+        "path": "include/halo2/frontend_lobby_game.hpp",
+        "before": "6cbf2d31a43668ccb06ff59907a691640da7d1fb9de1405967b3db2048fa1b44",
+        "after": "851f585c06e715b71e57d1fb95d85d5656985f4a5565421c296cce27ad2a7135"
+      },
+      {
+        "path": "rust/online_protocol/src/lib.rs",
+        "before": "fdc674127fde30440139cab5a73993607d93d0d38a501d1e69b018cb95fd4196",
+        "after": "76e3f0e3608abbb55a44142a36ea032ece37ecd127ad77782894b4eced525736"
+      },
+      {
+        "path": "rust/online_protocol/src/matchmaking_frontend_lobby_view.rs",
+        "before": null,
+        "after": "3d92a4644218ce61025072c8549810aef16d9e6753b721e9f8f594d23ee296de"
+      },
+      {
+        "path": "rust/online_protocol/tests/matchmaking_frontend_lobby_view.rs",
+        "before": null,
+        "after": "2e383edba6ef6ea99fd897c553c774e96f8b49a4054a1c6e9dbe9a326cf04b8a"
+      },
+      {
+        "path": "rust/online_protocol_bridge/build.rs",
+        "before": "7533af0f1e0bd1a5299a0aeceaca095707a41748f4b0ac207780cd7de98e95d2",
+        "after": "9274de6775db5278599bdbcde43601c793d84c2c4b8e86b83c954ffdf28f2eed"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/lib.rs",
+        "before": "a448104284f484390e0481d9c1f4325a6d0cabe5c8fcff239e581cf8f3894001",
+        "after": "01752226f4f6da77f8dba55c49064bdf574912f2d0168337249ad1ac28b7e120"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.hpp",
+        "before": null,
+        "after": "c6d15ea77cb1f080c2664ba46263c3cc54ae70e6d38b269f923122676d18b8ef"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.rs",
+        "before": null,
+        "after": "1089381cd27c270442fc0e624ed23e24651759d9fdbc37de1ac9d5e6dbf55de9"
+      },
+      {
+        "path": "src/ui/frontend_lobby.cpp",
+        "before": "051db86581c171a7e3c6189f28456f03b37c8ebc0af58743b91d22e6db9e5f5b",
+        "after": "89c13a70b98b0954f26711fe4af10c67e83b83b9bdcbafc27f2c4507b8ab8a24"
+      },
+      {
+        "path": "src/ui/frontend_lobby_game_bridge.cpp",
+        "before": null,
+        "after": "ff701ba284835584036f4899bb016961d43625305586e7a9d2862fe5ec8348a3"
+      },
+      {
+        "path": "tests/frontend_lobby_game_tests.cpp",
+        "before": "cde8b133c4c27413921bb5bd0fc83e9af229d4aa85d0cad44a7d7a05208a4d6d",
+        "after": "f7cb2afcb0dc7c0dedf1f4938d97512408d4bad80f7578fec33375807483dd86"
+      },
+      {
+        "path": "tests/generate_frontend_lobby_view_reference.py",
+        "before": null,
+        "after": "314d74de1dcfdb56511a9c810d059c1c17597ef2aac45134de8916a09f7d1d09"
+      },
+      {
+        "path": "tests/native_frontend_lobby_view_rust_tests.cpp",
+        "before": null,
+        "after": "524e3424367f513b0db786a138ca2eeed4cc4601dbdcae4aa17dceed9de07927"
+      },
+      {
+        "path": "tests/reference/frontend_party_lobby_view_before_rust_20261102/provenance.json",
+        "before": "b4528a619d1958acd1dd3fc5f0ba2fd634093bbf3a985f7253f0447924b0a6ec",
+        "after": "6173475cefd53c9aba92f07684fcd9eeb7984f2b8c3442cefb811c5822dc7218"
+      },
+      {
+        "path": "tests/reference/frontend_party_lobby_view_before_rust_20261102/variant_write_order_tests.cpp.reference",
+        "before": null,
+        "after": "1bfb5ca1eba34541580686239e9574a6d237af3647beff4e9615e4b76c183b00"
+      },
+      {
+        "path": "tests/test_build_online_protocol_rust.py",
+        "before": "6154c815fcf9fdbc67df2583dd88638a1e22b7745279a0c400bb31edd6ece015",
+        "after": "c91253430fdfcf828fc8a33891f35f9bce560ec12fdf60ebf7186e1c205551b7"
+      },
+      {
+        "path": "tests/test_native_frontend_lobby_view_rust.py",
+        "before": null,
+        "after": "c6dd0933088f2054472111b81c4b3fadc75e0c10e2f5e000f01361a9730613e9"
+      },
+      {
+        "path": "tests/variant_write_order_tests.cpp",
+        "before": "1bfb5ca1eba34541580686239e9574a6d237af3647beff4e9615e4b76c183b00",
+        "after": "cfe829432aee451c79e1f0d46e5d176b41940389e366134da33c61320bb9cd38"
+      },
+      {
+        "path": "tools/build_online_protocol_rust.py",
+        "before": "54ae081ada86748eb89ebcfb0d120fbe1c8248b394a829507996d1c86cab56cb",
+        "after": "37fe22ad3ca85fa0c37a940cff18b08df76f1a81ee71415017c4a42744f775b8"
+      }
+    ],
+    "actual_sdl_vulkan_privacy_playlist_start_passed": true,
+    "vulkan_party_pixel_controls": [
+      1,
+      2
+    ],
+    "party_fixture_zero_429_checks": 2,
+    "full_native_matchmaking_and_gathering_flows_passed": true,
+    "binaries": {
+      "frontend_online_tests": {
+        "sha256": "ecd1bca97380690873cb2d59f2af1442bd03efbd4672adac7bfa35e08b04b9af",
+        "bytes": 221022032
+      },
+      "frontend_online_lobby_buttons_tests": {
+        "sha256": "b8d1e1403462d06720d08659dce4091a250ab4456d0fb939010b1a40c3cb98fc",
+        "bytes": 221804160
+      },
+      "native_frontend_party_rust_tests": {
+        "sha256": "01c77f98d9830b3ebc62737edd9e324bf8a35832d71713cbb63487389c560332",
+        "bytes": 26110288
+      },
+      "native_frontend_presentation_rust_tests": {
+        "sha256": "53d429f43498bd227c6da160fb8aa185a31163f846701184742de86d18095e9d",
+        "bytes": 26067816
+      },
+      "native_frontend_progress_rust_tests": {
+        "sha256": "553516e9ac917e403825288cd27061af7a2a602a28d9b3cdcc54799bc099fcd8",
+        "bytes": 26084488
+      },
+      "native_frontend_search_rust_tests": {
+        "sha256": "4ee6ec895fcfe6b13bbcfe91c711e90ab0f0af3286a08d48aa2bdc803566dfca",
+        "bytes": 26228904
+      },
+      "frontend_matchmaking_lobby_rust_tests": {
+        "sha256": "de4109e086238fccc66b8ae7147e7ae03922ad43be5eb50fdd5351d144c1de29",
+        "bytes": 26073512
+      },
+      "frontend_lobby_policy_tests": {
+        "sha256": "645901bb7e4082041d892b25dff1b5d3d79babf1c6f0e5458ad8d02a4ce9d228",
+        "bytes": 25829792
+      },
+      "party_countdown_kernel_tests": {
+        "sha256": "af228f9565f041622044b5d082e3614d1cdf58e56463a1693b9af40204a2313a",
+        "bytes": 25938544
+      },
+      "native_frontend_party_flow_rust_tests": {
+        "sha256": "daa4cb3afa1a7a106de6e157874946577849e73b7007c7818e73918791f34bf2",
+        "bytes": 26243720
+      },
+      "native_frontend_lobby_view_rust_tests": {
+        "sha256": "c7e4fabedf7caa275bc4531a47515b37267ee81ff5c38785b6b6a5d2fefb5374",
+        "bytes": 26086888
+      },
+      "frontend_lobby_game_tests": {
+        "sha256": "078ffefdf7b9e8da70aee099217b197f51e9d5a09cc9b1e3f788743d919a4cbe",
+        "bytes": 37525008
+      },
+      "variant_write_order_tests": {
+        "sha256": "a80fb7fab03ddf939f3f236e8eb59a4194a515a5838ccf06d377dafc54c6da43",
+        "bytes": 189816168
+      },
+      "frontend_lobby_tests": {
+        "sha256": "a8510cb9263a493e00437871d6300d8d887fb1210e714e667589a81e7bbd5157",
+        "bytes": 190825632
+      }
+    },
+    "final_report": "native-restart/iteration-1-report.json",
+    "baseline_report": "native/iteration-1-report.json",
+    "baseline_coverage_counter_failure_kept": true
+  },
+  "sources": {
+    "scoped_pins": {
+      "cmake/OnlinePeers.cmake": "359200cdefefb7ae605bb437c51492f73f2c2426c53621bb6cdcbe288d8a44f1",
+      "cmake/OnlineProtocolRust.cmake": "0eb9fa4ab89ec72c089656e4e9cc929664629962fd423effcf5941ab6c60aa57",
+      "include/halo2/frontend_lobby_game.hpp": "851f585c06e715b71e57d1fb95d85d5656985f4a5565421c296cce27ad2a7135",
+      "rust/online_protocol/src/lib.rs": "76e3f0e3608abbb55a44142a36ea032ece37ecd127ad77782894b4eced525736",
+      "rust/online_protocol/src/matchmaking_frontend_lobby_view.rs": "3d92a4644218ce61025072c8549810aef16d9e6753b721e9f8f594d23ee296de",
+      "rust/online_protocol/tests/matchmaking_frontend_lobby_view.rs": "2e383edba6ef6ea99fd897c553c774e96f8b49a4054a1c6e9dbe9a326cf04b8a",
+      "rust/online_protocol_bridge/build.rs": "9274de6775db5278599bdbcde43601c793d84c2c4b8e86b83c954ffdf28f2eed",
+      "rust/online_protocol_bridge/src/lib.rs": "01752226f4f6da77f8dba55c49064bdf574912f2d0168337249ad1ac28b7e120",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.hpp": "c6d15ea77cb1f080c2664ba46263c3cc54ae70e6d38b269f923122676d18b8ef",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.rs": "1089381cd27c270442fc0e624ed23e24651759d9fdbc37de1ac9d5e6dbf55de9",
+      "src/ui/frontend_lobby.cpp": "89c13a70b98b0954f26711fe4af10c67e83b83b9bdcbafc27f2c4507b8ab8a24",
+      "src/ui/frontend_lobby_game_bridge.cpp": "ff701ba284835584036f4899bb016961d43625305586e7a9d2862fe5ec8348a3",
+      "tests/frontend_lobby_game_tests.cpp": "f7cb2afcb0dc7c0dedf1f4938d97512408d4bad80f7578fec33375807483dd86",
+      "tests/generate_frontend_lobby_view_reference.py": "314d74de1dcfdb56511a9c810d059c1c17597ef2aac45134de8916a09f7d1d09",
+      "tests/native_frontend_lobby_view_rust_tests.cpp": "524e3424367f513b0db786a138ca2eeed4cc4601dbdcae4aa17dceed9de07927",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend.hpp.reference": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.cpp.reference": "051db86581c171a7e3c6189f28456f03b37c8ebc0af58743b91d22e6db9e5f5b",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.hpp.reference": "6bcf8746c721badd78946e96613f699b4e7f63f91209635e3b7eaaa2b1e61a13",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game.hpp.reference": "6cbf2d31a43668ccb06ff59907a691640da7d1fb9de1405967b3db2048fa1b44",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game_tests.cpp.reference": "cde8b133c4c27413921bb5bd0fc83e9af229d4aa85d0cad44a7d7a05208a4d6d",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_policy_tests.cpp.reference": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_party.cpp.reference": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/provenance.json": "6173475cefd53c9aba92f07684fcd9eeb7984f2b8c3442cefb811c5822dc7218",
+      "tests/reference/frontend_party_lobby_view_before_rust_20261102/variant_write_order_tests.cpp.reference": "1bfb5ca1eba34541580686239e9574a6d237af3647beff4e9615e4b76c183b00",
+      "tests/test_build_online_protocol_rust.py": "c91253430fdfcf828fc8a33891f35f9bce560ec12fdf60ebf7186e1c205551b7",
+      "tests/test_native_frontend_lobby_view_rust.py": "c6dd0933088f2054472111b81c4b3fadc75e0c10e2f5e000f01361a9730613e9",
+      "tests/variant_write_order_tests.cpp": "cfe829432aee451c79e1f0d46e5d176b41940389e366134da33c61320bb9cd38",
+      "tools/build_online_protocol_rust.py": "37fe22ad3ca85fa0c37a940cff18b08df76f1a81ee71415017c4a42744f775b8"
+    },
+    "source_pin_report": "implementation-source-pins.json",
+    "before_cpp_capture": "tests/reference/frontend_party_lobby_view_before_rust_20261102/provenance.json",
+    "lobby_policy_test_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae"
+  },
+  "storage": {
+    "owned_scratch_removed": true,
+    "cleanup_report": "cleanup.json",
+    "retained_large_artifacts": [],
+    "required_small_reference_inputs": "tests/reference/frontend_party_lobby_view_before_rust_20261102"
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "remaining": [
+    "Native party menu/text selection, lobby query/roster producers, account-refresh/party-join/departure and voice-intent decisions, plus every remaining matching-related C++/Python policy/state",
+    "Complete original callers and native identity/seat/voice/selectability producers, TU1.5 version boundaries, historical profiles/service ordering and arbitration for all 53 owners",
+    "Every required family/profile/topology/unshortened natural outcome, departure/host continuity, results/PCR/return/requeue route",
+    "Genuine providers, physical installed Linux input, delivered client/library/service/catalog/feature identities and restart/retry/configuration/rollback acceptance; all 12 GAP and G01-G12 criteria"
+  ],
+  "documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "7e40112d8f9f16c9aadfaabee51fbac971b44152738cf2abf88b709ef8cf65e4",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "1e4f17ca870e0df1ce079fc10ed39bce823e17e27aae82f3c4ea7b7d971477c0",
+    "rust/online_protocol/README.md": "c0f66a41391da10ce06ce3d74d921028a0ee19626a2d63356e783dc04e53b7a8"
+  },
+  "fixture_corrections": {
+    "corrections": [
+      {
+        "stage": "native-component/native-compile",
+        "failure": "Frozen one-off harness omitted the gameplay descriptor include and src include root",
+        "fix": "Freeze source_game_variant_descriptors.inc and compile with -Isrc",
+        "production_changed": false
+      },
+      {
+        "stage": "native/iteration-2/original_game_variant_write_order",
+        "failure": "Frozen borrowed asset path was a symlink rejected by confined shared-resource IO",
+        "fix": "Test canonicalizes its trusted fixture directory; production guard unchanged",
+        "production_changed": false
+      },
+      {
+        "stage": "variant-real-resource-route",
+        "failure": "Old positive fixture includes an unsupported native extension and expects native gameplay admission",
+        "fix": "Preserve two opaque metadata load/save/reload checks and exact native refusal; retain positive signed-in saved-variant launch/edit/reload for supported metadata",
+        "production_changed": false
+      }
+    ],
+    "preexisting_fixture_issue": {
+      "fixture": "tests/fixtures/frontend-lobby-game-original.tsv",
+      "reference_rows": 1217,
+      "quick_rows": 71,
+      "old_comparator_expected_quick_rows": 70,
+      "fixture_changed": false,
+      "original_unknown_choice_proof": "original-qualified/unknown-choice.json",
+      "comparator_expected_quick_rows": 71
+    }
+  },
+  "production_guards_unchanged": {
+    "passed": true,
+    "guards": {
+      "include/halo2/confined_file.hpp": {
+        "before": "03e07373e2c2bf068e35c74679b5cb71333b70e170f5c5f3db42fdbd1585a9a5",
+        "current": "03e07373e2c2bf068e35c74679b5cb71333b70e170f5c5f3db42fdbd1585a9a5",
+        "unchanged": true
+      },
+      "src/gameplay/multiplayer/custom_slayer.cpp": {
+        "before": "a9d5711cef3ed873f5fa1563a26d6e2138f1496377e374dfc0999d615cddfde0",
+        "current": "a9d5711cef3ed873f5fa1563a26d6e2138f1496377e374dfc0999d615cddfde0",
+        "unchanged": true
+      },
+      "src/gameplay/multiplayer/multiplayer.cpp": {
+        "before": "1e50d0895e59466025292f7ca6b5a6dd6b4cb0831acfd774acae7b6b34612643",
+        "current": "1e50d0895e59466025292f7ca6b5a6dd6b4cb0831acfd774acae7b6b34612643",
+        "unchanged": true
+      }
+    },
+    "scope": "Actual native source guards are byte-identical across the interrupted and restarted cohorts"
+  }
+}

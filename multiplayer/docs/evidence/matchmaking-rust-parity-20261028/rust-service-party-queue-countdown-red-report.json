@@ -1,0 +1,56 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-hcm1b7sr/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-hcm1b7sr",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-hcm1b7sr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-hcm1b7sr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-hcm1b7sr/cargo/release/halo2-matchmaking-service",
+    "bytes": 9023448,
+    "sha256": "12e4c9aee561c03b7b1d3fa95f69bb0535dbafd81828dfd9b067e9ba28ec87d7",
+    "retained": false
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ],
+  "error": "('GET', '/v1/party/countdown', 429, {'error': 'Rate limit exceeded', 'fields': ['error']})"
+}

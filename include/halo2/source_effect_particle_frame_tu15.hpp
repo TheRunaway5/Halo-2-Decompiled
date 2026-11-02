@@ -8,6 +8,10 @@ namespace halo2 {
 // its arena carve and checksum follow the original source instructions.
 // Whole3F3E0 publishes the completed portal collector's visible-cluster
 // union. The frame reset and native173130 input publication are callers.
+// Whole17E160 completes18F9B0's mode3 looping-sound effect location with
+// its actual WORLD or encoded first-person node and caller-owned outputs.
+// Whole230B10 completes mode2 from the actual physics source/component,
+// rigid-body or object-marker position, location and authored control.
 bool source_effect_particle_frame_tu15_owns_entry(std::uint32_t);
 void source_run_effect_particle_frame_tu15(SourcePhysicsContactMemory &,std::uint32_t,
     SourcePhysicsWorldRuntimeAbi &,SourcePhysicsFactoryFloatingPoint,

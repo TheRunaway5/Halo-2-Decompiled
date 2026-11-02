@@ -4,10 +4,13 @@ No installed MCC files are needed. These controls exercise the same bounded
 enumeration, saved stat rows and verified-copy seam used by first-run import.
 """
 import hashlib
+from contextlib import contextmanager
 import os
 from pathlib import Path
 import sys
 import tempfile
+import threading
+import shutil
 import unittest
 from unittest.mock import patch
 
@@ -124,19 +127,19 @@ class MccSourceInventoryTests(unittest.TestCase):
     def test_modification_while_copying_is_rejected(self):
         path = self.write('game.cfg', b'a' * 128)
         files, _ = preparation.source_files(self.source)
-        original_open = Path.open
+        original_open = preparation.DonorTree.open_file
         mutated = []
 
         def mutation():
             path.write_bytes(b'b' * 129)
             mutated.append(True)
 
-        def opened(candidate, *arguments, **keywords):
-            stream = original_open(candidate, *arguments, **keywords)
-            mode = arguments[0] if arguments else keywords.get('mode', 'r')
-            return MutatingReader(stream, mutation) if candidate == path and mode == 'rb' else stream
+        @contextmanager
+        def opened(tree, relative, expected):
+            with original_open(tree, relative, expected) as stream:
+                yield MutatingReader(stream, mutation) if relative == Path('game.cfg') else stream
 
-        with patch.object(Path, 'open', opened):
+        with patch.object(preparation.DonorTree, 'open_file', opened):
             with self.assertRaisesRegex(FormatError, 'MCC source changed during copy: game.cfg'):
                 self.copy(files)
         self.assertEqual(mutated, [True])
@@ -150,6 +153,66 @@ class MccSourceInventoryTests(unittest.TestCase):
             self.skipTest('Creating fixture symlinks is unavailable: ' + str(error))
         with self.assertRaisesRegex(FormatError, '[Ss]ymlink'):
             preparation.source_files(self.source)
+
+    def test_parallel_copies_overlap_and_retain_exact_bytes_and_order(self):
+        for name in ('a.bin', 'b.bin'):
+            self.write(name, name.encode() * 4096)
+        files, _ = preparation.source_files(self.source)
+        original = preparation.DonorTree.open_file
+        barrier = threading.Barrier(2)
+        readers = set()
+
+        @contextmanager
+        def opened(tree, relative, expected):
+            with original(tree, relative, expected) as stream:
+                readers.add(threading.get_ident())
+                barrier.wait(timeout=3)
+                yield stream
+
+        with patch.object(preparation.DonorTree, 'open_file', opened):
+            records = preparation.copy_verified(self.source, self.target, files,
+                                                 self.messages.append, workers=2)
+        self.assertEqual(len(readers), 2)
+        self.assertEqual(list(records), ['a.bin', 'b.bin'])
+        for name, row in records.items():
+            self.assertEqual((self.target/name).read_bytes(), (self.source/name).read_bytes())
+            self.assertEqual(row['sha256'], hashlib.sha256((self.source/name).read_bytes()).hexdigest())
+        updates = [value for value in self.messages if hasattr(value, 'percent')]
+        self.assertEqual(updates[0].percent, 0)
+        self.assertEqual(updates[-1].percent, 100)
+        self.assertEqual([v.percent for v in updates], sorted(v.percent for v in updates))
+
+    def test_parallel_readback_failure_cannot_report_completion(self):
+        for name in ('a.bin', 'b.bin'):
+            self.write(name, b'original source bytes' * 4096)
+        files, _ = preparation.source_files(self.source)
+        original = Path.open
+
+        def opened(candidate, *args, **kwargs):
+            if candidate == self.target/'a.bin' and args and args[0] == 'rb':
+                candidate.write_bytes(b'bad destination bytes')
+            return original(candidate, *args, **kwargs)
+
+        with patch.object(Path, 'open', opened), \
+                self.assertRaisesRegex(FormatError, 'copied asset hash differs'):
+            preparation.copy_verified(self.source, self.target, files, self.messages.append, workers=2)
+        self.assertFalse(any(getattr(value, 'percent', None) == 100 for value in self.messages))
+        self.assertFalse(any(t.name.startswith('mcc-copy') for t in threading.enumerate()))
+
+    def test_cancelled_parallel_copy_retires_writers_before_owner_cleanup(self):
+        for name in ('a.bin', 'b.bin'):
+            self.write(name, b'x' * (2 * 1024**2))
+        files, _ = preparation.source_files(self.source)
+
+        def stop(update):
+            if getattr(update, 'percent', 0) > 0:
+                raise SystemExit(143)
+
+        with self.assertRaises(SystemExit):
+            preparation.copy_verified(self.source, self.target, files, stop, workers=2)
+        self.assertFalse(any(t.name.startswith('mcc-copy') for t in threading.enumerate()))
+        shutil.rmtree(self.target)
+        self.assertFalse(self.target.exists())
 
     def test_inventory_member_depth_and_byte_budgets_remain_enforced(self):
         self.write('game.cfg', b'a' * 32)

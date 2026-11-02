@@ -1,0 +1,42 @@
+--- include/halo2/frontend.hpp captured-before
++++ include/halo2/frontend.hpp rust-wired
+@@ -19,6 +19,7 @@
+ #include "halo2/online_directory.hpp"
+ #include "halo2/online_matchmaking.hpp"
+ #include "halo2/frontend_matchmaking_progress.hpp"
++#include "halo2/frontend_matchmaking_lobby.hpp"
+ #include "halo2/online_account.hpp"
+ #include "halo2/native_tu15_online_services.hpp"
+ #include "halo2/vista_pcr_screen.hpp"
+@@ -635,7 +636,7 @@
+   bool take_back_refused() { return std::exchange(back_refused_, false); }
+   // Matchmaking pregame lobby START GAME countdown (TU1.5 0x19A78E/0x6E360),
+   // -1 while none runs.
+-  std::int32_t online_lobby_countdown() const { return online_lobby_countdown_; }
++  std::int32_t online_lobby_countdown() const { return online_lobby_.seconds(); }
+   std::string expand(const std::string &) const;
+   std::string profile_name() const;
+   const std::string &signed_in_profile() const { return signed_in_; }
+@@ -802,7 +803,7 @@
+   bool update_online_party_search();
+   // Party A's lobby after matchmaking keeps its hopper (TU1.5 value49a4=2,
+   // +49C8): START GAME searches it again after the lobby countdown.
+-  bool online_lobby_matchmaking_{};
++  FrontendMatchmakingLobby online_lobby_;
+   bool online_lobby_playlist_pending_{};
+   bool online_lobby_create_submitted_{};
+   struct OnlinePrivacyPending {
+@@ -815,11 +816,8 @@
+   void prepare_online_matchmaking_lobby(bool quickmatch);
+   std::string online_lobby_start_error() const;
+   std::shared_ptr<const VistaPcrScreenOwner> online_prior_report_;
+-  std::int32_t online_lobby_countdown_ = -1, online_lobby_countdown_stage_ = -1;
+-  std::uint32_t online_lobby_countdown_clock_{};
+-  std::uint64_t online_lobby_countdown_consumed_{};
+-  std::vector<std::string> online_lobby_countdown_party_;
+-  bool online_lobby_leave_pending_{};
++  online_protocol_bridge::FrontendLobbyFacts online_lobby_facts() const;
++  bool online_lobby_input(unsigned event, int destination=0);
+   void update_online_lobby_leave();
+   void enter_online_matchmaking_lobby();
+   void cancel_online_lobby_countdown();

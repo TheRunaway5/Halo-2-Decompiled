@@ -1,0 +1,57 @@
+{
+  "scope": "Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "targets": [
+    "x86_64-unknown-linux-gnu"
+  ],
+  "lock_sha256": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+  "cxx_version": "1.0.205",
+  "native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "resolved_native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "requested_cxx": "/usr/bin/c++",
+  "requested_cxx_flags": "",
+  "archive": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+  "archive_sha256": "abe14f4c395f7851c68372ae1d667a659a9ae4715b09cf8670558cfa7fdc5d4a",
+  "worker": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/online-protocol/Release/eos_sdk_worker",
+  "worker_sha256": "345907c2ffe90ca16f2d5f1975aaec29a0ecd8f56a3f81230f0ba739f89e399f",
+  "worker_link_flags": "",
+  "header_sha256": {
+    "rust/cxx.h": "bb4eada7adbd269a932009682a12a15f716f0460761430e2b68ea7dab764646c",
+    "halo2-online-protocol-bridge/src/lib.rs.h": "4284b504d5380e397dfe137d3c52f1b04a996d603f8ad0156ba777c6cdbad930",
+    "src/eos_sdk.hpp": "85ccbd3cce12d58d2cc9650307362230c5eb82a08ee2a1567b5c1dfe7ecc9300",
+    "src/matchmaking_client.hpp": "815601da339b4f660101f374e94bbce003c0fc204817e1c691a3590eb11a3a44",
+    "src/matchmaking_native_qos.hpp": "5227724ffe8e222c8345870cc977442ffd188a402aafd901ab3759e83fe001f9",
+    "src/matchmaking_native_session.hpp": "eb9504d271a2288c3c9eaf8328a893e95e43cd1295fb7b1755d3b56f1b0600d5",
+    "src/matchmaking_native_peers.hpp": "96caaad66db4555464f4d5f6f719250c998a088980e8a7fcd4adfea990c3fc6a",
+    "src/matchmaking_native_publication.hpp": "6f28cbd956ee843c58ffb87d84ec729db23a2bd7bafb424050fd1ddb2c91936e",
+    "src/matchmaking_native_preparation.hpp": "b13720655ec857890d29fa6e7cc458564932102749b21248940f8a0eadfbb98a",
+    "src/matchmaking_native_exchange.hpp": "80571cffd80f4ea8b56aa99f718e66dbc8d4c2fbc04775cbade40b1aa3afd597",
+    "src/peer_snapshot_candidate.hpp": "05d492aee791aa6934f5333548cad31e01975a8fb0d2388b2853cd563ce0ccbc",
+    "src/matchmaking_native_receive.hpp": "e423fe9bc39877396fbb7962da35136590b6aacbab6de936cf3237bfaee4030f",
+    "src/matchmaking_native_access.hpp": "439720cc9639e8bd71fa11df863d1c0a7411c1462817e2cac115010307a04163",
+    "src/matchmaking_native_migration.hpp": "b511e2673cb878fd4133b317f30fd38d68169c39b060ac70a0551f99d7a7a55a",
+    "src/matchmaking_native_api.hpp": "b1c1cb774a25b65cf74d7a04234d1181d810b271442e375fd5bc35099db15593",
+    "src/matchmaking_account_client.hpp": "b2b70aace6af82c89e2d230c7fc69a8cb07ffff6a2a7afb328f264fbd501d56a"
+  },
+  "cargo_target_dir": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/online-protocol/Release/cargo"
+}

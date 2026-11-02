@@ -1,0 +1,133 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_NATIVE_STEAM_BUDGET_CASES=all"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "online_login_probe",
+        "rust_service_steam_invite_probe"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^rust_native_steam_budget_http$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1880,
+      "sha256": "0338b3c2e863303063c3e88b2cd463f9fb6ff23dc87d13fc5d1cd47985e71ae6",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-native-budget/report.json",
+      "status": "retained",
+      "bytes": 3359,
+      "sha256": "2bf187f466a72c7c81f2c97f86099c42be2cf1e0c578d03cfc694a662be23a37",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-native-budget/report.json"
+    },
+    {
+      "path": "rust-native-budget/source-manifest.json",
+      "status": "retained",
+      "bytes": 17481,
+      "sha256": "40397162faa5d4a01d2f4979aa154118f20a73b60f518916ab5e1c24dcc116b9",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-native-budget/source-manifest.json"
+    },
+    {
+      "path": "rust-native-budget/step-0.log",
+      "status": "retained",
+      "bytes": 5942,
+      "sha256": "3483179d69228eefbfc0b2bc3d9d8a8631c9fb9cf36bd93745695e64ca44188e",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-native-budget/step-0.log"
+    },
+    {
+      "path": "rust-native-budget/step-1.log",
+      "status": "retained",
+      "bytes": 294,
+      "sha256": "f6f1d8aa1574d60f741b680d7769420dfee5e30954efa90c3f4a0d2a467fc130",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-native-budget/step-1.log"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "retained",
+      "bytes": 22915,
+      "sha256": "f19358e25366b06dc1fe703ab813c227e90365976088613618192c20f038ecc4",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-service/report.json"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "retained",
+      "bytes": 17481,
+      "sha256": "c7d3e1f4678ab6d2e5b3d7858a445cef932f93cb30baced284d4229905ac0632",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-service/source-manifest.json"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "retained",
+      "bytes": 5942,
+      "sha256": "6a0be8c4ee4c74c9080221fe01e1b7a9173a88e834ea16ea4857003dc237fccb",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-service/step-0.log"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "retained",
+      "bytes": 293,
+      "sha256": "b43b0968f230361ff8d5f4b82487de89610f110f6c793287b709afda693ac136",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-steam-budget-owned-20261031/iteration-4/evidence/rust-service/step-1.log"
+    }
+  ]
+}

@@ -138,6 +138,9 @@ def main():
             if op[0].type==2 and op[0].imm in ENTRIES:
                 return f's.push(0x{p:x}u,{imm(next)});run_{op[0].imm:x}(s);'
             target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
+            if p==0xf15b8:
+                assert op[0].type==2 and op[0].imm==0xf0eb0 and next==0xf15bd
+                return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});if(!handoff_native_vehicle_flip(s))dispatch(s,target,0x{p:x}u,false);'+'}'
             return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});dispatch(s,target,0x{p:x}u,false);'+'}'
         if mn=='jmp' and op[0].type==2:
             target=op[0].imm
@@ -230,9 +233,18 @@ def main():
 #include "physics/vehicles/physics_vehicle_runtime_internal.hpp"
 #include "physics/vehicles/source_vehicle_rate_native_tu15_internal.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
+#include "halo2/native_tu15_vehicle_flip_handoff.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_runtime_detail;
+static bool handoff_native_vehicle_flip(VehicleState&s) {
+    if(s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
+    auto actual=s.save();
+    try {
+        if(!native_tu15_handoff_vehicle_flip(s.memory,{0xf24d8u,0xf1dd0u,false},actual,s.observe))return false;
+    } catch(...) {s.load(actual);throw;}
+    s.load(actual);return true;
+}
 std::uint32_t source_estimate(VehicleState &s,std::uint32_t input) {
     if(!s.services.reciprocal_sqrt)throw std::runtime_error("Required original contact RSQRTSS owner unavailable");
     return s.services.reciprocal_sqrt(input);

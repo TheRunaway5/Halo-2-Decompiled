@@ -177,6 +177,9 @@ bool configure_h2ek_original_loading_presentation(DesktopSession& desktop,
     const auto path=row.at("path").get<std::string>();
     if(row.at("slot")!=slot || path!=(slot<10?"loading-0":"loading-")+std::to_string(slot)+".dds")
       throw FormatError("H2EK original loading texture slots differ");
+    if(slot==1 && (row.at("width")!=1024 || row.at("height")!=128 || row.at("fourcc")!="DXT3" ||
+        row.at("sha256")!="e11a54772d4361fa560effce9640645acca84e0a8d4629db145fdad05380854d"))
+      throw FormatError("Campaign loading requires the authentic high-definition Vista/H2EK Halo 2 logo");
     const auto bytes=asset(bank,metadata,path.c_str(),8u*1024u*1024u);
     if(row.at("sha256")!=digest(bytes))throw FormatError("H2EK loading texture differs from its manifest: "+path);
     assets[slot]=h2ek_texture(bytes,row);

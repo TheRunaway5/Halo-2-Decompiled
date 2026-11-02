@@ -1,0 +1,8 @@
+{
+  "schema": "H2_STEAM_BORROWED_TEST_LINK_SUPPORT_V1",
+  "path": "tests/reference/vertex_program_reference.cpp",
+  "bytes": 7393,
+  "sha256": "e4453bad58426800ba198502b019dfd33dec5ca1b5db2d8fbedac3bccd98ff53",
+  "matches_git_HEAD": true,
+  "observation": "Post-run borrowed test-only static link support matches tracked HEAD; production C++ source and include headers were copied. External original/assets/system SDK inputs remain borrowed read-only. This is local component validation, not installed or original parity."
+}

@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "Exact modern C++ migration callers versus production Rust orchestration.\n\nBoth callers invoke the same real Rust Session owner. Agreement/QoS/selection\nobservations, times and IO refusals are declared fixtures. Every sampled field,\ncall order, effect, state and result is compared. This is not original Live,\ngenuine provider, native world or installed Linux delivery acceptance.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "commands": 18110,
+  "steps": 18430,
+  "expected_state_or_io_refusals": 3142,
+  "operations": {
+    "fence": 3119,
+    "terminal": 3105,
+    "begin": 3119,
+    "candidate": 8727,
+    "sequence": 40
+  },
+  "sha256": "0dc26700074c8947e770b9b642b67864053b17cefd8b2d3806dfd672be6a773d",
+  "binary_sha256": "ab997bfbce99e3d2dbc65ba1bfcc35550c1f5bd247125bb3c5cb4b7de154331c",
+  "source_pins": {
+    "tests/native_migration_callers_tests.cpp": "e48fc74baf8fd87662c08a94999124bc883ee787edc4b1fcc0117c39a0c74039",
+    "tests/test_native_migration_callers.py": "80639a0973eaada28a05b80962cffc4928863eb4f4b31242d9da281b9e54f1f4",
+    "tests/reference/native_migration_callers_before_rust_20261101.inc": "031f585c93bd9e7c2f513bda5bccf51846593804acaec080565b940dfe5c977a"
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ],
+  "child_exit_code": 0
+}

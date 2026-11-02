@@ -1,0 +1,31 @@
+{
+  "corrections": [
+    {
+      "stage": "native-component/native-compile",
+      "failure": "Frozen one-off harness omitted the gameplay descriptor include and src include root",
+      "fix": "Freeze source_game_variant_descriptors.inc and compile with -Isrc",
+      "production_changed": false
+    },
+    {
+      "stage": "native/iteration-2/original_game_variant_write_order",
+      "failure": "Frozen borrowed asset path was a symlink rejected by confined shared-resource IO",
+      "fix": "Test canonicalizes its trusted fixture directory; production guard unchanged",
+      "production_changed": false
+    },
+    {
+      "stage": "variant-real-resource-route",
+      "failure": "Old positive fixture includes an unsupported native extension and expects native gameplay admission",
+      "fix": "Preserve two opaque metadata load/save/reload checks and exact native refusal; retain positive signed-in saved-variant launch/edit/reload for supported metadata",
+      "production_changed": false
+    }
+  ],
+  "preexisting_fixture_issue": {
+    "fixture": "tests/fixtures/frontend-lobby-game-original.tsv",
+    "reference_rows": 1217,
+    "quick_rows": 71,
+    "old_comparator_expected_quick_rows": 70,
+    "fixture_changed": false,
+    "original_unknown_choice_proof": "original-qualified/unknown-choice.json",
+    "comparator_expected_quick_rows": 71
+  }
+}

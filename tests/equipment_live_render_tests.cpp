@@ -32,14 +32,27 @@ int main(int argc,char** argv)try {
     for(unsigned species=0;species<2;++species) {
         MultiplayerOptions options;options.map=argv[1];options.shared_maps=options.map.parent_path();
         options.source_object_world=true;options.source_object_savegame_directory=output/("source-"+std::to_string(species));
-        options.width=640;options.height=480;options.local_players=1;options.frames=8;
+        options.width=640;options.height=480;options.local_players=2;options.frames=8;
         options.hidden=true;options.mute=true;options.validation=true;
         const std::array<std::array<std::uint8_t,9>,2> appearance{{{8,12,9,1,0,26,9,0,0},{3,4,3,4,1,5,31,0,0}}};
         options.selected_profiles.push_back(native_selected_player_configuration(species?"Elite":"Spartan",appearance[species],-1));
+        options.selected_profiles.push_back(native_selected_player_configuration("Observer",appearance[1-species],-1));
         options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
         auto &prepared=*options.prepared_world;auto &match=prepared.match;auto &objects=*prepared.source_objects;
         prepared.bind_source_local_views(prepared.local_slots);
-        const auto slot=prepared.local_slots.at(0);for(unsigned n=0;n<15;++n)match.step({});
+        // Consume every genuine source tick while setup/expiry runs without a
+        // renderer, so reopening a capture cannot lose the512-input fade journal.
+        SourceGameplayFadePresentationTu15 presentation;
+        const auto consume_fade=[&](const MultiplayerState& state) {
+            check(state.source_gameplay_fade.has_value(),"Equipment source frame lost its fade journal");
+            std::vector<std::uint32_t> local;
+            for(const auto slot:prepared.local_slots)local.push_back(state.players.at(slot).source_player);
+            presentation.consume(*state.source_gameplay_fade,local);
+        };
+        const auto step=[&] {match.step({});consume_fade(match.state());};
+        options.input_observer=[&](auto,auto,const MultiplayerState& state){consume_fade(state);};
+        const auto render=[&] {options.initial_gameplay_fade=presentation;return run_multiplayer(options);};
+        const auto slot=prepared.local_slots.at(0);for(unsigned n=0;n<15;++n)step();
         const auto unit=match.player(slot).source_current_object;
         const auto spawn=match.state().players[slot].position;
         const auto pickup=[&](unsigned row) {
@@ -48,56 +61,48 @@ int main(int argc,char** argv)try {
             objects.tu15_world().set_object_position(unit,objects.object_transform(object).position);
             bool consumed=false;
             for(unsigned n=0;n<60 && !consumed;++n) {
-                match.step({});const auto live=objects.live_objects();
+                step();const auto live=objects.live_objects();
                 consumed=std::none_of(live.begin(),live.end(),[&](const auto& o){return o.object==object;});
             }
             check(consumed,"Actual source contact did not consume its powerup");return object;
         };
-        const auto shield_item=pickup(overshield);for(unsigned n=0;n<70;++n)match.step({});
+        const auto shield_item=pickup(overshield);for(unsigned n=0;n<70;++n)step();
         check(match.state().players[slot].shield>2.9f,"Overshield did not finish actual source charge");
-        const auto camouflage_item=pickup(camouflage);for(unsigned n=0;n<25;++n)match.step({});
+        const auto camouflage_item=pickup(camouflage);for(unsigned n=0;n<25;++n)step();
         check(match.state().players[slot].source_camouflage.primary>0.f,"Camouflage contact did not reach the source fade owner");
         objects.tu15_world().set_object_position(unit,spawn);
-        match.step({});
+        step();
         const auto ready=match.first_person_view(0);
         std::cout<<"Equipment FP binding: unit="<<ready.unit<<" weapon="<<ready.hands[0].weapon
             <<" flags="<<ready.hands[0].flags<<" weapon_nodes="<<ready.hands[0].weapon_node_count
             <<" arms_nodes="<<ready.hands[0].arms_node_count<<std::endl;
         for(bool full_phase:{false,true}) {
         if(full_phase) {
-            for(unsigned n=0;n<180 && match.state().players[slot].source_camouflage.primary<1.f;++n)match.step({});
+            for(unsigned n=0;n<180 && match.state().players[slot].source_camouflage.primary<1.f;++n)step();
             check(match.state().players[slot].source_camouflage.primary==1.f,"Actual camouflage did not reach its complete fade");
         }
         for(bool third_person:{false,true}) {
             unsigned world{},foreground{},shields{};float observed{};
-            options.capture_third_person=third_person;
+            // Original own-player hiding stays active. View0 supplies the
+            // genuine FP owner; a different real local player owns view1's
+            // world observation of that same powerup recipient.
+            options.capture_third_person=false;
             options.capture_camera.reset();
-            if(third_person) {
-                // A declared inspection camera changes no unit pose or
-                // admission result. Keep it inside the actual collision space.
-                const auto center=match.state().players[slot].position+Vec3{0,0,content.player.height*.5f};
-                float distance{};Vec3 outward{};
-                for(const auto direction:std::array{Vec3{1,0,0},Vec3{-1,0,0},Vec3{0,1,0},Vec3{0,-1,0}}) {
-                    const auto hit=match.simulation().collision().raycast(center,direction,3.2f);
-                    const auto clear=hit?std::max(0.f,hit->distance-.1f):3.2f;
-                    if(clear>distance){distance=clear;outward=direction;}
-                }
-                check(distance>.5f,"Actual spawn has no clear equipment inspection camera");
-                Camera camera;camera.position=center+outward*distance;camera.yaw=std::atan2(-outward.y,-outward.x);
-                options.capture_camera=camera;
-            }
             options.camouflage_layer_observer=[&](unsigned view,std::uint32_t owner,unsigned layer,unsigned implementation,bool fp,float primary,unsigned vertices) {
-                check(view==0 && owner==unit && primary>0.f && primary<=1.f && vertices>0 &&
+                check(view<2 && owner==unit && primary>0.f && primary<=1.f && vertices>0 &&
                     ((layer==18 && implementation==unsigned(full_phase)) || (layer==19 && implementation==0)),"Camouflage GPU draw lost its actual owner/pass/geometry");
-                (fp?foreground:world)+=vertices;observed=primary;
+                if(view==0 && fp)foreground+=vertices;
+                if(view==1 && !fp)world+=vertices;
+                observed=primary;
             };
             options.shield_layer_observer=[&](unsigned view,unsigned owner,bool fp,std::uint32_t shader,std::uint32_t,std::span<const Vertex> vertices) {
                 const auto &v=match.unit(slot).definition.vitality;
-                if(shader==(fp?v.overshield_first_person_shader:v.overshield_shader))shields+=unsigned(vertices.size());
-                check(view==0 && owner==slot,"Overshield layer lost its pickup owner");
+                if(shader==(fp?v.overshield_first_person_shader:v.overshield_shader) &&
+                    (third_person?view==1 && !fp:view==0 && fp))shields+=unsigned(vertices.size());
+                check(view<2 && owner==slot,"Overshield layer lost its pickup owner");
             };
             options.screenshot=output/(std::to_string(species)+(full_phase?"-full":"-partial")+(third_person?"-world.ppm":"-fp.ppm"));
-            check(run_multiplayer(options)==0,"Actual equipment renderer failed");
+            check(render()==0,"Actual equipment renderer failed");
             std::cout<<"Equipment live layers species="<<species<<" third_person="<<third_person
                 <<" world="<<world<<" foreground="<<foreground<<" overshield="<<shields
                 <<" primary="<<match.state().players[slot].source_camouflage.primary
@@ -111,13 +116,13 @@ int main(int argc,char** argv)try {
         }
         }
         for(unsigned n=0;n<1800 && (match.player(slot).source_powerup_timers[0]>0 ||
-            match.state().players[slot].source_camouflage.primary>0.f);++n)match.step({});
+            match.state().players[slot].source_camouflage.primary>0.f);++n)step();
         check(match.player(slot).source_current_object==unit && !match.state().players[slot].dead &&
             match.player(slot).source_powerup_timers[0]==0 && match.state().players[slot].source_camouflage.primary==0.f,"Live camouflage failed to expire");
         unsigned stale{};options.capture_third_person=false;options.capture_camera.reset();options.shield_layer_observer={};
         options.camouflage_layer_observer=[&](auto...){++stale;};
         options.screenshot=output/(std::to_string(species)+"-expired.ppm");
-        check(run_multiplayer(options)==0 && stale==0,"Expired camouflage retained a GPU clone");
+        check(render()==0 && stale==0,"Expired camouflage retained a GPU clone");
     }
     report["passed"]=true;save();std::cout<<report.dump(2)<<'\n';return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

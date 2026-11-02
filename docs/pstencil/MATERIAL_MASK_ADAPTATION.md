@@ -39,6 +39,14 @@ and object-function inputs into texture accumulation. This supplies a mask even
 when the visible current shader LOD combines textures and lighting. Ordinary
 visible shader LOD selection remains native.
 
+Packed multiplayer player draws also retain their completed object color bank
+on each resident material root. When several players share one texture pass,
+the renderer supplies separate owner uniforms for those roots. It uses the
+already quantized source bank without repeating the byte conversion. The bank
+refreshes even when a combined LOD's own constants stay unchanged, so profile
+and team color changes reach the shared texture pass. This fixes the default
+white armor caused by using the shared pass's initial colors.
+
 Supported direct-specular draws sample the matching accumulation pixel's alpha
 and multiply the final authored RGB by it before additive blending. Their
 seven-combiner program remains byte-identical: texture modes, scratch registers,
@@ -59,6 +67,16 @@ Code stays in [specular_mask.cpp](../../src/pstencil/specular_mask.cpp),
 renderer/fragment seams for residency, owner bindings, accumulation and sampling.
 
 ## Verification and limits
+
+`pstencil_player_colors_gpu` and `pstencil_elite_colors_gpu` load actual
+multiplayer armor geometry and check red/blue/white controls, two differently
+colored roots sharing a shader in one packed view, color restoration and exact
+Original-mode restoration. Captures use the test runner's scratch directory.
+`PSTENCIL_PLAYER_COLORS_MAP` selects an actual prepared MCC cache for the same
+checks; frozen builds use `HALO2_TEST_ASSET_SOURCE_ROOT` for the real asset owner.
+The Spartan fixture uses one visible armor triangle; the Elite fixture uses
+the torso because its largest individual triangle did not expose visible color
+in the Original-mode positive control.
 
 The focused suite exercises all four actual Banshee shader LODs, rejects a
 foreign shader mask, and checks 3,584 independent material-alpha cases against

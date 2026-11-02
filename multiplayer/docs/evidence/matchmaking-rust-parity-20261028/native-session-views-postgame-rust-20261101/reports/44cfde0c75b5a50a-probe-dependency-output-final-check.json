@@ -1,0 +1,5 @@
+{
+  "native_link_dependency_file_exists": true,
+  "probe_output_path_absent": true,
+  "scope": "Final official native relink restored its private target dependency output"
+}

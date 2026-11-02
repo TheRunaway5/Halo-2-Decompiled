@@ -1,0 +1,147 @@
+{
+  "schema": "H2_RUST_PRODUCTION_ROUTE_CANDIDATE_VALIDATION_V1",
+  "qualified_candidate_host_route": true,
+  "production_activated": false,
+  "goal_complete": false,
+  "certified": false,
+  "goal_status": "active",
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "immutable_ledger_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_goal_criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "preserved_scope": {
+    "gaps": 12,
+    "algorithm_ids": 53,
+    "acceptance_gates": 12
+  },
+  "changes": [
+    "Rust /v1/health aliases the retained /health component view",
+    "Opt-in Rust service image and Caddy/Compose overlay; existing production defaults are preserved",
+    "Discovery-only legacy process constructs no matchmaking/account/social owners or routes and runs only listing/federation maintenance",
+    "Canonical state volume remains shared; Rust backend remains loopback-only in the Caddy network namespace",
+    "Rust proxy permits its95s relationship budget and full2000-subject voice preferences; ordinary bodies remain limited by Rust",
+    "Every route outside the explicit discovery allowlist belongs to Rust; unavailable Rust never falls through to Python"
+  ],
+  "validation": {
+    "rust_service_unit_tests": 20,
+    "python_directory_http_registry_tests": 18,
+    "total_unique_tests": 38,
+    "successful_test_executions_across_two_build_cohorts": 76,
+    "host_route_checks": [
+      "negative controls reproduce the old 10s gateway failure and 16KiB voice-preference refusal",
+      "verified local TLS reaches the real Rust thousand-friend lookup and full2000-subject preference write; typed body limits still reject overflow",
+      "health and unsupported routes belong to Rust; legacy discovery is isolated and has no matching fallback",
+      "all14 playlists, v12/v16 eligibility, ticket search/cancel and consent-gated shared countdown traverse Caddy TLS into Rust",
+      "real WSS search heartbeat and party-voice idle Ping/Pong plus subsequent peer media delivery survive the production proxy transports",
+      "service restart and catalog revision change retain canonical identities, ranks and signing keys; old grants/revisions are rejected",
+      "catalog rollback reuses the original canonical database and signing identities",
+      "stopped Rust produces a gateway error while discovery remains live; requests never fall through to Python",
+      "the production loopback-only trust boundary still rejects a wildcard backend before opening state",
+      "Docker Compose validates the opt-in namespace, mounts and restart dependencies without activating it"
+    ],
+    "observations": {
+      "old_proxy_timeout": {
+        "status": 504,
+        "seconds": 10.005562479025684
+      },
+      "old_proxy_voice_body_status": 413,
+      "candidate_steam_lookup_seconds": 12.171133889991324,
+      "voice_idle_ping_seconds": 10.116055006015813,
+      "docker_daemon": {
+        "available": false,
+        "returncode": 1,
+        "diagnostic": "failed to connect to the docker API at unix:///home/eric/.docker/desktop/docker.sock; check if the path is correct and if the daemon is running: dial unix /home/eric/.docker/desktop/docker.sock: connect: no such file or directory\n"
+      }
+    },
+    "binary": {
+      "sha256": "dab44b71c09e6752f46bea695415dce8bbaeb8e3e628f1b40ac8ceb8dc336f58",
+      "bytes": 11466000,
+      "retained": false
+    },
+    "directory_abi": {
+      "sha256": "112738e3280a524b3611ea8ea47f2b94163b33adb9f67b0eaf30f4702acaa370",
+      "bytes": 4974928,
+      "retained": false
+    },
+    "caddy": {
+      "version": "v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=",
+      "archive_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz",
+      "checksum_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_checksums.txt",
+      "archive_sha512": "a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7",
+      "archive_sha256": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+      "binary_sha256": "678ade3bfc088749c81a681adc603333ee0bb023b6a6cfe3c0f58bef8ff854e9",
+      "retained": false
+    },
+    "frozen_source_files": 354,
+    "critical_source_drift": [],
+    "final_current_inputs_match": true
+  },
+  "fixtures": [
+    "Private Steam grants seeded into an owned database; fixed provider IO interposer",
+    "Private CA used only by this test client; no system trust modification",
+    "Catalog map observations are fixture inputs; no installed map/player/world inference",
+    "Configured signing identity is real local crypto; no genuine Epic SDK receipt is supplied"
+  ],
+  "driver_corrections": [
+    "Initial pre-build download check incorrectly used SHA256 for the official SHA512 checksum file; corrected to the pinned published SHA512 before executing Caddy",
+    "A control-only refresh before import selected eleven1100ms provider calls and added actual post-idle peer media delivery plus bounded diagnostics; compiled Rust inputs were unchanged",
+    "First host run expected502 but actual Caddy timeout is504 at10s; corrected the test assertion",
+    "First final-cohort host attempt used an account grant for the provider-authenticated preference API; corrected only that fixture token and retried the same compiled Rust/ABI"
+  ],
+  "qualification_limits": {
+    "docker_image_executed": false,
+    "legacy_database_clone_migration_qualified": false,
+    "legacy_service_image_rollback_qualified": false,
+    "genuine_providers": false,
+    "original_live": false,
+    "real_audio_devices": false,
+    "played_worlds": false,
+    "physical_installed_linux_input": false,
+    "complete_runtime_client_service_delivery": false,
+    "complete_original_parity": false
+  },
+  "remaining": [
+    "Build and execute the actual container image and SDK dependency cohort; the configured Docker daemon is unavailable",
+    "Qualify an existing legacy production state clone, real deployment, container recreation/restart and service-image rollback",
+    "Complete original historical/service recovery and all53-owner production-route audit without guessing missing configuration/ordering/arbitration",
+    "Qualify genuine Steam/Epic providers and every required natural world/family/topology/outcome/continuity/results/XP/PCR/party-return case",
+    "Qualify the actual installed Linux playlist/Start path and complete delivered G01-G12 acceptance"
+  ],
+  "selected_linux_observation": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/a39dc4e6dd19edae-selected-linux-observation.json",
+  "retained_reports": {
+    "retention": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/retention.json",
+    "final_report": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/2a1fc0723515afe2-report.json",
+    "final_manifest": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/b7100106bb929289-source-manifest-final.json",
+    "registry_indexes": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/907c9bd3a71e6a08-registry-indexes.json",
+    "criteria_before": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/51f4ea0feb12e67c-criteria-before.json",
+    "unique_files": 42,
+    "unique_report_bytes": 391028,
+    "cohort_files_including_retention_manifest": 43,
+    "cohort_bytes_including_retention_manifest": 408305
+  },
+  "cleanup": {
+    "scratch_owners": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-voavm1nn",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0"
+    ],
+    "scratch_owners_removed": true,
+    "scratch_parents": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-metadata",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-download"
+    ],
+    "scratch_parents_empty": true,
+    "new_large_artifacts_retained": [],
+    "selected_runtime_modified": false,
+    "working_duplicates_removed": true
+  }
+}

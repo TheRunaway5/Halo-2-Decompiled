@@ -1,0 +1,33 @@
+{
+  "argv": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/sdk-enabled-build",
+    "--build-only",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "rust_service_native_handoff_probe",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "online-protocol/Release/build-report.json"
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel",
+  "official_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "bytes": 587617718,
+    "sha256": "56a3bd805df426606946d74ba662f25223ffe24159e7884a625225ba80b582fb"
+  },
+  "retained_large_artifacts": [],
+  "returncode": 0
+}

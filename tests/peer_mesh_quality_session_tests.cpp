@@ -61,8 +61,13 @@ int main(int argc,char **argv)try{
     if(transport.eos)check(voices>25,"Signed couch voice packets did not traverse EOS");
     Json result{{"self",self},{"host",session->host()},{"received",received},{"signed_voice_packets",voices},{"protocol",native_multiplayer_protocol},{"candidates",Json::array()}};
     for(const auto &q:session->host_candidates())result["candidates"].push_back({{"peer",q.peer},{"upload",q.minimum_upload_bytes_per_second},{"rtt_ms",q.mean_rtt_ms},{"loss_per_mille",q.worst_loss_per_mille}});
-    const auto output=path.parent_path()/("result-"+std::to_string(self)+".json");{std::ofstream out(output);out<<result.dump(2);}
+    const auto output=path.parent_path()/("result-"+std::to_string(self)+".json");
+    const auto pending=output.string()+".pending";{std::ofstream out(pending);out<<result.dump(2);}
+    std::filesystem::rename(pending,output);
     wait([&]{return std::filesystem::exists(path.parent_path()/("result-"+std::to_string(other)+".json"));},"Other native session did not complete");
+    // The collector reads genuine live setup observations before disconnect
+    // retires them. This barrier supplies no measurement or readiness value.
+    wait([&]{return std::filesystem::exists(path.parent_path()/"collector-finished");},"Live measurement collector did not finish");
     std::cout<<"PASS real admitted eight-seat/two-PC session: measured host "<<session->host()<<", received "<<received<<" direct datagrams, fresh backup candidates, no world certificate\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

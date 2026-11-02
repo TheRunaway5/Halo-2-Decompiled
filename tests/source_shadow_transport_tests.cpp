@@ -5,6 +5,7 @@
 #include "halo2/source_shadow_presentation_owner.hpp"
 #include "halo2/source_native_render_timeline.hpp"
 #include "halo2/multiplayer_world.hpp"
+#include "player_shadows_policy_fixture.hpp"
 #include <chrono>
 #include <fstream>
 #include <future>
@@ -23,31 +24,39 @@ struct ProducerResult {
     SourceShadowTransportStatistics transport;
     std::uint64_t receive_us{},broadcast_us{},step_us{},receive_calls{},broadcast_calls{},largest_service_gap_us{},ticks{};
 };
+using shadow_test::graphics_policy;
+using shadow_test::require_graphics_policy;
+using shadow_test::main_caller_policy;
 class Producer {
     std::promise<std::string> address_;
     std::mutex mutex_;std::exception_ptr error_;ProducerResult result_;
 public:
-    std::atomic<std::uint64_t> tick{},acknowledged_sequence{};
+    std::atomic<std::uint64_t> tick{},acknowledged_sequence{},rejected_cuts{},published_cuts{};
     std::string address;
 private:
     // Stop/join before every field captured by this executor, including on
     // constructor readiness timeout where the class destructor does not run.
     std::jthread worker_;
 public:
-    Producer(const char* xbe,const char* map,bool dedicated,bool production=false) {
+    Producer(const char* xbe,const char* map,bool dedicated,bool production=false,unsigned local_players=1) {
         auto ready=address_.get_future();
-        worker_=std::jthread([this,xbe=std::string(xbe),map=std::string(map),dedicated,production](std::stop_token stop) {
+        worker_=std::jthread([this,xbe=std::string(xbe),map=std::string(map),dedicated,production,local_players](std::stop_token stop) {
             bool announced{};
             try {
-                const std::array<unsigned,1> local{0};
-                const auto views=dedicated?std::span<const unsigned>{}:std::span<const unsigned>(local);
+                const std::array<unsigned,4> local{0,1,2,3};
+                check(local_players>=1&&local_players<=4,"Invalid actual producer local-view count");
+                const auto views=dedicated?std::span<const unsigned>{}:std::span<const unsigned>(local).first(local_players);
                 phase="construct actual native producer";
                 std::unique_ptr<Owner> legacy;std::unique_ptr<MultiplayerPreparedWorld> prepared;
                 std::unique_ptr<SourceMatchAuthority> prepared_authority;
                 if(production) {
-                    MultiplayerOptions options;options.map=map;options.gameplay_xbe=xbe;options.dedicated=dedicated;
-                    options.local_players=dedicated?0:1;options.variant={"Slayer",0,{{0x59,5}}};
+                    MultiplayerOptions options;options.map=map;
+                    if(xbe!="native-mcc")options.gameplay_xbe=xbe;
+                    else options.shared_maps=std::filesystem::path(map).parent_path();
+                    options.host_port=1;options.dedicated=dedicated;
+                    options.local_players=dedicated?0:local_players;options.variant={"Slayer",0,{{0x59,5}}};
                     prepared=std::make_unique<MultiplayerPreparedWorld>(options);
+                    if(xbe=="native-mcc")check(prepared->cache->is_mcc(),"Prepared native transport requires an MCC cache");
                     // The ordinary runtime completes its authored local-view
                     // definition bank even for a true zero-user dedicated
                     // host. Exercise that real empty-view call, without a
@@ -76,8 +85,13 @@ public:
                     }
                     observed.step_us+=us(step);tick=match.simulation().ticks();
                     const auto broadcast=Wall::now();phase="ordinary native host broadcast";host.broadcast();observed.broadcast_us+=us(broadcast);++observed.broadcast_calls;
-                    phase="completed native host capture";if(host.shadow_publication_pending())host.capture_shadow_state();
+                    phase="completed native host capture";if(host.shadow_publication_pending()) {
+                        if(production&&local_players==2&&!dedicated)
+                            main_caller_policy(*prepared->source_objects,2,match.unit(0).body.position+Vec3{0,0,1.7f});
+                        host.capture_shadow_state();
+                    }
                     const auto stats=host.shadow_transport_statistics();acknowledged_sequence=stats.latest_acknowledged_sequence;
+                    rejected_cuts=stats.rejected;published_cuts=stats.published;
                     next+=33333us;std::this_thread::sleep_until(next);
                     if(next<Wall::now()-100ms)next=Wall::now();
                 }
@@ -96,45 +110,134 @@ public:
     void check_error(){std::lock_guard lock(mutex_);if(error_)std::rethrow_exception(error_);}
     ProducerResult finish(){worker_.request_stop();worker_.join();check_error();return result_;}
 };
-nlohmann::json production_timeline(const char* xbe,const char* map,bool dedicated) {
+nlohmann::json production_timeline(const char* xbe,const char* map,bool dedicated,unsigned producer_players=1,bool expiry_retry=false) {
     // Its producer and receiver both use the canonical production constructor.
     // The low-level ten-cut oracle below deliberately owns a different native
     // service/configuration set; no compatibility guard is waived to reuse it.
-    Producer host(xbe,map,dedicated,true);
+    Producer host(xbe,map,dedicated,true,producer_players);
     const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
     std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
     const auto profile=native_selected_player_configuration("Timeline client",appearance,-1);
-    MultiplayerOptions options;options.map=map;options.gameplay_xbe=xbe;options.join=host.address;
+    MultiplayerOptions options;options.map=map;
+    if(std::string_view(xbe)!="native-mcc")options.gameplay_xbe=xbe;
+    else options.shared_maps=std::filesystem::path(map).parent_path();
+    options.join=host.address;
     options.local_players=1;options.selected_profiles={profile};options.variant={"Slayer",0,{{0x59,5}}};
     MultiplayerPreparedWorld resident(options);SourceShadowPresentationOwner presentation(options,resident);
+    if(std::string_view(xbe)=="native-mcc")check(resident.cache->is_mcc(),"Prepared recipient requires an MCC cache");
     SourceNativeRenderTimeline timeline;std::optional<SourceNativeRenderFrameContext> retained;
     LanClient client(host.address,fingerprint,1,{},std::span(&profile,1));client.enable_shadow_lane();
     std::array<Controls,1> input{};const auto started=Wall::now(),until=started+90s;
-    bool pre_ACK_rejected{},sparse_pair{},identity_rejected{},retained_body{};
-    unsigned frames{};std::uint32_t last_sequence{};nlohmann::json rows=nlohmann::json::array();
+    bool pre_ACK_rejected{},sparse_pair{},identity_rejected{},retained_body{},cold_preparation{};
+    bool delayed_cut{},late_ready_ignored{},fresh_full_received{};std::uint64_t abandoned_serial{},abandoned_sequence{};
+    std::uint64_t cold_preparation_us{};unsigned cold_progress_calls{};
+    unsigned frames{},suspended{},backdated_clock_rejections{},policy_rebinds{};std::uint32_t last_sequence{};nlohmann::json rows=nlohmann::json::array();
     while(frames<3) {
         check(Wall::now()<until,"Production native owner/timeline pairing timed out");host.check_error();
         client.send(input);client.receive();check(client.error().empty(),client.error().c_str());
         for(const auto& cut:client.received_shadow_cuts()) {
+            const auto frame_begin_seconds=double(us(started))/1000000.0;
             const auto origin=cut.origin();const auto adopt=Wall::now();
+            if(expiry_retry&&!delayed_cut) {
+                abandoned_serial=cut.serial();abandoned_sequence=*origin.sequence();
+                const auto delayed_until=Wall::now()+6200ms;
+                // Actual neutral gameplay inputs stay live. No receive, native
+                // progress pulse or Ready masks this real native idle expiry.
+                do{client.send(input);host.check_error();std::this_thread::sleep_for(33ms);}while(Wall::now()<delayed_until);
+                check(host.rejected_cuts>0&&host.acknowledged_sequence==0,
+                    "Actual idle expiry did not abandon its unvalidated native cut");delayed_cut=true;
+            }else if(expiry_retry&&cut.serial()>abandoned_serial&&!fresh_full_received) {
+                const auto stats=client.shadow_transport_statistics();
+                const auto row=std::ranges::find(stats.cuts,cut.serial(),&SourceShadowTransportStatistics::Cut::serial);
+                check(row!=stats.cuts.end()&&!row->delta&&!row->base_serial,
+                    "Failed native pipeline retry depended on an unvalidated delta base");fresh_full_received=true;
+            }
             phase="production foreground presentation adoption";
-            check(presentation.adopt(client,cut,origin),"Production presentation owner rejected its genuine production cut");
+            const auto loading_progress=[&]{
+                check(!client.acknowledged_shadow_cut(cut)&&client.shadow_transport_statistics().acknowledged==0&&
+                    host.acknowledged_sequence==0,"Cold native construction acknowledged a world before completed import");
+                // These are actual ordinary neutral inputs. Native phase
+                // pulses are private owner calls, not fixture-forged Ready.
+                client.send(input);std::this_thread::sleep_for(1100ms);client.send(input);
+                ++cold_progress_calls;host.check_error();
+            };
+            const bool cold=!cold_preparation;
+            check(presentation.adopt(client,cut,origin,cold?std::function<void()>(loading_progress):std::function<void()>{}),
+                "Production presentation owner rejected its genuine production cut");
             const auto adopt_us=us(adopt);
+            if(cold){cold_preparation_us=adopt_us;cold_preparation=true;
+                check(cold_progress_calls==5&&cold_preparation_us>=5'500'000,
+                    "Actual cold native owner did not cross the wire idle interval with five preparation boundaries");}
             check(presentation.world(client,origin)&&presentation.match(client,origin),
                 "Actual production adoption did not expose its exact foreground native world");
+            nlohmann::json role_policy;
+            if(producer_players==2) {
+                check(cut.producer_views().size()==2&&cut.producer_views()[0]==0&&cut.producer_views()[1]==1&&
+                    cut.local_views().size()==1&&cut.local_views()[0]==2,
+                    "Two-local native host did not admit the actual independent recipient seat2");
+                auto *native=presentation.world(client,origin);
+                const auto imported=graphics_policy(native->memory());require_graphics_policy(imported,2);
+                const auto &player=origin.accepted_state().players[cut.local_views()[0]];
+                const auto current=main_caller_policy(*native,1,player.position+Vec3{0,0,1.7f});
+                role_policy={{"imported_producer",imported},{"current_recipient",current}};++policy_rebinds;
+            }
             bool rejected{};
             try{timeline.capture(client,presentation,cut,double(us(started))/1000000.0);}
             catch(const FormatError& e){rejected=std::string_view(e.what()).find("adopted and acknowledged")!=std::string_view::npos;}
             check(rejected,"Native timeline accepted a production world before its actual native ACK");pre_ACK_rejected=true;
             check(client.acknowledge_shadow_cut(cut),"Production native adoption did not issue actual ACK");
+            if(expiry_retry&&cut.serial()==abandoned_serial) {
+                // This late Ready follows a genuine full native import, never
+                // fabricated preflight. The host must not accept it after the
+                // failed send was abandoned in favor of a new serial.
+                const auto until=Wall::now()+200ms;
+                do{client.send(input);host.check_error();std::this_thread::sleep_for(33ms);}while(Wall::now()<until);
+                check(host.acknowledged_sequence==0,"Late old native Ready promoted a failed sender/base");late_ready_ignored=true;
+            }
             const auto seconds=double(us(started))/1000000.0;
             timeline.capture(client,presentation,cut,seconds);
-            const auto frame=timeline.frame(client,presentation,client.state_origin(),client.state(),seconds+.001);
+            SourceNativeRenderSuspension suspension;
+            check(seconds>frame_begin_seconds &&
+                !timeline.frame(client,presentation,client.state_origin(),client.state(),frame_begin_seconds,&suspension) &&
+                suspension==SourceNativeRenderSuspension::foreground_clock,
+                "Native timeline accepted the pre-import frame clock after actual completed adoption");
+            ++backdated_clock_rejections;
+            // Match Runtime: sample the completed foreground render boundary,
+            // after import/capture, without backdating the native cut clock.
+            const auto render_seconds=double(us(started))/1000000.0;
+            const auto frame=timeline.frame(client,presentation,client.state_origin(),client.state(),render_seconds,&suspension);
+            if(!frame) {
+                // Real player birth/ownership can advance while the first
+                // complete foreground native world is constructed. The
+                // timeline must suspend this closed older body, then admit a
+                // genuinely matching successor; an ACK alone cannot mint a
+                // compatible current primary presentation.
+                check(suspension==SourceNativeRenderSuspension::local_identity ||
+                    suspension==SourceNativeRenderSuspension::native_stale,
+                    "Production timeline rejected an actual adopted/ACKed cut for an unrelated reason");
+                if(suspension==SourceNativeRenderSuspension::native_stale)
+                    check(!source_native_render_fresh(*origin.tick(),client.state().tick,client.state().tick),
+                        "Production timeline claimed stale without an actual out-of-bound body gap");
+                else {
+                    const auto& a=origin.accepted_state().players[cut.local_views().front()];
+                    const auto& b=client.state().players[cut.local_views().front()];
+                    check(a.connected!=b.connected || a.dead!=b.dead || a.source_player!=b.source_player ||
+                        a.source_unit!=b.source_unit || a.source_weapon!=b.source_weapon || a.weapon!=b.weapon ||
+                        a.secondary_weapon.datum!=b.secondary_weapon.datum || a.secondary_weapon.definition!=b.secondary_weapon.definition ||
+                        a.source_configuration!=b.source_configuration || a.source_parent!=b.source_parent ||
+                        a.source_seat!=b.source_seat || a.source_teleport_serial!=b.source_teleport_serial,
+                        "Production timeline claimed local identity suspension without a changed native owner");
+                }
+                rows.push_back({{"tick",*origin.tick()},{"sequence",*origin.sequence()},{"adopt_us",adopt_us},
+                    {"latest_tick",client.state().tick},{"suspension",source_native_render_suspension_name(suspension)},
+                    {"graphics_role_policy",role_policy}});
+                ++suspended;continue;
+            }
             check(frame&&frame->origin().same(origin)&&frame->world()==presentation.world(client,origin)&&
                 frame->match().simulation().ticks()==*origin.tick()&& &frame->current()==&origin.accepted_state(),
                 "Production timeline mixed its exact historical body with another native world or latest gameplay");
-            timeline.capture(client,presentation,cut,seconds+.001);
-            const auto duplicate=timeline.frame(client,presentation,client.state_origin(),client.state(),seconds+.001);
+            timeline.capture(client,presentation,cut,render_seconds);
+            const auto duplicate=timeline.frame(client,presentation,client.state_origin(),client.state(),render_seconds);
             check(duplicate&&duplicate->blend()==frame->blend(),"Duplicate native capture restarted its interpolation clock");
             if(retained) {
                 const auto old_tick=retained->current().tick;
@@ -143,14 +246,15 @@ nlohmann::json production_timeline(const char* xbe,const char* map,bool dedicate
                 if(frame->previous().tick==old_tick&&frame->current().tick-old_tick>1)sparse_pair=true;
             }
             auto changed=client.state();changed.players[cut.local_views().front()].source_unit^=0x10000u;
-            check(!timeline.frame(client,presentation,client.state_origin(),changed,seconds+.001),
+            check(!timeline.frame(client,presentation,client.state_origin(),changed,render_seconds),
                 "Native timeline ignored changed local player/unit identity in current gameplay");identity_rejected=true;
             // Complete the synchronous draw before adopting its successor.
             // Only immutable body/interpolation values are inspected later;
             // native world/Match pointers are never used after their borrow.
             retained=frame;last_sequence=*origin.sequence();++frames;
             rows.push_back({{"tick",*origin.tick()},{"sequence",last_sequence},{"adopt_us",adopt_us},
-                {"previous_tick",frame->previous().tick},{"serial",frame->serial()},{"generation",frame->generation()}});
+                {"previous_tick",frame->previous().tick},{"serial",frame->serial()},{"generation",frame->generation()},
+                {"graphics_role_policy",role_policy}});
             if(frames==3)break;
         }
         std::this_thread::sleep_for(1ms);
@@ -160,19 +264,43 @@ nlohmann::json production_timeline(const char* xbe,const char* map,bool dedicate
         client.send(input);client.receive();std::this_thread::sleep_for(1ms);
     }
     const auto observed=host.finish();
-    check(pre_ACK_rejected&&sparse_pair&&identity_rejected&&retained_body,
+    check(pre_ACK_rejected&&sparse_pair&&identity_rejected&&retained_body&&cold_preparation&&backdated_clock_rejections==frames+suspended,
         "Production timeline omitted a real adopted/ACKed sparse pair, retained body or local-identity control");
+    check(producer_players!=2||policy_rebinds==frames+suspended,
+        "Two-local host omitted the actual imported/current native graphics policy readback");
+    check(!expiry_retry||(delayed_cut&&late_ready_ignored&&fresh_full_received&&observed.transport.acknowledged>0&&
+        observed.transport.full_cuts>=2&&last_sequence>abandoned_sequence),
+        "Actual failed native cut did not recover through a fresh full import and independently accepted host ACK");
     return {{"scope","Canonical MultiplayerPreparedWorld producer and independent resident/presentation owner, actual rawUDP native cuts and local ACK; no GPU proof"},
         {"frames",frames},{"pre_ACK_capture_rejected",pre_ACK_rejected},{"sparse_actual_native_pair",sparse_pair},
+        {"cold_preparation_us",cold_preparation_us},{"cold_progress_calls",cold_progress_calls},
+        {"actual_pre_import_frame_clocks_rejected",backdated_clock_rejections},
+        {"producer_local_players",dedicated?0:producer_players},{"recipient_local_players",1},{"graphics_role_rebinds",policy_rebinds},
+        {"expiry_retry_control",expiry_retry},{"expired_serial",abandoned_serial},{"late_native_Ready_ignored",late_ready_ignored},
+        {"fresh_full_received_after_failure",fresh_full_received},{"native_host_rejected_cuts",observed.transport.rejected},
+        {"correctly_suspended_adopted_cuts",suspended},
         {"local_identity_mismatch_rejected",identity_rejected},{"immutable_body_retained_through_successor",retained_body},
         {"native_host_ACKs",observed.transport.acknowledged},{"cuts",rows}};
 }
 }
 
 int main(int argc,char** argv)try {
-    if(argc<3 || !std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(argv[2]))return 77;
-    check(argc==4||(argc==5&&std::string_view(argv[4])=="dedicated"),"Supply native reference, map, report and optional dedicated producer");
+    if(argc<3 || (std::string_view(argv[1])!="native-mcc" && !std::filesystem::is_regular_file(argv[1])) ||
+        !std::filesystem::is_regular_file(argv[2]))return 77;
+    check(argc==4||(argc==5&&(std::string_view(argv[4])=="dedicated"||std::string_view(argv[4])=="host2"||std::string_view(argv[4])=="retry")),
+        "Supply native reference, map, report and optional dedicated, host2 or retry producer");
     check(std::getenv("HALO2_TEST_SCRATCH"),"Native shadow transport must run in owned test scratch");
+    if(argc==5&&(std::string_view(argv[4])=="host2"||std::string_view(argv[4])=="retry")) {
+        const bool retry=std::string_view(argv[4])=="retry";
+        const auto timeline=production_timeline(argv[1],argv[2],false,retry?1:2,retry);
+        std::ofstream output(argv[3]);output<<nlohmann::json{{"passed",true},
+            {"scope",retry?"Actual native UDP expired-cut abandonment, genuine late old native import/Ready rejection, fresh full retry and exact native timeline/host ACK; no GPU claim":
+                "Actual two-local-player native UDP producer to independently admitted single-local-player recipient; complete native import and real current caller graphics policy/count readback, no GPU claim"},
+            {"production_native_timeline",timeline},{"retained_large_artifacts",nlohmann::json::array()}}.dump(2)<<'\n';
+        check(bool(output),"Could not retain two-local producer role policy report");
+        std::cout<<"PASS actual native "<<(retry?"expired cut, late Ready isolation and fresh full retry":"host2 to recipient1 graphics role policy/count boundary")<<'\n';return 0;
+    }
+    check(std::string_view(argv[1])!="native-mcc","Prepared MCC requires the production host2 or retry timeline mode");
     const bool dedicated=argc==5;const std::array<unsigned,1> local{0};
     const auto producer_views=dedicated?std::span<const unsigned>{}:std::span<const unsigned>(local);
     Producer host(argv[1],argv[2],dedicated);
@@ -343,4 +471,11 @@ int main(int argc,char** argv)try {
     std::cout<<"PASS authenticated ordinary rawUDP native stream: "<<accepted<<" actual four-stage imports/ACKs; dedicated="<<dedicated
         <<" advancing ticks="<<observed.ticks<<" full="<<hs.full_cuts<<" delta="<<hs.delta_cuts<<" largest capture gap="<<hs.largest_capture_gap_ms<<"ms\n";
     return 0;
-}catch(const std::exception& e){std::cerr<<"Native transport failure phase="<<phase<<" error="<<e.what()<<'\n';return 1;}
+}catch(const std::exception& e){
+    std::cerr<<"Native transport failure phase="<<phase<<" error="<<e.what()<<'\n';
+    // A failed current attempt cannot leave a prior successful run's report
+    // looking like evidence for this invocation in a reused test build.
+    if(argc>=4)try{std::ofstream out(argv[3]);out<<nlohmann::json{{"passed",false},{"phase",phase},
+        {"error",e.what()},{"retained_large_artifacts",nlohmann::json::array()}}.dump(2)<<'\n';}catch(...){}
+    return 1;
+}

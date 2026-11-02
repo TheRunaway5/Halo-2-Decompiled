@@ -13,12 +13,15 @@ struct Extent {std::uintptr_t begin,end;};
 Extent extent(const Word24*p,std::size_t words){auto a=reinterpret_cast<std::uintptr_t>(p);if(a>std::numeric_limits<std::uintptr_t>::max()-words*sizeof(Word24))throw std::invalid_argument("Native extent overflow");return{a,a+words*sizeof(Word24)};}
 bool overlaps(Extent a,Extent b){return a.begin<b.end&&b.begin<a.end;}
 }
-void process(const Controls& c,const Parameters& p,State& s,Bindings declared,std::span<Word24,401> history,std::span<SampleTrace,32> trace){
-    validate(c.entry_status);validate(p.gain);validate(p.depth);validate(s.flags);
+void validate_controls(const Controls& c){
+    validate(c.entry_status);
     if(c.entry_status.bits&((3u<<10)|(1u<<20)|(1u<<17)|(1u<<14)|(1u<<18)|(1u<<12)|(1u<<13)|(1u<<15)|(1u<<16)))throw std::invalid_argument("Unsupported original entry status");
     for(auto mode:c.addressing)if(mode!=AddressingMode::linear)throw std::invalid_argument("Unsupported original addressing mode");
     if(c.state_relative!=AddressingMode::linear)throw std::invalid_argument("Unsupported original state-relative addressing mode");
     if(c.live_begin_offset||c.live_span!=400)throw std::invalid_argument("Unrecovered live history geometry");
+}
+void process(const Controls& c,const Parameters& p,State& s,Bindings declared,std::span<Word24,401> history,std::span<SampleTrace,32> trace){
+    validate(p.gain);validate(p.depth);validate(s.flags);validate_controls(c);
     const bool cold=!(s.flags.bits&1u);
     if(!cold&&!s.active)throw std::invalid_argument("Warm state has no owned cached bindings");
     auto active=cold?ActiveState{declared,0,400}:*s.active;

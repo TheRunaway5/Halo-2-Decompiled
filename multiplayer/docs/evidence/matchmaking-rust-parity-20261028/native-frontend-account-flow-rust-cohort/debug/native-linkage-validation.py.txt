@@ -1,0 +1,33 @@
+import hashlib,json,os,re,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-account-flow-rust-20261102'
+info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source'])
+def symbols(path):
+ run=subprocess.run(['nm','-C',str(path)],capture_output=True,text=True);assert run.returncode==0,(str(path),run.stderr[-1500:]);return run.stdout.splitlines()
+def matches(lines,kind,text):return [line for line in lines if (' '+kind+' ')in line and text in line]
+adapter=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_account_flow.cpp.o'
+clans=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_clans.cpp.o'
+friends=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o'
+flow=build/'libhalo2_frontend_party_flow.a'
+search=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_search.cpp.o'
+a,c,f,p,s=map(symbols,[adapter,clans,friends,flow,search])
+assert len(matches(a,'T','halo2::MenuState::account_flow_drive(bool)'))==1
+assert len(matches(a,'U','halo2::FrontendMatchmakingPartyFlow::observe_account('))==1
+assert len(matches(c,'T','halo2::MenuState::update_online_account()'))==1
+assert len(matches(f,'T','halo2::MenuState::update_online_friend_join()'))==1
+assert len(matches(c,'U','halo2::MenuState::account_flow_drive(bool)'))==len(matches(f,'U','halo2::MenuState::account_flow_drive(bool)'))==1
+imports=[]
+for name in ['frontend_account_flow','frontend_party_flow_join_serial','frontend_party_flow_account_name','frontend_party_flow_voice_party','frontend_party_flow_voice_wanted','frontend_party_flow_match_voice']:
+ rows=matches(p,'U','halo2::online_protocol_bridge::'+name+'(');assert len(rows)==1,(name,rows);imports+=rows
+assert len(matches(s,'U','halo2::FrontendMatchmakingPartyFlow::match_voice(bool, bool) const'))==1
+units=json.loads((build/'compile_commands.json').read_text());compiled=[u for u in units if Path(u['file']).name=='frontend_matchmaking_account_flow.cpp']
+assert len(compiled)==1 and 'CMakeFiles/halo2_systems.dir/'in compiled[0]['command']
+assert not re.search(r'\b(?:friend_join_serial_|account_name_|voice_party_|party_voice_wanted_)\b',(source/'include/halo2/frontend.hpp').read_text())
+assert not re.search(r'\b(?:friend_join_serial_|account_name_|voice_party_|party_voice_wanted_)\b','\n'.join(path.read_text()for path in(source/'src/ui').glob('*.cpp')))
+files={str(path.relative_to(build)):dict(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),bytes=path.stat().st_size)for path in [adapter,clans,friends,flow,search]}
+report=dict(passed=True,sole_account_observer_adapter=True,native_observer_and_continuation_delegate_to_rust=True,
+ four_former_native_fields_removed=True,match_voice_composition_in_rust=True,existing_rust_party_flow_owner_used=True,
+ required_rust_imports=imports,compile_owner='halo2_systems',objects=files,
+ scope='Actual frozen native account adapter and ABI archive reach the Rust owner. This is component linkage, not installed-client or original Live provider proof.',
+ scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[])
+(work/'native-linkage.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

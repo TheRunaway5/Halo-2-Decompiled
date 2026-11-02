@@ -1,0 +1,261 @@
+{
+  "passed": true,
+  "baseline": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d",
+  "refreshed": [
+    {
+      "path": "rust/online_protocol/tests/matchmaking_account_client.rs",
+      "before": "b687ebb38da1f6c219007d9bf565f5d9587573ef82069fa4650b80e3c55e9c14",
+      "after": "4245224b636baec51f65e391d3d3879ff3992758be9eb6d069b2215405f7ea75"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "source_pin_parts": [
+    "iteration-11-source-pins-0.json",
+    "iteration-11-source-pins-1.json",
+    "iteration-11-source-pins-2.json",
+    "iteration-11-source-pins-3.json",
+    "iteration-11-source-pins-4.json",
+    "iteration-11-source-pins-5.json",
+    "iteration-11-source-pins-6.json",
+    "iteration-11-source-pins-7.json",
+    "iteration-11-source-pins-8.json",
+    "iteration-11-source-pins-9.json",
+    "iteration-11-source-pins-10.json",
+    "iteration-11-source-pins-11.json",
+    "iteration-11-source-pins-12.json",
+    "iteration-11-source-pins-13.json",
+    "iteration-11-source-pins-14.json",
+    "iteration-11-source-pins-15.json",
+    "iteration-11-source-pins-16.json",
+    "iteration-11-source-pins-17.json",
+    "iteration-11-source-pins-18.json",
+    "iteration-11-source-pins-19.json",
+    "iteration-11-source-pins-20.json",
+    "iteration-11-source-pins-21.json",
+    "iteration-11-source-pins-22.json",
+    "iteration-11-source-pins-23.json",
+    "iteration-11-source-pins-24.json",
+    "iteration-11-source-pins-25.json",
+    "iteration-11-source-pins-26.json",
+    "iteration-11-source-pins-27.json",
+    "iteration-11-source-pins-28.json",
+    "iteration-11-source-pins-29.json",
+    "iteration-11-source-pins-30.json",
+    "iteration-11-source-pins-31.json",
+    "iteration-11-source-pins-32.json",
+    "iteration-11-source-pins-33.json",
+    "iteration-11-source-pins-34.json",
+    "iteration-11-source-pins-35.json",
+    "iteration-11-source-pins-36.json",
+    "iteration-11-source-pins-37.json",
+    "iteration-11-source-pins-38.json",
+    "iteration-11-source-pins-39.json",
+    "iteration-11-source-pins-40.json",
+    "iteration-11-source-pins-41.json",
+    "iteration-11-source-pins-42.json",
+    "iteration-11-source-pins-43.json",
+    "iteration-11-source-pins-44.json",
+    "iteration-11-source-pins-45.json",
+    "iteration-11-source-pins-46.json",
+    "iteration-11-source-pins-47.json"
+  ],
+  "source_pin_sha256": "6acdaba8df95e17c702e8e54ecba57646ce7a5a76c010c52a52e070829cd3e93",
+  "command": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "rust_service_account_probe",
+    "--target",
+    "rust_service_matchmaking_probe",
+    "--target",
+    "rust_service_qos_probe",
+    "--target",
+    "rust_service_room_probe",
+    "--target",
+    "online_login_probe",
+    "--target",
+    "rust_service_social_probe",
+    "--filter",
+    "^rust_matchmaking_service_http$",
+    "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Release/build-report.json",
+    "--retain-report",
+    "test-artifacts/source-admissions-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/authority-transfer-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/snapshot-candidate-cpp-rust.json",
+    "--retain-report",
+    "test-artifacts/native-receive-dispatch.json",
+    "--retain-report",
+    "test-artifacts/native-session-access.json",
+    "--retain-report",
+    "test-artifacts/native-migration-callers.json",
+    "--retain-report",
+    "test-artifacts/native-session-api.json"
+  ],
+  "exit_code": 0,
+  "runner_report": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "rust_service_account_probe",
+          "rust_service_matchmaking_probe",
+          "rust_service_qos_probe",
+          "rust_service_room_probe",
+          "online_login_probe",
+          "rust_service_social_probe"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^rust_matchmaking_service_http$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 19712,
+        "sha256": "dc70cc2d254daab4fe7d9cb893662479b27af04f5cc6624c244e3f657a7ac1f3",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 3347,
+        "sha256": "88881c09a6434f785ff675c734c7615e2ff33a7774c8c6bce02eef42d820db6c",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-account-client-rust-20261101/native/iteration-11/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "test-artifacts/source-admissions-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/authority-transfer-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/snapshot-candidate-cpp-rust.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-receive-dispatch.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-session-access.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-migration-callers.json",
+        "status": "not produced"
+      },
+      {
+        "path": "test-artifacts/native-session-api.json",
+        "status": "not produced"
+      }
+    ]
+  },
+  "binaries": {
+    "rust_service_account_probe": {
+      "sha256": "fd16529f695df33b44db111ed6a5a6e6784878842a49e1b2fc6b76dfdfd31ef1",
+      "bytes": 25703568
+    },
+    "rust_service_matchmaking_probe": {
+      "sha256": "1b508c5a748b79ceadd509b4685187be327e3025bf5b1a7c2e7a7b3df5adb474",
+      "bytes": 28912144
+    },
+    "rust_service_qos_probe": {
+      "sha256": "ae2cb0e5eade52f7684a7d36af6d2e1089fffcad25339fbd4f12650cddb7bcd3",
+      "bytes": 25244208
+    },
+    "rust_service_room_probe": {
+      "sha256": "c79f0f580cb21cb0e7e3fbbccc1d5b14a0879af12a5f4f3c0b72b85220f86480",
+      "bytes": 28795152
+    },
+    "online_login_probe": {
+      "sha256": "90849a0e77528b2e710dc3a323bbe419a7ee2d572dec7b688fe7c40abe110a50",
+      "bytes": 25667864
+    },
+    "rust_service_social_probe": {
+      "sha256": "f60e5008b11598a2c38820ab5b83c529718be631b5ae93c176067038239a1cf4",
+      "bytes": 25713584
+    }
+  },
+  "frozen_inputs_intact": true
+}

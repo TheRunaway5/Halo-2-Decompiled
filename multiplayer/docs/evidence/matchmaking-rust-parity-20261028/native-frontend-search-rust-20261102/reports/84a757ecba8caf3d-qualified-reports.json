@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "reports": {
+    "blocked": {
+      "path": "build/test-results/frontend-search-rust-20261102/qualified/rust-frontend-blocked/report.json",
+      "sha256": "c9313504e1051542bea84f6a95005d493aae82add8d84f17d763c7cd56bf891c",
+      "bytes": 6144
+    },
+    "complete": {
+      "path": "build/test-results/frontend-search-rust-20261102/qualified/rust-frontend-complete/report.json",
+      "sha256": "2ddf83039dfabf00611a9e00634b48a9297ec390179dfe544ff00ed11c557e56",
+      "bytes": 6133
+    },
+    "rendered": {
+      "path": "build/test-results/frontend-search-rust-20261102/qualified/rust-frontend-rendered/report.json",
+      "sha256": "9a1bf77de7e54eb4e3fed94aa0a4269ff53e5804b9caf9e8f9ddf4bb33cd7a6e",
+      "bytes": 22121
+    }
+  },
+  "native_binary_sha256": "33d589b45fb0c0fe6d04babf808c061741275c3d6a9347e6dbe322e00c9af917",
+  "actual_sdl_mouse_inputs": 3,
+  "rendered_observations": 23,
+  "raw_frames_copied": false
+}

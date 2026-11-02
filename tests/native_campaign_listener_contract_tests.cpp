@@ -28,6 +28,8 @@ void run() {
         if(kernel.entry==0x2287b0u || kernel.entry==0x2531e0u)
             check(contract.gp_low8==1u && !(contract.gp_full&1u) && !(contract.gp_low16&1u),"Actual AL query lost its byte-width return contract");
         else check(contract.gp_low8==0u && (contract.xmm&1u),"Actual numerical listener lost its XMM0 result");
+        if(kernel.entry==0x253070u)check(contract.xmm==0xffu && contract.gp_full==0xffu,
+            "Object-loop scale callers lost their complete register output contract");
     }
     check(count==5,"Actual qualified listener table changed");
     std::cout<<"Actual five listener contracts and shared live AL comparator passed; low8, low16 and full-width obligations remain distinct\n";

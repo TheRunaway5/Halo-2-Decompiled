@@ -21,7 +21,9 @@
 #include "halo2/source_unit_animation_graph_header.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include <algorithm>
+#include <atomic>
 #include <bit>
+#include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <limits>
@@ -96,6 +98,12 @@ struct SourceFirstPersonContextTu15::Impl {
     struct ReadJob {std::uint32_t graph,index,descriptor,destination,bytes;};
     std::map<std::uint32_t,ReadJob> jobs;
     std::uint64_t next_job=0xf8000001u;
+    struct BitmapPredictionTrace {
+        std::uint32_t instruction{},record{},type{},datum{},frame{},table{},root{};
+        unsigned stage{};
+        bool reading{};
+    } bitmap_trace;
+    bool trace_bitmap_requests{};
     static constexpr SourcePhysicsFactoryFloatingPoint fp{0x27f,0x1f80};
     explicit Impl(const Cache &c,std::shared_ptr<const SourceRuntimeResources> r,
         SourcePhysicsWorldRuntimeServices supplied_cpu={}):cache(c),resources(std::move(r)) {
@@ -105,6 +113,56 @@ struct SourceFirstPersonContextTu15::Impl {
         if(!cpu.reciprocal_sqrt)cpu.reciprocal_sqrt=[](auto bits){return std::bit_cast<std::uint32_t>(
             _mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(std::bit_cast<float>(bits)))));};
         if(!cpu.timestamp_counter)cpu.timestamp_counter=[](){return __rdtsc();};
+        const auto* trace=std::getenv("HALO2_SHADOW_TRANSPORT_TRACE");
+        trace_bitmap_requests=trace&&*trace;
+        if(trace_bitmap_requests)memory.observe_reads([this](auto at,auto bytes){trace_bitmap_read(at,bytes);});
+    }
+    void trace_bitmap_read(std::uint32_t at,std::span<const std::byte> bytes) {
+        auto& trace=bitmap_trace;
+        if(trace.reading)return;
+        struct Reading {bool& value;explicit Reading(bool&v):value(v){value=true;}~Reading(){value=false;}} reading(trace.reading);
+        if(trace.instruction==0x171463u && bytes.size()==2u) {
+            trace.record=at;trace.type=Bytes(bytes).u16(0);trace.stage=1u;
+        } else if(trace.instruction==0x1714b6u && bytes.size()==4u && trace.stage==1u &&
+            trace.type==0u && at==trace.record+4u) {
+            trace.datum=Bytes(bytes).u32(0);trace.stage=2u;
+        } else if(trace.instruction==0x1714b9u && bytes.size()==2u && trace.stage==2u && at==trace.record+2u) {
+            trace.frame=Bytes(bytes).u16(0);trace.stage=3u;
+        } else if(trace.instruction==0x1714bdu && bytes.size()==4u && trace.stage==3u && at==0x4f0414u) {
+            trace.table=Bytes(bytes).u32(0);trace.stage=4u;
+        } else if(trace.instruction==0x1714cfu && bytes.size()==4u && trace.stage==4u &&
+            std::uint64_t(at)==std::uint64_t(trace.table)+(trace.datum&65535u)*16u+8u) {
+            trace.root=Bytes(bytes).u32(0);trace.stage=5u;
+        } else if(trace.instruction==0x12f733u && bytes.size()==4u && trace.stage==5u) {
+            trace.stage=0u;
+            // Keep the bounded receipt for the actual cold-handle branch
+            // that can allocate a prediction row, rather than resident touches.
+            if(Bytes(bytes).u32(0)!=0xffffffffu)return;
+            static std::atomic<unsigned> receipts{};
+            if(receipts.fetch_add(1,std::memory_order_relaxed)>=16u)return;
+            try {
+                const auto row=trace.table+(trace.datum&65535u)*16u;
+                const auto first=memory.word(trace.root+0x48u),count=memory.word(trace.root+0x44u);
+                const auto signed_frame=std::bit_cast<std::int16_t>(std::uint16_t(trace.frame));
+                const auto* tag=cache.find_tag({trace.datum},tag_groups::bitmap);
+                const bool fresh=tag && memory.word(row)==tag_groups::bitmap.value &&
+                    memory.word(row+4u)==trace.datum && memory.word(row+8u)==trace.root &&
+                    memory.word(row+12u)==tag->size && count==cache.bitmap_count(trace.datum);
+                const auto native=std::int64_t(first)+std::int64_t(signed_frame)*116;
+                const auto authored=std::int64_t(first)+std::int64_t(signed_frame)*(cache.is_mcc()?168:116);
+                const auto image=std::uint64_t(at)-0x28u;
+                const char* classification=!fresh?"unqualified_directory":
+                    (image==authored?"canonical_authored_image":
+                    (cache.is_mcc() && image==native?"canonical_116_stride_MCC_interior":"unqualified_foreign_or_derived_image"));
+                std::fprintf(stderr,"[native-fp-bitmap-prediction] {\"site\":1512662,\"type\":%u,\"record\":%u,\"datum\":%u,\"frame\":%d,\"canonical_root\":%u,\"count\":%u,\"first\":%u,\"actual_image\":%llu,\"expected_native116\":%lld,\"expected_authored\":%lld,\"native_handle_word\":%u,\"fresh_cache_full_salt\":%s,\"classification\":\"%s\",\"world_projection_receipt\":false}\n",
+                    trace.type,trace.record,trace.datum,signed_frame,trace.root,count,first,
+                    static_cast<unsigned long long>(image),static_cast<long long>(native),
+                    static_cast<long long>(authored),Bytes(bytes).u32(0),fresh?"true":"false",classification);
+            }catch(const std::exception& error) {
+                std::fprintf(stderr,"[native-fp-bitmap-prediction] {\"diagnostic_error\":true,\"datum\":%u,\"actual_operand\":%u}\n",trace.datum,at);
+                (void)error;
+            }
+        }
     }
     struct Borrow {
         Impl &owner;
@@ -123,6 +181,167 @@ struct SourceFirstPersonContextTu15::Impl {
         pin_range(pool,0x4cu);
         pin_range(memory.word(pool+0x44u),capacity*stride);
         pin_range(memory.word(pool+0x48u),((capacity+31u)/32u)*4u);
+    }
+    std::vector<std::uint32_t> bitmap_prediction_headers(const SourcePhysicsContactMemory &source)const {
+        // MCC's168-byte records have a separate runtime-view owner. This
+        // continuation admits only actual original116-byte authored images.
+        if(cache.is_mcc())return {};
+        const auto word=[&](std::uint32_t at) {
+            std::array<std::byte,4> bytes;source.read(at,bytes);return Bytes(bytes).u32(0);
+        };
+        const auto table=word(0x4f0414u);std::vector<std::uint32_t> result;
+        for(const auto& tag:cache.select_tags({.group=tag_groups::bitmap,.require_address=true})) {
+            const auto row=table+(tag.datum&65535u)*16u,root=word(row+8u);
+            if(tag.size<0x4cu || word(row)!=tag_groups::bitmap.value || word(row+4u)!=tag.datum ||
+                word(row+12u)!=tag.size || !root || std::uint64_t(root)+tag.size>std::uint64_t(UINT32_MAX)+1u)
+                throw FormatError("Native FP bitmap prediction lost its full-salt fresh Cache tag owner");
+            const auto count=word(root+0x44u),first=word(root+0x48u);
+            if(count!=cache.bitmap_count(tag.datum) || (count && (first<root ||
+                std::uint64_t(first)-root+std::uint64_t(count)*116u>tag.size)))
+                throw FormatError("Native FP bitmap prediction escaped its complete authored image bank");
+            for(unsigned image=0;image<count;++image)result.push_back(first+image*116u);
+        }
+        std::sort(result.begin(),result.end());
+        if(std::adjacent_find(result.begin(),result.end())!=result.end())
+            throw FormatError("Native FP bitmap prediction has aliased authored image owners");
+        return result;
+    }
+    std::vector<std::uint32_t> geometry_prediction_headers(const SourcePhysicsContactMemory &source)const {
+        const auto word=[&](std::uint32_t at) {
+            std::array<std::byte,4> bytes;source.read(at,bytes);return Bytes(bytes).u32(0);
+        };
+        const auto table=word(0x4f0414u);std::vector<std::uint32_t> result;
+        for(const auto& tag:cache.select_tags({.group=TagGroup::from_string("mode"),.require_address=true})) {
+            const auto row=table+(tag.datum&65535u)*16u,root=word(row+8u);
+            if(tag.size<0x2cu || word(row)!=TagGroup::from_string("mode").value || word(row+4u)!=tag.datum ||
+                word(row+12u)!=tag.size || !root || std::uint64_t(root)+tag.size>std::uint64_t(UINT32_MAX)+1u)
+                throw FormatError("Native FP geometry prediction lost its full-salt fresh Cache model owner");
+            const auto count=word(root+0x24u),first=word(root+0x28u);
+            if(count && (first<root || std::uint64_t(first)-root+std::uint64_t(count)*0x5cu>tag.size))
+                throw FormatError("Native FP geometry prediction escaped its authored section bank");
+            for(unsigned section=0;section<count;++section)result.push_back(first+section*0x5cu+0x38u);
+        }
+        // The same native1303C0 queue also serves the selected BSP's449D0
+        // headers. Its actual published root, full-salt Cache table row and
+        // complete authored tag extent qualify cluster/instance definitions;
+        // neither a queued pointer nor the archive can nominate another bank.
+        const auto current_bsp=word(0x4ecc18u);
+        bool current_bsp_found=!current_bsp;
+        for(const auto& bsp:cache.bsps()) {
+            const auto* tag=cache.find_tag({bsp.datum},tag_groups::scenario_structure_bsp);
+            if(!tag)throw FormatError("Native FP geometry prediction lost its Cache BSP owner");
+            const auto row=table+(tag->datum&65535u)*16u,root=word(row+8u);
+            if(root!=current_bsp)continue;
+            //1255C0 publishes only table+8, from the complete allocation
+            // header at556D94. Separate BSP table sizes remain zero in the
+            // canonical delivery; authenticate that real allocation instead
+            // of treating its resident table row as an ordinary MODE tag.
+            const auto allocation=word(0x556d94u);
+            const auto authored=Bytes(cache.source_runtime_cache_bytes()).slice(bsp.file_offset,bsp.size);
+            const Bytes header(authored);
+            const auto authored_root=header.u32(4);
+            if(bsp.size<16u || authored_root<bsp.memory_address ||
+                std::uint64_t(authored_root)-bsp.memory_address>=bsp.size ||
+                header.u32(0)!=bsp.size || (tag->address && authored_root!=tag->address))
+                throw FormatError("Native FP geometry prediction lost its authored BSP allocation");
+            const auto offset=authored_root-bsp.memory_address;
+            const auto extent=tag->size?tag->size:bsp.size-offset;
+            if(current_bsp_found || extent<0x140u || std::uint64_t(offset)+extent>bsp.size ||
+                word(row)!=tag_groups::scenario_structure_bsp.value || word(row+4u)!=tag->datum ||
+                (word(row+12u)!=0u && word(row+12u)!=tag->size) || !allocation ||
+                std::uint64_t(allocation)+bsp.size>std::uint64_t(UINT32_MAX)+1u ||
+                std::uint64_t(allocation)+offset!=root || word(allocation)!=bsp.size ||
+                word(allocation+4u)!=root || word(allocation+12u)!=tag_groups::scenario_structure_bsp.value)
+                throw FormatError("Native FP geometry prediction lost its full-salt current BSP allocation");
+            current_bsp_found=true;
+            for(const auto [offset,stride]:{std::pair{0x9cu,0xb0u},std::pair{0x138u,0xc8u}}) {
+                const auto count=word(root+offset),first=word(root+offset+4u);
+                if(count && (first<root || std::uint64_t(first)-root+std::uint64_t(count)*stride>extent))
+                    throw FormatError("Native FP geometry prediction escaped its authored BSP section bank");
+                for(unsigned section=0;section<count;++section)result.push_back(first+section*stride+0x28u);
+            }
+            //1716F0/171750 nominate the selected lightmap's incident-stream
+            // bucket+C, not an sbsp section. Authenticate its separate full
+            // salt and allocation/root publication before admitting only the
+            // same56-byte records decoded by Cache::load_bsp_lighting.
+            const auto* scenario=cache.find_tag(cache.scenario_tag(),tag_groups::scenario);
+            if(!scenario || !scenario->address || scenario->size<0x218u)
+                throw FormatError("Native FP lightmap prediction lacks its Cache scenario mapping");
+            const Bytes scnr(cache.read_tag_bytes(scenario->address,scenario->size));
+            const auto selected=std::size_t(&bsp-cache.bsps().data());
+            if(scnr.u32(0x210u)!=cache.bsps().size())
+                throw FormatError("Native FP lightmap prediction lost its exact scenario BSP count");
+            const Bytes mapping(cache.read_tag_bytes(scnr.u32(0x214u)+selected*0x44u,0x44u));
+            // The MCC Cache keeps zero delivery fields here; its owning
+            // MccRuntimeCacheDelivery supplies the normalized allocation.
+            // Both formats retain the actual full-salt sbsp/ltmp links.
+            if(mapping.u32(0x14u)!=bsp.datum || (!cache.is_mcc() &&
+                (mapping.u32(0)!=bsp.file_offset || mapping.u32(4)!=bsp.size || mapping.u32(8)!=bsp.memory_address)))
+                {std::ostringstream message;message<<"Native FP lightmap prediction lost its exact scenario BSP allocation mcc="<<cache.is_mcc()<<std::hex<<" mapping=["<<mapping.u32(0)<<","<<mapping.u32(4)<<","<<mapping.u32(8)<<","<<mapping.u32(0x14u)<<"] allocation=["<<bsp.file_offset<<","<<bsp.size<<","<<bsp.memory_address<<","<<bsp.datum<<"]";throw FormatError(message.str());}
+            const auto lightmap=word(0x4ecc14u),authored_lightmap=header.u32(8),lightmap_datum=mapping.u32(0x1cu);
+            if(lightmap_datum!=0xffffffffu) {
+                const auto* tag=cache.find_tag({lightmap_datum},tag_groups::scenario_structure_lightmap);
+                if(!tag || authored_lightmap<bsp.memory_address ||
+                    std::uint64_t(authored_lightmap)-bsp.memory_address>=bsp.size ||
+                    (tag->address && tag->address!=authored_lightmap))
+                    throw FormatError("Native FP lightmap prediction lost its authored ltmp allocation");
+                const auto offset=authored_lightmap-bsp.memory_address;
+                const auto extent=tag->size?tag->size:bsp.size-offset;
+                const auto row=table+(lightmap_datum&65535u)*16u;
+                if(extent<0x88u || std::uint64_t(offset)+extent>bsp.size ||
+                    std::uint64_t(allocation)+offset!=lightmap || word(allocation+8u)!=lightmap ||
+                    word(row)!=tag_groups::scenario_structure_lightmap.value || word(row+4u)!=lightmap_datum ||
+                    word(row+8u)!=lightmap || (word(row+12u)!=0u && word(row+12u)!=tag->size))
+                    throw FormatError("Native FP lightmap prediction lost its full-salt selected ltmp publication");
+                const auto count=word(lightmap+0x80u),groups=word(lightmap+0x84u);
+                const auto authored_count=header.u32(offset+0x80u),authored_groups=header.u32(offset+0x84u);
+                if(count!=authored_count || (count && (authored_groups<bsp.memory_address ||
+                    std::uint64_t(authored_groups)-bsp.memory_address+std::uint64_t(count)*0x68u>bsp.size ||
+                    std::uint64_t(allocation)+authored_groups-bsp.memory_address!=groups)))
+                    throw FormatError("Native FP lightmap groups differ from their independent Cache count/offset");
+                if(count && (groups<lightmap || std::uint64_t(groups)-lightmap+std::uint64_t(count)*0x68u>extent))
+                    throw FormatError("Native FP lightmap groups escaped their actual ltmp owner");
+                // Both actual native consumers select group0 and reject stale
+                // geometry checksum or an absent authored bitmap binding.
+                if(count && word(groups+0x1cu)!=0xffffffffu && word(groups+4u)==word(root+8u)) {
+                    const auto authored_group=authored_groups-bsp.memory_address;
+                    if(word(groups+0x1cu)!=header.u32(authored_group+0x1cu) ||
+                        word(groups+4u)!=header.u32(authored_group+4u) ||
+                        word(root+8u)!=header.u32(authored_root-bsp.memory_address+8u))
+                        throw FormatError("Native FP lightmap prediction changed its authored bitmap/checksum binding");
+                    const auto count=word(groups+0x40u),buckets=word(groups+0x44u);
+                    const auto authored_buckets=header.u32(authored_group+0x44u);
+                    if(count!=header.u32(authored_group+0x40u) || (count &&
+                        (authored_buckets<bsp.memory_address ||
+                        std::uint64_t(authored_buckets)-bsp.memory_address+std::uint64_t(count)*0x38u>bsp.size ||
+                        std::uint64_t(allocation)+authored_buckets-bsp.memory_address!=buckets)))
+                        throw FormatError("Native FP lightmap buckets differ from their independent Cache count/offset");
+                    if(count && (buckets<lightmap ||
+                        std::uint64_t(buckets)-lightmap+std::uint64_t(count)*0x38u>extent))
+                        throw FormatError("Native FP lightmap bucket requests escaped their authored record bank");
+                    for(unsigned bucket=0;bucket<count;++bucket) {
+                        const auto actual=buckets+bucket*0x38u+0xcu;
+                        const auto authored=authored_buckets-bsp.memory_address+bucket*0x38u+0xcu;
+                        for(unsigned at:{0u,4u,8u,0xcu,0x10u,0x18u})
+                            if(word(actual+at)!=header.u32(authored+at))
+                                throw FormatError("Native FP lightmap prediction changed immutable resource metadata");
+                        const auto pointer=header.u32(authored+0x14u);
+                        if((pointer && (pointer<bsp.memory_address ||
+                            std::uint64_t(pointer)-bsp.memory_address>=bsp.size ||
+                            std::uint64_t(allocation)+pointer-bsp.memory_address!=word(actual+0x14u))) ||
+                            (!pointer && word(actual+0x14u)) ||
+                            (word(actual+0x1cu)&65535u)!=header.u16(authored+0x1cu))
+                            throw FormatError("Native FP lightmap prediction changed its resource pointer/static fields");
+                        result.push_back(actual);
+                    }
+                }
+            } else if(lightmap)throw FormatError("Native FP lightmap prediction has a foreign published ltmp root");
+        }
+        if(!current_bsp_found)throw FormatError("Native FP geometry prediction lacks its selected Cache BSP publication");
+        std::sort(result.begin(),result.end());
+        if(std::adjacent_find(result.begin(),result.end())!=result.end())
+            throw FormatError("Native FP geometry prediction has aliased authored section owners");
+        return result;
     }
     std::array<std::byte,0xc4> animation_graph_header(std::uint32_t graph) const {
         static const bool copy_graph=[]{const auto *p=std::getenv("HALO2_REFERENCE_COPY_FP_GRAPH_METADATA");return p && *p;}();
@@ -146,7 +365,38 @@ struct SourceFirstPersonContextTu15::Impl {
         pin_pool(memory.word(0x4f0418u),0x200u,0x10u);
         pin_pool(memory.word(0x4f041cu),0x80u,0xcu);
         // Original130426 constructs the bounded predicted-resource queue.
-        pin_pool(memory.word(0x4f2d60u),0x15eu,8u);
+        const auto predicted_geometry=memory.word(0x4f2d60u);
+        pin_pool(predicted_geometry,0x15eu,8u);
+        const auto geometry_headers=geometry_prediction_headers(memory);
+        const auto geometry_rows=memory.word(predicted_geometry+0x44u),geometry_bits=memory.word(predicted_geometry+0x48u);
+        for(unsigned index=0;index<0x15eu;++index)if(memory.word(geometry_bits+(index/32u)*4u)&(1u<<(index%32u))) {
+            const auto header=memory.word(geometry_rows+index*8u+4u);
+            if(!std::binary_search(geometry_headers.begin(),geometry_headers.end(),header)) {
+                std::ostringstream message;message<<"Native FP inherited geometry request lacks its actual authored section owner header0x"<<std::hex<<header<<" queue0x"<<predicted_geometry<<" index0x"<<index<<" full-row0x"<<memory.word(geometry_rows+index*8u)<<" table0x"<<memory.word(0x4f0414u)<<" bsp0x"<<memory.word(0x4ecc18u)<<" allocation0x"<<memory.word(0x556d94u);
+                const auto next=std::lower_bound(geometry_headers.begin(),geometry_headers.end(),header);
+                if(next!=geometry_headers.end())message<<" next-authored0x"<<*next;
+                if(next!=geometry_headers.begin())message<<" previous-authored0x"<<*std::prev(next);
+                const auto allocation=memory.word(0x556d94u);
+                if(allocation)for(unsigned at=0;at<16u;at+=4u)message<<" allocation+"<<at<<"=0x"<<memory.word(allocation+at);
+                throw FormatError(message.str());
+            }
+            pin_range(header+0x1fu,1u);
+        }
+        if(!cache.is_mcc()) {
+            //12EC46 constructs this separate200-row global prediction pool.
+            // Only an authored image's queued bit belongs to this context;
+            // hardware handles, pixels and completion remain borrowed.
+            const auto predicted_bitmaps=memory.word(0x4f2d28u);
+            pin_pool(predicted_bitmaps,0xc8u,8u);
+            const auto images=bitmap_prediction_headers(memory);
+            const auto rows=memory.word(predicted_bitmaps+0x44u),bits=memory.word(predicted_bitmaps+0x48u);
+            for(unsigned image=0;image<0xc8u;++image)if(memory.word(bits+(image/32u)*4u)&(1u<<(image%32u))) {
+                const auto header=memory.word(rows+image*8u+4u);
+                if(!std::binary_search(images.begin(),images.end(),header))
+                    throw FormatError("Native FP inherited bitmap request lacks its authored116-byte image owner");
+                pin_range(header+0xfu,1u);
+            }
+        }
         const auto allocator=memory.word(0x4f0424u);
         pin_range(allocator,0x30fcu);
         const auto pool=memory.word(allocator+0x64u);
@@ -178,6 +428,7 @@ struct SourceFirstPersonContextTu15::Impl {
     }
     SourcePhysicsWorldRuntimeServices services() {
         SourcePhysicsWorldRuntimeServices result;
+        if(trace_bitmap_requests)result.instruction=[this](auto pc){bitmap_trace.instruction=pc;};
         result.reciprocal_sqrt=cpu.reciprocal_sqrt;
         result.timestamp_counter=cpu.timestamp_counter;
         result.required_owner=[this](auto &bank,const auto &call,auto &abi,const auto &stores) {
@@ -757,6 +1008,8 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
     std::vector<std::pair<std::uint32_t,std::uint32_t>> descriptors;
     std::vector<std::uint32_t> cache_pools;
     std::vector<std::uint32_t> queued_geometry;
+    std::vector<std::uint32_t> geometry_headers;
+    std::vector<std::uint32_t> bitmap_headers;
     if(saved.initialized) {
         // Qualify actor identities against the fresh World before installing
         // any private bytes. A checkpoint cannot manufacture its own owners.
@@ -790,6 +1043,33 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
             fresh_word(texture+0xb8u)!=texture+0x30bcu)
             throw FormatError("Native FP continuation texture usage owner differs from12EBE0");
         for(unsigned index=0;index<0x200u;++index)allow(texture+0xd0u+index*0x18u,4u);
+        // Original1303C0 constructs a separate13FC50 geometry allocator.
+        // Resident geometry1307C0/130980 touches only each allocation's +14
+        // usage stamp (130809/1309A8), just as the distinct texture path above.
+        // Authenticate its fresh native inline pool; never import its resource
+        // pointers, allocator topology, callbacks or resident geometry bytes.
+        const auto geometry=fresh_word(0x4f2d6cu);
+        if(!geometry || geometry>UINT32_MAX-0x30fcu ||
+            fresh_word(geometry+0x64u)!=geometry+0x70u || fresh_word(geometry+0x34u)!=12u ||
+            fresh_word(geometry+0x68u)!=0x77656565u || fresh_word(geometry+0x9cu)!=0x64407440u ||
+            fresh_word(geometry+0x90u)!=0x200u || fresh_word(geometry+0x94u)!=0x18u ||
+            fresh_word(geometry+0xa8u)>0x200u || fresh_word(geometry+0xb4u)!=geometry+0xbcu ||
+            fresh_word(geometry+0xb8u)!=geometry+0x30bcu)
+            throw FormatError("Native FP continuation geometry usage owner differs from1303C0/13FC50");
+        for(unsigned index=0;index<0x200u;++index)allow(geometry+0xd0u+index*0x18u,4u);
+        if(const auto* trace=std::getenv("HALO2_SHADOW_TRANSPORT_TRACE");trace&&*trace) {
+            static std::atomic<unsigned> receipts{};
+            for(unsigned index=0;index<0x200u;++index) {
+                const auto at=geometry+0xd0u+index*0x18u;
+                if(std::ranges::any_of(saved.private_ranges,[&](const auto& range){
+                    return range.address<=at && std::uint64_t(at)+4u<=std::uint64_t(range.address)+range.bytes.size();})) {
+                    if(receipts.fetch_add(1,std::memory_order_relaxed)<16)
+                        std::fprintf(stderr,"[native-fp-continuation] {\"geometry_allocator\":%u,\"geometry_rows\":%u,\"first_geometry_usage\":%u,\"geometry_usage_index\":%u}\n",
+                            geometry,geometry+0xbcu,at,index);
+                    break;
+                }
+            }
+        }
         allow(fresh_word(0x4f9b54u)+0x14u,4u*0x94u);
         allow(fresh_word(0x4f54f0u),0x1cu);
         const auto players=fresh_word(0x4f54f4u),rows=fresh_word(players+0x44u);
@@ -804,12 +1084,25 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
         // Original13041C/130421 constructs this predicted-resource request
         // queue;130844/13084A allocates it and13085C stores its resource.
         const auto predicted=fresh_word(0x4f2d60u);
+        if(!predicted || predicted>UINT32_MAX-0xb68u || fresh_word(predicted+0x2cu)!=0x64407440u ||
+            fresh_word(predicted+0x44u)!=predicted+0x4cu || fresh_word(predicted+0x48u)!=predicted+0xb3cu)
+            throw FormatError("Native FP geometry prediction owner differs from1303C0/130426");
         pool_extent(predicted,0x15eu,8u);cache_pools.push_back(predicted);
+        if(!owner.cache.is_mcc()) {
+            const auto bitmaps=fresh_word(0x4f2d28u);
+            if(!bitmaps || bitmaps>UINT32_MAX-0x6a8u || fresh_word(bitmaps+0x2cu)!=0x64407440u ||
+                fresh_word(bitmaps+0x44u)!=bitmaps+0x4cu || fresh_word(bitmaps+0x48u)!=bitmaps+0x68cu)
+                throw FormatError("Native FP bitmap prediction owner differs from12EBE0/12EC46");
+            pool_extent(bitmaps,0xc8u,8u);cache_pools.push_back(bitmaps);
+            bitmap_headers=owner.bitmap_prediction_headers(source);
+            for(const auto image:bitmap_headers)allow(image+0xfu,1u);
+        }
         //13085C/130860 publish the exact geometry header and set only its
-        // queued bit. Current native bindings, rather than archived pointers
-        // or an unrestricted mode directory, identify these one-byte owners.
+        // queued bit. The fresh Cache's complete full-salt authored model/BSP
+        // banks identify one-byte owners; rows and queued bits must pair below.
         queued_geometry=owner.geometry_headers(source,saved.temporal.identity);
-        for(auto header:queued_geometry)allow(header+0x1fu,1u);
+        geometry_headers=owner.geometry_prediction_headers(source);
+        for(auto header:geometry_headers)allow(header+0x1fu,1u);
         allow(0x4f7208u,8u);
         const auto emitters=fresh_word(0x4f7208u),effects=fresh_word(0x4f720cu);
         pool_extent(emitters,0x200u,0x3cu);pool_extent(effects,0x100u,0x190u);
@@ -850,7 +1143,7 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
             if(std::uint64_t(address)+bytes>covered)covered=std::min(limit,std::uint64_t(address)+bytes);
             if(covered==limit)break;
         }
-        if(covered!=limit) {std::ostringstream message;message<<"Native FP continuation range outside typed owners at0x"<<std::hex<<range.address<<" bytes0x"<<range.bytes.size()<<" first-unowned0x"<<covered;for(auto root:Impl::root_globals)message<<" root"<<root<<"="<<fresh_word(root);message<<" input="<<fresh_word(0x4f9b54u)<<" camera="<<fresh_word(0x51df6cu);throw FormatError(message.str());}
+        if(covered!=limit) {std::ostringstream message;message<<"Native FP continuation range outside typed owners at0x"<<std::hex<<range.address<<" bytes0x"<<range.bytes.size()<<" first-unowned0x"<<covered;for(auto root:Impl::root_globals)message<<" root"<<root<<"="<<fresh_word(root);message<<" input="<<fresh_word(0x4f9b54u)<<" camera="<<fresh_word(0x51df6cu)<<" geometry="<<fresh_word(0x4f2d6cu);throw FormatError(message.str());}
         total+=range.bytes.size();end=std::uint64_t(range.address)+range.bytes.size();
         if(total>8u*1024u*1024u)throw FormatError("Native FP continuation exceeded its bounded private animation owners");
         owner.memory.write(range.address,range.bytes);
@@ -863,26 +1156,36 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
                 throw FormatError("Native FP continuation changed immutable cache-pool topology");
         const auto predicted=fresh_word(0x4f2d60u),predicted_rows=fresh_word(predicted+0x44u);
         const auto predicted_bits=fresh_word(predicted+0x48u),upper=owner.memory.word(predicted+0x38u);
-        if(upper>0x15eu)throw FormatError("Native FP geometry queue escaped its original capacity");
-        std::vector<std::uint32_t> active_geometry;
+        const auto geometry_salt=owner.memory.word(predicted+0x40u)&65535u;
+        if(upper>0x15eu || owner.memory.word(predicted+0x34u)>0x15eu ||
+            !(geometry_salt&0x8000u) || geometry_salt==65535u)
+            throw FormatError("Native FP geometry queue escaped its original capacity or salt domain");
+        std::array<std::byte,0x4c> actual_geometry_pool,private_geometry_pool;
+        source.read(predicted,actual_geometry_pool);owner.memory.read(predicted,private_geometry_pool);
+        for(unsigned n=0;n<actual_geometry_pool.size();++n)if((n<0x34u || n>=0x42u) &&
+            actual_geometry_pool[n]!=private_geometry_pool[n])
+            throw FormatError("Native FP geometry prediction changed immutable pool metadata");
+        std::vector<std::uint32_t> active_geometry;unsigned geometry_high{};
         for(unsigned index=0;index<0x15eu;++index) {
             const auto mask=1u<<(index%32u),bits=predicted_bits+(index/32u)*4u;
             if(!(owner.memory.word(bits)&mask))continue;
             const auto row=predicted_rows+index*8u,header=owner.memory.word(row+4u);
-            if(index>=upper || !(owner.memory.word(row)&65535u))
+            const auto salt=owner.memory.word(row);
+            if(index>=upper || salt>65535u || !(salt&0x8000u) || salt==65535u ||
+                !std::binary_search(geometry_headers.begin(),geometry_headers.end(),header))
                 throw FormatError("Native FP geometry queue has an invalid active resource row");
+            geometry_high=index+1u;
+            if(std::find(active_geometry.begin(),active_geometry.end(),header)!=active_geometry.end())
+                throw FormatError("Native FP geometry prediction duplicated an authored section request");
             active_geometry.push_back(header);
-            if(!(fresh_word(bits)&mask) || fresh_word(row+4u)!=header) {
-                if(std::find(queued_geometry.begin(),queued_geometry.end(),header)==queued_geometry.end())
-                    throw FormatError("Native FP geometry queue nominated an unrelated asset owner");
-                std::array<std::byte,1> flag;owner.memory.read(header+0x1fu,flag);
-                if((flag[0]&std::byte{4})==std::byte{})
-                    throw FormatError("Native FP geometry queue row lacks its paired queued flag");
-            }
+            std::array<std::byte,1> flag;owner.memory.read(header+0x1fu,flag);
+            if((flag[0]&std::byte{4})==std::byte{})
+                throw FormatError("Native FP geometry queue row lacks its paired queued flag");
         }
-        if(owner.memory.word(predicted+0x3cu)!=active_geometry.size())
+        if(owner.memory.word(predicted+0x3cu)!=active_geometry.size() || geometry_high!=upper ||
+            (owner.memory.word(predicted_bits+10u*4u)&0xc0000000u))
             throw FormatError("Native FP geometry queue active count differs from its bitmap");
-        for(auto header:queued_geometry) {
+        for(auto header:geometry_headers) {
             std::array<std::byte,1> actual,restored;source.read(header+0x1fu,actual);
             owner.memory.read(header+0x1fu,restored);
             if(((actual[0]^restored[0])&std::byte{0xfbu})!=std::byte{})
@@ -893,6 +1196,44 @@ void SourceFirstPersonContextTu15::prepare_restore(const SourcePhysicsContactMem
             if(privately_written && (restored[0]&std::byte{4})!=std::byte{} &&
                 std::count(active_geometry.begin(),active_geometry.end(),header)!=1)
                 throw FormatError("Native FP queued resource flag lacks its actual predicted-resource row");
+        }
+        if(!owner.cache.is_mcc()) {
+            const auto queue=fresh_word(0x4f2d28u),rows=fresh_word(queue+0x44u),bits=fresh_word(queue+0x48u);
+            const auto upper=owner.memory.word(queue+0x38u),salt=owner.memory.word(queue+0x40u)&65535u;
+            if(upper>0xc8u || owner.memory.word(queue+0x34u)>0xc8u || !(salt&0x8000u) || salt==65535u)
+                throw FormatError("Native FP bitmap queue escaped its original capacity or salt domain");
+            std::array<std::byte,0x4c> actual,restored;
+            source.read(queue,actual);owner.memory.read(queue,restored);
+            for(unsigned n=0;n<actual.size();++n)if((n<0x34u || n>=0x42u) && actual[n]!=restored[n])
+                throw FormatError("Native FP bitmap queue changed immutable native pool metadata");
+            std::vector<std::uint32_t> active;unsigned high{};
+            for(unsigned index=0;index<0xc8u;++index)if(owner.memory.word(bits+(index/32u)*4u)&(1u<<(index%32u))) {
+                const auto row=rows+index*8u,image=owner.memory.word(row+4u),salt=owner.memory.word(row);
+                if(index>=upper || salt>65535u || !(salt&0x8000u) || salt==65535u ||
+                    !std::binary_search(bitmap_headers.begin(),bitmap_headers.end(),image))
+                    throw FormatError("Native FP bitmap queue has an invalid full-salt authored image row");
+                if(std::find(active.begin(),active.end(),image)!=active.end())
+                    throw FormatError("Native FP bitmap queue duplicated an authored image request");
+                active.push_back(image);high=index+1u;
+                std::array<std::byte,1> flag;owner.memory.read(image+0xfu,flag);
+                if((flag[0]&std::byte{4})==std::byte{})
+                    throw FormatError("Native FP bitmap queue row lacks its paired authored queued flag");
+            }
+            if(owner.memory.word(queue+0x3cu)!=active.size() || high!=upper ||
+                (owner.memory.word(bits+24u)&0xffffff00u))
+                throw FormatError("Native FP bitmap queue count/high-water/tail differs from its exact native bitmap");
+            for(const auto image:bitmap_headers) {
+                std::array<std::byte,1> actual,restored;source.read(image+0xfu,actual);
+                owner.memory.read(image+0xfu,restored);
+                if(((actual[0]^restored[0])&std::byte{0xfbu})!=std::byte{})
+                    throw FormatError("Native FP bitmap continuation changed an immutable authored image flag");
+                const bool retained=std::any_of(saved.private_ranges.begin(),saved.private_ranges.end(),
+                    [&](const auto& range){return range.address<=image+0xfu &&
+                        std::uint64_t(image)+0xfu<std::uint64_t(range.address)+range.bytes.size();});
+                if(retained && (restored[0]&std::byte{4})!=std::byte{} &&
+                    std::count(active.begin(),active.end(),image)!=1)
+                    throw FormatError("Native FP bitmap queued flag lacks its unique actual native request row");
+            }
         }
         for(auto root:{0x4f7208u,0x4f720cu})
             if(owner.memory.word(root)!=fresh_word(root))

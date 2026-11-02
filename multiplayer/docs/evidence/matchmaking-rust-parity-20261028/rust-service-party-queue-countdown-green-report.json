@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-oez2mmcr/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-oez2mmcr",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-oez2mmcr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-oez2mmcr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-oez2mmcr/cargo/release/halo2-matchmaking-service",
+    "bytes": 9024976,
+    "sha256": "297930e4afcf02743693bff068028d60ddc1fcdbc8ae16c215c0a287a65d6191",
+    "retained": false
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ],
+  "matchmaking_checks": [
+    "session parser and verified couch preflight reject forged/duplicate inputs before canonical writes",
+    "actual 14-row catalog over Rust HTTP: v12 admits zero; v16 admits all twelve non-clan playlists",
+    "real queue API/SQL/gathering continuation rolls back ticket and rank writes on failed COMMIT, retries once, waits for actual QoS and cancels without fabricated matches",
+    "accepted-party create/invite/accept follows the same Rust queue source and hides private identities",
+    "real shared pregame countdown requires remote consent, enforces leader authority, replays once and ticks without request clocks",
+    "actual failed session COMMIT restores the prior native grant, accepted-party version, consent and active countdown",
+    "failed countdown COMMIT preserves publication and request retry cancels exactly once",
+    "four-seat canonical transaction rolls back new signed locals on failed COMMIT; guests remain transient, renewal preserves the grant and duplicate physical seating is rejected",
+    "actual session retirement clears shared countdown and stale consent through Rust directory effects",
+    "real Rust restart keeps accepted membership and canonical identities, while retiring session grants and countdown state",
+    "high-frequency countdown reads use the separate native countdown allowance and preserve ordinary social request capacity",
+    "unported search sockets/room transports remain unavailable and full readiness stays false"
+  ]
+}

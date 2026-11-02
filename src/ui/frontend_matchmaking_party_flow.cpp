@@ -1,0 +1,84 @@
+#include "halo2/frontend.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
+#include <bit>
+#include <exception>
+#include <stdexcept>
+#include <type_traits>
+namespace halo2 {
+namespace bridge=online_protocol_bridge;
+namespace {
+rust::Vec<std::uint8_t> flow_bytes(const std::string &s){rust::Vec<std::uint8_t> out;out.reserve(s.size());for(unsigned char c:s)out.push_back(c);return out;}
+std::string flow_text(const rust::Vec<std::uint8_t>&s){return {reinterpret_cast<const char*>(s.data()),s.size()};}
+}
+// Cached native snapshots, actual resources and primitive menu operations.
+// Rust chooses every action and releases its state guard before each callback.
+struct FrontendPartyFlowNativeIo final:bridge::NativeFrontendPartyFlowIo {
+  MenuState &m;mutable std::exception_ptr exception;
+  explicit FrontendPartyFlowNativeIo(MenuState &value):m(value){}
+  template<class F>auto capture(F&&f)const->std::invoke_result_t<F>{try{return f();}catch(...){exception=std::current_exception();throw std::runtime_error("Native party flow IO failed");}}
+  template<class F>auto invoke(F&&f)const->std::invoke_result_t<F>{try{return f();}catch(...){if(exception)std::rethrow_exception(exception);throw;}}
+  bridge::PartyFlowFacts party_flow_facts()const override{return capture([&]{
+    bridge::PartyFlowFacts out{};out.mode=m.mode_;out.account_client=bool(m.online_account_);out.queue_client=bool(m.online_matchmaking_);out.voice_client=bool(m.online_voice_);
+    out.authenticated=m.account_.authenticated;out.busy=m.account_.busy;out.party=m.account_.party.has_value();
+    for(const auto &f:m.stack_){bridge::PartyFlowFrame frame{};frame.screen=f.screen;frame.context=f.context;frame.instance=f.instance;frame.selected=f.selected;
+      for(const auto &entry:f.entries)frame.entries.push_back({entry.destination,entry.value});
+      out.frames.push_back(std::move(frame));}
+    if(m.account_.party){const auto &p=*m.account_.party;out.leader=p.leader;out.version=p.version;out.privacy_present=p.privacy.has_value();
+      if(p.privacy)out.privacy={p.privacy->mode,p.privacy->revision,flow_bytes(p.privacy->context)};
+      for(const auto &i:p.outgoing)out.outgoing.push_back({flow_bytes(i.id)});}
+    for(const auto &i:m.account_.party_invitations)out.invitations.push_back({flow_bytes(i.id),flow_bytes(i.name),i.version});
+    for(const auto &p:m.account_.friends)out.friends.push_back({flow_bytes(p.id),flow_bytes(p.state)});
+    out.clan=m.account_.clan.has_value();if(m.account_.clan)for(const auto &p:m.account_.clan->members)out.clan_members.push_back({flow_bytes(p.id)});
+    out.signed_in=flow_bytes(m.signed_in_);out.launch=m.launch.has_value();out.status=unsigned(m.matchmaking_.status);out.party_message=flow_bytes(m.account_.party_message);
+    out.command_serial=m.account_.party_command_serial;out.successful_present=m.account_.party_command_successful.has_value();out.successful=m.account_.party_command_successful.value_or(false);
+    out.voice_party=m.party_flow_.voice_party();out.voice_joined=m.voice_.joined;out.voice_connecting=m.voice_.connecting;out.microphone_muted=m.voice_.microphone_muted;
+    for(const auto &id:m.voice_.muted)out.muted.push_back({flow_bytes(id)});
+    return out;
+  });}
+  rust::Vec<bridge::PartyMemberData> party_flow_members()const override{return capture([&]{
+    rust::Vec<bridge::PartyMemberData> out;
+    for(const auto &p:m.online_party_members()){
+      bridge::PartyMemberData value{};value.handle=flow_bytes(p.handle);value.name=flow_bytes(p.name);value.ready=flow_bytes(p.ready_playlist);
+      value.is_self=p.self;value.leader=p.leader;value.online=p.online;value.controller=p.local_controller;value.guest=p.guest;
+      value.appearance_present=p.appearance.has_value();if(p.appearance)value.appearance=std::bit_cast<std::array<std::uint8_t,9>>(*p.appearance);
+      value.postgame_present=p.postgame.has_value();value.postgame=p.postgame.value_or(false);
+      for(const auto &s:p.local_players){bridge::PartyLocalData seat{};seat.name=flow_bytes(s.name);seat.guest=s.guest;seat.appearance_present=s.appearance.has_value();
+        if(s.appearance)seat.appearance=std::bit_cast<std::array<std::uint8_t,9>>(*s.appearance);
+        value.locals.push_back(std::move(seat));}
+      out.push_back(std::move(value));
+    }return out;
+  });}
+  bool party_flow_command(const bridge::PartyFlowCommand &c)const override{return capture([&]{
+    OnlinePartyCommand command;command.action=flow_text(c.action);command.value=flow_text(c.value);command.playlist=flow_text(c.playlist);command.revision=flow_text(c.revision);
+    command.version=c.version;if(c.privacy_present)command.privacy=c.privacy;command.privacy_revision=c.privacy_revision;command.privacy_context=flow_text(c.privacy_context);command.join_context=flow_text(c.join_context);
+    return m.online_account_->party_command(std::move(command));
+  });}
+  std::uint64_t party_flow_serial()const override{return capture([&]{return m.online_account_->snapshot().party_command_serial;});}
+  void party_flow_update()const override{capture([&]{m.update_online_account();});}
+  void party_flow_cancel()const override{capture([&]{m.online_matchmaking_->cancel_queue();});}
+  bool party_flow_lobby(std::int32_t destination)const override{return capture([&]{return m.online_lobby_input(0,destination);});}
+  void party_flow_ui(const bridge::PartyFlowUi &e)const override{capture([&]{
+    switch(e.kind){
+    case 0:++m.revision;break;
+    case 1:m.stack_.pop_back();break;
+    case 2:m.open(e.a,e.b);break;
+    case 3:m.back();break;
+    case 4:{auto &f=m.stack_.back();f.entries.clear();f.selected=0;m.populate_online_party(f);break;}
+    case 5:m.keyboard_text.clear();break;
+    case 6:m.open_online_local_player(e.a);break;
+    case 7:m.unavailable(flow_text(e.text));break;
+    case 8:throw FormatError(flow_text(e.text));
+    case 9:m.online_voice_->leave();break;
+    case 10:m.online_voice_.reset();m.online_voice_=std::make_shared<OnlineVoice>(m.online_account_,true);m.party_flow_.voice_wanted(true);m.party_flow_.voice_party(true);break;
+    case 11:m.online_voice_->join();break;
+    case 12:m.party_flow_.voice_wanted(e.flag);break;
+    case 13:m.online_voice_->mute_microphone(e.flag);break;
+    case 14:m.online_voice_->mute(flow_text(e.text),e.flag);break;
+    case 15:m.voice_=m.online_voice_->snapshot();break;
+    default:throw std::logic_error("Invalid native party flow UI effect");
+    }
+  });}
+};
+bool MenuState::party_flow_drive(FrontendPartyFlowAction action,int value){FrontendPartyFlowNativeIo io(*this);return io.invoke([&]{return party_flow_.run(action,io,value);});}
+void MenuState::party_command(OnlinePartyCommand command){FrontendPartyFlowNativeIo io(*this);io.invoke([&]{party_flow_.command(command,io);});}
+}

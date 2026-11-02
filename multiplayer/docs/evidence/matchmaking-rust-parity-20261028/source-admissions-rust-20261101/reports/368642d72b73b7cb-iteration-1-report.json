@@ -1,0 +1,172 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp",
+  "refreshed": [
+    {
+      "path": "cmake/OnlinePeers.cmake",
+      "before": "9c1da4632193f3044802f9ffb5e8a5bd7dc6e670878afb96c2af4028f494cf9b",
+      "after": "9554a88ee04ced4c6f301976895145009ac7f77a0fcd9c5a3e7147484f4ef99f"
+    },
+    {
+      "path": "tests/test_peer_source_admissions_replay.py",
+      "before": "ce279b2c821ab5901a23d1e38d5b107c9b47561557fb1564eae987d76a1da595",
+      "after": "da983d36abd0057b752e5e5a110775845bb61e879a1e5a5dec71248a9f4fd1e9"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "source_pin_parts": [
+    "iteration-1-source-pins-0.json",
+    "iteration-1-source-pins-1.json",
+    "iteration-1-source-pins-2.json",
+    "iteration-1-source-pins-3.json",
+    "iteration-1-source-pins-4.json",
+    "iteration-1-source-pins-5.json",
+    "iteration-1-source-pins-6.json",
+    "iteration-1-source-pins-7.json",
+    "iteration-1-source-pins-8.json",
+    "iteration-1-source-pins-9.json",
+    "iteration-1-source-pins-10.json",
+    "iteration-1-source-pins-11.json",
+    "iteration-1-source-pins-12.json",
+    "iteration-1-source-pins-13.json",
+    "iteration-1-source-pins-14.json",
+    "iteration-1-source-pins-15.json",
+    "iteration-1-source-pins-16.json",
+    "iteration-1-source-pins-17.json",
+    "iteration-1-source-pins-18.json",
+    "iteration-1-source-pins-19.json",
+    "iteration-1-source-pins-20.json",
+    "iteration-1-source-pins-21.json",
+    "iteration-1-source-pins-22.json",
+    "iteration-1-source-pins-23.json",
+    "iteration-1-source-pins-24.json",
+    "iteration-1-source-pins-25.json",
+    "iteration-1-source-pins-26.json",
+    "iteration-1-source-pins-27.json",
+    "iteration-1-source-pins-28.json",
+    "iteration-1-source-pins-29.json",
+    "iteration-1-source-pins-30.json",
+    "iteration-1-source-pins-31.json",
+    "iteration-1-source-pins-32.json",
+    "iteration-1-source-pins-33.json",
+    "iteration-1-source-pins-34.json",
+    "iteration-1-source-pins-35.json",
+    "iteration-1-source-pins-36.json",
+    "iteration-1-source-pins-37.json",
+    "iteration-1-source-pins-38.json",
+    "iteration-1-source-pins-39.json",
+    "iteration-1-source-pins-40.json",
+    "iteration-1-source-pins-41.json",
+    "iteration-1-source-pins-42.json",
+    "iteration-1-source-pins-43.json",
+    "iteration-1-source-pins-44.json",
+    "iteration-1-source-pins-45.json"
+  ],
+  "source_pin_sha256": "e3cb41813f7683a19389dd3ea6aa51aaf196aaf11ba95bcc62729dff9dba7f85",
+  "command": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/source-admissions-rust-20261101/native/iteration-1",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "peer_source_admissions_tests",
+    "--target",
+    "peer_source_admissions_cpp_reference",
+    "--target",
+    "peer_source_admissions_rust_replay",
+    "--filter",
+    "^(peer_source_admissions|peer_source_admissions_cpp_rust_replay)$",
+    "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Release/build-report.json",
+    "--retain-report",
+    "test-artifacts/source-admissions-cpp-rust.json"
+  ],
+  "exit_code": 2,
+  "runner_report": {
+    "passed": false,
+    "status": "failed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/source-admissions-rust-20261101/native/iteration-1/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "peer_source_admissions_tests",
+          "peer_source_admissions_cpp_reference",
+          "peer_source_admissions_rust_replay"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/source-admissions-rust-20261101/native/iteration-1/build.log",
+        "exit_code": 2
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": true,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "not produced"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 2321,
+        "sha256": "6833f47e10a23d0e6cf5344b0bea1fb5c481f72e7cf8fb61929363fba0c04374",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/source-admissions-rust-20261101/native/iteration-1/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "test-artifacts/source-admissions-cpp-rust.json",
+        "status": "not produced"
+      }
+    ]
+  },
+  "binaries": {},
+  "frozen_inputs_intact": true
+}

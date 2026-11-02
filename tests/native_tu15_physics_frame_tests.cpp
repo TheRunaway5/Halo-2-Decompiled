@@ -1,5 +1,6 @@
 #include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
+#include "halo2/native_tu15_dirty_island_objects_input_observer.hpp"
 #include <algorithm>
 #include <bit>
 #include <filesystem>
@@ -39,7 +40,7 @@ constexpr std::uint32_t world=0x1000000,manager=world+0x100,islands=world+0x200,
   bodies=world+0x400,body=world+0x500,properties=world+0x600,pool=world+0x700,components=world+0x800,
   queue=world+0x900,clock=world+0xa00;
 Memory model(){
-  Memory m;m.banks[0x400000].resize(0x160000);m.banks[world].resize(0x4000);m.banks[0x80061000].resize(0x1000);
+  Memory m;m.banks[0x56dfc0u].resize(0x100u);m.banks[0x400000].resize(0x160000);m.banks[world].resize(0x4000);m.banks[0x80061000].resize(0x1000);
   m.put(0x52be48,world);m.put(0x52d880,manager);m.put(0x51df54,clock);m.put(clock+4,0x3d088889);
   m.put(0x46a0d0,0x3f800000);m.put(manager+0x14,0xffffffff);m.put(manager+8,queue);
   m.put(0x52be5c,pool);m.put(pool+0x44,components);m.put(world+8,islands);m.put(islands,island);
@@ -128,10 +129,17 @@ void residuals(){
   m.put(world+0xc,1);m.put(island+0x40,1);m.put(manager+0xc,1);m.put(queue,body);m.put(body+6,1,2);
   m.put(body+0x44,island);m.put(island+0x29,1,1);const auto vtable=body+0x1800,destructor=0x282110u;
   m.put(body,vtable);m.put(vtable,destructor);
+  const auto object_pool=world+0x2000u,object_rows=world+0x2100u,object_data=world+0x2200u;
+  m.put(0x4ecbd0u,object_pool);m.put(object_pool+0x44u,object_rows);
+  m.put(components+0xa0u+8u,0x12340002u);
+  m.put(object_rows+24u+2u,1,1);m.put(object_rows+24u+3u,1,1);
+  m.put(object_rows+24u+8u,object_data);m.put(object_data+0x14u,0xffffffffu);
+  m.put(object_data+0x10u,0xffffffffu);
   SourcePhysicsContactRuntimeAbi a{};a.gp[4]=top;a.fs_base=0x60800000;a.x87_depth=2;
   a.x87[0]=1.25L;a.x87[1]=-3.5L;a.x87_status=0x2800;a.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
   NativeTu15PhysicsFrameFp fp{0x27f,0x2800,0x1f80};NativeTu15PhysicsFrameExecutionStats stats;
-  std::vector<std::uint32_t> calls;std::uint32_t saved_step{};unsigned publications{};
+  std::vector<std::uint32_t> calls;std::uint32_t saved_step{};unsigned publications{};bool post_observed{};
+  NativeTu15DirtyIslandObjectsInputObserverBinding pending_observer(m,[&](const auto&owner,const auto&input){check(&owner==&m&&input.preserved_x87_depth==2&&input.floating_point.status==0x2b00u&&(input.floating_point.mxcsr&0x3fu)==0&&input.floating_point.control_word==0x27fu,"Native post-step Source FP clear phase");post_observed=true;});
   native_tu15_step_physics_frame_with_residuals(m,fp,a,{stack,0x4000},[&](auto entry,auto&actual,const auto&){
     check(actual.fs_base==0x60800000&&actual.x87_depth==2&&actual.x87[1]==-3.5L,"Residual live context lost");
     check(actual.x87[0]==(calls.empty()?1.25L:2.5L),"Residual live x87 return did not survive");
@@ -145,18 +153,32 @@ void residuals(){
       check(saved_step>actual.gp[4]+8&&m.get(saved_step)==0x3d088889&&m.get(saved_step+4)==0x41efffff,"Residual real step packet ABI");
       actual.floating_point->mxcsr|=0x3f;actual.x87_status=0xabff;pop=4;
     }else if(entry==0x282c10){check(actual.x87_status==0x2b00&&(actual.floating_point->mxcsr&0x3f)==0&&actual.floating_point->x87_control_word==0x27f,"Residual source FP clear phase");}
-    else if(entry==0xbda50){check(actual.gp[0]==0x12345678,"Residual publication EAX ABI");++publications;}
     else if(entry==destructor){check(actual.gp[1]==body&&m.get(actual.gp[4]+4)==1&&m.get(body+6,2)==0,"Residual actual destructor ABI");m.put(island+0x29,0,1);pop=4;}
     check(!saved_step||m.get(saved_step)==0x3d088889,"Residual retained step lifetime");
     actual.gp[4]+=4+pop;
-  },{},&stats);
-  check(calls==std::vector<std::uint32_t>{0x2e2990,0x2e2910,0x1496f0,0x31b1a0,0x282c10,0x1cce00,0x1496f0,0x2e2b30,0xbda50,destructor,0xbda50},"Residual complete dependency order");
+  },[&](const auto&store){if(store.instruction==0xbda93u){
+    ++publications;check(store.address==object_rows+26u&&m.get(store.address,1)==7u,
+      "Native publication lost its genuine object header/update flags");
+  }},&stats);
+  check(calls==std::vector<std::uint32_t>{0x2e2990,0x2e2910,0x31b1a0,0x2e2b30,destructor},"Residual complete dependency order");
+  check(post_observed,"Native Frame lost actual post-step observation");
   check(stats.frame_calls==1&&stats.residual_calls==calls.size()&&publications==2,"Residual native/mixed counters");
+  check(stats.native_dirty_island_objects_attempts==1&&stats.native_dirty_island_objects_calls==1&&stats.native_dirty_island_objects_pending_skips==1&&stats.native_dirty_island_objects_refusals==0&&stats.native_dirty_island_objects_unqualified_services==0&&stats.native_dirty_island_objects_unqualified_owners.empty()&&!stats.residual_owner_calls.contains(0x282c10u),"Frame did not select native282C10 no-pending return");
+  check(stats.native_contact_pressure_attempts==1&&stats.native_contact_pressure_completions==1&&stats.native_contact_pressure_islands==1&&stats.native_contact_pressure_refusals==0&&stats.native_contact_pressure_unbound_services==0&&!stats.residual_owner_calls.contains(0x1cce00u),"Frame did not select native contact pressure");
+  check(stats.native_memory_pressure_attempts==2&&stats.native_memory_pressure_completions==2&&stats.native_memory_pressure_level_queries==2&&stats.native_memory_pressure_refusals==0&&stats.native_memory_pressure_unbound_services==0&&!stats.residual_owner_calls.contains(0x1496f0u),"Frame did not select native memory-pressure owners");
+  std::map<std::uint32_t,std::uint64_t>expected_owners;
+  for(const auto owner:calls)++expected_owners[owner];
+  check(stats.residual_owner_calls==expected_owners&&!stats.residual_owner_calls.contains(0xbda50u),
+    "Native frame diagnostics omitted a genuine remaining owner or counted native publication as lifted");
+  check(stats.native_object_publication_attempts==2&&stats.native_object_publication_calls==2&&
+    stats.native_object_publication_refusals==0&&stats.native_object_publication_tree_calls==2&&
+    stats.native_object_publication_ancestor_wakes==4&&stats.native_object_publication_marked_headers==2,
+    "Native object publication was not selected by the actual frame binding");
   check(a.x87_depth==2&&a.x87[0]==2.5L&&a.x87_status==fp.status&&a.floating_point->mxcsr==fp.mxcsr,"Residual final live FP result");
   // A throwing real residual keeps its mutated FP and all preceding stores.
   m=model();m.banks[stack].resize(0x5000);m.put(top,0x60300000);a.gp[4]=top;fp={};bool failed=false;
   try{native_tu15_step_physics_frame_with_residuals(m,fp,a,{stack,0x4000},[&](auto entry,auto&actual,const auto&){
-    check(entry==0x1496f0,"Residual failure boundary");actual.floating_point->mxcsr|=0x20;actual.x87_status=0x2801;throw std::runtime_error("actual missing owner");});}
+    check(entry==0x31b1a0,"Residual failure boundary");actual.floating_point->mxcsr|=0x20;actual.x87_status=0x2801;throw std::runtime_error("actual missing owner");});}
   catch(const std::runtime_error&e){failed=std::string(e.what())=="actual missing owner";}
   check(failed&&fp.mxcsr==0x1fa0&&fp.status==0x2801&&m.get(manager+0x18,1)==1,"Residual failure lost real prefix/FP");
   std::cout<<"native frame residual ABI/lifetime/FP model regressions passed; adapters still depend on residual modules\n";

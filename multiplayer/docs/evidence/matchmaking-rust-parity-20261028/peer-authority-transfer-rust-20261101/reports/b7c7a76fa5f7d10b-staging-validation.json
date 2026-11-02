@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "tests": 7,
+  "exit_code": 0,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/peer-authority-transfer-staging",
+    "--",
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_build_online_protocol_rust.py",
+    "-v"
+  ],
+  "source_pins": {
+    "tools/build_online_protocol_rust.py": "a88b4f641971b01124b21090e6e5fba9c8a8701997257a4be94a1c08969d78a4",
+    "tests/test_build_online_protocol_rust.py": "93ce31bcb3f52e1a8bea55cbbe4c5ac6e349a2da4b86a98e3b1a6684f7e1a1a8"
+  },
+  "scope": "Existing mocked Cargo/compiler SDK/header staging controls only; no cross-platform runtime/provider proof",
+  "retained_large_artifacts": []
+}

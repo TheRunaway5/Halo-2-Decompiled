@@ -70,7 +70,7 @@ struct Pending {
     expires: f64,
     change: Change,
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     serial: u64,
     epoch: u64,
@@ -211,16 +211,18 @@ impl Registry {
                 require(
                     self.rows
                         .get(pid)
+                        .filter(|r| !r.consumed)
                         .is_none_or(|r| r.playlist == playlist && r.revision == revision),
                     409,
                     "Cancel the current countdown before changing its playlist",
                 )?;
                 let selected = select(core, who, playlist, &r["facts"], &r["rooms"])?;
-                let old = self.rows.get(pid);
+                // Keep the consumed serial observable until commit, while a
+                // new Start binds a fresh row to the selected profile and
+                // current roster. It must not inherit the previous hopper.
+                let old = self.rows.get(pid).filter(|r| !r.consumed);
                 let seconds = original::press(
-                    old.filter(|r| !r.consumed)
-                        .map(|r| r.parameter.seconds)
-                        .unwrap_or(-1),
+                    old.map(|r| r.parameter.seconds).unwrap_or(-1),
                 );
                 let mut row = if let Some(old) = old {
                     old.clone()

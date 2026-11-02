@@ -11,7 +11,8 @@ template<class T>T read(const SourceGeometryResourceMemory& m,std::uint32_t at) 
     if(bytes.size()!=sizeof(T))throw FormatError("geometry resource request input truncated");
     T value;std::memcpy(&value,bytes.data(),sizeof(T));return value;
 }
-template<class T>void put(const SourceGeometryResourceMemory& m,std::uint32_t at,T value) {
+template<class T>void put(const SourceGeometryResourceMemory& m,std::uint32_t pc,std::uint32_t at,T value) {
+    if(m.store_tu15){m.store_tu15(pc,at,std::as_bytes(std::span(&value,1)));return;}
     if(!m.write)throw FormatError("geometry resource request writer absent");
     auto bytes=m.write(at,sizeof(T));
     if(bytes.size()!=sizeof(T))throw FormatError("geometry resource request output truncated");
@@ -27,7 +28,7 @@ bool source_geometry_resource_request(std::uint32_t header,std::uint32_t flags,
         const auto index=word(header+0x20)&65535u;
         const auto physical=word(g.physical),pool=word(physical+0x64);
         const auto clock=word(physical+0x38),records=word(pool+0x44);
-        put(m,records+index*24+0x14,clock);return true;
+        put(m,0x1309a8u,records+index*24+0x14,clock);return true;
     }
     if(read<std::int32_t>(m,header+8)<=0 || read<std::int32_t>(m,header+0xc)<0)return false;
     bool blocking=flags&1u;
@@ -61,13 +62,13 @@ bool source_geometry_resource_request(std::uint32_t header,std::uint32_t flags,
         const auto pool=word(physical+0x64);
         const auto ready=byte(inflight+2);
         const auto records=word(pool+0x44),clock=word(physical+0x38);
-        put(m,records+index*24+0x14,clock);
+        put(m,0x130b0bu,records+index*24+0x14,clock);
         if(!ready) {
             if(priority>std::int32_t(byte(inflight+3))) {
                 const auto job=word(inflight+4);
                 if(!services.promote)throw FormatError("geometry resource job promotion owner absent");
                 services.promote(job,7);physical=word(g.physical);
-                put(m,inflight+3,std::uint8_t(priority));
+                put(m,0x130b2fu,inflight+3,std::uint8_t(priority));
             }
             if(blocking && !byte(inflight+2) && !byte(inflight+2)) {
                 do {
@@ -87,12 +88,12 @@ bool source_geometry_resource_request(std::uint32_t header,std::uint32_t flags,
                 const auto shift=word(physical+0x34)&31u;
                 const auto allocation=(page<<shift)+word(g.backing);
                 source_geometry_resource_publish(header,allocation,m);
-                put(m,header+0x1e,std::uint8_t(1));
+                put(m,0x130b96u,header+0x1e,std::uint8_t(1));
             }
             return true;
         }
-    } else if(!flag2 && loading)put(m,g.pending_failure,std::uint8_t(1));
-    if(special)put(m,g.missing_special,word(g.missing_special)+1u);
+    } else if(!flag2 && loading)put(m,0x130baau,g.pending_failure,std::uint8_t(1));
+    if(special)put(m,0x130bb9u,g.missing_special,word(g.missing_special)+1u);
     return false;
 }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "rust_native_steam_budget_http",
+  "command": [
+    "/usr/bin/python3.14",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source/cmake/../tools/run_test.py",
+    "--scratch-root",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch",
+    "--",
+    "/usr/bin/python3.14",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source/tools/test_rust_matchmaking_service.py",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/native-source",
+    "--native-budget-only",
+    "--native-budget-cases",
+    "all",
+    "--native-steam-probe",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/online_login_probe",
+    "--native-budget-probe",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_steam_invite_probe",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust-native-budget"
+  ]
+}

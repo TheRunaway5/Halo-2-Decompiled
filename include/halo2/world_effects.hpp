@@ -148,6 +148,9 @@ public:
   void remove_object(std::uint32_t full_handle);
   void spawn_attached(std::uint32_t effect,std::uint32_t full_handle,
       std::uint32_t owner,std::uint64_t tick,SourceEffectColors={},SourceEffectControls={});
+  // Retain genuine requests until advance reaches their source tick. Receipt
+  // consumes no RNG and never replaces an earlier pending start. Requests,
+  // location copies and birth ordering belong to the presentation checkpoint.
   void request_weapon(std::uint32_t effect,std::uint32_t weapon,std::uint64_t tick,
       SourceEffectColors,Vec3 velocity,float scale_a,float scale_b,std::uint32_t source_instance,
       bool sounds,const ObjectMarkers *source_locations=nullptr);
@@ -165,13 +168,15 @@ public:
   // Import static scenery's actual effe attachments and root transforms.
   std::size_t attach_scenery(const LevelContent &);
   void advance(std::uint64_t tick, float seconds);
+  std::optional<std::uint64_t> completed_tick() const noexcept;
   void collision_query(ParticleCollisionQuery);
   // Consume once after advancing the simulation, independently of view count.
   std::vector<WorldEffectSound> take_sounds();
   // Tick-produced source light state. GPU admission/submission is separate.
   std::vector<WorldEffectLight> lights() const;
-  // Stable authored definitions admitted during preload, before GPU resources
-  // are created. This list supplies no births, fades or visibility decisions.
+  // Complete supported authored light catalog for GPU preload, including
+  // definitions first reached by later native damage/attachment effects.
+  // This list supplies no births, fades or visibility decisions.
   std::vector<std::uint32_t> light_definitions() const;
   // C15A0 precedes the main visibility query. View results snapshot the fades
   // and selection while the global query epoch and local caches persist.

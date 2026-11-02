@@ -838,6 +838,36 @@ Vec3 MultiplayerObjectRuntime::object_linear_velocity(std::uint32_t object) {Con
   tu15_->run_actual(0xbc200u,abi);
   Vec3 result;memory().read(output,std::as_writable_bytes(std::span(&result,1)));return result;
 }
+std::optional<SourceVehicleAudioListenerInputTu15> MultiplayerObjectRuntime::vehicle_audio_listener_inputs(
+    std::uint32_t unit,unsigned camera_mode,const SourceObjectAudioViewTu15& observer) {
+  Continuation::PublicCall active(*continuation_);
+  //158290's modes0/1 pass129F10's bit test; its low-word zero branch then
+  // excludes mode0. Preserve both tests rather than inventing seat readiness.
+  if(unit==null_datum || !(3u&(1u<<(camera_mode&31u))) || !(camera_mode&0xffffu))return {};
+  if(!tu15_)throw FormatError("Vehicle audio operands require their retained TU1.5 world");
+  if(!observer.orientation)throw FormatError("Vehicle audio operands require the submitted observer basis");
+  const auto body=tu15_->source_object_body(unit);auto& bank=tu15_->memory();
+  const auto parent=word(bank,body+0x14u);
+  const auto seat=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x1fcu)));
+  if(parent==null_datum || seat==-1)return {};
+  const auto vehicle=tu15_->source_object_body(parent),definition=word(bank,vehicle);
+  const auto metadata=word(bank,word(bank,0x4f0414u)+(definition&0xffffu)*16u+8u);
+  if(seat<0 || std::uint32_t(seat)>=word(bank,metadata+0x1c8u))
+    throw FormatError("Vehicle audio lost its actual authored seat");
+  SourceVehicleAudioListenerInputTu15 result{};
+  const auto vector=[](Vec3 v){return std::array{std::bit_cast<std::uint32_t>(v.x),
+      std::bit_cast<std::uint32_t>(v.y),std::bit_cast<std::uint32_t>(v.z)};};
+  result.position=vector(observer.position);result.forward=vector(observer.orientation->forward);result.up=vector(observer.orientation->up);
+  for(unsigned i=0;i<3;++i)result.unit_aim[i]=word(bank,body+0x180u+i*4u);
+  result.factor=word(bank,word(bank,metadata+0x1ccu)+std::uint32_t(seat)*0xb0u+0x40u);
+  constexpr std::uint32_t output=0x60048010u;
+  put(bank,stack,0x60300000u);SourcePhysicsWorldRuntimeAbi abi{};
+  abi.gp[0]=unit;abi.gp[6]=output;abi.gp[4]=stack;abi.fs_base=tls;abi.eflags=2;
+  abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+  tu15_->run_actual(0xcd440u,abi);
+  for(unsigned i=0;i<3;++i)result.unit_point[i]=word(bank,output+i*4u);
+  return result;
+}
 ScriptValue MultiplayerObjectRuntime::script_device(const std::string &name,const std::vector<ScriptValue> &args) {
   Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Device script delivery requires the actual TU1.5 world");
@@ -1374,9 +1404,9 @@ void MultiplayerObjectRuntime::publish_body_impulses(std::function<void(const So
   if(!tu15_)throw FormatError("Point-impulse publication requires the TU1.5 world");
   tu15_->publish_body_impulses(std::move(publisher));
 }
-void MultiplayerObjectRuntime::observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15 observer) {Continuation::PublicCall active(*continuation_);
+void MultiplayerObjectRuntime::observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15 observer,bool instruction_trace) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Scheduled effect observation requires the TU1.5 source owner");
-  tu15_->observe_weapon_effect_phase(std::move(observer));
+  tu15_->observe_weapon_effect_phase(std::move(observer),instruction_trace);
 }
 void MultiplayerObjectRuntime::observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)> observer) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Source weapon-effect observation requires the TU1.5 source owner");
@@ -1589,6 +1619,15 @@ void MultiplayerObjectRuntime::begin_model_frame() {Continuation::PublicCall act
   if(tu15_){tu15_->begin_model_frame();return;}
   impl_->begin_model_frame();
 }
+float MultiplayerObjectRuntime::object_shader_input(std::uint32_t object,std::uint32_t function) {
+  Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Object shader inputs require the actual native TU1.5 world");
+  (void)tu15_->object_body(object);
+  const auto output=tu15_->prepare_source_call().gp[4]+0x100u;
+  auto call=tu15_->prepare_source_call(std::array{object,function,output});
+  tu15_->run_actual(0xbcb70u,call);
+  return Bytes(tu15_->memory().view(output,4)).f32(0);
+}
 void MultiplayerObjectRuntime::render_model_view(const std::function<void(PhysicsLiveWorldTu15&)>& draw) {
   Continuation::PublicCall active(*continuation_);
   if(!tu15_ || !draw)throw FormatError("Live model view requires its TU1.5 world and completed draw consumer");
@@ -1770,6 +1809,17 @@ void MultiplayerObjectRuntime::PreparedAuthority::retain_live_multiplayer_render
       source.continuation_->fault || source.continuation_->publication_held.load(std::memory_order_acquire))
     throw FormatError("Native presentation history source is not a completed unborrowed owner");
   impl_->world->retain_live_multiplayer_render_history_from(*source.tu15_);
+}
+void MultiplayerObjectRuntime::PreparedAuthority::retain_native_particle_history_from(
+    const MultiplayerObjectRuntime &source) {
+  if(!impl_ || !impl_->world || &impl_->owner==&source || !source.tu15_)
+    throw FormatError("Native particle history requires a distinct actual source world");
+  std::unique_lock gate(source.continuation_->gate,std::try_to_lock);
+  source.continuation_->require_executor();
+  if(!gate.owns_lock() || source.continuation_->calls || source.continuation_->staging ||
+      source.continuation_->fault || source.continuation_->publication_held.load(std::memory_order_acquire))
+    throw FormatError("Native particle history source is not a completed unborrowed owner");
+  impl_->world->retain_native_particle_history_from(*source.tu15_);
 }
 MultiplayerObjectRuntime::PreparedAuthority MultiplayerObjectRuntime::prepare_authority(const AuthorityCheckpoint &saved) {
   PreparedAuthority prepared;prepared.impl_=std::make_unique<PreparedAuthority::Impl>(*this,saved);return prepared;

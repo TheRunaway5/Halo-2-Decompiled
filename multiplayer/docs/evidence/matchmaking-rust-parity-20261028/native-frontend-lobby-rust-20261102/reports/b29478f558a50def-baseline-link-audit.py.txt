@@ -1,0 +1,21 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-rust-20261102'
+owner=root/'.local/test-scratch/frontend-lobby-rust-20261102/halo2-test-dwnf1_3e'
+source=owner/'native-source';build=owner/'build';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+report={'passed':False,'scratch':os.environ['HALO2_TEST_SCRATCH'],'scope':'Actual pre-migration compiled UI objects, before any source refresh; not runtime or original Live acceptance','objects':{}}
+try:
+ for name in ['src/ui/frontend_state.cpp','src/ui/frontend_party.cpp']:
+  obj=build/('CMakeFiles/halo2_systems.dir/'+name+'.o')
+  defined=subprocess.run(['nm','-C','--defined-only',str(obj)],capture_output=True,text=True,check=True).stdout
+  calls=subprocess.run(['nm','-u','-C',str(obj)],capture_output=True,text=True,check=True).stdout
+  methods=['enter_online_matchmaking_lobby(', 'cancel_online_lobby_countdown(', 'update_online_lobby_countdown(', 'update_online_lobby_leave(', 'online_lobby_start_error(']
+  relevant=[line for line in defined.splitlines() if any('MenuState::'+method in line for method in methods)]
+  report['objects'][name]={'object_sha256':sha(obj),'object_bytes':obj.stat().st_size,'source_sha256':sha(source/name),
+   'defined_pregame_methods':relevant,'new_rust_lobby_references':[line for line in calls.splitlines() if 'halo2::online_protocol_bridge::frontend_lobby_' in line or 'FrontendMatchmakingLobby::' in line],
+   'all_defined_symbols_sha256':hashlib.sha256(defined.encode()).hexdigest(),'all_undefined_symbols_sha256':hashlib.sha256(calls.encode()).hexdigest()}
+  assert not report['objects'][name]['new_rust_lobby_references']
+ assert sum(len(o['defined_pregame_methods']) for o in report['objects'].values())>=5
+ report.update(passed=True,public_header_sha256=sha(source/'include/halo2/frontend.hpp'))
+finally:(work/'baseline-link-audit.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({'passed':report['passed'],'native_objects':len(report['objects'])}))

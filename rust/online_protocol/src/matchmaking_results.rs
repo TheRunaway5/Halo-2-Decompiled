@@ -72,6 +72,7 @@ fn configuration(v: &Value) -> Result<Option<&str>> {
     Ok(Some(name))
 }
 
+#[derive(Clone)]
 pub(super) struct Record {
     pub context: Value,
     pub digest: String,
@@ -337,10 +338,10 @@ pub(super) fn validate_report(context: &Value, raw: &[u8]) -> Result<()> {
             && raw[0x68] & 1 == u8::from(team_mode),
         "Unfinished admitted multiplayer postgame report",
     )?;
-    let mut team_changing=false;
+    let mut team_changing = false;
     if !context["proposal"]["game"]["settings"].is_null() {
         let selected = m::hex(&context["proposal"]["game"]["settings"], 304)?;
-        team_changing=selected[0x48]&0x40!=0;
+        team_changing = selected[0x48] & 0x40 != 0;
         m::check(
             raw[0x20..0x150] == selected,
             "Postgame options differ from the complete admitted variant",
@@ -360,7 +361,7 @@ pub(super) fn validate_report(context: &Value, raw: &[u8]) -> Result<()> {
         BTreeSet::new()
     };
     m::check(teams.iter().all(|t| *t < 8), "Invalid admitted teams")?;
-    let mut required_teams=teams.clone();
+    let mut required_teams = teams.clone();
     for (slot, p) in players.iter().enumerate() {
         let at = 0x370 + slot * 0x94;
         let identity = m::hex(&context["identities"][s(p, "id")], 8)?;
@@ -382,19 +383,31 @@ pub(super) fn validate_report(context: &Value, raw: &[u8]) -> Result<()> {
             (raw[at + 0x90] as usize) < players.len(),
             "Postgame placement outside roster",
         )?;
-        let current=raw[at+0x88];
-        m::check(if team_mode {current<8 && (team_changing || current==n(p,"team") as u8)} else {current==255},
-            "Postgame team differs from the admitted rule")?;
-        if team_mode {required_teams.insert(current);}
-
+        let current = raw[at + 0x88];
+        m::check(
+            if team_mode {
+                current < 8 && (team_changing || current == n(p, "team") as u8)
+            } else {
+                current == 255
+            },
+            "Postgame team differs from the admitted rule",
+        )?;
+        if team_mode {
+            required_teams.insert(current);
+        }
     }
     m::check(
         (players.len()..16).all(|i| raw[0x370 + i * 0x94] == 0),
         "Postgame contains unadmitted players",
     )?;
     if team_mode && team_changing {
-        teams=(0u8..8).filter(|team| raw[0xcb0+usize::from(*team)*0x18]==1).collect();
-        m::check(required_teams.is_subset(&teams),"Postgame omitted an admitted or final team")?;
+        teams = (0u8..8)
+            .filter(|team| raw[0xcb0 + usize::from(*team) * 0x18] == 1)
+            .collect();
+        m::check(
+            required_teams.is_subset(&teams),
+            "Postgame omitted an admitted or final team",
+        )?;
     }
     for team in 0..16 {
         let at = 0xcb0 + team * 0x18;
@@ -412,11 +425,25 @@ pub(super) fn validate_report(context: &Value, raw: &[u8]) -> Result<()> {
     Ok(())
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     values: HashMap<String, Record>,
 }
 impl Registry {
+    pub(super) fn room_clans(&self, key: &str) -> Result<Value> {
+        let row = self
+            .values
+            .get(key)
+            .ok_or(Error(404, "Result admission retired"))?;
+        Ok(json!(
+            row.context["clans"]
+                .as_object()
+                .unwrap()
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+        ))
+    }
     pub(super) fn identities(&self, key: &str) -> Result<&Value> {
         Ok(&self
             .values

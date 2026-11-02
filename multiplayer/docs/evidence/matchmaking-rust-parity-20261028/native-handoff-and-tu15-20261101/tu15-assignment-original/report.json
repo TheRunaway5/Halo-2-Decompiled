@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "scope": "Replay unchanged retail/TU1.5 assignment decisions and hopper getters.\n\nRetail starts at 71B1E, TU1.5 at7578E, with declared synthetic ready-summary,\nregister and stack inputs. Stops precede launch publication (71CAD/7591D) or\nfailure/session transition (71C73/758E3).\nAll called getters, count/weighted kernels and their callees run unchanged.\nThis does NOT execute upstream session/readiness/7E210 producers or downstream\n71FF0 launch, does not replay Live, and does not certify the whole 71730 owner.\nRun through tools/run_test.py. All compiler outputs stay in its owned scratch.\n",
+  "cases": 336,
+  "original_assignment_decisions": 336,
+  "original_getter_calls": 2688,
+  "original_instructions": 1248,
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "epoch": "tu15",
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "tool_sha256": "b19d793d2ddcc4e72dae23e767452491b330cbd6ba8bdcc3dfddb46e0dabf3b4",
+  "native_source_sha256": {
+    "team_assignment": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "team_balance": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7"
+  },
+  "native_sources_frozen": true,
+  "fixture_sha256": "c22ab4203b11b7c4d101e7dd1b1844e87bc7ecce1c52b97492ae38f81385c02e",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-original/halo2-test-hnne5hvk",
+  "scratch_retained": false,
+  "whole_71730_or_session_flow_qualified": false
+}

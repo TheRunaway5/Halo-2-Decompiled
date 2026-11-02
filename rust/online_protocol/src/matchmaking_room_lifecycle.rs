@@ -5,6 +5,7 @@ use crate::matchmaking_model::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Clone)]
 pub(super) struct Life {
     pub active: BTreeSet<String>,
     tickets: Vec<String>,

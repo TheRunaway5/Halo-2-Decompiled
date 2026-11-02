@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-expanded-20261101/halo2-test-8vs7nd_9",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-green-20261101/halo2-test-ez9dm_cu",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-red-20261101/halo2-test-jhbzpeij",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/Testing/Temporary/scratch/halo2-test-75kxdnc4",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/Testing/Temporary/scratch/halo2-test-9yo3k2ap",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/Testing/Temporary/scratch/halo2-test-qkge1v7t",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-full-rust-20261101/halo2-test-b2uaingt"
+  ],
+  "all_owned_scratch_removed": true,
+  "all_owned_source_build_sdk_cargo_scratch_removed": true,
+  "empty_scratch_parents": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-red-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-green-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-core-expanded-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-full-rust-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-link-audit-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-final-link-audit-20261101",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/account-final-input-audit-20261101"
+  ],
+  "all_declared_scratch_parents_empty": true,
+  "retained_large_artifacts": [],
+  "retained_frames": [],
+  "selected_runtime_changed_by_this_work": false,
+  "original_assets_references_and_existing_runtimes_preserved": true
+}

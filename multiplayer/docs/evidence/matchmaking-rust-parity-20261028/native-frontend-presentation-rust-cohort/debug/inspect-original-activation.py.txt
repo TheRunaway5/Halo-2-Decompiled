@@ -1,0 +1,15 @@
+from pathlib import Path
+import hashlib,json,sys
+root=Path.cwd();sys.path.insert(0,str(root/'tools'))
+from oracle_game_variants import Source
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+s=Source(dict(path=str(NEW_DEFAULT.resolve()),pin=NEW_PIN,globals=0x4ecc1c));decoder=Cs(CS_ARCH_X86,CS_MODE_32)
+start=0x2bbe4b;raw=s.image.read(start,0x1c0)
+rows=[{'address':hex(i.address),'bytes':i.bytes.hex(),'mnemonic':i.mnemonic,'operands':i.op_str} for i in decoder.disasm(raw,start)]
+source=root/'tools/reference/halo2-decompiled/src/unknown_2b116a.cpp'
+report={'original_sha256':NEW_PIN,'entry':hex(start),'raw_range_sha256':hashlib.sha256(raw).hexdigest(),'instructions':rows,
+'decompiled_owner':str(source.relative_to(root)),'decompiled_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+'qualification':'Immutable TU1.5 static instruction inspection only. No activation/file/kernel/UI callees executed or replaced. The recovered caller reads a complete valid hopper block, obtains a hosting session and closes the chooser; clan/map/party admission producers and complete activation remain unqualified.'}
+p=root/'build/test-results/frontend-presentation-rust-20261102/original-playlist-activation-static.json';p.write_text(json.dumps(report,indent=2)+'\n')
+for i in rows[:82]:print(i['address'],i['mnemonic'],i['operands'])

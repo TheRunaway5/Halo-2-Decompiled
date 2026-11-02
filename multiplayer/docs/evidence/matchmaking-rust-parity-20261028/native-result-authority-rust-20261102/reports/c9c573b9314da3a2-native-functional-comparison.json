@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "scope": "Paired functional outcomes, not full test-suite acceptance",
+  "native_runs": [
+    {
+      "iteration": 1,
+      "captured_cpp_before": true,
+      "passed": false,
+      "configure_and_build_passed": true,
+      "successful_tests": [
+        "online_pcr_family_carriers",
+        "original_team_change_tu15"
+      ],
+      "failed_tests": [
+        "native_mcc_multiplayer_accuracy_tu15"
+      ],
+      "frozen_inputs_intact": true,
+      "source_pin_sha256": "7d54e9f8acc922d42ba6cad17fb0e0768cdb2d3d382cd4080ddefd1c7fa5f13b"
+    },
+    {
+      "iteration": 2,
+      "captured_cpp_before": false,
+      "passed": false,
+      "configure_and_build_passed": true,
+      "successful_tests": [
+        "online_protocol_rust_build_helper",
+        "native_result_authority_cpp_rust",
+        "online_pcr_family_carriers",
+        "original_team_change_tu15"
+      ],
+      "failed_tests": [
+        "native_mcc_multiplayer_accuracy_tu15"
+      ],
+      "frozen_inputs_intact": true,
+      "source_pin_sha256": "088d43104dec3c882d73522ce60663ce18d2236ded8c1aafc7cf4c51f5be3696"
+    }
+  ],
+  "all_native_functional_tests_passed": false,
+  "accuracy_reports_identical": true,
+  "accuracy_baseline_sha256": "a71d61d2b702b6a59ccd03b3710b006dae31259e1b08c6dca5eb1061b0bace70",
+  "accuracy_rust_sha256": "a71d61d2b702b6a59ccd03b3710b006dae31259e1b08c6dca5eb1061b0bace70",
+  "accuracy_stops_before_result_publication": true,
+  "physics_read_only_observer_guard_preserved": true,
+  "team_change_native_world_actual_publisher_and_validator_passed": true,
+  "team_change_scope": "Existing custom one-minute timed team match, genuine UDP local/remote couch switching, numeric PCR validation and System Link return; not all normal playlist outcomes or production online delivery",
+  "shortened_score_limit_accuracy_scope": "Existing one-kill combat-accuracy control, refused in ordinary-warmup before result publication",
+  "retained_large_artifacts": []
+}

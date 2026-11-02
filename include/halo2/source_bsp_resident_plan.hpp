@@ -19,7 +19,7 @@ struct SourceBspResidentPart {
     std::optional<std::uint32_t> uniform_stipple;
 };
 enum class SourceBspPartDecision {untouched,accepted,suppressed};
-enum class SourceBspPartSuppression {none,zero_alpha,rejected_lod};
+enum class SourceBspPartSuppression {none,zero_alpha,rejected_lod,broken_surface};
 // The caller establishes original2D000's lighting classification. The default
 // retains the existing static-lightmap import; classification3 uses the
 // authored default-lighting implementation for every available lighting LOD.
@@ -100,6 +100,7 @@ public:
         std::span<const Vertex> dynamic_objects,unsigned material_count,unsigned lightmap_count,
         std::uint32_t dynamic_first=0,std::uint32_t logical_first=0,bool borrow_objects=false) const;
 private:
+    std::size_t bsp_index_{};
     SourceBspAdmissionBsp geometry_;
     SourceTransparentBspParts parts_;
     std::map<std::uint32_t,SourceShaderLodDefinition> shaders_;

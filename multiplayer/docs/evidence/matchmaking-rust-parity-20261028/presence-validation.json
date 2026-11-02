@@ -1,0 +1,504 @@
+{
+  "schema": "H2_RUST_NATIVE_PRESENCE_VALIDATION_V1",
+  "updated_utc": "2026-10-29T19:01:28.318930+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "presence_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "rust_authorities": "Rust now owns observed account/guest population,30-second activity expiry, monotonic read clocks, catalog counters and queue/proposal/room precedence. The FFI reads actual native account/queue/session/room owners; Python cannot supply authoritative seat/session/phase/playlist projections. Current socket generations, challenge expiry, frozen admitted seats and native room deadlines choose live and postgame presence. The actual HTTP projected-seat, rollback-clock and mutating status-read controls are red before the port and pass afterwards; status does not write SQL or renew activity. Real authenticated couch/relay/result/party/requeue tests replace fabricated Python presence fixtures. Python retains typed clock/socket IO. These are native replacement-service policies, not original Live presence flags or ordering recovery. Shared friend/provider identity and generic HTTP/service authority, cross-store crash/distributed recovery, original historical/service producers and full native played/delivered gates remain open.",
+  "reproduced_gaps": [
+    {
+      "trigger": "Replace the actual Python matchmaking Session.seats projection, then GET /v1/online/status.",
+      "before": "The admitted one account becomes two users and one guest in public counts.",
+      "after": "Actual Rust admitted seats retain one user and zero guests.",
+      "scope": "Internal adapter-authority control; not an unauthenticated remote injection claim."
+    },
+    {
+      "trigger": "Observe presence at seen+30, then move the trusted queue clock back to seen+29.",
+      "before": "Stale activity revives to one online user.",
+      "after": "The native monotonic clock retains zero present users."
+    },
+    {
+      "trigger": "Deny SQL writes while GET /v1/online/status runs inside an outer transaction.",
+      "before": "Store.now tries to UPDATE clock_floor; the endpoint fails HTTP500.",
+      "after": "HTTP200, no writes, outer transaction and watermark unchanged."
+    }
+  ],
+  "checks": [
+    "Actual native account/source owner types and strict view/socket-bank fields; wrong owner,65 rooms and17 peers rejected",
+    "Unique primary/signed-local/guest classification, observed guests excluded, zero rows for inactive playlists and counts-only public whitelist",
+    "Exact30-second boundary, monotonic activity/wall clocks and no heartbeat renewal or SQL writes",
+    "Native proposal reservation, socket-generation/challenge/deadline/admission and queue-to-room precedence",
+    "Real eight-seat couch room survives frontend session teardown through loading/running, then disconnect retires presence",
+    "Real result confirmation/postgame, private party flags, close/voice publication and new-search precedence",
+    "Frozen full/production Rust/backend regression cohorts and static/CXX/FFI/helper build"
+  ],
+  "cohorts": {
+    "owner-red": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 274,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_sessions.rs",
+        "rust/online_protocol/src/matchmaking_room_setup.rs",
+        "rust/online_protocol/src/matchmaking_room_control.rs",
+        "rust/online_protocol/src/matchmaking_accounts.rs",
+        "multiplayer/master_server/player_presence.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_match_transport.py",
+        "multiplayer/master_server/tests/test_parties_http.py",
+        "multiplayer/master_server/tests/test_online_population.py",
+        "multiplayer/master_server/tests/test_presence_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-kb18bhhs/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "09821f5ff0138e46e1a4354b75caabba61b2b03b3a85a20ecf2f2cb807fc9c4f",
+        "bytes": 4012696,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-owner-red-report.json",
+      "manifest": "presence-owner-red-source-manifest.json",
+      "backend_tests": 3,
+      "backend_seconds": 0.284
+    },
+    "first": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_coordinator.rs",
+        "multiplayer/master_server/player_presence.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_match_transport.py",
+        "multiplayer/master_server/tests/test_parties_http.py",
+        "multiplayer/master_server/tests/test_online_population.py",
+        "multiplayer/master_server/tests/test_presence_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-8sdfufpp/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "8f3302f776e489bb8ec9a788d710bcecfcabd42e0353c93195eaf5a4ae2d1287",
+        "bytes": 4077672,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-first-report.json",
+      "manifest": "presence-first-source-manifest.json",
+      "rust_unit_passed": 184,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 184,
+      "rust_ignored": 2,
+      "backend_tests": 6,
+      "backend_seconds": 1.24
+    },
+    "contracts": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "multiplayer/master_server/tests/test_parties_http.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-pkwolgr4/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "1ee0fbf5aebd400b5acd4a91b2c0a3bde2b84345ca08a8d7f8dd86c6a3050c2d",
+        "bytes": 4079992,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-contracts-report.json",
+      "manifest": "presence-contracts-source-manifest.json",
+      "rust_unit_passed": 184,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 184,
+      "rust_ignored": 2,
+      "backend_tests": 20,
+      "backend_seconds": 3.941
+    },
+    "focused": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "multiplayer/master_server/tests/test_parties_http.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "531d4978790f5b62fdaa5b9aba198ba6e66494a74235550e89e1bfd983f9aebf",
+        "bytes": 4093552,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-focused-report.json",
+      "manifest": "presence-focused-source-manifest.json",
+      "rust_unit_passed": 184,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 184,
+      "rust_ignored": 2,
+      "backend_tests": 49,
+      "backend_seconds": 8.948
+    },
+    "focused-fixed": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-zdgurzy5/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "f36e9d76b8245baab96b8e45dcccf50eb6e283ea198de6a644df96894e4b7f4f",
+        "bytes": 4080088,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-focused-fixed-report.json",
+      "manifest": "presence-focused-fixed-source-manifest.json",
+      "backend_tests": 25,
+      "backend_seconds": 3.36
+    },
+    "full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-p1qq81af/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "906912d6c90892bd8498edcdcaf3ea97b7d9067c80b44ec827b0190fb1459dd0",
+        "bytes": 4089560,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-full-report.json",
+      "manifest": "presence-full-source-manifest.json",
+      "rust_unit_passed": 184,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 278,
+      "rust_ignored": 2,
+      "backend_tests": 536,
+      "backend_seconds": 124.891
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 275,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-blwn0abb/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "b97ff3747f11b6a05d7bb774f4acf023dd352df57e3728f20770e8885c570a22",
+        "bytes": 4093440,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "presence-production-report.json",
+      "manifest": "presence-production-source-manifest.json",
+      "rust_unit_passed": 184,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 256,
+      "rust_ignored": 2,
+      "backend_tests": 318,
+      "backend_seconds": 91.115
+    }
+  },
+  "cmake": {
+    "passed": true,
+    "jobs": 2,
+    "test_jobs": 1,
+    "source_files": 86,
+    "changed_during_build": [],
+    "current_rust_changes": [],
+    "report": "presence-cmake-report.json",
+    "inputs": "presence-cmake-inputs.json",
+    "helper": "presence-cmake-build-report.json",
+    "scope": "Static/CXX/FFI/helper only; not native played-match or delivered acceptance"
+  },
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+    "rust/online_protocol/src/matchmaking_accounts.rs": "ea12c05d681fd633aad810715281e1d47b508b04e2b3f7bc1dcc4626d10fc7aa",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "64666726b7a6cecedb92453d870064d32360bf5c5a7c1f0354517c7a4b29ae6f",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "d1a218e0dd3d1833fb918cb47533a843ce40ddca4edcef212027eb2ef28ab504",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "d584216ce01ddac0f140e71e0da637a1fbad91c032944a6bb0ee8eaccf30f64a",
+    "rust/online_protocol/src/matchmaking_room_control.rs": "44d062b58171754f494c2fa2dd7afd11298d4d62d737f19c9f55fee47eaf0a04",
+    "rust/online_protocol/src/lib.rs": "77a9d2a188ada777039669d450d081f5de2fbbd2578ac8066b88d7307690417a",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "4b9c33b82d970a758b370916b561cff0ec1f61e88f41d0d83e3993f5e9811b89",
+    "multiplayer/master_server/player_presence.py": "b5106539198f55a60505c9775a9278869aecf3b0fbf2e7d4db6255f4d34061b7",
+    "multiplayer/master_server/native_party_directory.py": "1ca7416ad379e9aca0a39720925a9c8cbae1f38e75a91636b5ef1df10e996029",
+    "multiplayer/master_server/tests/test_presence_owner_native.py": "7dcb88355db5179c48878cfdc1d708198c52413d9a78cf67fba35e2d3e187767",
+    "multiplayer/master_server/tests/test_online_population.py": "6ceb332070202ea767d6abe33551eb764529b863e78e49826bdda1e3bac22f13",
+    "multiplayer/master_server/tests/test_parties_http.py": "c8636883e1904114cb1d0a24039fe28286ac3c6319a5f270fd1e92a4c5ba2eec",
+    "multiplayer/master_server/tests/test_match_transport.py": "89460c909d1edfc579e6d0421cf498a9f853f344df454f48b0f6de9f3b07f0d8"
+  },
+  "source_coherence": {
+    "final_full_and_production_identical": true,
+    "files": 275,
+    "current_changes": [],
+    "preserved_concurrent_work": true,
+    "scope": "Exact frozen275-file backend/Rust/fixture cohort; native engine and deployment remain unqualified"
+  },
+  "diagnostics": {
+    "owner_red": "All three isolated actual HTTP controls fail before the Rust port in0.284 seconds.",
+    "contracts": "184 Rust and19 backend checks pass; the replacement real-room fixture initially lacked the assertNotEqual test-harness method.",
+    "focused": "184 Rust and47 real backend checks pass; one fixture expected socket end before consuming a legitimate postgame voice-host publication, plus one loader error named nonexistent test_steam_friends.",
+    "focused_fixed": "The fixture consumes the real native publication, and the actual test_steam_login module supplies Steam coverage; all25 selected backend tests pass.",
+    "existing_ignored_rust_tests": 2,
+    "warnings": "Existing deliberate SQL-failure controls and resource-warning diagnostics are retained in complete bounded logs.",
+    "temporary_debug_instrumentation_retained": false,
+    "original_evidence": "Existing original numerical fixtures remain regression inputs. No new unchanged-original execution is claimed."
+  },
+  "goal_criteria": {
+    "unchanged": true,
+    "before_after_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "gaps_open": 12,
+    "algorithm_ids_retained": 53,
+    "acceptance_gates_open": 12,
+    "reference_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "remaining": [
+    "All twelve complete gap criteria,53 algorithm IDs and G01-G12 gates",
+    "Canonical shared identity/friend/provider facts, general middleware and full Rust production endpoint/service authority",
+    "Original Live/configuration/order/epoch/history/arbitration and complete original producer recovery",
+    "Cross-store/crash/distributed recovery, full natural native matches, world continuity and actual delivered identities"
+  ],
+  "storage": {
+    "scratch_paths_checked_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-8sdfufpp",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-_vkma9m6",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-blwn0abb",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-fpc78s2n",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-g5yaih28",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-gprh_48i",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-kb18bhhs",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-p1qq81af",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-pkwolgr4",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-zdgurzy5"
+    ],
+    "all_reported_scratch_removed": true,
+    "owned_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port",
+    "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/presence-owner-port/halo2-test-jl7ndkoh",
+    "report_helper_removed": true,
+    "owned_parent_verified_empty": true,
+    "retained_small_reports": [
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-owner-red-report.json",
+        "bytes": 1530,
+        "sha256": "3b6fed08f6ebaafa5222db4d0b3ec8641f1bd960d7b6ccad3480a43e842e18a6"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-owner-red-source-manifest.json",
+        "bytes": 34950,
+        "sha256": "2c6e276119356ae54b102560b2d80803100f9f748a7e426158b5009e8cb59d9c"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-owner-red-step-0.log",
+        "bytes": 1533,
+        "sha256": "9b9f465507ec53aba239d2e029ae077025128f7467940db867422a7b32891be4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-owner-red-step-1.log",
+        "bytes": 7577,
+        "sha256": "3881c433d8d914f4dc793513194eb99e637462521c07fd35e9951bc9df0f155a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-first-report.json",
+        "bytes": 2111,
+        "sha256": "03ec0a87bcab6b7e4f1a0c8c5904fa20a13d8bf4d93f47a08cd6b800b1f235cd"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-first-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "b37c4af6052430ce5d9740d62a8fcae092ced5d2a3e1127dc7166aef86ce9130"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-first-step-0.log",
+        "bytes": 19702,
+        "sha256": "8ec75db3d836ac64a110b155eb3a2e9c4c8230a346614426c6f9acd9eb1201c9"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-first-step-1.log",
+        "bytes": 1533,
+        "sha256": "a5b8bc699d2ccdfdaadbb3125bd04b21902af09f0471f909eb8cda9e6c8bda8e"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-first-step-2.log",
+        "bytes": 104,
+        "sha256": "eb156548b64cfc5c3db226cd36252a22062328b09722704017161af32312bfa1"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-contracts-report.json",
+        "bytes": 2271,
+        "sha256": "b28eb0aa4c13358965c552f1e9743afaa1cb8f280754f630a6dacb80a158662f"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-contracts-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "d278053e371f7bac35333fc28e095b87f324cd9d60aef78a42697d6a5e3135af"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-contracts-step-0.log",
+        "bytes": 19703,
+        "sha256": "adfb9374c5870af6a310052a8d81a191c0d2e427b43d0a25a273cc41ece35f07"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-contracts-step-1.log",
+        "bytes": 1533,
+        "sha256": "b30976bea9c94d7fcb4ad75f8a16c9854f54a4ea1b040c790ac6a52de7555bdd"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-contracts-step-2.log",
+        "bytes": 1851,
+        "sha256": "d40d6c63b640cb2bdad200a98c01b2b897861e60cc8560f0cb2b6d5f583a40d9"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-report.json",
+        "bytes": 2378,
+        "sha256": "c971a996cd07acd8abd7a7f32bd8299da890f0e0b1e6a0c46c4d4ca6eaeac459"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "9a532a18a237c163443a893231cab6bf6067cd4f01d63e356b4d71acc2d28838"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-step-0.log",
+        "bytes": 19703,
+        "sha256": "fe3776f44f121d722a436c27894b2acb6d2c35ecca6c20c407501b68d6dcac93"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-step-1.log",
+        "bytes": 1533,
+        "sha256": "cb4d5b89219d6e372ea574fe65a745091f4db556a75c51766c780b5c8500aa1b"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-step-2.log",
+        "bytes": 3617,
+        "sha256": "ec8beefa22257f86e0585396877e905953bb59604edcd319980ad5839d8d5ecc"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-fixed-report.json",
+        "bytes": 1772,
+        "sha256": "14e23c6c33a34f95d9e38d992b60174aab04063ae4975f999b6f3794ea7130d4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-fixed-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "164beb35c24646e24d468fad7cda9ec7b194f05e894418d30c983c690fafa05b"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-fixed-step-0.log",
+        "bytes": 1533,
+        "sha256": "ad183f0df257956ea0be26db112733d2225c0b8c148b760a68af7b55ab0ff5c8"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-focused-fixed-step-1.log",
+        "bytes": 124,
+        "sha256": "4ff62e10a3c0099ede4fa20161990d037a59cbffd3ddedd11aa2085b7d0f3c2c"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-full-report.json",
+        "bytes": 2805,
+        "sha256": "7fc16adc4481820da69f05245c78040b81b58ed5cad3a0c237930076a8e6877d"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-full-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "393d527ddbb8c31b34614ce5a3ef5651efe46851e5838a225f70a7343d2b28bf"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-full-step-0.log",
+        "bytes": 32065,
+        "sha256": "c29555546c87e0b6b56c8c1a5cbc7d25da1bdf7a725f87839b59bf71f9d32373"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-full-step-1.log",
+        "bytes": 1533,
+        "sha256": "f48bad8d93e12a3fd5bbd3bf36454cf4bdd4bdd5d4a6cca7b58f68b321e92acb"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-full-step-2.log",
+        "bytes": 16476,
+        "sha256": "8787c0187604cf3eab4f2a47c3230493aa6f014e9e449b2cf233b833d940e2d2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-production-report.json",
+        "bytes": 8304,
+        "sha256": "642d4187ad2c0e5e1666a83cc26a807f6768e4da8c29c68f0745c931db65fdda"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-production-source-manifest.json",
+        "bytes": 35074,
+        "sha256": "635313cc394bdf14d7dcbff5afbecbac5b259edf0a720223b29676b7fd0017df"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-production-step-0.log",
+        "bytes": 28596,
+        "sha256": "e2b9adc8eb046cfe8b8b7d13d6ce48d5f5b0010c8605d587c9e992ffffa940e3"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-production-step-1.log",
+        "bytes": 1533,
+        "sha256": "2ae28135afdb1d833281a7f2b23c510e77e108204bb7c28832833fb58225ab6d"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-production-step-2.log",
+        "bytes": 11970,
+        "sha256": "3ef3afbd506f9980928f6f3c1c7256e7875f2206bcc86a29429a01ddb5506315"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-build.log",
+        "bytes": 6910,
+        "sha256": "f402c4bf20b4551289f045bbc88de8ae497b9c21a55bf408daa6e2084734f064"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-configure.log",
+        "bytes": 4642,
+        "sha256": "b7e7cff58d3a70978f33e5e67aa06a097a563ceffb18413c1a09f4e5f3f8e173"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-inputs.json",
+        "bytes": 21150,
+        "sha256": "7a43472f1dded615fa6653a0c0d47a1ffabff74214da46acbbe5e60912d669f1"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-report.json",
+        "bytes": 2508,
+        "sha256": "27fc3409969f74b8a2a1af712367701afcf0bed3f185367b3fede7b91f2557ce"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-tests.log",
+        "bytes": 304,
+        "sha256": "2bb8458c7b8501574cabd8f0e855816bddcd49edff8daae2390936ce70bc0982"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-cmake-build-report.json",
+        "bytes": 1880,
+        "sha256": "a691c082d5f287d743394d19afcb888a5149d7352ba8ba2fbcd2e49562866fba"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/presence-goal-criteria-before.json",
+        "bytes": 14956,
+        "sha256": "c7b862c0f10fff4b0f8a34c1a0ebd68b35b7a16747ee4b5b98046c2b5146f9fa"
+      }
+    ],
+    "retained_source_report_files": 40,
+    "retained_source_report_bytes": 491134,
+    "retained_large_artifacts": [],
+    "production_activated": false,
+    "selected_runtimes_changed": false,
+    "one_off_evidence_helper_retired": true
+  }
+}

@@ -53,6 +53,13 @@ rank banks. These bindings follow the original bitmap slots and geometry.
 All authored UI masters are included as sources; incomplete menu redraws do
 not automatically replace the rest of the imported menu.
 
+Fresh preparation, cache reuse, cache selection and Repair all install both
+port-authored button banks. Xbox, PlayStation, shared prompt symbols and keyboard
+keycap frames sample these banks. MCC fonts supply ordinary text and logical
+metrics; their embedded button pixels are not a rendering fallback. Missing
+owned prompt artwork requires Repair. Newly qualified frontend receipts pin
+both banks as required resources.
+
 `resources/custom-maps.json` lists compiled maps for automatic delivery.
 Currently this includes Dire Valley and its menu card, preview, native resource
 owners and textures. Uncompiled Dust2 and the unpublished Deserted candidate
@@ -70,15 +77,75 @@ slots and the four-voice loading ambience. The importer checks the pinned
 `.rdata` extent, the encoded ADPCM hash and the decoded PCM identity, without
 executing the tool. `HALO2_H2EK_ROOT` selects a nonstandard kit location.
 Packages include the source policy, while setup reads the user's installed kit.
+The campaign logo is the authentic 1024×128 DXT3 Vista artwork in slot1, pinned
+by dimensions and SHA-256 in both the importer and native reader. It replaces
+the lower-resolution 512×64 MCC loading-bank logo and retains its aspect ratio.
 When present, this bank is the selected logo/sweep loading presentation. Missing
 kit data is reported as unavailable, and MCC V3 loading remains selected. An
 earlier ambience-only `original-loading-v1` bank is kept as a reference. No
 Xbox installation is an onboarding input.
 
-Normal source preparation selects the authenticated MCC V3 loading bank,
-including decoded MCC audio and its MCC-derived bitmap/mask owners, and native
-MCC control-font glyphs. Old Vista loading banks, supplied tones and separate
-prompt atlases are not fallbacks. These source/component checks do not qualify
+Windows resource reads and donor discovery also recognize Wine's synthetic
+host-mount metadata. The exception requires Wine's native runtime export, a
+mount-point tag and `FSCTL_GET_REPARSE_POINT` reporting no actual reparse data.
+Real directory junctions and symbolic links remain rejected. This prevents
+Proton's `Z:\home` mount from stopping valid onboarding or game startup.
+
+### Install missing Steam content
+
+The graphical setup checks the actual MCC Halo 2 campaign/multiplayer files
+and Halo 2 Mod Tools (H2EK). Installing the MCC shell or retaining an app manifest
+alone does not count as installed Halo 2 content. Missing content is named in
+the setup window, which offers **Download from Steam** on Linux and Windows.
+Preparation stays disabled after a check finds missing or unfinished content.
+
+Download hands only the missing installation requests to the user's installed
+Steam client: MCC (`976730`), Halo 2: Anniversary campaign DLC (`1064270`),
+MCC - H2: Multiplayer DLC (`1097223`), and Halo 2 Mod Tools (`1613450`). Steam
+handles ownership, its installation prompts, library location and download
+queue. Confirm the prompts and enable the named Halo 2 DLC entries if Steam
+asks. The launcher does not sign into Steam, change its manifests or claim
+that a request means a completed download. Setup checks again every two seconds
+while waiting and enables preparation when the content is found and Steam has
+finished installing it. Closing setup leaves Steam's downloads running.
+
+Both applications share bounded Steam library discovery, including configured
+external libraries, nonstandard Windows registry locations, Flatpak Steam and
+the native host libraries when running the Windows launcher through Proton.
+Game Pass discovery remains available through normal source discovery/manual
+selection; Steam installation checks do not scan unrelated Xbox drive roots.
+
+A newly downloaded `H2EK.7z` counts as a downloaded tool installation. When its
+tool and loading files have not been extracted, setup explains the kit's
+Extract step instead of requesting another download. The launcher does not run
+the kit's batch file or modify existing kit files. CLI import and its verified
+MCC fallback remain available independently of the graphical prerequisite check.
+
+The application identities and DLC/tool distinction follow the
+[Halo 2 Steam page](https://store.steampowered.com/app/1064270/),
+[multiplayer DLC support entry](https://help.steampowered.com/en/wizard/HelpWithGame/?appid=1097223)
+and [official mod-tools instructions](https://learn.microsoft.com/en-us/halo-master-chief-collection/general/overview-tools).
+Steam documents its [DLC installation controls](https://help.steampowered.com/en/faqs/view/6948-51E6-E624-8A84).
+
+October29 validation covers15 Steam discovery/dispatch controls,36 shared setup
+controls (one platform skip),24 preparation controls,41 onboarding controls,
+12 H2EK source controls and three Windows resource-collection controls. All
+three focused CTest groups pass. Native Windows Python/Tk under GE-Proton11-7
+passes51 cases with eight platform skips, correctly detects the installed host
+MCC/H2EK sources and renders the missing-content prompt. Steam dispatch is
+intercepted in tests; no real downloads were queued. The Windows package's four
+updated Python modules match source; its native engine and shader bank remain
+in place. [Validation and cleanup receipt](../build/test-results/steam-onboarding-20261029/validation.json)
+and [delivery inventory](../build/test-results/steam-onboarding-20261029/delivery.json)
+retain the evidence. The120,173-byte `windows-download.png` preview is retained
+for layout review; private tests/builds and the temporary helper were removed.
+No large validation artifacts are retained.
+
+Source preparation retains the authenticated MCC V3 loading bank, including
+decoded MCC audio and its MCC-derived bitmap/mask owners. Installed H2EK loading
+art takes priority when available. Button and keycap rasters come from our
+authored banks; the copied MCC fonts retain ordinary text and metrics. Supplied
+Xbox/Vista reference assets are not onboarding inputs. These checks do not qualify
 a fresh complete import, delivered loading interval or physical playback; see
 [loading presentation](MCC_LOADING_PRESENTATION.md). Authentic MCC Classic
 intro/credits/attract roles remain unassigned and unavailable.

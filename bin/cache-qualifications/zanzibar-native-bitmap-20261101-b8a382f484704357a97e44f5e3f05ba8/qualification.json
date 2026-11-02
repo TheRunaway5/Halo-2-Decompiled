@@ -1,0 +1,58 @@
+{
+  "accepted_case_failures": [],
+  "bitmap_preparation": {
+    "path": "build/test-results/zanzibar-visual-20261101/cliff-v9-preparation.json",
+    "sha256": "00507b3e4b4282d45bc3f50050a72657b8589f15b88049c99d1470b41041a904"
+  },
+  "cache": "assets/imported/mcc-zanzibar-tu15-20261101-v9",
+  "cache_validation": {
+    "path": "build/test-results/zanzibar-visual-20261101/cache-v9-qualification/report.json",
+    "sha256": "aa6e2f0f5c0034e8b6cba49cae8f563a60bc731c5c46ce85a3b9d8ef3741cbb3"
+  },
+  "eos_worker": {
+    "bytes": 2036984,
+    "name": "eos_sdk_worker",
+    "schema": "H2_EOS_SDK_WORKER_V1",
+    "sha256": "1c60e8b895996e20ba6bdfb2c8f45aed3930a3eecbaf80d7504c253987caf3d1"
+  },
+  "frontend_screens": 4,
+  "inherited_engine_qualification": {
+    "path": "bin/engine-builds/29f4db427b1d44ea94a4449388ef6ff1/qualification.json",
+    "scope": "Existing unchanged native executable and all original qualified map bytes; engine component checks were not rerun or reattributed to current dirty sources",
+    "sha256": "e57c9ce54793b8553a007d659a392fd9be77e74843a3843f0ebd5c13df0ba23d"
+  },
+  "maps": {
+    "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+    "beavercreek.map": "977c957e952ce279a8d61d9706ac475fd564081c316bdd7420bfcab3aa2a9a45",
+    "coagulation.map": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+    "containment.map": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
+    "dune.map": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "elongation.map": "6e57a17c7519420d6f4821fd71f60fd283609132a8bd55648e224a0bc7f7f8ae",
+    "gemini.map": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
+    "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
+    "lockout.map": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+    "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
+    "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044",
+    "zanzibar.map": "01311e3a20af3ad4638471bd68ff505f64525397950d92bb2417697da41c67d3"
+  },
+  "native_renderer_shader_package": {
+    "inventory_sha256": "06f0ba22f1d3c4b80109f0dba7f2245f764615425c4407c77351dc5348c72ea8",
+    "module_count": 3283,
+    "passed": true,
+    "report": "bin/engine-builds/29f4db427b1d44ea94a4449388ef6ff1/shaders/production-shaders.json",
+    "report_sha256": "a5d73cd810def6673246a8fcff8450c1d42225ba84ca39b1e350c8d5036cd5fe"
+  },
+  "passed": true,
+  "runtime": "bin/engine-builds/29f4db427b1d44ea94a4449388ef6ff1/halo2_native",
+  "runtime_sha256": "36f1b64606b105520ecb613fc193188cd55b6ca0c3ef22f23ef28e2eb1282bc8",
+  "schema": "H2_LOCAL_CACHE_QUALIFICATION_V1",
+  "scope": "Cache-only Zanzibar bitmap-owner repair; selected executable, native shader catalog and both launcher binaries are unchanged",
+  "shadow_receiver": {
+    "passed": true,
+    "report": "build/test-results/zanzibar-visual-20261101/cache-v9-qualification/grenade-shadow-receiver.json",
+    "sha256": "4bce5d5f7de2d870d614327592a297853c4856c272d638c66d260f2a281114a4"
+  },
+  "smoke_cases": 15,
+  "source_gameplay_and_shader_programs_changed": false,
+  "unresolved_case_failures": []
+}

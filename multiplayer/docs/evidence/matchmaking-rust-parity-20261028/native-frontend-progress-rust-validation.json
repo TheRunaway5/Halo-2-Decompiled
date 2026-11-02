@@ -1,0 +1,246 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_PROGRESS_RUST_VALIDATION_V1",
+  "goal_turn": "progress",
+  "component_passed": true,
+  "goal_status": "active",
+  "full_goal_complete": false,
+  "original_whole_system_parity": false,
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_frontend_progress.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_frontend_progress.rs",
+  "native_observation_adapter": "src/ui/frontend_matchmaking.cpp",
+  "native_abi_adapter": "src/ui/frontend_matchmaking_policy_bridge.cpp",
+  "policy": {
+    "progress_panes_and_titles": true,
+    "roster_source_sort_placeholders_privacy": true,
+    "rank_and_voice_identity_routing": true,
+    "cancel_and_auxiliary_inputs": true,
+    "leave_dialog_player_counts": true,
+    "widget_tables_tip_rng_and_opaque_tip_clock": true,
+    "shared_search_countdown_and_pane_leaves": true,
+    "cpp_matching_policy_fallback": false,
+    "unsafe_core_rust": false
+  },
+  "rust": {
+    "total_passed": 613,
+    "counts": {
+      "online_protocol": {
+        "passed": 528,
+        "failed": 0,
+        "ignored": 2
+      },
+      "online_protocol_bridge": {
+        "passed": 65,
+        "failed": 0,
+        "ignored": 2
+      },
+      "matchmaking_service": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "existing_ignored": 4,
+    "new_progress_tests": 8,
+    "final_focused_passed": 8,
+    "final_focused_controls_sort": 856,
+    "final_focused_controls_input": 536,
+    "note": "All Rust suites passed; the subsequent standalone native fixture used the earlier CXX Vec wrapper and failed to link. The corrected wrapper is tested separately in the owned CMake cohort."
+  },
+  "modern_comparison": {
+    "passed": true,
+    "cases": 995,
+    "comparisons": 37417,
+    "modern_differences": [],
+    "intended_original_sort_permutations": 19,
+    "intended_original_signed_timer_changes": 42,
+    "original_sort_cases": 856,
+    "original_sort_passed": true,
+    "original_sort_fixture_sha256": "2861bbd49ae4abaf3f4d9a447c985744554e662e73c718ddf9b4c01886066203",
+    "native_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393",
+    "scope": "Captured modern roster/rank/appearance/voice methods, native Rust wrappers and original sort fixture; synthetic typed observations, no network/session producer or delivered runtime claim."
+  },
+  "fresh_original": {
+    "total_cases": 2087,
+    "no_instruction_patches": true,
+    "no_replaced_callees": true,
+    "original_tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "components": {
+      "sort": {
+        "cases": 856,
+        "scope": "Unchanged TU1.5 progress sort caller through its real original callees.\n\nExplicit synthetic session/player banks; stops before widget allocation.\nNo networking, source slot producer or delivered runtime claim.\n",
+        "backend": "native CXX/Rust wrapper",
+        "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393"
+      },
+      "input": {
+        "cases": 536,
+        "scope": "Original progress cancellation consumers and leave-count caller/getters.\n\nPane and frozen UI clock observations are explicit inputs to2584AE. The\n2584C9 leave-count caller executes unchanged19475B/1946AA and their actual\nsession/membership getters over explicit synthetic session banks, stopping\nbefore dialog allocation. No original UI/network producer or live-flow claim.\n",
+        "backend": "native CXX/Rust wrapper",
+        "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393"
+      },
+      "rows": {
+        "cases": 504,
+        "scope": "Actual unchanged TU1.5 selection257835 before session getters; count-result consumers 257862,2578F6,25790E with explicit synthetic getter outputs; datum assignment257977. No instruction patches, callee replacement or complete network/widget/session execution claim.",
+        "backend": "native CXX/Rust wrapper",
+        "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393"
+      },
+      "widgets": {
+        "cases": 191,
+        "scope": "Bounded unchanged TU1.5 matchmaking widget decisions versus native kernels.\n\nTitle and game-icon routines run in full (the icon's bitmap owner is absent).\nThe option-category selector stops before its original external goof lookup;\nno external UI/tag/session callee is replaced or claimed to have executed.\nThe downloaded-tip LCG/index and signed15-second clock comparison are bounded\noriginal blocks with explicit inputs. Whole screen/helper byte correspondence\nis separate from these bounded calls.\n",
+        "backend": "native CXX/Rust wrapper",
+        "native_binary_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393"
+      }
+    },
+    "sort_instruction_addresses": 474,
+    "sort_instruction_visits": 3785915,
+    "sort_comparator_calls": 15859
+  },
+  "source_fidelity_corrections": [
+    {
+      "issue": "Modern stable_sort differed from original CRT tie swaps",
+      "legacy_differences": 317,
+      "controls": 856
+    },
+    {
+      "issue": "Cancel interpreted wrapped clock differences as unsigned",
+      "legacy_differences": 24,
+      "controls": 120
+    },
+    {
+      "issue": "Leave dialog compared connections with local player seats",
+      "legacy_differences": 192,
+      "controls": 416,
+      "minimal": {
+        "local_players": 2,
+        "remote_players": 1,
+        "connections": 2,
+        "original_dialog": "0x8C",
+        "legacy_dialog": "0x8D"
+      },
+      "counterfactual": "Changing only the count unit removes all 192 differences; changing host identity does not."
+    }
+  ],
+  "native": {
+    "focused_passing_checks": [
+      "frontend_lobby_cpp_rust",
+      "frontend_online_identity",
+      "frontend_online_lobby_blocked_playlist",
+      "frontend_online_lobby_buttons",
+      "frontend_online_lobby_complete_playlist",
+      "frontend_online_lobby_legacy_countdown",
+      "frontend_progress_cpp_rust",
+      "frontend_search_cpp_rust",
+      "original_party_countdown_kernels",
+      "retail_frontend_lobby_policy",
+      "rust_frontend_clans_http",
+      "rust_frontend_lobby_blocked",
+      "rust_frontend_lobby_complete",
+      "rust_frontend_lobby_rendered"
+    ],
+    "focused_passing_count": 14,
+    "baseline_passing_count": 9,
+    "baseline_broader_failed_count": 4,
+    "final_broader_failed_count": 4,
+    "all_native_functional_tests_passed": false,
+    "shared_failures": [
+      {
+        "test": "frontend_matchmaking_http",
+        "diagnostic": "Nonmember clan details lost the membership requirement"
+      },
+      {
+        "test": "frontend_matchmaking_gathering_http",
+        "diagnostic": "Matched/empty slot artwork is not an admitted source page"
+      },
+      {
+        "test": "frontend_clans_http",
+        "diagnostic": "ONLINE bitmaps missing selected imported sampling: xbox_live_menu",
+        "route": "legacy asset registry"
+      },
+      {
+        "test": "frontend_parties_http",
+        "diagnostic": "ONLINE bitmaps missing selected imported sampling: pregame_lobby #tu15-logical-mcc"
+      }
+    ],
+    "explicit_linux_mcc_clan_flow_passed": true,
+    "native_input_binary_sha256": "0026d02af0f382983560df4fb06517184e97f805f230e232c4a0a5da55e0e5e3",
+    "final_native_menu_binary_sha256": "e84f4066fd1d6201cbe74e855ef11586e7e561cf2b0ccf2a59626e7cacd0e9bc",
+    "same_frozen_cohort_except_declared_changes": true,
+    "declared_changed_files": 27,
+    "frozen_inputs_intact": true,
+    "native_test_expectation_strengthened": "Four modern stable-sort assertions replaced with all 856 unchanged-original caller controls, including that exact four-player example.",
+    "intermediate_failures_recorded": [
+      "CXX slice conversion",
+      "slice-only Rust Vec specialization",
+      "native startup logging in comparison protocol",
+      "standalone countdown target linkage",
+      "obsolete modern native smoke-test tie order"
+    ],
+    "rendered_ui_receipt": "candidate-input/rendered.json"
+  },
+  "sources": {
+    "cmake/OnlinePeers.cmake": "d8a43aff28884485931b0094b9da8e7271d0873cf87474815ff918d5017780d9",
+    "cmake/RustMatchmakingFrontend.cmake": "451a0f459dd7ad1fc98a6f2ebb4e94618d55ac0693c82d191ffb2e738f9b2f0e",
+    "include/halo2/frontend.hpp": "52b40885fe4d48d6bfc7768bbdfcb2541fa93a0b2482f2848912db70298d82ae",
+    "include/halo2/frontend_matchmaking_progress.hpp": "d8a234a4aaca03830f1ab5ffcf98a3bba7d1821c12b0b8f08aebea7554e22d53",
+    "include/halo2/original_matchmaking_widgets.hpp": "3042a2a66e0267701047665777028fbeb44236a01b8e2140f2737d4a05f7d489",
+    "rust/online_protocol/src/lib.rs": "553dcf880793ff8b768136413fc3d3830b15a257a59d6cf3474173879ec22809",
+    "rust/online_protocol/src/matchmaking_frontend_search.rs": "7b68b98e96912860d62e431de33ee4a3faabda7977a84c38f2e3037059d771a5",
+    "rust/online_protocol_bridge/src/lib.rs": "2c54532ff891afaa5470c30e8362e17d5e1c9894357fe3cd17362f4628639cde",
+    "src/ui/frontend_matchmaking.cpp": "f38820e36f4b947b9abbdd316b8bcf887ec2869b7db508f3c406c89f0d942861",
+    "src/ui/frontend_state.cpp": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+    "tests/frontend_online_tests.cpp": "6943aa0492901a43c8ccfce8149c7b36af1c9b7ecdda0cbae875630d75e4e401",
+    "tools/oracle_tu15_matchmaking_roster.py": "53e058536c55ed242569defcbf36c6dc80d15c7df2c4423df457612cf0c05f6d",
+    "tools/oracle_tu15_matchmaking_widgets.py": "723ea9e4f79ab4ae58127c15c7255686c88cee68fb10f89ad1e90900949d383d",
+    "rust/online_protocol/src/matchmaking_frontend_progress.rs": "f813e005033fa092aafdc323c9e5c88c2e320e0cb09d46f16683800f7fb70a34",
+    "rust/online_protocol/tests/matchmaking_frontend_progress.rs": "0601684d59d04b3c25b830b72f30bbc15e19321c757693c8e8a6f47aea10348c",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_progress.rs": "aee28e2120947dde9796b99b85f9939570f6a98d806d05a6768fa8cad20803f6",
+    "include/halo2/frontend_matchmaking_policy.hpp": "a1c2193d83cb10722c92c80c6972f97dcb67b024d5b1a31662d734ba9c22a40e",
+    "src/ui/frontend_matchmaking_policy_bridge.cpp": "369b2892e8af369319b9759bb3aa62746b5a9b01ccf8bf8f10b78bcd467ef3fe",
+    "tests/native_frontend_progress_rust_tests.cpp": "78fea2cd4d7419860f003b3e7046e460a5f0ae29af3777c9aecdcedce5d0fc0f",
+    "tests/test_native_frontend_progress_rust.py": "255b02698ab4bf58daa575b64a512f567bc66d2f034efdf59c6eac5962024e3b",
+    "tests/generate_frontend_progress_reference.py": "7c838238222216dc5553d920683698ced55961de41422f9545f88dc7b91c3597",
+    "tests/fixtures/matchmaking_progress_sort_tu15_original.json": "2861bbd49ae4abaf3f4d9a447c985744554e662e73c718ddf9b4c01886066203",
+    "tests/fixtures/matchmaking_progress_input_tu15_original.json": "33a98e57351edd57af915c72d33069c9aba730c9e5d5839feec5c28e33a2f9bc",
+    "tools/oracle_tu15_matchmaking_progress_sort.py": "5321c1488c51feb76a8ae76d392171ebc13ca0d6d64bf75e7d052825c7f7c265",
+    "tools/oracle_tu15_matchmaking_progress_input.py": "c0da42d7072603b2a39a3736766c748a6e0e464f45ce662cfa48ae8ce86e4f54",
+    "tests/reference/frontend_progress_before_rust_20261102/frontend_online_tests.cpp.reference": "ef74c9183cee4bd8cbb27dacb08c76840d88d202d6ad00ca8253e55029b8da38",
+    "tests/reference/frontend_progress_before_rust_20261102/test-provenance.json": "006340fc908e1e26b8897955705c84d6d398577bb609e4f39aecb6fd6814b342"
+  },
+  "storage": {
+    "cohort": "native-frontend-progress-rust-cohort",
+    "owned_native_bytes_removed": 5890901773,
+    "scratch_cleanup_passed": true,
+    "retained_large_artifacts": [],
+    "manifest": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-progress-rust-cohort/retained.json",
+    "manifest_sha256": "1467229d76530fef39409b1d45117a2d68d23c299cea5ec3213ff089c50920e3",
+    "source_pin_inventories_reconstructed_exactly": 490,
+    "stored_reports": 135,
+    "max_report_bytes": 325044,
+    "per_file_limit_bytes": 1048576,
+    "cohort_and_receipt_limit_bytes": 8388608,
+    "work_reports_removed": true,
+    "retained_bytes_including_receipt": 2583135,
+    "archive_verified": true
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "remaining": [
+    "Remaining native matchmaking text/routing and matching-related party/local-seat producer ownership in Rust",
+    "All 53 algorithm owners and full original callers, service and dated historical recovery",
+    "The four broader native frontend failures and every required family/profile/topology/unshortened natural outcome/continuity route",
+    "Genuine providers, physical installed Linux input and delivered client/library/service/catalog/feature identities",
+    "Production restart, retry, configuration-change and rollback qualification; all twelve GAP and G01-G12 criteria"
+  ]
+}

@@ -125,22 +125,25 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
             !visited.insert(edge).second)
           throw FormatError("invalid navigation sector edge cycle");
         const auto e = links.offset + std::size_t(edge) * 16;
-        const bool left = i16(meta, e + 12) == int(i);
-        if (!left && i16(meta, e + 14) != int(i))
+        // Original27BD30 zero-extends link, sector and vertex indices;
+        // 27C3DA follows next links above32767 without sign extension.
+        const bool left = meta.u16(e + 12) == i;
+        if (!left && meta.u16(e + 14) != i)
           throw FormatError("navigation edge does not reference sector");
-        const auto v = i16(meta, e + (left ? 0 : 2));
-        if (v < 0 || std::size_t(v) >= vertices.count)
+        const auto v = meta.u16(e + (left ? 0 : 2));
+        if (std::size_t(v) >= vertices.count)
           throw FormatError("navigation vertex outside block");
         sector.polygon.push_back(
             point(meta, vertices.offset + std::size_t(v) * 12));
-        edge = i16(meta, e + (left ? 8 : 10));
+        edge = meta.u16(e + (left ? 8 : 10));
       } while (edge != first);
     }
     for (std::size_t i = 0; i < links.count; ++i) {
       const auto p = links.offset + i * 16;
-      const auto left = i16(meta, p + 12), right = i16(meta, p + 14);
+      const auto left = meta.u16(p + 12), right = meta.u16(p + 14);
       const auto flags = meta.u16(p + 4);
-      if (left < 0 || right < 0)
+      // Original27C314 treatsFFFF asNONE for a neighboring sector only.
+      if (left == 0xffff || right == 0xffff)
         continue;
       if (std::size_t(left) >= sectors.count ||
           std::size_t(right) >= sectors.count)
@@ -153,8 +156,8 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
                                       (meta.u16(sectors.offset + std::size_t(right) * 8) & 7) == 1;
       if (!(flags & 32) && !ordinary_neighbors)
         continue;
-      const auto a = i16(meta, p), b = i16(meta, p + 2);
-      if (a < 0 || b < 0 || std::size_t(a) >= vertices.count ||
+      const auto a = meta.u16(p), b = meta.u16(p + 2);
+      if (std::size_t(a) >= vertices.count ||
           std::size_t(b) >= vertices.count)
         throw FormatError("navigation portal vertex outside block");
       const auto midpoint =
@@ -1467,7 +1470,12 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     const auto name=parent.variant?parent.variant:b.u32(0x30);const Bytes vs(model.bytes_at(m.u32(0x54),variants*0x38));
     unsigned selected=0;if(name)for(unsigned v=0;v<variants;++v)if(vs.u32(v*0x38)==name){selected=v;break;}
     const auto count=vs.u32(selected*0x38+0x1c);if(!count)continue;
-    const Bytes children(model.bytes_at(vs.u32(selected*0x38+0x20),count*0x10));
+    // MCC can deduplicate a variant's child bank into another model's
+    // resident allocation (Forge's Warthog shares the golden Warthog bank).
+    // Follow the authored pointer through the cache's checked metadata owner;
+    // the literal SourceTagMetadata payload remains confined to its own tag.
+    if(count>65536u)throw FormatError("Excessive model variant child bank");
+    const Bytes children(read_tag_bytes(vs.u32(selected*0x38+0x20),std::size_t(count)*0x10));
     for(unsigned n=0;n<count;++n){const auto at=n*0x10;if(children.u32(at+8)!=0x76656869u || children.u32(at+12)==null_datum)continue;
       ScenarioObject child;child.type=1;child.placement=int(out.objects.size());child.definition=children.u32(at+12);child.flags=1;child.source=-1;
       child.model_attachment=ScenarioObject::ModelAttachment{i,children.u32(at),children.u32(at+4)};

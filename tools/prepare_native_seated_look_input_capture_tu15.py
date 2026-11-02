@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Stage and test a readonly actual-seated-input selection around the existing look observer."""
+import argparse,hashlib,json,os,shutil,subprocess
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(p,j):p.write_text(json.dumps(j,indent=2,sort_keys=True)+'\n')
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--base',type=Path,required=True);p.add_argument('--stage',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.base=a.base.resolve();a.stage=a.stage.resolve();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);owned=Path(os.environ['HALO2_TEST_SCRATCH']);report=dict(passed=False,owned_scratch=str(owned),retained_large_artifacts=[],native_controller_admission_added=False)
+ try:
+  host='tests/physics_multiplayer_acceptance.cpp';new='tests/helpers/native_seated_look_controller_input_capture_tu15.hpp';base_helper='tests/helpers/native_look_controller_input_capture_tu15.hpp';original=(a.base/host).read_text();needle='#include "helpers/native_look_controller_input_capture_tu15.hpp"';assert original.count(needle)==1;source=original.replace(needle,needle+'\n#include "helpers/native_seated_look_controller_input_capture_tu15.hpp"');assert source.count('test::NativeLookControllerInputCaptureTu15')==1;source=source.replace('test::NativeLookControllerInputCaptureTu15','test::NativeSeatedLookControllerInputCaptureTu15');dst=a.stage/'staged'/host;dst.parent.mkdir(parents=True,exist_ok=True);dst.write_text(source)
+  model=owned/'model.cpp';model.write_text(r'''
+#include "helpers/native_seated_look_controller_input_capture_tu15.hpp"
+#include <map>
+#include <cstring>
+#include <iostream>
+using namespace halo2;using J=nlohmann::json;
+void check(bool b,const char*s){if(!b)throw std::runtime_error(s);}
+struct Memory:SourcePhysicsContactMemory{
+ std::map<std::uint32_t,std::vector<std::byte>>banks;unsigned writes{};
+ void read(std::uint32_t p,std::span<std::byte>b)const override{auto i=banks.upper_bound(p);check(i!=banks.begin(),"Missing read");--i;check(std::uint64_t(p-i->first)+b.size()<=i->second.size(),"Missing extent");std::copy_n(i->second.begin()+p-i->first,b.size(),b.begin());}
+ void write(std::uint32_t,std::span<const std::byte>)override{++writes;throw std::runtime_error("Source write");}
+ void put(std::uint32_t p,std::uint32_t n){auto i=banks.upper_bound(p);--i;for(unsigned k=0;k<4;++k)i->second.at(p-i->first+k)=std::byte(n>>(8*k));}
+ template<class F>void visit_committed(F&&f)const{std::array<std::byte,4096>temporary{};for(const auto&[p,b]:banks){check(b.size()<=temporary.size(),"Oversized model");std::copy(b.begin(),b.end(),temporary.begin());f(p,std::span<const std::byte>(temporary).first(b.size()));temporary.fill(std::byte{0xa5});}}
+};
+int main(){try{
+ Memory m;m.banks.emplace(0x4f9b54u,std::vector<std::byte>(4));m.banks.emplace(0x4ecbd0u,std::vector<std::byte>(4));m.banks.emplace(0x1000000u,std::vector<std::byte>(4096));m.put(0x4f9b54u,0x1000000u);m.put(0x4ecbd0u,0x1000100u);m.put(0x1000144u,0x1000200u);m.put(0x1000208u,0x1000400u);m.put(0x1000014u,0xffffffffu);
+ NativeTu15LookControllerInput input{0,0x3e800000u,0xbe000000u,{0x27f,0x20,0x1fa0},0,0x12340000u,0xabcd0000u};const auto owned=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"));test::NativeSeatedLookControllerInputCaptureTu15 capture(owned/"seat",true);capture.observe(input,m);check(!capture.complete(),"NONE captured");m.put(0x1000014u,input.caller_unit);m.put(0x1000414u,0xffffffffu);m.put(0x10005fcu,0xffffu);capture.observe(input,m);check(!capture.complete()&&!std::filesystem::exists(owned/"seat"),"Onfoot captured");m.put(0x1000414u,0x12340001u);capture.observe(input,m);check(!capture.complete(),"Missing seat captured");m.put(0x1000414u,0xffffffffu);m.put(0x10005fcu,0);capture.observe(input,m);check(!capture.complete(),"Missing parent captured");m.put(0x1000414u,0x12340001u);const auto before=m.banks;capture.observe(input,m);check(capture.complete()&&m.banks==before&&m.writes==0,"Seated capture writes Source");std::ifstream in(owned/"seat/capture-native-before.json");auto j=J::parse(in);check(j.at("input").at("yaw_delta_bits")==input.yaw_delta_bits&&j.at("input").at("floating_point").at("x87_status")==0x20,"Typed data changed");for(const auto&r:j.at("regions")){std::ifstream f(owned/"seat"/r.at("before_file").get<std::string>(),std::ios::binary);std::vector<char>b((std::istreambuf_iterator<char>(f)),{});const auto&expected=before.at(r.at("address"));check(b.size()==expected.size()&&std::memcmp(b.data(),expected.data(),b.size())==0,"Ephemeral bank escaped");}std::ifstream tuple(owned/"seat/actual-seated-look-tuple.json");auto t=J::parse(tuple);check(t.at("actual_parent")==0x12340001u&&t.at("actual_seat_word")==0&&t.at("skipped_unseated_inputs")==3,"Selection provenance differs");capture.observe(input,m);check(m.banks==before,"Repeat changed memory");test::NativeSeatedLookControllerInputCaptureTu15 ordinary(owned/"ordinary",false);m.put(0x1000414u,0xffffffffu);ordinary.observe(input,m);check(ordinary.complete(),"Default filter changed");bool escaped{};try{test::NativeSeatedLookControllerInputCaptureTu15 invalid(owned.string()+"-escape",true);}catch(...){escaped=true;}check(escaped,"Unowned path admitted");auto deep=input;deep.preserved_x87_depth=1;bool refused{};try{test::NativeSeatedLookControllerInputCaptureTu15 bad(owned/"deep",false);bad.observe(deep,m);}catch(...){refused=true;}check(refused,"Unprovided x87 admitted");std::cout<<"Seat selection input-only, default compatibility, missingparent/seat, actual metadata, ephemeral fullbanks, captureonce, sourceconst, owner/depth GREEN\n";return 0;
+}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}
+''')
+  context=owned/'context/tests';helpers=context/'helpers';helpers.mkdir(parents=True);shutil.copyfile(a.stage/'staged'/new,helpers/Path(new).name);shutil.copyfile(a.base/base_helper,helpers/Path(base_helper).name)
+  host_context=context/'host.cpp';host_context.write_text('#include "helpers/native_seated_look_controller_input_capture_tu15.hpp"\n')
+  results=[]
+  for cc in('g++','clang++'):
+   target=owned/cc;context_command=[cc,'-std=c++20','-fsyntax-only','-I'+str(a.base/'include'),str(host_context)];r=subprocess.run(context_command,capture_output=True,text=True);(a.output/(cc+'-host-context.log')).write_text(r.stdout+r.stderr);assert r.returncode==0,r.stderr;cmd=[cc,'-std=c++20','-O1','-I'+str(context),'-I'+str(a.base/'include'),str(model),'-o',str(target)];r=subprocess.run(cmd,capture_output=True,text=True);(a.output/(cc+'-build.log')).write_text(r.stdout+r.stderr);assert r.returncode==0,r.stderr[-3000:];child=owned/(cc+'-data');child.mkdir();env=dict(os.environ,HALO2_TEST_SCRATCH=str(child));r=subprocess.run([str(target)],env=env,capture_output=True,text=True);(a.output/(cc+'-run.log')).write_text(r.stdout+r.stderr);results.append(dict(compiler=cc,exit_code=r.returncode,host_context_without_test_include_path=True));assert r.returncode==0,r.stderr
+  report.update(passed=True,results=results,host_include_context='Host source is in tests/, helper adjacent in tests/helpers; no -Itests in contextual compile',scope=__doc__,staged_hashes={n:sha(a.stage/'staged'/n)for n in(host,new)},base_hashes={n:sha(a.base/n)for n in(host,base_helper,'include/halo2/native_tu15_look_controller_input_observer.hpp')})
+ except BaseException as e:report['error']=str(e)or repr(e);raise
+ finally:report['temporary_allocated_bytes_before_cleanup']=sum(p.stat().st_blocks*512 for p in owned.rglob('*')if p.is_file());save(a.output/'report.json',report)
+ if report['passed']:
+  save(a.stage/'source-pins.json',dict(qualified=True,diagnostic_only=True,root_reviewed=False,peer_review_pending=True,source_physics_mutated=False,native_controller_admission_added=False,staged_hashes=report['staged_hashes'],base_hashes=report['base_hashes'],base_source_root=str(a.base),proofs={str((a.output/'report.json').relative_to(ROOT)):sha(a.output/'report.json')},scope='Optional readonly parented/seat!=FFFF actualLook BEFORE selection only; default capture unchanged. Actualtyped args/currentFP/depth/allbanks, noGP/after/control/pose/result or admission changes. Existing capture scope uses newwrapper; only LOOK_CAPTURE_REQUIRE_SEAT env selects parentedfilter.'))
+ return 0 if report['passed']else 1
+if __name__=='__main__':raise SystemExit(main())

@@ -1,0 +1,31 @@
+import hashlib,importlib.util,json,os,shutil,subprocess,time
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ["HALO2_TEST_SCRATCH"]).resolve();out=root/"build/test-results/native-peer-driver-rust-20261101/room";out.mkdir(parents=True,exist_ok=True)
+source=scratch/"source";source.mkdir()
+for name in ("online_protocol","matchmaking_service"):shutil.copytree(root/"rust"/name,source/"rust"/name,ignore=shutil.ignore_patterns("target","__pycache__"))
+for name in ("tools/test_rust_matchmaking_service.py","tools/rust_service_room_controls.py","multiplayer/master_server/examples/matchmaking-online.json"):
+ target=source/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,target)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={str(p.relative_to(source)):sha(p) for p in source.rglob("*") if p.is_file()}
+assert all(sha(root/n)==h for n,h in pins.items())
+record={"passed":False,"scratch":str(scratch),"source_pins":pins,"retained_large_artifacts":[]}
+try:
+ env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_AUTO_INSTALL="0")
+ command=["cargo","build","--locked","--offline","--manifest-path",str(source/"rust/matchmaking_service/Cargo.toml")]
+ record["build_command"]=command;r=subprocess.run(command,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);(out/"build.log").write_bytes(r.stdout[-1048576:]);record["build_exit_code"]=r.returncode;assert r.returncode==0
+ print("Actual Rust service built; waiting for qualified final native probe",flush=True)
+ ready=root/"build/test-results/native-peer-driver-rust-20261101/final-native-probe.json";deadline=time.monotonic()+1200
+ while not ready.exists():
+  assert time.monotonic()<deadline,"Final native qualification deadline";time.sleep(1)
+ admitted=json.loads(ready.read_text());probe=Path(admitted["path"]);assert sha(probe)==admitted["sha256"]
+ binary=scratch/"cargo/debug/halo2-matchmaking-service";record["binary_sha256"]=sha(binary);record["native_probe"]=admitted
+ entries=json.loads((source/"multiplayer/master_server/examples/matchmaking-online.json").read_text())["playlists"]
+ lab=dict(id="rust-room-fixture",revision="rust-room-fixture-v1",name="Rust room fixture",description="Declared Rust relay fixture.",ranked=False,quickmatch=False,team_size=0,minimum_players=3,maximum_players=16,maximum_party=2,skill=dict(kind="custom",radius=0),stages=[dict(after_seconds=0,rank_numerator=1,rank_denominator=1,minimum_connection=50)],required_compatibility="halo2-native-queue-v10",games=[dict(id="slayer",map="lockout",variant="Slayer",weight=1)],rank_configuration=next(p["rank_configuration"] for p in entries if p["id"]=="team-slayer"),provenance="Declared Rust room legacy relay/hidden-XP integration fixture. No original profile, complete hopper options or played-match claim.")
+ fixture=scratch/"fixture.json";fixture.write_text(json.dumps(dict(version=1,playlists=[lab])));record["fixture_sha256"]=sha(fixture)
+ def module(name,path):
+  spec=importlib.util.spec_from_file_location(name,path);result=importlib.util.module_from_spec(spec);spec.loader.exec_module(result);return result
+ server=module("rust_test_server",source/"tools/test_rust_matchmaking_service.py");controls=module("rust_room_controls",source/"tools/rust_service_room_controls.py")
+ record["result"]=controls.native(binary,scratch/"native",fixture,server.Server,probe)
+ record["frozen_inputs_intact"]=all(sha(source/n)==h for n,h in pins.items());assert record["frozen_inputs_intact"]
+ record["passed"]=record["result"]["passed"];print("Final native clients / actual Rust service room PASS",flush=True)
+finally:(out/"report.json").write_text(json.dumps(record,indent=2)+"\n")

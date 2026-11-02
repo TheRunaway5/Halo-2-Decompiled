@@ -6,6 +6,7 @@
 #include "halo2/source_depth_storage.hpp"
 #include <memory>
 #include <filesystem>
+#include <functional>
 
 namespace halo2 {
 struct MenuWorldNativeDrawContext {
@@ -75,6 +76,16 @@ struct MenuWorldNativeDrawInput {
 // Destroy/recreate with the render pass/swapchain, after GPU completion. Device,
 // material layout/sets/buffers and catalog entries must remain valid throughout
 // their uses. No destructor wait conceals missing caller fence ownership.
+struct MenuWorldNativeDrawObservation {
+  VkPipeline pipeline{};
+  VkDescriptorSet material{};
+  unsigned index_count{};
+  bool indexed{};
+  VkBuffer index_buffer{};
+  VkDeviceSize index_offset{};
+  unsigned first_index{};
+  int vertex_offset{};
+};
 class MenuWorldNativeDraw {
 public:
   explicit MenuWorldNativeDraw(MenuWorldNativeDrawContext);
@@ -82,7 +93,8 @@ public:
   MenuWorldNativeDraw(const MenuWorldNativeDraw &)=delete;
   MenuWorldNativeDraw &operator=(const MenuWorldNativeDraw &)=delete;
   void prepare(std::span<const MenuWorldNativeDrawInput>);
-  void record(VkCommandBuffer,std::size_t index) const;
+  void record(VkCommandBuffer,std::size_t index,
+      const std::function<void(const MenuWorldNativeDrawObservation &)> & = {}) const;
   std::size_t size() const;
   VkPipelineLayout pipeline_layout() const;
 private:

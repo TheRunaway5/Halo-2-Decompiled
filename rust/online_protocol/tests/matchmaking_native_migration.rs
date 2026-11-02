@@ -1,0 +1,132 @@
+use halo2_online_protocol::matchmaking_native_migration::*;
+use std::cell::{Cell, RefCell};
+
+struct Fixture {
+    binding: Option<u32>,
+    present: bool,
+    handoff: bool,
+    quality: Option<u32>,
+    selection: Option<Selection>,
+    started: Cell<bool>,
+    learned_fence: bool,
+    selected: u32,
+    fail: Option<&'static str>,
+    events: RefCell<Vec<String>>,
+    fence: RefCell<Option<Fence<u32, u64>>>,
+    picked: RefCell<Option<Candidate<u32, u64>>>,
+}
+impl Default for Fixture {
+    fn default() -> Self {
+        Self {
+            binding: Some(7),
+            present: true,
+            handoff: true,
+            quality: Some(7),
+            selection: Some(Selection { complete: true, failed: false }),
+            started: Cell::new(false),
+            learned_fence: false,
+            selected: 15,
+            fail: None,
+            events: RefCell::new(vec![]),
+            fence: RefCell::new(None),
+            picked: RefCell::new(None),
+        }
+    }
+}
+impl Fixture {
+    fn event(&self, name: &'static str, data: impl std::fmt::Display) -> Result<()> {
+        self.events.borrow_mut().push(format!("{name}:{data}"));
+        if self.fail == Some(name) { Err(Error("declared IO refusal".into())) } else { Ok(()) }
+    }
+}
+impl Io for Fixture {
+    type Context = u32;
+    type Agreement = u64;
+    fn binding(&self) -> Result<Option<u32>> { self.event("binding", "")?; Ok(self.binding) }
+    fn agreement_present(&self) -> bool { self.present }
+    fn now_ms(&self) -> u64 { self.events.borrow_mut().push("clock".into()); u64::MAX }
+    fn agreement(&self, now: u64) -> Result<Learned<u64>> {
+        self.event("agreement", now)?;
+        self.started.set(true);
+        Ok(Learned { fenced: self.learned_fence, state: now })
+    }
+    fn handoff(&self) -> bool { self.handoff }
+    fn selection_started(&self) -> bool { self.started.get() }
+    fn quality(&self) -> Result<Option<u32>> { self.event("quality", "")?; Ok(self.quality) }
+    fn ranked(&self, now: u64) -> Result<Vec<u32>> { self.event("ranked", now)?; Ok(vec![u32::MAX, 256, 15, 0, 15]) }
+    fn selection_supported(&self) -> Result<bool> { self.event("supported", "")?; Ok(false) }
+    fn selection(&self) -> Result<Option<Selection>> { self.event("selection", "")?; Ok(self.selection) }
+    fn apply_fence(&self, value: Fence<u32, u64>) -> Result<()> {
+        self.event("fence", "")?; *self.fence.borrow_mut()=Some(value); Ok(())
+    }
+    fn begin(&self, context: u32) -> Result<()> { self.event("begin", context) }
+    fn pick(&self, value: Candidate<u32, u64>) -> Result<u32> {
+        self.event("pick", "")?; *self.picked.borrow_mut()=Some(value); Ok(self.selected)
+    }
+}
+#[test]
+fn absent_binding_skips_fence_clock_and_selection_begin() {
+    let f=Fixture { binding: None, ..Fixture::default() };
+    fence(&f,true,true).unwrap();begin_selection(&f).unwrap();
+    assert_eq!(*f.events.borrow(),["binding:","binding:"]);
+    assert!(f.fence.borrow().is_none());
+}
+#[test]
+fn force_preserves_agreement_clock_and_later_started_sample() {
+    for force in [false,true] { for learned_fence in [false,true] {
+        let f=Fixture { learned_fence, ..Fixture::default() };
+        fence(&f,force,true).unwrap();
+        assert_eq!(*f.events.borrow(),["binding:","clock",&format!("agreement:{}",u64::MAX),"fence:"]);
+        let v=f.fence.borrow();let v=v.as_ref().unwrap();
+        assert_eq!(v.context,7);assert_eq!(v.agreement,Some(u64::MAX));
+        assert_eq!(v.fenced,force||learned_fence);assert!(v.selection_started&&v.selection_failed);
+    }}
+    let f=Fixture { present:false, ..Fixture::default() };fence(&f,false,false).unwrap();
+    let v=f.fence.borrow();let v=v.as_ref().unwrap();assert!(v.agreement.is_none());assert!(!v.fenced&&!v.selection_started);
+    assert_eq!(*f.events.borrow(),["binding:","fence:"]);
+}
+#[test]
+fn inactive_candidate_never_queries_resources_or_state() {
+    let f=Fixture { handoff:false,fail:Some("binding"),..Fixture::default() };
+    assert_eq!(candidate(&f,42).unwrap(),None);assert!(f.events.borrow().is_empty());
+}
+#[test]
+fn candidate_samples_all_owners_before_existing_session_validation() {
+    let f=Fixture::default();assert_eq!(candidate(&f,u64::MAX).unwrap(),Some(15));
+    assert_eq!(*f.events.borrow(),["binding:",&format!("agreement:{}",u64::MAX),"quality:",&format!("ranked:{}",u64::MAX),"supported:","selection:","pick:"]);
+    let v=f.picked.borrow();let v=v.as_ref().unwrap();assert_eq!(v.agreement,Some((7,u64::MAX)));assert_eq!(v.quality,Some(7));
+    assert_eq!(v.ranked,[u32::MAX,256,15,0,15]);assert!(!v.selection_supported);assert!(v.selection.complete&&!v.selection.failed);
+}
+#[test]
+fn missing_candidate_resources_still_query_capability_and_selection() {
+    for present in [false,true] {
+        let f=Fixture { binding:None,present,quality:None,selection:None,..Fixture::default() };
+        candidate(&f,9).unwrap();let v=f.picked.borrow();let v=v.as_ref().unwrap();
+        assert!(v.agreement.is_none()&&v.quality.is_none()&&v.ranked.is_empty());assert_eq!(v.selection,Selection::default());
+        assert!(f.events.borrow().ends_with(&["supported:".into(),"selection:".into(),"pick:".into()]));
+        assert!(!f.events.borrow().iter().any(|s|s.starts_with("agreement:")||s.starts_with("ranked:")));
+    }
+}
+#[test]
+fn candidate_result_checks_full_width_before_seat_conversion() {
+    for selected in [0,15,16,17,255,256,257,u32::MAX] {
+        let f=Fixture { selected,..Fixture::default() };
+        assert_eq!(candidate(&f,0).unwrap(),if selected<16 {Some(selected as u8)} else {None});
+    }
+}
+#[test]
+fn declared_io_refusal_stops_later_sampling_and_application() {
+    for fail in ["binding","agreement","quality","ranked","supported","selection","pick"] {
+        let f=Fixture { fail:Some(fail),..Fixture::default() };assert!(candidate(&f,1).is_err());
+        assert!(f.events.borrow().last().unwrap().starts_with(&format!("{fail}:")));
+        assert!(f.picked.borrow().is_none());
+    }
+    for fail in ["binding","agreement","fence"] {
+        let f=Fixture { fail:Some(fail),..Fixture::default() };assert!(fence(&f,true,false).is_err());
+        assert!(f.events.borrow().last().unwrap().starts_with(&format!("{fail}:")));
+    }
+    for fail in ["binding","begin"] {
+        let f=Fixture { fail:Some(fail),..Fixture::default() };assert!(begin_selection(&f).is_err());
+        assert!(f.events.borrow().last().unwrap().starts_with(&format!("{fail}:")));
+    }
+}

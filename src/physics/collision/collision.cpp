@@ -1,7 +1,9 @@
 #include "halo2/collision.hpp"
 #include "halo2/math.hpp"
+#include "halo2/native_parallel.hpp"
 #include <limits>
 #include <numeric>
+#include <cstdlib>
 namespace halo2 {
 namespace {
 float component(Vec3 p, int axis) {
@@ -114,7 +116,42 @@ std::shared_ptr<const CollisionWorld::Acceleration> CollisionWorld::accelerate(
   auto acceleration = std::make_shared<Acceleration>();
   acceleration->order.resize(triangles.size());
   std::iota(acceleration->order.begin(), acceleration->order.end(), std::uint32_t{0});
-  if (!triangles.empty()) build(triangles, *acceleration, 0, triangles.size());
+  const auto* reference=std::getenv("HALO2_REFERENCE_UNCACHED_COLLISION_BOUNDS");
+  if(reference && *reference) {
+    if(!triangles.empty())build(triangles,*acceleration,0,triangles.size());
+    return acceleration;
+  }
+  // Moving devices rebuild these layers every native tick. Retain each
+  // triangle's exact ordered bounds/center products once, rather than
+  // recomputing them at every tree level and partition comparison. The
+  // partition inputs, comparator, recursion and node publication order stay
+  // identical to the reference builder below, including coincident ties.
+  struct Products {Vec3 low,high,center;};
+  std::vector<Products> products;products.reserve(triangles.size());
+  for(const auto& t:triangles)products.push_back({minimum(t.a,minimum(t.b,t.c)),
+      maximum(t.a,maximum(t.b,t.c)),t.a+t.b+t.c});
+  const auto cached_build=[&](const auto& self,std::size_t begin,std::size_t end)->int {
+    auto& nodes=acceleration->nodes;auto& order=acceleration->order;
+    Node n;n.begin=std::uint32_t(begin);n.end=std::uint32_t(end);
+    n.low={INFINITY,INFINITY,INFINITY};n.high={-INFINITY,-INFINITY,-INFINITY};
+    for(auto i=begin;i<end;++i) {
+      const auto& p=products[order[i]];
+      n.low=minimum(n.low,p.low);n.high=maximum(n.high,p.high);
+    }
+    const int index=int(nodes.size());nodes.push_back(n);
+    if(end-begin>8) {
+      const auto extent=n.high-n.low;
+      const int axis=extent.x>extent.y && extent.x>extent.z?0:extent.y>extent.z?1:2;
+      const auto mid=(begin+end)/2;
+      std::nth_element(order.begin()+begin,order.begin()+mid,order.begin()+end,[&](auto a,auto b) {
+        return component(products[a].center,axis)<component(products[b].center,axis);
+      });
+      const int left=self(self,begin,mid),right=self(self,mid,end);
+      nodes[index].left=left;nodes[index].right=right;
+    }
+    return index;
+  };
+  if(!triangles.empty())cached_build(cached_build,0,triangles.size());
   return acceleration;
 }
 CollisionWorld::Composition CollisionWorld::compose(
@@ -160,8 +197,18 @@ CollisionWorld::Composition CollisionWorld::compose(
   };
   Composition result;
   result.bsp = geometry == bsp->geometry_ ? bsp : view(base_count, bsp->acceleration_);
-  result.fixed = fixed_count == base_count ? result.bsp : view(fixed_count, std::move(fixed_acceleration));
-  result.all = all_count == fixed_count ? result.fixed : view(all_count);
+  const auto* serial=std::getenv("HALO2_REFERENCE_SERIAL_COLLISION_BUILDS");
+  // The two exact original partitions share immutable triangle inputs, but
+  // neither consumes the other's BVH. Fork only when both need rebuilding.
+  if(!(serial && *serial) && !fixed_acceleration && fixed_count!=base_count && all_count!=fixed_count) {
+    native_parallel_for(2,[&](std::size_t index) {
+      if(index==0)result.fixed=view(fixed_count);
+      else result.all=view(all_count);
+    });
+  } else {
+    result.fixed = fixed_count == base_count ? result.bsp : view(fixed_count, std::move(fixed_acceleration));
+    result.all = all_count == fixed_count ? result.fixed : view(all_count);
+  }
   return result;
 }
 int CollisionWorld::build(std::span<const CollisionTriangle> triangles, Acceleration &acceleration,

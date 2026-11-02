@@ -1,0 +1,70 @@
+{
+  "owned_scratch_removed": true,
+  "parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-lobby-view-native-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-core-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-rust-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-build-helper-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-inspected-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-qualified-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-component-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-component-corrected-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-variant-resource-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-linkage-20261102",
+      "children": [],
+      "empty": true
+    }
+  ],
+  "interrupted_native_scratch_removed": true,
+  "interrupted_native_regular_bytes_not_measured": true,
+  "completed_native_removed_regular_bytes": 6328760915,
+  "retained_large_artifacts": [],
+  "original_assets_references_other_owners_and_selected_runtimes_preserved": true
+}

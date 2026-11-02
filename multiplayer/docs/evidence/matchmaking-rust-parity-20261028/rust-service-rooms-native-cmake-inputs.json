@@ -1,0 +1,33 @@
+{
+  "schema": "H2_RUST_SERVICE_ROOMS_NATIVE_INPUTS_V1",
+  "before_sha256": "668f26bf1de4f38b24eeccf31b76ca036c258f5a80e2424eee797fb5039327f8",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4379,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms-native/halo2-test-nfl_f7nl/native-source",
+  "copied_files": 4379,
+  "copied_source_bytes": 167192823,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "source_control": "Owned CMake/Rust/backend/C++/headers and selected tooling/tests; unbuilt tests/tools and external/original references borrowed read-only.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms-native/halo2-test-nfl_f7nl",
+  "retained_large_artifacts": [],
+  "returncode": 8,
+  "after_sha256": "668f26bf1de4f38b24eeccf31b76ca036c258f5a80e2424eee797fb5039327f8",
+  "changed": [],
+  "current_source_drift": [
+    "src/pstencil/projected_lights.cpp",
+    "tools/rust_service_room_controls.py"
+  ]
+}

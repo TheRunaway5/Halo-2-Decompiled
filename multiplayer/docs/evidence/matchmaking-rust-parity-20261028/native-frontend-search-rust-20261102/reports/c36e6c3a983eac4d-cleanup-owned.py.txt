@@ -1,0 +1,28 @@
+import hashlib,json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-search-rust-20261102';paths=set()
+def visit(value):
+ if isinstance(value,dict):
+  for k,v in value.items():
+   if k=='scratch' and isinstance(v,str) and v.startswith(str(root/'.local/test-scratch')+'/'):paths.add(v)
+   visit(v)
+ elif isinstance(value,list):
+  for v in value:visit(v)
+for p in work.rglob('*.json'):
+ try:visit(json.loads(p.read_text()))
+ except (ValueError,OSError):pass
+for name in ['halo2-test-ilcv_uno','halo2-test-qvnatp98']:paths.add(str(root/'.local/test-scratch/frontend-search-syntax-20261102'/name))
+parents=['frontend-search-rust-20261102','frontend-search-syntax-20261102','frontend-search-core-20261102','frontend-search-probe-20261102','frontend-search-full-rust-20261102','frontend-search-staging-20261102','frontend-search-link-audit-20261102','frontend-search-inventory-20261102','frontend-search-script-syntax-20261102','frontend-search-pin-retirement-20261102','frontend-search-candidate-20261102','frontend-search-qualification-20261102']
+assert all(not Path(p).exists() for p in paths),[p for p in paths if Path(p).exists()]
+previous=json.loads((work/'cleanup.json').read_text()) if (work/'cleanup.json').exists() else {}
+removed=list(previous.get('removed_empty_parents',[]))
+for name in parents:
+ p=root/'.local/test-scratch'/name
+ if p.exists():
+  assert not any(p.iterdir()),str(p)
+  p.rmdir();removed.append(str(p))
+info=json.loads((work/'native-candidate/inputs.json').read_text());archive=Path(info['sdk_archive']['path'])
+with archive.open('rb') as f:archive_sha=hashlib.file_digest(f,'sha256').hexdigest()
+assert archive_sha==info['sdk_archive']['sha256'] and archive.stat().st_size==info['sdk_archive']['bytes']
+record={'passed':True,'all_owned_scratch_removed':True,'owned_scratch_paths':sorted(paths),'removed_empty_parents':removed,'sdk_archive_borrowed_read_only_preserved':True,'native_owner_exit_code':0,'first_native_owner_terminated_and_cleaned':True,'source_pin_metadata_losslessly_deduplicated':True,'retained_large_artifacts':[]}
+(work/'cleanup.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({'passed':True,'scratch_paths_removed':len(paths),'empty_parents_removed':len(removed),'retained_large_artifacts':[]}))

@@ -22,7 +22,10 @@ def freeze_source(scratch, output):
     # These numerical original fixtures are read by the actual backend tests.
     fixtures = ('tu15_party_privacy_original.json', 'multiplayer_engines_original_tu15.json',
                 'tu15_matchmaking_readiness_original.json', 'tu15_party_countdown_original.json',
+                'tu15_matchmaking_errors_original.json',
+                'game_variant_normalization_original.tsv',
                 'team_balance_tu15_original.json', 'matchmaking_assignment_original.json',
+                'matchmaking_assignment_tu15_original.json',
                 'matchmaking_ratings_original.json', 'matchmaking_lifecycle_original.json',
                 'matchmaking_skill_original.json', 'matchmaking_countdown_writer_original.json',
                 'tu15_matchmaking_start_original.json', 'hopper_selection_tu15_original.json')

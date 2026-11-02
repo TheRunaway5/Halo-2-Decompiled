@@ -1,0 +1,30 @@
+[
+  {
+    "address": "0x45fc78",
+    "bytes": ".\u0000d\u0000a\u0000t\u0000\u0000\u0000\u0000\u0000multiplayer\\matchmaking_hopper_descriptions"
+  },
+  {
+    "address": "0x45fc98",
+    "bytes": "ing_hopper_descriptions\u0000multiplayer_hopper.dat"
+  },
+  {
+    "address": "0x45c76c",
+    "bytes": "`M.\u0000\ufffd\ufffd\u0005\u0000@9\u0007\u0000P:\u0007\u0000\ufffd:\u0007\u0000`\ufffd\u0005\u0000post-match\u0000\u0000matchmaking"
+  },
+  {
+    "address": "0x45fc6c",
+    "bytes": "h\u0000o\u0000p\u0000p\u0000e\u0000r\u0000.\u0000d\u0000a\u0000t\u0000\u0000\u0000\u0000\u0000multiplayer\\matchmaking_hopper_descriptions"
+  },
+  {
+    "address": "0x4666b8",
+    "bytes": "\u0019a#\u0000\ufffdk#\u0000N!\u0019\u0000\ufffd\ufffd3\u0000\ufffd\ufffd3\u0000`l#\u0000\ufffdl#\u0000\ufffdv%\u0000\ufffd\ufffd\u0014\u0000matchmaking list"
+  },
+  {
+    "address": "0x4631e8",
+    "bytes": "\ufffd0\u0000\u0000P\u0000r\u0000o\u0000f\u0000i\u0000l\u0000e\u0000\u0000\u0000SaveImage.xbx\u0000\u0000\u0000playlist"
+  },
+  {
+    "address": "0x4676a8",
+    "bytes": "\ufffdS%\u0000\ufffd[5\u0000\ufffd\ufffd3\u0000\ufffdM#\u0000\ufffdN%\u0000\u0014]\u0019\u0000\u001f\ufffd#\u0000k\ufffd+\u00002W%\u0000playlist saved game file list"
+  }
+]

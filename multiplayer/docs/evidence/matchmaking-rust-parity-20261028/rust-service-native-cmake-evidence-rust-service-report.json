@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/Testing/Temporary/scratch/halo2-test-jg_faomt/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/Testing/Temporary/scratch/halo2-test-jg_faomt",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/Testing/Temporary/scratch/halo2-test-jg_faomt/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/Testing/Temporary/scratch/halo2-test-jg_faomt/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/Testing/Temporary/scratch/halo2-test-jg_faomt/cargo/release/halo2-matchmaking-service",
+    "bytes": 8580576,
+    "sha256": "f1e9f1164d6ab3370aa37c59499718b5412cadf79fbf85eb6a42eaa2d1907b09",
+    "retained": false
+  },
+  "native_client": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-owner/halo2-test-ymqb8z1g/build/rust_service_account_probe",
+    "sha256": "9ec4400bbc71b7c4f16c21ff9be3376aa30b48d098401f9c9c664e5890e45317",
+    "borrowed_read_only": true
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "real native account/profile/clan client over Rust HTTP; only provider handoff is a fixture",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ]
+}

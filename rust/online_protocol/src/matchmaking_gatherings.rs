@@ -118,6 +118,7 @@ fn search_json(search: &Search) -> Value {
         "clan":search.clan.map(|c|c.iter().map(|b|format!("{b:02x}")).collect::<String>())})
 }
 
+#[derive(Clone)]
 struct Gathering {
     id: String,
     tickets: Vec<String>,
@@ -134,6 +135,7 @@ impl Gathering {
         "language":self.language,"game":self.game,"clock":self.clock.as_ref().map(GatheringClock::snapshot)})
     }
 }
+#[derive(Clone)]
 struct Query {
     generation: u64,
     ids: Vec<String>,
@@ -170,10 +172,12 @@ enum Task {
     Query,
     Bank,
 }
+#[derive(Clone)]
 struct Facts {
     ready: Vec<bool>,
     pairs: Vec<PairFact>,
 }
+#[derive(Clone)]
 struct PairFact {
     milliseconds: Option<i32>,
     pending: bool,
@@ -210,6 +214,7 @@ impl Facts {
         })
     }
 }
+#[derive(Clone)]
 enum Wait {
     Ready {
         ticket: String,
@@ -233,13 +238,14 @@ enum Wait {
         excluded: HashSet<String>,
     },
 }
+#[derive(Clone)]
 struct Flight {
     token: u64,
     context: Context,
     wait: Wait,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     seed: Option<u32>,
     serial: u64,

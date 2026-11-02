@@ -10,6 +10,7 @@
 #include "halo2/content.hpp"
 #include "halo2/original_data.hpp"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -105,6 +106,23 @@ int main(int argc,char **argv)try {
     dynamic.sphere=pose.sphere=source_shadow_sphere(cache.load_object_shadow_definition(dynamic.definition),pose.nodes.front(),1);
     Mesh used_mesh,fresh_mesh;
     SourceDynamicObjectScene used(cache,0,used_mesh,collision),fresh(cache,0,fresh_mesh,collision);
+    const auto shadow_models=used.source_render_models();
+    check(!shadow_models.empty() && std::is_sorted(shadow_models.begin(),shadow_models.end()) &&
+        std::adjacent_find(shadow_models.begin(),shadow_models.end())==shadow_models.end() &&
+        shadow_models.back()!=0xffffffffu,"Dynamic shadow model inventory is empty, duplicated, unsorted or contains NONE");
+    const auto crate=cache.load_source_tag_metadata(placement->definition);
+    check(crate.group()=="bloc","Dynamic inventory control lost its authored crate definition");
+    const auto crate_model=cache.load_source_tag_metadata(Bytes(crate.bytes_at(crate.source_address(),0x3c)).u32(0x38));
+    check(crate_model.group()=="hlmt","Dynamic inventory control lost its authored model owner");
+    const auto crate_render_model=Bytes(crate_model.bytes_at(crate_model.source_address(),8)).u32(4);
+    check(cache.load_initial_model_definition(placement->definition).render_model==crate_render_model &&
+        std::binary_search(shadow_models.begin(),shadow_models.end(),crate_render_model),
+        "Actual crate model is absent from pre-birth dynamic shadow residency");
+    for(const auto datum:shadow_models) {
+        const auto metadata=cache.load_source_tag_metadata(datum);
+        check(metadata.group()=="mode" && metadata.datum()==datum,
+            "Dynamic shadow inventory contains a missing, foreign or unsalted render model");
+    }
     const auto dynamic_materials=used_mesh.materials.size();
     auto future=dynamic;auto future_pose=pose;
     for(auto &node:future_pose.nodes)node.position.x+=10;
@@ -120,6 +138,8 @@ int main(int argc,char **argv)try {
     unsigned dynamic_vertices{};
     for(unsigned v=0;v<4;++v){const auto &a=used.draw_view(0,view(v)),&b=fresh.draw_view(0,view(v));
         check(a.size()==1&&b.size()==1&&a[0].object==b[0].object&&same(a[0].colors,b[0].colors),"Dynamic handoff changed identity/color");
+        check(a[0].source_render_model==crate_render_model && b[0].source_render_model==crate_render_model,
+            "Actual dynamic WORLD draw differs from its resident authored shadow model");
         model(a[0],b[0]);check(a[0].prt.size()==b[0].prt.size(),"Dynamic handoff changed PRT coverage");
         for(unsigned i=0;i<a[0].prt.size();++i){const auto &x=a[0].prt[i],&y=b[0].prt[i];
             check(x.material==y.material&&x.section==y.section&&x.bank->first_constant==y.bank->first_constant&&

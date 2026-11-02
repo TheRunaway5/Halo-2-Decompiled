@@ -19,6 +19,8 @@ mod queue_api;
 mod results;
 #[path = "matchmaking_room_setup.rs"]
 mod room_setup;
+#[path = "matchmaking_room_service.rs"]
+mod room_service;
 #[path = "matchmaking_search_qos.rs"]
 mod search_qos;
 #[path = "matchmaking_sessions.rs"]
@@ -78,6 +80,7 @@ fn reject(condition: bool, status: u16, message: &'static str) -> Result<()> {
     }
 }
 
+#[derive(Clone)]
 pub struct Coordinator {
     search_qos: search_qos::Registry,
     setup: room_setup::Registry,
@@ -108,6 +111,102 @@ pub struct Coordinator {
 }
 
 impl Coordinator {
+    /// Presence publication reads actual admitted native owners. Socket IO
+    /// cannot supply a roster, playlist, room phase or a session timestamp.
+    pub fn presence(
+        &mut self,
+        now: f64,
+        rooms: &Value,
+        accounts: &[String],
+        wall: i64,
+        view: &str,
+    ) -> Result<Value> {
+        use crate::matchmaking_presence::{Activity, Population};
+        m::check(
+            now >= 0. && (now + 900.).is_finite(),
+            "Invalid presence clock",
+        )?;
+        self.clock = self.clock.max(now);
+        let connections = self.setup.presence(rooms, self.clock)?;
+        if view == "rooms" {
+            return Ok(json!(
+                connections
+                    .iter()
+                    .map(|room| json!({"closed":false,
+                "phase":room["phase"],"peers":array(room,"seats").iter()
+                    .filter(|seat| seat["guest"] != true)
+                    .map(|seat| json!({"player":seat["player"],"closed":false}))
+                    .collect::<Vec<_>>()}))
+                    .collect::<Vec<_>>()
+            ));
+        }
+        let mut population = Population::default();
+        for player in accounts {
+            population.seat(player, false, false);
+        }
+        for (player, guest) in self.sessions.presence(self.clock) {
+            population.seat(&player, guest, false);
+        }
+        for room in &connections {
+            for seat in array(room, "seats") {
+                population.seat(
+                    s(seat, "player"),
+                    seat["guest"] == true,
+                    room["phase"] == "running",
+                );
+            }
+        }
+        let reserved = self
+            .proposals
+            .iter()
+            .filter(|p| m::real(&p["expires_at"]).unwrap() > self.clock)
+            .flat_map(|p| array(p, "tickets").iter().map(|id| id.as_str().unwrap()))
+            .collect::<HashSet<_>>();
+        for ticket in &self.tickets {
+            if m::real(&ticket["expires_at"]).unwrap() <= self.clock {
+                continue;
+            }
+            let state = if reserved.contains(s(ticket, "id")) {
+                Activity::Joining
+            } else {
+                Activity::Queued
+            };
+            for player in array(ticket, "players") {
+                population.assign(s(player, "id"), s(ticket, "playlist"), state);
+            }
+        }
+        for room in &connections {
+            let state = match s(room, "phase") {
+                "reviewing" | "postgame" => Activity::Postgame,
+                "connecting" | "loading" => Activity::Joining,
+                _ => Activity::Playing,
+            };
+            for seat in array(room, "seats") {
+                population.assign(s(seat, "player"), s(room, "playlist"), state);
+            }
+        }
+        let entries = self
+            .catalog
+            .as_ref()
+            .map(|c| {
+                c.entries
+                    .iter()
+                    .map(|e| (s(&e["policy"], "id").to_owned(), s(e, "name").to_owned()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        population.finish(&entries, wall, view)
+    }
+    pub fn presence_without_queue(accounts: &[String], wall: i64, view: &str) -> Result<Value> {
+        if view == "rooms" {
+            return Ok(json!([]));
+        }
+        let mut population = crate::matchmaking_presence::Population::default();
+        for player in accounts {
+            population.seat(player, false, false);
+        }
+        population.finish(&[], wall, view)
+    }
     pub fn result_commit_context(&self, id: &str) -> Result<Value> {
         let mut context = self.results.commit_context(id, 0)?;
         let required = context["admission"]["compatibility"] == "halo2-native-queue-v11";
@@ -999,6 +1098,9 @@ impl Coordinator {
     pub fn execute(&mut self, r: &Value) -> Result<Value> {
         self.clock = self.clock.max(m::real(&r["now"])?);
         let op = m::text(&r["op"], 64)?;
+        if op.starts_with("room_service_") {
+            return room_service::execute(self, r);
+        }
         if op.starts_with("search_qos_") {
             let mut owner = std::mem::take(&mut self.search_qos);
             let result = owner.execute(self, r);
@@ -1557,6 +1659,35 @@ impl Coordinator {
 }
 
 pub fn value(r: &Value) -> Result<Value> {
+    if r["op"] == "friend_worker_reply" {
+        m::fields(r, &["op", "text", "record"])?;
+        let text = r["text"]
+            .as_str()
+            .ok_or(Error(503, "Invalid friend worker reply"))?;
+        m::check(text.len() <= 131072, "Friend worker reply exceeds bounds")?;
+        let reply =
+            decode(text.as_bytes()).map_err(|_| Error(503, "Invalid friend worker reply"))?;
+        let expected = r["record"]
+            .as_str()
+            .ok_or(Error(503, "Invalid friend record"))?;
+        m::check(expected.len() <= 32768, "Friend record exceeds bounds")?;
+        if !reply.is_object()
+            || reply["ok"] != true
+            || !reply["value"].is_object()
+            || reply["value"]["record"] != expected
+        {
+            return Err(Error(503, "EOS friend storage read-back mismatch"));
+        }
+        return Ok(Value::Null);
+    }
+    if r["op"] == "friend_fold" {
+        m::fields(r, &["op", "value"])?;
+        let value = r["value"]
+            .as_str()
+            .ok_or(Error(400, "Name text required"))?;
+        m::check(value.len() <= 1024, "Name comparison exceeds bounds")?;
+        return Ok(json!(crate::matchmaking_unicode::fold(value)));
+    }
     if r["op"]
         .as_str()
         .is_some_and(|op| op.starts_with("party_") && op != "party_rank")

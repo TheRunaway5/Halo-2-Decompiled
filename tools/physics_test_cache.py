@@ -45,7 +45,9 @@ def retain_results(source, destination, *, video=False):
         # budget, rather than losing the diagnostic at that size boundary.
         if (path.name in ('ticks.jsonl', 'player-body-frames.json',
                          'authority-phantom-phase.jsonl', 'authority-velocity-stores.jsonl',
-                         'authority-machine-state.jsonl') and
+                         'authority-machine-state.jsonl', 'authority-blast-damage.jsonl',
+                         'authority-vehicle-orientation.jsonl',
+                         'constraint-component-eligibility.jsonl') and
                 1024 * 1024 < size <= 8 * 1024 * 1024):
             original = path.read_bytes()
             packed = lzma.compress(original)

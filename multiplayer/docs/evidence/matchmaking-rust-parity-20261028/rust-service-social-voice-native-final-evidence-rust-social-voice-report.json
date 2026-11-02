@@ -1,0 +1,96 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-3qruircq/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-3qruircq",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-3qruircq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-3qruircq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-3qruircq/cargo/release/halo2-matchmaking-service",
+    "bytes": 11466824,
+    "sha256": "9f9c1ac532aa7e1ecca1f28086c546ec2409249d77b0ce4a3d3130a9da3b272f",
+    "retained": false
+  },
+  "mode": "voice-only",
+  "native_voice_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/online_voice_tests",
+    "sha256": "4dfb059c113eb53194b6637b05eacb099e2a5eb7b086bc4fc6789c3d96bef7a5",
+    "borrowed_read_only": true
+  },
+  "voice": {
+    "qualified": true,
+    "checks": [
+      "actual Rust HTTP denies anonymous preference and clan/party voice requests before any media upgrade",
+      "private provider-bound replacement removes self blocks and rejects forged fields, duplicates, invalid IDs and oversized bodies; the full2000-subject record crosses the ordinary16KiB limit",
+      "actual deferred preference COMMIT failure retains the complete old snapshot; retry replaces only the verified canonical owner",
+      "Steam proof expiry after the actual SQLite write lock is re-read before preference mutation and cannot consume the current snapshot",
+      "real Rust process restart retains private preferences and canonical aliases while retiring old account grants",
+      "real party voice requires accepted membership and a current account grant; emitted audio carries the accepted opaque handle and never reaches another party",
+      "actual provider-bound Discord preference snapshots silence both directions while preserving third-party delivery; another participant cannot clear the blocker",
+      "clan and party channels use independent native registries, memberships, sequence streams and audiences",
+      "leader transfer preserves accepted streams; removal and same-identity SQL membership reincarnation retire only the old native channel incarnation",
+      "replacement, nonbinary frames, malformed version/size, replay, native burst budget and account revocation close the exact stream; fresh login reconnects",
+      "existing native OnlineVoice clients exchange synthetic PCM through real Opus and Rust clan/party WebSockets, retain the idle heartbeat, and enforce opt-in capture, push-to-talk, participant/microphone mute and identity revocation",
+      "actual ten-second idle heartbeat accepts a pong and closes an unresponsive peer after the unshortened five-second transport deadline",
+      "real SIGTERM sends the Going Away close and retires native socket state before service exit"
+    ],
+    "timings": {
+      "heartbeat_seconds": 10.04763234499842,
+      "missing_pong_seconds": 5.0300293500040425,
+      "shutdown_seconds": 0.01621608999266755
+    },
+    "native_clients": [
+      {
+        "kind": "clan",
+        "passed": true,
+        "seconds": 12.954588302993216,
+        "synthetic_pcm": true,
+        "opus": true,
+        "physical_audio": false,
+        "private_provider_fixture": true
+      },
+      {
+        "kind": "party",
+        "passed": true,
+        "seconds": 12.941283805994317,
+        "synthetic_pcm": true,
+        "opus": true,
+        "physical_audio": false,
+        "private_provider_fixture": true
+      }
+    ],
+    "upstream_identity_fixture": "Private Steam SQL grants and canonical Discord-alias rows",
+    "real_provider": false,
+    "real_audio": false,
+    "native_played_world": false,
+    "original_parity": false
+  }
+}

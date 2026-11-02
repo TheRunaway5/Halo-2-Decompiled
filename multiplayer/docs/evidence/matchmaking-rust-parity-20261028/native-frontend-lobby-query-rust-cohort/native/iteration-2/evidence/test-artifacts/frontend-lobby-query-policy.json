@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "cases": 1055,
+  "native_io_observations": 23520,
+  "rust_reentry_observations": 23520,
+  "fault_controls": 542,
+  "preserved_native_exception_identity": 542,
+  "original_signed_team_controls": 9,
+  "original_signed_team_fixture_sha256": "72c1f2515b3707a62e7ff192c51b5451e6faec55ef838f60e2e1f2efefa65335",
+  "differences": [],
+  "native_sha256": "61ee8cd59ebacbed0883064ac205f829fd469948d152e679920127d8bb413e00",
+  "scope": "Whole captured modern lobby query versus the exact production Rust/CXX IO.\n\nNative cache, gameplay, profile and resource observations are controlled. The\ncomplete view, native map binding, all nine appearance bytes, ordered reads,\nreal Rust reentry and native exception identity are compared. Original Live\nproducers, installed input and historical whole-system parity remain separate.\n",
+  "undefined_native_shift_inputs_excluded": "Shifts of32 or more are excluded only from the undefined captured C++ comparison. Nine separately executed original signed-team controls qualify the Rust bound without invoking that C++ behavior."
+}

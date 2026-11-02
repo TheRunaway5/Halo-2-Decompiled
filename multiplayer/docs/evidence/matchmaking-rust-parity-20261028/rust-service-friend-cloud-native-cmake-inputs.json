@@ -1,0 +1,34 @@
+{
+  "schema": "H2_RUST_SERVICE_FRIEND_CLOUD_NATIVE_INPUTS_V1",
+  "before_sha256": "ff10ea59476bb637f0163d20bb5003caad3356ac64e157f569a3398754051fd0",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json"
+  ],
+  "input_count": 4407,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u/native-source",
+  "copied_source_bytes": 167585253,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "ff10ea59476bb637f0163d20bb5003caad3356ac64e157f569a3398754051fd0",
+  "changed": [],
+  "current_source_drift": [
+    "include/halo2/source_model_depth_position_contract.hpp",
+    "rust/matchmaking_service/README.md",
+    "src/rendering/world/source_model_depth_input.cpp",
+    "src/rendering/world/source_world_depth_input.cpp"
+  ]
+}

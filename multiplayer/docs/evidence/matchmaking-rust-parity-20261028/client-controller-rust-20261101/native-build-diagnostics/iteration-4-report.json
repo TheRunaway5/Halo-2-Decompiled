@@ -1,0 +1,159 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/native-source",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/native-source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-owned-20261101/iteration-4",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--target",
+        "original_matchmaking_readiness_tests",
+        "--target",
+        "rust_service_native_handoff_probe",
+        "--target",
+        "online_matchmaking_tests",
+        "--target",
+        "online_eos_bootstrap_tests",
+        "--target",
+        "rust_service_account_probe",
+        "--target",
+        "rust_service_matchmaking_probe",
+        "--target",
+        "rust_service_qos_probe",
+        "--target",
+        "rust_service_room_probe",
+        "--target",
+        "online_login_probe",
+        "--target",
+        "rust_service_social_probe",
+        "--target",
+        "online_search_qos_tests",
+        "--filter",
+        "^(original_matchmaking_readiness|rust_native_handoff_failclosed_http|online_matchmaking_client|online_eos_release_bootstrap|online_protocol_rust_build_helper|rust_matchmaking_service_http|online_search_qos_client)$",
+        "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+        "--retain-report",
+        "Testing/Temporary/LastTest.log",
+        "--retain-report",
+        "rust-native-handoff-failclosed/step-0.log",
+        "--retain-report",
+        "rust-native-handoff-failclosed/step-1.log",
+        "--retain-report",
+        "online-protocol/Release/build-report.json",
+        "--retain-report",
+        "rust-native-handoff-failclosed/report.json",
+        "--retain-report",
+        "rust-native-handoff-failclosed/source-manifest.json",
+        "--retain-report",
+        "rust-service/step-0.log",
+        "--retain-report",
+        "rust-service/step-1.log",
+        "--retain-report",
+        "rust-service/report.json",
+        "--retain-report",
+        "rust-service/source-manifest.json"
+      ],
+      "returncode": 1
+    }
+  ],
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "CMakeLists.txt",
+    "src/network/online_matchmaking.cpp"
+  ],
+  "source_pin_sha256": "3826e0ca4ac0e264d5d32c493f20574f4cf2b6593f0b3cb4e3992d82b66d73e5",
+  "runner_report": {
+    "passed": false,
+    "status": "failed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-owned-20261101/iteration-4/configure.log",
+        "exit_code": 1
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": true,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native/halo2-test-wy36rnss/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/step-0.log",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/step-1.log",
+        "status": "not produced"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 1997,
+        "sha256": "0d61fbaf33c0093978824da3f93e3a439a409d8b757cf26a30225b3e1965dece",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-owned-20261101/iteration-4/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/report.json",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/source-manifest.json",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-service/step-0.log",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-service/step-1.log",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-service/report.json",
+        "status": "not produced"
+      },
+      {
+        "path": "rust-service/source-manifest.json",
+        "status": "not produced"
+      }
+    ]
+  },
+  "frozen_inputs_intact": true
+}

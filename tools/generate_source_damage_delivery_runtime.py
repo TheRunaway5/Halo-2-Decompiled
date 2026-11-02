@@ -58,6 +58,29 @@ __m128 damage_mulss(__m128 left,__m128 right) {
 #endif
 }
 '''
+def install_native_damage_response_selection(text,remove=False):
+    include='#include "halo2/source_damage_delivery_runtime.hpp"'
+    native_include=include+'\n#include "halo2/native_tu15_damage_response.hpp"'
+    old='switch(canonical_branch(r(s.memory,(selected(0xdbe48u,s.image)+s.gp[1]*4u),4),s.image)){case 0xdbc55u:goto Ldbc55;case 0xdbc6bu:goto Ldbc6b;case 0xdbc81u:goto Ldbc81;case 0xdbc9au:goto Ldbc9a;case 0xdbe31u:goto Ldbe31;default:throw std::runtime_error("Required original solver dispatch target unavailable");}'
+    native='''if(s.image==SourcePhysicsContactImage::TitleUpdate15){
+  // Native TU1.5 response selection owns all five authored kinds. There is
+  // no live Xbox jump-table read or fallback for the type4 damage route.
+  switch(native_tu15_damage_response_route(std::uint16_t(s.gp[1]))){
+  case NativeTu15DamageResponseRoute::Type0:goto Ldbc9a;
+  case NativeTu15DamageResponseRoute::Type1:goto Ldbc81;
+  case NativeTu15DamageResponseRoute::Type2:goto Ldbc55;
+  case NativeTu15DamageResponseRoute::Stop:goto Ldbe31;
+  case NativeTu15DamageResponseRoute::Type4:goto Ldbc6b;
+  }
+}
+'''
+    if remove:
+        if native_include not in text and native not in text:return text
+        assert text.count(native_include)==1 and text.count(native)==1
+        return text.replace(native_include,include).replace(native,'')
+    assert text.count(include)==1 and text.count(old)==1 and native not in text
+    return text.replace(include,native_include).replace(old,native+old)
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--output',type=Path,required=True)
@@ -182,7 +205,11 @@ def main():
     ending='} // namespace halo2\n'
     assert text.endswith(ending)
     owns='bool source_damage_delivery_owns_entry(std::uint32_t p) {switch(p){'+''.join(f'case 0x{int(p,16):x}u:' for p in sorted(entries))+'return true;default:return false;}}\n'
-    a.output.write_text(install_native_damage_voice_request(text[:-len(ending)]+owns+ending))
+    a.output.write_text(install_native_damage_response_selection(install_native_damage_voice_request(text[:-len(ending)]+owns+ending)))
+    from native_damage_region_eligibility_kernel_tu15 import install_damage_region_eligibility
+    a.output.write_text(install_damage_region_eligibility(a.output.read_text(),False))
+    from native_weapon_effect_paired_bridge_tu15 import install_native_paired_weapon_owners
+    a.output.write_text(install_native_paired_weapon_owners(a.output.read_text(),'damage-canonical'))
     manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
     manifest['configuration_tool_sha256']=sha(Path(__file__))
     manifest['scalar_add_multiply_operand_order']='literal ADDSS/MULSS, including quiet NaN payload selection'

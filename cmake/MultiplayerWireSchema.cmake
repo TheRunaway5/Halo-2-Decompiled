@@ -14,6 +14,8 @@ set(multiplayer_wire_inputs
     include/halo2/native_request_protocol.hpp
     include/halo2/system_link_state.hpp
     include/halo2/multiplayer.hpp
+    include/halo2/native_weapon_zoom_audio_tu15.hpp
+    src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp
     include/halo2/cache.hpp
     include/halo2/multiplayer_authority.hpp
     include/halo2/native_first_person_registry_tu15.hpp

@@ -1,5 +1,6 @@
 #include "halo2/source_bsp_breakable_visibility_tu15.hpp"
 #include "halo2/source_bsp_part_commands.hpp"
+#include "halo2/source_bsp_shader_scene.hpp"
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -56,6 +57,22 @@ int main()try {
   memory.bytes[1]|=std::byte{1};memory.bytes[0x201]|=std::byte{1};
   const auto restored=source_bsp_breakable_visibility_tu15(memory);
   check(commands(restored)==1 && commands(restored,true)==1,"Source reset/restore retained stale hidden materials");
+  SourceTransparentBspParts parts;parts.clusters.resize(2);parts.instance_definitions.resize(1);
+  SourceTransparentPart pane;pane.ordinal=1;pane.breakable_surface=14;parts.clusters[0].parts.push_back(pane);
+  pane.ordinal=2;pane.breakable_surface=255;parts.clusters[0].parts.push_back(pane);
+  pane.ordinal=3;pane.breakable_surface=1;parts.clusters[1].parts.push_back(pane);
+  pane.ordinal=4;pane.breakable_surface=14;parts.instance_definitions[0].parts.push_back(pane);
+  parts.instances.push_back({.ordinal=0,.definition=0});parts.instances.push_back({.ordinal=1,.definition=0});
+  check(source_bsp_broken_parts(parts,restored,0).empty(),"Intact main BSP selection hid authored parts");
+  memory.bytes[2]&=std::byte{0xbf};memory.bytes[0x202]&=std::byte{0xbf};
+  const auto main_broken=source_bsp_breakable_visibility_tu15(memory);
+  const std::set<std::pair<int,unsigned>> expected{{0,1},{-2,4}};
+  check(source_bsp_broken_parts(parts,main_broken,0)==expected,"Main selection lost exact terrain/instance breakable indices");
+  check(source_bsp_broken_parts(parts,main_broken,1).empty(),"Main selection leaked breakage across BSPs");
+  auto disabled=main_broken;disabled[0]=std::byte{0};
+  check(source_bsp_broken_parts(parts,disabled,0)==expected,"Render query incorrectly applied collision enable byte");
+  check(source_bsp_broken_parts(parts,restored,0).empty(),"Main BSP selection failed to restore source-reset parts");
+  rejects([&]{source_bsp_broken_parts(parts,std::span(main_broken).first(0x4203),0);});
   memory.pointer=0;rejects([&]{source_bsp_breakable_visibility_tu15(memory);});
   memory.pointer=0xffffffffu;rejects([&]{source_bsp_breakable_visibility_tu15(memory);});
   memory.pointer=0x71008000u;rejects([&]{source_bsp_breakable_visibility_tu15(memory);});

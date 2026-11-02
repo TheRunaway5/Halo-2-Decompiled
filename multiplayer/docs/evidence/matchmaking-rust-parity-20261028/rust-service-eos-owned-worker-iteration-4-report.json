@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/iteration-4",
+  "commands": [],
+  "action": "eos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_eos_controls.py"
+  ],
+  "source_files": 128,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/cargo/release/halo2-matchmaking-service",
+    "sha256": "5f19c24f9e8243712531532f938839207d9439598dea366cee7d1b71e8aef3f7",
+    "bytes": 10536456,
+    "retained": false
+  },
+  "error": "A revoked body upload reached the SDK verifier"
+}

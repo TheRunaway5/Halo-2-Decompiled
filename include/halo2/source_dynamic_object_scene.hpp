@@ -63,6 +63,7 @@ public:
     // The enclosing adopter owns quiescence; synchronize actual incoming WORLD
     // inputs before drawing. This does not validate or promote a native world.
     void reset_lifetimes() noexcept;
+    std::vector<std::uint32_t> source_render_models()const;
     void synchronize(std::span<const SourceDynamicObject>,std::span<const SourceWorldPose>);
     const SourceDynamicObject &get(std::uint32_t) const;
     std::span<const Transform> nodes(std::uint32_t) const;

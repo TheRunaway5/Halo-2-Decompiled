@@ -1,0 +1,13 @@
+{
+  "scope": "Restore existing test source after owned filename/target collision",
+  "original_path": "tests/frontend_lobby_policy_tests.cpp",
+  "original_captured_baseline_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+  "restored_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+  "original_bytes_exactly_restored": true,
+  "new_fixture_path": "tests/frontend_matchmaking_lobby_rust_tests.cpp",
+  "new_fixture_bytes_unchanged": true,
+  "new_fixture_sha256": "f6725b387bde4d104e54699f2361dcaec31f6823ed7c2c40b76b859c08e92da3",
+  "new_target": "frontend_matchmaking_lobby_rust_tests",
+  "failed_native_iteration": 3,
+  "foreign_source_snapshots_modified": false
+}

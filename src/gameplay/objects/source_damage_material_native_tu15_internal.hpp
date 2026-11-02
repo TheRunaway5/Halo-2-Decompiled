@@ -7,10 +7,83 @@
 
 namespace halo2::physics_world_runtime_detail {
 inline std::atomic<std::uint64_t> damage_material_native_calls{},
-    damage_material_groups_found{},damage_material_modifiers_found{};
+    damage_material_groups_found{},damage_material_modifiers_found{},
+    damage_material_search_calls{},damage_material_comparator_calls{};
+
+// D8100 compares raw StringID words by signed wrapping subtraction. A normal
+// unsigned/signed relational comparison changes the original search direction.
+template<class State,class Site>
+void damage_material_compare_native_tu15(State &s,Site site) {
+    damage_material_comparator_calls.fetch_add(1,std::memory_order_relaxed);
+    site(0x124440u,0xd8100u);s.gp[0]=r(s.memory,s.gp[4]+4u,4);
+    site(0x124444u,0xd8104u);s.gp[1]=r(s.memory,s.gp[4]+8u,4);
+    site(0x124448u,0xd8108u);s.gp[0]=r(s.memory,s.gp[0],4);
+    site(0x12444au,0xd810au);s.gp[0]=s.flags.minus(s.gp[0],r(s.memory,s.gp[1],4),4);
+    site(0x12444cu,0xd810cu);s.pop();s.gp[4]+=12u;
+}
+
+// Complete 1408B0 binary search. The native loop keeps the original midpoint
+// duplicate selection, callback frame, read/store order and ABI boundaries.
+// compare executes the actual callback; no table or comparator result is cached.
+template<class State,class Site,class Compare>
+void damage_material_search_native_tu15(State &s,Site site,Compare compare) {
+    damage_material_search_calls.fetch_add(1,std::memory_order_relaxed);
+    const auto at=[&](std::uint32_t offset){site(0x13f540u+offset,0x1408b0u+offset);};
+    const auto push=[&](std::uint32_t offset,std::uint32_t value){
+        at(offset);s.push(site(0x13f540u+offset,0x1408b0u+offset,false),value);
+    };
+    push(0x00,s.gp[3]);
+    at(0x01);s.gp[3]=r(s.memory,s.gp[4]+0xcu,4);
+    push(0x05,s.gp[5]);
+    at(0x06);s.gp[5]=r(s.memory,s.gp[4]+0x14u,4);
+    push(0x0a,s.gp[6]);push(0x0b,s.gp[7]);
+    at(0x0c);s.gp[7]=s.gp[0];
+    at(0x0e);s.flags.logic(s.gp[7],4);
+    at(0x10);
+    if(s.gp[7])for(;;) {
+        at(0x12);s.gp[0]=r(s.memory,s.gp[4]+0x24u,4);
+        at(0x16);s.gp[1]=r(s.memory,s.gp[4]+0x14u,4);
+        at(0x1a);s.gp[6]=s.gp[7];
+        at(0x1c);s.gp[6]=s.flags.right(s.gp[6],1u,4,true);
+        at(0x1e);s.gp[6]=s.flags.product(s.gp[6],s.gp[5]);
+        push(0x21,s.gp[0]);
+        at(0x22);s.gp[6]=s.flags.plus(s.gp[6],s.gp[3],4);
+        push(0x24,s.gp[6]);push(0x25,s.gp[1]);
+        at(0x26);const auto callback=r(s.memory,s.gp[4]+0x2cu,4);
+        s.push(site(0x13f566u,0x1408d6u,false),0x1408dau);compare(callback);
+        at(0x2a);s.flags.logic(s.gp[0],4);
+        at(0x2c);
+        if(!s.gp[0]) {
+            at(0x44);s.gp[1]=r(s.memory,s.gp[4]+0x18u,4);
+            at(0x48);s.gp[0]=s.gp[6];
+            at(0x4a);s.gp[0]=s.flags.minus(s.gp[0],s.gp[1],4);
+            at(0x4c);s.gp[7]=s.pop();
+            at(0x4d);s.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;
+            at(0x4e);s.gp[6]=s.pop();
+            at(0x4f);s.quotient(s.gp[5],true);
+            at(0x51);s.gp[5]=s.pop();
+            at(0x52);s.gp[3]=s.pop();
+            at(0x53);s.pop();s.gp[4]+=20u;return;
+        }
+        at(0x2e);
+        if(si(s.gp[0])>0) {
+            at(0x30);s.gp[3]=s.gp[6]+s.gp[5];
+            at(0x33);s.gp[7]=s.flags.increment(s.gp[7],4,true);
+        }
+        at(0x34);s.gp[7]=s.flags.right(s.gp[7],1u,4,true);
+        at(0x36);s.flags.logic(s.gp[7],4);
+        at(0x38);if(!s.gp[7])break;
+    }
+    at(0x3a);s.gp[7]=s.pop();
+    at(0x3b);s.gp[6]=s.pop();
+    at(0x3c);s.gp[5]=s.pop();
+    at(0x3d);s.gp[0]=s.flags.logic(0xffffffffu,4);
+    at(0x40);s.gp[3]=s.pop();
+    at(0x41);s.pop();s.gp[4]+=20u;
+}
 
 // Complete D8110: two authored damage keys, each with two authored armor
-// keys. The original search/comparator execute through search; they retain
+// keys. The separately qualified search/comparator execute through search; they retain
 // duplicate selection and signed wrapping subtraction. Preserve the caller's
 // original memory, stack, GP/SSE state and all observation/fault boundaries.
 template<class State,class Site,class Search>

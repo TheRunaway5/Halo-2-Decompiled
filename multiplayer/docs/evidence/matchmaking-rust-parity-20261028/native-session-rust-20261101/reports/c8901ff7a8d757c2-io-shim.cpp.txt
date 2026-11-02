@@ -1,0 +1,18 @@
+#include <curl/curl.h>
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <dlfcn.h>
+namespace {std::atomic<bool> injected{};}
+extern "C" CURLcode curl_ws_send(CURL *client,const void *buffer,size_t length,size_t *sent,curl_off_t fragment,unsigned flags) {
+  using Send=CURLcode(*)(CURL*,const void*,size_t,size_t*,curl_off_t,unsigned);
+  static const auto actual=reinterpret_cast<Send>(dlsym(RTLD_NEXT,"curl_ws_send"));
+  if(!actual)return CURLE_FAILED_INIT;
+  const bool force=(flags&CURLWS_PONG)&&length==0&&!injected.exchange(true);
+  CURLcode result;
+  if(force){*sent=0;result=CURLE_AGAIN;}else result=actual(client,buffer,length,sent,fragment,flags);
+  if(flags&CURLWS_PONG)if(const auto *path=std::getenv("H2_TEST_PONG_IO_LOG"))
+    if(auto *log=std::fopen(path,"ab")){std::fprintf(log,"{\"injected\":%s,\"length\":%zu,\"sent\":%zu,\"result\":%u}\n",
+        force?"true":"false",length,*sent,unsigned(result));std::fclose(log);}
+  return result;
+}

@@ -13,4 +13,6 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_options(campaign_ai_scalar_defaults_tu15_tests PRIVATE -Wl,--gc-sections)
     add_test(NAME original_campaign_ai_scalar_defaults_tu15 COMMAND campaign_ai_scalar_defaults_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_ai_scalar_defaults_tu15.json")
+    add_test(NAME original_workshop_ai_aim_scalar_defaults_tu15 COMMAND campaign_ai_scalar_defaults_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/workshop_ai_aim_scalar_defaults_tu15.json")
 endif()

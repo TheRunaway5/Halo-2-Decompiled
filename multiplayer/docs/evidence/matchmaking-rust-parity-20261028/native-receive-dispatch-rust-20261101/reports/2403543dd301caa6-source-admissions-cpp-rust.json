@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "scope": "Exact public-API C++/Rust admission replay with synthetic private identities.\n\nThe deterministic network, clocks and identity rows are declared fixtures.\nNo native allocation/world, provider, original Live or installed claim is made.\n",
+  "reference": {
+    "scope": "Exact prior modern source-player admission exchange, not original Xbox XNet/Live wire",
+    "source": "src/network/peer_source_admissions.cpp",
+    "sha256": "afd234af56b8aa24ab0d5503b63b162bcb095b07e108ab11c8e74921e359522f",
+    "bytes": 10219,
+    "captured_at_utc": "2026-11-01T15:40:49.056800+00:00",
+    "production_use": false,
+    "header": {
+      "source": "include/halo2/peer_source_admissions.hpp",
+      "reference": "tests/reference/peer_source_admissions_before_rust_20261101/halo2/peer_source_admissions.hpp",
+      "sha256": "906f2adc5202af559620a52aa4953ec895dee110f75d681aa7fc767a809f4a44",
+      "bytes": 2394
+    }
+  },
+  "binaries": {
+    "cpp": "9bcb9e23b997c295fe53c50f14282215d652846c7a045f00df1e9416d62a989b",
+    "rust": "ede5d0bd701c9987011ab40fc86999cadb60c01de904d61d075127f9b2dd8076"
+  },
+  "native_world": false,
+  "original_xnet": false,
+  "retained_large_artifacts": [],
+  "commands": 25054,
+  "packet_outputs": 591,
+  "receives": 3943,
+  "state_reads": 5989,
+  "corpus_and_observations_sha256": "630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6",
+  "sdk_diagnostics": [
+    "Shutdown handler: initialize."
+  ],
+  "native_exit_codes": [
+    0,
+    0
+  ]
+}

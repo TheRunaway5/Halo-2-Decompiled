@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "baseline_cpp_owner": true,
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-native/halo2-test-x6oxi06p/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+  ],
+  "object_sha256": "888197615110e1d57bf6f5f1026fc9d54a0a5aff7085482b8534b6a935ac88d4",
+  "rust_dispatch_entry": false,
+  "cpp_session_classifier_references": {
+    "PeerSurvivorSelection": true,
+    "PeerSnapshotCandidate": true,
+    "PeerCommonCutAgreement": true,
+    "PeerHostAgreement": true,
+    "PeerMeshQuality": true,
+    "PeerSourceAdmissions": true,
+    "PeerAuthorityTransfer": true
+  },
+  "cpp_caller_body_sha256": "37b3ef4791019aef29e2ce0136117121e9df6682043a80fafc32a178dddcb349",
+  "preserved_cpp_caller_body_sha256": "37b3ef4791019aef29e2ce0136117121e9df6682043a80fafc32a178dddcb349",
+  "preserved_extraction_exactly_matches_before_source": true,
+  "rust_native_input_count": 3414,
+  "rust_native_input_mismatch": [],
+  "all_inventory_inputs_identical": true,
+  "current_critical_source_drift": [
+    "src/network/online_match_session.cpp"
+  ],
+  "source_pins": {
+    "src/network/online_match_session.cpp": "161d5d98ddeb2cbde1895f173b749382154b90405e88ae432549c95cd2cc5325",
+    "rust/online_protocol/src/matchmaking_native_receive.rs": "fd7bfec81fa640c86e25f267fd4bdb6673e0701f5d7b460e2a167e5f349b149f",
+    "rust/online_protocol/src/lib.rs": "38b2eab970dbf3f4553140353aa33727d9ecc23d9c2fa477a86c16acedb628c5",
+    "rust/online_protocol_bridge/src/matchmaking_native_receive.rs": "4179d9316282f0723dbc3fd474e1d5012454db815cbbf1b33a713d8efa5de015",
+    "rust/online_protocol_bridge/src/matchmaking_native_receive.hpp": "e423fe9bc39877396fbb7962da35136590b6aacbab6de936cf3237bfaee4030f",
+    "rust/online_protocol_bridge/src/lib.rs": "6ee9c2617b41c656531e0f99cf5a6fb72ebab1fe092008db3f9fb00bae1017bf",
+    "rust/online_protocol_bridge/build.rs": "51a11a49a2d793bcc69a8ed00ed6d6b10b38be3471ff6205c2449e2e5e79497e",
+    "cmake/OnlinePeers.cmake": "f251f0e18490015785c83a252f48312e9d75d7eeeb81f2f38fd132a0dc090967",
+    "cmake/OnlineProtocolRust.cmake": "f1124efb25a7e48779d93bd62b4e4fc9f668d4a5f9baff832b73761ec6a5d12b",
+    "tools/build_online_protocol_rust.py": "8f5576422c406b8f4c21432d790a2507069e722bf18ce4712520d16133107a26",
+    "tests/test_build_online_protocol_rust.py": "0bb0419c0d070ae2b630c52e3cbd4e759665c1000142ffb300179947d589d9da",
+    "tests/native_receive_dispatch_tests.cpp": "1d03791b5210f545fad539196caf79834fe5aae3674e3f0d6af285bbd92b0883",
+    "tests/test_native_receive_dispatch.py": "eb95b6035a08e29f855570c157cbdcf9762a8bde176fc34a16c9fe068123d750",
+    "tests/reference/native_receive_dispatch_before_rust_20261101.inc": "37b3ef4791019aef29e2ce0136117121e9df6682043a80fafc32a178dddcb349",
+    "tests/reference/native_receive_dispatch_before_rust_20261101.json": "975752a3f89408c5db3ee603494085636b710c05b58ccc84a3ce6e2f199f15c2",
+    "include/halo2/multiplayer_datagrams.hpp": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c"
+  },
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-audit/halo2-test-lixelsm8",
+  "retained_large_artifacts": [],
+  "scope": "Actual compiled Session dispatch and complete source identities; modern caller/lock/epoch/history policy only, not original Live, native worlds/providers or installed delivery."
+}

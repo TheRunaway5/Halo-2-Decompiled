@@ -73,12 +73,16 @@ std::uint8_t source_shader_instance_alpha(float coverage) {
     // x87 PC53 before the complete322B0C truncation. NaN produces AL0.
     return std::isfinite(value)?std::uint8_t(double(value)*255):0;
 }
-SourceShaderStipple source_shader_instance_stipple(std::uint8_t alpha) {
+std::uint8_t source_shader_instance_stipple_level(std::uint8_t alpha) {
     const float fraction=mul(float(alpha),std::bit_cast<float>(0x3b808081u));
     const float value=mul(fraction,16);
     unsigned level=unsigned(value);
     const float residual=sub(value,float(level));
     if(residual>.5f || (residual==.5f && (level&1)))++level;
+    return std::uint8_t(level);
+}
+SourceShaderStipple source_shader_instance_stipple(std::uint8_t alpha) {
+    const auto level=source_shader_instance_stipple_level(alpha);
     constexpr std::array<std::array<unsigned,2>,16> positions{{
         {0,0},{2,2},{0,2},{2,0},{1,1},{3,3},{3,1},{1,3},
         {0,1},{2,3},{3,0},{1,2},{1,0},{3,2},{0,3},{2,1}}};

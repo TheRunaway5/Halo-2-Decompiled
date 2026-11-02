@@ -133,32 +133,13 @@ def discover(*, home=None, environment=None, extra_libraries=()):
     direct = []
     from mcc_content import discover as discover_mcc
     try:
-        direct.append(discover_mcc(home=home, environment=env, extra_libraries=extra_libraries).parent.parent / 'H2EK')
+        direct.append(discover_mcc(home=home, environment=env, extra_libraries=extra_libraries,
+                                   include_store=False).parent.parent / 'H2EK')
     except (FormatError, OSError):
         pass
-    libraries = [home / '.local/share/Steam', home / '.steam/steam', home / '.steam/root',
-        home / '.var/app/com.valvesoftware.Steam/.local/share/Steam',
-        home / 'Library/Application Support/Steam', *map(Path, extra_libraries)]
-    for key in ('PROGRAMFILES(X86)', 'ProgramFiles(x86)', 'PROGRAMFILES', 'ProgramFiles', 'LOCALAPPDATA'):
-        if env.get(key):
-            libraries.append(Path(env[key]) / 'Steam')
-    visited = set()
-    for candidate in libraries:
-        library = candidate.expanduser().resolve()
-        if library in visited:
-            continue
-        visited.add(library)
-        for config in (library / 'steamapps/libraryfolders.vdf', library / 'config/libraryfolders.vdf'):
-            if config.is_file() and config.stat().st_size <= 1024**2:
-                paths = re.findall(r'"(?:path|[0-9]+)"\s+"([^"\r\n]+)"', config.read_text(errors='replace'))
-                libraries.extend(Path(path.replace('\\\\', '\\')) for path in paths)
-        names = ['H2EK']
-        manifest = library / 'steamapps/appmanifest_1613450.acf'
-        if manifest.is_file() and manifest.stat().st_size <= 1024**2:
-            match = re.search(r'"installdir"\s+"([^"\r\n]+)"', manifest.read_text(errors='replace'))
-            if match and Path(match[1]).name == match[1] and match[1] not in ('.', '..') and '\\' not in match[1]:
-                names.insert(0, match[1])
-        direct.extend(library / 'steamapps/common' / name for name in names)
+    from steam_client import libraries, app_directories, H2EK
+    for library in libraries(home=home, environment=env, extra_libraries=extra_libraries):
+        direct.extend(app_directories(library, H2EK, 'H2EK'))
     for path in direct:
         if path.is_dir() and any((path / name).is_file() for name in SOURCE_FILES):
             return path.resolve()

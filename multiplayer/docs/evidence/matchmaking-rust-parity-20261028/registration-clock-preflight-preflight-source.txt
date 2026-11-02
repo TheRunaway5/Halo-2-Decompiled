@@ -1,0 +1,44 @@
+"""Separate credential and registration clocks in private Rust HTTP processes."""
+import hashlib
+import sqlite3
+import time
+
+
+def preflight(binary, scratch, catalog, Server):
+    scratch.mkdir()
+    state = scratch / 'state'
+    server = Server(binary, state, scratch, catalog)
+    try:
+        observed = int(time.time())
+        floor = observed + 600
+        tokens = ['h2s_' + letter * 43 for letter in 'KLM']
+        subjects = ['76561197960287960', '76561197960287961', '76561197960287962']
+        with sqlite3.connect(state / 'registry.sqlite3') as db:
+            with db:
+                db.executemany('INSERT INTO steam_login_sessions VALUES(?,?,?,?)', [
+                    (hashlib.sha256(token.encode()).hexdigest(), subject,
+                     'Private clock fixture', observed + lifetime)
+                    for token, subject, lifetime in zip(tokens, subjects, (300, 900, -1))
+                ])
+                db.execute('UPDATE clock_floor SET value=? WHERE id=1', (floor,))
+        # SteamLogin.owner uses its own wall clock. ClansAPI.login passes
+        # Store.now to identity resolution, clamping registration independently.
+        statuses = [server.request('POST', '/v1/account/session', token=token,
+                                   body={'screen_name': 'Clock pilot ' + str(i)})[0]
+                    for i, token in enumerate(tokens)]
+        with sqlite3.connect(state / 'registry.sqlite3') as db:
+            allocated = db.execute('SELECT count(*) FROM player_identities WHERE subject=?',
+                                   (subjects[2],)).fetchone()[0]
+            retained = db.execute('SELECT value FROM clock_floor WHERE id=1').fetchone()[0]
+            joined = [db.execute('SELECT p.joined_at FROM player_profiles p JOIN player_identities i ON i.player=p.player WHERE i.subject=?',
+                                 (subject,)).fetchone()[0] for subject in subjects[:2]]
+        return dict(passed=statuses == [201, 201, 401] and joined == [floor, floor] and allocated == 0,
+                    contract='Steam expiry uses credential wall time; social account registration uses Store.now with the persisted floor.',
+                    statuses=statuses, expected_statuses=[201, 201, 401],
+                    registration_dates=joined, expected_registration_dates=[floor, floor],
+                    expired_identity_allocations=allocated,
+                    floor_retained=retained >= floor,
+                    fixture='Private provider grants and a later registration clock floor; no system-clock mutation.',
+                    real_provider=False, original_parity=False)
+    finally:
+        server.close()

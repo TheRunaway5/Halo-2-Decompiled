@@ -1,0 +1,266 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_PRESENTATION_RUST_V1",
+  "goal_turn": "progress",
+  "component_passed": true,
+  "goal_status": "active",
+  "full_goal_complete": false,
+  "original_whole_system_parity": false,
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_frontend_presentation.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.rs",
+  "native_observation_adapter": "src/ui/frontend_matchmaking_presentation.cpp",
+  "native_abi_adapter": "src/ui/frontend_matchmaking_presentation_bridge.cpp",
+  "policy": {
+    "text_policy_in_rust": true,
+    "cpp_policy_fallback": false,
+    "unsafe_core_rust": false,
+    "native_bytes_preserved": true,
+    "native_exception_identity_preserved": true,
+    "native_io_order_preserved": true,
+    "absent_original_clan_strings_not_fabricated": true
+  },
+  "rust": {
+    "counts": {
+      "online_protocol": {
+        "passed": 535,
+        "failed": 0,
+        "ignored": 2
+      },
+      "online_protocol_bridge": {
+        "passed": 65,
+        "failed": 0,
+        "ignored": 2
+      },
+      "matchmaking_service": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "total_passed": 620,
+    "new_controls": 7,
+    "pre_countdown_fix_total_passed": 619,
+    "existing_ignored": 4,
+    "frozen_inputs_intact": true,
+    "report": "countdown-restart/report.json"
+  },
+  "modern_comparison": {
+    "passed": true,
+    "cases": 1752,
+    "native_io_observations": 4014,
+    "comparisons": 19646,
+    "fault_controls": 256,
+    "preserved_native_exception_identity": 256,
+    "differences": [],
+    "native_sha256": "cc021f5839f32a95644808652481d89550a5bb29e69f16b12cf96c8e7881cd47",
+    "scope": "Captured modern native text methods versus actual Rust/CXX callbacks.\n\nThe enclosing run_tests.py/run_test.py owner removes generated build products.\nOnly this bounded report is retained. Native IO observations are synthetic;\nthis does not certify historical locale/session producers or installed input.\n"
+  },
+  "countdown_restart": {
+    "owner": "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+    "regression": "rust/online_protocol/tests/matchmaking_parties.rs",
+    "red_before_fix": true,
+    "red_diagnostic": "Completed consumed countdown cannot lock the next playlist: Error(409, \"Cancel the current countdown before changing its playlist\")",
+    "green_after_fix": true,
+    "completed_serial_retained_until_commit": true,
+    "fresh_profile_and_roster_binding": true,
+    "active_and_unconsumed_zero_hopper_locks_preserved": true,
+    "fresh_consent_and_leader_checks_preserved": true,
+    "api_cancel_retires_ticket": true,
+    "scope": "Native replacement service lifecycle; not original Live arbitration recovery"
+  },
+  "fresh_original": {
+    "execution": false,
+    "cases": 0,
+    "static_image_inspection": true,
+    "static_image_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "static_chooser_entries": [
+      "0x2bbe4b",
+      "0x2bbe83"
+    ],
+    "report": "original-playlist-activation-static.json",
+    "limits": "No original activation/file/kernel/UI callee executed. Complete selectability and historical/session/locale producers remain unqualified."
+  },
+  "native": {
+    "focused_passing_checks": [
+      "frontend_presentation_cpp_rust",
+      "frontend_progress_cpp_rust",
+      "frontend_search_cpp_rust",
+      "frontend_lobby_cpp_rust",
+      "rust_frontend_clans_http",
+      "rust_frontend_lobby_blocked",
+      "rust_frontend_lobby_complete",
+      "rust_frontend_lobby_rendered",
+      "frontend_online_identity",
+      "frontend_online_lobby_buttons",
+      "frontend_online_lobby_legacy_countdown",
+      "frontend_online_lobby_blocked_playlist",
+      "frontend_online_lobby_complete_playlist",
+      "frontend_online_lobby_buttons_gpu",
+      "frontend_matchmaking_http",
+      "frontend_matchmaking_gathering_http",
+      "retail_frontend_lobby_policy",
+      "original_party_countdown_kernels"
+    ],
+    "focused_passing_count": 18,
+    "baseline_shared_failures": 4,
+    "initial_port_shared_failures": 4,
+    "final_broader_failed_count": 2,
+    "all_native_functional_tests_passed": false,
+    "final_failures": [
+      {
+        "test": "frontend_clans_http",
+        "diagnostic": "ONLINE bitmaps missing selected imported sampling: xbox_live_menu",
+        "route": "Legacy asset registry; actual submitted raw source page7 differs from the admitted Vista bank"
+      },
+      {
+        "test": "frontend_parties_http",
+        "diagnostic": "Actual goal emblem did not bind its admitted appearance-selected MCC page",
+        "route": "Explicit MCC party flow after the corrected lower-channel raster audit"
+      }
+    ],
+    "explicit_linux_mcc_clan_flow_passed": true,
+    "full_native_matchmaking_and_gathering_flows_passed": true,
+    "actual_sdl_vulkan_buttons_passed": true,
+    "unchanged_cohort_except_declared_refreshes": true,
+    "declared_changed_files": 23,
+    "declared_changed_paths": [
+      "cmake/OnlinePeers.cmake",
+      "cmake/OnlineProtocolRust.cmake",
+      "include/halo2/frontend.hpp",
+      "include/halo2/frontend_matchmaking_presentation.hpp",
+      "rust/online_protocol/src/lib.rs",
+      "rust/online_protocol/src/matchmaking_frontend_presentation.rs",
+      "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+      "rust/online_protocol/tests/matchmaking_frontend_presentation.rs",
+      "rust/online_protocol/tests/matchmaking_parties.rs",
+      "rust/online_protocol_bridge/build.rs",
+      "rust/online_protocol_bridge/src/lib.rs",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.hpp",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.rs",
+      "src/ui/frontend_matchmaking.cpp",
+      "src/ui/frontend_matchmaking_presentation.cpp",
+      "src/ui/frontend_matchmaking_presentation_bridge.cpp",
+      "tests/frontend_matchmaking_http_test.py",
+      "tests/frontend_online_tests.cpp",
+      "tests/generate_frontend_presentation_reference.py",
+      "tests/native_frontend_presentation_rust_tests.cpp",
+      "tests/test_build_online_protocol_rust.py",
+      "tests/test_native_frontend_presentation_rust.py",
+      "tools/build_online_protocol_rust.py"
+    ],
+    "native_binaries": {
+      "frontend_online_tests": {
+        "sha256": "cea1f4b87ab6a360d6da8d8a7649be0642fc78996dbfe31f6a864dd47341b683",
+        "bytes": 259757224
+      },
+      "frontend_online_lobby_buttons_tests": {
+        "sha256": "6762547df0caacc5afb2627d9e59e85b46ab3a7ac5bbe850b9b5810e8203065c",
+        "bytes": 260694528
+      },
+      "native_frontend_presentation_rust_tests": {
+        "sha256": "cc021f5839f32a95644808652481d89550a5bb29e69f16b12cf96c8e7881cd47",
+        "bytes": 25837608
+      },
+      "native_frontend_progress_rust_tests": {
+        "sha256": "9f3a433e1ff9faab91945274ff7128a12fbd7fef7af308000eda7189fa98601d",
+        "bytes": 25848544
+      },
+      "native_frontend_search_rust_tests": {
+        "sha256": "89ff7f8c7fbe951d4fe64cb766a9c753fb799518d4c971d5e704335e30080815",
+        "bytes": 25998856
+      },
+      "frontend_matchmaking_lobby_rust_tests": {
+        "sha256": "9b92d604d11f6a3e71af906b601a771f631672b266919f9a8c876fbeae637247",
+        "bytes": 25837864
+      },
+      "frontend_lobby_policy_tests": {
+        "sha256": "26f49928b362569ccd953a8240de1cb8b8d3f441ebf620301b738040b87b71e0",
+        "bytes": 37848
+      },
+      "party_countdown_kernel_tests": {
+        "sha256": "69ea29147ec438b9b80fc47355a160a81688c85d667a63c4994ef9de06e1c42e",
+        "bytes": 25701256
+      }
+    },
+    "final_report": "native/iteration-13-report.json"
+  },
+  "fixture_corrections": [
+    "Verify unavailable clan details on hover, then explicit rejection/no countdown/no queue and retained chooser after Back",
+    "Use exact-name admitted raster pages rather than pixel-free logical descriptors for gathering slots",
+    "Admit original lower-channel rasters only when their goal ancestor actually remains visible",
+    "Authenticate scenario-owned map alias and exact admitted pixels separately from original 220x207 logical geometry",
+    "Configure all aggregate fast-loopback fixture budgets; retain production limits and fail the fixture on any HTTP 429"
+  ],
+  "intermediate_failures": [
+    "Native comparison fixture missing OnlineMatch type alias; corrected fixture compiled and passed",
+    "System python lacks capstone; the pinned local research interpreter succeeded",
+    "Old chooser assertion inspected the rejection dialog rather than hovered details",
+    "Aggregate loopback source-prefix bucket exhausted at 1200/minute, burst 512",
+    "Consumed previous hopper rejected the next Start until Rust rebuilt the current countdown binding",
+    "Old map test expected a retired alias and logical dimensions as raster dimensions"
+  ],
+  "sources": {
+    "scoped_pins": {
+      "rust/online_protocol/src/matchmaking_frontend_presentation.rs": "31f9d2e15037ce1682eafd2347a6cbe2c893cc4c7734d9770b1f9004e2a08885",
+      "rust/online_protocol/tests/matchmaking_frontend_presentation.rs": "d354f8adff7e7af2a15d6fe4e1e4b6935a261b1f3ca1a8bcb0d6ec53a801b425",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.rs": "36ccfc21b48c70755b06546e1d6aa1f4a53f0cf0e7db48177ccbbe8cdc137742",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.hpp": "c585ce076e354cd5be5488ff27a11ddbe35448b1263e5e01db2213fa225d0414",
+      "rust/online_protocol_bridge/src/lib.rs": "a37fde1cfb8bc91d3d8bba42e50ac570c2e36fc5e037522e74fd8822d0b8ab2c",
+      "rust/online_protocol_bridge/build.rs": "8fdb1e8c7d0dc9dfaf0cf149768a18eec2972fa3c44b214f0434d1a0b5d143de",
+      "rust/online_protocol/src/lib.rs": "4a704bc7f71d9a0ba217a10c3051c1c23fdc20395ccb62f0fde3442c97c3fa3d",
+      "include/halo2/frontend.hpp": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+      "include/halo2/frontend_matchmaking_presentation.hpp": "c8eb78d8b2e1afaa9ea87373401efb9d13da91d50cafde76e22831b163c51847",
+      "src/ui/frontend_matchmaking.cpp": "ef5f06fa29c05ac6703d6ea52897ad8efb67c628196457798d4013bc8457d3fc",
+      "src/ui/frontend_matchmaking_presentation.cpp": "1ea6d6bc6403be407d1799be989207a9ace24f4240cb1795647da38a2fd35ff4",
+      "src/ui/frontend_matchmaking_presentation_bridge.cpp": "9fa4db2cacc8e3a83b6b7089c8eb285582801d1e4639a2c0738e52df8626fe33",
+      "cmake/OnlinePeers.cmake": "2e1838a334c81eb45d4caf2a1af8f6bd35201f9d7e43eb0f4895619468e86f73",
+      "cmake/OnlineProtocolRust.cmake": "2bd18b7e6004cdb510692be66b57f01b9a50aff925b734eb779e61984d8e4cd9",
+      "tools/build_online_protocol_rust.py": "bba465ce63e1df655fb19da0203de11b589438cc66687f12c2531a376a83dded",
+      "tests/test_build_online_protocol_rust.py": "22c37a854aa8944ea90142ace71bf4327b839b1ffddb83e006fff39a9e6c6681",
+      "tests/native_frontend_presentation_rust_tests.cpp": "4180ef72ed69272c96676e3941f54ffe20593fac29732eaac77cf23f41be3e44",
+      "tests/test_native_frontend_presentation_rust.py": "5f262d59233c0ea2509414dafd5d74e3eb560d9826ac78188bb97236cf4a713d",
+      "tests/generate_frontend_presentation_reference.py": "61d7f7376381d8960cfa44d6207acb117f35aee68302fdf69e7c99c89e1b9808",
+      "tests/frontend_online_tests.cpp": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+      "tests/frontend_matchmaking_http_test.py": "728e1c957552de27a83dde94d965b6fc0443d77bdba8b794d27713442abc8a50",
+      "tests/reference/frontend_presentation_before_rust_20261102/frontend_matchmaking.cpp.reference": "f38820e36f4b947b9abbdd316b8bcf887ec2869b7db508f3c406c89f0d942861",
+      "tests/reference/frontend_presentation_before_rust_20261102/frontend_party.cpp.reference": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+      "tests/reference/frontend_presentation_before_rust_20261102/frontend_state.cpp.reference": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+      "tests/reference/frontend_presentation_before_rust_20261102/frontend.hpp.reference": "52b40885fe4d48d6bfc7768bbdfcb2541fa93a0b2482f2848912db70298d82ae",
+      "tests/reference/frontend_presentation_before_rust_20261102/frontend_online_tests.cpp.reference": "6943aa0492901a43c8ccfce8149c7b36af1c9b7ecdda0cbae875630d75e4e401",
+      "tests/reference/frontend_presentation_before_rust_20261102/provenance.json": "97420a262281fc79273e5185d33978bd6b4df49325e477fb58d5eeb421c13134",
+      "rust/online_protocol/src/matchmaking_party_countdowns.rs": "a0be0986640a3008da3be22e8ab640ab1f7598a0a9214f4e68fbc67eedba4336",
+      "rust/online_protocol/tests/matchmaking_parties.rs": "6b497c18bdd11848cf593404339f01c111f8fa1a96c070458ac9753807e96c4c"
+    },
+    "source_pin_report": "implementation-source-pins.json",
+    "before_countdown_fix": "before-countdown-restart/source-pins.json",
+    "before_cpp_capture": "tests/reference/frontend_presentation_before_rust_20261102/provenance.json",
+    "lobby_policy_test_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae"
+  },
+  "storage": {
+    "owned_scratch_removed": true,
+    "cleanup_report": "cleanup.json",
+    "retained_large_artifacts": [],
+    "required_small_reference_inputs": "tests/reference/frontend_presentation_before_rust_20261102"
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "remaining": [
+    "Matching-related native party/local-seat producers and remaining native policy/routing ownership in Rust",
+    "Complete original callers, selection/eligibility producers, historical profiles/service ordering and arbitration for all 53 owners",
+    "Legacy clan sampling and actual selected MCC party emblem binding",
+    "Every required family/profile/topology/unshortened natural outcome, departure/host continuity, results/PCR/return/requeue route",
+    "Genuine providers, physical installed Linux input, delivered client/library/service/catalog/feature identities and restart/retry/configuration/rollback acceptance; all 12 GAP and G01-G12 criteria"
+  ],
+  "documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "5cc87f23c56987b4d2a7497d94caa52da2cf28fb30546a1a746d58ac5590c0ca",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "d4d113adce7b0003aaf3614286cf8db499dee64879c402202bae6e1dd0949851",
+    "rust/online_protocol/README.md": "012d36d01d1273b1c6b5d442afe5f8f096d15cb324fe4412a80d4fdc1f2a5e9a"
+  }
+}

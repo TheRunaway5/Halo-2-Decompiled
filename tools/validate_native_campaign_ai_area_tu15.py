@@ -6,15 +6,19 @@ ROOT=Path(__file__).resolve().parents[1]
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True);scratch=Path(os.environ['HALO2_TEST_SCRATCH']);project=scratch/'project';project.mkdir();shutil.copytree(ROOT/'include',project/'include')
- names=['cmake/CampaignNativeAiArea.cmake','src/campaign/ai/native_campaign_ai_area_tu15.cpp','src/campaign/ai/native_campaign_ai_area_tu15_binding.cpp','tests/native_campaign_ai_area_tu15_tests.cpp','tests/fixtures/native_campaign_ai_area_tu15.json.gz','tools/test_native_campaign_screen_lifecycle_tu15.py']
+ names=['cmake/CampaignNativeAiArea.cmake','src/campaign/ai/native_campaign_ai_area_tu15.cpp','src/campaign/ai/native_campaign_ai_area_tu15_binding.cpp','tests/native_campaign_ai_area_tu15_tests.cpp','tests/fixtures/native_campaign_ai_area_tu15.json.gz','tools/test_native_campaign_screen_lifecycle_tu15.py','src/campaign/ai/native_campaign_authored_area_iterator_tu15.hpp']
  for name in names:
   dest=project/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,dest)
  core=(project/names[1]).read_text();variants={}
- for name,needle,replacement in [('zero_pair_count','if(std::bit_cast<std::int8_t>(std::uint8_t(read(squad+0x30u,1)))<0)return false;','if(std::bit_cast<std::int8_t>(std::uint8_t(read(squad+0x30u,1)))<=0)return false;'),('type_unmasked','(5u&(1u<<(kind&31u)))!=0','kind<32u && (5u&(1u<<(kind&31u)))!=0'),('class_inverted','(read(area+0x20u)&1u)==unsigned(mode)','(read(area+0x20u)&1u)!=unsigned(mode)'),('missing_second_zone_read','if(word(definition+0x38u)==none)','if(zone==none)'),('al_only_return','abi.gp[0]=(abi.gp[0]&0xffff0000u)|result','abi.gp[0]=(abi.gp[0]&0xffffff00u)|(result&0xffu)')]:
-  owner=core if name!='al_only_return' else (project/names[2]).read_text()
+ for name,needle,replacement in [('zero_pair_count','if(std::bit_cast<std::int8_t>(std::uint8_t(read(squad+0x30u,1)))<0)return none;','if(std::bit_cast<std::int8_t>(std::uint8_t(read(squad+0x30u,1)))<=0)return none;'),('type_unmasked','(5u&(1u<<(kind&31u)))!=0','kind<32u && (5u&(1u<<(kind&31u)))!=0'),('class_inverted','(read(area+0x20u)&1u)==unsigned(mode_)','(read(area+0x20u)&1u)!=unsigned(mode_)'),('missing_second_zone_read','if(word(definition+0x38u)==none)','if(zone_==none)'),('al_only_return','abi.gp[0]=(abi.gp[0]&0xffff0000u)|result','abi.gp[0]=(abi.gp[0]&0xffffff00u)|(result&0xffu)')]:
+  owner=(project/names[6]).read_text() if name!='al_only_return' else (project/names[2]).read_text()
   assert owner.count(needle)==1,(name,needle);variants[name]=owner.replace(needle,replacement)
 
- for name,text in variants.items():(project/f'src/campaign/ai/{name}.cpp').write_text(text)
+ for name,text in variants.items():
+  directory=project/'variants'/name;directory.mkdir(parents=True)
+  (directory/'native_campaign_ai_area_tu15.cpp').write_text(core)
+  (directory/'native_campaign_ai_area_tu15_binding.cpp').write_text(text if name=='al_only_return' else (project/names[2]).read_text())
+  (directory/'native_campaign_authored_area_iterator_tu15.hpp').write_text(text if name!='al_only_return' else (project/names[6]).read_text())
  (project/'negative.py').write_text('''import subprocess,sys
 r=subprocess.run([sys.executable,sys.argv[1],'--probe',sys.argv[2],'--fixture',sys.argv[3]],text=True,capture_output=True)
 assert r.returncode!=0 and any(v in r.stderr for v in ('original ordered reads differ','original area result differs','candidate AX16/RET8/native preserved GPR contract differs','original query completion differs')),(r.returncode,r.stdout,r.stderr)
@@ -31,12 +35,13 @@ target_compile_features(halo2_physics_world_runtime PRIVATE cxx_std_20)
 include(cmake/CampaignNativeAiArea.cmake)
 '''
  for name in variants:
-  sources=('src/campaign/ai/native_campaign_ai_area_tu15.cpp src/campaign/ai/'+name+'.cpp') if name=='al_only_return' else ('src/campaign/ai/'+name+'.cpp src/campaign/ai/native_campaign_ai_area_tu15_binding.cpp')
+  sources=f'variants/{name}/native_campaign_ai_area_tu15.cpp variants/{name}/native_campaign_ai_area_tu15_binding.cpp'
   cmake+=f'''add_executable(reset_{name} tests/native_campaign_ai_area_tu15_tests.cpp {sources})
 target_include_directories(reset_{name} PRIVATE include)
 target_compile_features(reset_{name} PRIVATE cxx_std_20)
 target_link_libraries(reset_{name} PRIVATE nlohmann_json::nlohmann_json)
 add_test(NAME reset_{name} COMMAND "${{Python3_EXECUTABLE}}" "${{CMAKE_CURRENT_SOURCE_DIR}}/negative.py" "${{CMAKE_CURRENT_SOURCE_DIR}}/tools/test_native_campaign_screen_lifecycle_tu15.py" "$<TARGET_FILE:reset_{name}>" "${{CMAKE_CURRENT_SOURCE_DIR}}/tests/fixtures/native_campaign_ai_area_tu15.json.gz")
+set_tests_properties(reset_{name} PROPERTIES TIMEOUT 30)
 '''
  (project/'CMakeLists.txt').write_text(cmake);results=[];pins={name:sha(ROOT/name)for name in names};pins.update({str(path.relative_to(ROOT)):sha(path)for path in(ROOT/'include/halo2/native_campaign_ai_area_tu15.hpp',ROOT/'include/halo2/native_campaign_ai_area_tu15_binding.hpp',Path(__file__))})
  for kind,compiler,sanitizers in [('normal','g++',False),('sanitizers','g++',True),('clang-controls','clang++',False)]:

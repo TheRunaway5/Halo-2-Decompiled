@@ -120,6 +120,10 @@ OBJECT_FUNCTION_SYMBOLS = {
     0x10be81: (0x05000561, 0x0500056d, 0x0500056d, 'delay'),
     0x10bf83: (0x0f00055e, 0x0f00056a, 0x0f00056a, 'change_in_power'),
     0x10bf8e: (0x1200055f, 0x1200056b, 0x1200056b, 'change_in_position'),
+    # Model damage transitions produce both effect-control keys here. Link
+    # the compiled ONE producer to the same Cache namespace as BCB70's
+    # BCBD9 comparison; the old numeric MCC index names mean_antigrav.
+    0x170676: (0x030005a6, 0x030005b2, 0x030005b2, 'one'),
     #1DB800 folds the adjacent phantom_on/speed/power keys into SUB/SUB/INC.
     #The three authored names share the same12-entry namespace displacement.
     0x1db800: (0x0a000693, 0x0a00069f, 0x0a00069f, 'phantom_on'),

@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <vector>
 #include "halo2/cache.hpp"
@@ -8,6 +9,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <winioctl.h>
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -16,6 +18,24 @@
 #endif
 
 namespace halo2 {
+#if defined(_WIN32)
+namespace confined_file_detail {
+inline bool wine_host_mount(HANDLE file) {
+    // Wine marks Unix mount roots (including Z:\home) as mount-point
+    // reparse entries, but reports no actual reparse data for these handles.
+    // Require both witnesses and Wine's native runtime export. Real junctions
+    // have reparse data; symbolic links have a different tag.
+    const auto ntdll=GetModuleHandleW(L"ntdll.dll");
+    if(!ntdll || !GetProcAddress(ntdll,"wine_get_version"))return false;
+    FILE_ATTRIBUTE_TAG_INFO tag{};
+    if(!GetFileInformationByHandleEx(file,FileAttributeTagInfo,&tag,sizeof(tag)) ||
+       tag.ReparseTag!=IO_REPARSE_TAG_MOUNT_POINT)return false;
+    std::array<std::byte,MAXIMUM_REPARSE_DATA_BUFFER_SIZE> data{};DWORD size{};
+    return !DeviceIoControl(file,FSCTL_GET_REPARSE_POINT,nullptr,0,data.data(),DWORD(data.size()),
+                            &size,nullptr) && GetLastError()==ERROR_NOT_A_REPARSE_POINT;
+}
+}
+#endif
 // Resolve every component without following links. Each next component is
 // opened relative to the retained parent descriptor on POSIX. The final
 // descriptor, rather than a checked pathname, owns every subsequent read.
@@ -63,7 +83,8 @@ inline std::vector<std::byte> read_confined_file(const std::filesystem::path& pa
                 FILE_FLAG_OPEN_REPARSE_POINT|FILE_FLAG_BACKUP_SEMANTICS,nullptr);
             if(h==INVALID_HANDLE_VALUE)throw FormatError("Cannot open resource component");
             handles.push_back(h);BY_HANDLE_FILE_INFORMATION info{};
-            if(!GetFileInformationByHandle(h,&info)||(info.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT))
+            if(!GetFileInformationByHandle(h,&info)||((info.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT) &&
+               !confined_file_detail::wine_host_mount(h)))
                 throw FormatError("Linked resource path");
         }
         if(handles.empty())throw FormatError("Missing resource filename");

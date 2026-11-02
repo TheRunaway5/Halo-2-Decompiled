@@ -1,0 +1,67 @@
+{
+  "checks": [
+    "legacy HTTP/room completion creates nonempty hidden XP, unanimous result/admission, public PCR and two persistent players while excluding the guest",
+    "SQLite backup clones every populated table and both original signing keys into private owned storage",
+    "Rust opens the populated legacy clone without changing existing table contents, preserves canonical/public identities, profiles, social memberships, history and JWKS, and rejects old runtime grants",
+    "Rust replays the legacy party command without duplicating the party and commits a new canonical profile revision",
+    "the real legacy host process reopens Rust-written state and reads the same canonical/profile/social/history views and signing identity"
+  ],
+  "observations": {
+    "legacy_room_fixture": {
+      "observed": {
+        "persistent_xp_total": 100,
+        "real_start_elapsed_seconds": 10.049252730997978,
+        "physical_connections": 2,
+        "logical_seats": 3
+      },
+      "fixture": {
+        "compatibility": "halo2-native-queue-v10",
+        "declared": true,
+        "original_profile": false,
+        "real_gameplay": false,
+        "catalog_sha256": "b7d2506b1ecfe22f656017fa11a139030db456e61506406618abee2c5b7f90ca"
+      },
+      "adapter": "Legacy Python HTTP and production Rust ABI",
+      "real_gameplay": false
+    },
+    "startup_table_differences": {},
+    "rollback_table_differences": {},
+    "nonempty_tables": {
+      "carnage_player_summaries": 2,
+      "carnage_reports": 1,
+      "clan_members": 3,
+      "clan_requests": 4,
+      "clans": 2,
+      "clock_floor": 1,
+      "directory_revision": 1,
+      "eos_profile_outbox": 2,
+      "history_players": 4,
+      "master_identity": 1,
+      "match_result_admission": 1,
+      "match_result_players": 2,
+      "match_result_skill": 2,
+      "match_results": 1,
+      "matchmaking_ledger_lock": 1,
+      "parties": 1,
+      "party_members": 2,
+      "party_privacy": 1,
+      "party_requests": 3,
+      "player_customization": 1,
+      "player_friend_block_epoch": 1,
+      "player_friend_commands": 2,
+      "player_friend_tags": 4,
+      "player_friendships": 1,
+      "player_identities": 8,
+      "player_profiles": 4,
+      "players": 4,
+      "playlist_ranks": 2,
+      "playlist_skill": 2,
+      "report_schema": 1,
+      "social_voice_membership_epoch": 5,
+      "steam_login_sessions": 4,
+      "voice_blocks": 1
+    },
+    "baseline_table_hashes_sha256": "e0fcbfa4e1786820949110eee915f4d8d5c6e57204ea458e91e9d4bb74cf7e6b",
+    "source_state_unchanged": true
+  }
+}

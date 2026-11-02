@@ -1,0 +1,47 @@
+[
+  {
+    "path": "CMakeLists.txt",
+    "frozen_sha256": "e972973994d7e08a6256538e0736232b8fb2a6aa9bad45d659a5efa1589e4005",
+    "current_sha256": "1161f5b34d292e9e1f10cc93448f7ad84e6c9c0884df37afb0d3a179e52a00db"
+  },
+  {
+    "path": "cmake/NativeWeaponEffectsTu15.cmake",
+    "frozen_sha256": "2c827832f88255dd09e8659c90826f69d9ce25b7400e3d6289e5059bf5601580",
+    "current_sha256": "a66c52d5bd1cee27f9d1a72e86d42eb5f0840d5143dd461b3c76237df3efa723"
+  },
+  {
+    "path": "include/halo2/native_weapon_effect_dispatch_tu15.hpp",
+    "frozen_sha256": "3efe4fc8f1c53cc7afa383ae6b6bfcd958ec79d5179c2391ea46d7363eb6b942",
+    "current_sha256": "c4d04d4f6a437db7b6ad88f885cef7394c0654b969a0b6b639028617ad4cb6cc"
+  },
+  {
+    "path": "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "frozen_sha256": "bf020fbe07d45f361ba3a12aa3cf5ecffad61fc75a8741937fec2141d424f5c8",
+    "current_sha256": "f8886db194fdb84a70f02ddd68edfb6d8d44be4defd5ecfc92000d728f1c13c1"
+  },
+  {
+    "path": "tests/model_skin_handoff_tests.cpp",
+    "frozen_sha256": "688b05de5995df717a6d6170a0bfefd81b5a3ed95c4de3071f166722fa423e0b",
+    "current_sha256": "2952b1da61cdef5c9914b8215933cad11e77510913d02f5475bf2a11c8bb5004"
+  },
+  {
+    "path": "tests/workshop_title_tests.cpp",
+    "frozen_sha256": "5b02aa0f04fa9ac2609726f54ff11df0c8c9c2ca71d2825c146c8cc8f7669985",
+    "current_sha256": "bd191eacf1e1b108a1c9f930e859a088fb46bd4e1c55a6d9b3e4c8208733cbe7"
+  },
+  {
+    "path": "tools/generate_workshop_script_builtins_tu15.py",
+    "frozen_sha256": "8b57b0be3adb5ce58ad201d725ab296992e367f8fdbb745cb2b0efcaeb264285",
+    "current_sha256": "fe3862240e2e61a2dfd820813d5d85e9f08661a5689180a9901e70a6586ec289"
+  },
+  {
+    "path": "tools/original_workshop_titles_host_x86.cpp",
+    "frozen_sha256": "e7c3ef4a59d047866d24d126c414ba2e4ecabc32cd91186335341d19b0f73168",
+    "current_sha256": "549610b64cf882bd1e0beacce9423c1bafd08a9dad384cce77cfbd7f3f0731d3"
+  },
+  {
+    "path": "tools/validate_weapon_material_snapshot_tu15.py",
+    "frozen_sha256": "074f55ff1780a9f5f331d4856c98f44f83dce526203a1fdde820e4fe435f04b3",
+    "current_sha256": "33869da3f70da3c2f83da681c735e32600f356178cb700200501e6d5ac449132"
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "previous_goal_turn": "progress",
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "reference": {
+    "scope": "Exact modern C++ pregame UI controller bodies and necessary source/header reference inputs; original executable callers and installed runtime remain separate",
+    "source_sha256": {
+      "src/ui/frontend_state.cpp": "8c6a7cb37700faaf6239b38a25329c4d46ce1a71f3e108b84afeccdbad4bc17a",
+      "src/ui/frontend_party.cpp": "d18e34a4171608b3dfb446fe2b65e54ad1a5d1c8fa3dacee6b22e8bc5930bc43",
+      "src/ui/frontend_matchmaking.cpp": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+      "include/halo2/frontend.hpp": "de856e8cdb96aceae7cb1adfe263aabf69ca55acee1bcee1f9b73d550a4a950d",
+      "include/halo2/frontend_matchmaking_progress.hpp": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e"
+    },
+    "policy_functions": [
+      "enter_online_matchmaking_lobby",
+      "cancel_online_lobby_countdown",
+      "update_online_lobby_countdown",
+      "update_online_lobby_leave",
+      "online_lobby_start_error"
+    ],
+    "policy_sha256": "0fbd41d7a32ea33e149f9b038576c35f4ffc0c080ce5b2b0381ab9c882430773"
+  },
+  "full_goal_complete": false,
+  "retained_large_artifacts": []
+}

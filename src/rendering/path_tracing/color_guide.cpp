@@ -1,5 +1,5 @@
 #include "halo2/path_tracing/color_guide.hpp"
-#include "halo2/path_tracing/unlit_uv.hpp"
+#include "halo2/path_tracing/surface.hpp"
 #include "halo2/source_texture_filtering.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
@@ -25,6 +25,12 @@ std::uint32_t uv(Vec2 c){
 }
 Vec2 uv(std::uint32_t c){return {float(std::int16_t(c&65535))/32767,float(std::int16_t(c>>16))/32767};}
 std::optional<Vec3> valid(Vec3 c){return finite(c)&&brightness(c)>0.f?std::optional(c):std::nullopt;}
+// Both exact opaque control variants share the source 2*T3.rgb diffuse
+// transfer. Keep their admission with the albedo graph: separate alpha
+// controls cannot silently exclude a visible panel from secondary lighting.
+bool source_static_diffuse(const Material& material){
+    return qualified_opaque_detail(material);
+}
 }
 std::array<std::uint32_t,4> color_guide_material(const Material& m){
     const auto qualified=qualified_unlit_uv(m);
@@ -40,7 +46,8 @@ std::array<std::uint32_t,4> color_guide_material(const Material& m){
     const auto& sampler=owner->texture_states[3];
     if(sampler.address_u<1 || sampler.address_u>5 || sampler.address_v<1 || sampler.address_v>5 ||
        sampler.color_sign || sampler.color_key_op || sampler.max_mip)return {};
-    return {1,sampler.address_u|(sampler.address_v<<4)|(source_texture_filtering(sampler).mag_filter<<8),sampler.border_color,0};
+    return {1,sampler.address_u|(sampler.address_v<<4)|(source_texture_filtering(sampler).mag_filter<<8),
+        sampler.border_color,source_static_diffuse(*owner)?2u:0u};
 }
 ShaderVector color_guide_triangle(const Vertex& a,const Vertex& b,const Vertex& c,const GpuMaterial& m){
     if(m.color_guide[0]==1 && a.lightmap && a.lightmap==b.lightmap && a.lightmap==c.lightmap)

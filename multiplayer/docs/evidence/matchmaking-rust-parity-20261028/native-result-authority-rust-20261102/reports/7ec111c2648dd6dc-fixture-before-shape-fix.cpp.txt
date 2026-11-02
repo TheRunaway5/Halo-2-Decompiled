@@ -1,0 +1,577 @@
+// Exact captured modern C++ callers versus Rust; all gameplay/profile/rank IO
+// here is a declared deterministic fixture. Actual native tests are separate.
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <exception>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <vector>
+using Json = nlohmann::json;
+namespace reference {
+constexpr std::size_t vista_pcr_source_size = 0xdc78;
+struct FormatError : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+struct NativeRefusal : std::overflow_error {
+  using std::overflow_error::overflow_error;
+};
+struct SourceResultAccuracy {
+  static constexpr unsigned first_weapon = 5, weapon_count = 34;
+  std::array<std::array<std::array<std::uint16_t, 2>, 34>, 16> players{};
+};
+struct Player {
+  bool connected{};
+  int source_membership = -1, total_score{}, kills{}, deaths{}, assists{},
+      suicides{};
+};
+struct MultiplayerState {
+  bool finished = true, results_finalized = true, team_mode{};
+  int game_over_countdown{};
+  unsigned retained_team_mask{};
+  std::array<Player, 16> players{};
+  std::array<std::array<int, 9>, 8> team_statistics{};
+  std::optional<SourceResultAccuracy> result_accuracy = SourceResultAccuracy{};
+  bool game_over_complete() const {
+    return finished && game_over_countdown == 0;
+  }
+};
+struct LivePlayer {
+  bool connected{};
+  std::uint32_t source_datum{};
+  int source_membership = -1;
+  std::optional<std::array<std::uint8_t, 132>> source_profile_request;
+};
+struct OnlineAdmission {
+  unsigned slot{};
+  int team{};
+  std::array<std::byte, 8> identity{};
+  std::string name;
+};
+struct Variant {
+  std::array<std::byte, 304> bytes{};
+};
+struct UiVariant {
+  Variant source;
+};
+struct FullScoreboardRanks {
+  std::array<std::uint8_t, 16> players{};
+  std::array<std::uint8_t, 8> teams{};
+};
+struct SourceResultStatistics {};
+struct SourceResultRecording {
+  std::uint8_t enabled = 1, frozen = 1;
+};
+struct EndRow {
+  std::array<int, 8> fields{};
+};
+struct SourceGameEndStats {
+  std::array<EndRow, 8> teams{};
+};
+struct VistaPcrPublicationPlayer {
+  std::uint8_t occupied{};
+  std::array<std::byte, 8> identity{};
+  std::array<std::byte, 132> configuration{};
+  int score{}, placement{};
+};
+struct VistaPcrPublicationTeam {
+  std::uint8_t occupied{};
+  int score{}, placement{};
+};
+struct VistaPcrPublicationInput {
+  Variant variant;
+  std::array<VistaPcrPublicationPlayer, 16> players{};
+  std::array<VistaPcrPublicationTeam, 16> teams{};
+  const SourceResultStatistics *statistics{};
+  SourceResultRecording recording;
+  std::uint8_t current{}, finalized{};
+  bool engine_present{};
+};
+struct VistaPcrConsumedSnapshot {
+  std::array<std::byte, vista_pcr_source_size> source{};
+};
+struct Context {
+  MultiplayerState state;
+  std::array<LivePlayer, 16> live;
+  std::vector<OnlineAdmission> roster;
+  UiVariant variant;
+  FullScoreboardRanks standings;
+  SourceResultStatistics statistics;
+  SourceResultRecording recording;
+  SourceGameEndStats end;
+  bool statistics_present = true, changing{};
+  std::uint32_t flags = 0x20;
+  Json trace = Json::array(), publication = nullptr;
+  std::string fault;
+  std::exception_ptr native_exception;
+  const void *exception_identity{};
+  void enter(const std::string &name) {
+    trace.push_back(name);
+    if (name == fault)
+      std::rethrow_exception(native_exception);
+  }
+  std::array<std::uint8_t, 132> name(unsigned i) const {
+    std::array<std::uint8_t, 132> out{};
+    out[0] = 'P';
+    out[2] = std::uint8_t(i);
+    return out;
+  }
+};
+thread_local Context *context{};
+struct MultiplayerMatch {
+  MultiplayerState state() const { return context->state; }
+  struct Round {
+    std::uint32_t flags;
+  };
+  Round source_round_lifecycle() const {
+    context->enter("round");
+    return {context->flags};
+  }
+  const SourceResultStatistics *recorded_statistics() const {
+    context->enter("statistics");
+    return context->statistics_present ? &context->statistics : nullptr;
+  }
+  SourceResultRecording result_recording() const {
+    context->enter("recording");
+    return context->recording;
+  }
+  const SourceGameEndStats &source_match_statistics() const {
+    context->enter("game_stats");
+    return context->end;
+  }
+  const LivePlayer &player(unsigned slot) const {
+    context->enter("live:" + std::to_string(slot));
+    return context->live.at(slot);
+  }
+};
+bool vista_pcr_ranking_available(std::uint32_t flags) {
+  return (flags & 0x20) != 0;
+}
+const Variant &source_game_variant(const UiVariant &v) {
+  context->enter("source_variant");
+  return v.source;
+}
+Variant vista_pcr_multiplayer_variant(const Variant &v) {
+  context->enter("variant");
+  return v;
+}
+int source_game_variant_get(const Variant &, unsigned) {
+  context->enter("changing");
+  return context->changing;
+}
+FullScoreboardRanks ranks(const MultiplayerState &, bool extended,
+                          unsigned count) {
+  context->enter("ranks:" + std::to_string(extended) + ":" +
+                 std::to_string(count));
+  return context->standings;
+}
+std::array<std::uint8_t, 132>
+native_vista_selected_profile_payload(const std::array<std::uint8_t, 132> &v) {
+  const auto slot = unsigned(v[0]);
+  context->enter("configuration:" + std::to_string(slot));
+  return v;
+}
+std::array<std::uint8_t, 132>
+native_selected_player_configuration(const std::string &name,
+                                     const std::array<std::uint8_t, 9> &, int) {
+  const auto index = unsigned(std::stoul(name));
+  context->enter("name:" + std::to_string(index));
+  return context->name(index);
+}
+std::int16_t vista_pcr_accumulated_player_score(const SourceGameEndStats &,
+                                                std::uint32_t datum) {
+  context->enter("score:" + std::to_string(datum));
+  return std::int16_t(context->state.players.at(datum & 0xffff).total_score);
+}
+template <class Range> std::string hex(const Range &r) {
+  static const char *digits = "0123456789abcdef";
+  std::string out;
+  for (auto b : r) {
+    unsigned c;
+    if constexpr (std::is_same_v<decltype(b), std::byte>)
+      c = std::to_integer<unsigned>(b);
+    else
+      c = unsigned(b);
+    out += digits[c >> 4];
+    out += digits[c & 15];
+  }
+  return out;
+}
+VistaPcrConsumedSnapshot
+vista_pcr_publish_consumed_snapshot(const VistaPcrPublicationInput &p) {
+  context->enter("write");
+  Json players = Json::array(), teams = Json::array();
+  for (const auto &r : p.players)
+    players.push_back({{"occupied", r.occupied},
+                       {"identity", hex(r.identity)},
+                       {"configuration", hex(r.configuration)},
+                       {"score", r.score},
+                       {"placement", r.placement}});
+  for (const auto &r : p.teams)
+    teams.push_back({{"occupied", r.occupied},
+                     {"score", r.score},
+                     {"placement", r.placement}});
+  context->publication = {{"variant", hex(p.variant.bytes)},
+                          {"players", players},
+                          {"teams", teams},
+                          {"current", p.current},
+                          {"finalized", p.finalized},
+                          {"engine_present", p.engine_present}};
+  return {};
+}
+#include "reference/native_results_before_rust_20261102/online_postgame_policy.cpp.inc"
+} // namespace reference
+namespace {
+namespace bridge = halo2::online_protocol_bridge;
+using namespace reference;
+template <class Range> rust::Vec<std::uint8_t> bytes(const Range &r) {
+  rust::Vec<std::uint8_t> out;
+  for (auto b : r) {
+    if constexpr (std::is_same_v<decltype(b), std::byte>)
+      out.push_back(std::to_integer<std::uint8_t>(b));
+    else
+      out.push_back(std::uint8_t(b));
+  }
+  return out;
+}
+struct Io final : bridge::NativeResultIo {
+  Context &c;
+  bool publishing;
+  mutable std::exception_ptr exception;
+  Io(Context &c, bool publishing) : c(c), publishing(publishing) {}
+  template <class F> decltype(auto) capture(F &&f) const {
+    try {
+      return f();
+    } catch (...) {
+      exception = std::current_exception();
+      throw;
+    }
+  }
+  bridge::NativeResultState result_state() const override {
+    bridge::NativeResultState out{};
+    const auto &s = c.state;
+    out.finished = s.finished;
+    out.results_finalized = s.results_finalized;
+    out.game_over_countdown = s.game_over_countdown;
+    out.team_mode = s.team_mode;
+    out.retained_teams = std::uint8_t(s.retained_team_mask);
+    for (const auto &p : s.players)
+      out.players.push_back({p.connected, p.source_membership, p.total_score,
+                             p.kills, p.deaths, p.assists, p.suicides});
+    for (const auto &t : s.team_statistics)
+      out.team_scores.push_back(t[1]);
+    out.accuracy_present = s.result_accuracy.has_value();
+    if (s.result_accuracy)
+      for (const auto &p : s.result_accuracy->players)
+        for (const auto &w : p)
+          for (auto v : w)
+            out.accuracy.push_back(v);
+    return out;
+  }
+  rust::Vec<bridge::NativeResultAdmission> result_roster() const override {
+    rust::Vec<bridge::NativeResultAdmission> out;
+    for (const auto &p : c.roster)
+      out.push_back({p.slot, p.team, bytes(p.identity)});
+    return out;
+  }
+  std::uint32_t result_round_flags() const override {
+    return capture(
+        [&] { return MultiplayerMatch{}.source_round_lifecycle().flags; });
+  }
+  rust::Vec<std::uint8_t> result_variant() const override {
+    return capture([&] {
+      return bytes(
+          vista_pcr_multiplayer_variant(source_game_variant(c.variant)).bytes);
+    });
+  }
+  bridge::NativeResultRecording result_recording() const override {
+    return capture([&] {
+      const auto p = MultiplayerMatch{}.recorded_statistics();
+      const auto r = MultiplayerMatch{}.result_recording();
+      return bridge::NativeResultRecording{p != nullptr, r.enabled, r.frozen};
+    });
+  }
+  bridge::NativeResultRanks result_ranks(bool extended,
+                                         std::uint32_t count) const override {
+    return capture([&] {
+      if (publishing)
+        (void)MultiplayerMatch{}.source_match_statistics();
+      const auto r = ranks(c.state, extended, count);
+      return bridge::NativeResultRanks{bytes(r.players), bytes(r.teams)};
+    });
+  }
+  bool result_changing_teams() const override {
+    return capture([&] {
+      return source_game_variant_get(source_game_variant(c.variant), 22) != 0;
+    });
+  }
+  bridge::NativeResultLivePlayer
+  result_live_player(std::uint32_t slot) const override {
+    return capture([&] {
+      const auto &p = MultiplayerMatch{}.player(slot);
+      return bridge::NativeResultLivePlayer{
+          p.connected, p.source_datum, p.source_profile_request.has_value(),
+          p.source_membership};
+    });
+  }
+  rust::Vec<std::uint8_t>
+  result_configuration(std::uint32_t slot) const override {
+    return capture([&] {
+      return bytes(native_vista_selected_profile_payload(
+          c.live.at(slot).source_profile_request.value()));
+    });
+  }
+  rust::Vec<std::uint8_t> result_name(std::uint32_t index) const override {
+    return capture([&] {
+      const auto n =
+          native_selected_player_configuration(c.roster.at(index).name, {}, -1);
+      return bytes(std::span(n).first(64));
+    });
+  }
+  std::int32_t result_team_score(std::uint32_t team) const override {
+    return c.end.teams.at(team).fields[1];
+  }
+  std::int16_t result_accumulated_score(std::uint32_t datum) const override {
+    return capture(
+        [&] { return vista_pcr_accumulated_player_score(c.end, datum); });
+  }
+  void
+  result_write(const bridge::NativeResultPublication &plan) const override {
+    capture([&] {
+      VistaPcrPublicationInput p;
+      for (unsigned i = 0; i < 304; ++i)
+        p.variant.bytes[i] = std::byte(plan.variant[i]);
+      p.current = plan.current;
+      p.finalized = plan.finalized;
+      p.engine_present = plan.engine_present;
+      for (unsigned i = 0; i < 16; ++i) {
+        const auto &r = plan.players[i];
+        auto &v = p.players[i];
+        v.occupied = r.occupied;
+        for (unsigned j = 0; j < 8; ++j)
+          v.identity[j] = std::byte(r.identity[j]);
+        for (unsigned j = 0; j < 132; ++j)
+          v.configuration[j] = std::byte(r.configuration[j]);
+        v.score = r.score;
+        v.placement = r.placement;
+        const auto &t = plan.teams[i];
+        p.teams[i] = {t.occupied, t.score, t.placement};
+      }
+      (void)vista_pcr_publish_consumed_snapshot(p);
+    });
+  }
+};
+Context prepare(const Json &input) {
+  Context c;
+  const bool teams = input.value("teams", false);
+  c.state.team_mode = teams;
+  c.state.retained_team_mask = teams ? 3 : 0;
+  c.variant.source.bytes[0x44] = std::byte{2};
+  c.variant.source.bytes[0x48] = std::byte(teams);
+  auto roster =
+      input.value("roster", Json::array({Json{{"slot", 3}, {"team", 0}},
+                                         Json{{"slot", 0}, {"team", 1}},
+                                         Json{{"slot", 15}, {"team", 0}}}));
+  c.standings.players.fill(255);
+  c.standings.teams.fill(255);
+  for (const auto &p : roster) {
+    OnlineAdmission a;
+    a.slot = p.at("slot");
+    a.team = p.value("team", 0);
+    a.identity.fill(std::byte(p.value("identity", int(a.slot + 1)) & 255));
+    a.name = std::to_string(c.roster.size());
+    if (a.slot < 16) {
+      auto &s = c.state.players[a.slot];
+      s = {true,
+           teams ? a.team : -1,
+           int(a.slot) - 7,
+           int(a.slot) + 1,
+           int(a.slot) + 2,
+           int(a.slot),
+           0};
+      auto &live = c.live[a.slot];
+      live = {true, 0x12340000u | a.slot, teams ? a.team : -1,
+              std::array<std::uint8_t, 132>{}};
+      live.source_profile_request->fill(0xa5);
+      (*live.source_profile_request)[0] = std::uint8_t(a.slot);
+      c.standings.players[a.slot] = std::uint8_t(2 * c.roster.size());
+      for (unsigned w = 0; w < 34; ++w)
+        c.state.result_accuracy->players[a.slot][w] = {
+            std::uint16_t(a.slot + w), std::uint16_t(w / 2)};
+    }
+    c.roster.push_back(a);
+  }
+  for (unsigned i = 0; i < 8; ++i) {
+    c.standings.teams[i] = std::uint8_t(2 * i);
+    c.state.team_statistics[i][1] = c.end.teams[i].fields[1] = i ? (-4) : 23;
+  }
+  if (input.contains("state")) {
+    const auto &s = input["state"];
+    c.state.finished = s.value("finished", true);
+    c.state.results_finalized = s.value("finalized", true);
+    c.state.game_over_countdown = s.value("countdown", 0);
+    c.state.retained_team_mask =
+        s.value("retained", c.state.retained_team_mask);
+    if (!s.value("accuracy", true))
+      c.state.result_accuracy.reset();
+  }
+  c.changing = input.value("changing", false);
+  c.flags = input.value("round_flags", 0x20u);
+  if (input.contains("recording")) {
+    const auto &r = input["recording"];
+    c.statistics_present = r.value("statistics", true);
+    c.recording = {std::uint8_t(r.value("enabled", 1)),
+                   std::uint8_t(r.value("frozen", 1))};
+  }
+  if (input.contains("variant"))
+    for (const auto &v : input["variant"])
+      c.variant.source.bytes.at(v[0].get<unsigned>()) =
+          std::byte(v[1].get<unsigned>());
+  if (input.contains("players"))
+    for (auto it = input["players"].begin(); it != input["players"].end();
+         ++it) {
+      const auto slot = std::stoul(it.key());
+      const auto &v = it.value();
+      auto &p = c.state.players.at(slot);
+      auto &l = c.live.at(slot);
+      p.connected = v.value("connected", p.connected);
+      p.source_membership = v.value("membership", p.source_membership);
+      p.total_score = v.value("score", p.total_score);
+      p.kills = v.value("kills", p.kills);
+      p.deaths = v.value("deaths", p.deaths);
+      p.assists = v.value("assists", p.assists);
+      p.suicides = v.value("suicides", p.suicides);
+      l.connected = v.value("live_connected", p.connected);
+      l.source_membership = v.value("live_membership", p.source_membership);
+      l.source_datum = v.value("datum", l.source_datum);
+      if (!v.value("profile", true))
+        l.source_profile_request.reset();
+    }
+  if (input.contains("accuracy"))
+    for (const auto &v : input["accuracy"])
+      c.state.result_accuracy->players.at(v[0].get<unsigned>())
+          .at(v[1].get<unsigned>())
+          .at(v[2].get<unsigned>()) = v[3].get<std::uint16_t>();
+  c.fault = input.value("fault", std::string{});
+  try {
+    throw NativeRefusal("Native result refusal: " + c.fault);
+  } catch (const NativeRefusal &e) {
+    c.native_exception = std::current_exception();
+    c.exception_identity = &e;
+  }
+  return c;
+}
+std::vector<std::byte> raw(const Context &c, const Json &input) {
+  std::vector<std::byte> b(vista_pcr_source_size);
+  b[0] = b[1] = b[0x10] = b[0x11] = std::byte{1};
+  b[0x13] = std::byte(c.state.team_mode);
+  std::copy(c.variant.source.bytes.begin(), c.variant.source.bytes.end(),
+            b.begin() + 0x20);
+  const auto put = [&](unsigned at, int value) {
+    const auto word = std::uint16_t(value);
+    b.at(at) = std::byte(word & 255);
+    b.at(at + 1) = std::byte(word >> 8);
+  };
+  for (unsigned index = 0; index < c.roster.size(); ++index) {
+    const auto &a = c.roster[index];
+    if (a.slot >= 16)
+      continue;
+    const auto slot = a.slot, at = 0x370 + slot * 0x94;
+    const auto &p = c.state.players[slot];
+    b[at] = std::byte{1};
+    std::copy(a.identity.begin(), a.identity.end(), b.begin() + at + 2);
+    const auto name = c.name(index);
+    for (unsigned j = 0; j < 64; ++j)
+      b[at + 12 + j] = std::byte(name[j]);
+    b[at + 0x88] = std::byte(c.state.team_mode ? p.source_membership : 255);
+    b[at + 0x90] = std::byte(c.standings.players[slot] / 2);
+    put(at + 0x92, p.total_score);
+    for (auto [stat, value] : std::array<std::pair<unsigned, int>, 4>{
+             {{7, p.kills}, {9, p.deaths}, {8, p.assists}, {11, p.suicides}}})
+      put(0xe30 + 2 * (slot * 437 + stat), value);
+    if (c.state.result_accuracy)
+      for (unsigned w = 0; w < 34; ++w)
+        for (unsigned k = 0; k < 2; ++k)
+          put(0xecc + 2 * (slot * 437 + (w + 5) * 8 + 4 + k),
+              c.state.result_accuracy->players[slot][w][k]);
+  }
+  if (c.state.team_mode)
+    for (unsigned t = 0; t < 8; ++t)
+      if (c.state.retained_team_mask & (1u << t)) {
+        const auto at = 0xcb0 + t * 0x18;
+        b[at] = std::byte{1};
+        b[at + 1] = std::byte(c.standings.teams[t] / 2);
+        put(at + 2, c.state.team_statistics[t][1]);
+      }
+  if (input.contains("corrupt"))
+    for (const auto &v : input["corrupt"])
+      b.at(v[0].get<unsigned>()) ^= std::byte(v[1].get<unsigned>());
+  b.resize(input.value("raw_size", b.size()));
+  return b;
+}
+Json run(const Json &input, bool rust) {
+  auto c = prepare(input);
+  context = &c;
+  Io io(c, input.value("operation", std::string("validate")) == "publish");
+  Json result{{"ok", false},
+              {"category", "state"},
+              {"native_exception_identity", false}};
+  try {
+    if (io.publishing) {
+      if (rust)
+        bridge::native_result_publish(io);
+      else
+        (void)online_postgame_publish(MultiplayerMatch{}, c.variant, c.roster);
+    } else {
+      const auto bytes = raw(c, input);
+      if (rust)
+        bridge::native_result_validate(
+            io, {reinterpret_cast<const std::uint8_t *>(bytes.data()),
+                 bytes.size()});
+      else
+        online_postgame_validate(c.state, c.variant, c.roster, bytes);
+    }
+    result["ok"] = true;
+    result["category"] = "success";
+    result["message"] = "";
+  } catch (const NativeRefusal &e) {
+    result["category"] = "io";
+    result["message"] = e.what();
+    result["native_exception_identity"] = &e == c.exception_identity;
+  } catch (const std::exception &e) {
+    if (io.exception) {
+      try {
+        std::rethrow_exception(io.exception);
+      } catch (const NativeRefusal &original) {
+        result["category"] = "io";
+        result["message"] = original.what();
+        result["native_exception_identity"] = &original == c.exception_identity;
+      }
+    } else
+      result["message"] = e.what();
+  }
+  result["trace"] = c.trace;
+  result["publication"] = c.publication;
+  context = nullptr;
+  return result;
+}
+} // namespace
+int main() {
+  std::string line;
+  while (std::getline(std::cin, line)) {
+    try {
+      const auto input = Json::parse(line);
+      std::cout
+          << Json{{"cpp", run(input, false)}, {"rust", run(input, true)}}.dump()
+          << '\n';
+    } catch (const std::exception &e) {
+      std::cout << Json{{"fixture_error", e.what()}}.dump() << '\n';
+    }
+  }
+}

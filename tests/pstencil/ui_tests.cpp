@@ -13,6 +13,14 @@ void check_mode(const MenuState& state,pstencil::GraphicsMode mode) {
     require(state.pc_display_settings().graphics_mode==mode,"Video Settings lost the live graphics mode");
     require(state.pc_value_label(state.frame(),0)==pstencil::graphics_mode_name(mode),"Graphics Mode displays the wrong choice");
 }
+void check_picker(const MenuState& state,pstencil::GraphicsMode current) {
+    require(state.frame().screen==vista_menu(271) && state.frame().context==video_graphics_mode_context &&
+        state.frame().title=="GRAPHICS MODE" && state.frame().entries.size()==3,"Graphics Mode submenu is missing");
+    require(state.frame().selected==unsigned(current) && state.pc_display_settings().graphics_mode==current,
+        "Opening the graphics picker changed the active mode or focused the wrong choice");
+    require(state.frame().entries[0].label=="Original" && state.frame().entries[1].label=="pStencil" &&
+        state.frame().entries[2].label=="Path Tracing","Graphics picker omitted a visible mode label");
+}
 void check_path_resources(const Renderer& renderer,bool active) {
     const auto resources=renderer.path_tracing_resources();
     if(active)require(resources.views>0 && resources.cpu_bytes>0 && resources.gpu_bytes>0,
@@ -105,15 +113,25 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
             }
             require(target.has_value(),"First Graphics Mode row has no mouse target");
             require(title.activate_pointer(*target),"Graphics Mode click was not handled");
+            check_picker(title,pstencil::GraphicsMode::Original);
+            draw(painter.draw(title,5,-1,10000,size),"title-graphics-picker.ppm");
+            target.reset();
+            for(int y=0;y<480 && !target;y+=2)for(int x=0;x<640 && !target;x+=2) {
+                const auto hit=painter.pointer_hit(x,y);
+                if(hit && hit->action==FrontendPointerAction::Entry && hit->index==1)target=hit;
+            }
+            require(target.has_value() && title.activate_pointer(*target),"Visible pStencil choice was not clickable");
             check_mode(title,pstencil::GraphicsMode::pStencil);
             require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Title menu did not switch the live renderer");
             require(MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Graphics Mode did not persist");
-            title.accept();check_mode(title,pstencil::GraphicsMode::PathTracing);
+            title.accept();check_picker(title,pstencil::GraphicsMode::pStencil);
+            title.select(2);title.accept();check_mode(title,pstencil::GraphicsMode::PathTracing);
             require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Title menu did not switch to Path Tracing");
             require(MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Path Tracing did not persist");
             draw(painter.draw(title,5,-1,10000,size),"title-path-tracing.ppm");
             check_path_resources(renderer,true);
-            title.accept();check_mode(title,pstencil::GraphicsMode::Original);
+            title.accept();check_picker(title,pstencil::GraphicsMode::PathTracing);
+            title.select(0);title.accept();check_mode(title,pstencil::GraphicsMode::Original);
             check_path_resources(renderer,false);
         }
         const auto exercise_upscaling=[&](MenuState& state,auto row,auto back,auto paint,bool all_quality_modes) {
@@ -188,7 +206,9 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         const auto accept_row=[&](unsigned row){pause.state().select(row);event.key.keysym.sym=SDLK_RETURN;require(pause.event(event),"Pause menu did not handle Enter");};
         accept_row(1);accept_row(3);require(pause.state().frame().screen==vista_menu(261),"Pause Settings did not open Video Settings");
         check_mode(pause.state(),pstencil::GraphicsMode::Original);require(pause.state().frame().selected==0,"Pause Video Settings did not focus Graphics Mode first");
-        accept_row(0);check_mode(pause.state(),pstencil::GraphicsMode::pStencil);
+        accept_row(0);check_picker(pause.state(),pstencil::GraphicsMode::Original);
+        draw(pause.draw(960,720),"pause-graphics-picker.ppm");
+        accept_row(1);check_mode(pause.state(),pstencil::GraphicsMode::pStencil);
         require(desktop.display_settings.graphics_mode==pstencil::GraphicsMode::pStencil,"Pause menu did not switch the live renderer");
         draw(pause.draw(960,720),"pause-pStencil.ppm");
         require(renderer.draw(camera,out/"pStencil-no-lights.ppm"),"pStencil draw failed");
@@ -196,13 +216,15 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         SDL_SetWindowSize(window,853,479);renderer.resized();require(renderer.draw(camera),"Active pStencil resize failed");
         require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,"Resize lost pStencil mode");
         SDL_SetWindowSize(window,960,720);renderer.resized();
-        accept_row(0);check_mode(pause.state(),pstencil::GraphicsMode::PathTracing);
+        accept_row(0);check_picker(pause.state(),pstencil::GraphicsMode::pStencil);
+        accept_row(2);check_mode(pause.state(),pstencil::GraphicsMode::PathTracing);
         require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Pause menu did not switch to Path Tracing");
         require(renderer.draw(camera,out/"PathTracing.ppm"),"Path Tracing draw failed");
         check_path_resources(renderer,true);
         SDL_SetWindowSize(window,853,479);renderer.resized();require(renderer.draw(camera),"Active Path Tracing resize failed");
         require(renderer.display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,"Resize lost Path Tracing mode");
         SDL_SetWindowSize(window,960,720);renderer.resized();
+        accept_row(0);check_picker(pause.state(),pstencil::GraphicsMode::PathTracing);
         accept_row(0);check_mode(pause.state(),pstencil::GraphicsMode::Original);
         check_path_resources(renderer,false);
         require(renderer.draw(camera,out/"Original-after.ppm"),"Restored Original draw failed");
@@ -221,9 +243,11 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
         solo_row(3);solo_row(3);
         require(solo.state().frame().screen==vista_menu(261),"Solo pause Settings did not open Video Settings");
         check_mode(solo.state(),pstencil::GraphicsMode::Original);
-        solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::pStencil);
-        solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::PathTracing);
-        solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::Original);
+        solo_row(0);check_picker(solo.state(),pstencil::GraphicsMode::Original);
+        draw(solo.draw(960,720),"solo-graphics-picker.ppm");
+        solo_row(1);check_mode(solo.state(),pstencil::GraphicsMode::pStencil);
+        solo_row(0);solo_row(2);check_mode(solo.state(),pstencil::GraphicsMode::PathTracing);
+        solo_row(0);solo_row(0);check_mode(solo.state(),pstencil::GraphicsMode::Original);
         for(const auto mode:{FullscreenMode::Fullscreen,FullscreenMode::BorderlessFullscreen,FullscreenMode::Windowed}) {
             solo_row(1);solo_row(unsigned(mode));solo_row(0);
             require(desktop.fullscreen_mode()==mode && solo.state().pc_value_label(solo.state().frame(),1)==fullscreen_mode_name(mode),"Solo pause menu lost fullscreen selection");
@@ -236,5 +260,5 @@ int main(int argc,char** argv){std::ostringstream diagnostics;auto* previous=std
 
     }
     std::cerr.rdbuf(previous);require(diagnostics.str().empty(),"Video Settings Vulkan diagnostics");
-    std::cout<<"PASS first-row Graphics Mode in Settings and solo/multiplayer pause Video Settings; mouse and SDL Enter cycle Original -> pStencil -> Path Tracing -> Original; Upscaling submenu with FSR 3.1 / DLSS 4.5 and quality modes, all three fullscreen modes, confirmation/rollback, persistence, resize, exact restored pixels and inert F1\n";return 0;
+    std::cout<<"PASS Graphics Mode submenu in Settings and solo/multiplayer pause Video Settings; visible Original / pStencil / Path Tracing choices, current-mode focus, mouse and SDL Enter selection; Upscaling submenu with FSR 3.1 / DLSS 4.5 and quality modes, all three fullscreen modes, confirmation/rollback, persistence, resize, exact restored pixels and inert F1\n";return 0;
 }catch(const std::exception& e){std::cerr.rdbuf(previous);std::cerr<<diagnostics.str()<<e.what()<<'\n';return 1;}}

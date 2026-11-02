@@ -37,6 +37,7 @@
 #include "halo2/weapon_hud.hpp"
 #include "halo2/netcode_mode.hpp"
 #include "halo2/physics_impulse_journal.hpp"
+#include "halo2/native_weapon_zoom_audio_tu15.hpp"
 namespace halo2 {
 class SourceDynamicObjectScene;
 class MultiplayerSnapshotOrigin;
@@ -47,6 +48,7 @@ struct SourceShadowRawPlanStats;
 struct RendererCompletedMaterialUpload;
 struct ModelSkinGpuOwnerObservation;
 struct RendererObservedBspDraw;
+struct SourceModelDepthSelection;
 struct SourceEffectLightCommandObservationTu15;
 class PhysicsLiveWorldTu15;
 struct SourceTeleporterEventsTu15;
@@ -129,6 +131,9 @@ struct MultiplayerFrameTiming {
   RendererHostPreparationTiming::ReturnedCall match_step,state_projection,post_step;
   std::uint64_t shared_pre_view_ns{};
   std::array<RendererHostPreparationTiming::NativeView,4> native_view;
+  // Passive successful older-tick returns of the paired effect consumers.
+  // These never admit a native body, receipt, frame or publication.
+  std::uint64_t shared_effect_catchup_ticks{},shared_effect_catchup_receipts{},shared_effect_catchup_requests{};
 };
 constexpr unsigned multiplayer_capacity = 16;
 struct SlayerRules {
@@ -414,6 +419,7 @@ struct MultiplayerState {
   std::vector<MeleeImpact> melee_impacts;
   std::vector<UnitDamageEffectEvent> unit_damage_effects;
   std::vector<NativeWeaponEffectEvent> weapon_effects;
+  std::vector<NativeWeaponZoomAudioEventTu15> weapon_zoom_audio;
   std::vector<SourceMultiplayerEventTu15> source_engine_events;
   std::optional<SourceGameplayFadeJournalTu15> source_gameplay_fade;
   std::vector<UnitDamageVoiceEvent> unit_damage_voices;
@@ -520,6 +526,8 @@ public:
   // variant admission have separate owners; this API does not supply them.
   void grant_powerup(unsigned player,std::int16_t index,std::int16_t ticks);
   void step(const std::array<Controls, multiplayer_capacity> &);
+  // Local pause-menu command. Normal world ticks own results and teardown.
+  void request_end_match();
   // Optional source-qualified local activation policy, installed before joins.
   // Real allocation/configuration reaches birth before the first unit exists;
   // the first step runs activation before original respawn eligibility.
@@ -735,6 +743,8 @@ private:
   std::array<NativeWeaponEffectEvent,multiplayer_capacity> weapon_effect_events_;
   std::vector<NativeWeaponEffectEvent> weapon_effect_journal_;
   std::uint32_t weapon_effect_serial_{};
+  std::vector<NativeWeaponZoomAudioEventTu15> weapon_zoom_audio_journal_;
+  std::uint64_t weapon_zoom_audio_serial_{};
   std::vector<SourceMultiplayerEventTu15> source_engine_events_;
   std::optional<SourceGameplayFadeJournalTu15> source_gameplay_fade_;
   std::uint32_t source_engine_event_serial_{};
@@ -968,6 +978,11 @@ struct MultiplayerOptions {
   // Passive actual GPU skin records/readback, with the submitting view/tick.
   // This observer does not request posed CPU vertices or change GPU admission.
   std::function<void(unsigned,std::uint32_t,const ModelSkinGpuOwnerObservation&)> model_skin_gpu_owner_observer;
+  // Actual ordinary vertices after binding the native Apply position owner,
+  // immediately before submission. All spans/model pointers are synchronous
+  // borrows; this observer cannot retain them or supply geometry/admission.
+  std::function<void(unsigned,std::uint32_t,std::span<const SourceModelDepthSelection>,
+      std::span<const Vertex>,std::span<const Vertex>)> model_depth_vertices_observer;
   // Submitted loose-weapon nodes/vertices and the retained original main-view
   // selection. Observes the accepted draw without providing pose or admission.
   std::function<void(unsigned,unsigned,std::uint32_t,std::uint32_t,

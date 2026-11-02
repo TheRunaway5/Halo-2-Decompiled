@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": 1547,
+  "native_io_observations": 8786,
+  "rust_state_reentries": 8786,
+  "fault_controls": 68,
+  "preserved_native_exception_identity": 68,
+  "differences": [],
+  "native_sha256": "3fca677ea71e2874344a786290e842a20a2e9ccf90ae05c23ebbc6474192e7f3",
+  "scope": "Captured modern account observer versus the exact native Rust/CXX adapter.\n\nWorker/identity/device/population providers are controlled. Complete cached\nstate and callback-boundary snapshots, retained frame focus, native failures,\nand actual Rust state reentry are compared. This is not original Live recovery\nor installed-client/provider qualification.\n"
+}

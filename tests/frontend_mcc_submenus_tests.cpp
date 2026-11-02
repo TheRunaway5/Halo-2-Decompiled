@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <set>
 
 using namespace halo2;
@@ -68,7 +69,7 @@ void source_screen(const UiScreen &actual, const UiScreen &raw) {
 }
 }
 int main(int argc, char **argv) try {
-  if (argc != 4) throw FormatError("Imported MCC cache root (or auto), project root and report path required");
+  if (argc != 4 && argc != 5) throw FormatError("Imported MCC cache root (or auto), project root and report path required");
   const auto cache_root = std::string_view(argv[1]) == "auto" ? selected_cache(argv[2]) : std::filesystem::path(argv[1]);
   const auto maps = cache_root / "halo2/h2_maps_win64_dx11";
   const auto fonts = cache_root / "halo2/h2_fonts";
@@ -100,6 +101,79 @@ int main(int argc, char **argv) try {
   }
   Mesh mesh;
   FrontendPainter painter(content, fonts, mesh);
+  if(argc==5 && std::string_view(argv[4])=="--selection-stability") {
+    nlohmann::json cases=nlohmann::json::array();
+    for(const auto id:{1u,6u,10u,12u,19u,38u,60u,178u,207u,
+        vista_menu(19),vista_menu(42),vista_menu(44),vista_menu(242),vista_menu(243),
+        vista_menu(245),vista_menu(253),vista_menu(256),vista_menu(257),vista_menu(258),
+        vista_menu(263),vista_menu(267),vista_menu(268),vista_menu(269),vista_menu(271),
+        vista_menu(272),vista_menu(273),vista_menu(274),vista_menu(276),vista_menu(285),
+        vista_menu(290),vista_menu(294),vista_menu(295)}) {
+      const unsigned contexts=id==vista_menu(274)?6:id==vista_menu(272)?4:
+          id==vista_menu(271)||id==vista_menu(269)?2:1;
+      for(unsigned context=0;context<contexts;++context) {
+        if(id==vista_menu(272) && context==1)continue;
+        MenuState state(content);
+        state.set_pc_video_modes({{800,600},{1280,720}},960,720,false);
+        state.open(id,context);state.select(0);
+        const auto row_bounds=[&](const UiDraw &) {
+          std::map<unsigned,std::array<float,4>> bounds;
+          for(int y=0;y<480;y+=2)for(int x=0;x<640;x+=2) {
+            const auto hit=painter.pointer_hit(float(x),float(y));
+            if(!hit || hit->action!=FrontendPointerAction::Entry || hit->index>=state.frame().entries.size())continue;
+            auto &b=bounds.try_emplace(hit->index,std::array<float,4>{float(x),float(y),float(x),float(y)}).first->second;
+            b={std::min(b[0],float(x)),std::min(b[1],float(y)),std::max(b[2],float(x)),std::max(b[3],float(y))};
+          }
+          return bounds;
+        };
+        for(const bool scrolled:{false,true})
+        for(const auto viewport:{std::array<unsigned,2>{2550,1358},{640,480},{1280,720},{3440,1440}}) {
+          state.select(0);
+          if(scrolled && !state.frame().entries.empty())
+            state.move(int(state.frame().entries.size())-1);
+          const auto baseline_selection=state.frame().selected;
+          const auto baseline=row_bounds(painter.draw(state,5,-1,20000,viewport));
+          if(id==1)require(baseline.size()==4,"Difficulty repro did not find all four row targets");
+          if(baseline.size()<2)continue;
+          // Exercise rows already visible to the cursor; deliberate list scrolling
+          // may replace offscreen rows and is a separate navigation operation.
+          for(auto candidate=baseline.rbegin();candidate!=baseline.rend();++candidate) {
+            const auto selected=candidate->first;
+            if(selected==baseline_selection)continue;
+            const auto &target=candidate->second;
+            const auto hit=painter.pointer_hit((target[0]+target[2])*.5f,(target[1]+target[3])*.5f);
+            require(hit && hit->action==FrontendPointerAction::Entry && hit->index==selected,
+                "Hover target moved before selection on screen "+std::to_string(id));
+            state.select(hit->index); // Same focus path as SDL mouse motion.
+            const auto changed=row_bounds(painter.draw(state,5,-1,20000,viewport));
+            std::ofstream(argv[3])<<nlohmann::json{{"status","RUNNING"},{"screen",id},{"selection",selected},
+                {"context",context},{"scrolled",scrolled},{"viewport",viewport},
+                {"baseline",baseline},{"changed",changed}}.dump(2)<<'\n';
+            require(changed.size()==baseline.size(),"Selection changed persistent row count on screen "+std::to_string(id)+
+                ", selection "+std::to_string(selected)+": "+std::to_string(baseline.size())+" -> "+std::to_string(changed.size()));
+            for(const auto &[row,original]:baseline) {
+              require(changed.contains(row),"Hover replaced a visible row on screen "+std::to_string(id));
+              for(unsigned coordinate=0;coordinate<4;++coordinate)
+                require(std::abs(changed.at(row)[coordinate]-original[coordinate])<.01f,
+                    "Hover moved a row on screen "+std::to_string(id)+
+                    ", selection "+std::to_string(selected)+", row "+std::to_string(row)+
+                    ": "+std::to_string(original[coordinate])+" -> "+std::to_string(changed.at(row)[coordinate]));
+            }
+            cases.push_back({{"screen",id},{"context",context},{"selection",selected},
+                {"viewport",viewport},{"rows",changed.size()},{"scrolled",scrolled},
+                {"first_row",baseline.begin()->first}});
+          }
+        }
+      }
+    }
+    require(!cases.empty(),"Selection stability repro ran no cases");
+    require(std::any_of(cases.begin(),cases.end(),[](const auto &row) {
+      return row.at("scrolled").template get<bool>() && row.at("first_row").template get<unsigned>()>0;
+    }),"Selection stability did not cover a scrolled list");
+    std::ofstream(argv[3])<<nlohmann::json{{"status","PASS"},{"cases",cases},{"checks",checks}}.dump(2)<<'\n';
+    std::cout<<"PASS selection stability: "<<cases.size()<<" screen/selection/viewport cases\n";
+    return 0;
+  }
   nlohmann::json report{{"schema", "H2_MCC_SUBMENU_REGRESSION_V1"}, {"status", "RUNNING"},
       {"cache", cache_root.string()}, {"mcc_only", true}, {"network_services_created", false}};
   std::set<unsigned> drawn;
@@ -327,14 +401,14 @@ int main(int argc, char **argv) try {
             return mesh.materials.at(v.material).name.ends_with("/original-role/10");
           }), "Main-menu text lost original logical font role");
           branding(visual, output, viewport);
-          require(visual.frame().entries.size() == 6 &&
+          require(visual.frame().entries.size() == 7 &&
                   visual.frame().entries.front().destination == 218 &&
                   visual.frame().entries.back().label == "EXIT GAME",
                   "Main menu lost Campaign or its final Exit Game option");
           visual.select(unsigned(visual.frame().entries.size() - 1));
           const auto selected_exit = painter.draw(visual, 5.f, -1, 20000, viewport);
           branding(visual, selected_exit, viewport);
-          std::array<bool, 6> visible_entries{};
+          std::array<bool, 7> visible_entries{};
           for (int y = 0; y < 480; ++y)
             for (int x = 0; x < 640; x += 2)
               if (const auto hit = painter.pointer_hit(float(x), float(y));
@@ -407,19 +481,54 @@ int main(int argc, char **argv) try {
   const auto before_toggle = settings.stack().size();
   choose(settings, 11, vista_menu(256));
   choose(settings, 12, vista_menu(256));
-  choose(settings, 0, vista_menu(256));
+  choose(settings, 0, vista_menu(271));
+  require(settings.frame().context == video_graphics_mode_context &&
+          settings.frame().title == "GRAPHICS MODE" && settings.frame().entries.size() == 3 &&
+          settings.frame().entries[0].label == "Original" && settings.frame().entries[1].label == "pStencil" &&
+          settings.frame().entries[2].label == "Path Tracing" && settings.frame().selected == 0 &&
+          settings.frame().description == "Current mode: Original." &&
+          applied.graphics_mode == pstencil::GraphicsMode::Original,
+          "MCC graphics picker omitted visible modes/current selection or applied on open");
+  settings.select(2);draw(settings, true);settings.back();
+  require(applied.graphics_mode == pstencil::GraphicsMode::Original && settings.stack().size() == before_toggle,
+          "Canceling the graphics picker changed the active mode");
+  choose(settings, 0, vista_menu(271));
+  settings.select(1);
+  const auto mode_hit = draw(settings, true);
+  require(mode_hit && settings.activate_pointer(*mode_hit) && settings.frame().screen == vista_menu(256),
+          "MCC graphics choice pointer did not apply and close the picker");
   require(applied.crt_filter && applied.two_player_split == TwoPlayerSplit::Vertical &&
           applied.graphics_mode == pstencil::GraphicsMode::pStencil && settings.stack().size() == before_toggle,
-          "MCC native video toggles lost existing behavior");
-  choose(settings, 0, vista_menu(256));
+          "MCC graphics selection changed other video preferences");
+  choose(settings, 0, vista_menu(271));
+  require(settings.frame().selected == 1 && settings.frame().description == "Current mode: pStencil.",
+          "Reopening the graphics picker did not focus the active mode");
+  choose(settings, 2, vista_menu(256));
   require(applied.graphics_mode == pstencil::GraphicsMode::PathTracing &&
           settings.pc_value_label(settings.frame(), 0) == "Path Tracing" &&
           MenuState(content, preferences).pc_display_settings().graphics_mode == pstencil::GraphicsMode::PathTracing &&
           settings.stack().size() == before_toggle,
-          "MCC Path Tracing mode did not apply in place and persist");
+          "MCC Path Tracing choice did not return to Video Settings and persist");
+  choose(settings, 0, vista_menu(271));
+  require(settings.frame().selected == 2, "Path Tracing was not focused on reopen");
+  draw(settings, true);
   choose(settings, 0, vista_menu(256));
   require(applied.graphics_mode == pstencil::GraphicsMode::Original,
-          "MCC graphics mode did not wrap to Original");
+          "MCC graphics picker did not select Original directly");
+  settings.set_pc_display_adapter([&](const DisplaySettings &value) {
+    if(value.graphics_mode == pstencil::GraphicsMode::PathTracing) return std::string("Path Tracing unavailable");
+    applied = value; return std::string{};
+  });
+  choose(settings, 0, vista_menu(271));choose(settings, 1, vista_menu(256));
+  choose(settings, 0, vista_menu(271));choose(settings, 2, 8);
+  require(applied.graphics_mode == pstencil::GraphicsMode::pStencil &&
+          settings.pc_display_settings().graphics_mode == pstencil::GraphicsMode::pStencil &&
+          MenuState(content, preferences).pc_display_settings().graphics_mode == pstencil::GraphicsMode::pStencil &&
+          settings.frame().description == "Path Tracing unavailable",
+          "Rejected graphics choice changed the active or saved mode");
+  settings.back();
+  require(settings.frame().screen == vista_menu(271), "Dismissing the graphics error lost the picker");
+  choose(settings, 0, vista_menu(256));
   settings.back();
   settings.select(3);
   draw(settings, true);

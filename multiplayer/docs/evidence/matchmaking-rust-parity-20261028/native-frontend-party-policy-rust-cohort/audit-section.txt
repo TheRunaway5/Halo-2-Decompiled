@@ -1,0 +1,59 @@
+## Native accepted-party projection in Rust and UI qualification (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-party-policy-rust-validation.json).
+The safe `matchmaking_frontend_party` module owns four native accepted-party
+projection rules: flattened primary/local/remote seats, voice/status columns,
+membership/invitation/error sounds and the first undismissed invitation notice.
+Actual saved profile appearance, signed local seats and login authorization
+remain typed native IO. Rust preserves opaque bytes, all nine appearance bytes,
+optional postgame/appearance fields, remote connection handles, guest precedence,
+full-width counts/status and native reader order. C++ supplies the actual readers
+and ABI conversion without a projection-policy fallback. No Rust mutable state
+borrow spans a native callback or menu reentry.
+
+Captured modern native methods and the actual Rust/CXX wrappers agree on 3,105
+cases, 2,688 native IO observations and 5,839 comparisons, including 14 genuine
+native exception controls with exact exception identity preserved. Six new Rust
+controls pass; the complete Rust suite passes 626 tests (541 protocol,65 bridge,
+20 service), with four existing platform-dependent ignores. All 249 shared Rust
+inputs match between the full suite and native cohort. These are modern caller
+and synthetic-reader comparisons. No fresh original executable call or original
+Live identity/seat/voice producer is qualified by this work.
+
+The remaining legacy artwork failure was the original ONLINE bitmap1/page7
+news decoration. Exact cache definitions and the existing artwork ownership
+document show that the admitted PC bank has no counterpart. The native service
+now hides that unused decoration under its exact screen/slot/frame/tag binding;
+it does not alias a different PC page. This is a declared modern presentation
+choice, not recovered original Live news. The party emblem audit now checks the
+actual selected animated page, matching the renderer's descriptor selection,
+instead of the immutable initial page0 pixels. Renderer/animation production
+owners are unchanged, and selected page dimensions/format/pixels remain checked.
+
+Two later fixture errors are corrected: browser pointer coordinates use the
+menu's actual first-visible row, and selecting a playlist performs one Accept,
+then explicitly verifies the original lobby with no countdown/search before
+Start. Accelerated native account/queue/peer polling exhausted the party
+fixture's aggregate source-prefix budget. All aggregate fixture budgets are
+explicit, any HTTP429 fails, and real service limits remain unchanged. Temporary
+diagnostics are removed. Native creation/invite/accept/leader transfer/leave,
+duplicate chosen names, search/member cancellation/repeated Start, all four
+countdown cues and retained hopper return pass. Vulkan controls confirm visible
+one- and two-player emblem pixels against an emblem-suppressed framebuffer.
+
+The final unchanged cohort passes 22 native checks, including the five Rust/CXX
+comparisons, original lobby/countdown fixtures, legacy and explicit MCC clan
+flows, complete matchmaking/gathering flows, actual SDL/Vulkan playlist/Start
+input and the rendered party flow. No native check is skipped. Owned native,
+Cargo, compiler and diagnostic scratch is removed; only bounded evidence and
+small required reference inputs remain.
+
+Remaining native party action/privacy/invitation routing/state and other
+matching-related policy must still move to Rust. Complete original producers,
+all 53 original owners, historical/service recovery, every required family/
+profile/topology/unshortened natural outcome/continuity/results/PCR/return route,
+genuine providers, installed Linux input and delivered restart/retry/configuration/
+rollback gates remain open. No selected runtime or production service was
+replaced. All twelve GAP records, 53 algorithm IDs, G01-G12 criteria and the
+active objective remain unchanged; whole-system parity stays uncertified.
+

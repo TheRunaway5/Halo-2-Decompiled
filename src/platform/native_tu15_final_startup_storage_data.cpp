@@ -108,7 +108,7 @@ void mount_native_tu15_final_startup_storage_data(SourceRuntimeMemory& memory) {
     // The compiled AI frame consumes these original bounded switch tables.
 #include "campaign/ai/native_tu15_ai_behavior_dispatch_data.inc"
     // Original _cinit identities and immutable operands; callbacks publish
-    // their four separate mutable scalar destinations before AI startup.
+    // their eight mutable geometry/aiming scalars before AI startup.
 #include "campaign/ai/native_tu15_ai_scalar_defaults_data.inc"
     // Two additional kind2 callbacks are read only after the original kind
     // guard. The following record or alignment keeps its separate ownership.

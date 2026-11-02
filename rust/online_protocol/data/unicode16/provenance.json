@@ -1,0 +1,18 @@
+{
+  "unicode_version": "16.0.0",
+  "role": "Modern PC public-name comparison; not original Xbox matchmaking policy",
+  "references": [
+    {
+      "path": "CaseFolding.txt",
+      "url": "https://www.unicode.org/Public/16.0.0/ucd/CaseFolding.txt",
+      "sha256": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+      "bytes": 86092
+    },
+    {
+      "path": "LICENSE.txt",
+      "url": "https://www.unicode.org/license.txt",
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "bytes": 1995
+    }
+  ]
+}

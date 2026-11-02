@@ -1,0 +1,30 @@
+/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/halo2_online_protocol_bridge-e30ca76bff217d1e.d: src/lib.rs src/eos_transport.rs src/eos_sdk_ipc.rs src/eos_sdk_proxy.rs src/eos_auth_http.rs src/eos_config.rs src/steam_credentials.rs src/host_agreement.rs src/peer_mesh_quality.rs src/peer_source_admissions.rs src/peer_authority_transfer.rs src/lan_auth.rs src/netcode.rs src/matchmaking_readiness.rs src/matchmaking_client.rs src/matchmaking_native_qos.rs src/matchmaking_native_session.rs src/matchmaking_native_peers.rs src/matchmaking_native_publication.rs src/matchmaking_native_exchange.rs src/matchmaking_native_preparation.rs src/common_cut.rs src/survivor_selection.rs src/migration_driver.rs
+
+/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/libhalo2_online_protocol_bridge-e30ca76bff217d1e.a: src/lib.rs src/eos_transport.rs src/eos_sdk_ipc.rs src/eos_sdk_proxy.rs src/eos_auth_http.rs src/eos_config.rs src/steam_credentials.rs src/host_agreement.rs src/peer_mesh_quality.rs src/peer_source_admissions.rs src/peer_authority_transfer.rs src/lan_auth.rs src/netcode.rs src/matchmaking_readiness.rs src/matchmaking_client.rs src/matchmaking_native_qos.rs src/matchmaking_native_session.rs src/matchmaking_native_peers.rs src/matchmaking_native_publication.rs src/matchmaking_native_exchange.rs src/matchmaking_native_preparation.rs src/common_cut.rs src/survivor_selection.rs src/migration_driver.rs
+
+/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/libhalo2_online_protocol_bridge-e30ca76bff217d1e.rlib: src/lib.rs src/eos_transport.rs src/eos_sdk_ipc.rs src/eos_sdk_proxy.rs src/eos_auth_http.rs src/eos_config.rs src/steam_credentials.rs src/host_agreement.rs src/peer_mesh_quality.rs src/peer_source_admissions.rs src/peer_authority_transfer.rs src/lan_auth.rs src/netcode.rs src/matchmaking_readiness.rs src/matchmaking_client.rs src/matchmaking_native_qos.rs src/matchmaking_native_session.rs src/matchmaking_native_peers.rs src/matchmaking_native_publication.rs src/matchmaking_native_exchange.rs src/matchmaking_native_preparation.rs src/common_cut.rs src/survivor_selection.rs src/migration_driver.rs
+
+src/lib.rs:
+src/eos_transport.rs:
+src/eos_sdk_ipc.rs:
+src/eos_sdk_proxy.rs:
+src/eos_auth_http.rs:
+src/eos_config.rs:
+src/steam_credentials.rs:
+src/host_agreement.rs:
+src/peer_mesh_quality.rs:
+src/peer_source_admissions.rs:
+src/peer_authority_transfer.rs:
+src/lan_auth.rs:
+src/netcode.rs:
+src/matchmaking_readiness.rs:
+src/matchmaking_client.rs:
+src/matchmaking_native_qos.rs:
+src/matchmaking_native_session.rs:
+src/matchmaking_native_peers.rs:
+src/matchmaking_native_publication.rs:
+src/matchmaking_native_exchange.rs:
+src/matchmaking_native_preparation.rs:
+src/common_cut.rs:
+src/survivor_selection.rs:
+src/migration_driver.rs:

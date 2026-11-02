@@ -1,0 +1,29 @@
+{
+  "source_changes": [
+    {
+      "path": "src/ui/frontend_party.cpp",
+      "before_sha256": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+      "after_sha256": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+      "diff": "source-review/frontend_party.cpp.diff.txt"
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "before_sha256": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+      "after_sha256": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf",
+      "diff": "source-review/frontend_state.cpp.diff.txt"
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "before_sha256": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+      "after_sha256": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a",
+      "diff": "source-review/frontend_clans.cpp.diff.txt"
+    },
+    {
+      "path": "include/halo2/frontend.hpp",
+      "before_sha256": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+      "after_sha256": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+      "diff": "source-review/frontend.hpp.diff.txt"
+    }
+  ],
+  "cpp_target_tab_dismissal_privacy_fields_removed": true
+}

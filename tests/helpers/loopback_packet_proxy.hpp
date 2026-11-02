@@ -28,13 +28,12 @@ class LoopbackPacketProxy {
     struct Socket {
         int fd = -1;
         unsigned port{};
-        Socket() {
+        explicit Socket(int capacity) {
             fd = ::socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
             if (fd < 0) throw FormatError("Cannot create loopback test socket");
             sockaddr_in address{};
             address.sin_family = AF_INET;
             address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-            const int capacity = 32768;
             socklen_t size = sizeof(address);
             if (::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &capacity, sizeof(capacity)) ||
                 ::bind(fd, reinterpret_cast<const sockaddr *>(&address), sizeof(address)) ||
@@ -50,18 +49,22 @@ class LoopbackPacketProxy {
     };
     struct Pending { std::uint32_t due{}; std::vector<std::byte> bytes; };
 public:
-    explicit LoopbackPacketProxy(unsigned host_port) {
+    explicit LoopbackPacketProxy(unsigned host_port, int capacity = 32768)
+        : front_(capacity), back_(capacity) {
         host_.sin_family = AF_INET;
         host_.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         host_.sin_port = htons(host_port);
     }
     unsigned port() const { return front_.port; }
     void enable() { enabled_ = true; }
+    void drop_host(bool drop) { drop_host_ = drop; }
+    // Runtime startup may replace its discovery client with the admitted one.
+    void allow_client_rebind() { allow_client_rebind_ = true; }
     const PacketFaultStatistics &statistics() const { return statistics_; }
 
     void pump(std::uint32_t tick) {
         receive(front_, [&](std::span<const std::byte> bytes, const sockaddr_in &from) {
-            if (client_ && !same_endpoint(*client_, from))
+            if (client_ && !same_endpoint(*client_, from) && !allow_client_rebind_)
                 throw FormatError("Loopback proxy received an unexpected client");
             client_ = from;
             send(back_, host_, bytes);
@@ -69,6 +72,7 @@ public:
         receive(back_, [&](std::span<const std::byte> bytes, const sockaddr_in &from) {
             if (!same_endpoint(from, host_) || !client_)
                 throw FormatError("Loopback proxy received an unexpected host");
+            if (drop_host_) { ++statistics_.dropped; return; }
             if (!enabled_) { send(front_, *client_, bytes); return; }
             const auto sequence = ++sequence_;
             if (sequence % 53 == 0) { ++statistics_.dropped; return; }
@@ -126,7 +130,7 @@ private:
     Socket front_, back_;
     sockaddr_in host_{};
     std::optional<sockaddr_in> client_;
-    bool enabled_{};
+    bool enabled_{}, drop_host_{}, allow_client_rebind_{};
     std::uint64_t sequence_{};
     std::size_t queued_bytes_{};
     std::array<std::byte, 65536> scratch_;
@@ -136,9 +140,11 @@ private:
 #else
 class LoopbackPacketProxy {
 public:
-    explicit LoopbackPacketProxy(unsigned) { throw FormatError("Packet-fault simulations currently require Linux"); }
+    explicit LoopbackPacketProxy(unsigned, int = 32768) { throw FormatError("Packet-fault simulations currently require Linux"); }
     unsigned port() const { return 0; }
     void enable() {}
+    void drop_host(bool) {}
+    void allow_client_rebind() {}
     void pump(std::uint32_t) {}
     PacketFaultStatistics statistics() const { return {}; }
 };

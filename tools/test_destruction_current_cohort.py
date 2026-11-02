@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,12 @@ CASES['wraith_mortar'] = 'coagulation'
 CASES['campaign_guntower_no_damage'] = '03a_oldmombasa'
 
 
+def instrument_execution_failures(contents):
+    # Preserve qualified member access as part of the diagnostic expression.
+    return '#include <cstdio>\n'+re.sub(r'(?:inputs_->)?failed_=true',lambda match:
+        '(std::fprintf(stderr,"Native phase failure %s:%d\\n",__FILE__,__LINE__),'+match[0]+')',contents)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mcc-root', type=Path, required=True)
@@ -50,6 +57,12 @@ def main():
                         help='Also build the native game and normal SDL/LAN acceptance executable')
     parser.add_argument('--partition-ai', action='store_true',
                         help='Use the existing unchanged-body partitioner for the large AI translation unit')
+    parser.add_argument('--audio-plan', type=Path,
+                        help='Also exercise declared destruction cues through the actual native PCM output')
+    parser.add_argument('--rendered-smg', action='store_true',
+                        help='Also run ordinary SMG/reload input against a damaged Warthog with native audio and Vulkan')
+    parser.add_argument('--diagnose-execution', action='store_true',
+                        help='Log the first phase-failure source sites in the disposable snapshot')
     args = parser.parse_args()
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Use tools/run_test.py')
@@ -105,7 +118,8 @@ def main():
         report['additional_frozen_inputs'][str(relative)] = before
 
     for name in ('mcc-gameplay-scalar-damage-profiles.json', 'mcc-destruction-effect-scalar-profiles.json',
-                 'mcc-destruction-model-scalar-profile.json'):
+                 'mcc-destruction-model-scalar-profile.json','mcc-destruction-model-reference-profile.json',
+                 'mcc-destruction-hunter-contract-profile.json'):
         path = ROOT / 'tools' / name
         if path.stat().st_size > 1024 * 1024:
             raise ValueError('Reviewed scalar profile manifest exceeds its finite metadata budget')
@@ -135,6 +149,17 @@ def main():
         for path in paths:
             private_input(path)
     private_input(ROOT / 'tests/fixtures/death_cycle_helpers_tu15.json')
+    if args.audio_plan:
+        args.audio_plan=args.audio_plan.resolve(strict=True)
+        report['audio_plan']={'path':str(args.audio_plan),'sha256':sha(args.audio_plan)}
+    if args.diagnose_execution:
+        report['private_execution_diagnostics']={}
+        for relative in ('include/halo2/source_execution_inputs.hpp','src/runtime/source_execution_inputs.cpp'):
+            path=source/relative;before=sha(path);contents=path.read_text()
+            count=contents.count('failed_=true')
+            if not count:raise ValueError('Native execution failure diagnostic sites changed')
+            path.write_text(instrument_execution_failures(contents))
+            report['private_execution_diagnostics'][relative]={'before':before,'after':sha(path),'sites':count}
     save()
     if args.partition_ai:
         path = source / 'cmake/PhysicsLiveWorldTu15.cmake'
@@ -153,6 +178,25 @@ def main():
     text = '''\nadd_executable(destruction_runtime_tu15_tests tests/destruction_runtime_tu15_tests.cpp)
 target_link_libraries(destruction_runtime_tu15_tests PRIVATE halo2_systems halo2_authority_codec OpenSSL::Crypto)
 '''
+    if args.audio_plan:
+        text+='''add_executable(vehicle_destruction_audio_playback_tu15_tests tests/vehicle_destruction_audio_playback_tu15_tests.cpp)
+target_link_libraries(vehicle_destruction_audio_playback_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+'''
+        text+=(f'add_test(NAME destruction_audio_native_output COMMAND vehicle_destruction_audio_playback_tu15_tests '
+               f'"{args.audio_plan}" "${{CMAKE_CURRENT_BINARY_DIR}}/destruction-audio-native.json")\n'
+               'set_tests_properties(destruction_audio_native_output PROPERTIES TIMEOUT 180 ENVIRONMENT "SDL_AUDIODRIVER=dummy")\n')
+    if args.rendered_smg:
+        text+='''add_executable(destruction_smg_warthog_audio_tests tests/multiplayer_smg_warthog_audio_tests.cpp src/gameplay/multiplayer/multiplayer_runtime.cpp)
+target_link_libraries(destruction_smg_warthog_audio_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm)
+'''
+        text+=(f'add_test(NAME destruction_audio_rendered_smg COMMAND "${{Python3_EXECUTABLE}}" '
+               '"${CMAKE_CURRENT_SOURCE_DIR}/tools/test_smg_warthog_audio.py" '
+               '--fixture "$<TARGET_FILE:destruction_smg_warthog_audio_tests>" '
+               f'--map "{maps / "coagulation.map"}" --shared-maps "{maps}" '
+               '--shader-directory "${CMAKE_CURRENT_BINARY_DIR}/shaders" '
+               '--root "${CMAKE_CURRENT_SOURCE_DIR}" '
+               '--report-output "${CMAKE_CURRENT_BINARY_DIR}/destruction-rendered-smg.json" --timeout 180)\n'
+               'set_tests_properties(destruction_audio_rendered_smg PROPERTIES TIMEOUT 210)\n')
     for case in cases:
         text += (f'add_test(NAME destruction_mcc_{case} COMMAND ${{Python3_EXECUTABLE}} '
                  '"${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" -- '
@@ -176,15 +220,26 @@ target_link_libraries(destruction_runtime_tu15_tests PRIVATE halo2_systems halo2
                '--source', str(source), '--target', 'destruction_runtime_tu15_tests',
                '--target', 'destruction_lan_identity_tu15_tests',
                '--target', 'source_bsp_breakable_visibility_tu15_tests',
+               '--target', 'source_execution_inputs_tests',
                '--target', 'death_cycle_helpers_tu15_tests',
                '--target', 'mcc_destruction_model_scalar_tests', '--target', 'mcc_destruction_model_cache_tests',
+               '--target', 'mcc_destruction_model_reference_tests', '--target', 'mcc_destruction_model_reference_cache_tests',
+               '--target', 'mcc_destruction_hunter_cache_tests',
                '--target', 'mcc_destruction_effect_scalar_tests', '--target', 'mcc_gameplay_scalar_tests',
-               '--filter', '^(destruction_|original_death_cycle_helpers_tu15$|source_bsp_breakable_visibility_tu15$|mcc_gameplay_scalar_|mcc_destruction_(effect_|model_))',
+               '--filter', '^(destruction_|original_death_cycle_helpers_tu15$|source_bsp_breakable_visibility_tu15$|source_execution_inputs$|mcc_gameplay_scalar_|mcc_destruction_(effect_|model_))',
                '--jobs', str(args.jobs), '--test-jobs', '1',
                '--cmake-arg=-DHALO2_DESTRUCTION_MCC_MAPS=' + str(maps),
                '--output', str(args.output / 'validation')]
     if args.build_runtime:
         command += ['--target', 'halo2_native', '--target', 'physics_multiplayer_acceptance']
+    if args.audio_plan:
+        command += ['--target','vehicle_destruction_audio_playback_tu15_tests',
+                    '--retain-report','destruction-audio-native.json']
+    if args.rendered_smg:
+        command += ['--target','destruction_smg_warthog_audio_tests',
+                    '--retain-report','destruction-rendered-smg.json',
+                    '--retain-report','destruction-rendered-smg.log',
+                    '--retain-report','destruction-rendered-smg.inputs.tsv']
     command += ['--retain-report', 'destruction-lan-identity.json']
     for case in cases:
         command += ['--retain-report', f'destruction-{case}.json']

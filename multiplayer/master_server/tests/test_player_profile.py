@@ -97,12 +97,13 @@ class PlayerProfileTests(unittest.IsolatedAsyncioTestCase):
         room,_=await self.completed()
         headers=await self.login()
         db=self.api.directory.store.db
-        self.api.directory.profiles._statistics.clear()
-        with patch('multiplayer.master_server.player_profile.monotonic',return_value=100):
+        self.api.directory.profiles.cache.clear()
+        now=self.api.directory.profiles.clock()
+        with patch('multiplayer.master_server.player_profile.monotonic',return_value=now):
             first=await (await self.client.get('/v1/account/profile',headers=headers)).json()
         # This deliberately models maintenance outside the accepted-result path.
         with db:db.execute('UPDATE match_result_players SET kills=kills+1 WHERE player=?',(room.players[0][0],))
-        with patch('multiplayer.master_server.player_profile.monotonic',return_value=401):
+        with patch('multiplayer.master_server.player_profile.monotonic',return_value=now+301):
             refreshed=await (await self.client.get('/v1/account/profile',headers=headers)).json()
         self.assertEqual(refreshed['statistics']['kills'],first['statistics']['kills']+1)
 

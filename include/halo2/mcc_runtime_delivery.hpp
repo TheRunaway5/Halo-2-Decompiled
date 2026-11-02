@@ -2,9 +2,12 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_runtime_cache_tags.hpp"
 #include <functional>
+#include <memory>
 
 namespace halo2 {
 struct MccSoundRuntimePlan;
+struct MccOriginalSoundRuntimeInputTu15;
+class MccOriginalSoundRuntimeDeliveryTu15;
 // Serialized logical ranges only. Native backing is owned separately; a host
 // pointer must never be narrowed into either address field.
 // A zero-byte entry preserves an explicitly declared empty tag location. It
@@ -39,10 +42,20 @@ public:
     static MccRuntimeCacheDelivery plan(const Cache&, std::uint32_t logical_index,
         std::uint32_t available_bytes,
         const std::function<void(MccSoundRuntimePlan&&)>& capture_sound);
+    // Same atomic canonical publication with explicitly admitted original
+    // sound inputs. The captured sound plan retains their immutable lineage
+    // and resource owner; timing/PCM consumers must support that owner too.
+    static MccRuntimeCacheDelivery plan(const Cache&, std::uint32_t logical_index,
+        std::uint32_t available_bytes,
+        const std::function<void(MccSoundRuntimePlan&&)>& capture_sound,
+        const MccOriginalSoundRuntimeInputTu15&);
     const CanonicalRuntimeCacheIndex& index() const { return index_; }
     std::uint32_t reservation_bytes() const { return reservation_bytes_; }
     std::span<const MccRuntimeRelocation> relocations() const { return relocations_; }
     std::span<const MccRuntimeDeliveryIssue> issues() const { return issues_; }
+    // Retained with this exact metadata publication. A live consumer joins
+    // this owner to its resource identity and timing/continuation transaction.
+    std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> original_sound_owner() const { return original_sound_; }
     // Publication is atomic and unavailable while any schema/ownership issue
     // remains. Callers cannot receive a partly relocated original-ABI bank.
     SourceRuntimeCacheTagImage tag_image() const;
@@ -57,6 +70,9 @@ private:
     std::vector<MccRuntimeRelocation> relocations_;
     std::vector<MccRuntimeDeliveryIssue> issues_;
     std::uint32_t reservation_bytes_{};
+    std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> original_sound_;
     void require_complete() const;
+    static MccRuntimeCacheDelivery plan_impl(const Cache&,std::uint32_t,std::uint32_t,
+        const std::function<void(MccSoundRuntimePlan&&)>&,const MccOriginalSoundRuntimeInputTu15*);
 };
 } // namespace halo2

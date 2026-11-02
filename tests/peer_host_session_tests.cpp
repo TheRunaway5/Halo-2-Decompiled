@@ -16,8 +16,13 @@ using namespace std::chrono_literals;
 using Json=nlohmann::json;
 namespace {
 std::string stage="setup";
-struct CommitProbe {unsigned calls{};bool accept{};};
-bool commit_probe(void *opaque)noexcept{auto &probe=*static_cast<CommitProbe *>(opaque);++probe.calls;return probe.accept;}
+struct CommitProbe {unsigned calls{};bool accept{};OnlineMatchSession *session{};bool local_views_checked{};};
+bool commit_probe(void *opaque)noexcept{auto &probe=*static_cast<CommitProbe *>(opaque);++probe.calls;
+    if(probe.session)try{const auto slots=probe.session->local_slots();const auto self=probe.session->self();
+        probe.local_views_checked=slots==std::vector<unsigned>{self,self+1,self+2,self+3};
+        if(!probe.local_views_checked)return false;
+    }catch(...){return false;}
+    return probe.accept;}
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
 template<class F>void wait(F ready,const char *stage){const auto end=std::chrono::steady_clock::now()+25s;
     while(!ready()){check(std::chrono::steady_clock::now()<end,stage);std::this_thread::sleep_for(2ms);}}
@@ -62,6 +67,58 @@ int main(int argc,char **argv)try{
     check(sessions[host]->publish_source_players(first,admitted),"Initial source allocation fixture refused");
     const auto source_ready=[&]{healthy();for(auto &s:sessions)if(s){const auto value=s->source_players();if(!value||value->players!=admitted)return false;}return true;};
     stage="initial source admission";wait(source_ready,"Initial direct source admission timeout");
+    // Actual public Session publication/capability routes over the admitted
+    // DTLS links. Bytes and validation calls below are declared fixtures, not
+    // native world preparation, leases or a role-completion certificate.
+    stage="public source/authority publication callers";
+    std::vector<unsigned> publication_targets;
+    for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host)publication_targets.push_back(p);
+    const auto publication_healthy=[&]{healthy();for(const auto p:publication_targets)sessions[host]->send(game(host,true),p);};
+    wait([&]{publication_healthy();for(const auto p:publication_targets)
+        if(!sessions[host]->authority_supported(p)||!sessions[host]->authority_replay_supported(p)||
+           !sessions[host]->authority_pipeline_supported(p)||!sessions[host]->authority_host_continuation_supported(p)||
+           !sessions[host]->source_players_confirmed(p))return false;return true;},"Public capability/source receipt timeout");
+    for(auto &s:sessions)if(s)for(const auto p:{256u,257u,std::numeric_limits<unsigned>::max()})
+        check(!s->authority_supported(p)&&!s->authority_replay_supported(p)&&!s->authority_pipeline_supported(p)&&
+            !s->authority_host_continuation_supported(p)&&!s->authority_admitted_camera_supported(p)&&!s->source_players_confirmed(p),
+            "Full-width capability peer aliased an admitted physical connection");
+    for(const auto p:publication_targets)check(!sessions[host]->authority_admitted_camera_supported(p),
+        "Ordinary session enabled terminal-only admitted-camera capability");
+    wait([&]{publication_healthy();return bool(sessions[host]->common_cut());},"Public Common view negotiation timeout");
+    auto foreign_common=PeerCommonCut{first,{301,17,32,{std::byte{0x31}}},std::uint16_t(first.peers&~(1u<<host))};
+    foreign_common.context.host+=256;
+    check(!sessions[host]->offer_common_cut(foreign_common)&&!sessions[host]->common_cut()->pending,
+        "Full-width foreign Common context changed the real native round");
+    std::vector<std::byte> publication_bytes(4096);for(unsigned i=0;i<publication_bytes.size();++i)publication_bytes[i]=std::byte(i*37);
+    bool refused_nonhost=false;try{sessions[publication_targets.front()]->publish_authority(first,17,publication_bytes,publication_targets);}
+    catch(const std::exception&){refused_nonhost=true;}
+    check(refused_nonhost,"Nonhost reached authority publication");
+    const auto published=sessions[host]->publish_authority(first,17,publication_bytes,publication_targets);
+    check(published.tick==17&&published.bytes==publication_bytes.size(),"Public authority publication changed its seal");
+    std::array<std::optional<ReceivedAuthorityCut>,16> received_publications;
+    wait([&]{publication_healthy();for(const auto p:publication_targets){
+        if(!received_publications[p])received_publications[p]=sessions[p]->received_authority();
+        if(!received_publications[p]||!sessions[host]->authority_delivered(p,first,published))return false;}
+        return true;},"Public full authority bytes were not received and acknowledged");
+    check(sessions[host]->validated_authority().empty(),"Byte delivery manufactured native validation");
+    for(const auto p:publication_targets){const auto &r=*received_publications[p];
+        check(r.context==first&&r.seal==published&&r.peer==host&&r.bytes&&*r.bytes==publication_bytes,
+            "Public authority delivery changed bytes or admitted context");
+        check(sessions[p]->acknowledge_authority(first,published),"Explicit declared authority validation refused");}
+    std::uint16_t validated_publications{};
+    wait([&]{publication_healthy();for(const auto &r:sessions[host]->validated_authority()){
+        check(r.context==first&&r.seal==published,"Authority validation changed its exact context/seal");validated_publications|=std::uint16_t(1u<<r.peer);}
+        return validated_publications==std::uint16_t(first.peers&~(1u<<host));},"Explicit public authority validation receipts timeout");
+    const auto pipeline_target=publication_targets.front();auto ahead_bytes=publication_bytes;ahead_bytes.back()^=std::byte{0x80};
+    const auto ahead=sessions[host]->publish_authority_ahead(first,published,18,ahead_bytes,pipeline_target);
+    std::optional<ReceivedAuthorityCut> received_ahead;
+    wait([&]{publication_healthy();if(!received_ahead)received_ahead=sessions[pipeline_target]->received_authority();
+        return received_ahead&&sessions[host]->authority_delivered(pipeline_target,first,ahead);},"Public pipelined authority delivery timeout");
+    check(ahead.id>published.id&&ahead.tick==18&&received_ahead->seal==ahead&&received_ahead->bytes&&*received_ahead->bytes==ahead_bytes,
+        "Public pipeline changed successor bytes or seal");
+    check(sessions[pipeline_target]->reject_authority(first,ahead)&&!sessions[pipeline_target]->acknowledge_authority(first,ahead),
+        "Rejected public pipeline bytes acquired native validation");
+    std::cout<<"PASS public native source/capability/Common/authority callers: exact full and pipelined bytes, explicit validation only, rejected-cut refusal and full-width peer/context guards\n";
     const auto drain=[&]{for(unsigned self=0;self<16;++self)if(auto &s=sessions[self]){
         std::vector<std::byte> bytes;unsigned from{};while(s->receive(bytes,from)){
             check(bytes.size()==8&&from==std::to_integer<unsigned>(bytes[7])&&bytes[6]==std::byte(self==host?1:3),"Direct gameplay changed source or role");++games[self];}
@@ -258,8 +315,18 @@ int main(int argc,char **argv)try{
             check(s->phase()==(p==candidate?OnlineMatchSession::Phase::Migrating:OnlineMatchSession::Phase::Rebinding),"Media reopened before native role completion");
             auto forged=d;++forged.next.epoch;CommitProbe untrusted;
             check(!s->finish_peer_migration(forged,commit_probe,&untrusted)&&!untrusted.calls,"Caller-invented certificate reached a native commit");
+            for(unsigned field=0;field<4;++field){
+                auto aliased=d;
+                if(field==0)aliased.previous.host+=256;
+                else if(field==1)aliased.next.host+=256;
+                else if(field==2)aliased.value.host+=256;
+                else aliased.ballot.proposer+=256;
+                CommitProbe rejected;rejected.accept=true;
+                check(!s->finish_peer_migration(aliased,commit_probe,&rejected)&&!rejected.calls&&s->authority_context()==before,
+                    "A full-width invalid host/proposer aliased an admitted native commit");
+            }
             std::vector<std::byte> bytes;unsigned from{};check(!s->receive(bytes,from)&&s->voice_packets().empty(),"Queued predecessor gameplay/voice survived its fence");}
-        stage="native completion barrier "+std::to_string(round+1);const auto successor=*decisions[candidate];CommitProbe native;
+        stage="native completion barrier "+std::to_string(round+1);const auto successor=*decisions[candidate];CommitProbe native;native.session=sessions[candidate].get();
         if(!automatic){
             for(unsigned p=0;p<16;++p)if(auto &s=sessions[p]){CommitProbe blocked;blocked.accept=true;
                 const auto state=s->peer_migration();
@@ -307,6 +374,7 @@ int main(int argc,char **argv)try{
         check(sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating&&sessions[candidate]->authority_context()==before,
             "Failed native commit published a transport generation");
         native.accept=true;
+        check(native.local_views_checked,"Generation-locked native commit could not observe immutable local seats");
         check(sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&native.calls==2,"Exact native commit did not precede publication");
         check(!sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&native.calls==2,"Native commit ran twice for an old certificate");
         for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=candidate){sessions[candidate]->send(game(candidate,true),p);

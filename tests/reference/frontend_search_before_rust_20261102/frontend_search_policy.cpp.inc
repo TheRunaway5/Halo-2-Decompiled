@@ -1,0 +1,341 @@
+void MenuState::set_online_matchmaking(std::shared_ptr<OnlineMatchmaking> client) {
+  if(online_matchmaking_==client)return;
+  if (online_matchmaking_) online_matchmaking_->sign_out();
+  online_matchmaking_ = std::move(client);
+  matchmaking_active_ = quickmatch_pending_ = false;
+  online_lobby_playlist_pending_ = false;
+  matchmaking_ = {}; matchmaking_name_.clear();
+  reset_online_matchmaking_progress();
+}
+
+void MenuState::prepare_online_matchmaking_lobby(bool quickmatch) {
+  // OG ONLINE Quickmatch (0x230F92) and Optimatch selection (0x2B2181)
+  // set party A's matchmaking mode/hopper, then 0x19B1C9 presents lobby14.
+  // Only its START GAME action starts 0x19A78E(10,3), followed by search.
+  mode_=3;quickmatch_pending_=false;
+  online_lobby_playlist_pending_=quickmatch || !selected_playlist_.empty();
+  online_lobby_create_submitted_=false;
+  while(stack_.size()>1 && frame().screen!=186 && frame().screen!=14)stack_.pop_back();
+  if(frame().screen!=14)open(14);
+  enter_online_matchmaking_lobby();
+  if(!matchmaking_active_)refresh_online_matchmaking();
+  update_online_matchmaking();
+}
+
+void MenuState::reset_online_matchmaking_progress() {
+  matchmaking_consent_pending_ = false;
+  matchmaking_start_clock_.reset();
+  matchmaking_countdown_ = matchmaking_countdown_none;
+  matchmaking_have_fun_ = false;
+  matchmaking_progress_pane_ = 0;
+  matchmaking_progress_title_state_ = 0;
+  matchmaking_pane_clock_ = ui_clock_;
+  matchmaking_search_party_.clear();
+}
+
+bool MenuState::update_online_party_search() {
+  // A party's search ended without this player's Leave Matchmaking
+  // (0x252150 sets g_51ec99 for the canceller only). TU1.5 returns the whole
+  // party to pre-game, and the lobby's 0x250804 shows session state4 as 0xAD
+  // and a member's departure (states 6/14/19) as 0xAE, once.
+  using S = OnlineMatchmakingStatus;
+  const bool shown = std::any_of(stack_.begin(), stack_.end(),
+      [](const auto &f){return f.screen == 210 || f.screen == 14;});
+  const bool searching = matchmaking_.status == S::Searching ||
+      matchmaking_.status == S::CheckingConnections || matchmaking_.status == S::AwaitingTransport;
+  if (searching && shown && account_.party && account_.party->members.size() > 1) {
+    if (!matchmaking_search_party_.empty()) return false;
+    for (const auto &m : account_.party->members) matchmaking_search_party_.push_back(m.handle);
+    // 0x19B1C9 presents party A's matchmaking modes as screen210 on every
+    // member's machine: a member in the lobby follows the leader's search.
+    if (account_.party->leader || mode_ != 3 ||
+        std::any_of(stack_.begin(), stack_.end(), [](const auto &f){return f.screen == 210;}))
+      return false;
+    while (stack_.size() > 1 && frame().screen != 14) stack_.pop_back();
+    open(210);
+    quickmatch_pending_ = false; // The leader owns this search's playlist.
+    return true;
+  }
+  if (matchmaking_search_party_.empty()) return false;
+  const auto searched = std::exchange(matchmaking_search_party_, {});
+  // Loading, failures and local commands are not a party-wide cancel. A
+  // player who left the party itself gets no notice.
+  if (matchmaking_.status != S::Ready || !shown || !account_.party) return false;
+  const bool departed = std::any_of(searched.begin(), searched.end(), [&](const auto &handle) {
+    return std::none_of(account_.party->members.begin(), account_.party->members.end(),
+                        [&](const auto &m){return m.handle == handle;});
+  });
+  // Stop this client's own queue intent: a leader would otherwise enqueue
+  // the retained playlist again.
+  quickmatch_pending_ = false;
+  if (online_matchmaking_) online_matchmaking_->cancel_queue();
+  reset_online_matchmaking_progress();
+  while (stack_.size() > 1 && frame().screen != 186 && frame().screen != 14) stack_.pop_back();
+  if (mode_ == 3) {
+    if (frame().screen != 14) open(14);
+    enter_online_matchmaking_lobby();
+  }
+  dialog(departed ? 0xae : 0xad, -5, true);
+  ++revision;
+  return true;
+}
+
+void MenuState::refresh_online_matchmaking() {
+  if (!online_identity()) return;
+  reset_online_matchmaking_progress();
+  matchmaking_active_ = true; matchmaking_name_ = profile_name();
+  matchmaking_couch_revision_=couch_revision_;
+  if (online_matchmaking_) online_matchmaking_->refresh(matchmaking_name_,online_local_players(),appearance_for_profile(signed_in_));
+  update_online_matchmaking();
+}
+
+void MenuState::update_online_matchmaking() {
+  const auto previous_pane = online_matchmaking_progress_pane();
+  // Party A outlives game B and the report. Removing its API session while
+  // PCR is visible (or between the fresh return factories) invalidates every
+  // member's accepted hopper consent. Retain this idle session until the
+  // player actually leaves ONLINE/the party or signs out.
+  const bool retained_party=matchmaking_active_ && mode_==3 && account_.party.has_value();
+  const bool browsing = online_identity() && (retained_party || std::any_of(stack_.begin(), stack_.end(),
+      [&](const auto &f){return matchmaking_screen(f) || online_party_screen(f);}));
+  if (!browsing) {
+    if (matchmaking_active_ && online_matchmaking_) online_matchmaking_->sign_out();
+    matchmaking_active_ = quickmatch_pending_ = false;
+    online_lobby_playlist_pending_ = false;
+    matchmaking_ = {}; matchmaking_name_.clear();
+    reset_online_matchmaking_progress();
+    return;
+  }
+  // The lobby countdown's search start opens screen210, whose open() runs a
+  // complete update of its own.
+  if (update_online_lobby_countdown()) return;
+  if (matchmaking_active_ && (matchmaking_name_ != profile_name() || matchmaking_couch_revision_!=couch_revision_)) {
+    quickmatch_pending_ = frame().screen == 210;
+    refresh_online_matchmaking(); return;
+  }
+  bool changed = false;
+  if (online_matchmaking_) {
+    if (auto snapshot = online_matchmaking_->snapshot_after(matchmaking_.revision)) { matchmaking_ = std::move(*snapshot); changed = true; }
+  } else if (matchmaking_.message.empty()) {
+    matchmaking_.message = "No matchmaking service configured."; changed = true;
+  }
+  if(matchmaking_.failure_state && std::any_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==210;})) {
+    // TU1.5 0x742F0 returns failed searches to party A; 0x256AF7 shows
+    // the original AB/AC/AE dialog once in its fresh pregame lobby.
+    const auto error=original_matchmaking_error_dialog(*matchmaking_.failure_state);
+    matchmaking_.failure_state.reset();quickmatch_pending_=false;
+    if(online_matchmaking_)online_matchmaking_->cancel_queue();
+    reset_online_matchmaking_progress();
+    while(stack_.size()>1 && frame().screen!=186 && frame().screen!=14)stack_.pop_back();
+    if(frame().screen!=14)open(14);
+    enter_online_matchmaking_lobby();
+    if(error)dialog(*error,-5,true);
+    ++revision;return;
+  }
+  if(online_lobby_playlist_pending_ && matchmaking_.status==OnlineMatchmakingStatus::Ready) {
+    if(online_account_) {
+      const auto party=online_account_->snapshot();
+      if(!party.party && !party.busy) {
+        // open14 may have encountered a busy profile worker. Defer the
+        // real party creation until it is available, without inventing a
+        // local accepted party or repeatedly retrying a service rejection.
+        if(online_lobby_create_submitted_) {
+          online_lobby_playlist_pending_=false;
+          matchmaking_.status=OnlineMatchmakingStatus::Failed;
+          matchmaking_.message=party.party_message.empty()?"The party could not be created.":party.party_message;
+        } else if(online_account_->party_command({"create"}))online_lobby_create_submitted_=true;
+      }
+    }
+    if(online_lobby_playlist_pending_) {
+      const auto *playlist=selected(matchmaking_,selected_playlist_);
+      if(!playlist || !playlist->eligible) {
+        auto it=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[](const auto &p){return p.quickmatch && p.eligible;});
+        if(it==matchmaking_.playlists.end() && (account_.party || local_players().size()>1))
+          it=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[](const auto &p){return p.eligible && !p.clan_match;});
+        playlist=it==matchmaking_.playlists.end()?nullptr:&*it;
+      }
+      if(playlist) {
+        selected_playlist_=playlist->id;
+        // Preserve the user's consent intent across asynchronous party
+        // creation. A busy worker retries here; no search is enqueued.
+        if(!online_account_ || (account_.party && online_account_->party_command({"ready",{},playlist->id,playlist->revision})))
+          online_lobby_playlist_pending_=false;
+      } else online_lobby_playlist_pending_=false;
+    }
+    for(auto &f:stack_)if(f.screen==14){f.entries.clear();populate_online_party(f);}
+    changed=true;
+  }
+  if (update_online_party_search()) return;
+  if (quickmatch_pending_ && matchmaking_.status == OnlineMatchmakingStatus::Ready) {
+    const auto *playlist = selected(matchmaking_, selected_playlist_);
+    if (!playlist || !playlist->eligible) {
+      auto it = std::find_if(matchmaking_.playlists.begin(), matchmaking_.playlists.end(), [](const auto &p) { return p.quickmatch && p.eligible; });
+      if(it==matchmaking_.playlists.end() && (account_.party || local_players().size()>1))
+        it=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[](const auto &p){return p.eligible && !p.clan_match;});
+      if (it != matchmaking_.playlists.end()) playlist = &*it;
+    }
+    if (playlist && playlist->eligible && online_matchmaking_) {
+      selected_playlist_ = playlist->id;
+      if(account_.party) {
+        const auto party=online_account_?online_account_->snapshot():OnlineAccountSnapshot{};
+        const bool consent=party.party && std::any_of(party.party->members.begin(),party.party->members.end(),
+            [&](const auto &member){return member.self && member.ready_playlist==playlist->id;});
+        if(!online_account_ || !party.party) {
+          quickmatch_pending_=matchmaking_consent_pending_=false;
+          matchmaking_.status=OnlineMatchmakingStatus::Failed;
+          matchmaking_.message=party.party_message.empty()?"The accepted party is no longer available.":party.party_message;
+        } else if(party.busy) {
+          // Party and queue workers are independent. Keep the request here
+          // until the party worker publishes its actual consent response.
+        } else if(consent) {
+          quickmatch_pending_=matchmaking_consent_pending_=false;
+          if(party.party->leader) {
+            online_matchmaking_->join(playlist->id);
+            matchmaking_=online_matchmaking_->snapshot();
+          }
+        } else if(matchmaking_consent_pending_) {
+          // A completed command which did not publish consent is a real
+          // rejection; do not retry it forever or enqueue anyway.
+          quickmatch_pending_=matchmaking_consent_pending_=false;
+          matchmaking_.status=OnlineMatchmakingStatus::Failed;
+          matchmaking_.message=party.party_message.empty()?"Party playlist selection was not accepted.":party.party_message;
+        } else if(online_account_->party_command({"ready",{},playlist->id,playlist->revision})) {
+          matchmaking_consent_pending_=true;
+        }
+      } else {
+        quickmatch_pending_=matchmaking_consent_pending_=false;
+        online_matchmaking_->join(playlist->id);
+        matchmaking_=online_matchmaking_->snapshot();
+      }
+    } else {
+      quickmatch_pending_=matchmaking_consent_pending_=false;
+      matchmaking_.status = OnlineMatchmakingStatus::Failed;
+      matchmaking_.message = playlist ? "This playlist is unavailable for this party or installed maps." : "Choose an available playlist in Optimatch first.";
+    }
+    changed = true;
+  }
+  // c_session_state_start_match::update (0x72700). The relay's loading
+  // phase is the replacement service's "every game-session peer is ready"
+  // gate (0x6E720/0x6E6B0). B then counts 10000 ms before mode4 starts the
+  // game. B's service session publishes the remaining time for every peer;
+  // observing Loading late must not start a new countdown on this machine.
+  const bool start_ready=matchmaking_.status==OnlineMatchmakingStatus::Loading &&
+      matchmaking_.match && online_matchmaking_;
+  if(start_ready && !matchmaking_have_fun_) {
+    const auto countdown=matchmaking_published_start_countdown(
+        matchmaking_.start_countdown_supported?matchmaking_.start_countdown_ms:std::nullopt);
+    if(countdown.seconds!=matchmaking_countdown_){matchmaking_countdown_=countdown.seconds;changed=true;}
+    if(countdown.ready) {
+      // network_session_set_mode(b,4): match mode2, "Have fun!". A session
+      // not yet handed over by the relay is retried on the next update.
+      if(!launch_online_match())return;
+      if(launch){matchmaking_have_fun_=true;changed=true;}
+    }
+  } else if(!start_ready && (matchmaking_countdown_!=matchmaking_countdown_none || matchmaking_have_fun_)) {
+    matchmaking_start_clock_.reset();matchmaking_countdown_=matchmaking_countdown_none;
+    matchmaking_have_fun_=false;changed=true;
+  }
+  // c_matchmaking_screen update (0x251B39): a pane change records the pane
+  // clock; entering pane3 requests UI sound12.
+  if(const auto pane=online_matchmaking_progress_pane();pane!=matchmaking_progress_pane_) {
+    const auto entry_sound=matchmaking_progress_pane_sound(matchmaking_progress_pane_,pane);
+    matchmaking_progress_title_state_=int(online_matchmaking_ui());
+    matchmaking_progress_pane_=pane;matchmaking_pane_clock_=ui_clock_;changed=true;
+    // 0x148523 closes an open online Y menu from pane1 on; dialog callback
+    // 0x252166 closes the leave-matchmaking choice once pane2 is reached.
+    const auto above_progress=[&]{
+      for(auto i=stack_.size();i-->0;)if(stack_[i].screen==210)return i+1<stack_.size();
+      return false;
+    };
+    while(above_progress()) {
+      const auto &top=frame();
+      const bool leave_dialog=top.screen==7 && !top.entries.empty() && top.entries.front().destination==-16;
+      const bool y_menu=top.screen==26 || top.screen==31 || top.screen==216 || top.screen==217 || top.screen==211;
+      if(!((leave_dialog && pane>=2) || (y_menu && pane>=1)))break;
+      stack_.pop_back();
+    }
+    if(entry_sound && frame().screen==210 && pending_ui_sounds_.size()<16)
+      pending_ui_sounds_.push_back(static_cast<FrontendUiSound>(*entry_sound));
+  }
+  if (!changed) return;
+  for (auto &f : stack_) {
+    if (!matchmaking_screen(f)) continue;
+    if (f.screen == 210 && previous_pane != online_matchmaking_progress_pane()) {
+      ++f.pane_generation;
+      f.pane_created_clock = ui_clock_;
+    }
+    std::string focus;
+    if ((f.screen == 219 || f.screen == 237) && f.selected < f.entries.size()) focus = f.entries[f.selected].label;
+    f.entries.clear(); populate_online_matchmaking(f);
+    if (!focus.empty()) {
+      const auto it = std::find_if(f.entries.begin(), f.entries.end(), [&](const auto &e) { return e.label == focus; });
+      if (it != f.entries.end()) f.selected = unsigned(it - f.entries.begin());
+    }
+    f.selected = std::min(f.selected, unsigned(f.entries.size() - 1));
+  }
+  ++revision;
+}
+
+bool MenuState::launch_online_match() {
+  try {
+    FrontendLaunch result;
+    const auto &matched=*matchmaking_.match;
+    const auto variant=matched_variant(content_,matched);
+    if(!variant)throw FormatError("Playlist selected an unavailable game variant.");
+    result.variant=*variant;
+    result.variant.name=matched.variant;
+    const auto rules=detail::frontend_multiplayer_rules(result.variant);
+    if(matched.map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_")!=std::string::npos)throw FormatError("Invalid matchmaking map.");
+    result.map=matched.map+".map"; result.multiplayer=true;
+    result.match_voice=match_voice_ || (party_voice_wanted_ && voice_party_ && voice_.joined);
+    const auto self=std::find_if(matched.players.begin(),matched.players.end(),[](const auto &p){return p.self;});
+    if(self==matched.players.end())throw FormatError("Matchmaking omitted the local player.");
+    result.online_match=online_matchmaking_->take_launch();
+    if(result.online_match) {
+      if(const auto teams=result.online_match->team_mode();teams && *teams!=rules.team_mode)throw FormatError("Matchmaking team mode differs from the selected variant");
+      const auto players=local_players();const auto slots=result.online_match->local_slots();
+      if(players.size()!=slots.size())throw FormatError("Couch profiles changed before match launch.");
+      result.local_players=unsigned(players.size());
+      for(unsigned i=0;i<players.size();++i) {
+        const auto &p=players[i];const auto &admitted=result.online_match->roster().at(slots[i]);
+        if(p.name!=admitted.name)throw FormatError("Couch profile differs from admitted player.");
+        result.selected_profiles.push_back(native_selected_player_configuration(p.name,
+            std::span<const std::uint8_t,9>(reinterpret_cast<const std::uint8_t*>(&p.appearance),9),
+            rules.team_mode?admitted.team:p.team));
+        result.input_instances.push_back(p.input_instance);
+        if(rules.team_mode)result.selected_teams.push_back(std::int8_t(admitted.team));
+      }
+      if(multiplayer_map_validator_) {
+        try { multiplayer_map_validator_(result); }
+        catch(const FormatError &) {
+          // Only the actual cache/native admission validator produces AC.
+          // Account, profile and malformed-service errors never become a
+          // missing-disc diagnosis. Notify the authenticated B owner first.
+          online_matchmaking_->reject_content();return false;
+        }
+      }
+      launch=std::move(result);
+    }
+  }catch(const FormatError &e) {
+    online_matchmaking_->cancel_queue();reset_online_matchmaking_progress();unavailable(e.what());return false;
+  }
+  return true;
+}
+
+MatchmakingProgressUi MenuState::online_matchmaking_ui() const {
+  // 0x199D7C over the replacement service's queue phases.
+  using S=OnlineMatchmakingStatus;using U=MatchmakingProgressUi;
+  if(matchmaking_have_fun_)return U::have_fun;
+  switch(matchmaking_.status) {
+  case S::Failed:return U::failed;
+  case S::Searching:return matchmaking_.gathering?U::waiting:U::searching;
+  case S::CheckingConnections:case S::AwaitingTransport:
+    return matchmaking_.match?U::joining:U::searching;
+  case S::Loading:return matchmaking_.match?U::start_match:U::searching;
+  default:return U::none;
+  }
+}
+
+unsigned MenuState::online_matchmaking_progress_pane() const {
+  return matchmaking_progress_pane(online_matchmaking_ui(),matchmaking_countdown_);
+}

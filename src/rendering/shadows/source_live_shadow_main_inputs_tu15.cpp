@@ -81,6 +81,10 @@ void source_live_shadow_main_inputs_tu15(PhysicsLiveWorldTu15& world,
     put(0x4c65f0u,context.draw.viewport);
     put(0x4c66f4u,std::int32_t(context.view));
     put(0x4c6839u,std::uint8_t(context.view_modifier));
+    //2B609 publishes the outer caller's actual local-view count. An imported
+    //producer bank can carry a different split, so refresh this input along
+    //with the recipient camera before any phase consumes it.
+    put(0x4c686cu,std::int32_t(context.local_players));
     //Whole2C470 owns cap, geometry/model scales, player shader multiplier
     //and every feature byte. Publishing only the feature bytes loses real
     //secondary coverage.1BE90 consumes the outer signed-short viewport and

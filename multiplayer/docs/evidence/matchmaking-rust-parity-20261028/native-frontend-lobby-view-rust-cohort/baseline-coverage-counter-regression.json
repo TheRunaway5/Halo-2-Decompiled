@@ -1,0 +1,17 @@
+{
+  "baseline_passed": false,
+  "passing_checks": [
+    "frontend_clans_http",
+    "frontend_parties_http",
+    "retail_frontend_lobby_policy"
+  ],
+  "failing_check": "retail_frontend_lobby_game",
+  "failure": "original lobby game-panel coverage changed",
+  "preserved_fixture_rows": 1217,
+  "quick_rows": 71,
+  "stale_expected_quick_rows": 70,
+  "original_extra_row_independently_executed": true,
+  "reference_unchanged": true,
+  "correction": "tests/frontend_lobby_game_tests.cpp",
+  "report": "native/iteration-1-report.json"
+}

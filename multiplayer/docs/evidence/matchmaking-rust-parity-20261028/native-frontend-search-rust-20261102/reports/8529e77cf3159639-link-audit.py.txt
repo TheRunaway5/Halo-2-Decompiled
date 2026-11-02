@@ -1,0 +1,10 @@
+import hashlib,json,os,subprocess,sys
+from pathlib import Path
+build=Path(sys.argv[1]);label=sys.argv[2];out=Path.cwd()/'build/test-results/frontend-search-rust-20261102';record={'label':label,'objects':{},'retained_large_artifacts':[]}
+for name in ['CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o','CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o','CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_search.cpp.o','libhalo2_frontend_search.a']:
+ p=build/name
+ if not p.is_file():continue
+ data=p.read_bytes();run=subprocess.run(['nm','-C',str(p)],capture_output=True,check=True)
+ symbols=[line for line in run.stdout.decode().splitlines() if any(word in line for word in ['online_matchmaking','online_match','FrontendMatchmakingSearch','frontend_search_','new_frontend_search','clone_frontend_search','update_online_party_search','prepare_online_matchmaking_lobby'])]
+ record['objects'][name]={'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'symbols':symbols}
+(out/(label+'-link-audit.json')).write_text(json.dumps(record,indent=2)+'\n');print(label,len(record['objects']))

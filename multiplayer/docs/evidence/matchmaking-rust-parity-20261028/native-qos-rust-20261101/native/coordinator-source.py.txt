@@ -1,0 +1,124 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();source=scratch/'native-source';source.mkdir()
+output=root/'build/test-results/native-qos-rust-frontend-qualified-20261101';output.mkdir(parents=True,exist_ok=True)
+ignore=shutil.ignore_patterns('__pycache__','target','*.so','*.dylib','*.dll')
+shutil.copyfile(root/'CMakeLists.txt',source/'CMakeLists.txt')
+for name in ('cmake','src','include'):shutil.copytree(root/name,source/name,ignore=ignore)
+for name in ('online_protocol','online_protocol_bridge','online_security_ffi','matchmaking_service'):shutil.copytree(root/'rust'/name,source/'rust'/name,ignore=ignore)
+shutil.copytree(root/'multiplayer/master_server',source/'multiplayer/master_server',ignore=ignore)
+def overlay(relative,selected):
+ target=source/relative;target.mkdir(parents=True,exist_ok=True)
+ for child in (root/relative).iterdir():
+  destination=target/child.name
+  if child.name in selected:shutil.copyfile(child,destination)
+  else:destination.symlink_to(child,target_is_directory=child.is_dir())
+def freeze_code(relative):
+ def copy(current,target):
+  if current.is_symlink():target.symlink_to(current.resolve(),target_is_directory=current.is_dir());return
+  if current.is_dir():
+   target.mkdir()
+   for item in current.iterdir():
+    if item.name not in ('__pycache__','target','.venv','node_modules'):copy(item,target/item.name)
+  elif current.suffix.lower() in ('.py','.rs','.cpp','.hpp','.h','.c','.cc','.cxx','.cmake','.json','.toml','.lock','.yaml','.yml','.ts','.js','.txt','.md','.patch','.sh','.bash','.in','.glsl','.vert','.frag','.comp','.geom','.inc'):
+   shutil.copyfile(current,target)
+  else:target.symlink_to(current)
+ copy(root/relative,source/relative)
+freeze_code('tools')
+freeze_code('shaders')
+overlay('tests',{'frontend_online_lobby_buttons_tests.cpp','online_search_qos_tests.cpp','online_search_qos_http_test.py','game_variant_normalization_tests.cpp','original_matchmaking_readiness_tests.cpp','test_eos_bootstrap.py','online_eos_bootstrap_tests.cpp','online_voice_tests.cpp','online_account_tests.cpp','online_matchmaking_tests.cpp','steam_login_http_test.py','test_build_online_protocol_rust.py','test_rust_service_qos_controls.py'})
+helper_dir=source/'tests/helpers';helper_dir.unlink();shutil.copytree(root/'tests/helpers',helper_dir,ignore=ignore)
+ref=source/'tests/reference';ref.unlink();ref.mkdir()
+for child in (root/'tests/reference').iterdir():
+ if child.name=='vertex_program_reference.cpp':shutil.copyfile(child,ref/child.name)
+ else:(ref/child.name).symlink_to(child,target_is_directory=child.is_dir())
+for name in ('assets','external','third_party','resources','data','docs','.tools'):
+ if (root/name).exists():(source/name).symlink_to(root/name,target_is_directory=True)
+resource_dir=source/'resources';resource_dir.unlink();resource_dir.mkdir()
+for child in (root/'resources').iterdir():
+ if child.name!='frontend':(resource_dir/child.name).symlink_to(child,target_is_directory=child.is_dir())
+ else:
+  target=resource_dir/'frontend';target.mkdir()
+  for item in child.iterdir():
+   if item.name=='mcc-native-layout.json':shutil.copyfile(item,target/item.name)
+   else:(target/item.name).symlink_to(item,target_is_directory=item.is_dir())
+fixtures=source/'tests/fixtures';fixtures.unlink();fixtures.mkdir()
+for child in (root/'tests/fixtures').iterdir():
+ if child.name in ('game_variant_normalization_original.tsv','tu15_matchmaking_readiness_original.json','tu15_matchmaking_errors_original.json'):shutil.copyfile(child,fixtures/child.name)
+ else:(fixtures/child.name).symlink_to(child,target_is_directory=child.is_dir())
+owned=[]
+for current,directories,files in os.walk(source,followlinks=False):
+ directories[:]=[name for name in directories if not (Path(current)/name).is_symlink()]
+ for name in files:
+  p=Path(current)/name
+  if not p.is_symlink():owned.append(p)
+digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={str(p.relative_to(source)):digest(p) for p in sorted(owned)}
+frozen_cmake=output/'frozen-cmake.txt';shutil.copyfile(source/'CMakeLists.txt',frozen_cmake);assert frozen_cmake.stat().st_size<=1048576
+drift=[p for p,h in pins.items() if not (root/p).is_file() or digest(root/p)!=h]
+parts=[]
+for offset in range(0,len(pins),400):
+ name=f'source-pins-{offset//400}.json';parts.append(name);(output/name).write_text(json.dumps(dict(list(pins.items())[offset:offset+400]),indent=2)+'\n')
+before=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest()
+inputs=dict(schema='H2_RUST_SERVICE_NATIVE_HANDOFF_INPUTS_V1',before_sha256=before,source_pin_parts=parts,input_count=len(pins),source_snapshot=str(source),copied_source_bytes=sum(p.stat().st_size for p in owned),borrowed_cpp_headers=0,drift_during_freeze=drift,report_helper_scratch=str(scratch),retained_large_artifacts=[])
+
+
+import select
+archive=root/'EOS-SDK-58105819-Release-v1.19.2.1.zip'
+with archive.open('rb') as file:archive_sha=hashlib.file_digest(file,'sha256').hexdigest()
+inputs['official_sdk_archive']=dict(path=str(archive),sha256=archive_sha,bytes=archive.stat().st_size,borrowed_read_only=True)
+if drift:raise RuntimeError('Source changed during freeze: '+', '.join(drift))
+fifo=scratch/'handoff-control.fifo';os.mkfifo(fifo);stream=os.fdopen(os.open(fifo,os.O_RDWR),'r')
+print('READY '+str(fifo),flush=True)
+serial=0
+allowed=('rust/online_protocol/src/matchmaking_origin.rs','rust/online_protocol/src/matchmaking_native_qos.rs','rust/online_protocol/tests/matchmaking_native_qos_worker.rs','rust/online_protocol_bridge/src/matchmaking_native_qos.rs','rust/online_protocol_bridge/src/matchmaking_native_qos.hpp','src/network/online_search_qos.cpp','tests/online_search_qos_http_test.py','tests/frontend_online_lobby_buttons_tests.cpp','tools/rust_service_frontend_controls.py','tools/rust_service_frontend_io_delay.cpp','cmake/RustMatchmakingFrontend.cmake','tools/rust_service_qos_controls.py','tests/test_rust_service_qos_controls.py','rust/online_protocol/src/matchmaking_client.rs','rust/online_protocol/tests/matchmaking_client_controller.rs','rust/online_protocol_bridge/src/matchmaking_client.rs','rust/online_protocol_bridge/src/matchmaking_client.hpp','rust/online_protocol_bridge/build.rs','tools/build_online_protocol_rust.py','tests/test_build_online_protocol_rust.py','tests/online_matchmaking_tests.cpp','rust/online_protocol/src/matchmaking_variant.rs','rust/online_protocol/src/matchmaking_model.rs','rust/online_protocol/src/lib.rs','rust/matchmaking_service/src/variant_catalog_tests.rs','rust/matchmaking_service/src/runtime.rs','include/halo2/matchmaking_variant.hpp','src/network/matchmaking_variant.cpp','src/ui/frontend_matchmaking.cpp','tests/game_variant_normalization_tests.cpp','cmake/OnlineProtocolRust.cmake','rust/online_protocol/src/matchmaking_readiness.rs','rust/online_protocol_bridge/src/lib.rs','rust/online_protocol_bridge/src/matchmaking_readiness.rs','src/network/original_matchmaking_readiness.cpp','include/halo2/original_matchmaking_readiness.hpp','tests/original_matchmaking_readiness_tests.cpp','tools/rust_service_native_handoff_probe.cpp','tools/rust_service_native_handoff_controls.py','tools/test_rust_matchmaking_service.py','src/network/online_matchmaking.cpp','include/halo2/online_matchmaking.hpp')
+try:
+ while True:
+  ready,_,_=select.select([stream],[],[],1200)
+  if not ready:raise RuntimeError('Owned native handoff worker idle deadline')
+  request=json.loads(stream.readline())
+  if request.get('action')=='quit':break
+  assert request.get('action')=='validate'
+  serial+=1;label=f'iteration-{serial}'
+  record=dict(passed=False,scratch=str(scratch),source=str(source),commands=[],retained_large_artifacts=[])
+  try:
+   refreshed=[]
+   for name in allowed:
+    current=digest(root/name)
+    if pins.get(name)!=current:
+     shutil.copyfile(root/name,source/name);pins[name]=current;refreshed.append(name)
+   record['refreshed_inputs']=refreshed
+   record['source_pin_sha256']=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest()
+   for offset in range(0,len(pins),400):
+    (output/f'{label}-source-pins-{offset//400}.json').write_text(json.dumps(dict(list(pins.items())[offset:offset+400]),indent=2)+'\n')
+   command=[sys.executable,str(root/'tools/run_tests.py'),'--build-worker','--source',str(source),'--output',str(output/label),'--jobs','2','--test-jobs','1']
+   for target in ('original_matchmaking_readiness_tests','rust_service_native_handoff_probe','online_matchmaking_tests','online_eos_bootstrap_tests','rust_service_account_probe','rust_service_matchmaking_probe','rust_service_qos_probe','rust_service_room_probe','online_login_probe','rust_service_social_probe','online_search_qos_tests','frontend_online_lobby_buttons_tests'):command+=['--target',target]
+   command+=['--filter',request.get('filter','^(original_matchmaking_readiness|rust_native_handoff_failclosed_http|online_matchmaking_client|online_eos_release_bootstrap|online_protocol_rust_build_helper|rust_service_qos_ready_reader|rust_matchmaking_service_http|online_search_qos_client|rust_frontend_lobby_(blocked|complete|rendered))$'),
+    '--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON','--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON','--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT='+str(root),
+    '--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE='+str(root/'assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b'),'--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF','--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF',
+    '--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE='+str(archive)]
+   for report in ('Testing/Temporary/LastTest.log','rust-native-handoff-failclosed/step-0.log','rust-native-handoff-failclosed/step-1.log','online-protocol/Release/build-report.json','rust-native-handoff-failclosed/report.json','rust-native-handoff-failclosed/source-manifest.json','rust-service/step-0.log','rust-service/step-1.log','rust-service/report.json','rust-service/source-manifest.json','rust-frontend-blocked/report.json','rust-frontend-blocked/source-manifest.json','rust-frontend-blocked/step-0.log','rust-frontend-complete/report.json','rust-frontend-complete/source-manifest.json','rust-frontend-complete/step-0.log','rust-frontend-rendered/report.json','rust-frontend-rendered/source-manifest.json','rust-frontend-rendered/step-0.log'):
+    command+=['--retain-report',report]
+   record['commands'].append(dict(argv=command,returncode=None))
+   (output/(label+'-running.json')).write_text(json.dumps(record,indent=2)+'\n')
+   run=subprocess.run(command,env=dict(os.environ,RUSTUP_AUTO_INSTALL='0'),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+   (output/(label+'-runner.log')).write_bytes(run.stdout[-1048576:])
+   record['commands'][-1]['returncode']=run.returncode
+   record['runner_report']=json.loads((output/label/'report.json').read_text())
+   record['passed']=run.returncode==0 and record['runner_report']['passed']
+   record['frozen_inputs_intact']=all(digest(source/name)==h for name,h in pins.items())
+   assert record['frozen_inputs_intact']
+   if run.returncode:print(run.stdout.decode(errors='replace')[-6000:],flush=True)
+  except BaseException as error:
+   record['error']=repr(error);print(type(error).__name__+': '+str(error),flush=True)
+  finally:
+   (output/(label+'-report.json')).write_text(json.dumps(record,indent=2)+'\n')
+   (output/(label+'-running.json')).unlink(missing_ok=True)
+   print(json.dumps(dict(iteration=serial,passed=record['passed'],error=record.get('error'),report=str(output/(label+'-report.json')))),flush=True)
+finally:
+ final_parts=[]
+ for offset in range(0,len(pins),400):
+  name=f'final-source-pins-{offset//400}.json';final_parts.append(name);(output/name).write_text(json.dumps(dict(list(pins.items())[offset:offset+400]),indent=2)+'\n')
+ inputs.update(iterations=serial,final_source_pin_parts=final_parts,source_pin_sha256=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest(),current_source_drift=[n for n,h in pins.items() if not (root/n).is_file() or digest(root/n)!=h])
+ (output/'inputs.json').write_text(json.dumps(inputs,indent=2)+'\n')
+ print('Owned native handoff worker exited; enclosing owner removes all generated storage',flush=True)

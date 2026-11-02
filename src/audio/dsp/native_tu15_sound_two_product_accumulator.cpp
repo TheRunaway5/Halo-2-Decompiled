@@ -17,8 +17,8 @@ std::uintptr_t address(const Word24* p){
 }
 bool overlaps(std::uintptr_t a,std::uintptr_t b){return a<b+32*sizeof(Word24)&&b<a+32*sizeof(Word24);}
 }
-Result process(const Controls& c,const Parameters& p,State& s,std::span<const Word24,32> primary,std::span<const Word24,32> secondary,std::span<Word24,32> output,std::span<ArithmeticTrace,32> arithmetic){
-    validate(c.entry_status);validate(p.primary_gain);validate(p.secondary_gain);validate(s.flags);
+void validate_controls(const Controls& c){
+    validate(c.entry_status);
     // The modules explicitly force SM, then clear it. Entry normal scaling,
     // ordinary 24-bit arithmetic and signed multiplication are the recovered
     // domain; SC changes MOVEC semantics; incoming LF/FV loop context is unowned.
@@ -27,6 +27,9 @@ Result process(const Controls& c,const Parameters& p,State& s,std::span<const Wo
     if(c.entry_status.bits&((3u<<10)|(1u<<17)|(1u<<14)|(1u<<18)|(1u<<12)|(1u<<13)|(1u<<15)|(1u<<16)))throw std::invalid_argument("Unsupported original entry status mode");
     if(c.state_relative!=AddressingMode::linear)throw std::invalid_argument("Unsupported original state-relative addressing mode");
     for(auto mode:{c.primary,c.secondary,c.output})if(mode!=AddressingMode::linear)throw std::invalid_argument("Unsupported original address mode");
+}
+Result process(const Controls& c,const Parameters& p,State& s,std::span<const Word24,32> primary,std::span<const Word24,32> secondary,std::span<Word24,32> output,std::span<ArithmeticTrace,32> arithmetic){
+    validate_controls(c);validate(p.primary_gain);validate(p.secondary_gain);validate(s.flags);
     for(auto w:primary)validate(w);
     for(auto w:secondary)validate(w);
     for(auto w:output)validate(w);

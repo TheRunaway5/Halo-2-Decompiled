@@ -1,0 +1,14 @@
+{
+  "reason": "Initial disposable harness omitted existing historical candidate fixture; additive reference-only refresh before cargo test compiles this fixture",
+  "source": ".local/test-scratch/native-peer-driver-full-rust/halo2-test-2hmqi01j/source",
+  "source_pins": {
+    "multiplayer/master_server/tests/fixtures/retail-rank-original.json": "c83204d815ad63f05b7e01e4f07e5e1059fc6484abe8e655e1dc540528c88217",
+    "multiplayer/master_server/tests/fixtures/retail-clan-original.json": "f1c392dfe96e284b01451af51afac37aa173724c38c2b844e2ab5dea98b6fe11",
+    "multiplayer/master_server/tests/fixtures/retail-session-candidates.json.gz": "20ef2f951fdac45ebec6501c95dd3b372c706392961f89b36b51bf1acb8f649a",
+    "multiplayer/master_server/tests/fixtures/retail-party-search-ranks.json": "9c28c0924bced7b9fbe79778bb82bf71fce5798d029544d55db42606bdaaf496",
+    "multiplayer/master_server/tests/fixtures/retail-gathering-rank-windows.json": "f23735a8c682768777e4ec0cfce7b7e80c3ac42691e196aa2a267273cdb96c69",
+    "multiplayer/master_server/tests/fixtures/retail-search-lifecycle.json": "cbe151ca0a5cef33f7d2fbe4fc84619c3a85757c002c3652af9f8dc76b41244f",
+    "multiplayer/master_server/tests/fixtures/retail-lifecycle-followup.json": "2d7abcf721107cb15401e098d7d394c40c58d67e45e55a657919fc2b39af9bcf",
+    "multiplayer/master_server/tests/fixtures/title-update-1.5-rank-original.json": "823e86e7441026b1ff941e228f67eee0c80c146a6f79ef6d04a854bcf61b7c0a"
+  }
+}

@@ -54,6 +54,19 @@ queues are also bounded to five frames. SDL playback queues are bounded and
 mixed samples are clamped. Reliable TCP transport can stall during packet loss;
 this initial service does not claim UDP-grade WAN latency.
 
+Current service ownership, 2026-10-29: Rust now owns private voice preference
+validation/replacement and current bilateral identity/block reads, plus the
+opt-in clan/party relay's admission, native account bindings, membership and
+socket generations, packet/sequence/burst policy, queues and delivery. Leaving
+and rejoining retires the old channel even when the clan is unchanged. Queued
+audio is checked again before delivery and expires after five seconds.
+Native effects publish after successful SQL commit. Python retains socket,
+wakeup, clock/provider/SQLite IO and send deadlines. See the
+[current ownership audit](matchmaking-rust-parity-audit-20261028.md#rust-private-voice-preferences-and-social-relay-ownership)
+and [component receipt](evidence/matchmaking-rust-parity-20261028/voice-validation.json).
+These are modern service rules; full original/native/delivered acceptance remains
+open. The historical production evidence below is not activation of this port.
+
 ## In-game match voice
 
 Match voice is independent of clan voice and follows the source-backed audience

@@ -1,0 +1,169 @@
+{
+  "schema": "HALO2_SOURCE_SMG_WARTHOG_AUDIO_INPUT_REFERENCE_V1",
+  "scope": "Actual ordinary local MCC/Original SDL controls retained only after all12 adaptive runtime gates passed. A nativeCLI replay must independently qualify the exact candidate ELF; this adaptive reference alone is not installed-runtime acceptance.",
+  "runtime_cache_source": "MCC",
+  "graphics_mode": "Original",
+  "mute": false,
+  "audio_driver": "dummy",
+  "capture_tick": 1000,
+  "birth_inventory_tick": 1,
+  "input_rows": 999,
+  "input_script_sha256": "c169138685457726052b863f79f87cc84b9fb348a639d5f9b24b8602e096d59f",
+  "map_sha256": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+  "input_projection": {
+    "legacy_cli_projection_omits_accept": true,
+    "actual_accept_equals_fire_rows": 999,
+    "float_digits": 9,
+    "parser_roundtrip_rows": 999,
+    "scope": "Each row is the actual delivered steps-keyed fire/reload/grenade/yaw/pitch/movement/jump/crouch projection. SDL left mouse also sets Controls.accept; its actual value equals fire on every recorded row. The legacy CLI projection omits accept, so no full Controls byte-identity claim is made."
+  },
+  "qualified_adaptive": {
+    "report": "build/test-results/effect-loop-location-20261029/smg-warthog-cohort3-postjoin-bounded/report.json",
+    "report_sha256": "24fe2e45c404f832f3af155a1fbd8e671ecfbff54fc0182fa7726db66dd1f5c2",
+    "native_cohort_engine_sha256": "072ab7c42b441382cef7e50e0690fb1f1f451c0012d21bb208c762605fdc8787",
+    "adaptive_fixture_sha256": "69e8b1c883954e15941dcfe5823c06b95bb2ba2b553f142e6cc435ef1afbff25",
+    "source_sha256": "2dcb41902aeccdaee6a549f61bd4c58a210ac4e357ec6c2ff597af441973d804",
+    "wrapper_sha256": "0198686c31541963a7a27cd22cf77931623deb079cb2f11564ddae93b9930888",
+    "input_count": 136,
+    "inputs_unchanged": true,
+    "all_gates": {
+      "actual_frag_damaged_alive_precondition": true,
+      "actual_mode3_effect_progression": true,
+      "actual_unmuted_audio": true,
+      "actual_warthog_damage": true,
+      "capture_completed": true,
+      "completed_reload": true,
+      "delivered_input_schedule": true,
+      "native_smg_projectile_publications": true,
+      "ordinary_same_player_weapon": true,
+      "ordinary_shadow_draws": true,
+      "runtime_completed": true,
+      "sustained_smg_fire": true
+    },
+    "elapsed_seconds": 89.516,
+    "submitted_frames": 999,
+    "capture_frame_count": 1,
+    "shadow_generate_draws": 22150,
+    "shadow_apply_draws": 11492,
+    "scope": "Private adaptive main linked to136 unchanged official native inputs from the stated engine cohort; exact halo2_native execution is a separate required replay gate."
+  },
+  "observed_precondition": {
+    "kind": "one_ordinary_frag_before_smg",
+    "commands": 1,
+    "projectile": 3805151327,
+    "definition": 4095825171,
+    "type": 0,
+    "release_tick": 657,
+    "detonation_tick": 700,
+    "detonation": {
+      "definition": 4095825171,
+      "player": 3966763008,
+      "position": [
+        46.55365753173828,
+        -72.22272491455078,
+        -1.1836961507797241
+      ],
+      "projectile": 3805151327,
+      "serial": 4,
+      "source_effect_instance": 3866427407,
+      "tick": 700,
+      "unit": 3800760348
+    },
+    "before_body": 1.0,
+    "after_body": 0.4826356768608093,
+    "complete_tick": 730,
+    "target_owner": 3803381828,
+    "target_definition": 3850585718
+  },
+  "observed_smg": {
+    "source_player": 3966763008,
+    "source_unit": 3800760348,
+    "source_weapon": 3800825885,
+    "weapon_definition": 4027011322,
+    "rounds_consumed": 65,
+    "reload_transfers": 1,
+    "reload_rounds": 60,
+    "first_shot_tick": 819
+  },
+  "observed_target": {
+    "handle": 3803381828,
+    "definition": 3850585718,
+    "netgame_row": 49,
+    "placement": 35,
+    "pre_fire_body": 0.4826356768608093,
+    "minimum_post_fire_body": 0.3022609353065491,
+    "first_damage_tick": 821,
+    "maximum_hull_damage_state": 3
+  },
+  "observed_mode3": {
+    "entries": 301,
+    "returns": 301,
+    "validated_entries": 301,
+    "successful_returns": 301,
+    "post_fire_successful_returns": 182,
+    "target_owned_post_fire_successful_returns": 182,
+    "new_generation_successful_returns": 84,
+    "preexisting_target_owned_successful_returns": 98,
+    "precondition_target_owned_successful_returns": 119,
+    "post_fire_successful_ticks": 182,
+    "first_shot_tick": 819,
+    "invalid_calls": 0,
+    "read_failures": 0,
+    "unfinished_calls": 0
+  },
+  "first_two_actual_mode3_samples": [
+    {
+      "caller_return": 1636938,
+      "eax": 1065353217,
+      "effect": 3866820629,
+      "effect_definition": 3853862568,
+      "effect_object_definition": 3850585718,
+      "effect_object_owner": 3803381828,
+      "loop": 3803054143,
+      "loop_definition": 3853993642,
+      "new_generation": false,
+      "output_bits": [
+        1111573095,
+        3264395792,
+        3209065192,
+        3203974390,
+        3210151028,
+        3195509953,
+        1065353216
+      ],
+      "precondition_first_seen_source_tick": 700,
+      "precondition_generation_seen": true,
+      "tick": 819
+    },
+    {
+      "caller_return": 1636938,
+      "eax": 1065353217,
+      "effect": 3866820629,
+      "effect_definition": 3853862568,
+      "effect_object_definition": 3850585718,
+      "effect_object_owner": 3803381828,
+      "loop": 3803054143,
+      "loop_definition": 3853993642,
+      "new_generation": false,
+      "output_bits": [
+        1111573095,
+        3264395792,
+        3209065192,
+        3203974390,
+        3210151028,
+        3195509953,
+        1065353216
+      ],
+      "precondition_first_seen_source_tick": 700,
+      "precondition_generation_seen": true,
+      "tick": 820
+    }
+  ],
+  "scratch_removed": true,
+  "retained_reference": {
+    "path": "tests/fixtures/smg_warthog_loop_audio_inputs.tsv",
+    "bytes": 44449,
+    "purpose": "Required permanent regression input reference; observed controls only, no gameplay state or outcomes supplied"
+  },
+  "retained_large_artifacts": []
+}

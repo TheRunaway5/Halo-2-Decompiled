@@ -1,4 +1,5 @@
 #include "halo2/cache.hpp"
+#include "halo2/death_cycle_runtime_tu15.hpp"
 #include "halo2/native_tu15_world_memory.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
@@ -95,6 +96,92 @@ Json domain(const Json &fixture,const Json &folded,const Cache &cache,bool mcc){
         {"folded_cases",folded_rows},{"folded_original_mismatches",folded_failures},
         {"matches_unchanged_Xbox_execution",hash==fixture["results_sha256"].get<std::string>()}};
 }
+// Execute the actual1704C0 region-choice owner through both real request-key
+// stores. The observation boundary stops before178E30's unrelated allocation;
+// it supplies no callee return, chosen state or success. BCB70 then consumes
+// the produced words through its complete native body and ordinary ABI.
+Json model_loop_one_seam(const Cache &cache,bool mcc) {
+    auto m=native_tu15_world_memory({0x60212000u,{},"isolated model-loop producer namespace input"});
+    constexpr unsigned body=0x1000000u,model=0x1006000u,variants=0x1006200u,
+        regions=0x1006400u,permutations=0x1006600u,states=0x1006800u,
+        pool=0x100a000u,headers=0x100c000u,tags=0x100e000u,
+        choices=0x1012000u,live=0x1012100u,out=0x1012200u,
+        stack=0x2010000u,stop=0x3000000u,object=0x12340000u,model_tag=0x22340007u,
+        effect=0x33440008u,marker=0x11223344u;
+    m.mount(body,std::vector<std::byte>(0x20000),SourceRuntimeMemory::Access::ReadWrite,
+        "declared singleton model-state and actual object-function operands");
+    m.mount(stack-0x10000,std::vector<std::byte>(0x20000),SourceRuntimeMemory::Access::ReadWrite,
+        "declared original1704C0 caller and source scratch stack");
+    input_pointer(m,0x4f0414u,tags);input_pointer(m,0x4ecbd0u,pool);
+    put(m,tags+7u*16u+8u,model);put(m,pool+0x44u,headers);put(m,headers+8u,body);put(m,body,model_tag);
+    put(m,model+0x70u,1u);put(m,model+0x54u,variants);put(m,variants+0x18u,regions);
+    put(m,regions+8u,1u);put(m,regions+0xcu,permutations);
+    put(m,permutations+8u,0x3f800000u);put(m,permutations+0xcu,1u);put(m,permutations+0x10u,states);
+    put(m,states+4u,3u);put(m,states+0xcu,effect);put(m,states+0x10u,marker);
+    m.write(states+6u,std::array{std::byte{2},std::byte{0}});
+    m.write(live,std::array{std::byte{0xff},std::byte{0},std::byte{0},std::byte{0}});put(m,live+4u,0xffffffffu);
+    const auto metadata_before=std::vector<std::byte>(m.view(model,0xa00).begin(),m.view(model,0xa00).end());
+    std::unique_ptr<SourceEffectCompiledSymbolsTu15> binding;
+    if(mcc)binding=std::make_unique<SourceEffectCompiledSymbolsTu15>(m,true,[&](auto id){return cache.string_id(id);});
+    const unsigned expected=mcc?0x030005b2u:0x030005a6u;
+    check(!mcc||cache.string_id(expected)=="one","Actual MCC producer ONE name differs");
+    SourcePhysicsWorldRuntimeServices services;
+    services.required_owner=[&](auto &memory,const auto &call,auto &abi,const auto &observe) {
+        if(source_death_cycle_runtime_tu15_owns_entry(call.target))
+            source_run_death_cycle_runtime_tu15(memory,call.target,abi,{0x27f,0x1f80},services,observe);
+        else if(source_physics_live_support_tu15_owns_entry(call.target))
+            source_run_physics_live_support_tu15(memory,call.target,abi,{0x27f,0x1f80},services,observe);
+        else throw FormatError("Model-loop seam reached an undeclared real callee");
+    };
+    unsigned instructions{},producer_visits{},primary_stores{},secondary_stores{},request{};
+    services.instruction=[&](unsigned pc) {
+        if(++instructions>10000u)throw FormatError("Model-loop seam exceeded its bounded original prefix");
+        producer_visits+=pc==0x170676u;
+    };
+    struct RequestBoundary {};
+    const SourcePhysicsContactRecordObserver observer=[&](const auto &store) {
+        primary_stores+=store.instruction==0x170688u;secondary_stores+=store.instruction==0x17068cu;
+        if(store.instruction==0x170690u){request=store.address;throw RequestBoundary{};}
+    };
+    constexpr std::array arguments{object,model_tag,0u,0u,2u,0u,0xffffffffu,0u,choices,live};
+    put(m,stack,stop);for(unsigned i=0;i<arguments.size();++i)put(m,stack+4u+i*4u,arguments[i]);
+    SourcePhysicsWorldRuntimeAbi a{};a.gp={0x11223344u,0x55667788u,0x99aabbccu,0x13572468u,
+        stack,0x24681357u,0x12344321u,0x56788765u};a.eflags=2u;
+    bool reached{};
+    try{source_run_death_cycle_runtime_tu15(m,0x1704c0u,a,{0x27f,0x1f80},services,observer);}
+    catch(const RequestBoundary&){reached=true;}
+    check(reached&&producer_visits==1u&&primary_stores==1u&&secondary_stores==1u,
+        "Actual model-loop producer did not execute both exact original stores");
+    const Bytes packet(m.view(request,96));
+    check(packet.u32(0)==3u&&packet.u32(4)==effect&&packet.u32(8)==object&&packet.u32(0x30)==marker&&
+        packet.u32(0x34)==expected&&packet.u32(0x38)==expected,
+        "Actual generated170676 changed model-loop request keys or unrelated declared inputs");
+    check(std::ranges::equal(metadata_before,m.view(model,0xa00)),"Producer changed authored model-state metadata");
+    unsigned consumers{};
+    for(unsigned offset:{0x34u,0x38u}) {
+        put(m,out,0xdeadbeefu);
+        for(const auto &[at,value]:std::array<std::pair<unsigned,unsigned>,4>{{
+                {0,stop},{4,object},{8,packet.u32(offset)},{12,out}}})put(m,stack+at,value);
+        SourcePhysicsWorldRuntimeAbi consumer{};consumer.gp[4]=stack;consumer.eflags=2u;
+        source_run_physics_live_support_tu15(m,0xbcb70u,consumer,{0x27f,0x1f80},services);
+        check((consumer.gp[0]&255u)==1u&&consumer.gp[4]==stack+16u&&Bytes(m.view(out,4)).u32(0)==0x3f800000u,
+            "RealBCB70 rejected the actual compiled model-loop ONE producer");
+        ++consumers;
+    }
+    for(unsigned wrong:{0u,0xffffffffu,0x130005a6u,0x030005b2u})
+        check(source_object_function_compiled_symbol_tu15(m,0x170676u,wrong)==wrong,
+            "Producer namespace join accepted a different full word");
+    for(unsigned pc:{0x170675u,0x170677u,0x170688u,0x17068cu})
+        check(source_object_function_compiled_symbol_tu15(m,pc,0x030005a6u)==0x030005a6u,
+            "Producer namespace join spread to an adjacent instruction or store");
+    binding.reset();
+    check(source_object_function_compiled_symbol_tu15(m,0x170676u,0x030005a6u)==0x030005a6u,
+        "Producer namespace join outlived its actual Cache binding");
+    return {{"MCC_namespace",mcc},{"producer_entry",0x1704c0u},{"producer_instruction",0x170676u},
+        {"producer_visits",producer_visits},{"primary_stores",primary_stores},{"secondary_stores",secondary_stores},
+        {"produced_function",expected},{"actual_consumer_calls",consumers},{"native_owner",0xbcb70u},
+        {"scope","Actual generated model-region prefix through original request stores and complete nativeBCB70; no effect allocation or full-world result supplied"}};
+}
 }
 int main(int argc,char **argv){
     if(argc>=3 && !*argv[2])return 77;
@@ -106,6 +193,8 @@ int main(int argc,char **argv){
             fixture["weapon_callback"]==0x1046c0u&&fixture["cases"]==13520,"Original callback fixture authority differs");
         Cache cache(argv[2]);check(cache.is_mcc(),"Namespace regression requires actual MCC metadata");
         check(cache.string_id(0x0e00057eu)=="primary_firing"&&cache.string_id(0x1000057fu)=="secondary_firing","MCC named firing inputs differ");
+        report["model_loop_one_original"]=model_loop_one_seam(cache,false);
+        report["model_loop_one_MCC"]=model_loop_one_seam(cache,true);
         Json folded;
         if(argc==5){std::ifstream file(argv[4]);folded=Json::parse(file);check(folded["original_xbe_sha256"]==fixture["original_xbe_sha256"],"Folded callback reference differs");}
         report["original"]=domain(fixture,folded,cache,false);report["MCC"]=domain(fixture,folded,cache,true);

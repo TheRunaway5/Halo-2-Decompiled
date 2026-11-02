@@ -413,6 +413,8 @@ void source_run_unit_animation_selection_1_1(M &m,std::uint32_t entry,
             'retained.instruction=services.instruction;\n    retained.timestamp_counter=services.timestamp_counter;')
     source=source.replace('halo2/unit_animation_selection_runtime.hpp',RUNTIME_HEADER)
     source=source.replace('source_run_unit_animation_selection_1_1',RUNTIME_FUNCTION)
+    from native_normalize_vector_bridge_tu15 import install_native_normalizer
+    source=install_native_normalizer(source,'Mp11Literal')
     if not a.output.exists() or a.output.read_text()!=source:
         a.output.write_text(source)
     report=dict(schema=1,generator_sha256=sha(__file__),original_sha256=PIN,

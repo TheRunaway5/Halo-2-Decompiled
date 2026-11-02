@@ -1,9 +1,11 @@
 #include "halo2/source_lens_flare_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/cache.hpp"
+#ifndef HALO2_LENS_REQUEST_ONLY
 #include "halo2/source_lens_draw_frame_tu15.hpp"
 #include "halo2/source_lens_query_frame_tu15.hpp"
 #include "halo2/source_lens_frame_camera_tu15.hpp"
+#endif
 #include <cstring>
 #include <fstream>
 #include <algorithm>
@@ -13,6 +15,7 @@ using namespace halo2;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
 
+#ifndef HALO2_LENS_REQUEST_ONLY
 using OldQuery=std::vector<SourceLensQueryDraw>(SourceLensQueryFrameTu15::*)(PhysicsLiveWorldTu15 &,unsigned,
     Vec3,Vec3,Vec3,float,const SourceViewProjectionBank &,std::array<std::int16_t,4>,unsigned,unsigned);
 using OldDraw=std::vector<SourceLensDraw>(SourceLensDrawFrameTu15::*)(PhysicsLiveWorldTu15 &,unsigned,
@@ -48,11 +51,14 @@ void camera_controls() {
   check(retained_query_signature!=nullptr && retained_draw_signature!=nullptr,"Old lens method ABI was removed");
   std::cout<<"PASS six native lens camera logical/physical/clip-byte controls and retained exported MP signatures\n";
 }
+#endif
 
 std::vector<std::byte> bytes(const std::string &hex){std::vector<std::byte>b;for(unsigned n=0;n<hex.size();n+=2)b.push_back(std::byte(std::stoul(hex.substr(n,2),nullptr,16)));return b;}
 }
 int main(int argc,char **argv)try {
+#ifndef HALO2_LENS_REQUEST_ONLY
   if(argc==2 && std::string(argv[1])=="--camera"){camera_controls();return 0;}
+#endif
   check(argc==2 || argc==3,"Supply campaign original lens fixture and optional owned opening cache");std::ifstream file(argv[1]);if(!file)return 77;
   if(argc==3 && !std::filesystem::exists(argv[2]))return 77;
   const auto fixture=nlohmann::json::parse(file);unsigned cases{};
@@ -64,6 +70,7 @@ int main(int argc,char **argv)try {
         authored.at("bitmap").at("datum")==0xea060891 && authored.at("bitmap_rows").size()==2,"Campaign authored lens identities differ");
   const std::array<std::string,8> variants{"accepted","owner-view","no-view","no-tag","zero-scale","zero-fade","disabled-pool","full-pool"};
   for(unsigned n=0;n<variants.size();++n)check(fixture.at("cases")[n].at("variant")==variants[n],"Campaign lens case order differs");
+#ifndef HALO2_LENS_REQUEST_ONLY
   if(argc==3) {
     Cache cache(argv[2],std::filesystem::path(argv[2]).parent_path());
     const auto lens=cache.query_tag({.handle=TagHandle{0xea050890u},.group=TagGroup::from_string("lens"),.require_address=true});
@@ -77,6 +84,7 @@ int main(int argc,char **argv)try {
             !material->diffuse.mips.empty(),"Campaign authored flare image was not prepared before Renderer construction");
     }
   }
+#endif
   for(const auto &c:fixture.at("cases")) {
     SourceRuntimeMemory m;
     for(const auto &reference:c.at("initial_banks")) {
@@ -99,7 +107,12 @@ int main(int argc,char **argv)try {
     source_run_lens_flare_tu15(m,c.value("entry",fixture.at("entry").get<unsigned>()),abi,{0x27f,0x1f80},services);
     check(abi.gp==c.at("exit_gp").get<decltype(abi.gp)>(),"Original lens request GP output differs");
     check((abi.eflags&c.value("eflags_mask",0xcd5u))==(c.at("eflags").get<unsigned>()&c.value("eflags_mask",0xcd5u)),"Original lens request flags differ");
-    check(trace==c.at("instructions").get<decltype(trace)>(),"Original lens request instruction path differs");
+    auto reference_trace=c.at("instructions").get<decltype(trace)>();
+    // The complete20E30 leaf now has a separately qualified semantic kernel.
+    // Keep strict instruction comparison for every remaining translated PC.
+    const auto retired=[](auto pc){return pc>=0x20e30u && pc<0x20e90u;};
+    std::erase_if(trace,retired);std::erase_if(reference_trace,retired);
+    check(trace==reference_trace,"Original lens request instruction path differs");
     for(unsigned n=0;n<8;++n){const auto hex=c.at("exit_xmm")[n].get<std::string>();for(unsigned k=0;k<4;++k)check(abi.xmm[n][k]==std::stoul(hex.substr(24-k*8,8),nullptr,16),"Original lens request SSE output differs");}
     for(const auto &reference:c.at("final_banks")){const auto &b=fixture.at("banks").at(reference.get<unsigned>());const auto expected=bytes(b.at("hex"));const auto actual=m.view(b.at("address"),expected.size());if(!std::ranges::equal(actual,expected)){const auto mismatch=std::ranges::mismatch(actual,expected);std::cerr<<"case="<<cases<<" address="<<std::hex<<b.at("address").get<unsigned>()+std::distance(actual.begin(),mismatch.in1)<<" got="<<unsigned(*mismatch.in1)<<" expected="<<unsigned(*mismatch.in2)<<std::dec<<"\n";throw std::runtime_error("Original lens request retained memory differs");}}
     check(abi.x87_depth==0,"Lens request retained an unconsumed x87 value");

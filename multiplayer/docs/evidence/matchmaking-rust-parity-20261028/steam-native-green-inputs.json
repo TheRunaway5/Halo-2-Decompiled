@@ -1,0 +1,50 @@
+{
+  "schema": "H2_STEAM_NATIVE_INPUTS_V1",
+  "before_sha256": "f7568c679dd8b791ee8d10665381644c59032ef3dfd56a1deac0b044ed3e4bf6",
+  "after_sha256": "f7568c679dd8b791ee8d10665381644c59032ef3dfd56a1deac0b044ed3e4bf6",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4279,
+  "changed": [],
+  "returncode": 0,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+  "copied_files": 4279,
+  "copied_source_bytes": 166407693,
+  "borrowed_cpp_headers": 0,
+  "current_source_drift": [
+    "src/app/loop_audio_capture.hpp",
+    "src/gameplay/animation/source_first_person_context_tu15.cpp"
+  ],
+  "declared_refresh": {
+    "rust/online_protocol/src/matchmaking_steam_request.rs": {
+      "before": "5aa1bbde62ac81a532384853caab4fffe30ba5c07508de6e6f9e8eaf8d52065b",
+      "after": "f5928d70575fd6e4a7cdea05006f6ce7aac53244d46fbe3f02359d4c946eac7b"
+    },
+    "rust/online_protocol_bridge/src/lib.rs": {
+      "before": "4e5395c9a9f36484352d2596e10698a10fd96f5b3cc673ff1d1115ae240b6cfa",
+      "after": "6a5d51cbc06c8890fc10606dcc062f864dcf8676f2d447e9f2bbd9536cb6d8ff"
+    },
+    "src/network/online_account.cpp": {
+      "before": "89e2f4fe7622f6366e949e262f9831bdbcd70cfc7b0fc94fd3c46d0a3f889214",
+      "after": "d88c521f40a0b57189cccf22386700a1459b50dc1d91666b51fdcdf29f8a1f8d"
+    },
+    "tests/online_account_tests.cpp": {
+      "before": "c946191fbbfca527b79c61f545e1e356fbaf0e69aa23eca16b4da39197cf6afc",
+      "after": "ec43c15878b78fbd29ea5e274d647d4964160e169cfb83193f57b09ceac3041a"
+    }
+  },
+  "source_control": "Owned source/build under one finite run_test.py owner; phase refreshes are explicit; external original assets borrowed read-only.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet",
+  "retained_large_artifacts": []
+}

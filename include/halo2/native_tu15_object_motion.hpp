@@ -23,6 +23,7 @@
 #include "halo2/math.hpp"
 #include "halo2/physics_body_factory.hpp"
 #include "halo2/physics_contact_record.hpp"
+#include "halo2/native_tu15_island_activation.hpp"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -60,6 +61,19 @@ std::string native_tu15_object_velocities_unsupported(const SourcePhysicsContact
 // write when native_tu15_object_velocities_unsupported() refuses.
 void native_tu15_set_object_velocities(SourcePhysicsContactMemory &, std::uint32_t object, const Vec3 *linear,
                                        const Vec3 *angular, SourcePhysicsFactoryFloatingPoint);
+// Explicit activation ownership for the native B9800 route. The caller owns
+// numerical state, real growth/listener/destructor services and optional
+// observation. No implicit virtual CPU, thread-local binding or stored result
+// is created. The no-context overload keeps its existing admission/refusals.
+struct NativeTu15ObjectActivationContext {
+  NativeTu15PhysicsFrameFp &floating_point;
+  const NativeTu15IslandActivationServices &services;
+  SourcePhysicsContactRecordObserver observer;
+  NativeTu15IslandActivationStats *activity = nullptr;
+  unsigned incoming_x87_depth = 0;
+};
+void native_tu15_set_object_velocities(SourcePhysicsContactMemory &, std::uint32_t object, const Vec3 *linear,
+                                       const Vec3 *angular, NativeTu15ObjectActivationContext &);
 // D2B60 / D2BD0: the units the original rider iterator yields for `object`,
 // in its order. It starts at the highest unit ancestor reached through
 // parents whose object +4 bit 26 is set, yields that root's unit children,

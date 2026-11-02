@@ -2,6 +2,7 @@
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/online_account.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/multiplayer_departure.hpp"
 #include "halo2/multiplayer_scoreboard.hpp"
@@ -63,7 +64,7 @@ int main(int argc,char **argv)try {
   const auto maps=mcc_root.empty()?root/"assets/disc/maps":mcc_root/"halo2/h2_maps_win64_dx11";
   const auto menu_settings=mcc_root.empty()?vista/"maps/mainmenu.map":maps/"mainmenu.map";
   check(std::filesystem::is_regular_file(menu_settings),"Selected UI bank is unavailable");
-  const auto runtime_ui=mcc_root.empty()?vista:mcc_root;
+  const auto runtime_ui=mcc_root.empty()?vista:std::filesystem::path{};
   const std::string first_playlist=argc==8?argv[7]:"ranked";
   const bool clan=mode=="clan" || mode=="clan-major" || mode=="clan-full";
   const bool group=mode=="party" || clan;
@@ -751,9 +752,21 @@ int main(int argc,char **argv)try {
     if(!std::getenv("DISPLAY"))return 77;
     std::filesystem::create_directories(output);
     MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
-    runtime.gameplay_xbe=root/"assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03";
+    // Prepared MCC caches select their compiled native TU1.5 gameplay by default.
     runtime.ui_assets=runtime_ui;
     runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
+    runtime.source_object_world=true; // Replay controls must retain the actual host's native world.
+    bool native_world{};runtime.source_world_observer=[&](const auto &){native_world=true;};
+    const auto verify_native_owner=[&](bool authority,const MultiplayerRuntimeOutcome& result,const char* stage){
+      const bool accuracy=result.state && result.state->result_accuracy.has_value();
+      check(!authority || native_world,"Rendered ONLINE host omitted its actual TU1.5 world binding");
+      if(authority && result.reason==MultiplayerExitReason::online_postgame)
+        check(accuracy,"Completed rendered ONLINE host omitted its actual frozen native accuracy");
+      std::cout<<"ONLINE_NATIVE_WORLD "<<nlohmann::json{{"stage",stage},{"authority_at_launch",authority},
+        {"native_world_observed",native_world},{"outcome_reason",static_cast<unsigned>(result.reason)},
+        {"state_present",result.state.has_value()},{"terminal_accuracy_present",accuracy},
+        {"source_object_world_requested",runtime.source_object_world},{"replay",runtime.replay}}.dump()<<'\n';
+    };
     runtime.variant.name=team?"Team Slayer":"Slayer";
     runtime.variant.values.set(10,8);runtime.variant.values.set(2,0);runtime.variant.values.set(91,int(team));
     std::array<std::uint8_t,9> appearance{};runtime.selected_profiles.push_back(native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[session->self()].team:-1));
@@ -762,9 +775,11 @@ int main(int argc,char **argv)try {
     unsigned ticks{},players{};bool fire{};
     runtime.input_observer=[&](auto step,auto controls,const auto &state){ticks=step;fire|=controls[0].fire;players=std::max(players,unsigned(std::count_if(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;})));};
     if(!departure_only) {
+      const bool authority=session->self()==session->host();
       MultiplayerRuntimeOutcome outcome;run_multiplayer(runtime,outcome);
       check(ticks>10 && players==2 && fire && outcome.state.has_value(),"Rendered matched gameplay never advanced real players and controls");
       check(outcome.reason==MultiplayerExitReason::online_postgame && outcome.state->game_over_complete(),"Runtime did not hand off actual completed results");
+      verify_native_owner(authority,outcome,"initial");
       complete_and_requeue(true);
     }
     runtime.online_match=session;runtime.frames=0;runtime.screenshot=output/(owner+"-requeued.ppm");runtime.variant={team?"Team Slayer":"Slayer",0,{}};runtime.variant.values.set(91,int(team));
@@ -796,9 +811,11 @@ int main(int argc,char **argv)try {
       }
       return std::filesystem::path{};
     };
+    const bool authority=session->self()==session->host();native_world=false;
     MultiplayerRuntimeOutcome second;run_multiplayer(runtime,second);
     check(second.state && second.state->tick>10,"ONLINE departure match did not launch real gameplay");
     check(ticks>10 && players==2 && fire,"Departure case did not advance real players and controls");
+    verify_native_owner(authority,second,"departure");
     if(quitting_player)check(second.reason==MultiplayerExitReason::escape,"Confirmed local quit lost its actual exit reason");
     else {
       if(second.reason==MultiplayerExitReason::online_disconnected)
@@ -830,7 +847,22 @@ int main(int argc,char **argv)try {
   if(!group){variant.values.set(10,mode=="mismatch" && owner=="one"?9:8);variant.values.set(2,0);variant.values.set(91,int(team));}
   auto rules=slayer_rules(variant,team);
   rules.weapon=cache.slayer_starting_weapon(rules.starting_weapon);
-  MultiplayerMatch match(content,0,cache.spawns(),rules);
+  // Core/blocks publish a real completed ONLINE result, whose accuracy must
+  // come from the original source bank. A bounded Match has no such owner.
+  const bool canonical_headless=mode=="core" || mode=="blocks";
+  std::unique_ptr<MultiplayerPreparedWorld> native_world;
+  std::unique_ptr<MultiplayerMatch> bounded_match;
+  if(canonical_headless && session->self()==session->host()) {
+    MultiplayerOptions options;options.map=maps/"lockout.map";options.shared_maps=maps;
+    options.online_match=session;options.variant=variant;options.source_object_world=true;
+    options.source_object_savegame_directory=output/(owner+"-headless-native-world");
+    native_world=std::make_unique<MultiplayerPreparedWorld>(options);
+    check(native_world->cache->is_mcc() && native_world->cache->original_data() &&
+      native_world->cache->original_data()->image==OriginalData::Image::TitleUpdate15 && native_world->source_objects &&
+      native_world->source_objects->owns_physics() && native_world->match.source_engine_owned(),
+      "Headless ONLINE result requires its actual MCC/TU1.5 authority world");
+  } else bounded_match=std::make_unique<MultiplayerMatch>(content,0,cache.spawns(),rules);
+  auto &match=native_world?native_world->match:*bounded_match;
   const auto fingerprint=multiplayer_fingerprint(maps/"lockout.map",maps,0,rules.weapon);
   session->loaded(fingerprint,variant);
   if(mode=="mismatch") {
@@ -871,7 +903,14 @@ int main(int argc,char **argv)try {
   }
   std::unique_ptr<LanHost> host;std::unique_ptr<LanClient> client;
   std::array<std::uint8_t,9> appearance{};const auto profile=native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[self].team:-1);
-  if(hosting){match.join("Same Pilot",team?session->roster()[self].team:-1,profile,self);host=std::make_unique<LanHost>(match,session,fingerprint,session->roster());}
+  if(hosting){
+    const auto joined=match.join("Same Pilot",team?session->roster()[self].team:-1,profile,self);
+    if(native_world){
+      check(joined==self,"Headless ONLINE host changed its admitted source slot");
+      native_world->bind_source_local_views(session->local_slots());
+    }
+    host=std::make_unique<LanHost>(match,session,fingerprint,session->roster());
+  }
   else {const std::int8_t selected=std::int8_t(session->roster()[self].team);client=std::make_unique<LanClient>(session,session->host(),fingerprint,team?std::span(&selected,1):std::span<const std::int8_t>{},std::span(&profile,1));}
   std::array<Controls,16> controls{};std::array<Controls,1> local{};
   wait([&]{if(host){host->receive(controls);host->broadcast();std::this_thread::sleep_for(30ms);return host->peers()==participants-1;}client->send(local);client->receive();return client->ready();});
@@ -969,11 +1008,38 @@ int main(int argc,char **argv)try {
   wait([&]{
     if(host && session->phase()==OnlineMatchSession::Phase::Running){host->receive(controls);match.step(controls);host->broadcast();
       std::this_thread::sleep_for(28ms); // Retain the real 30Hz simulation cadence.
-      if(!published && match.state().game_over_complete()) {const auto report=online_postgame_publish(match,variant,session->roster());session->complete(report.source);published=true;}}
+      if(!published && match.state().game_over_complete()) {
+        if(canonical_headless) {
+          const auto terminal=match.state();const auto recording=match.result_recording();
+          const auto statistics=match.recorded_statistics();
+          check(native_world && match.source_engine_owned() && terminal.finished && terminal.results_finalized &&
+            recording.enabled && recording.frozen && statistics && terminal.result_accuracy,
+            "Headless ONLINE host omitted actual finalized/frozen native accuracy");
+          const auto source_bank=native_world->source_objects->memory().view(0x51eef4u,sizeof(*statistics));
+          const auto retained=std::as_bytes(std::span(statistics,1));
+          check(std::equal(source_bank.begin(),source_bank.end(),retained.begin()) &&
+            *terminal.result_accuracy==source_result_accuracy(*statistics),
+            "Headless ONLINE accuracy differs from its original51EEF4 bank");
+          std::uint32_t shots{},hits{};
+          for(const auto &player:terminal.result_accuracy->players)for(const auto &weapon:player){shots+=weapon[0];hits+=weapon[1];}
+          check(shots>0,"Ordinary headless ONLINE firing omitted native shot counters");
+          std::cout<<"ONLINE_HEADLESS_NATIVE_ACCURACY "<<nlohmann::json{{"mode",mode},{"owner",owner},
+            {"authority",true},{"tick",terminal.tick},{"native_source_engine",match.source_engine_owned()},
+            {"recording_enabled",recording.enabled},{"recording_frozen",recording.frozen},
+            {"original_bank_equal",true},{"terminal_accuracy_equal",true},{"native_shots",shots},{"native_hits",hits}}.dump()<<'\n';
+        }
+        const auto report=online_postgame_publish(match,variant,session->roster());session->complete(report.source);published=true;
+      }}
     else if(client) {client->send(local);client->receive();}
     if(session->phase()==OnlineMatchSession::Phase::Reviewing) {
       const auto &final=client?client->state():match.state();const auto report=session->postgame();
       online_postgame_validate(final,variant,session->roster(),report);
+      if(canonical_headless) {
+        check(final.result_accuracy.has_value(),"Headless ONLINE peer lost its authority's terminal native accuracy");
+        std::cout<<"ONLINE_HEADLESS_NATIVE_ACCURACY_PCR "<<nlohmann::json{{"mode",mode},{"owner",owner},
+          {"authority",hosting},{"tick",final.tick},{"terminal_accuracy_present",true},
+          {"full_original_pcr_comparison_passed",true}}.dump()<<'\n';
+      }
       auto forged=report;forged[0x402]^=std::byte{1};bool rejected{};
       try{online_postgame_validate(final,variant,session->roster(),forged);}catch(const FormatError&){rejected=true;}
       check(rejected,"Client confirmed a score that differs from its final native snapshot");
@@ -982,7 +1048,7 @@ int main(int argc,char **argv)try {
     if(session->phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
     return session->phase()==OnlineMatchSession::Phase::Postgame;
   });
-  host.reset();client.reset();
+  host.reset();client.reset();native_world.reset();
   barrier("postgame-voice-ready");
   const auto before_postgame=audio->audible.load();unsigned muted_postgame{};
   for(unsigned i=0;i<160;++i) {

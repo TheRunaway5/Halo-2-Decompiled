@@ -1,0 +1,105 @@
+from pathlib import Path
+import hashlib,json,re
+root=Path.cwd();w=root/'build/test-results/frontend-progress-rust-20261102'
+def read(n):return json.loads((w/n).read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+native6=read('native/iteration-6-report.json');native8=read('native/iteration-8-report.json')
+assert native6['frozen_inputs_intact'] and native8['frozen_inputs_intact']
+diff=read('native/iteration-8/evidence/test-artifacts/frontend-progress-policy.json');assert diff['passed'] and diff['original_sort_cases']==856
+rust=read('rust-suite-summary.json');assert rust['passed'];assert read('focused-rust-final.json')['passed']
+oracles={k:read(p) for k,p in {'sort':'original-sort-native-expanded.json','input':'original-input-native.json','rows':'original-rows-native.json','widgets':'original-widgets-native.json'}.items()}
+assert all(r['passed'] for r in oracles.values())
+assert len({r['native_binary_sha256'] for r in oracles.values()})==1
+goal=read('goal-state-final.json')['goal']
+assert goal['status']=='active' and hashlib.sha256(goal['objective'].encode()).hexdigest()=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+ledger=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json';data=json.loads(ledger.read_text())
+criteria_base=json.loads((root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028/friend-goal-criteria-before.json').read_text())
+criteria={k:data[k] for k in criteria_base['criteria'] if k!='gap_criteria'}
+criteria['gap_criteria']=[{k:gap[k] for k in original} for gap,original in zip(data['gaps'],criteria_base['criteria']['gap_criteria'])]
+criteria_hash=hashlib.sha256(json.dumps(criteria,sort_keys=True).encode()).hexdigest()
+assert criteria_hash==criteria_base['sha256']=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+scope_hash=hashlib.sha256(json.dumps({k:data[k] for k in ('algorithm_index','scope','gaps','acceptance_gates')},sort_keys=True).encode()).hexdigest()
+assert scope_hash=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+deltas=read('native-declared-deltas.json');files={d['path']:sha(root/d['path']) for d in deltas}
+assert all(files[d['path']]==d['after'] for d in deltas)
+passing6=re.findall(r'Test\s+#\d+:\s+(\S+)\s+\.+\s+Passed', (w/'native/iteration-6/tests.log').read_text())
+passing8=re.findall(r'Test\s+#\d+:\s+(\S+)\s+\.+\s+Passed', (w/'native/iteration-8/tests.log').read_text())
+passing=sorted(set(passing6+passing8));assert len(passing)==14,(passing6,passing8)
+render=read('candidate-input/rendered.json')['frontend'];assert render['passed']
+buttons=native6['binaries']['frontend_online_lobby_buttons_tests']['sha256']
+# Every native UI receipt must bind the actual rebuilt input executable.
+for name in ('blocked','complete','rendered'):
+ p=w/'candidate-input'/(name+'.json');assert buttons in p.read_text()
+cleanup=read('scratch-cleanup.json');assert cleanup['passed']
+cohort='native-frontend-progress-rust-cohort'
+receipt_name='native-frontend-progress-rust-validation.json'
+summary={
+ 'schema':'H2_NATIVE_FRONTEND_PROGRESS_RUST_VALIDATION_V1','goal_turn':'progress','component_passed':True,
+ 'goal_status':'active','full_goal_complete':False,'original_whole_system_parity':False,
+ 'reference':data['reference'],'scope_inventory_sha256':scope_hash,'full_criteria_projection_sha256':criteria_hash,
+ 'goal_objective_sha256':hashlib.sha256(goal['objective'].encode()).hexdigest(),
+ 'production_policy_owner':'rust/online_protocol/src/matchmaking_frontend_progress.rs',
+ 'typed_bridge':'rust/online_protocol_bridge/src/matchmaking_frontend_progress.rs',
+ 'native_observation_adapter':'src/ui/frontend_matchmaking.cpp',
+ 'native_abi_adapter':'src/ui/frontend_matchmaking_policy_bridge.cpp',
+ 'policy':{'progress_panes_and_titles':True,'roster_source_sort_placeholders_privacy':True,
+  'rank_and_voice_identity_routing':True,'cancel_and_auxiliary_inputs':True,'leave_dialog_player_counts':True,
+  'widget_tables_tip_rng_and_opaque_tip_clock':True,'shared_search_countdown_and_pane_leaves':True,
+  'cpp_matching_policy_fallback':False,'unsafe_core_rust':False},
+ 'rust':{'total_passed':613,'counts':rust['totals'],'existing_ignored':4,
+  'new_progress_tests':8,'final_focused_passed':8,'final_focused_controls_sort':856,'final_focused_controls_input':536,
+  'note':rust['note']},
+ 'modern_comparison':diff,
+ 'fresh_original':{'total_cases':sum(r['cases'] for r in oracles.values()),'no_instruction_patches':True,
+  'no_replaced_callees':True,'original_tu15_sha256':'21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd',
+  'components':{k:{x:r[x] for x in ('cases','scope','backend','native_binary_sha256')} for k,r in oracles.items()},
+  'sort_instruction_addresses':oracles['sort']['original_instruction_addresses'],
+  'sort_instruction_visits':oracles['sort']['original_instruction_visits'],
+  'sort_comparator_calls':oracles['sort']['original_comparator_calls']},
+ 'source_fidelity_corrections':[
+  {'issue':'Modern stable_sort differed from original CRT tie swaps','legacy_differences':317,'controls':856},
+  {'issue':'Cancel interpreted wrapped clock differences as unsigned','legacy_differences':24,'controls':120},
+  {'issue':'Leave dialog compared connections with local player seats','legacy_differences':192,'controls':416,
+   'minimal':{'local_players':2,'remote_players':1,'connections':2,'original_dialog':'0x8C','legacy_dialog':'0x8D'},
+   'counterfactual':'Changing only the count unit removes all 192 differences; changing host identity does not.'}],
+ 'native':{'focused_passing_checks':passing,'focused_passing_count':14,
+  'baseline_passing_count':9,'baseline_broader_failed_count':4,'final_broader_failed_count':4,
+  'all_native_functional_tests_passed':False,
+  'shared_failures':[
+   {'test':'frontend_matchmaking_http','diagnostic':'Nonmember clan details lost the membership requirement'},
+   {'test':'frontend_matchmaking_gathering_http','diagnostic':'Matched/empty slot artwork is not an admitted source page'},
+   {'test':'frontend_clans_http','diagnostic':'ONLINE bitmaps missing selected imported sampling: xbox_live_menu','route':'legacy asset registry'},
+   {'test':'frontend_parties_http','diagnostic':'ONLINE bitmaps missing selected imported sampling: pregame_lobby #tu15-logical-mcc'}],
+  'explicit_linux_mcc_clan_flow_passed':True,'native_input_binary_sha256':buttons,
+  'final_native_menu_binary_sha256':native8['binaries']['frontend_online_tests']['sha256'],
+  'same_frozen_cohort_except_declared_changes':True,'declared_changed_files':len(deltas),
+  'frozen_inputs_intact':True,'native_test_expectation_strengthened':'Four modern stable-sort assertions replaced with all 856 unchanged-original caller controls, including that exact four-player example.',
+  'intermediate_failures_recorded':['CXX slice conversion','slice-only Rust Vec specialization','native startup logging in comparison protocol','standalone countdown target linkage','obsolete modern native smoke-test tie order'],
+  'rendered_ui_receipt':'candidate-input/rendered.json'},
+ 'sources':files,'storage':{'cohort':cohort,'owned_native_bytes_removed':cleanup['owned_native_bytes_removed'],
+  'scratch_cleanup_passed':True,'retained_large_artifacts':[]},
+ 'selected_runtime_replaced':False,'production_service_activated':False,'physical_installed_input':False,
+ 'remaining':['Remaining native matchmaking text/routing and matching-related party/local-seat producer ownership in Rust',
+  'All 53 algorithm owners and full original callers, service and dated historical recovery',
+  'The four broader native frontend failures and every required family/profile/topology/unshortened natural outcome/continuity route',
+  'Genuine providers, physical installed Linux input and delivered client/library/service/catalog/feature identities',
+  'Production restart, retry, configuration-change and rollback qualification; all twelve GAP and G01-G12 criteria']}
+assert summary['fresh_original']['total_cases']==2087
+(w/'implementation-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+entry={'receipt':'multiplayer/docs/evidence/matchmaking-rust-parity-20261028/'+receipt_name,
+ 'implementation':summary['production_policy_owner'],'bridge':summary['typed_bridge'],'native_io':summary['native_observation_adapter'],
+ 'native_adapter':summary['native_abi_adapter'],'component_passed':True,
+ 'progress_roster_rank_voice_input_widget_policy_in_rust':True,'cpp_progress_policy_fallback':False,'unsafe_core_rust':False,
+ 'rust_total':613,'new_rust_controls':8,'modern_cpp_rust_cases':995,'modern_cpp_rust_comparisons':37417,
+ 'unexpected_differences':0,'fresh_original_execution':True,'fresh_original_cases':2087,
+ 'original_sort_controls':856,'original_input_controls':536,'original_widget_controls':191,'original_row_controls':504,
+ 'original_sort_divergences_fixed':317,'original_signed_timer_divergences_fixed':24,'original_leave_count_divergences_fixed':192,
+ 'focused_native_passing_tests':14,'wider_shared_functional_failures':4,'all_final_native_functional_tests_passed':False,
+ 'linux_mcc_clan_flow_passed':True,'selected_runtime_replaced':False,'production_service_activated':False,
+ 'physical_installed_input':False,'original_whole_system_parity':False,'full_matchmaking_ready':False,'full_goal_complete':False,
+ 'remaining':summary['remaining']}
+before=ledger.read_bytes();current=json.loads(before);assert current==data
+current['native_frontend_progress_rust']=entry
+assert ledger.read_bytes()==before
+ledger.write_text(json.dumps(current,indent=2)+'\n')
+print(json.dumps({'rust':613,'native_focused':len(passing),'original_cases':2087,'scope_preserved':True,'native_failed':4}))

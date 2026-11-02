@@ -144,6 +144,37 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         self.f.report['shaders']['package']['sha256'] = self.f.digest(self.f.shaders/shaders.AOT_PACKAGE_NAME)
         self.f.publish()
 
+    def add_world_vertex_role(self, role, *, bound=True):
+        name='native_world/v-'+'1'*64+'-'+role+'.vert.spv'
+        data=self.code['vert']
+        (self.build/'shaders'/name).write_bytes(data)
+        manifest=self.build/'native-world-kernel-catalog/compiled.json'
+        generated=json.loads(manifest.read_text())
+        generated['stages'].append(dict(path=name,bytes=len(data),sha256=hashlib.sha256(data).hexdigest()))
+        manifest.write_text(json.dumps(generated))
+        inventory=self.build/'production-shaders.txt'
+        inventory.write_text('\n'.join(sorted([*inventory.read_text().splitlines(),name]))+'\n')
+        if bound:
+            self.f.runtime.write_bytes(self.f.runtime.read_bytes()+name.encode()+b'\0')
+        shutil.rmtree(self.f.shaders)
+        self.package=staging.stage_production_shaders(self.build,self.f.shaders)
+        return name
+
+    def test_path_tracing_source_depth_role_is_executable_bound(self):
+        name=self.add_world_vertex_role('path-tracing-source-depth')
+        result=shaders.validate_native_package(self.f.shaders,executable=self.f.runtime,workers=1)
+        self.assertIn(name,result['files'])
+
+    def test_path_tracing_source_depth_role_still_requires_its_executable_catalog(self):
+        self.add_world_vertex_role('path-tracing-source-depth',bound=False)
+        with self.assertRaisesRegex(ValueError,'executable-bound program catalogs'):
+            shaders.validate_native_package(self.f.shaders,executable=self.f.runtime,workers=1)
+
+    def test_unknown_world_vertex_role_is_not_admitted_by_a_generated_manifest(self):
+        self.add_world_vertex_role('path-tracing-source-depth-extra')
+        with self.assertRaisesRegex(ValueError,'undeclared production module'):
+            shaders.validate_native_package(self.f.shaders,executable=self.f.runtime,workers=1)
+
     def test_fixed_abi_matches_the_actual_production_source_policy(self):
         text = (ROOT/'cmake/NativeRendererProductionShaders.cmake').read_text()
         fixed = re.search(r'set\(native_renderer_fixed_shaders\s+([^)]*)\)', text).group(1).split()
@@ -393,6 +424,26 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         path = self.f.shaders/shaders.AOT_PACKAGE_NAME
         path.write_bytes(path.read_bytes()+b' ')
         self.assertFalse(self.f.available())
+
+    def test_parallel_audit_matches_serial_and_rejects_changed_shader_bytes(self):
+        serial = shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=1)
+        parallel = shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=2)
+        self.assertEqual(serial, parallel)
+        row = self.package['modules'][0]
+        path = self.f.shaders/row['path']
+        path.write_bytes(path.read_bytes()+b'changed')
+        with self.assertRaisesRegex(ValueError, 'differ from their package identity'):
+            shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=2)
+
+    def test_parallel_audit_rejects_forged_instruction_contract(self):
+        name = self.generated[1]
+        row = next(row for row in self.package['modules'] if row['path'] == name)
+        data = self.code['interpreter.frag']
+        (self.f.shaders/name).write_bytes(data)
+        row.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+        self.rewrite_package()
+        with self.assertRaisesRegex(ValueError, 'executable instruction-bank reads'):
+            shaders.validate_native_package(self.f.shaders, executable=self.f.runtime, workers=2)
 
     def test_changed_module_bytes_and_forged_instruction_contract_are_rejected(self):
         row = self.package['modules'][0]

@@ -16,13 +16,16 @@ from urllib.parse import urlsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, TCPConnector, web
 
-from .protocol import (VERSION, MAX_BODY, MAX_SYNC, MAX_LEASE, SKEW, Problem, canonical, parse,
+from .protocol import (VERSION, DOMAIN, MAX_BODY, MAX_SYNC, MAX_DISCOVERY, MAX_PAGE, MAX_LEASE, SKEW, Problem, canonical, parse,
                        fields, text, integer, identifier, public_key, public_hex, master_id,
                        load_key, require, signed, verified)
 from .store import Store
+from .directory_resources import ResponseBudget
+from .request_admission import TokenBuckets, RequestSlots, source_prefix
 from .player_identity import VerifiedOwner, VERIFIED_DISCORD_USERNAME
 
 LOG = logging.getLogger("halo2.directory")
+REQUEST_ADMISSION = web.RequestKey("request_admission", object)
 
 
 def endpoint(value, allow_http=False):
@@ -47,12 +50,16 @@ class Settings:
     lease: int = 90
     sync_interval: float = 15
     rate_per_minute: int = 600
+    ipv6_prefix_bits: int = 64
+    prefix_rate_per_minute: int = 1200
+    global_rate_per_minute: int = 6000
     discord_client_id: str = "1558522073272426519"
     peers: list = field(default_factory=list)
     matchmaking_catalog: str = ""
     peer_stun_urls: tuple = ()
     steam_enabled: bool = False
     steam_key: str = field(default="", repr=False)
+    discovery_only: bool = False
 
     @classmethod
     def environment(cls):
@@ -61,6 +68,7 @@ class Settings:
         peers_path = Path(os.environ.get("H2_MASTER_PEERS_FILE", str(state / "peers.json")))
         steam_key_file = os.environ.get("H2_STEAM_KEY_FILE", "")
         return cls(state=state, bind=os.environ.get("H2_MASTER_BIND", "127.0.0.1"),
+                   discovery_only=os.environ.get("H2_DIRECTORY_ONLY") == "1",
                    port=int(os.environ.get("H2_MASTER_PORT", "8080")),
                    public_url=os.environ.get("H2_MASTER_PUBLIC_URL", "https://localhost:8080"),
                    allow_http=os.environ.get("H2_MASTER_ALLOW_HTTP") == "1",
@@ -70,6 +78,9 @@ class Settings:
                    lease=int(os.environ.get("H2_MASTER_LEASE_SECONDS", "90")),
                    sync_interval=float(os.environ.get("H2_MASTER_SYNC_SECONDS", "15")),
                    rate_per_minute=int(os.environ.get("H2_MASTER_RATE_PER_MINUTE", "600")),
+                   ipv6_prefix_bits=int(os.environ.get("H2_MASTER_IPV6_PREFIX_BITS", "64")),
+                   prefix_rate_per_minute=int(os.environ.get("H2_MASTER_PREFIX_RATE_PER_MINUTE", "1200")),
+                   global_rate_per_minute=int(os.environ.get("H2_MASTER_GLOBAL_RATE_PER_MINUTE", "6000")),
                    discord_client_id=os.environ.get("H2_DISCORD_CLIENT_ID", "1558522073272426519"),
                    peers=parse(peers_path.read_bytes()) if peers_path.exists() else [],
                    matchmaking_catalog=os.environ.get("H2_MATCHMAKING_CATALOG", ""),
@@ -79,9 +90,14 @@ class Settings:
                              os.environ.get("H2_STEAM_KEY", os.environ.get("STEAM_KEY", "")).strip())
 
     def validate(self):
+        require(not self.discovery_only or not self.matchmaking_catalog,
+                "Discovery-only directory cannot own a matchmaking catalog")
         endpoint(self.public_url, self.allow_http)
         integer(self.port, 1, 65535); integer(self.lease, 1, MAX_LEASE)
         integer(self.rate_per_minute, 1, 100000)
+        integer(self.ipv6_prefix_bits, 1, 128)
+        integer(self.prefix_rate_per_minute, 1, 100000)
+        integer(self.global_rate_per_minute, 1, 100000)
         require(0.1 <= self.sync_interval <= 3600, "Invalid sync interval")
         require(bool(re.fullmatch(r"[0-9]{17,20}", self.discord_client_id)), "Invalid Discord application ID")
         require(not self.steam_key or bool(re.fullmatch(r"[0-9A-Fa-f]{32}", self.steam_key)), "Invalid Steam Web API key configuration")
@@ -147,11 +163,18 @@ class Directory:
         require(self.id not in self.trusted, "Master cannot peer with itself")
         self.store.cleanup(self.trusted)
         self.peer_status = {p["id"]: {"last_success": None, "failures": 0} for p in settings.peers}
-        self.buckets = {}
+        self.buckets = TokenBuckets()
+        self.request_slots = RequestSlots()
+        self.responses = ResponseBudget()
         self.started = time.monotonic()
         self.verify_owner = owner_verifier or discord_owner
         self.session = None
         self.maintenance_task = None
+        # The Rust deployment keeps this process solely for signed listings
+        # and federation. It must not open account/queue owners or run their
+        # maintenance against the same canonical database.
+        if settings.discovery_only:
+            return
         from .matchmaking_http import MatchmakingApi, load_catalog
         self.matchmaking = MatchmakingApi(self, load_catalog(settings.matchmaking_catalog))
         from .clans_http import ClanApi
@@ -182,21 +205,25 @@ class Directory:
     async def verify_identity(self, token):
         require(not token.startswith("h2r_"), "Saved sign-in is only valid for session renewal", 401)
         if token.startswith("h2s_"):
+            require(not self.settings.discovery_only,
+                    "Directory enrollment requires Discord authorization", 503)
             require(self.settings.steam_enabled, "Steam sign-in is not configured", 503)
             return await self.steam.owner(token)
         return await self.verify_owner(self.session, token, self.settings.discord_client_id)
 
-    def rate(self, key, limit=None):
-        now = time.monotonic()
-        # Bound attacker-controlled source-address bookkeeping too.
-        if len(self.buckets) >= 4096:
-            self.buckets = {k: v for k, v in self.buckets.items() if now - v[1] < 60}
-            require(key in self.buckets or len(self.buckets) < 4096, "Rate limiter capacity reached", 429)
-        maximum = limit or self.settings.rate_per_minute
-        tokens, previous = self.buckets.get(key, (float(maximum), now))
-        tokens = min(maximum, tokens + (now - previous) * maximum / 60)
-        require(tokens >= 1, "Rate limit exceeded", 429)
-        self.buckets[key] = (tokens - 1, now)
+    def rate(self, key, limit=None, *, burst=None, interval=60, cost=1):
+        self.buckets.charge(key, limit or self.settings.rate_per_minute, burst, interval, cost)
+
+    def source_prefix(self, source):
+        return source_prefix(source, self.settings.ipv6_prefix_bits)
+
+    def admit_source(self, request):
+        source = self.source(request)
+        # Charge the aggregate before creating any exact-address bookkeeping.
+        self.rate("prefix:" + self.source_prefix(source), self.settings.prefix_rate_per_minute,
+                  burst=min(512, self.settings.prefix_rate_per_minute))
+        self.rate("global:requests", self.settings.global_rate_per_minute, burst=2048)
+        self.rate("ip:" + source)
 
     async def body(self, request, limit=MAX_BODY):
         require(request.content_type == "application/json", "Use application/json", 415)
@@ -235,14 +262,20 @@ class Directory:
         return value
 
     async def health(self, request):
-        from .player_presence import population
         self.store.db.execute("SELECT 1").fetchone()
         require(self.maintenance_task is not None and not self.maintenance_task.done(), "Maintenance worker unavailable", 503)
+        if self.settings.discovery_only:
+            return web.json_response({"status": "ok", "ready": True,
+                                      "component": "discovery", "master_id": self.id,
+                                      "uptime_seconds": int(time.monotonic() - self.started),
+                                      "peers": self.peer_status})
+        from .player_presence import population
         counts = population(self)
         queued = sum(counts[state][kind] for state in ("queued", "joining") for kind in ("users", "guests"))
         return web.json_response({"status": "ok", "ready": True, "master_id": self.id,
                                   "uptime_seconds": int(time.monotonic() - self.started),
-                                  "peers": self.peer_status, "matchmaking_players": queued})
+                                  "peers": self.peer_status, "matchmaking_players": queued,
+                                  "admission": self.buckets.metrics() | {"active_requests":self.request_slots.active}})
 
     async def masters(self, request):
         return web.json_response({"master": {"id": self.id, "public_key": public_hex(self.key),
@@ -255,13 +288,21 @@ class Directory:
 
     async def discover(self, request):
         require(len(request.query) == len(set(request.query)), "Duplicate discovery filter")
-        values = self.store.discover(dict(request.query))
-        if "server_id" in request.match_info:
-            sid = identifier(request.match_info["server_id"])
-            values = [v for v in values if v["server_id"] == sid]
-            require(bool(values), "Server not found", 404)
-            return web.json_response(values[0])
-        return web.json_response({"servers": values})
+        # Charge collection work separately from cheap status/control requests.
+        # 32 pages fit a complete 1,000-row browse even at the byte ceiling.
+        self.rate("discovery:" + self.source(request), 480, burst=128, cost=4)
+        self.rate("discovery:global", 2400, burst=256, cost=4)
+        with self.responses.reserve(MAX_DISCOVERY):
+            filters = dict(request.query)
+            if "server_id" in request.match_info:
+                raw = self.store.discover_one(identifier(request.match_info["server_id"]), filters)
+            else:
+                cursor = filters.pop("cursor", None)
+                limit = filters.pop("limit", str(MAX_PAGE))
+                require(bool(re.fullmatch(r"[0-9]{1,2}", limit)), "Invalid discovery page size")
+                raw = self.store.discovery_page(filters, cursor, int(limit))
+            require(len(raw) <= MAX_DISCOVERY, "Discovery response exceeds size limit", 503)
+            return await self.responses.send(request, raw)
 
     async def enroll(self, request):
         admin = request.path.startswith("/v1/admin/")
@@ -315,6 +356,10 @@ class Directory:
             require(value["nonce"] == nonce, "Federation response nonce mismatch", 401)
 
     async def sync(self, request):
+        with self.responses.reserve(MAX_SYNC):
+            return await self.sync_response(request)
+
+    async def sync_response(self, request):
         envelope = await self.body(request)
         fields(envelope, ("payload", "signature"))
         require(type(envelope["payload"]) is dict, "Invalid federation envelope")
@@ -322,14 +367,25 @@ class Directory:
         require(sender in self.trusted, "Untrusted federation peer", 403)
         value = verified(envelope, self.trusted[sender])
         self.sync_payload(value, "sync", sender)
-        self.rate("peer:" + sender, 600)
-        self.store.nonce(sender, value["nonce"])
-        response = signed(self.key, {"v": VERSION, "kind": "snapshot", "sender_id": self.id,
+        with self.responses.peer(sender):
+            # Preserve replay diagnostics without spending cadence on replays.
+            require(not self.store.db.execute("SELECT 1 FROM nonces WHERE peer=? AND nonce=? AND expires>?",
+                    (sender, value["nonce"], int(self.store.clock()))).fetchone(), "Replayed federation request", 409)
+            self.rate("peer:" + sender, 1, burst=1, interval=self.settings.sync_interval)
+            self.store.nonce(sender, value["nonce"])
+            payload = {"v": VERSION, "kind": "snapshot", "sender_id": self.id,
                     "recipient_id": sender, "issued_at": int(self.store.clock()), "nonce": value["nonce"],
-                    "records": self.store.snapshot()})
-        raw = canonical(response)
-        require(len(raw) <= MAX_SYNC, "Snapshot exceeds federation size limit", 503)
-        return web.Response(body=raw, content_type="application/json")
+                    "records": None}
+            records = self.store.snapshot_bytes()
+            require(len(records) + 1024 <= MAX_SYNC, "Snapshot exceeds federation size limit", 503)
+            # The cached records are already canonical. Only the small nonce-
+            # bound wrapper changes, avoiding per-row parsing/canonicalization.
+            body = b"{" + b",".join(canonical(k) + b":" + (records if k == "records" else canonical(v))
+                                    for k, v in sorted(payload.items())) + b"}"
+            signature = self.key.sign(DOMAIN + body).hex()
+            raw = b'{"payload":' + body + b',"signature":' + canonical(signature) + b'}'
+            require(len(raw) <= MAX_SYNC, "Snapshot exceeds federation size limit", 503)
+            return await self.responses.send(request, raw)
 
     async def pull(self, peer):
         nonce = str(uuid.uuid4())
@@ -353,12 +409,13 @@ class Directory:
     async def maintenance(self):
         while True:
             self.store.cleanup(self.trusted)
-            self.matchmaking.cleanup()
-            if hasattr(self, "match_transport"):
-                await self.match_transport.cleanup()
-            self.clans.cleanup()
-            self.parties.cleanup()
-            self.steam.cleanup()
+            if not self.settings.discovery_only:
+                self.matchmaking.cleanup()
+                if hasattr(self, "match_transport"):
+                    await self.match_transport.cleanup()
+                self.clans.cleanup()
+                self.parties.cleanup()
+                self.steam.cleanup()
             await asyncio.gather(*(self.pull(peer) for peer in self.settings.peers))
             await asyncio.sleep(self.settings.sync_interval)
 
@@ -375,8 +432,14 @@ class Directory:
             with contextlib.suppress(asyncio.CancelledError):
                 await task
             await self.session.close()
-            if self.matchmaking.core is not None:
-                self.matchmaking.core.close()
+            if not self.settings.discovery_only:
+                if self.matchmaking.core is not None:
+                    self.matchmaking.core.close()
+                self.profiles.close()
+                self.friends.close()
+                self.steam_friends.close()
+                self.clan_voice.relay.close()
+                self.party_voice.relay.close()
             self.store.db.close()
             LOG.info(json.dumps({"event": "master_stopped", "master_id": self.id}))
 
@@ -388,12 +451,14 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     async def boundary(request, handler):
         started = time.monotonic()
         status = 500
+        lease = None
         try:
             path_limit = 4096 if request.path.startswith("/v1/auth/steam/callback/") else 1024
             require(len(request.raw_path) <= path_limit, "Request path too long", 414)
             require(not request.headers.get("Content-Encoding"), "Compressed bodies are not accepted", 415)
             require(settings.allow_http or settings.behind_tls_proxy or request.secure, "HTTPS required", 403)
-            directory.rate("ip:" + directory.source(request))
+            directory.admit_source(request)
+            lease = request[REQUEST_ADMISSION] = directory.request_slots.acquire()
             result = await handler(request)
             status = result.status
             result.headers["Cache-Control"] = "no-store"
@@ -414,6 +479,8 @@ def create_app(settings, owner_verifier=None, clock=time.time):
             status = 502
             return web.json_response({"error": "Identity provider unavailable"}, status=status)
         finally:
+            if lease is not None:
+                lease.release()
             # Route templates only: no tokens, IPs, raw query text or owner IDs.
             route = request.match_info.route.resource
             LOG.info(json.dumps({"event": "request", "route": route.canonical if route else "unknown",
@@ -423,10 +490,13 @@ def create_app(settings, owner_verifier=None, clock=time.time):
     app = web.Application(middlewares=[boundary], client_max_size=MAX_BODY,
                           handler_args={"auto_decompress": False, "max_field_size": 4096, "max_line_size": 8192})
     app[web.AppKey("directory", Directory)] = directory
+    async def upgraded(request, response):
+        if response.status == 101 and (lease := request.get(REQUEST_ADMISSION)) is not None:
+            lease.release()
+    app.on_response_prepare.append(upgraded)
     app.cleanup_ctx.append(directory.lifetime)
-    app.cleanup_ctx.append(directory.parties.lifetime)
     app.add_routes([
-        web.get("/v1/health", directory.health), web.get("/v1/online/status", directory.online_status),
+        web.get("/v1/health", directory.health),
         web.get("/v1/masters", directory.masters),
         web.get("/v1/servers", directory.discover), web.post("/v1/servers", directory.announce),
         web.get("/v1/servers/{server_id}", directory.discover),
@@ -441,6 +511,10 @@ def create_app(settings, owner_verifier=None, clock=time.time):
         web.delete("/v1/admin/credentials/{credential_id}", directory.revoke),
         web.post("/v1/federation/sync", directory.sync),
     ])
+    if settings.discovery_only:
+        return app
+    app.cleanup_ctx.append(directory.parties.lifetime)
+    app.router.add_get("/v1/online/status", directory.online_status)
     app.add_routes(directory.matchmaking.routes())
     app.add_routes(directory.steam.routes())
     app.add_routes(directory.steam_friends.routes())

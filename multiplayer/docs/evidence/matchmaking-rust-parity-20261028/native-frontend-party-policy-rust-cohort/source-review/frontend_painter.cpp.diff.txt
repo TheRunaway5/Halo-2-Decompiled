@@ -1,0 +1,15 @@
+--- captured/src/ui/frontend_painter.cpp
++++ current/src/ui/frontend_painter.cpp
+@@ -1447,6 +1447,12 @@
+       // PC63E9A0 hides child4 for the active local-controller mask.
+       if(frame.screen==vista_menu(18) && index==4)continue;
+       if (wide_social_page(frame) && index == 2) continue;
++      // Original186 bitmap1 is the retired Bungie news decoration. Its
++      // page7 has no admitted PC counterpart (online-vista-assets.md).
++      // Native service text has no original news payload to draw over it.
++      if (online_vista_art && frame.screen==186 && index==1 && b->frame==7 &&
++          content.images.contains(b->datum) && content.images.at(b->datum).name==
++            "ui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu") continue;
+       if (online_vista_art && frame.screen==186 && index==3 && frame.selected==3) continue;
+       if (frame.screen==210 && !content.original_matchmaking_layout && content.images.contains(b->datum)) {
+         const auto &name=content.images.at(b->datum).name;

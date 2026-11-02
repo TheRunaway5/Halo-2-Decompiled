@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "error": "TU1.5 live actual root 14fec0 at 30e96d: Native TU1.5 contact features require read-only observers without active instruction traces [gp 1 91327830 461518 600ee710 600ee650 600ee6e4 600ee770 600ee774] [stack 30e970 600ee710 1 600ee790 91327830 600ee930 100888ac a96]",
+      "name": "Slayer",
+      "passed": false,
+      "stage": "ordinary-warmup"
+    }
+  ],
+  "declared_engine_death_input": false,
+  "passed": false,
+  "scope": "Original MCC-backed Slayer with one-point score limit, ordinary firing and actual hit/death/completion. Exact source51EEF4 shot/hit counts are compared with retained statistics, terminal snapshot and published PCR. Declared local roster identities and authored initial positions are fixtures; no shot/hit counter, damage, death, score, clock or completion result is supplied. Internet/installed-client acceptance remains separate.",
+  "winning_flow": true
+}

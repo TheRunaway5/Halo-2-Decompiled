@@ -1,0 +1,174 @@
+{
+  "name": "master_server",
+  "networks": {
+    "private": {
+      "name": "master_server_private",
+      "ipam": {}
+    },
+    "public": {
+      "name": "master_server_public",
+      "ipam": {}
+    }
+  },
+  "services": {
+    "caddy": {
+      "restart": "unless-stopped",
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "MASTER_DOMAIN": "qualification.invalid"
+      },
+      "image": "caddy:2.11.7@sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e",
+      "networks": {
+        "private": null,
+        "public": null
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/multiplayer/master_server/Caddyfile.rust",
+          "target": "/etc/caddy/Caddyfile",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "volume",
+          "source": "caddy-data",
+          "target": "/data",
+          "volume": {}
+        },
+        {
+          "type": "volume",
+          "source": "caddy-config",
+          "target": "/config",
+          "volume": {}
+        }
+      ],
+      "depends_on": {
+        "directory": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "target": 80,
+          "published": "80",
+          "protocol": "tcp"
+        },
+        {
+          "mode": "ingress",
+          "target": 443,
+          "published": "443",
+          "protocol": "tcp"
+        },
+        {
+          "mode": "ingress",
+          "target": 443,
+          "published": "443",
+          "protocol": "udp"
+        }
+      ]
+    },
+    "directory": {
+      "restart": "unless-stopped",
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "H2_DIRECTORY_ONLY": "1",
+        "H2_MASTER_BEHIND_TLS_PROXY": "1",
+        "H2_MASTER_BIND": "0.0.0.0",
+        "H2_MASTER_PUBLIC_URL": "https://qualification.invalid",
+        "H2_MASTER_STATE": "/state",
+        "H2_MATCHMAKING_CATALOG": "",
+        "H2_PEER_STUN_URLS": ""
+      },
+      "image": "halo2-master-local:v1",
+      "mem_limit": "268435456",
+      "networks": {
+        "private": null
+      },
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "tmpfs": [
+        "/tmp"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "master-data",
+          "target": "/state",
+          "volume": {}
+        }
+      ],
+      "build": {
+        "context": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source",
+        "dockerfile": "multiplayer/master_server/Dockerfile"
+      }
+    },
+    "matchmaking": {
+      "restart": "unless-stopped",
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "H2_MASTER_PUBLIC_URL": "https://qualification.invalid"
+      },
+      "image": "halo2-matchmaking-rust-local:v1",
+      "mem_limit": "536870912",
+      "network_mode": "service:caddy",
+      "read_only": true,
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "tmpfs": [
+        "/tmp"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "master-data",
+          "target": "/state",
+          "volume": {}
+        },
+        {
+          "type": "bind",
+          "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/multiplayer/master_server/examples/matchmaking-online.json",
+          "target": "/config/playlists.json",
+          "read_only": true,
+          "bind": {}
+        }
+      ],
+      "build": {
+        "context": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source",
+        "dockerfile": "multiplayer/master_server/Dockerfile.rust"
+      },
+      "depends_on": {
+        "caddy": {
+          "condition": "service_started",
+          "restart": true,
+          "required": true
+        }
+      }
+    }
+  },
+  "volumes": {
+    "caddy-config": {
+      "name": "master_server_caddy-config"
+    },
+    "caddy-data": {
+      "name": "master_server_caddy-data"
+    },
+    "master-data": {
+      "name": "master_server_master-data"
+    }
+  }
+}

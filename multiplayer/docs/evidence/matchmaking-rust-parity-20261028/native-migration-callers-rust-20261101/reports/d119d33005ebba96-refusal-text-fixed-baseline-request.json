@@ -1,0 +1,9 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "rust/online_protocol/src/matchmaking_native_migration.rs",
+    "rust/online_protocol_bridge/src/matchmaking_native_migration.rs",
+    "rust/online_protocol/tests/matchmaking_native_migration.rs"
+  ]
+}

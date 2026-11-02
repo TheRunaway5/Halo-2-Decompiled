@@ -1,0 +1,112 @@
+--- captured/src/ui/frontend_party.cpp
++++ current/src/ui/frontend_party.cpp
+@@ -1,4 +1,5 @@
+ #include "halo2/frontend.hpp"
++#include "halo2/frontend_matchmaking_party.hpp"
+ #include "halo2/frontend_lobby_game.hpp"
+ #include "ui/mcc_frontend_string_ids.hpp"
+ #include "ui/frontend_og_matchmaking_layout.hpp"
+@@ -9,41 +10,12 @@
+ constexpr unsigned party_context=42;
+ constexpr unsigned invite_context=45;
+ }
+-std::vector<FrontendUiSound> frontend_party_notification_sounds(
+-    const OnlineAccountSnapshot &before,const OnlineAccountSnapshot &after) {
+-  // The first authenticated snapshot is a baseline. Polls, name/profile
+-  // edits, readiness, leadership and voice activity never imply membership.
+-  if(!before.authenticated || !after.authenticated)return {};
+-  std::vector<FrontendUiSound> sounds;
+-  if(!before.party && after.party)sounds.push_back(FrontendUiSound::Advance);
+-  else if(before.party && !after.party)sounds.push_back(FrontendUiSound::Back);
+-  else if(before.party && after.party) {
+-    const auto added=[](const OnlineParty &a,const OnlineParty &b) {
+-      return std::any_of(b.members.begin(),b.members.end(),[&](const auto &m) {
+-        const auto old=std::find_if(a.members.begin(),a.members.end(),[&](const auto &p){return p.handle==m.handle;});
+-        return old==a.members.end() || old->local_players.size()<m.local_players.size();
+-      });
+-    };
+-    if(added(*after.party,*before.party))sounds.push_back(FrontendUiSound::Back);
+-    if(added(*before.party,*after.party))sounds.push_back(FrontendUiSound::Advance);
+-  }
+-  if(std::any_of(after.party_invitations.begin(),after.party_invitations.end(),[&](const auto &invite) {
+-    return std::none_of(before.party_invitations.begin(),before.party_invitations.end(),[&](const auto &old){return old.id==invite.id;});
+-  }))sounds.push_back(FrontendUiSound::ReceiveMessage);
+-  if(before.busy && !after.busy && !after.party_message.empty())sounds.push_back(FrontendUiSound::Error);
+-  return sounds;
+-}
++
+ std::vector<FrontendUiSound> MenuState::take_ui_sounds() {
+   auto sounds=std::move(pending_ui_sounds_);pending_ui_sounds_.clear();return sounds;
+ }
+ std::optional<FrontendInviteNotice> MenuState::invite_notice() const {
+-  if(!account_.authenticated || signed_in_.empty())return {};
+-  for(const auto &invite:account_.party_invitations)
+-    if(std::find(dismissed_party_invites_.begin(),dismissed_party_invites_.end(),invite.id)==dismissed_party_invites_.end())
+-      return FrontendInviteNotice{invite.id,invite.name,account_.busy,!account_.busy && !account_.party && !launch &&
+-        matchmaking_.status!=OnlineMatchmakingStatus::CheckingConnections &&
+-        matchmaking_.status!=OnlineMatchmakingStatus::AwaitingTransport && matchmaking_.status!=OnlineMatchmakingStatus::Loading};
+-  return {};
++  return frontend_party_notice_rust(account_,signed_in_,dismissed_party_invites_,launch.has_value(),unsigned(matchmaking_.status));
+ }
+ bool MenuState::act_invite_notice(bool accept) {
+   const auto notice=invite_notice();if(!notice)return false;
+@@ -57,28 +29,19 @@
+   update_online_account();++revision;return true;
+ }
+ std::vector<OnlinePartyMember> MenuState::online_party_members() const {
+-  std::vector<OnlinePartyMember> result;
+-  if(!account_.party)return result;
+-  for(const auto &member:account_.party->members) {
+-    auto primary=member;
+-    if(member.self)primary.appearance=appearance_for_profile(signed_in_);
+-    result.push_back(std::move(primary));
+-    if(member.self) {
+-      for(const auto &p:local_players())if(p.controller) {
+-        auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();
+-        local.local_controller=int(p.controller);
+-        local.appearance=p.appearance;
+-        local.guest=!local_discord_logins_[p.controller] || !local_discord_logins_[p.controller]->authorization();
+-        result.push_back(std::move(local));
+-      }
+-    } else for(const auto &p:member.local_players) {
+-      auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();local.guest=p.guest;local.appearance=p.appearance;
+-      // Remote couch seats belong to the primary's connection. They cannot
+-      // transfer leadership or leave the accepted party independently.
+-      local.local_controller=-2;result.push_back(std::move(local));
+-    }
+-  }
+-  return result;
++  FrontendPartyIo io;
++  io.primary_appearance=[&]{return appearance_for_profile(signed_in_);};
++  io.local_players=[&]{
++    std::vector<FrontendPartySeat> out;
++    for(const auto &p:local_players())out.push_back({p.controller,p.name,p.appearance});
++    return out;
++  };
++  io.authorization=[&](std::uint32_t controller)->std::optional<bool> {
++    const auto &login=local_discord_logins_[controller];
++    if(!login)return {};
++    return login->authorization().has_value();
++  };
++  return frontend_party_members_rust(account_.party,io);
+ }
+ bool MenuState::online_party_screen(const MenuFrame &f) const {
+   return (f.screen==14 && mode_==3) || (f.screen==26 && f.context==2) || (f.screen==216 && f.context==0) ||
+@@ -251,15 +214,9 @@
+   else unavailable(account_.party_message.empty()?"The party privacy update was not accepted. Try again.":account_.party_message);
+ }
+ std::string MenuState::online_party_column(const MenuFrame &f,unsigned row,unsigned column) const {
++  // Preserve the source caller's profile/local-seat reads before cell guards.
+   const auto members=online_party_members();
+-  if(f.screen!=26 || row>=members.size() || column!=1)return {};
+-  const auto &m=members[row];
+-  if(m.guest)return "Guest";
+-  if(voice_party_ && voice_.joined) {
+-    if(std::find(voice_.muted.begin(),voice_.muted.end(),m.handle)!=voice_.muted.end())return "Muted";
+-    if((m.self && voice_.transmitting) || std::find(voice_.talking.begin(),voice_.talking.end(),m.handle)!=voice_.talking.end())return "Talking";
+-  }
+-  return !m.online?"Offline":!m.ready_playlist.empty()?"Ready":m.leader?"Leader":"ONLINE";
++  return frontend_party_column_rust(members,voice_,voice_party_,f.screen,row,column);
+ }
+ void MenuState::party_command(OnlinePartyCommand command) {
+   const bool enter=command.action=="create" || command.action=="accept";

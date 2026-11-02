@@ -1,0 +1,20 @@
+"""HTTP preflight for shared Rust voice contracts; no relay acceptance."""
+
+
+def preflight(binary, scratch, catalog, Server):
+    scratch.mkdir()
+    server = Server(binary, scratch / 'state', scratch, catalog)
+    checks = []
+    try:
+        for method, path, body in (
+            ('PUT', '/v1/account/voice-blocks', {'blocked': []}),
+            ('GET', '/v1/clans/voice', None),
+            ('GET', '/v1/party/voice', None),
+        ):
+            status, value = server.request(method, path, body=body)
+            assert status == 401, (method, path, status, value.get('error'))
+            checks.append(path + ' requires authorization before voice IO')
+        return dict(authentication_preflight_passed=True, checks=checks,
+                    relay_qualified=False, real_audio=False, original_parity=False)
+    finally:
+        server.close()

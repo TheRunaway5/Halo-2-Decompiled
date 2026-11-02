@@ -1,0 +1,26 @@
+{
+  "action": "validate",
+  "targets": [
+    "frontend_matchmaking_lobby_rust_tests",
+    "frontend_online_lobby_buttons_tests",
+    "frontend_online_tests",
+    "party_countdown_kernel_tests"
+  ],
+  "filter": "^(frontend_lobby_cpp_rust|online_protocol_rust_build_helper|frontend_online_lobby_(buttons|legacy_countdown|blocked_playlist|complete_playlist)|rust_frontend_lobby_(blocked|complete|rendered)|original_party_countdown_kernels|frontend_matchmaking_http|frontend_matchmaking_gathering_http|frontend_clans_http|frontend_parties_http)$",
+  "refresh": [
+    "src/ui/frontend_matchmaking_lobby_bridge.cpp",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend.hpp.reference",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_lobby_policy.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_matchmaking.cpp.reference",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_matchmaking_progress.hpp.reference",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_party.cpp.reference",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_state.cpp.reference",
+    "tests/reference/frontend_lobby_before_rust_20261102/input-accept.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/input-auxiliary.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/input-back.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/input-leave.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/online_party_screen.cpp.inc",
+    "tests/reference/frontend_lobby_before_rust_20261102/provenance.json",
+    "tests/frontend_matchmaking_lobby_rust_tests.cpp"
+  ]
+}

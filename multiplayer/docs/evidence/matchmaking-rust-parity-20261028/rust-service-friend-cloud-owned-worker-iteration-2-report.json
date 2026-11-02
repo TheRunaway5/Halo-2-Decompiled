@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "friend_cloud",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/Cargo.toml",
+    "rust/matchmaking_service/Cargo.lock",
+    "rust/matchmaking_service/src/main.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/eos_binding.rs",
+    "rust/matchmaking_service/src/friend_cloud.rs",
+    "rust/matchmaking_service/src/friend_cloud_runtime.rs"
+  ],
+  "source_files": 144,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/cargo/release/halo2-matchmaking-service",
+    "sha256": "3a5b7a2749db44899463a6072379f610dd89f74b14045fb2416a93bef0dc7001",
+    "bytes": 11179672,
+    "retained": false
+  },
+  "friend_cloud": {
+    "qualified": true,
+    "checks": [
+      "configured Rust private friend-file service starts"
+    ],
+    "real_sdk": false
+  }
+}

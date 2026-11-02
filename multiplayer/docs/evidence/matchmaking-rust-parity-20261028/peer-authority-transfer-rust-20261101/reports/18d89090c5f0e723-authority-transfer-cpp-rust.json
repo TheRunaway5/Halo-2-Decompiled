@@ -1,0 +1,56 @@
+{
+  "passed": false,
+  "scope": "Exact preserved-reference/production authority public-API and wire comparison.\n\nClocks, private byte banks, authenticated endpoint inputs and explicit native\nvalidation calls are declared fixtures. No original Live, genuine provider,\nprepared world or installed runtime claim is made. Exceptions compare their\ninvalid_argument/other category; message text is not compared.\n",
+  "reference": {
+    "scope": "Exact prior modern reliable authority exchange, including its existing Rust poll-cursor leaf; not original Xbox XNet/Live wire",
+    "source": "src/network/peer_authority_transfer.cpp",
+    "sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "bytes": 24127,
+    "captured_at_utc": "2026-11-01T17:56:43.301700+00:00",
+    "production_use": false,
+    "header": {
+      "source": "include/halo2/peer_authority_transfer.hpp",
+      "reference": "tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp",
+      "sha256": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+      "bytes": 6177
+    }
+  },
+  "production_source_sha256": "8791a8596d82b447d760de7e5164b33c7581fefa46483dbf94dbb94d57059ec1",
+  "comparison_role": "preserved_cpp_vs_configured_production; qualification identifies the compiled production owner",
+  "binaries": {
+    "cpp": "03f085e3813418f4919602820a735271a83cfd600534b17af51cd45d8191f59c",
+    "rust": "1d7220b2935a99b564a84e90cc3b254f9f3c62c1adb00f9899ac71392cce9626"
+  },
+  "native_world": false,
+  "original_xnet": false,
+  "retained_large_artifacts": [],
+  "error": "AssertionError({'command': {'op': 'publish', 'id': 0, 'context': {'session': '4242424242424242424242424242424242424242424242424242424242424242', 'epoch': 3, 'revision': 5, 'peers': 1, 'host': 0}, 'tick': 0, 'bytes': 'aa', 'targets': [], 'now': 0}, 'reference': {'category': 'invalid_argument', 'error': True}, 'rust': {'category': 'exception', 'error': True}})",
+  "last_command": {
+    "op": "publish",
+    "id": 0,
+    "context": {
+      "session": "4242424242424242424242424242424242424242424242424242424242424242",
+      "epoch": 3,
+      "revision": 5,
+      "peers": 1,
+      "host": 0
+    },
+    "tick": 0,
+    "bytes": "aa",
+    "targets": [],
+    "now": 0
+  },
+  "commands": 2742,
+  "packet_outputs": 930,
+  "receives": 920,
+  "state_reads": 52,
+  "corpus_and_observations_sha256": "bab4dda8957d6f827540f0793669b0f5748a38f7af443a828c2522652500ba04",
+  "sdk_diagnostics": [
+    "Shutdown handler: initialize.",
+    "Shutdown handler: initialize."
+  ],
+  "native_exit_codes": [
+    0,
+    0
+  ]
+}

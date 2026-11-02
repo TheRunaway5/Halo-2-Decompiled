@@ -1,0 +1,214 @@
+import datetime,hashlib,json,re,shutil,subprocess
+from pathlib import Path
+
+root=Path.cwd();work=root/'build/test-results/native-result-authority-rust-20261102'
+evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+receipt_path=evidence/'native-result-authority-rust-validation.json'
+bucket=evidence/'native-result-authority-rust-20261102/reports'
+read=lambda p:json.loads(p.read_text())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n')
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json'
+ledger=read(ledger_path)
+fixed={k:ledger[k] for k in ('algorithm_index','scope','gaps','acceptance_gates')}
+fixed_sha=hashlib.sha256(json.dumps(fixed,sort_keys=True).encode()).hexdigest()
+assert fixed_sha=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+original=read(evidence/'friend-goal-criteria-before.json')
+criteria={k:ledger[k] for k in original['criteria'] if k!='gap_criteria'}
+keys=list(original['criteria']['gap_criteria'][0])
+criteria['gap_criteria']=[{k:g[k] for k in keys} for g in ledger['gaps']]
+assert criteria==original['criteria']
+criteria_sha=hashlib.sha256(json.dumps(criteria,sort_keys=True).encode()).hexdigest()
+assert criteria_sha=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+goal=read(work/'goal-checkpoint.json')['goal'];assert goal['status']=='active'
+assert hashlib.sha256(goal['objective'].encode()).hexdigest()=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+assert len(ledger['gaps'])==12 and len(ledger['algorithm_index']['ids'])==53
+assert len(ledger['acceptance_gates']['gates'])==12
+assert all(g['status']=='open' and not g['certified'] for g in ledger['acceptance_gates']['gates'])
+assert sha(root/ledger['reference']['path'])==ledger['reference']['sha256']
+cleanup=read(work/'cleanup.json');assert cleanup['passed'] and cleanup['all_owned_scratch_removed']
+assert all(not Path(p).exists() for p in cleanup['owned_scratch_paths'])
+audit=read(work/'link-audit.json');assert audit['passed']
+assert all(sha(root/n)==h for n,h in audit['source_pins'].items())
+rust=read(work/'full-rust/report.json');assert rust['passed'] and rust['frozen_inputs_intact']
+counts={n:v['passed'] for n,v in audit['rust_counts'].items()};assert sum(counts.values())==578
+assert sum(v['ignored'] for v in audit['rust_counts'].values())==4
+comparison=read(work/'native/iteration-2/evidence/test-artifacts/native-result-authority.json')
+assert comparison==read(work/'early-result-comparison.json')
+assert comparison['passed'] and comparison['commands']==4748 and not comparison['mismatches']
+assert comparison['accepted']==834 and comparison['rejected']==3914
+assert comparison['io_refusals']==comparison['native_exception_identity_checks']==82
+functional=read(work/'native-functional-comparison.json');assert functional['passed']
+assert functional['accuracy_reports_identical'] and not functional['all_native_functional_tests_passed']
+native=read(work/'native/inputs.json');assert native['iterations']==2 and not native['drift_during_freeze']
+assert all(r['configure_and_build_passed'] and r['frozen_inputs_intact'] for r in functional['native_runs'])
+unique=functional['native_runs'][1]['successful_tests'];assert len(unique)==4
+assert {'native_result_authority_cpp_rust','online_pcr_family_carriers','original_team_change_tu15','online_protocol_rust_build_helper'}==set(unique)
+helper_log=(work/'native/iteration-2/evidence/Testing/Temporary/LastTest.log').read_text()
+assert 'Ran 7 tests' in helper_log and 'OK' in helper_log
+reference=read(root/'tests/reference/native_results_before_rust_20261102/provenance.json')
+relative=str(receipt_path.relative_to(root))
+remaining=[
+ 'Full original algorithm/service/historical recovery, all twelve gaps, all 53 algorithm owners and G01-G12 gates',
+ 'Every required original-valid family, profile, topology, unshortened natural outcome and world continuity route',
+ 'The combat-accuracy native world refusal before publication and remaining broad functional failures',
+ 'Genuine providers, physical installed Linux playlist/Start input and delivered client/library/service/catalog/feature identity',
+ 'Production restart, retry, configuration-change and rollback qualification']
+entry={'receipt':relative,'implementation':'rust/online_protocol/src/matchmaking_native_results.rs',
+ 'bridge':'rust/online_protocol_bridge/src/matchmaking_native_results.rs','native_io':'src/network/online_postgame.cpp',
+ 'component_passed':True,'result_publication_plan_and_validation_policy_in_rust':True,
+ 'actual_native_statistics_profiles_rankings_and_numeric_pcr_writer_preserved':True,
+ 'cpp_publication_validation_policy_fallback':False,'native_exception_identity_preserved':True,
+ 'unsafe_core_rust':False,'rust_counts':counts,'rust_total':578,'new_rust_controls':13,
+ 'modern_cpp_rust_commands':4748,'accepted':834,'rejected':3914,'io_refusals':82,
+ 'native_exception_identity_checks':82,'mismatches':0,'staging_controls':7,
+ 'final_native_passing_tests':4,'all_native_functional_tests_passed':False,
+ 'actual_timed_team_world_publication_validation_and_return_passed':True,
+ 'accuracy_cpp_and_rust_reports_identical':True,'accuracy_world_reached_result_publication':False,
+ 'new_original_executable_comparisons':0,'selected_runtime_replaced':False,
+ 'production_service_activated':False,'physical_installed_input':False,
+ 'original_whole_system_parity':False,'full_matchmaking_ready':False,'full_goal_complete':False,
+ 'remaining':remaining}
+ledger['native_result_authority_rust']=entry
+if relative not in ledger['receipts']:ledger['receipts'].append(relative)
+ledger['last_implementation_update_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+write(ledger_path,ledger)
+assert fixed=={k:read(ledger_path)[k] for k in fixed}
+section='''## Native result admission and publication caller in Rust (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-result-authority-rust-validation.json).
+Rust now owns the production ONLINE result publisher and validator's completion,
+roster, identity, team-history, full-variant, placement, score, statistic and
+accuracy admission decisions and complete publication plan. C++ supplies actual
+native observations and preserves the original gameplay ranking/profile
+conversion and numeric PCR writer. The two previous policy bodies are removed
+from production and retained exactly as modern C++ references. The compiled
+native adapter calls both Rust result entries; the captured C++ object calls
+neither. Original ranking/floating-point helpers, public header and presentation
+tail are unchanged. Native IO errors retain their real exception object, type
+and message across Rust. This is modern adapter equivalence, with no new original
+Live arbitration or historical service recovery claim.
+
+All 578 Rust tests pass (493 protocol, 65 bridge, 20 service), including 13 new
+result controls; four existing corpus/performance/environment tests are ignored.
+The exact captured C++ caller and Rust bridge agree on 4,748 commands: 316
+publication and 4,432 validation commands, with 834 accepted and 3,914 rejected.
+Complete publication fields, error text, native observation order and 82 actual
+exception-identity controls match. The replay includes every accuracy word,
+signed-score bounds, sparse slots, duplicate/unadmitted participants, complete
+304-byte settings, team history and the existing stat-marker high-bit behavior.
+Its gameplay/ranking/profile/writer observations are declared controlled IO.
+Fixture-only declaration errors were fixed before the final replay; the exact
+reference function bodies were not edited.
+
+Four of five native CTests pass, including seven staging controls, the paired
+replay, all-family numeric PCR carriers and the existing team-switching test.
+The latter executes the real publisher and validator after its custom one-minute
+timed native match, genuine UDP local/remote couch team changes, numeric PCR,
+peer confirmation and retained System Link lobby return. This bounded timed
+control does not certify every normal playlist or unshortened natural outcome.
+The existing one-kill combat-accuracy test fails in ordinary warmup, before result
+publication, with the exact same read-only contact-observer/instruction-trace
+guard refusal under the captured C++ and Rust implementations. Both small
+reports are identical. The physics guard is preserved and the functional
+failure remains open; the five-test suite is not reported as passing.
+
+The Rust and native cohorts share 2,980 copied inputs without a mismatch. Another
+473 binary/reference inputs are borrowed unchanged. One unrelated weapon
+fixture was added after native freeze and changed concurrently; it has no Rust
+crate/result-test reference and is excluded from current qualification. Other
+concurrent source changes remain outside this frozen cohort. The 5.35 GB owned
+native source/build/SDK context, Cargo outputs and compiler audit scratch are
+removed; only bounded reports and required source references remain. No large
+generated artifact, selected runtime or production service is retained or
+replaced. All 12 gaps, 53 algorithm IDs and G01-G12 criteria remain unchanged;
+the full goal is active and whole-system original parity remains uncertified.
+
+'''
+doc=root/'multiplayer/docs/matchmaking-rust-parity-audit-20261028.md'
+text=doc.read_text();anchor='## Rust implementation boundary\n'
+assert text.count(anchor)==1 and section.splitlines()[0] not in text
+doc.write_text(text.replace(anchor,section+anchor))
+paragraphs={
+ 'rust/online_protocol/README.md': '''
+`matchmaking_native_results` owns native ONLINE result publication/admission
+policy: completion, exact 304-byte settings, roster/identity/team history,
+placements, signed scores, numeric statistics and accuracy words. Native IO
+retains actual gameplay ranks, selected profiles and the numeric PCR writer.
+[Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-result-authority-rust-validation.json)
+records 578 Rust tests, 4,748 exact modern C++/Rust commands and the production
+publisher/validator in a bounded timed native team match. A separate combat
+accuracy world fails before publication identically on both implementations;
+full original Live, normal played-world scope and installed delivery stay open.
+''',
+ 'rust/online_protocol_bridge/README.md': '''
+`NativeResultIo` exposes synchronous observations of the actual native match,
+selected profile/name conversion, source rankings and numeric PCR writer to
+`matchmaking_native_results`. The bridge validates ABI shapes and the safe core
+owns admission and publication planning. Native exceptions preserve their real
+object/type/message; no Session borrow or Rust state guard spans native IO.
+[Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-result-authority-rust-validation.json)
+compares the exact captured modern C++ bodies and exercises both production
+entries after a timed native team world. This is distinct from original Live
+arbitration, all unshortened outcomes and delivered Linux input acceptance.
+'''}
+for name,paragraph in paragraphs.items():
+ assert paragraph.strip().splitlines()[0] not in (root/name).read_text()
+ with (root/name).open('a') as f:f.write(paragraph)
+docs=[str(doc.relative_to(root)),str(ledger_path.relative_to(root)),*paragraphs]
+check=subprocess.run(['git','diff','--check','--']+list(audit['source_pins'])+docs,capture_output=True,text=True)
+assert check.returncode==0,check.stdout+check.stderr
+files=sorted(p for p in work.rglob('*') if p.is_file())
+mapping={};dedup={};total=0
+assert not receipt_path.exists() and not bucket.exists();bucket.mkdir(parents=True)
+for p in files:
+ assert not p.is_symlink()
+ data=p.read_bytes();size=len(data);full_sha=hashlib.sha256(data).hexdigest()
+ if size>1048576:
+  assert p.suffix=='.log',(str(p),size)
+  data=data[-131072:]
+ h=hashlib.sha256(data).hexdigest()
+ if h not in dedup:
+  target=bucket/(h[:16]+('-tail-' if size>1048576 else '-')+p.name)
+  target.write_bytes(data);dedup[h]=target;total+=len(data)
+ mapping[str(p.relative_to(root))]={'path':str(dedup[h].relative_to(root)),
+  'sha256':full_sha,'bytes':size,'retained_sha256':h,'retained_bytes':len(data),
+  'complete':size==len(data)}
+ assert sha(dedup[h])==h
+receipt={'schema':'halo2-native-result-authority-rust-validation-v1',
+ 'created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),**entry,
+ 'scope':'Native result caller policy in Rust with actual native IO; exact modern adapter equivalence, not original Live or installed runtime proof',
+ 'source_pins':audit['source_pins'],'reference':reference,'rust_manifest_report':mapping[str((work/'full-rust/report.json').relative_to(root))],
+ 'modern_cpp_rust_replay':comparison,'native_functional_comparison':functional,
+ 'native_link_audit':audit,'rust_ignored_tests':4,'frozen_native_files':native['frozen_files'],
+ 'unrelated_current_source_drift':native['current_source_drift'],
+ 'intentional_modern_cpp_behavior_deltas':[],
+ 'native_test_names':unique,'positive_genuine_steam':False,'positive_genuine_eos':False,
+ 'unshortened_natural_match_qualification':False,'full_delivered_identity_acceptance':False,
+ 'goal_criteria_sha256':criteria_sha,'scope_inventory_snapshot_before_after_sha256':fixed_sha,
+ 'goal_objective_sha256':hashlib.sha256(goal['objective'].encode()).hexdigest(),
+ 'all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved':True,
+ 'retained_reports':mapping,'retained_unique_report_files':len(dedup),
+ 'retained_unique_report_bytes':total,'cleanup':cleanup,
+ 'post_qualification_documentation':{n:sha(root/n) for n in docs},
+ 'audit_harness_corrections':['The unchanged-helper scan originally included an unnamed-namespace closing brace',
+  'The input scan now distinguishes copied source, borrowed binary references and the unused post-freeze weapon fixture'],
+ 'retained_large_artifacts':[]}
+write(receipt_path,receipt)
+assert receipt_path.stat().st_size<=1048576
+assert total+receipt_path.stat().st_size<=8*1024*1024
+assert all(p.stat().st_size<=1048576 for p in bucket.iterdir())
+for p in files:
+ assert sha(p)==mapping[str(p.relative_to(root))]['sha256']
+shutil.rmtree(work)
+receipt['cleanup']['working_reports_removed']=not work.exists()
+receipt['final_verification']={'critical_sources_match':all(sha(root/n)==h for n,h in audit['source_pins'].items()),
+ 'gap_count':12,'algorithm_id_count':53,'acceptance_gate_count':12,'all_acceptance_gates_open':True,
+ 'goal_still_active':True,'owned_scratch_removed':all(not Path(p).exists() for p in cleanup['owned_scratch_paths']),
+ 'whitespace_passed':True,'retained_large_artifacts':[]}
+assert receipt['final_verification']['critical_sources_match'] and receipt['final_verification']['owned_scratch_removed']
+write(receipt_path,receipt)
+assert total+receipt_path.stat().st_size<=8*1024*1024
+print(json.dumps({'receipt':str(receipt_path.relative_to(root)),'rust_tests':578,'modern_cpp_rust_commands':4748,
+ 'native_passed':4,'native_shared_functional_failures':1,'retained_reports':len(dedup),
+ 'retained_bytes_including_receipt':total+receipt_path.stat().st_size,'scratch_removed':True,'full_goal_complete':False}))

@@ -1,10 +1,14 @@
 #pragma once
 #include "halo2/physics_solver.hpp"
+#include "halo2/native_tu15_normalize_vector.hpp"
 #include <optional>
 #include <thread>
 #include <typeinfo>
 
 namespace halo2 {
+struct NativeTu15NormalizeOutcome;
+struct NativeTu15NormalizeConstants;
+struct NativeTu15NormalizeStats;
 // Active MMX aliases physical x87 registers and makes every tag valid. Some
 // physical registers can be unknown when entry supplied only live x87 values;
 // the mask records that absence instead of inventing the dead register bits.
@@ -68,6 +72,23 @@ struct SourcePhysicsContactRuntimeServices {
         // Arbitrary observers retain full instruction delivery by default.
         bool observation_only_stores{};
     } instruction_cursor;
+    // Optional semantic30BD0 owner. With this pointer set, qualified ordinary
+    // calls may bypass required_owner and internal instruction/stack events.
+    // Owner-observing tools keep this null; the bridge also refuses arbitrary
+    // callbacks, all store observers, active traces and non-direct vector or
+    // stack storage. Constants may have exact bounded read-view owners.
+    // Raw adapters must have no retained-memory policy registry. Banks with
+    // registry policies use the guarded service below, even with direct pages.
+    NativeTu15NormalizeOutcome (*normalize_vector_30bd0)(SourcePhysicsContactMemory&,
+        std::uint32_t,const SourcePhysicsContactRecordObserver&,NativeTu15NormalizeConstants){};
+    NativeTu15NormalizeStats *normalize_vector_30bd0_stats{};
+    // A retained-memory owner uses this service instead of the raw resident
+    // pointer when registry policies also apply. Refusal runs no source work.
+    // Success includes the final stack residue under the same policy lease;
+    // the bridge then publishes only the returned register/FP state.
+    std::function<std::optional<NativeTu15NormalizeOutcome>(SourcePhysicsContactMemory&,
+        std::uint32_t,std::uint32_t,const SourcePhysicsContactRecordObserver&,
+        NativeTu15NormalizeConstants)> normalize_vector_30bd0_guarded;
 };
 // Canonical 1.1 entry identifies a statically compiled complete source body.
 // Image selection binds authenticated TU1.5 constants, targets and tables.

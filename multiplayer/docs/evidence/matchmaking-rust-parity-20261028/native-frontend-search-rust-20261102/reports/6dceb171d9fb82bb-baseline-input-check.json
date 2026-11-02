@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "sources": {
+    "src/ui/frontend_matchmaking.cpp": {
+      "captured": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+      "frozen_native": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+      "match": true
+    },
+    "src/ui/frontend_state.cpp": {
+      "captured": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+      "frozen_native": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+      "match": true
+    },
+    "src/ui/frontend_clans.cpp": {
+      "captured": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+      "frozen_native": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+      "match": true
+    },
+    "src/ui/frontend_party.cpp": {
+      "captured": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+      "frozen_native": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+      "match": true
+    },
+    "src/ui/frontend_matchmaking_lobby.cpp": {
+      "captured": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+      "frozen_native": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+      "match": true
+    },
+    "include/halo2/frontend.hpp": {
+      "captured": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+      "frozen_native": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+      "match": true
+    }
+  },
+  "scope": "Actual native baseline uses the captured pre-port source bytes"
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "H2_LOSSLESS_SOURCE_LINE_DELTA_V1",
+  "scope": "Lossless concurrent CMake generator changes; preserves both qualified source cohorts without another complete generator copy.",
+  "base": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-session-rust-20261101/reports/f522914e6a9779aa-frozen-cmake.txt",
+  "base_sha256": "f522914e6a9779aa2d5869aebcbde06e59383507652153be351d97973e592a3d",
+  "reconstructed_sha256": "c8afae4bffa5eb108262533154f02c4be6e547e2feea3ead9a3d290e065845f9",
+  "reconstructed_bytes": 970508,
+  "edits": [
+    {
+      "start_line": 10939,
+      "end_line": 10939,
+      "replacement": [
+        "include(cmake/NativeTu15SoundEpInput.cmake)\n"
+      ]
+    }
+  ],
+  "reconstruct": "Read UTF-8 base with splitlines(keepends=True); apply edits in reverse order by replacing lines[start_line:end_line]; concatenate and verify the reconstructed SHA-256."
+}

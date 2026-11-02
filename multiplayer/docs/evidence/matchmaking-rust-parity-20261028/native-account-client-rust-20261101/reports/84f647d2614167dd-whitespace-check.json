@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "paths": [
+    "src/network/online_account.cpp",
+    "include/halo2/online_account.hpp",
+    "rust/online_protocol/src/matchmaking_account_client.rs",
+    "rust/online_protocol/tests/matchmaking_account_client.rs",
+    "rust/online_protocol/examples/account_snapshot_replay.rs",
+    "rust/online_protocol/src/lib.rs",
+    "rust/online_protocol_bridge/src/matchmaking_account_client.rs",
+    "rust/online_protocol_bridge/src/matchmaking_account_client.hpp",
+    "rust/online_protocol_bridge/src/lib.rs",
+    "rust/online_protocol_bridge/build.rs",
+    "cmake/OnlineProtocolRust.cmake",
+    "cmake/OnlinePeers.cmake",
+    "tools/build_online_protocol_rust.py",
+    "tests/test_build_online_protocol_rust.py",
+    "tests/native_account_client_tests.cpp",
+    "tests/test_native_account_client.py",
+    "tests/account_snapshot_cpp_replay.cpp",
+    "tests/test_account_snapshot_replay.py",
+    "tests/reference/account_client_before_rust_20261101/online_account.cpp.inc",
+    "tests/reference/account_client_before_rust_20261101/online_account_before.cpp",
+    "tests/reference/account_client_before_rust_20261101/provenance.json",
+    "tests/reference/account_client_before_rust_20261101/online_account.hpp.reference",
+    "tests/test_account_frontend_comparison.py"
+  ]
+}

@@ -19,12 +19,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from setup_assets_ui import SetupProcess, SourceSelector
 from setup_pipe import read_available
 from file_lock import file_lock
+from setup_progress import ProgressUpdate, WorkProgress, parse_update
+from steam_client import InstalledContent
 
 
 TOOLS = Path(__file__).resolve().parents[1] / 'tools'
 
 
 class SetupPipeTests(unittest.TestCase):
+    def test_progress_rejects_invalid_counters_and_cannot_finish_early(self):
+        for completed, total in ((-1, 100), (101, 100), (True, 100), (10, 0), (float('nan'), 100)):
+            with self.assertRaises(ValueError):
+                ProgressUpdate('copy', 'Copying game files', completed, total, 'bytes')
+        events = []
+        work = WorkProgress('copy', 'Copying game files', 10, events.append)
+        work.advance(10)
+        self.assertLess(events[-1].percent, 100)
+        work.finish()
+        self.assertEqual(events[-1].percent, 100)
+        self.assertIsNone(parse_update('H2_SETUP_PROGRESS\t{"schema":"wrong"}'))
+
     def test_idle_data_and_eof_are_distinct_and_bounded(self):
         read, write = os.pipe()
         try:
@@ -189,6 +203,17 @@ def operation(root, source=None, **kwargs):
     if mode=='quick':
         print('tiny setup complete')
         return
+    if mode=='progress':
+        from setup_progress import PREFIX,ProgressUpdate
+        update=ProgressUpdate('copy','Copying café files',37,100,'bytes')
+        encoded=(PREFIX+json.dumps(update.record,ensure_ascii=False)+'\\n').encode()
+        at=encoded.index('é'.encode())+1
+        os.write(sys.stdout.fileno(),encoded[:at])
+        time.sleep(.05)
+        os.write(sys.stdout.fileno(),encoded[at:])
+        (root/'ready').touch()
+        while not (root/'release').exists(): time.sleep(.01)
+        return
     if mode=='lock-wait':
         from file_lock import file_lock
         fd=os.open(root/'setup.lock',os.O_RDWR|os.O_CREAT,0o600)
@@ -210,7 +235,7 @@ mcc_onboarding.setup=operation
 mcc_onboarding.select=operation
 raise SystemExit(main())
 '''.replace('TOOLS', repr(str(TOOLS)))
-        (self.root / 'tools/setup_assets.py').write_text(script)
+        (self.root / 'tools/setup_assets.py').write_text(script, encoding='utf-8')
         self.worker = SetupProcess(self.root, queue.Queue(), cleanup_timeout=2)
         self.addCleanup(self.stop_worker)
 
@@ -251,6 +276,25 @@ raise SystemExit(main())
 
 
 class SetupProcessTests(SetupFixture, unittest.TestCase):
+    def test_fragmented_utf8_progress_reaches_the_gui_as_a_work_counter(self):
+        self.start_worker('progress')
+        updates = []
+        def received():
+            self.worker.poll()
+            while not self.worker.events.empty():
+                kind, value = self.worker.events.get_nowait()
+                if kind == 'status' and isinstance(value, ProgressUpdate):
+                    updates.append(value)
+                elif kind == 'error':
+                    self.fail(value)
+            return bool(updates)
+        self.wait_until(received)
+        self.assertEqual(updates[-1].percent, 37)
+        self.assertIn('café', str(updates[-1]))
+        (self.root/'release').touch()
+        self.assertEqual(self.terminal_event()[0], 'done')
+        self.preserved()
+
     def test_owner_eof_cancels_a_writer_waiting_for_another_importer_lock(self):
         fd = os.open(self.root / 'setup.lock', os.O_RDWR | os.O_CREAT, 0o600)
         try:
@@ -532,9 +576,70 @@ class MccSetupUiTests(unittest.TestCase):
             raise RuntimeError(self.failure)
 
     def make(self, **kwargs):
+        kwargs.setdefault('requirements_function', lambda **options: InstalledContent(True, self.root/'Halo MCC/halo2',
+                                                                                   True, True, self.root/'H2EK', True))
         self.ui = SourceSelector(self.window, self.root, setup_function=self.setup, **kwargs)
         self.window.update()
         return self.ui
+
+    def test_missing_content_exposes_installed_steam_download_without_importing(self):
+        missing = InstalledContent(False, None, False, False, None, False)
+        requested = []
+        ui = self.make(auto_detect=False, requirements_function=lambda **options: missing,
+                       steam_request_function=lambda content: requested.append(content.download_ids) or content.download_ids)
+        ui.download_button.invoke()
+        self.wait_until(lambda: bool(requested) and not ui.checking_requirements)
+        self.assertEqual(requested, [(976730, 1064270, 1097223, 1613450)])
+        self.assertIn('Download the missing content from Steam', ui.status_label.cget('text'))
+        self.assertIn('Confirm the installation', ui.status_label.cget('text'))
+        self.assertEqual(self.calls, [])
+        self.assertTrue(ui.watch_downloads)
+        self.assertEqual(str(ui.prepare.cget('state')), 'disabled')
+
+    def test_only_missing_h2ek_is_requested_and_completed_downloads_are_detected(self):
+        content = [InstalledContent(True, self.root/'MCC/halo2', True, True, None, False)]
+        requests = []
+        ui = self.make(auto_detect=False, requirements_function=lambda **options: content[0],
+                       steam_request_function=lambda status: requests.append(status.download_ids) or status.download_ids)
+        ui.download_button.invoke()
+        self.wait_until(lambda: not ui.checking_requirements)
+        self.assertEqual(requests, [(1613450,)])
+        content[0] = InstalledContent(True, self.root/'MCC/halo2', True, True, self.root/'H2EK', True)
+        ui.next_install_check = 0
+        self.wait_until(lambda: ui.installation.ready)
+        self.assertFalse(ui.watch_downloads)
+        self.assertEqual(str(ui.download_button.cget('state')), 'disabled')
+        self.assertEqual(str(ui.prepare.cget('state')), 'normal')
+        self.assertEqual(self.calls, [])
+
+    def test_failed_steam_handoff_is_visible_and_retryable(self):
+        def fail(content):
+            raise RuntimeError('Steam is not installed')
+        ui = self.make(auto_detect=False, steam_request_function=fail)
+        ui.download_button.invoke()
+        self.wait_until(lambda: not ui.checking_requirements)
+        self.assertIn('Steam is not installed', ui.status_label.cget('text'))
+        self.assertEqual(str(ui.download_button.cget('state')), 'normal')
+        self.assertEqual(self.calls, [])
+
+    def test_work_counters_drive_the_visible_percentage_and_bar(self):
+        ui = self.make(auto_detect=False)
+        ui.start()
+        self.wait_until(lambda: bool(self.calls))
+        update = dict(schema='H2_SETUP_PROGRESS_V1', stage='copy',
+                      label='Copying and verifying game files', completed=37, total=100, unit='bytes')
+        ui.events.put(('status', 'H2_SETUP_PROGRESS\t' + json.dumps(update)))
+        self.wait_until(lambda: ui.events.empty())
+        self.assertEqual(str(ui.bar.cget('mode')), 'determinate')
+        self.assertEqual(float(ui.bar.cget('value')), 37)
+        self.assertIn('37%', ui.percent_label.cget('text'))
+        self.window.update_idletasks()
+        from PIL import ImageGrab
+        x, y = ui.bar.winfo_rootx(), ui.bar.winfo_rooty()
+        width, height = ui.bar.winfo_width(), ui.bar.winfo_height()
+        pixels = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+        self.assertEqual(pixels.getpixel((width // 5, height // 2)), (143, 228, 245))
+        self.assertEqual(pixels.getpixel((width * 4 // 5, height // 2)), (6, 21, 34))
 
     def test_startup_detects_mcc_off_ui_thread_and_updates_single_path(self):
         main = threading.get_ident()
@@ -559,9 +664,10 @@ class MccSetupUiTests(unittest.TestCase):
     def test_missing_detected_installation_keeps_manual_folder_selection(self):
         def discover():
             raise ValueError('not installed')
-        ui = self.make(discover_function=discover)
+        ui = self.make(discover_function=discover,
+                       requirements_function=lambda **options: InstalledContent(False, None, False, False, None, False))
         self.wait_until(lambda: not ui.scanning)
-        self.assertIn('not found', ui.status_label.cget('text'))
+        self.assertIn('not found', ui.status_label.cget('text').lower())
         with patch.object(ui.filedialog, 'askdirectory', return_value=str(self.root / 'custom MCC')):
             ui.browse_button.invoke()
         self.assertEqual(ui.value.get(), str(self.root / 'custom MCC'))

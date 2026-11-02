@@ -1,0 +1,14 @@
+{
+  "scope": "Exact prior modern snapshot candidate protocol and private delivery lifecycle, not original Xbox Live/XNet wire",
+  "source": "src/network/peer_snapshot_candidate.cpp",
+  "sha256": "72f688a535322fec3237b156e682fb5a5308d929b3ca023e3a8cce320dda795b",
+  "bytes": 24367,
+  "captured_at_utc": "2026-11-01T18:56:48.777396+00:00",
+  "production_use": false,
+  "header": {
+    "source": "include/halo2/peer_snapshot_candidate.hpp",
+    "reference": "tests/reference/peer_snapshot_candidate_before_rust_20261101/halo2/peer_snapshot_candidate.hpp",
+    "sha256": "84d77e44beafea0700bca03b0e9c9abe99329b8d21b5ec86ff8a68f2d00d18d4",
+    "bytes": 4765
+  }
+}

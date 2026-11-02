@@ -1,0 +1,6 @@
+{
+  "source": "tests/frontend_online_tests.cpp",
+  "sha256": "ef74c9183cee4bd8cbb27dacb08c76840d88d202d6ad00ca8253e55029b8da38",
+  "matches_native_baseline_initial_pin": true,
+  "capture": "Immediately before replacing its modern stable-sort expectation with expanded unchanged-original controls"
+}

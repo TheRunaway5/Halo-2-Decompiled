@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Exact preserved-reference/production authority public-API and wire comparison.\n\nClocks, private byte banks, authenticated endpoint inputs and explicit native\nvalidation calls are declared fixtures. No original Live, genuine provider,\nprepared world or installed runtime claim is made. Exceptions compare their\ninvalid_argument/other category; message text is not compared.\n",
+  "reference": {
+    "scope": "Exact prior modern reliable authority exchange, including its existing Rust poll-cursor leaf; not original Xbox XNet/Live wire",
+    "source": "src/network/peer_authority_transfer.cpp",
+    "sha256": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "bytes": 24127,
+    "captured_at_utc": "2026-11-01T17:56:43.301700+00:00",
+    "production_use": false,
+    "header": {
+      "source": "include/halo2/peer_authority_transfer.hpp",
+      "reference": "tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp",
+      "sha256": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+      "bytes": 6177
+    }
+  },
+  "production_source_sha256": "d7fc2298dff21437e309d3ee5b96a8a6b318f5b59af4a90e67bfcd39f234ee72",
+  "comparison_role": "preserved_cpp_vs_configured_production; qualification identifies the compiled production owner",
+  "binaries": {
+    "cpp": "f04e21c5c0da33211f836149f21b899aa2a4bbb3f913a74850810e4a0e4c5615",
+    "rust": "95f4aebe7b8ad1b75525b692ebc150e1ae2affe24c223a7c055e8a9803cc7ab0"
+  },
+  "native_world": false,
+  "original_xnet": false,
+  "retained_large_artifacts": [],
+  "malformed_coverage": {
+    "packet_lengths_by_type": {
+      "0": 77,
+      "1": 77,
+      "3": 1093,
+      "2": 117,
+      "4": 77,
+      "5": 113,
+      "6": 65
+    },
+    "full_chunk_payload_bytes": 1024,
+    "other_chunks_seeded_before_selected_final_chunk": true,
+    "every_representative_byte_mutated": true,
+    "every_representative_truncation_compared": true
+  },
+  "commands": 37731,
+  "packet_outputs": 8565,
+  "receives": 14520,
+  "state_reads": 3332,
+  "corpus_and_observations_sha256": "4df76820f8203e922a6f5c832fce1cdc83256cfb6d3581cb7b149a9fa1636926",
+  "sdk_diagnostics": [
+    "Shutdown handler: initialize.",
+    "Shutdown handler: initialize."
+  ],
+  "native_exit_codes": [
+    0,
+    0
+  ]
+}

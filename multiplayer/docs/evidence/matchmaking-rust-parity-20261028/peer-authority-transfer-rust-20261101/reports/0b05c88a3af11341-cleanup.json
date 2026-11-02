@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-full-rust/halo2-test-l1ry2o0h",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit/halo2-test-vnascjtd",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit/halo2-test-wjzeatf0",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-final-syntax/halo2-test-a6c64dv0",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-exception-probe/halo2-test-mn51y_b_",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-exception-probe/halo2-test-c5afi5m3",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit/halo2-test-rh7xfply"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-format": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-final-syntax": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-exception-probe": []
+  },
+  "native_unit_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "Result": "success"
+  },
+  "retained_large_artifacts": [],
+  "preserved": "Original assets/reference inputs, prior snapshots, selected runtimes and unrelated active work",
+  "bounded_reports_exactly_deduplicated": true
+}

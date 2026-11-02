@@ -24,11 +24,13 @@ HudPresentationLayout hud_presentation_layout(HudViewport reference,
                    viewport.outer.right + reference.safe.right - old.right};
   result.center = {std::floor((viewport.safe.left + viewport.safe.right) * .5f),
                    std::floor((viewport.safe.top + viewport.safe.bottom) * .5f)};
-  // Desktop displays need no television overscan. Give every local player's
-  // four corners the same small inset, including edges along split seams.
-  constexpr float inset = 8;
-  viewport.safe = {viewport.outer.top + inset, viewport.outer.left + inset,
-                   viewport.outer.bottom - inset, viewport.outer.right - inset};
+  // A full-screen view retains its authored floating HUD. Expand only split
+  // cells to their corners, including edges along the split seams.
+  if (reference.mode != 0) {
+    constexpr float inset = 8;
+    viewport.safe = {viewport.outer.top + inset, viewport.outer.left + inset,
+                     viewport.outer.bottom - inset, viewport.outer.right - inset};
+  }
   return result;
 }
 } // namespace halo2

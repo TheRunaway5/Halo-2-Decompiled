@@ -320,6 +320,13 @@ std::vector<MenuWorldSourceIndexRange> source_bsp_part_ranges(const SourceBspRan
     }
     return out;
 }
+void source_bsp_frustum_cull_entry(SourceCullDrawUnit& unit,const SourceBspFrustumDrawBank& bank,
+    SourceBspRangeArena& arena,const SourceBspFrustumCullContext& context,
+    const SourcePortalVisibilitySet& visibility,unsigned entry) {
+    auto next_unit=unit;auto next_arena=arena;
+    cull_entry(next_unit,bank,next_arena,context,visibility,entry);
+    unit=next_unit;arena=next_arena;
+}
 void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
     std::span<const SourceBspFrustumDrawBank> banks,SourceBspRangeArena &arena,
     const SourceBspFrustumCullContext &c,const SourcePortalVisibilitySet &visibility,
@@ -355,10 +362,13 @@ void source_bsp_frustum_cull(std::span<SourceCullDrawUnit> units,
     // arena word. Every precondition the serial walk would reject keeps the
     // serial walk, which then rejects it in the same order.
     // The recorded corpus and full-resolution runtime captures qualify the
-    // normal banded route. =0 (or an empty value) restores the serial walk.
+    // banded route as identical, but at this granularity (0.10-0.16 ms per
+    // view) the fork/join costs more than it saves: measured 2026-10-31 at
+    // 4p/4K, banded 0.147/0.225 ms against serial 0.095/0.160 ms (views 0/3)
+    // with unchanged main-thread CPU. Serial by default; =1 selects banded.
     static const bool banded_cull=[]{
         const auto *p=std::getenv("HALO2_NATIVE_BANDED_CULL");
-        return !p || (*p && !(p[0]=='0' && !p[1]));
+        return p && *p && !(p[0]=='0' && !p[1]);
     }();
     const auto workers=native_parallel_workers();
     const bool requested=execution==SourceBspFrustumCullExecution::banded ||

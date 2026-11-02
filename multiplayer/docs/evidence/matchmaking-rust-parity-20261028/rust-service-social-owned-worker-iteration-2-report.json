@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "social",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/database.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/social.rs"
+  ],
+  "source_files": 136,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/cargo/release/halo2-matchmaking-service",
+    "sha256": "6c1546d05dbc46e762338b5a0482729c5b56227d3093aaccfd216906a90a63f2",
+    "bytes": 10989280,
+    "retained": false
+  },
+  "social": {
+    "qualified": true,
+    "checks": [
+      "real Rust friends authentication and anonymous population routes"
+    ],
+    "real_provider": false,
+    "native_played_world": false,
+    "scope": "Real Rust HTTP/SQLite; private provider fixtures, no original or delivered acceptance."
+  }
+}

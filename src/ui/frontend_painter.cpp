@@ -35,6 +35,14 @@
 #include <sstream>
 namespace halo2 {
 namespace {
+bool persistent_screen_list(const UiScreen &screen,const MenuFrame &frame) {
+  // Focus-driven artwork/help panes share the primary list. Session and
+  // context-driven pages retain their own pane-specific list definitions.
+  return frame.screen==178 || frame.screen==186 || frame.screen==207 ||
+      ((screen.flags&2) && frame.screen!=14 && frame.screen!=26 &&
+       frame.screen!=210 && !frame.vista_pcr && !screen.panes.empty() &&
+       !screen.panes.front().lists.empty());
+}
 std::vector<unsigned> codepoints(const std::string &s, bool discard_cr = true) {
   std::vector<unsigned> result;
   for (std::size_t i = 0; i < s.size();) {
@@ -146,6 +154,7 @@ struct FrontendPainter::Impl {
   std::vector<unsigned> font_materials;
   bool drawing_original_goal{};
   std::map<unsigned,unsigned> notice_materials;
+  std::map<unsigned,unsigned> friends_footer_materials;
   std::shared_ptr<ControllerPromptArtwork> prompt_artwork;
   PromptDevice prompt_device=PromptDevice::Xbox;
   std::map<std::uint32_t, std::vector<unsigned>> images;
@@ -524,7 +533,8 @@ struct FrontendPainter::Impl {
     const auto count=mesh.materials.size();
     for(unsigned i=0;i<count;++i) {
       const auto &name=mesh.materials[i].name;
-      if(name.starts_with("controller-prompts/") && name.find("/atlases/0.dds/")!=std::string::npos && name.find("/party-notice/")==std::string::npos)
+      if(name.starts_with("controller-prompts/") && name.find("/atlases/0.dds/")!=std::string::npos &&
+          name.find("/party-notice/")==std::string::npos && name.find("/friends-footer/")==std::string::npos)
         notice_sources.push_back(i);
     }
     for(const auto id:notice_sources) {
@@ -534,6 +544,29 @@ struct FrontendPainter::Impl {
       else {
         auto material=mesh.materials.at(id);material.name=name;material.ui_full_surface=true;
         notice_materials[id]=unsigned(mesh.materials.size());mesh.materials.push_back(std::move(material));
+      }
+    }
+    if(logical && logical->original_friends_footer) {
+      // Channel4 keeps its authored art and glyphs, with its own surface pass.
+      // Reserve copies before the renderer freezes the resident material bank.
+      std::set<unsigned> sources(logical->font_materials.begin(),logical->font_materials.end());
+      sources.insert(logical->white);
+      for(const auto &bitmap:logical->original_friends_footer->panes.at(0).bitmaps)
+        for(const auto material:logical->images.at(bitmap.datum))sources.insert(material);
+      const auto count=mesh.materials.size();
+      for(unsigned i=0;i<count;++i) {
+        const auto &name=mesh.materials[i].name;
+        if(name.starts_with("controller-prompts/") && name.find("/party-notice/")==std::string::npos &&
+            name.find("/friends-footer/")==std::string::npos)sources.insert(i);
+      }
+      for(const auto id:sources) {
+        const auto name=mesh.materials.at(id).name+"/friends-footer/"+std::to_string(id);
+        const auto found=std::find_if(mesh.materials.begin(),mesh.materials.end(),[&](const auto &m){return m.name==name;});
+        if(found!=mesh.materials.end())friends_footer_materials[id]=unsigned(found-mesh.materials.begin());
+        else {
+          auto material=mesh.materials.at(id);material.name=name;material.ui_full_surface=true;
+          friends_footer_materials[id]=unsigned(mesh.materials.size());mesh.materials.push_back(std::move(material));
+        }
       }
     }
   }
@@ -1336,6 +1369,7 @@ struct FrontendPainter::Impl {
     const auto setup_view = frame.screen == 23 ? state.lobby_view() : std::nullopt;
     std::optional<FrontendLobbySetupDetail> setup;
     const auto focused_map = state.focused_lobby_map(frame);
+    const auto workshop = state.workshop_details(frame);
     if (setup_view)
       setup = frontend_lobby_setup_detail({
           frontend_lobby_setup_focused_semantic(setup_view->input.session_enum, int(frame.selected)),
@@ -1391,7 +1425,7 @@ struct FrontendPainter::Impl {
         ((frame.screen == 19 && frame.selected == 2) ||
          (frame.screen == 38 && frame.selected == 6));
     for (const auto &b : pane.bitmaps)
-      if (!pc_link) ordered_bitmaps.push_back(&b);
+      if (!pc_link && !workshop) ordered_bitmaps.push_back(&b);
     // 2B01EB copies definition+20 to widget+6A. Original 2356D8 orders
     // same-depth bitmap widgets by ascending layer; the keyboard dialog
     // (layer0) must precede its authored input field (layer1). Restrict this
@@ -1413,6 +1447,12 @@ struct FrontendPainter::Impl {
       // PC63E9A0 hides child4 for the active local-controller mask.
       if(frame.screen==vista_menu(18) && index==4)continue;
       if (wide_social_page(frame) && index == 2) continue;
+      // Original186 bitmap1 is the retired Bungie news decoration. Its
+      // page7 has no admitted PC counterpart (online-vista-assets.md).
+      // Native service text has no original news payload to draw over it.
+      if (online_vista_art && frame.screen==186 && index==1 && b->frame==7 &&
+          content.images.contains(b->datum) && content.images.at(b->datum).name==
+            "ui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu") continue;
       if (online_vista_art && frame.screen==186 && index==3 && frame.selected==3) continue;
       if (frame.screen==210 && !content.original_matchmaking_layout && content.images.contains(b->datum)) {
         const auto &name=content.images.at(b->datum).name;
@@ -1589,6 +1629,7 @@ struct FrontendPainter::Impl {
                               appearance});
     }
     for (unsigned i = 0; i < pane.texts.size(); ++i) {
+      if(workshop)continue; // The retained gametype pane has unrelated help.
       // The native Xbox lobby has no PC browser/download producer. Its MCC
       // definition additionally authors this percent template; the recovered
       // PC producer hides it at the quiescent 100% state as well.
@@ -1749,6 +1790,13 @@ struct FrontendPainter::Impl {
       if (appearance_popup && output.vertices.size() > first)
         popup_widgets.push_back({first, output.vertices.size(), t.layer, 6,
                                 animation(t.animation, t.delay).position.z});
+    }
+    if(workshop) {
+      UiText title;title.font=1;title.color=content.color;
+      title.bounds={120,40,65,255};
+      text(title,workshop->first,parent);
+      UiText description=title;description.bounds={58,40,-135,255};
+      text(description,workshop->second,parent);
     }
     order_widgets(popup_widgets, "unrecorded appearance popup widget draw");
     const bool custom_categories=frame.screen==178 && state.custom_match_settings_frame(frame);
@@ -1927,11 +1975,11 @@ struct FrontendPainter::Impl {
     // Original2310F9 supplies screen186's persistent type1 list through
     // 23047E. Focus changes rebuild only ordinary pane children (230427 /
     // 22FBA9); panes1-3 intentionally have no list definition of their own.
-    // The original settings categories178 and category popup207 likewise
-    // author their persistent lists only in pane0. MCC adds empty pane-local
-    // placeholders to later panes;
-    // those must not replace the screen's primary list on a focus change.
-    const auto &lists = frame.screen == 178 || frame.screen == 186 || frame.screen == 207
+    // Focus-driven panes replace artwork/help, while their selector remains a
+    // screen child constructed from pane0. Later MCC panes contain empty or
+    // differently placed list placeholders; using them moves or hides both
+    // the rows and their pointer targets when focus changes.
+    const auto &lists = persistent_screen_list(screen,frame)
         ? screen.panes.front().lists : pane.lists;
     if (!lists.empty() && !frame.entries.empty()) {
       std::optional<UiList> title_list;
@@ -1964,12 +2012,7 @@ struct FrontendPainter::Impl {
         const auto bounds = profile_skin ? profile_bounds : skin_bounds(skin);
         row = bounds.top - bounds.bottom;
       }
-      const bool appearance_window = frame.screen == 49 || frame.screen == 50 ||
-                                     frame.screen == 52 || frame.screen == 233;
-      const unsigned first = appearance_window ? frame.first_visible
-                             : frame.selected >= list.visible
-                                 ? frame.selected - list.visible + 1
-                                 : 0;
+      const unsigned first = frame.first_visible;
       const unsigned count =
           std::min(list.visible, unsigned(frame.entries.size()) - first);
       const auto row_focus = [&](bool selected) {
@@ -1977,10 +2020,16 @@ struct FrontendPainter::Impl {
           //22E957 gives a type2 row its list-global type3 definition;
           //22E930 replaces that row's and every descendant's focus animation.
           return animation(list.animation, list.delay);
-        return skin.animations.empty()
-            ? UiKey{selected ? 1.f : .5f, {}}
-            : interpolate(skin.animations.at(selected ? 0 :
-                  std::min(2u, unsigned(skin.animations.size() - 1))), 1000);
+        if(skin.animations.empty())return UiKey{selected ? 1.f : .5f, {}};
+        const auto idle=std::min(2u,unsigned(skin.animations.size()-1));
+        auto focus=interpolate(skin.animations.at(selected?0:idle),1000);
+        if(detail::mcc_frontend_content(content)) {
+          // Hover changes emphasis, while the row and its hit rectangle stay
+          // at the authored resting anchor. Moving the hit rectangle with
+          // focus makes neighboring options slide under a stationary cursor.
+          focus.position=interpolate(skin.animations.at(idle),1000).position;
+        }
+        return focus;
       };
       //2356D8 orders the proved equal-depth row type9/layer0 children before
       //layer0/type8 bitmaps. Keep this prepass within the profile list; it
@@ -2604,8 +2653,24 @@ struct FrontendPainter::Impl {
     const auto &definition=*owner.original_friends_footer;
     owner.pane(definition,definition.panes.at(0),collapsed,state,true);
     owner.drawing_original_goal=previous;
-    output.vertices.insert(output.vertices.end(),owner.output.vertices.begin(),owner.output.vertices.end());
-    hits.insert(hits.end(),owner.hits.begin(),owner.hits.end());
+    const Vec2 offset{-canvas.left/canvas.scale,canvas.top/canvas.scale};
+    for(auto vertex:owner.output.vertices) {
+      const auto material=friends_footer_materials.find(vertex.material);
+      if(material==friends_footer_materials.end())throw FormatError("Friends footer material was not reserved before renderer creation");
+      vertex.material=material->second;
+      if(canvas.left!=0 || canvas.top!=0) {
+        vertex.position.x+=offset.x;vertex.position.y+=offset.y;
+        if(!output.full_surface_bounds) {
+          vertex.position.x=(canvas.left+vertex.position.x*canvas.scale)*640/canvas.surface_width;
+          vertex.position.y=(canvas.top+vertex.position.y*canvas.scale)*480/canvas.surface_height;
+        }
+      }
+      output.vertices.push_back(vertex);
+    }
+    for(auto hit:owner.hits) {
+      hit.left+=offset.x;hit.right+=offset.x;hit.top+=offset.y;hit.bottom+=offset.y;
+      hits.push_back(hit);
+    }
     output.rendering_gaps.insert(output.rendering_gaps.end(),owner.output.rendering_gaps.begin(),owner.output.rendering_gaps.end());
   }
   UiDraw draw(const MenuState &state, float elapsed, int pane_override,

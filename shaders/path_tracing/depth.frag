@@ -22,6 +22,9 @@ layout(set=1,binding=4,std430) readonly buffer TracePixels {uint tracePixels[];}
 #include "source_alpha_test.glsl"
 #include "source_stipple.glsl"
 #include "world_depth_fragment.glsl"
+#ifdef H2_PATH_TRACING_SOURCE_DEPTH
+#include "path_tracing/source_depth.glsl"
+#endif
 #include "path_tracing/surface.glsl"
 void main() {
     if(stippleLevel<16u && !sourceStipplePass(stippleLevel,31u,uvec2(gl_FragCoord.xy)))discard;
@@ -34,4 +37,7 @@ void main() {
     // expression before tracing, then still writes it to real source D24S8.
     gl_FragDepth=titleDepth.y!=0.0?worldD24Depth(clamp(sourceDepthRaw!=0u?
         titleDepth.x:titleDepth.x*16777215.0,0.0,16777215.0)):gl_FragCoord.z;
+#ifdef H2_PATH_TRACING_SOURCE_DEPTH
+    gl_FragDepth=traceSourceDepth();
+#endif
 }

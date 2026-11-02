@@ -1,0 +1,11 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/frontend_parties_http_test.py"
+  ],
+  "targets": [
+    "frontend_online_tests"
+  ],
+  "filter": "^frontend_parties_http$"
+}

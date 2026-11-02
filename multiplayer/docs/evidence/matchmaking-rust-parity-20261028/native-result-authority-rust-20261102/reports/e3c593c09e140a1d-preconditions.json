@@ -1,0 +1,8 @@
+{
+  "previous_goal_turn": "progress",
+  "source": "src/network/online_postgame.cpp",
+  "before_sha256": "8e92b152036e3473f3cc3e6e2bdcd5182f0341285cfb72284d840e450cccacb0",
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "goal_complete": false,
+  "retained_large_artifacts": []
+}

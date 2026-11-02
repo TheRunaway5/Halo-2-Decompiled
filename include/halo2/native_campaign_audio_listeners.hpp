@@ -3,6 +3,12 @@
 
 namespace halo2 {
 struct NativeCampaignListenerSelection {std::uint32_t listener,distance;};
+// Values retained by register-level object-loop callers of the same semantic
+// scale query. Capture the existing evaluation without extra reads or FP work.
+struct NativeCampaignClusterScaleSimd {
+    std::uint32_t lower{},span{};
+    bool span_written{};
+};
 namespace native_campaign_listeners_detail {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 using namespace native_campaign_ducking_detail;
@@ -26,7 +32,9 @@ template<class Structure> std::uint8_t cluster_byte(Structure structure,std::int
     const auto count=structure.cluster_count();auto table=structure.cluster_bytes();
     return table.at(pair_offset(low,high,count));
 }
-template<class Structure> std::uint32_t cluster_scale(Structure structure,std::int32_t first,std::int32_t second) {
+template<class Structure> std::uint32_t cluster_scale(Structure structure,std::int32_t first,std::int32_t second,
+    NativeCampaignClusterScaleSimd* simd=nullptr) {
+    if(simd)*simd={};
     if(first==second)return 0u;
     if(structure.scale_count()<=0) {
         const auto cell=cluster_byte(structure,std::int16_t(first),std::int16_t(second));
@@ -38,7 +46,9 @@ template<class Structure> std::uint32_t cluster_scale(Structure structure,std::i
     if(cell==0)return 0u;if(cell==255)return 0x43800000u;
     const auto lower=scalar(scale.lower());const auto upper=scalar(scale.upper());
     auto position=mul(signed_milliseconds(cell-1u),scalar(0x3b81848eu));
-    const auto span=sub(upper,lower);position=mul(position,span);
+    const auto span=sub(upper,lower);
+    if(simd)*simd={bits(lower),bits(span),true};
+    position=mul(position,span);
     return bits(add(position,lower));
 }
 template<class State,class Source> bool cut_off(State& state,Source source,std::uint32_t listener,std::uint32_t ratio) {
@@ -135,11 +145,11 @@ template<class State,class Source> bool native_campaign_listener_cut_off(State& 
 #endif
 }
 template<class Structure> std::uint32_t native_campaign_cluster_scale(Structure structure,std::int32_t first,std::int32_t second,
-    NativeCampaignAudioFp& fp) {
+    NativeCampaignAudioFp& fp,NativeCampaignClusterScaleSimd* simd=nullptr) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    native_campaign_listeners_detail::Environment environment(fp);return native_campaign_listeners_detail::cluster_scale(structure,first,second);
+    native_campaign_listeners_detail::Environment environment(fp);return native_campaign_listeners_detail::cluster_scale(structure,first,second,simd);
 #else
-    (void)structure;(void)first;(void)second;(void)fp;throw std::runtime_error("Exact native listener FP backend unavailable");
+    (void)structure;(void)first;(void)second;(void)fp;(void)simd;throw std::runtime_error("Exact native listener FP backend unavailable");
 #endif
 }
 template<class Structure> std::uint8_t native_campaign_cluster_byte(Structure structure,std::int16_t first,std::int16_t second) {

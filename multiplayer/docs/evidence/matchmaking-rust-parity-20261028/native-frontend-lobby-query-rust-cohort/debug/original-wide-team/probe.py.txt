@@ -1,0 +1,9 @@
+import json,runpy,sys
+from pathlib import Path
+n=runpy.run_path(sys.argv[1]);r=n['r'];env=n['env'];variant=n['variant'];entry=n['mapentry'];players=n['players'];calls=n['calls'];rows=[]
+for team in [-128,-1,0,15,16,31,32,63,127]:
+ env.update(session_enum=1,present_count=1,ready_count=1,team_mode=True,teams=[team],maximum_team_count=255);calls.clear()
+ r.w(variant+0x44,2);r.w(variant+0x48,1);r.g.mem_write(entry+0xc56,bytes([255]));r.g.mem_write(players[0]+0x7c,bytes([team&255]))
+ result=r.run(0x19a2ce,argv=[0]);rows.append(dict(team=team,source_type=2,maximum=255,status=result,query_calls=list(calls)))
+Path(sys.argv[2]).write_text(json.dumps(dict(rows=rows,source_function='19A2CE',source_bytes_unchanged=True,constant_services=n['out']['constant_inputs']),indent=2)+'\n')
+print(json.dumps([dict(team=r['team'],status=r['status'])for r in rows]))

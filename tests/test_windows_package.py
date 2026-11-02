@@ -73,10 +73,15 @@ class OnboardingResourceTests(unittest.TestCase):
             sdk, extra = root / 'sdk', root / 'extra'
             required = [
                 'tools/setup_assets.py', 'tools/setup_assets_ui.py', 'tools/native_renderer_shaders.py',
-                'tools/setup_pipe.py', 'tools/file_lock.py', 'tools/macos/__init__.py',
+                'tools/setup_pipe.py', 'tools/setup_progress.py', 'tools/file_lock.py', 'tools/macos/__init__.py',
+                'tools/launcher_health.py', 'tools/launcher_repair_ui.py', 'tools/repair_launcher.py',
+                'tools/windows_shader_binding.py', 'tools/qualify_frontend_runtime.py',
+                'tools/steam_client.py',
                 'tools/macos/steam_setup.py', 'tools/steam/content-profile.json', 'tools/data/policy.json',
                 'tools/reference/owners.tsv', 'resources/launcher.svg',
                 'resources/frontend/mcc-native-layout.json', 'resources/licenses/artwork.txt',
+                'resources/launcher/background.png', 'resources/launcher/manifest.json',
+                'resources/launcher/thin-ring.svg', 'resources/launcher/wide-ring.svg',
                 'external/ww2ogg/packed_codebooks_aoTuV_603.bin',
                 'sdk/bin/python.exe', 'sdk/lib/python3.14/encodings/__init__.py',
                 'sdk/lib/python3.14/tkinter/__init__.py',
@@ -97,9 +102,11 @@ class OnboardingResourceTests(unittest.TestCase):
             self.assertEqual(inputs['python/python.exe'], sdk / 'bin/python.exe')
             self.assertIn('python/lib/python3.14/site-packages/PIL/__init__.py', inputs)
             self.assertIn('python/lib/python3.14/lib-dynload/_tkinter.cp314.pyd', inputs)
-            for name in ['tools/setup_pipe.py', 'tools/file_lock.py', 'tools/macos/steam_setup.py',
+            for name in ['tools/setup_pipe.py', 'tools/setup_progress.py', 'tools/file_lock.py', 'tools/macos/steam_setup.py',
                          'tools/steam/content-profile.json', 'tools/data/policy.json',
                          'tools/reference/owners.tsv', 'resources/frontend/mcc-native-layout.json',
+                         'resources/launcher/background.png', 'resources/launcher/manifest.json',
+                         'resources/launcher/thin-ring.svg', 'resources/launcher/wide-ring.svg',
                          'external/ww2ogg/packed_codebooks_aoTuV_603.bin']:
                 self.assertIn(name, inputs)
             for source in inputs.values():

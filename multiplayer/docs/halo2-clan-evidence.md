@@ -4,6 +4,16 @@ Research date: 2026-10-10. This records original client/manual behavior for the
 Discord-authorized native clan service. It does not establish the retired Xbox
 Live service's database, wire protocol, rate limits, or moderation rules.
 
+Current implementation update,2026-10-29: Rust now owns account capabilities
+and accepted clan role/lifecycle/SQL/replay/view decisions through
+`matchmaking_accounts.rs` and `matchmaking_clan_directory.rs`. The temporary
+Python adapters execute typed HTTP/provider/canonical identity/SQLite IO.
+The [current audit](matchmaking-rust-parity-audit-20261028.md#rust-account-and-clan-directory-ownership)
+and [validation receipt](evidence/matchmaking-rust-parity-20261028/clan-directory-validation.json)
+record the ownership, transaction and integration checks. This port applies the
+existing evidence below; it adds no new unchanged-original execution or claim
+about retired Live procedures, and full native/delivered acceptance remains open.
+
 ## Authorities
 
 - Microsoft's original Xbox Halo 2 manual, printed pp. 26–27:

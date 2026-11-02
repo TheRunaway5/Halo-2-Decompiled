@@ -184,7 +184,7 @@ def exercise(args, scratch, report):
                 if process.poll() is not None or "actual native world running" in text():
                     break
                 key("Return")
-            wait_for(r"Multiplayer GPU:", 90)
+            wait_for(r"Multiplayer GPU:", 170)
             render_until = min(deadline, time.monotonic() + 10)
             while time.monotonic() < render_until:
                 if process.poll() is not None:

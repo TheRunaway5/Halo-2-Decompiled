@@ -1,0 +1,32 @@
+{
+  "src/network/online_match_session.cpp": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-src_network_online_match_session.cpp.txt",
+    "sha256": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+    "bytes": 67008
+  },
+  "src/network/peer_authority_transfer.cpp": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-src_network_peer_authority_transfer.cpp.txt",
+    "sha256": "cc8d49724c38a48cf5073323f78e37d5d9d3b4268b2aa4671216ca3f91d1b030",
+    "bytes": 23828
+  },
+  "include/halo2/peer_authority_transfer.hpp": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-include_halo2_peer_authority_transfer.hpp.txt",
+    "sha256": "5a30543747c34965157bbb51ad45b8635f83bf732e3222e19136eca87a3b0a2c",
+    "bytes": 6001
+  },
+  "rust/online_protocol/src/matchmaking_native_session.rs": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_src_matchmaking_native_session.rs.txt",
+    "sha256": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+    "bytes": 57168
+  },
+  "rust/online_protocol_bridge/src/lib.rs": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_bridge_src_lib.rs.txt",
+    "sha256": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+    "bytes": 73344
+  },
+  "rust/online_protocol_bridge/src/matchmaking_native_session.rs": {
+    "path": "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_bridge_src_matchmaking_native_session.rs.txt",
+    "sha256": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+    "bytes": 21697
+  }
+}

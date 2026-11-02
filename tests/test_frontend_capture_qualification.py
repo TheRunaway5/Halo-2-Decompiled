@@ -87,6 +87,10 @@ class QualificationTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'owned fixture input ' + name.encode())
         self.commands = []
+        from test_controller_prompt_assets import controller_prompt_fixture
+        from controller_prompt_assets import prepare
+        controller_prompt_fixture(self.root)
+        prepare(self.root, self.cache, progress=lambda _:None)
         self.menu_log = witness()
         self.menu_pixels = None
         self.timeout = False
@@ -103,14 +107,47 @@ class QualificationTests(unittest.TestCase):
         output = ('Frontend movie: fixture frame\n' if not menu else self.menu_log)
         return subprocess.CompletedProcess(command, 0, output + self.loading_log + 'Rendered 4 frontend frames\n')
 
-    def qualify(self):
+    def qualify(self, **options):
         with patch.object(qualification.subprocess, 'run', side_effect=self.run_capture), \
              patch('native_renderer_shaders.shader_capability', return_value=dict(files={})), \
              patch.object(qualification, '_readmit_frontend_owner') as readmit:
             result = qualification.qualify(self.root, self.runtime, self.cache,
-                                           self.output, self.scratch)
+                                           self.output, self.scratch, **options)
         readmit.assert_called_once()
         return result
+
+    def test_mcc_only_package_checks_all_required_menus_without_optional_movie(self):
+        self.qualify(include_optional_movie=False)
+        self.assertEqual(len(self.commands), 3)
+        self.assertTrue(all('--menu-wait-intro-clear' in c for c in self.commands))
+        self.assertEqual([c[c.index('--menu-screen')+1] for c in self.commands], ['9', '6', '20'])
+        report = json.loads((self.output/'report.json').read_bytes())
+        self.assertEqual(report['optional_intro_movie'], 'not-packaged')
+        self.assertTrue(all(c['visible_frame'] for c in report['cases']))
+
+    def test_existing_optional_bank_cannot_bypass_its_movie_check(self):
+        (self.cache/'presentation/movies').mkdir()
+        with self.assertRaisesRegex(ValueError, 'remains required'):
+            self.qualify(include_optional_movie=False)
+        self.assertFalse(self.sidecar.exists())
+
+    def test_mcc_only_package_still_requires_real_intro_clear_witness(self):
+        self.menu_log = ''
+        with self.assertRaisesRegex(RuntimeError, 'title'):
+            self.qualify(include_optional_movie=False)
+        self.assertFalse(self.sidecar.exists())
+
+    def test_older_mcc_executable_does_not_claim_optional_kit_support(self):
+        import h2ek_loading_ambience as h2ek
+        bank = self.cache/h2ek.BANK
+        bank.mkdir(parents=True)
+        owner = qualification.loading_owner(self.cache, self.runtime)
+        self.assertFalse(owner['original'])
+        self.assertIn('MCC V3 loading:', owner['witness'])
+        self.assertTrue(all(name.startswith('presentation/loading-v3/') for name in owner['files']))
+        self.runtime.write_bytes(b'Original loading: H2EK logo/sweep art and four-voice ambience admitted')
+        with self.assertRaises((OSError, ValueError, KeyError)):
+            qualification.loading_owner(self.cache, self.runtime)
 
     def test_menus_wait_for_actual_clear_before_four_visible_frames(self):
         self.qualify()
@@ -128,6 +165,7 @@ class QualificationTests(unittest.TestCase):
             self.assertEqual(case['visible_frame']['size'], [2, 2])
         capability = json.loads(self.sidecar.read_bytes())
         self.assertEqual(capability['validation']['frontend_capture_policy'], 'source-map-intro-clear-v1')
+        self.assertEqual(self.sidecar.read_bytes(), (json.dumps(capability, indent=2)+'\n').encode('utf-8'))
 
     def test_early_frame_log_without_clear_witness_cannot_publish(self):
         self.menu_log = ''

@@ -2,6 +2,7 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
 #include "halo2/first_person_ik.hpp"
+#include "halo2/first_person_pose_pair_clock.hpp"
 #include "halo2/model_node_interpolation.hpp"
 #include "halo2/native_player_animation.hpp"
 #include "halo2/render_interpolation.hpp"
@@ -27,6 +28,11 @@ public:
         std::array<bool,4> client_fp_clock_available{},client_secondary_clock_available{};
         std::array<std::uint32_t,4> client_fp_reported_units{null_datum,null_datum,null_datum,null_datum};
         std::array<std::map<FpPoseKey,ModelNodeInterpolation>,4> source_fp_interpolation;
+        // Presentation-only completed local command tails. Snapshot/restore
+        // owns this coordinate together with every pair clock and palette;
+        // physical input delivery and its serial remain independently owned.
+        std::uint64_t source_fp_command_serial{};
+        std::array<std::map<FpPoseKey,CompletedFirstPersonPairClock>,4> source_fp_pair_clocks;
         std::array<std::array<std::uint32_t,5>,4> source_fp_lifetimes{};
         std::array<bool,4> source_observer_ready{};
         std::array<FirstPersonAimBlend,multiplayer_capacity> aim_blends,body_aim_blends;

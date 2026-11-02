@@ -55,10 +55,11 @@ class PartyVoiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_active_gameplay_ends_passive_party_channel(self):
         await self.command(self.a, "create")
         a = await self.socket(self.a)
-        who = self.parties.party(next(iter(self.directory.clans.sessions.values())).player)
-        self.assertIsNotNone(who)
+        self.assertIsNotNone((await self.view(self.a))["party"])
         from unittest.mock import patch
-        with patch.object(self.parties, "playing", return_value=True):
+        who=self.parties.db.execute("SELECT player FROM player_profiles WHERE discord_username='pilot_one'").fetchone()[0]
+        rooms=[dict(closed=False,phase='running',owners={who:who},active=[who],playlist='ranked',clans=[])]
+        with patch.object(self.queue, "room_facts", return_value=rooms):
             self.assertEqual((await a.receive(timeout=2)).type, WSMsgType.CLOSE)
             with self.assertRaises(WSServerHandshakeError) as denied:
                 await self.socket(self.a)

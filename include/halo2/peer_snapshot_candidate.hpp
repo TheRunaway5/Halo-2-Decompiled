@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/peer_authority_transfer.hpp"
 
+namespace halo2::online_protocol_bridge {class NativeSnapshotBuffer;}
+
 namespace halo2 {
 inline constexpr std::uint32_t authority_feature_source_snapshot_candidate=1024u;
 struct PeerSnapshotToken {
@@ -32,8 +34,9 @@ struct PeerSnapshotState {
 // may acknowledge Arm, after draining its already accepted batch and applying
 // the ordinary adoption fence. Captured and Retired likewise assert actual
 // foreground work, never native proof, world readiness or host eligibility.
-// All methods are synchronized. No native owners, callbacks, role changes,
-// master relay, automatic member removal or timeout-generated ACKs are used.
+// All methods are synchronized. Native integration only stores byte banks and
+// reads private delivery identity. No executor calls, role changes, master
+// relay, automatic member removal or timeout-generated ACKs are used.
 class PeerSnapshotCandidate {
 public:
     class Delivery {
@@ -49,11 +52,11 @@ public:
         std::span<const std::byte> bytes()const noexcept;
     private:
         friend class PeerSnapshotCandidate;
-        Delivery(PeerSnapshotToken,unsigned,std::unique_ptr<const std::vector<std::byte>>,
-                 std::shared_ptr<const void>);
+        Delivery(PeerSnapshotToken,unsigned,std::unique_ptr<online_protocol_bridge::NativeSnapshotBuffer>,
+                 std::shared_ptr<const void>)noexcept;
         PeerSnapshotToken token_;
         unsigned recipient_{};
-        std::unique_ptr<const std::vector<std::byte>> bytes_;
+        std::unique_ptr<online_protocol_bridge::NativeSnapshotBuffer> bytes_;
         std::shared_ptr<const void> identity_;
     };
     PeerSnapshotCandidate(unsigned self,AuthorityTransferContext,PeerSnapshotLimits={});
@@ -85,7 +88,6 @@ public:
     bool receive(unsigned authenticated_peer,std::span<const std::byte>,std::uint64_t now_ms);
     static bool is_packet(std::span<const std::byte>)noexcept;
 private:
-    bool can_acknowledge_retired_locked(const PeerSnapshotToken &,const std::optional<Delivery> &)const;
     struct Impl;std::unique_ptr<Impl> impl_;
 };
 }

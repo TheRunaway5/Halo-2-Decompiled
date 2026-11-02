@@ -52,6 +52,16 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/source-shadow-transport-dedicated.json" dedicated)
     set_tests_properties(source_shadow_transport_dedicated_udp PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE
         LABELS "native;source-shadow;raw-udp;dedicated;component")
+    add_test(NAME source_shadow_transport_host2_recipient1_udp COMMAND source_shadow_transport_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/source-shadow-transport-host2-recipient1.json" host2)
+    set_tests_properties(source_shadow_transport_host2_recipient1_udp PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE
+        LABELS "native;source-shadow;raw-udp;recipient-view-policy;component")
+    add_test(NAME source_shadow_transport_retry_udp COMMAND source_shadow_transport_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_BINARY_DIR}/source-shadow-transport-retry.json" retry)
+    set_tests_properties(source_shadow_transport_retry_udp PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 150 RUN_SERIAL TRUE
+        LABELS "native;source-shadow;raw-udp;native-retry;component")
     add_executable(source_shadow_transport_online_tests tests/source_shadow_transport_online_tests.cpp)
     target_link_libraries(source_shadow_transport_online_tests PRIVATE halo2_authority_publisher
         LibDataChannel::LibDataChannelStatic nlohmann_json::nlohmann_json)
@@ -72,6 +82,15 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_peer_host_takeover_http_test.py" $<TARGET_FILE:source_peer_host_takeover_tests>)
     set_tests_properties(source_peer_host_takeover_http PROPERTIES TIMEOUT 270 SKIP_RETURN_CODE 77
         LABELS "offline-Xbox-reference")
+    set(HALO2_ORIGINAL_SOUND_TAKEOVER_BUNDLE "" CACHE FILEPATH "Owned produced original-sound candidate report for genuine playing Audio takeover")
+    if(HALO2_ORIGINAL_SOUND_TAKEOVER_BUNDLE)
+        add_test(NAME source_common_cut_original_sound_mcc_http COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py" $<TARGET_FILE:source_common_cut_runtime_tests>
+            --owned-original-sounds-bundle "${HALO2_ORIGINAL_SOUND_TAKEOVER_BUNDLE}"
+            --audio-report "${CMAKE_CURRENT_BINARY_DIR}/original-common-cut-playing-audio.json")
+        set_tests_properties(source_common_cut_original_sound_mcc_http PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
+            LABELS "owned-original-sound-native" ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy;HALO2_COMMON_PROSPECTIVE=1")
+    endif()
     set(HALO2_MCC_NATIVE_SCOPE_TEST_ROOT "" CACHE PATH
         "Explicit selected prepared MCC cache for genuine takeover native-scope validation")
     set(HALO2_MCC_NATIVE_SCOPE_TEST_MAP "" CACHE FILEPATH

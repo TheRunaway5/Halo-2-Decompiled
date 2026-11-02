@@ -237,6 +237,11 @@ void SourceDynamicObjectScene::reset_lifetimes() noexcept {
     for(auto &view:s.draws)view.clear();
     for(auto &[definition,bank]:s.banks)bank.geometry.reset_history();
 }
+std::vector<std::uint32_t> SourceDynamicObjectScene::source_render_models()const {
+    impl_->own();std::set<std::uint32_t> models;
+    for(const auto &[definition,bank]:impl_->banks)if(bank.model.render_model!=~0u)models.insert(bank.model.render_model);
+    return {models.begin(),models.end()};
+}
 void SourceDynamicObjectScene::synchronize(std::span<const SourceDynamicObject> o,std::span<const SourceWorldPose> p){Impl::Mutation mutation(*impl_);impl_->synchronize(o,p);}
 const SourceDynamicObject &SourceDynamicObjectScene::get(std::uint32_t o)const{impl_->own();return impl_->owners.at(o).state;}
 std::span<const Transform> SourceDynamicObjectScene::nodes(std::uint32_t o)const{impl_->own();return impl_->owners.at(o).nodes;}

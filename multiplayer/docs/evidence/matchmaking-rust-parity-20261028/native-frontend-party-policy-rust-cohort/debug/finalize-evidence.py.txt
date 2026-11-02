@@ -1,0 +1,121 @@
+import hashlib,json,re,shutil
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-policy-rust-20261102'
+sha=lambda value:hashlib.sha256(value).hexdigest()
+iteration=10
+record=json.loads((work/f'native/iteration-{iteration}-report.json').read_text())
+assert record['passed'] and record['frozen_inputs_intact'] and not record['refreshed']
+tests=(work/f'native/iteration-{iteration}/tests.log').read_text()
+passed=re.findall(r'Test\s+#\d+:\s+(\S+)\s+\.+\s+Passed\s+([\d.]+) sec',tests)
+expected=json.loads((work/'final-native-expected-tests.json').read_text())
+assert len(passed)==len(expected)==22 and {v[0] for v in passed}==set(expected)
+assert 'Skipped' not in tests and 'Not Run' not in tests and '***Failed' not in tests
+last=(work/f'native/iteration-{iteration}/evidence/Testing/Temporary/LastTest.log').read_text()
+assert 'party-roster-smoke-1.ppm' in last and 'party-roster-smoke-2.ppm' in last
+assert last.count('PASS native party roster pixels')==2
+assert last.count('PASS native party HTTP fixture budgets: zero 429 responses')==2
+owned=Path(record['scratch'])
+assert not owned.exists()
+retained=work/f'native/iteration-{iteration}/evidence/test-artifacts/frontend-party-policy.json'
+comparison=json.loads(retained.read_text());assert comparison['passed'] and not comparison['differences']
+assert comparison['cases']==3105 and comparison['native_observations']==2688 and comparison['comparisons']==5839
+assert comparison['fault_controls']==comparison['preserved_native_exception_identity']==14
+native={}
+for name in record['source_pin_parts']:native.update(json.loads((work/'native'/name).read_text()))
+previous=json.loads((work/'native/iteration-9-report.json').read_text())
+assert previous['passed'] and previous['source_pin_sha256']==record['source_pin_sha256']
+initial={}
+for p in sorted((work/'native').glob('source-pins-*.json')):initial.update(json.loads(p.read_text()))
+changed=[{'path':k,'before':initial.get(k),'after':v} for k,v in native.items() if initial.get(k)!=v]
+request=json.loads((work/'party-component-native-request.json').read_text())
+names=set(request['refresh'])|{'tests/frontend_online_tests.cpp','tests/frontend_parties_http_test.py','src/ui/frontend_painter.cpp'}
+names.update(str(p.relative_to(root)) for p in (root/'tests/reference/frontend_party_before_rust_20261102').iterdir() if p.is_file())
+pins={name:sha((root/name).read_bytes()) for name in sorted(names)}
+assert all(native.get(name)==value for name,value in pins.items())
+(work/'implementation-source-pins.json').write_text(json.dumps(pins,indent=2)+'\n')
+rust=json.loads((work/'rust/report.json').read_text())
+counts=json.loads((work/'rust-test-counts.json').read_text())
+assert sum(v['passed'] for v in counts.values())==626 and sum(v['ignored'] for v in counts.values())==4
+assert all(step['exit_code']==0 for step in rust['steps'] if step['name'] in counts)
+shared={k:v for k,v in rust['source_pins'].items() if k in native and k.startswith(('rust/online_protocol/','rust/online_protocol_bridge/','rust/matchmaking_service/','rust/online_security_ffi/'))}
+assert len(shared)==249 and all(native[k]==v for k,v in shared.items())
+scope=json.loads((work/'scope-check.json').read_text());assert scope['passed']
+cleanup=json.loads((work/'cleanup.json').read_text());assert cleanup['owned_scratch_removed']
+evidence='multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+receipt=evidence+'/native-frontend-party-policy-rust-validation.json'
+remaining=[
+ 'Remaining native party action/privacy/invitation routing and state, plus all remaining matching-related C++ and Python policy, must move to Rust',
+ 'Complete original callers, native identity/seat/voice/selectability producers, historical profiles/service ordering and arbitration for all 53 owners',
+ 'Every required family/profile/topology/unshortened natural outcome, departure/host continuity, results/PCR/return/requeue route',
+ 'Genuine providers, physical installed Linux input, delivered client/library/service/catalog/feature identities and restart/retry/configuration/rollback acceptance; all 12 GAP and G01-G12 criteria']
+section=(work/'audit-section.txt').read_text()
+audit=root/'multiplayer/docs/matchmaking-rust-parity-audit-20261028.md'
+content=audit.read_text();assert section.splitlines()[0] not in content
+marker='## Rust implementation boundary';assert content.count(marker)==1
+audit.write_text(content.replace(marker,section+'\n'+marker))
+readme=root/'rust/online_protocol/README.md'
+with readme.open('a') as stream:
+ stream.write('\n`matchmaking_frontend_party` owns accepted-party seat projection, voice/status\ncolumns, notification sounds and invitation-notice selection over typed actual\nprofile/login/seat IO. [Qualification](../../'+receipt+')\nrecords 626 Rust passes, 3,105 exact modern C++/Rust cases with 14 genuine native\nexception controls, and 22 passing native checks including actual SDL/Vulkan\nplaylist/Start and one-/two-player party emblem pixels. Legacy artwork and\nselected animated-page audits now pass. Remaining party action/privacy/invite\nrouting/state, original producers, full played-world scope, genuine providers\nand installed G01-G12 delivery acceptance remain open.\n')
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json'
+ledger=json.loads(ledger_path.read_text());assert 'native_frontend_party_projection_rust' not in ledger
+ledger['native_frontend_party_projection_rust']={
+ 'receipt':receipt,'implementation':'rust/online_protocol/src/matchmaking_frontend_party.rs',
+ 'bridge':'rust/online_protocol_bridge/src/matchmaking_frontend_party.rs','native_adapter':'src/ui/frontend_matchmaking_party_bridge.cpp',
+ 'native_io':'src/ui/frontend_party.cpp','component_passed':True,'four_projection_rules_owned_by_rust':True,
+ 'cpp_projection_policy_fallback':False,'unsafe_core_rust':False,'rust_total':626,'new_rust_controls':6,
+ 'modern_cpp_rust_cases':3105,'modern_cpp_rust_observations':2688,'modern_cpp_rust_comparisons':5839,
+ 'native_fault_controls':14,'unexpected_differences':0,'shared_rust_input_identities':249,
+ 'fresh_original_execution':False,'fresh_original_cases':0,'native_passing_tests':22,'native_skipped_tests':0,
+ 'legacy_clan_artwork_passed':True,'selected_party_emblem_audit_passed':True,'vulkan_one_and_two_player_pixels_passed':True,
+ 'actual_sdl_vulkan_buttons_passed':True,'fixture_throttling_observed_before_fix':True,'party_fixture_429_after_fix':0,
+ 'original_live_news_recovered':False,'selected_runtime_replaced':False,'production_service_activated':False,
+ 'physical_installed_input':False,'original_whole_system_parity':False,'full_matchmaking_ready':False,
+ 'full_goal_complete':False,'remaining':remaining}
+ledger_path.write_text(json.dumps(ledger,indent=2)+'\n')
+summary={
+ 'schema':'H2_NATIVE_FRONTEND_PARTY_POLICY_RUST_V1','goal_turn':'progress','component_passed':True,
+ 'goal_status':'active','full_goal_complete':False,'original_whole_system_parity':False,
+ 'reference':ledger['reference'],
+ 'scope_inventory_sha256':scope['scope_inventory_sha256'],'full_criteria_projection_sha256':scope['full_criteria_projection_sha256'],
+ 'goal_objective_sha256':scope['goal_objective_sha256'],
+ 'production_policy_owner':'rust/online_protocol/src/matchmaking_frontend_party.rs',
+ 'typed_bridge':'rust/online_protocol_bridge/src/matchmaking_frontend_party.rs',
+ 'native_abi_adapter':'src/ui/frontend_matchmaking_party_bridge.cpp','native_io':'src/ui/frontend_party.cpp',
+ 'policy':{'four_projection_rules_owned_by_rust':True,'cpp_projection_policy_fallback':False,'unsafe_core_rust':False,
+  'native_bytes_preserved':True,'all_nine_appearance_bytes_preserved':True,'native_exception_identity_preserved':True,
+  'native_read_order_preserved':True,'callbacks_reentrant_without_rust_state_borrow':True,
+  'scope':'Modern accepted-party projection producers; other party routing/state and original Live recovery remain open'},
+ 'rust':{'counts':counts,'total_passed':626,'new_controls':6,'existing_ignored':4,'suite_steps_passed':True,
+  'report':'rust/report.json','initial_combined_helper_failed_only_at_native_fixture_compile':True,
+  'shared_native_rust_input_count':len(shared),'shared_native_rust_input_mismatches':[]},
+ 'modern_comparison':comparison,'fresh_original':{'execution':False,'cases':0,'original_live_identity_seat_voice_producers_qualified':False},
+ 'native':{'passing_checks':[{ 'name':name,'seconds':float(seconds)} for name,seconds in passed],
+  'passing_count':22,'failed_count':0,'skipped_count':0,'all_requested_checks_passed':True,
+  'baseline_shared_failures':['frontend_clans_http','frontend_parties_http'],
+  'legacy_clan_artwork_passed':True,'selected_party_emblem_audit_passed':True,
+  'vulkan_party_pixel_controls':[1,2],'vulkan_emblem_suppression_control_passed':True,
+  'actual_sdl_vulkan_buttons_passed':True,'full_native_matchmaking_and_gathering_flows_passed':True,
+  'party_fixture_zero_429_checks':2,'frozen_inputs_intact':True,'final_cohort_matches_focused_rendered_cohort':True,
+  'declared_changed_files':len(changed),'declared_changes':changed,'binaries':record['binaries'],
+  'final_report':f'native/iteration-{iteration}-report.json'},
+ 'ui_corrections':{
+  'legacy_news':'Exact screen186/bitmap1/frame7/tag decoration hidden only for admitted PC artwork; no PC counterpart or original Live payload recovered; no page alias',
+  'emblem_audit':'Validate the actual selected animated page and its admitted owner; immutable initial page0 is not the descriptor-selected frame',
+  'renderer_and_bitmap_animation_owners_unchanged':True,'diagnostic_reports':['ui-diagnostics.json','ui-source-evidence-pins.json','route-diagnostics.json']},
+ 'fixture_corrections':['Use actual MenuFrame.first_visible for browser pointer expectations',
+  'Select a playlist once; require original lobby and no countdown/search until explicit Start',
+  'Configure all aggregate accelerated-party fixture budgets, reject any429 and preserve production limits'],
+ 'intermediate_failures':['Native fixture guessed busy, then pending, before correcting the actual accepting notice field',
+  'New native negative assertion initially used Rust Checking rather than native CheckingConnections',
+  'Original legacy news page7 and stale initial-page emblem audit',
+  'Stale browser first-visible calculation and extra Accept after direct lobby selection',
+  'Accelerated party fixture exhausted default aggregate budget, delayed countdown cues and cancellation; explicit429 evidence retained'],
+ 'sources':{'scoped_pins':pins,'source_pin_report':'implementation-source-pins.json',
+  'before_cpp_capture':'tests/reference/frontend_party_before_rust_20261102/provenance.json',
+  'lobby_policy_test_sha256':scope['lobby_policy_fixture_sha256']},
+ 'storage':{'owned_scratch_removed':True,'cleanup_report':'cleanup.json','retained_large_artifacts':[],
+  'required_small_reference_inputs':'tests/reference/frontend_party_before_rust_20261102'},
+ 'selected_runtime_replaced':False,'production_service_activated':False,'physical_installed_input':False,'remaining':remaining,
+ 'documentation':{str(p.relative_to(root)):sha(p.read_bytes()) for p in (audit,ledger_path,readme)}}
+(work/'implementation-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+print(json.dumps({'passing_native':22,'rust_passed':626,'case_comparisons':comparison['cases'],'declared_changes':len(changed),'full_goal_complete':False}))

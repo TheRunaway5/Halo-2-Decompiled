@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-native/halo2-test-atlxsp52",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-rust/halo2-test-1e39t7pt"
+  ],
+  "source_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-native/halo2-test-atlxsp52/native-source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-rust/halo2-test-1e39t7pt/source"
+  ],
+  "all_owned_source_build_sdk_cargo_scratch_removed": true,
+  "empty_scratch_parents": [
+    ".local/test-scratch/native-session-api-native",
+    ".local/test-scratch/native-session-api-rust",
+    ".local/test-scratch/native-session-api-staging",
+    ".local/test-scratch/native-session-api-link-audit"
+  ],
+  "all_declared_scratch_parents_empty": true,
+  "units": {
+    "halo2-mm-session-api-native-20261101.service": "LoadState=not-found\nActiveState=inactive\nSubState=dead",
+    "halo2-mm-session-api-rust-20261101.service": "LoadState=not-found\nActiveState=inactive\nSubState=dead"
+  },
+  "retained_large_artifacts": [],
+  "original_assets_references_and_selected_runtimes_preserved": true
+}

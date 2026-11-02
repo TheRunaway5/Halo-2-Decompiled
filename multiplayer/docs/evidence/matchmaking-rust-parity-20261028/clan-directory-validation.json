@@ -1,0 +1,660 @@
+{
+  "schema": "H2_RUST_MATCHMAKING_CLAN_DIRECTORY_VALIDATION_V1",
+  "updated_utc": "2026-10-29T17:35:05.996310+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "clan_directory_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "rust_authorities": "Rust now owns verified-account bearer admission/rotation/revocation/expiry and bounded social/countdown budgets, plus accepted clan schema, membership, invitations, role/lifecycle gates, public views, request quotas/replay and transactional SQL. Bounded directory continuations bind the actual native account capability and queue source, rechecking revocation and fresh expiry after IO. SQL failure rolls back membership, invitations and replay; retry commits once. Existing original manual/client role evidence remains separate from modern replacement-service implementation. Trusted provider verification, canonical identity/friend/presence/Steam IO, general endpoint limits/readers, complete Rust service replacement, cross-store recovery and original/native played/delivered gates remain open.",
+  "reproduced_gap": {
+    "trigger": "An internal Python account-session map insertion is presented to the actual authenticated clan HTTP endpoint.",
+    "before": "The previous authoritative Python bank accepts an otherwise unadmitted bearer and returns200.",
+    "after": "Rust owns bearer admission; immutable Python snapshots cannot authorize a new bearer and the actual HTTP endpoint returns401.",
+    "boundary": "Adapter/authority ownership control, not a claimed remote unauthenticated exploit or recovered Xbox Live procedure."
+  },
+  "checks": [
+    "Native account capacity and preflight before canonical identity/history writes; bounded permits and entropy; generation/identity/expiry/rotation/revocation fences",
+    "Independent monotonic authentication/rate clocks and separate social/countdown budgets",
+    "Read-only account projections and native account-source binding across every SQL/provider continuation, including expiry after IO without another authentication request",
+    "One clan per player,100 member cap, exact documented role permissions, confirmed Overlord promotion without automatic demotion, sole-Overlord leave guard and last-member deletion",
+    "Authenticated invitations/accept/decline/block/cancel, roster/presence/outgoing visibility, bounded messages/logs and request replay",
+    "Actual clan SQL-trigger rollback and exactly-once retry; stale Python role aliases cannot grant authority; native active-clan-match gate and consent invalidation",
+    "Full frozen backend and production ABI regressions, plus offline CMake Rust static/CXX/FFI build/helper"
+  ],
+  "cohorts": {
+    "capacity-baseline": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 260,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_parties.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/parties_http.py",
+        "multiplayer/master_server/steam_login.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_party_voice.py",
+        "multiplayer/master_server/tests/test_clan_directory_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-318fdxx5/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "7bb9e5c297f8b45ced00288762358b5401a8cee24b44c98b6f75bc14fdc47217",
+        "bytes": 3615560,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-capacity-baseline-report.json",
+      "manifest": "clan-directory-capacity-baseline-source-manifest.json",
+      "backend_tests": 1,
+      "backend_seconds": 7.198
+    },
+    "owner-red": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 260,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_parties.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/parties_http.py",
+        "multiplayer/master_server/steam_login.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_party_voice.py",
+        "multiplayer/master_server/tests/test_clan_directory_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-h9yjssn7/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "f11f4c641ad1b77eee6420108afb1b802de3918f652ca0041365ca36e7459f27",
+        "bytes": 3615896,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-owner-red-report.json",
+      "manifest": "clan-directory-owner-red-source-manifest.json",
+      "backend_tests": 1,
+      "backend_seconds": 0.267
+    },
+    "accounts": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 262,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_parties.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_accounts.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/parties_http.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_party_voice.py",
+        "multiplayer/master_server/tests/test_clan_directory_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-jn2gmutd/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "2d821ff01873c2e5b769593115bf2039b1670531be636e47042477c3bf307fad",
+        "bytes": 3717648,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-accounts-report.json",
+      "manifest": "clan-directory-accounts-source-manifest.json",
+      "rust_unit_passed": 174,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 174,
+      "rust_ignored": 2,
+      "backend_tests": 57,
+      "backend_seconds": 36.042
+    },
+    "first": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_accounts.rs",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_party_voice.py",
+        "multiplayer/master_server/tests/test_clan_directory_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-ik0nq7bt/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "301cd4f4cdaa64852b0c02e915b30b71313bae65c6304be369c515dd020891ff",
+        "bytes": 3785576,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-first-report.json",
+      "manifest": "clan-directory-first-source-manifest.json",
+      "rust_unit_passed": 175,
+      "rust_integration_passed": 10,
+      "rust_checks_passed": 185,
+      "rust_ignored": 2,
+      "backend_tests": 55,
+      "backend_seconds": 11.594
+    },
+    "fences": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_party_voice.py",
+        "multiplayer/master_server/tests/test_clan_directory_owner_native.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-m3474qe7/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "c994ca91c552eecdb0e3b16434b6336058246756be5a53859c9ef1d1addaad51",
+        "bytes": 3804696,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-fences-report.json",
+      "manifest": "clan-directory-fences-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 10,
+      "rust_checks_passed": 188,
+      "rust_ignored": 2,
+      "backend_tests": 76,
+      "backend_seconds": 15.392
+    },
+    "full-initial": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "multiplayer/master_server/tests/test_party_voice.py"
+      ],
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-hk9jyrdy/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "a702bc6833e82b98402a436eba3117746112c79bd2d064eb9ddc6ba9e7e2c0ad",
+        "bytes": 3814032,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-full-initial-report.json",
+      "manifest": "clan-directory-full-initial-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 272,
+      "rust_ignored": 2,
+      "backend_tests": 502,
+      "backend_seconds": 122.868
+    },
+    "production-initial": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "multiplayer/master_server/tests/test_party_voice.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-nqzw8ae9/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "f782fe67d1c75490d72e963d8f03ef9b4b808d2c6c8d8b1da58703f834cf230e",
+        "bytes": 3804520,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-production-initial-report.json",
+      "manifest": "clan-directory-production-initial-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 250,
+      "rust_ignored": 2,
+      "backend_tests": 294,
+      "backend_seconds": 84.756
+    },
+    "production-identity-fix": {
+      "passed": false,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "multiplayer/master_server/tests/test_party_voice.py"
+      ],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-cb404qym/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "a2b86454d2fc3323d7a282afce5e06498826bedba80f9dcef26b2be990bed4ef",
+        "bytes": 3804408,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-production-identity-fix-report.json",
+      "manifest": "clan-directory-production-identity-fix-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 250,
+      "rust_ignored": 2,
+      "backend_tests": 294,
+      "backend_seconds": 79.655
+    },
+    "production": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "matchmaking_test_inputs": false,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-cqyr18fr/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "8971b6972810c466480c3f59d55c64de1ccb2a0b2abe4af5836181f30b535326",
+        "bytes": 3817176,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-production-report.json",
+      "manifest": "clan-directory-production-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 250,
+      "rust_ignored": 2,
+      "backend_tests": 294,
+      "backend_seconds": 77.835
+    },
+    "full": {
+      "passed": true,
+      "source_frozen": true,
+      "files": 263,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "matchmaking_test_inputs": true,
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-zmihqqyl/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "c5455cc5508faa899c2156016969f3e44752cc243c1c8c9faaa67249012619fc",
+        "bytes": 3814656,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "report": "clan-directory-full-report.json",
+      "manifest": "clan-directory-full-source-manifest.json",
+      "rust_unit_passed": 178,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 272,
+      "rust_ignored": 2,
+      "backend_tests": 502,
+      "backend_seconds": 114.742
+    }
+  },
+  "cmake": {
+    "passed": true,
+    "jobs": 2,
+    "test_jobs": 1,
+    "source_files": 82,
+    "changed_during_build": [],
+    "report": "clan-directory-cmake-report.json",
+    "inputs": "clan-directory-cmake-inputs.json",
+    "helper": "clan-directory-cmake-build-report.json",
+    "scope": "Rust static/CXX/FFI/helper only; not native gameplay or delivered service acceptance"
+  },
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_accounts.rs": "182fc694ecdc4e954581a7c7e05beadf6201483307afc38e1f80fa77ce04f2e6",
+    "rust/online_protocol/src/matchmaking_clan_directory.rs": "659b0d3536cc2b354d2d1c5e50d80d81448d8c440a231dccb5a7e1abbb30da0a",
+    "rust/online_protocol/src/matchmaking_party_directory.rs": "12f5e6b964f54830a87da7954ae2c98b2f936df8e83b43c7931dce30f8c2f634",
+    "rust/online_protocol/src/matchmaking_parties.rs": "a247f1765d334dc340cf0c846e09fc71493f049033c621b45c5d510a704a8a7a",
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": "06ed5d7868cdc3f4b55066914b3cef5afb360b7eea6f7645e139f084d6519e7b",
+    "multiplayer/master_server/native_account_sessions.py": "543d037e571f7e3f49b2cda0512b35801848d6d9ce96ff48dd2a3287d657e9cf",
+    "multiplayer/master_server/native_party_directory.py": "ed66d81349e5e2635e86407b2a2dedaedd659e2b6a77421c7b547a78d8fe5a8c",
+    "multiplayer/master_server/clans_http.py": "2e37d9ce75792030f4430c3c59191b416c59ed3dabfefad878b7c6758f95e0a5",
+    "multiplayer/master_server/parties_http.py": "cb4f6993e3db0b7d8117a90a2da19ed9aa4fbebb8a05a7293367b824a60ded5a",
+    "multiplayer/master_server/matchmaking_http.py": "0574d309e3017dee9717edd53ec85d323b9e721570f52bee321cd25b2eea7683",
+    "multiplayer/master_server/steam_login.py": "c6091ca3b6139221b108ed09aa5f92d4dd88f29196f42a59293788a8bdca023c",
+    "multiplayer/master_server/tests/test_clan_directory_owner_native.py": "f11951e5d459bda8edd37c3a3b2a39b2eafe9adff24b30f0699b535287561725",
+    "multiplayer/master_server/tests/test_party_voice.py": "11118ae92cb3c7f652eefae91885ec86f6f95a41b827d4d8a0700db69c9e1f2d"
+  },
+  "source_coherence": {
+    "final_full_and_production_identical": true,
+    "files": 263,
+    "current_changes": [],
+    "preserved_concurrent_work": true
+  },
+  "diagnostics": {
+    "capacity_baseline": "The initial capacity control passed on the old code; it is not red evidence.",
+    "production_initial": "A voice test incorrectly selected the first session from a map whose iteration order is not an account contract. Replaced that assertion with the actual authenticated party view.",
+    "production_identity_fix": "An intermediate fixture incorrectly indexed a digest-keyed private session map with a raw bearer. It is retained as a failed fixture diagnostic, never acceptance.",
+    "cmake_unfenced": "The first CMake build/helper passed, but its outer report helper lacked HALO2_TEST_SCRATCH. Repeated under the owned lifecycle with82 unchanged Rust inputs.",
+    "expected_sql_failure": "Declared SQLite triggers intentionally produce HTTP500; assertions verify rollback and retry.",
+    "original_evidence": "Existing original fixture controls are regression inputs; no new unchanged-original execution is claimed.",
+    "existing_ignored_tests": 2
+  },
+  "goal_criteria": {
+    "unchanged": true,
+    "before_after_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "gaps_open": 12,
+    "algorithm_ids_retained": 53,
+    "acceptance_gates_open": 12,
+    "reference_sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "remaining": [
+    "All twelve complete gap criteria,53 algorithm IDs and G01-G12 gates",
+    "Original Live procedures/order, XNet/QoS producers, historical service/configuration and arbitration recovery",
+    "Full Rust endpoint/service replacement, trusted provider/canonical identity/shared IO and general population/history readers",
+    "Cross-store/crash/distributed recovery and actual complete-world continuity",
+    "Natural full native matches across all retained modes/subjects/topologies and delivered client/library/server/catalog/feature identity"
+  ],
+  "storage": {
+    "scratch_paths_checked_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-318fdxx5",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-cb404qym",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-cqyr18fr",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-h9yjssn7",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-hk9jyrdy",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-i01hthl3",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-ik0nq7bt",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-jn2gmutd",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-l8yf1opc",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-m3474qe7",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-nqzw8ae9",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-y1k0gfw0",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-zmihqqyl"
+    ],
+    "all_reported_scratch_removed": true,
+    "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/clan-directory-port/halo2-test-99yvjoo5",
+    "report_helper_removed": true,
+    "retained_small_reports": [
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-capacity-baseline-report.json",
+        "bytes": 1616,
+        "sha256": "be5fb12598c8dc4cec4e0ec20d0684ca9cbdbf632ae3d5f6e79c7c0596adf92f"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-capacity-baseline-source-manifest.json",
+        "bytes": 33124,
+        "sha256": "950570a2f712d0c7fc855ae50ab022e0c863fbd28f5edff7bd4ff267c1ef1bf2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-capacity-baseline-step-0.log",
+        "bytes": 1533,
+        "sha256": "cbdb205aefadbfdf7c63fb7d13c625c41d3baf404f383f91959524d1581efff8"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-capacity-baseline-step-1.log",
+        "bytes": 503,
+        "sha256": "fd976e990b240c6e0099e37df12021771f8cbfdd3c5b0a3e06e388167744311d"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-owner-red-report.json",
+        "bytes": 1604,
+        "sha256": "e57ebf246dc7daa93441f051c01dc78e22fcb9aee0ce4456cb67d2067ce626d9"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-owner-red-source-manifest.json",
+        "bytes": 33124,
+        "sha256": "0ef09aa53643de858859b4bfeb8d31c998ca45372b7b8137539076fcb8b033b1"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-owner-red-step-0.log",
+        "bytes": 1533,
+        "sha256": "901f2db743a2119d5bcf879be30e9e21381b119958a838c487eed00c2c07dffa"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-owner-red-step-1.log",
+        "bytes": 1677,
+        "sha256": "b5891be6d158100ba0ad65f7ddf169e0fe71a9660cc5a5b4258bdb1b87f49e07"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-accounts-report.json",
+        "bytes": 2253,
+        "sha256": "f2a8a6f3c3276ea25b29c14ff70e97016ac26ce036c53c9a2552ea3c175fded5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-accounts-source-manifest.json",
+        "bytes": 33376,
+        "sha256": "8e3277b1419588d829948f04b2d377b9056368d9b0485fd1e234ce0a252c55ce"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-accounts-step-0.log",
+        "bytes": 18598,
+        "sha256": "ade560fbea6f87bb04431034a05c7b98b8cd06820a09b4e3b006832b48b6b479"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-accounts-step-1.log",
+        "bytes": 1533,
+        "sha256": "9c434e1a4b92ca682150a6618742450e5c116722928a2a4087980b256035e35e"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-accounts-step-2.log",
+        "bytes": 28773,
+        "sha256": "9329586b92253473fe1114f38c1ad6e5f4e20b255d6f17e1784b570020b960a5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-first-report.json",
+        "bytes": 2304,
+        "sha256": "ed4c1a55540cb32bce63d84ff4a75d07ee6a5c5bb9b5869fb11e8dafb3397281"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-first-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "1962699ce1b2affd573770698137525152abc907c7ece859423571a4fdb18727"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-first-step-0.log",
+        "bytes": 19812,
+        "sha256": "1ae5526fc2f8bc4f73af5206a3a64d29095dacd89bb6b1105203a35996661117"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-first-step-1.log",
+        "bytes": 1533,
+        "sha256": "a8b935f3752268b0c6713511638c2b279b18e250f84fbcafa7ca1ae522578d20"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-first-step-2.log",
+        "bytes": 1385,
+        "sha256": "29df69f7d293c25769c901e51d4e3273e632f72e347167e178c88d79a6600d77"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-fences-report.json",
+        "bytes": 2445,
+        "sha256": "94c99bb9f5d707b7634d3331c94fd19ce630e45a086d7e3cd986e123489d2e7d"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-fences-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "9464878ba0d3c6da74854947359cecdb7dc196b3f725a00568adacc626d5da89"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-fences-step-0.log",
+        "bytes": 20161,
+        "sha256": "57f3ffce0442e5fe6e39fb7f7a0f56d5d69ce31edcdb080a9c72ee28eedcddb2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-fences-step-1.log",
+        "bytes": 1533,
+        "sha256": "54d5c49c57f11f2c6833107df8d4f7a3d5fe779a5fcff33715b710dbffe9a7b7"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-fences-step-2.log",
+        "bytes": 5127,
+        "sha256": "060717ce8400a30fd0bbe12244e0564de2179d682f82a84d3bb8d0b35ee75ef0"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-initial-report.json",
+        "bytes": 2805,
+        "sha256": "548b516502e19963662cd62fea69feeabdfb53ecfbf85207e533806bad959313"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-initial-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "d7c29fb1f9579519c47262fd3e65326538bb787a8c4c192d9645cf285f408c12"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-initial-step-0.log",
+        "bytes": 31316,
+        "sha256": "addc5b87051ab7074a790a5d74cefad9dfca9dc9c6d371de700caa1bf92d8e58"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-initial-step-1.log",
+        "bytes": 1533,
+        "sha256": "be8357233864f086d1ef006698684a4ac735961fd67de42e16dce1f11bf21c25"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-initial-step-2.log",
+        "bytes": 13337,
+        "sha256": "96bf13a7e395174b156295979c6e879819f1ebaa1dabe03e15f0b3c1085f7dfb"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-initial-report.json",
+        "bytes": 7970,
+        "sha256": "8c60bfaea67bb0332fd4e3b04dfc63b8be3147ee13adc01c502a548fc9b93648"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-initial-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "2d777826b9188d25589bb0fde4c47753e214b9fe869a6da431cb81df76aa28d2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-initial-step-0.log",
+        "bytes": 27795,
+        "sha256": "4e05307a4ece81dd84c00de6dbc3c52bc3300f6ccf45e91e1d59fe72590c12b7"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-initial-step-1.log",
+        "bytes": 1533,
+        "sha256": "b74edec2f3567282783c29b00fea8cdb8f31216a3e65811bf42367c2ffcd704d"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-initial-step-2.log",
+        "bytes": 11536,
+        "sha256": "0d87219216180caf63fb67885658b79ed40e25037c9ba8ecfbff1a1da06688e9"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-identity-fix-report.json",
+        "bytes": 7970,
+        "sha256": "10f27fc18d48ec8f5d08b8edc70504dbe911e01c31a6ddda47a6eefa60081c93"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-identity-fix-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "5e3e3bd1e499dd0c03333caa5f4ae5de7b1e97b7608022db1e0b18534a8567b1"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-identity-fix-step-0.log",
+        "bytes": 27795,
+        "sha256": "6f0fe184054fb585d5328a2ada351b953c181b0abafc0fc8b18f36cee71fa988"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-identity-fix-step-1.log",
+        "bytes": 1532,
+        "sha256": "9a50ae882a8a331f39a22b8b34e3fa782cf90fbca38a7d0e5036d0bd580858bb"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-identity-fix-step-2.log",
+        "bytes": 11591,
+        "sha256": "548a7efdfc48f72bcb56003e0e37035e35fed232fef0afba8e3e8c813b0e7a39"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-report.json",
+        "bytes": 7969,
+        "sha256": "ced225032663f638c1f97e46bf018a7f22cdca9f49a96c8c6ea256c7767e5d6c"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "d8c0a5814b53ced6e984cfe78d124476edd359604347339391ede472d1b251ff"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-step-0.log",
+        "bytes": 27795,
+        "sha256": "399ef2086f706c519a4c1318210abf21415f4dd8ae1a5c43130e1df32d075221"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-step-1.log",
+        "bytes": 1532,
+        "sha256": "c59b37972953a223765e0201e5b64b9f5e559d466421b936cb4c2838114ffaf7"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-production-step-2.log",
+        "bytes": 9296,
+        "sha256": "bfac50325808a6e3aea127e96ffe259dd359135faae95475683a0a70d71db249"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-report.json",
+        "bytes": 2805,
+        "sha256": "80586d7b6611b54dc8b95ba08411e289f91396c4b40c65488056835307cc689a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-source-manifest.json",
+        "bytes": 33506,
+        "sha256": "8f5254d435cf745d0a82edf2bff29ba557532da545db4d0b69e40145f9a793c4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-step-0.log",
+        "bytes": 31316,
+        "sha256": "2e66ede9b665e6a49469bda26dbaa3bcc8d5e3c16151adf7b722fa2325de431a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-step-1.log",
+        "bytes": 1532,
+        "sha256": "c51e41d4b3cc24a2ece68f906e8a5ea72b429459d18fc9ed87d8a2d6ba693c99"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-full-step-2.log",
+        "bytes": 11925,
+        "sha256": "54c28847fbc84774d7f1079bc511af9b46046f18afa65ca3e0d57f38cfde7991"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-build.log",
+        "bytes": 6910,
+        "sha256": "2ed7638243bb8e49d14217c31572fa55e19af765b972b5f66dee4e328c2022e3"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-configure.log",
+        "bytes": 4642,
+        "sha256": "61172d96fbb57dbd1a44fc3d978302bf2983fee1e65d682e68b5b45e0265bc5a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-inputs.json",
+        "bytes": 20134,
+        "sha256": "0f8340f1b637c51e23ac5798209a62200aa586e70b2d0baffdfaa96c2ecfd130"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-report.json",
+        "bytes": 2560,
+        "sha256": "b0c76eed13635dd3a6e720456a369506c82517707f2687eec2a207ab038a117b"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-tests.log",
+        "bytes": 304,
+        "sha256": "d482e4a04dc9b265df635d14958d2f048062b15ee1c4af3ac613eb2ac09e88c2"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-cmake-build-report.json",
+        "bytes": 1880,
+        "sha256": "a99c7530209ed28576869c8269f66f8425fe885fe5a5e50fb1f73e2fa75c2d67"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/clan-directory-goal-criteria-before.json",
+        "bytes": 15013,
+        "sha256": "8c067f016d2063f0632f675a50d4d6df51c88ae817579f3078fc81565624be52"
+      }
+    ],
+    "retained_source_report_files": 55,
+    "retained_source_report_bytes": 740415,
+    "retained_large_artifacts": [],
+    "backend_activated": false,
+    "selected_runtime_binary_changed": false,
+    "independent_frontend_repair": "The separate playlist incident added missing shared EOS client configuration beside the selected Linux runtime; no executable or selection was replaced.",
+    "owned_parent_verified_empty": true
+  }
+}

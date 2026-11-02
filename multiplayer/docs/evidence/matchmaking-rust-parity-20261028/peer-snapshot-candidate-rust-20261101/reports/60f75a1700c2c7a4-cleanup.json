@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-audit/halo2-test-53kzueyk",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-audit/halo2-test-wusseti4",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-full-rust/halo2-test-30cll_w2",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-full-rust/halo2-test-irmqzt0b",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-full-rust/halo2-test-lf8c7hxu",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-native/halo2-test-8o_zhrkh",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-native/halo2-test-ae7z24iw",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-native/halo2-test-dlgto5f5"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-snapshot-candidate-audit": []
+  },
+  "native_unit_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead"
+  },
+  "retained_large_artifacts": [],
+  "bounded_reports_exactly_deduplicated": true,
+  "preserved": "Original assets, references, prior snapshots, selected runtimes and unrelated active work"
+}

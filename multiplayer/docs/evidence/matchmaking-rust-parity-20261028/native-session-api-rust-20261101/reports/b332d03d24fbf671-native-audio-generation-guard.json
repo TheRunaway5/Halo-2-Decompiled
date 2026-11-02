@@ -1,0 +1,8 @@
+{
+  "source": "src/gameplay/game_voice.cpp",
+  "source_sha256": "0fc72c3d19fc6c451a6becb1acc2b2ae85d9c182ebdbb6b0f23c426d5d84bcf5",
+  "excerpt_sha256": "bb711b8ee70b6f63c74b54986fb03d152175cea5e5a0a71d12f2ca60e6330b22",
+  "native_exception_type": "std::overflow_error",
+  "message": "Voice delivery generation exhausted",
+  "scope": "Existing project-native device generation guard; not original Xbox XHV evidence"
+}

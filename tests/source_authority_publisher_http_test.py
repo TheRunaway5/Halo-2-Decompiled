@@ -29,6 +29,41 @@ def port():
         return str(s.getsockname()[1])
 
 
+async def private_display(output, owner):
+    # Let Xvfb reserve its display atomically. Concurrent xvfb-run -a children
+    # can choose the same number and later terminate the other PC's server.
+    read, write = os.pipe()
+    server = None
+    transport = None
+    try:
+        with (output / (owner + "-xvfb.log")).open("wb") as log:
+            server = await asyncio.create_subprocess_exec("Xvfb", "-displayfd", str(write),
+                "-screen", "0", "800x600x24", "-nolisten", "tcp", "-noreset",
+                pass_fds=(write,), stdout=log, stderr=asyncio.subprocess.STDOUT)
+        os.close(write)
+        write = None
+        reader = asyncio.StreamReader()
+        protocol = asyncio.StreamReaderProtocol(reader)
+        transport, _ = await asyncio.get_running_loop().connect_read_pipe(
+            lambda: protocol, os.fdopen(read, "rb", buffering=0))
+        read = None
+        number = (await asyncio.wait_for(reader.readline(), 10)).decode().strip()
+        assert number.isdigit() and server.returncode is None, "Private X11 display was not allocated"
+        return server, ":" + number
+    except BaseException:
+        if server is not None and server.returncode is None:
+            server.kill()
+            await server.wait()
+        raise
+    finally:
+        if transport is not None:
+            transport.close()
+        if read is not None:
+            os.close(read)
+        if write is not None:
+            os.close(write)
+
+
 async def main():
     binary = str(Path(sys.argv[1]).resolve())
     # The separate MCC acceptance mode has no runtime executable input. The
@@ -80,6 +115,7 @@ async def main():
             app.middlewares.append(observe)
         async with TestClient(TestServer(app)) as client:
             processes = []
+            displays = []
             drains = []
             tails = {}
 
@@ -102,8 +138,9 @@ async def main():
                         env.update(XDG_CACHE_HOME=str(private / "cache"), XDG_CONFIG_HOME=str(private / "config"),
                             XDG_DATA_HOME=str(private / "data"), HALO2_PIPELINE_CACHE_DIRECTORY=str(private / "pipelines"),
                             MESA_SHADER_CACHE_DIR=str(private / "mesa"), __GL_SHADER_DISK_CACHE_PATH=str(private / "nvidia"))
-                    prefix = ["xvfb-run", "-a", "-s", "-screen 0 800x600x24"] if os.environ.get("HALO2_SHADOW_GPU_MODE") else []
-                    processes.append(await asyncio.create_subprocess_exec(*prefix, binary, str(ROOT), str(client.make_url("/")).rstrip("/"),
+                        server, env["DISPLAY"] = await private_display(output, owner)
+                        displays.append(server)
+                    processes.append(await asyncio.create_subprocess_exec(binary, str(ROOT), str(client.make_url("/")).rstrip("/"),
                         owner, port(), xbe, temp, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env))
                     tails[owner] = bytearray()
                     drains.extend((asyncio.create_task(drain(owner, processes[-1].stdout)),
@@ -148,6 +185,14 @@ async def main():
                 # These readers are independent of collect()/gather(), so a
                 # cancelled wait never discards communicate()'s private buffer.
                 await asyncio.gather(*drains, return_exceptions=True)
+                for server in displays:
+                    if server.returncode is None:
+                        server.terminate()
+                        try:
+                            await asyncio.wait_for(server.wait(), 10)
+                        except asyncio.TimeoutError:
+                            server.kill()
+                            await server.wait()
                 for owner, tail in tails.items():
                     (output / (owner + ".log")).write_bytes(tail)
                 if os.environ.get("HALO2_SHADOW_TRANSPORT_ONLINE"):

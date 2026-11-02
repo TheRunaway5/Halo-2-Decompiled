@@ -1,0 +1,38 @@
+{
+  "schema": "H2_RUST_SERVICE_QOS_NATIVE_CONTROLS_V1",
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos-controls/halo2-test-pd7u6z0a",
+  "producer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-wzc672b0",
+  "source_cohort": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-qos-native-cmake-20261030",
+  "critical_source_drift": [],
+  "retained_large_artifacts": [],
+  "binaries": {
+    "rust_service_account_probe": {
+      "producer": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-ew8k9i12/build/rust_service_account_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos-controls/halo2-test-pd7u6z0a/rust_service_account_probe",
+      "sha256": "6acbc74ab76efb30f5d7f3b2803fbd8de1aeb5ae5058d54249e9b8edd65bc764",
+      "bytes": 23942072,
+      "retained": false
+    },
+    "rust_service_matchmaking_probe": {
+      "producer": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-ew8k9i12/build/rust_service_matchmaking_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos-controls/halo2-test-pd7u6z0a/rust_service_matchmaking_probe",
+      "sha256": "2b50325cd5d64f8cf34f87bf2ebb842bf80e66e25a6cc5cee64b6653008b6400",
+      "bytes": 27579592,
+      "retained": false
+    },
+    "rust_service_qos_probe": {
+      "producer": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-ew8k9i12/build/rust_service_qos_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos-controls/halo2-test-pd7u6z0a/rust_service_qos_probe",
+      "sha256": "ecfc704ae9310d16687f5700af570df51daec95fac2b7ecc57ea760d6647a255",
+      "bytes": 173032,
+      "retained": false
+    }
+  },
+  "test_source_pins": {
+    "tools/test_rust_matchmaking_service.py": "56b6251ca95e941ec592fedd60cbf71dc3324610081d0860e9ad2113ab1f7420",
+    "tools/rust_service_qos_controls.py": "a9d716e559d4c5d706851b42115e171aa5f78c17a79dfd603530d3160ba3a6ff",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670"
+  },
+  "error": "Existing CMake producer exited before its service binary was available"
+}

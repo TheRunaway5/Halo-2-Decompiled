@@ -1,0 +1,46 @@
+{
+  "scope": "Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "targets": [
+    "x86_64-unknown-linux-gnu"
+  ],
+  "lock_sha256": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+  "cxx_version": "1.0.205",
+  "native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "resolved_native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "requested_cxx": "/usr/bin/c++",
+  "requested_cxx_flags": "",
+  "archive": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+  "archive_sha256": "a8ebb6d9cf66afe3fe9fa321b5f0dc3f6af1b1e47753edd7e0e35519bfdec366",
+  "worker": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build/online-protocol/Release/eos_sdk_worker",
+  "worker_sha256": "820cd0b6f8d045293fb38a15f87e82c7fcb6d71a23a85bbe5c71c320f54476f0",
+  "worker_link_flags": "",
+  "header_sha256": {
+    "rust/cxx.h": "bb4eada7adbd269a932009682a12a15f716f0460761430e2b68ea7dab764646c",
+    "halo2-online-protocol-bridge/src/lib.rs.h": "87bfec20a3ca08d44f256807d5a3a8b8d6f762c389c6f4ce3d3c3ba26a6e29ab",
+    "src/eos_sdk.hpp": "85ccbd3cce12d58d2cc9650307362230c5eb82a08ee2a1567b5c1dfe7ecc9300",
+    "src/matchmaking_client.hpp": "815601da339b4f660101f374e94bbce003c0fc204817e1c691a3590eb11a3a44",
+    "src/matchmaking_native_qos.hpp": "5227724ffe8e222c8345870cc977442ffd188a402aafd901ab3759e83fe001f9"
+  },
+  "cargo_target_dir": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build/online-protocol/Release/cargo"
+}

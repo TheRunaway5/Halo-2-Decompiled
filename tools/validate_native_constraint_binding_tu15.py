@@ -24,6 +24,7 @@ def main():
     sources=['tests/native_tu15_constraint_residuals_tests.cpp',
         'src/physics/native_tu15_constraint_step.cpp',
         'src/physics/native_tu15_constraint_step_residuals.cpp',
+        'src/physics/native_tu15_stack_arena.cpp',
         'src/physics/native_tu15_dynamic_accumulator.cpp',
         'src/physics/native_tu15_motion_forces.cpp','src/physics/native_tu15_motion_commit.cpp',
         'src/physics/native_tu15_constraint_solver.cpp',
@@ -34,6 +35,7 @@ def main():
         'src/physics/native_tu15_constraint_base.cpp','src/physics/native_tu15_constraint_schema_emitter.cpp']
     headers=['include/halo2/native_tu15_constraint_step.hpp',
         'include/halo2/native_tu15_constraint_step_residuals.hpp',
+        'include/halo2/native_tu15_stack_arena.hpp','include/halo2/native_tu15_array_growth.hpp',
         'include/halo2/native_tu15_dynamic_accumulator.hpp',
         'include/halo2/native_tu15_motion_forces.hpp','include/halo2/native_tu15_motion_commit.hpp',
         'include/halo2/native_tu15_constraint_solver.hpp',

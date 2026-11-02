@@ -9,7 +9,7 @@ from .matchmaking import Coordinator, Playlist
 from .native_matchmaking import project, value
 from .native_database import run as database
 from .protocol import require, Problem
-from .player_identity import initialize, player as resolve_player, VERIFIED_DISCORD_USERNAME
+from .player_identity import initialize, resolve_seats, admission_identities, VERIFIED_DISCORD_USERNAME
 from .playlist_skill import PlaylistSkills
 from .clan_skill import ClanSkills
 from .couch_players import verify_local_players
@@ -43,13 +43,6 @@ class MatchmakingApi:
         self.core = Coordinator(tuple(e.policy for e in entries), clock=lambda: self.clock(), catalog=entries) if entries else None
         self._sessions, self._requests, self._failures = Sessions(self), Requests(self), Failures(self)
         initialize(directory.store.db)
-        directory.store.db.executescript("""
-        CREATE TABLE IF NOT EXISTS players(id TEXT PRIMARY KEY, provider TEXT NOT NULL,
-          subject TEXT NOT NULL, UNIQUE(provider,subject));
-        CREATE TABLE IF NOT EXISTS playlist_ranks(player TEXT NOT NULL REFERENCES players(id),
-          playlist TEXT NOT NULL, rank INTEGER NOT NULL CHECK(rank BETWEEN 1 AND 50),
-          PRIMARY KEY(player,playlist));
-        """)
         from .match_results import MatchResults
         self.skills = PlaylistSkills(directory.store.db)
         self.clan_skills = ClanSkills(directory.store.db)
@@ -125,24 +118,16 @@ class MatchmakingApi:
         self.cleanup()
         db = self.directory.store.db
         owners = [owner] + [local_owner for _, local_owner, _ in locals_verified]
-        identities = []
-        parties = getattr(self.directory, 'parties', None)
-        for account in owners:
-            if account is None:
-                identities.append(None)
-                continue
-            row = db.execute('SELECT player FROM player_identities WHERE provider=? AND subject=?', account).fetchone()
-            player = row[0] if row else None
-            identities.append(dict(owner=account, player=player,
-                separate_party=bool(player and parties and parties.party(player))))
+        identities = admission_identities(db,owners)
         transport = getattr(self, 'transport', None)
         rooms = [dict(closed=room.closed, phase=room.phase, owners=room.owners, active=tuple(room.tokens))
                  for room in transport.rooms.values()] if transport else []
         operands = dict(body=body, identities=identities, rooms=rooms)
         self.core._call('session_check', **operands)
-        resolved = [resolve_player(db, owner, plan['screen_name'], request.get(VERIFIED_DISCORD_USERNAME, ''))]
-        resolved.extend(resolve_player(db, account, name, username) if account else None
-                        for name, account, username in locals_verified)
+        seats=[dict(owner=owner,screen_name=plan['screen_name'],username=request.get(VERIFIED_DISCORD_USERNAME,''))]
+        seats.extend(dict(owner=account,screen_name=name,username=username) if account else None
+                     for name,account,username in locals_verified)
+        resolved=resolve_seats(db,seats)
         admitted = self.core._call('session_register', resolved=resolved, **operands)
         self.sessions.project(admitted['session'])
         self.session_events()
@@ -170,13 +155,8 @@ class MatchmakingApi:
         return self.core.common_clan(policy.id, [dict(clan=self.member_clan(player)) for player in players])
 
     def clan_membership_changing(self, player):
-        """Native authority policy: preserve admitted owners, revoke queued consent."""
-        transport = getattr(self, "transport", None)
-        require(transport is None or not any(r.active_member(player) and r.clans and not r.closed
-                and r.phase != "postgame" for r in transport.rooms.values()), "Finish your clan match first", 409)
-        ticket = self.ticket(player) if self.core else None
-        if ticket and ticket.clan:
-            self.directory.parties.changed(ticket.party_id)
+        from .native_party_directory import run
+        run(self.directory.clans,'membership_changing',player,family='clan')
 
     def eligibility_facts(self, session):
         # Only authenticated directory/party/seat facts cross this boundary;

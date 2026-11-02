@@ -28,6 +28,9 @@ struct SourceLiveModelBaseDrawTu15 {
     std::uint8_t color_count{};
     SourceModelCommandGeometry geometry;
     std::vector<std::array<float,12>> palette_rows;
+    // Completed 24020 coefficients must survive subsequent view queries
+    // which reuse the native owner cache and geometry arena.
+    std::shared_ptr<const VertexProgramBank> prt_bank;
 };
 // Original131BB0 unpack of the completed cache's actual color channels.
 // Unwritten channels retain the caller's prior bank; no color is invented.

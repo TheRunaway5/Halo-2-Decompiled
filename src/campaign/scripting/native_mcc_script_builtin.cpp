@@ -9,9 +9,10 @@
 namespace halo2 {
 struct NativeMccScriptBuiltinProfile::Impl {
     struct Receipt {
-        std::uint32_t datum{},function_datum{};
+        std::uint32_t datum{},function_datum{},argument_datum{0xffffffffu};
         std::uint16_t opcode{};
         std::array<std::byte,20> node{},function;
+        std::array<std::byte,20> argument{};
         std::string name;
     };
     std::map<std::uint16_t,Receipt> receipts;
@@ -56,6 +57,10 @@ Resolved resolve(const SourcePhysicsContactMemory& owner,std::uint32_t address) 
     const auto child=expected.function_datum&0xffffu;
     if(child>=count || read<20>(memory,first+child*20)!=expected.function)
         throw FormatError("Native MCC builtin lost its salted function-name identity");
+    if(expected.argument_datum!=0xffffffffu &&
+        ((expected.argument_datum&0xffffu)>=count ||
+         read<20>(memory,first+(expected.argument_datum&0xffffu)*20)!=expected.argument))
+        throw FormatError("Native MCC command lost its salted argument identity");
     const auto bytes=word(memory,scenario+0x1b0u),strings=word(memory,scenario+0x1b4u);
     const auto offset=little(expected.function,12,4);
     if(offset>=bytes || expected.name.size()+1>bytes-offset)
@@ -68,21 +73,22 @@ Resolved resolve(const SourcePhysicsContactMemory& owner,std::uint32_t address) 
 }
 }
 NativeMccScriptBuiltinProfile::NativeMccScriptBuiltinProfile(const MccScriptLayout& layout,
-    std::span<const std::byte> strings) {
+    std::span<const std::byte> strings,bool enable_mcc_blur) {
     auto profile=std::make_shared<Impl>();
     if(layout.nodes.size()%20 || layout.nodes.size()/20>0x10000)
         throw FormatError("Native MCC builtin syntax bank extent differs");
-    for(const auto& need:layout.requirements)if(need.need==MccScriptLayoutNeed::NativeClockGetter) {
+    for(const auto& need:layout.requirements)if(need.need==MccScriptLayoutNeed::NativeClockGetter ||
+        (enable_mcc_blur && need.need==MccScriptLayoutNeed::NativeBuiltin && need.donor_index==0x2b3u)) {
         const auto index=need.node_datum&0xffffu;
         if(index>=layout.nodes.size()/20)throw FormatError("Native MCC builtin receipt escapes syntax bank");
         const auto node=std::span(layout.nodes).subspan(index*20,20);
         const auto opcode=little(node,2,2);
-        // The only native signatures admitted here are the authenticated MCC
-        // LONG() getters at38F/390. No cache/parser library is needed by the
-        // standalone original physics runtime's unbound dispatch path.
+        const bool command=need.need==MccScriptLayoutNeed::NativeBuiltin;
+        // These literal signatures are pinned by complete unchanged MCC
+        // execution. Keep argumentful commands separate from LONG() getters.
         const std::string_view name=opcode==0x38fu?"game_tick_rate":
-            opcode==0x390u?"game_tick_rate_scalar":"";
-        if(name.empty() || little(node,0,2)!=(need.node_datum>>16) ||
+            opcode==0x390u?"game_tick_rate_scalar":opcode==0x2b3u && command?"rasterizer_blur":"";
+        if(name.empty() || command!=(opcode==0x2b3u) || little(node,0,2)!=(need.node_datum>>16) ||
             !little(node,0,2) || (little(node,6,2)&7) ||
             need.donor_index!=opcode || need.name!=name)
             throw FormatError("Native MCC clock receipt does not declare an authenticated getter");
@@ -90,11 +96,21 @@ NativeMccScriptBuiltinProfile::NativeMccScriptBuiltinProfile(const MccScriptLayo
         if(ordinal>=layout.nodes.size()/20)throw FormatError("Native MCC builtin function escapes syntax bank");
         const auto function=std::span(layout.nodes).subspan(ordinal*20,20);
         if(little(function,0,2)!=(child>>16) || !little(function,0,2) || (little(function,6,2)&7)!=1 ||
-            little(function,4,2)!=2 || little(function,8,4)!=0xffffffffu ||
+            little(function,4,2)!=2 || (!command && little(function,8,4)!=0xffffffffu) ||
             name_at(strings,little(function,12,4))!=name)
             throw FormatError("Native MCC clock receipt has a different function signature");
         Impl::Receipt receipt;receipt.datum=need.node_datum;receipt.function_datum=child;
         receipt.opcode=std::uint16_t(opcode);receipt.name=name;
+        if(command) {
+            const auto argument=little(function,8,4),ordinal=argument&0xffffu;
+            if(argument==0xffffffffu || ordinal>=layout.nodes.size()/20)
+                throw FormatError("Native MCC command argument escapes syntax bank");
+            const auto row=std::span(layout.nodes).subspan(ordinal*20,20);
+            if(!little(row,0,2) || little(row,0,2)!=(argument>>16) ||
+                little(row,4,2)!=7 || little(row,8,4)!=0xffffffffu)
+                throw FormatError("Native MCC blur receipt does not declare exactly one SHORT argument");
+            receipt.argument_datum=argument;std::copy(row.begin(),row.end(),receipt.argument.begin());
+        }
         std::copy_n(layout.nodes.begin()+index*20,20,receipt.node.begin());
         std::copy(function.begin(),function.end(),receipt.function.begin());
         if(!profile->receipts.emplace(std::uint16_t(index),std::move(receipt)).second)
@@ -103,10 +119,11 @@ NativeMccScriptBuiltinProfile::NativeMccScriptBuiltinProfile(const MccScriptLayo
     impl_=std::move(profile);
 }
 bool NativeMccScriptBuiltinProfile::owns(const MccScriptLayoutRequirement& need) const noexcept {
-    if(need.need!=MccScriptLayoutNeed::NativeClockGetter)return false;
+    if(need.need!=MccScriptLayoutNeed::NativeClockGetter && need.need!=MccScriptLayoutNeed::NativeBuiltin)return false;
     const auto found=impl_->receipts.find(std::uint16_t(need.node_datum));
     return found!=impl_->receipts.end() && found->second.datum==need.node_datum &&
-        found->second.opcode==need.donor_index && found->second.name==need.name;
+        found->second.opcode==need.donor_index && found->second.name==need.name &&
+        (need.need==MccScriptLayoutNeed::NativeBuiltin)==(found->second.opcode==0x2b3u);
 }
 std::size_t NativeMccScriptBuiltinProfile::calls() const noexcept {return impl_->receipts.size();}
 NativeMccScriptBuiltinBinding::NativeMccScriptBuiltinBinding(SourcePhysicsContactMemory& memory,
@@ -127,6 +144,7 @@ NativeMccScriptBuiltinBinding::~NativeMccScriptBuiltinBinding() {
 std::optional<std::uint32_t> native_mcc_script_builtin_value(const SourcePhysicsContactMemory& memory,
     std::uint32_t syntax_address) {
     const auto found=resolve(memory,syntax_address);if(!found.receipt)return {};
+    if(found.receipt->opcode!=0x38fu && found.receipt->opcode!=0x390u)return {};
     const auto clock=word(*found.memory,0x51df54u);
     const auto tick_rate=std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(little(read<2>(*found.memory,clock+2u),0,2))));
     // MCC706770 reads the signed WORD directly. MCC706780's exact signed
@@ -135,6 +153,17 @@ std::optional<std::uint32_t> native_mcc_script_builtin_value(const SourcePhysics
 }
 std::optional<std::uint16_t> native_mcc_script_builtin_return_type(const SourcePhysicsContactMemory& memory,
     std::uint32_t syntax_address) {
-    return resolve(memory,syntax_address).receipt?std::optional<std::uint16_t>{8}:std::nullopt;
+    const auto found=resolve(memory,syntax_address);if(!found.receipt)return {};
+    return found.receipt->opcode==0x2b3u?4:8;
+}
+std::optional<NativeMccScriptCommand> native_mcc_script_builtin_command(
+    const SourcePhysicsContactMemory& memory,std::uint32_t syntax_address) {
+    const auto found=resolve(memory,syntax_address);
+    if(found.receipt && found.receipt->opcode==0x2b3u)return NativeMccScriptCommand::RasterizerBlur;
+    return {};
+}
+void native_mcc_legacy_rasterizer_blur(std::int16_t) noexcept {
+    // MCC_PIN de65b4f4...: complete180030CC0 is C2 00 00. Do not
+    // substitute the unrelated bloom blur setting or invent a prototype effect.
 }
 } // namespace halo2

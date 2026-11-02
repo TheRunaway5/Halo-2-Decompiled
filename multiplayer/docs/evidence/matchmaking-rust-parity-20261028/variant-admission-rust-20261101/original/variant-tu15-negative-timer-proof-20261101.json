@@ -1,0 +1,30 @@
+{
+  "schema": "H2_TU15_VARIANT_CATALOG_RED_PROOF_V1",
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "validator": "0x1a7140",
+  "normalizer": "0x1a7170",
+  "no_locale_global": "0x4ecc1c",
+  "source_game_id": "rumble-pit-030",
+  "controls": [
+    {
+      "case": "source_crazy_king",
+      "valid": true,
+      "normalizer_accepts": true,
+      "input_sha256": "79d18010fee4211aa9ad016c381d836a90e7ddfed43f5dae48810b1bcba436c7",
+      "output_engine": 4
+    },
+    {
+      "case": "negative_signed_short_timer",
+      "valid": false,
+      "normalizer_accepts": false,
+      "input_sha256": "6e121aa821f14292141ae9efd14e77be92b6008284a02335a7b2d3ac3aa42cbb",
+      "output_engine": 2
+    }
+  ],
+  "original_instructions": 335,
+  "all_executed_instruction_bytes_verified": true,
+  "instruction_patches": [],
+  "replaced_callees": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-tu15-red-proof/halo2-test-34617xwv",
+  "retained_large_artifacts": []
+}

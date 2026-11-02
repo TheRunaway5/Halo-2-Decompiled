@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-full-rust/halo2-test-p3yssr_d",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-audit/halo2-test-a5h4y3a9",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-audit/halo2-test-ckwzc05h",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-probe/halo2-test-67k3qx9d"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-audit": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-probe": []
+  },
+  "native_unit_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead"
+  },
+  "retained_large_artifacts": [],
+  "bounded_reports_exactly_deduplicated": true,
+  "preserved": "Original assets/reference evidence, prior snapshots, selected runtimes and unrelated work"
+}

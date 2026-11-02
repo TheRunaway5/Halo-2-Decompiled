@@ -40,7 +40,7 @@ int main(int argc,char** argv){try {
     for(const auto& map:policy.at("maps")) {
         const auto name=map.at("map").get<std::string>();
         const auto count=map.at("records").size();
-        need((name=="needle"&&count==34)||(name=="street_sweeper"&&count==34),"finite program census changed");
+        need((name=="needle"&&count==35)||(name=="street_sweeper"&&count==36),"finite program census changed");
         json base={{"schema","H2_PRESERVED_NATIVE_SHADERS_V1"},{"map",name},{"shader_tags",hud.at("records")}};
         for(const auto& row:sky.at("maps"))if(row.at("map")==name)
             for(const auto& record:row.at("records"))base["shader_tags"].push_back(record);

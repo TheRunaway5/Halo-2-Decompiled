@@ -4,13 +4,19 @@
 
 namespace halo2 {
 
-// Local admission result, retained across MCC decoding by the caller. No Cache
-// field or serialized identity changes. Metadata values own their exact bytes,
+// Local admission result, retained across MCC decoding by the caller.
+// The optional sound pointer binds only after canonical Cache initialization.
+// This adds no serialized native identity. Metadata values own their exact bytes,
 // including binary scalar-table snapshots when named by the owner index.
 struct MccPreparedMapOwner {
+    struct OriginalSoundCatalog {
+        std::filesystem::path directory;
+        std::string sha256, original_map;
+    };
     std::filesystem::path cache_root;
     std::optional<MccNativeMapBinding> binding;
     std::map<std::string, std::string> metadata;
+    std::optional<OriginalSoundCatalog> original_sound_catalog;
     bool indexed{};
 };
 

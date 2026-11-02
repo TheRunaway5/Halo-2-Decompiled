@@ -139,6 +139,13 @@ if(BUILD_TESTING AND HALO2_MCC_ONLINE_PRESENTATION_MAP)
             set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=x11")
         endif()
     endfunction()
+    foreach(route host2 retry)
+        add_test(NAME native_mcc_presentation_transport_${route} COMMAND source_shadow_transport_tests
+            native-mcc "${HALO2_MCC_ONLINE_PRESENTATION_MAP}"
+            "${CMAKE_CURRENT_BINARY_DIR}/native_mcc_presentation_transport_${route}.json" "${route}")
+        set_tests_properties(native_mcc_presentation_transport_${route} PROPERTIES
+            TIMEOUT 180 RUN_SERIAL TRUE LABELS "online-presentation;mcc;native-component;network")
+    endforeach()
     foreach(species human elite)
         if(species STREQUAL elite)
             set(representation 3)
@@ -254,6 +261,24 @@ if(BUILD_TESTING AND HALO2_MCC_ONLINE_PRESENTATION_MAP)
                 set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "HALO2_TEST_RENDER_MODE=pstencil")
             endif()
         endforeach()
+        set(name native_mcc_firing_joined_${species})
+        halo2_online_presentation_test(${name} native_weapon_runtime_tests
+            "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" "${online_presentation_maps}" native-mcc)
+        set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT
+            "HALO2_TEST_REPRESENTATION=${representation}"
+            "HALO2_TEST_DUAL_HISTORY_REPORT=${CMAKE_CURRENT_BINARY_DIR}/${name}.json"
+            "HALO2_TEST_NETWORK_DUAL=1" "HALO2_TEST_RENDER_MODE=original"
+            "HALO2_TEST_FIRING_PRESENTATION=1")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set(shared_name native_mcc_firing_shared_timeline_${species})
+            halo2_online_presentation_test(${shared_name} native_weapon_runtime_tests
+                "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" "${online_presentation_maps}" native-mcc)
+            set_property(TEST ${shared_name} APPEND PROPERTY ENVIRONMENT
+                "HALO2_TEST_REPRESENTATION=${representation}"
+                "HALO2_TEST_DUAL_HISTORY_REPORT=${CMAKE_CURRENT_BINARY_DIR}/${shared_name}.json"
+                "HALO2_TEST_NETWORK_DUAL=1" "HALO2_TEST_RENDER_MODE=original"
+                "HALO2_TEST_FIRING_PRESENTATION=1" "HALO2_TEST_SHARED_EFFECT_CATCHUP=1")
+        endif()
     endforeach()
     foreach(route local joined)
         set(arguments --weapons --announcer)

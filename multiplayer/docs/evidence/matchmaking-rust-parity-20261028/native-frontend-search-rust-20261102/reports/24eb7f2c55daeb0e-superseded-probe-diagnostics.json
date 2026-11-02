@@ -1,0 +1,259 @@
+[
+  {
+    "retired_report": "build/test-results/frontend-search-rust-20261102/native-adapter-syntax.json",
+    "full_sha256": "391a71c9ad61069a645fb22e9d757cec3285ade5faf946f69456e66725fc42c2",
+    "full_bytes": 281538,
+    "scope": "Superseded syntax/link probes, retaining commands and failure diagnostics; final linked probe pins its complete source cohort",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa",
+    "retained_large_artifacts": [],
+    "commands": [
+      {
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "--offline"
+        ],
+        "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/rust/online_protocol_bridge",
+        "exit_code": 0,
+        "log": "early-cargo.log",
+        "full_log_sha256": "a82225d61ff5e6bd79b18b9482e5700f703719070203c548a2653980ca916f27",
+        "full_log_bytes": 77657
+      },
+      {
+        "command": [
+          "c++",
+          "-std=c++20",
+          "-fsyntax-only",
+          "-I/usr/include/SDL2",
+          "-D_GNU_SOURCE=1",
+          "-D_REENTRANT",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/include",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/src",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/cargo/cxxbridge",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/rust/online_protocol_bridge",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/src/ui/frontend_matchmaking_search_bridge.cpp"
+        ],
+        "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source",
+        "exit_code": 0,
+        "log": "syntax-frontend_matchmaking_search_bridge.log",
+        "full_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_log_bytes": 0
+      },
+      {
+        "command": [
+          "c++",
+          "-std=c++20",
+          "-fsyntax-only",
+          "-I/usr/include/SDL2",
+          "-D_GNU_SOURCE=1",
+          "-D_REENTRANT",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/include",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/src",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/cargo/cxxbridge",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/rust/online_protocol_bridge",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/src/ui/frontend_matchmaking_search.cpp"
+        ],
+        "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source",
+        "exit_code": 0,
+        "log": "syntax-frontend_matchmaking_search.log",
+        "full_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "full_log_bytes": 0
+      },
+      {
+        "command": [
+          "c++",
+          "-std=c++20",
+          "-fsyntax-only",
+          "-I/usr/include/SDL2",
+          "-D_GNU_SOURCE=1",
+          "-D_REENTRANT",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/include",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/src",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/cargo/cxxbridge",
+          "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/rust/online_protocol_bridge",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source/tests/native_frontend_search_rust_tests.cpp"
+        ],
+        "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa/source",
+        "exit_code": 1,
+        "log": "syntax-native_frontend_search_rust_tests.log",
+        "full_log_sha256": "fdec0c1b6562a5a6f861d995abfe3269377baffb5e4d22a7d26af42e2be360c8",
+        "full_log_bytes": 542
+      }
+    ],
+    "passed": false,
+    "source_pin_inventory_sha256": "249be036cc2f4616c84b65681acd3c95e480edf0356608f85829a0cf1988b10f"
+  },
+  {
+    "retired_report": "build/test-results/frontend-search-rust-20261102/probe/report.json",
+    "full_sha256": "a7d290640fe9d5f8675394fcb2894b713f8a57c60adbc7787ad87784cab8ce44",
+    "full_bytes": 586621,
+    "scope": "Superseded syntax/link probes, retaining commands and failure diagnostics; final linked probe pins its complete source cohort",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8",
+    "retained_large_artifacts": [],
+    "iterations": [
+      {
+        "passed": false,
+        "commands": [
+          {
+            "command": [
+              "cargo",
+              "build",
+              "--locked",
+              "--offline",
+              "--manifest-path",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge/Cargo.toml"
+            ],
+            "exit_code": 0,
+            "log": "iteration-1-cargo.log",
+            "sha256": "3583cd630eecc39f160db56d2e0e4561319565dcd53eb82ac6b09fe6b113056f",
+            "bytes": 77544
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-fsyntax-only",
+              "-I/usr/include/SDL2",
+              "-D_GNU_SOURCE=1",
+              "-D_REENTRANT",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search_bridge.cpp"
+            ],
+            "exit_code": 0,
+            "log": "iteration-1-frontend_matchmaking_search_bridge.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-fsyntax-only",
+              "-I/usr/include/SDL2",
+              "-D_GNU_SOURCE=1",
+              "-D_REENTRANT",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search.cpp"
+            ],
+            "exit_code": 0,
+            "log": "iteration-1-frontend_matchmaking_search.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-O1",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/tests/native_frontend_search_rust_tests.cpp",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search_bridge.cpp",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/debug/libhalo2_online_protocol_bridge.a",
+              "-lpthread",
+              "-ldl",
+              "-lm",
+              "-o",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/replay"
+            ],
+            "exit_code": 1,
+            "log": "iteration-1-replay-build.log",
+            "sha256": "f96d8d027be0effb62f033f32823939d3d1d21a2b911aa4db518319ed6df75f0",
+            "bytes": 580
+          }
+        ],
+        "error": "RuntimeError('iteration-1-replay-build failed')"
+      },
+      {
+        "passed": false,
+        "commands": [
+          {
+            "command": [
+              "cargo",
+              "build",
+              "--locked",
+              "--offline",
+              "--manifest-path",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge/Cargo.toml"
+            ],
+            "exit_code": 0,
+            "log": "iteration-2-cargo.log",
+            "sha256": "38cb1602e171ba8e07aea076197ef4e67f696d8b38d6d741e4251abcfde9d66f",
+            "bytes": 72758
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-fsyntax-only",
+              "-I/usr/include/SDL2",
+              "-D_GNU_SOURCE=1",
+              "-D_REENTRANT",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search_bridge.cpp"
+            ],
+            "exit_code": 0,
+            "log": "iteration-2-frontend_matchmaking_search_bridge.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-fsyntax-only",
+              "-I/usr/include/SDL2",
+              "-D_GNU_SOURCE=1",
+              "-D_REENTRANT",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search.cpp"
+            ],
+            "exit_code": 0,
+            "log": "iteration-2-frontend_matchmaking_search.log",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          {
+            "command": [
+              "c++",
+              "-std=c++20",
+              "-O1",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/include",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/cxxbridge",
+              "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/rust/online_protocol_bridge",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/tests/native_frontend_search_rust_tests.cpp",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/source/src/ui/frontend_matchmaking_search_bridge.cpp",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/cargo/debug/libhalo2_online_protocol_bridge.a",
+              "-lpthread",
+              "-ldl",
+              "-lm",
+              "-o",
+              "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8/replay"
+            ],
+            "exit_code": 1,
+            "log": "iteration-2-replay-build.log",
+            "sha256": "bcbc990847610d5b4a1384f4d0d5140ba1fe70c9cb1ba2e42b3317e9bfc5725d",
+            "bytes": 22298
+          }
+        ],
+        "error": "RuntimeError('iteration-2-replay-build failed')"
+      }
+    ]
+  }
+]

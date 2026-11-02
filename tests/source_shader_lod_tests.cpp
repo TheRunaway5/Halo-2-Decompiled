@@ -1,6 +1,7 @@
 #include "halo2/source_shader_lod.hpp"
 #include "halo2/math.hpp"
 #include <bit>
+#include <cfenv>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -56,6 +57,22 @@ Words evaluate(const Words &row) {
     require(at==row.size(),"source shader LOD input has trailing fields");return result;
 }
 void boundaries() {
+    // Every source alpha, under each supported rounding mode: omitting the
+    // integer mask construction must preserve both the selector and FP flags.
+    const auto saved_round=std::fegetround();
+    for(int rounding:{FE_TONEAREST,FE_DOWNWARD,FE_UPWARD,FE_TOWARDZERO}) {
+        require(std::fesetround(rounding)==0,"stipple rounding mode unavailable");
+        for(unsigned alpha=0;alpha<256;++alpha) {
+            std::feclearexcept(FE_ALL_EXCEPT);
+            const auto full=source_shader_instance_stipple(std::uint8_t(alpha));
+            const auto flags=std::fetestexcept(FE_ALL_EXCEPT);
+            std::feclearexcept(FE_ALL_EXCEPT);
+            const auto level=source_shader_instance_stipple_level(std::uint8_t(alpha));
+            require(level==full.level && std::fetestexcept(FE_ALL_EXCEPT)==flags,
+                "level-only stipple changed original selector or FP effects");
+        }
+    }
+    require(std::fesetround(saved_round)==0,"stipple rounding mode restore failed");
     const auto view=source_shader_lod_view(0,480,false,false);
     const std::array<float,3> thresholds{1,.5f,0};
     require(source_shader_lod_choice(thresholds,0,240,view,false).index==1,

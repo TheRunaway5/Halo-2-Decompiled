@@ -285,18 +285,34 @@ PcmSound decode_sound(const EncodedSound &input) {
   const auto block = std::size_t(r.decoder->block_align);
   if (input.data.size() % block)
     throw FormatError("truncated sound codec block");
+  std::vector<std::size_t> chunk_ends;
+  std::size_t declared{};
+  for (const auto& chunk : input.packet_chunks) {
+    if (!chunk.bytes || chunk.bytes > input.data.size()-declared || chunk.bytes % block)
+      throw FormatError("sound chunk escapes its complete codec blocks");
+    declared += chunk.bytes;
+    chunk_ends.push_back(declared);
+  }
+  if (!chunk_ends.empty() && declared != input.data.size())
+    throw FormatError("sound chunks do not cover their owned payload");
   // Xbox ADPCM has 64 samples per 36-byte channel block. Decode complete
-  // blocks; chunks have already been concatenated by the gestalt reader.
+  // blocks while retaining one decoder/resampler across resource chunks.
+  // Observe emitted frames at each boundary; resampler delay is not a guessed
+  // source-byte proportion and must not be flushed between chunks.
   const auto packet_size =
       (input.codec == 1 || input.codec == 2) ? block : block * 1024;
   for (std::size_t at = 0; at < input.data.size();) {
-    const auto size = std::min(packet_size, input.data.size() - at);
+    const auto end = chunk_ends.empty() ? input.data.size() :
+        chunk_ends[output.chunk_boundaries.size()];
+    const auto size = std::min(packet_size, end - at);
     check(av_new_packet(r.packet, int(size)), "allocate sound packet");
     std::memcpy(r.packet->data, input.data.data() + at, size);
     check(avcodec_send_packet(r.decoder, r.packet), "submit sound packet");
     av_packet_unref(r.packet);
     receive();
     at += size;
+    if (!chunk_ends.empty() && at == end)
+      output.chunk_boundaries.push_back({at,output.frames()});
     if (output.frames() > 48000ull * 600)
       throw FormatError("decoded sound exceeds ten minute limit");
   }
@@ -318,6 +334,8 @@ PcmSound decode_sound(const EncodedSound &input) {
         break;
     }
   }
+  if (!output.chunk_boundaries.empty())
+    output.chunk_boundaries.back().end_frame = output.frames();
   for (auto &sample : output.stereo) {
     if (!std::isfinite(sample))
       throw FormatError("nonfinite decoded sound sample");

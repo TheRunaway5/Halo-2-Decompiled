@@ -1,0 +1,1852 @@
+{
+  "schema": "halo2-native-peer-driver-rust-validation-v1",
+  "created_at_utc": "2026-11-01T15:34:50.868823+00:00",
+  "component_passed": true,
+  "scope": "Replacement direct-peer scheduling and native capability barriers, preserved C++ loop/native controls versus Rust; not original Live/XNet or played-world acceptance",
+  "source_pins": {
+    "src/network/online_match_session.cpp": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e",
+    "src/network/peer_authority_transfer.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "include/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "0edcd771593582759df803e107d78a8017aa2bb83204ccec4c3f745156da2a24",
+    "rust/online_protocol_bridge/src/lib.rs": "755ddcab73d700986179607f284f62524da088cd029aa85046665dbf35b7a8b9",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "4c0b11c31ce2091788501c5ab6ae69c42ff98e99f7b4207efdd348c902f200eb",
+    "rust/online_protocol/src/matchmaking_native_peers.rs": "c97d831327b82abd2d2f544121358dc17f1f0911225c3dc03fb70a806043d7bc",
+    "rust/online_protocol_bridge/src/matchmaking_native_peers.rs": "e5854fe1c6ff08e789787b027f8c22d7ce05c2b06eddd2373fba80d74ad22aee",
+    "rust/online_protocol_bridge/src/matchmaking_native_peers.hpp": "96caaad66db4555464f4d5f6f719250c998a088980e8a7fcd4adfea990c3fc6a",
+    "rust/online_protocol_bridge/build.rs": "5c91843a2b26dabd1144c7832704b6943e7c161aa6e88271269b5b880d3a6ad5",
+    "cmake/OnlineProtocolRust.cmake": "1eebf0901fa484b6b31f6372d49884b54da331b82982eb35d70918abdde297e1",
+    "tools/build_online_protocol_rust.py": "fbf8c09711610e9959dc6454e235e1d56cfa84267bcaaa771f2347bbee191dec",
+    "tests/test_build_online_protocol_rust.py": "1b47ba651fbf2ca29a53e1059828cc8ba077bea94ec831eed5513e18dd8fdda8",
+    "tests/peer_authority_transfer_tests.cpp": "d8191dbcf087a2d0f9a353cb6ca9fe245a7a3f51467deabd36f81fa2dbe943a2",
+    "rust/online_protocol/src/lib.rs": "043daca2604c50ab6a8e12ab0429b1e09f8f449ad4e1bf812e4a608efeef794d",
+    "rust/online_protocol/tests/matchmaking_native_session.rs": "91b053e75de5c6e49aab6d6e6235e1c4e015ffd38874620f7b20484ac0c24d4a"
+  },
+  "baseline": {
+    "source": "src/network/online_match_session.cpp",
+    "sha256": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+    "bytes": 67008,
+    "retained_source": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c37075dd11962d55-before-src_network_online_match_session.cpp.txt",
+      "sha256": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+      "bytes": 67008
+    },
+    "modern_protocol_reference": true,
+    "original_xnet": false
+  },
+  "rust_owns": [
+    "Admitted fixed physical roster scan, receive limit, rejection handling and packet epoch framing",
+    "Gameplay/media/control ordering, poll budgets, setup budget and wait cadence",
+    "Bounded full retained-generation rotation and wrapping cursor; empty slots also advance",
+    "Common/survivor/snapshot capability and phase barriers from exact native observations",
+    "Negotiated epoch-envelope choice, native Session phase predicates and actual-ready candidate decisions"
+  ],
+  "cpp_retains": [
+    "Actual transport, clock/wait/device IO and ownership of native resource lifetimes",
+    "Actual generation mutex, current media predicate recheck and send without unlocking",
+    "Actual resource observations/polls, native world preparation and commit operations"
+  ],
+  "control_poll_locking": "Each callback rechecks the Rust plan under the native generation lock; an intervening genuine publication can be observed between successive polls. Actual fallible resource preparation and native commit checks remain under their existing owner lock.",
+  "rust_counts": {
+    "online_protocol": 380,
+    "online_protocol_bridge": 57,
+    "matchmaking_service": 20
+  },
+  "rust_total": 457,
+  "new_rust_controls": 8,
+  "staging_tests": 7,
+  "staging_scope": "Existing mock Cargo/compiler staging contract, not cross-platform runtime proof",
+  "rust_native_final_inputs_match": true,
+  "rust_preflight_diagnostic": "Initial disposable harness omitted existing reference fixtures, causing a compile error before tests; copied all required fixtures. Initial successful run records an explicit additive reference refresh; final complete freeze/check/test passes with all fixtures pinned. No production test failure.",
+  "native_runs": [
+    {
+      "iteration": 1,
+      "scope": "Exact captured prior C++ peer loop",
+      "passed": true,
+      "tests": [
+        "peer_survivor_selection_normal_session",
+        "peer_survivor_selection_mixed_session",
+        "peer_survivor_selection_abort_session",
+        "peer_survivor_selection_preparation_session",
+        "peer_host_native_session",
+        "peer_host_aborted_cut",
+        "peer_host_measured_migration",
+        "peer_host_audio_session",
+        "peer_mesh_quality_native_session",
+        "peer_authority_transfer",
+        "online_peer_direct_udp",
+        "online_continuity_native_transport",
+        "online_continuity_legacy_transport"
+      ],
+      "seconds": 161.74,
+      "refreshed": [],
+      "source_pin_parts": [
+        "iteration-1-source-pins-0.json",
+        "iteration-1-source-pins-1.json",
+        "iteration-1-source-pins-2.json",
+        "iteration-1-source-pins-3.json",
+        "iteration-1-source-pins-4.json",
+        "iteration-1-source-pins-5.json",
+        "iteration-1-source-pins-6.json",
+        "iteration-1-source-pins-7.json",
+        "iteration-1-source-pins-8.json",
+        "iteration-1-source-pins-9.json",
+        "iteration-1-source-pins-10.json",
+        "iteration-1-source-pins-11.json",
+        "iteration-1-source-pins-12.json",
+        "iteration-1-source-pins-13.json",
+        "iteration-1-source-pins-14.json",
+        "iteration-1-source-pins-15.json",
+        "iteration-1-source-pins-16.json",
+        "iteration-1-source-pins-17.json",
+        "iteration-1-source-pins-18.json",
+        "iteration-1-source-pins-19.json",
+        "iteration-1-source-pins-20.json",
+        "iteration-1-source-pins-21.json",
+        "iteration-1-source-pins-22.json",
+        "iteration-1-source-pins-23.json",
+        "iteration-1-source-pins-24.json",
+        "iteration-1-source-pins-25.json",
+        "iteration-1-source-pins-26.json",
+        "iteration-1-source-pins-27.json",
+        "iteration-1-source-pins-28.json",
+        "iteration-1-source-pins-29.json",
+        "iteration-1-source-pins-30.json",
+        "iteration-1-source-pins-31.json",
+        "iteration-1-source-pins-32.json",
+        "iteration-1-source-pins-33.json",
+        "iteration-1-source-pins-34.json",
+        "iteration-1-source-pins-35.json",
+        "iteration-1-source-pins-36.json",
+        "iteration-1-source-pins-37.json",
+        "iteration-1-source-pins-38.json",
+        "iteration-1-source-pins-39.json",
+        "iteration-1-source-pins-40.json",
+        "iteration-1-source-pins-41.json",
+        "iteration-1-source-pins-42.json",
+        "iteration-1-source-pins-43.json",
+        "iteration-1-source-pins-44.json",
+        "iteration-1-source-pins-45.json"
+      ],
+      "binaries": {
+        "peer_authority_transfer_tests": {
+          "sha256": "63e660141a0cea8952776676fca43158c354f9b64e75bb782f04e79a6b7caf0c",
+          "bytes": 24614760
+        },
+        "peer_host_session_tests": {
+          "sha256": "290bdaf4d49a5a06296d330838dfcb27b0edc58ad15a4a9c3bff68b35744a021",
+          "bytes": 28293592
+        },
+        "peer_survivor_session_tests": {
+          "sha256": "efc4f51ce248e4699429207acddf9174c51cbec29cacfc01eb6283d46415fe14",
+          "bytes": 28225680
+        },
+        "peer_mesh_quality_session_tests": {
+          "sha256": "7c0c0ecff8ff784381bb0c6c1f03fc9d32866193d9ad207d7244d9804d512818",
+          "bytes": 28230032
+        },
+        "online_continuity_transport_tests": {
+          "sha256": "abe656973b08578668f878e2620e6898d66ba2bcfb2856798958a270855ca508",
+          "bytes": 28158080
+        },
+        "online_peer_transport_tests": {
+          "sha256": "623752d5f14441f06a204bd6b07226ca64aae76c0bcc4a417d6ff05a127d0a99",
+          "bytes": 27046192
+        },
+        "rust_service_room_probe": {
+          "sha256": "258d01f5f9a22649804d6918aafbde1af1ca5964f677472f45bd17b9891a2000",
+          "bytes": 28201240
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "scope": "Rust peer worker and Rust capability plan",
+      "passed": true,
+      "tests": [
+        "peer_survivor_selection_normal_session",
+        "peer_survivor_selection_mixed_session",
+        "peer_survivor_selection_abort_session",
+        "peer_survivor_selection_preparation_session",
+        "peer_host_native_session",
+        "peer_host_aborted_cut",
+        "peer_host_measured_migration",
+        "peer_host_audio_session",
+        "peer_mesh_quality_native_session",
+        "peer_authority_transfer",
+        "online_peer_direct_udp",
+        "online_continuity_native_transport",
+        "online_continuity_legacy_transport"
+      ],
+      "seconds": 161.6,
+      "refreshed": [
+        {
+          "path": "src/network/online_match_session.cpp",
+          "before": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+          "after": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e"
+        },
+        {
+          "path": "rust/online_protocol_bridge/src/matchmaking_native_peers.rs",
+          "before": "434309468712b23b9aedd2b1f89ba00b926b0d05e1402eece28b3c949b8ccf02",
+          "after": "e5854fe1c6ff08e789787b027f8c22d7ce05c2b06eddd2373fba80d74ad22aee"
+        },
+        {
+          "path": "rust/online_protocol_bridge/src/lib.rs",
+          "before": "f1b775d1c01fd4a8257c5424b2aa39f5f8bb9d0a5d08812c53cb47079310fc97",
+          "after": "755ddcab73d700986179607f284f62524da088cd029aa85046665dbf35b7a8b9"
+        }
+      ],
+      "source_pin_parts": [
+        "iteration-2-source-pins-0.json",
+        "iteration-2-source-pins-1.json",
+        "iteration-2-source-pins-2.json",
+        "iteration-2-source-pins-3.json",
+        "iteration-2-source-pins-4.json",
+        "iteration-2-source-pins-5.json",
+        "iteration-2-source-pins-6.json",
+        "iteration-2-source-pins-7.json",
+        "iteration-2-source-pins-8.json",
+        "iteration-2-source-pins-9.json",
+        "iteration-2-source-pins-10.json",
+        "iteration-2-source-pins-11.json",
+        "iteration-2-source-pins-12.json",
+        "iteration-2-source-pins-13.json",
+        "iteration-2-source-pins-14.json",
+        "iteration-2-source-pins-15.json",
+        "iteration-2-source-pins-16.json",
+        "iteration-2-source-pins-17.json",
+        "iteration-2-source-pins-18.json",
+        "iteration-2-source-pins-19.json",
+        "iteration-2-source-pins-20.json",
+        "iteration-2-source-pins-21.json",
+        "iteration-2-source-pins-22.json",
+        "iteration-2-source-pins-23.json",
+        "iteration-2-source-pins-24.json",
+        "iteration-2-source-pins-25.json",
+        "iteration-2-source-pins-26.json",
+        "iteration-2-source-pins-27.json",
+        "iteration-2-source-pins-28.json",
+        "iteration-2-source-pins-29.json",
+        "iteration-2-source-pins-30.json",
+        "iteration-2-source-pins-31.json",
+        "iteration-2-source-pins-32.json",
+        "iteration-2-source-pins-33.json",
+        "iteration-2-source-pins-34.json",
+        "iteration-2-source-pins-35.json",
+        "iteration-2-source-pins-36.json",
+        "iteration-2-source-pins-37.json",
+        "iteration-2-source-pins-38.json",
+        "iteration-2-source-pins-39.json",
+        "iteration-2-source-pins-40.json",
+        "iteration-2-source-pins-41.json",
+        "iteration-2-source-pins-42.json",
+        "iteration-2-source-pins-43.json",
+        "iteration-2-source-pins-44.json",
+        "iteration-2-source-pins-45.json"
+      ],
+      "binaries": {
+        "peer_authority_transfer_tests": {
+          "sha256": "f69e815d03ae53cf83814d9d810d600a1c054e74898791b244af6495f0630856",
+          "bytes": 24615096
+        },
+        "peer_host_session_tests": {
+          "sha256": "c473dd769eca41697d01545c9974362e1a6d063f40b2affb4e9205c4a24ffd6f",
+          "bytes": 28283680
+        },
+        "peer_survivor_session_tests": {
+          "sha256": "c050bc721d19af45f2e0408c63264e10a643b40daef7ef8cbcab607031fc5194",
+          "bytes": 28207576
+        },
+        "peer_mesh_quality_session_tests": {
+          "sha256": "484b7460a2cdeb6fa727e563e683b9a152bf6ae882091217d3daf5896ce548cc",
+          "bytes": 28216016
+        },
+        "online_continuity_transport_tests": {
+          "sha256": "0bcb5d4ab8df63ae26537ddab46712baa975e68b48c26eb2a04cd64c200fbcb5",
+          "bytes": 28144072
+        },
+        "online_peer_transport_tests": {
+          "sha256": "6f6cb13cdc697f9bf481bedf14ac9b48d6fda2808dc6c3e5a8dc5e2c814ee37c",
+          "bytes": 27046528
+        },
+        "rust_service_room_probe": {
+          "sha256": "c51a7935bcbd0f70e7118b75a030b9216ea133771b6b714a5b7bddbca9eb5ea4",
+          "bytes": 28187232
+        }
+      }
+    }
+  ],
+  "native_unique_tests": 13,
+  "native_executions": 26,
+  "native_seconds": 323.34000000000003,
+  "frozen_native_files": 18363,
+  "freeze_drift": [],
+  "unrelated_current_source_drift": [
+    {
+      "path": "CMakeLists.txt",
+      "frozen_sha256": "034e6876a2eb501cb5234fa797bc92c70c7ed60e25842d0c9a21b1ef2a347a98",
+      "current_sha256": "f5a9f1afcd041d14aa77e3cc35c136b435698e822fdee602a059b9106f8f30a4"
+    },
+    {
+      "path": "include/halo2/cache.hpp",
+      "frozen_sha256": "e77b60e05e46c6d8a2d09aac8097f45690f51cfedd50b33bf87cfe2a5c8d8e95",
+      "current_sha256": "076942678750363e13984c8f65fe9cd097103e323dfb873f0d79b14dc1839f19"
+    },
+    {
+      "path": "src/assets/mcc/mcc_weapon_zoom_sound.cpp",
+      "frozen_sha256": "9589e4d3ceba2e966eeef94941c7d2450096a39d64baccfb17aec24538b32672",
+      "current_sha256": "220d64f354ec91b8fa7f70fad6a284605f6f58be64f6ca4d6ed9d6e183e1b83b"
+    },
+    {
+      "path": "src/assets/mcc_cache.cpp",
+      "frozen_sha256": "7310602d1c9ac040b42ba87b0b4b83a6e82343eef49846ec8d42c4231e98e76f",
+      "current_sha256": "fec5bd0ceac2e1652e9d4b5fa1efc836e986c0abaccb38be498d1c74b258103d"
+    },
+    {
+      "path": "src/gameplay/objects/source_machine_scene.cpp",
+      "frozen_sha256": "de06bbc09056bd9616bc8c8ef979669df0b61d402e084d653e0c97dc5b31f8c1",
+      "current_sha256": "0aa3bec9e42b62e2944167ad398cc9f39bc9b46b1d43a2b4d190c6e4af6e2e35"
+    },
+    {
+      "path": "src/physics/collision/collision.cpp",
+      "frozen_sha256": "b390aaa26c3adf029b803d7d6bb6fb314a6028d70a25d0a235f22e8d1e9ef2bc",
+      "current_sha256": "d8749fc151c8e01d032568b9ab6b0160e501bc63041cac9913539b37b4a28f06"
+    },
+    {
+      "path": "src/rendering/material.cpp",
+      "frozen_sha256": "d3bf57b4698612d3fc979d7a19310dc1911ac0c0f50a5fa05f94bac7359d4003",
+      "current_sha256": "04be2e6a6bdc8de56514ebcb294cd827e6b80eea55af7333a1ba42a82ceeb02e"
+    },
+    {
+      "path": "src/rendering/world/source_world_depth_input.cpp",
+      "frozen_sha256": "1dc8a64d4cb9dc32eac7f72c0ba3bc538a9d1293fb7a0ffb768fa7c3e3598304",
+      "current_sha256": "9be3189fc66a6580f12f90190886c8d60a5bac1eebe20ac8b071d8c9b0f5c065"
+    },
+    {
+      "path": "tests/collision_layers_tests.cpp",
+      "frozen_sha256": "6039939527909db1709e10795d070c4695ae434c192121a90ae4bcc69be28189",
+      "current_sha256": "15d9a430e6ae9e857426ba499fa232abe04cedde9f59d0be681ae187d16ff591"
+    },
+    {
+      "path": "tests/native_weapon_presentation_contracts_tu15_tests.cpp",
+      "frozen_sha256": "a97424a2eae17842d79aeb41d576ccfb1fc0b24e741601a6d31fed3a4b9a20e4",
+      "current_sha256": "9aefc2372b88905dac1bf128c624a023d59e4cc3d3df474096f9f3b3f67536da"
+    },
+    {
+      "path": "tests/source_machine_scene_tests.cpp",
+      "frozen_sha256": "4d48d31b1de5276750127b71854693ae3bc2413dc0bd48a486c4a444edbfac72",
+      "current_sha256": "ecb1733c9849c1c39fd565c2a1fdb0baaa77accb4a08cdad9ad938a819c49cac"
+    },
+    {
+      "path": "tools/test_zanzibar_runtime.py",
+      "frozen_sha256": "eec553c39e516db2af96c6c375c948a490bfc8ce54257a6ecd8782080c5064b2",
+      "current_sha256": "cfbaaa1833c80181d72cb49b7ce3955d687aaec4102d21d21fccc35c1b962aed"
+    }
+  ],
+  "link_audit": {
+    "passed": true,
+    "object_sha256": "36e31807fab7a30c1513f55ef15bcddbaed0df098ce5c218dafd1934fdfd45be",
+    "rust_entries": {
+      "native_peer_run": [
+        "U halo2::online_protocol_bridge::native_peer_run(halo2::online_protocol_bridge::NativePeerWorker&, halo2::online_protocol_bridge::NativeMatchPeersIo const&)"
+      ],
+      "native_peer_poll_allowed": [
+        "U halo2::online_protocol_bridge::native_peer_poll_allowed(halo2::online_protocol_bridge::NativePeerPlan const&, halo2::online_protocol_bridge::NativePeerPoll)"
+      ],
+      "native_session_peer_plan": [
+        "U halo2::online_protocol_bridge::native_session_peer_plan(halo2::online_protocol_bridge::NativeSession const&, halo2::online_protocol_bridge::NativePeerResources const&)"
+      ],
+      "native_session_peer_worker": [
+        "U halo2::online_protocol_bridge::native_session_peer_worker(halo2::online_protocol_bridge::NativeSession const&)"
+      ],
+      "native_session_epoch_packets": [
+        "U halo2::online_protocol_bridge::native_session_epoch_packets(halo2::online_protocol_bridge::NativeSession const&)"
+      ]
+    },
+    "cpp_parser_crypto_policy_dependencies": [],
+    "final_rust_native_source_mismatch": [],
+    "current_critical_source_drift": [],
+    "source_pins": {
+      "src/network/online_match_session.cpp": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e",
+      "src/network/peer_authority_transfer.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+      "include/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+      "rust/online_protocol/src/matchmaking_native_session.rs": "0edcd771593582759df803e107d78a8017aa2bb83204ccec4c3f745156da2a24",
+      "rust/online_protocol_bridge/src/lib.rs": "755ddcab73d700986179607f284f62524da088cd029aa85046665dbf35b7a8b9",
+      "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "4c0b11c31ce2091788501c5ab6ae69c42ff98e99f7b4207efdd348c902f200eb",
+      "rust/online_protocol/src/matchmaking_native_peers.rs": "c97d831327b82abd2d2f544121358dc17f1f0911225c3dc03fb70a806043d7bc",
+      "rust/online_protocol_bridge/src/matchmaking_native_peers.rs": "e5854fe1c6ff08e789787b027f8c22d7ce05c2b06eddd2373fba80d74ad22aee",
+      "rust/online_protocol_bridge/src/matchmaking_native_peers.hpp": "96caaad66db4555464f4d5f6f719250c998a088980e8a7fcd4adfea990c3fc6a",
+      "rust/online_protocol_bridge/build.rs": "5c91843a2b26dabd1144c7832704b6943e7c161aa6e88271269b5b880d3a6ad5",
+      "cmake/OnlineProtocolRust.cmake": "1eebf0901fa484b6b31f6372d49884b54da331b82982eb35d70918abdde297e1",
+      "tools/build_online_protocol_rust.py": "fbf8c09711610e9959dc6454e235e1d56cfa84267bcaaa771f2347bbee191dec",
+      "tests/test_build_online_protocol_rust.py": "1b47ba651fbf2ca29a53e1059828cc8ba077bea94ec831eed5513e18dd8fdda8",
+      "tests/peer_authority_transfer_tests.cpp": "d8191dbcf087a2d0f9a353cb6ca9fe245a7a3f51467deabd36f81fa2dbe943a2"
+    },
+    "scope": "Actual compiled native Session links the Rust peer worker/plan; symbols do not certify played-world, original service or delivered behavior",
+    "retained_large_artifacts": []
+  },
+  "native_rust_service_room": {
+    "passed": true,
+    "result": {
+      "passed": true,
+      "observed": {
+        "input_bytes": 27,
+        "players": 2,
+        "protocol": 123,
+        "real_start_timer": true,
+        "result_recorded": true,
+        "snapshot_bytes": 1400
+      },
+      "scope": "Actual native OnlineMatchSession clients, real Rust loading/start, datagram relay and unanimous PCR/XP commit; declared legacy profile, synthetic datagrams/PCR/fingerprint and fixture provider grants. No native world/rendered game or delivered acceptance."
+    },
+    "binary_sha256": "8190838d996132052d833722c0c283278b3c9d15eeee069d8a6e85d14e8f051b",
+    "probe": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/build/rust_service_room_probe",
+      "sha256": "c51a7935bcbd0f70e7118b75a030b9216ea133771b6b714a5b7bddbca9eb5ea4",
+      "bytes": 28187232,
+      "native_iteration": 2,
+      "native_component_tests_passed": true
+    },
+    "source_pins": {
+      "tools/test_rust_matchmaking_service.py": "e9b7f378e940896c95a535679ec654d50c808a899b5526847a410b341d8474a1",
+      "tools/rust_service_room_controls.py": "044bf2062629afaefda9707036330a8f0960cf3866527a98e94d358fb3989a72",
+      "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+      "rust/online_protocol/Cargo.toml": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+      "rust/online_protocol/Cargo.lock": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+      "rust/online_protocol/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "rust/online_protocol/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+      "rust/online_protocol/README.md": "38850ba143016c94ab0b84116dff1df830699f7fa26c5ad1e7b2ea52f9c078c7",
+      "rust/matchmaking_service/Cargo.toml": "27ba26970fdbd7ecc0c3f2abd55c3742723f8bd948e8089a8ecbf7d1a01c6cf3",
+      "rust/matchmaking_service/rust-toolchain.toml": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+      "rust/matchmaking_service/Cargo.lock": "1e7ab09c6da07493fc678c1216222bf0cbb31caa75495da01a734118b9afcf77",
+      "rust/matchmaking_service/README.md": "295a6371a44b404348970df846c458154a718523c2fc0c45b6e7cd025113f396",
+      "rust/matchmaking_service/src/main.rs": "9b514042e27efefffe63d17f5612387685128571c4c32a6e649f6a0a5fe9bd15",
+      "rust/matchmaking_service/src/database.rs": "bcd6316b30e2dc02b612ad6ddbd890b1b1921f9fc77944f95695edc606161f55",
+      "rust/matchmaking_service/src/authentication.rs": "65506fae095042a95d97b264ec447c467de4b9d92c90ab9be9c0da19f9e178f9",
+      "rust/matchmaking_service/src/runtime.rs": "e1b3cf09586ec7ce7685c14e3dfded7bc178f3a7c12cd526f89a1d6a728ff1d5",
+      "rust/matchmaking_service/src/admission.rs": "9f1a014032c38678ec248d30ab1641bf6cb3bef78c4bdd1b80a34c909688ccaf",
+      "rust/matchmaking_service/src/http.rs": "19d7d7bdb1c42c8854342bbef5e987acc3828d974de6c32ce4c51b4c3e11573d",
+      "rust/matchmaking_service/src/matchmaking.rs": "8169d1c220f80df31c93638247d7ab39754a61ed087822d43980a0063e9d32b0",
+      "rust/matchmaking_service/src/search_qos.rs": "70dbf7d160965e11556523a142def77028afb09fecfdbfba34681ac16efa4563",
+      "rust/matchmaking_service/src/websocket.rs": "077ecb09d4966fce8b2f8a35e65e0b296d843435fe225f81ea6e1a5c8b02ac06",
+      "rust/matchmaking_service/src/room_io.rs": "62dc806f1e7890c9798bb906429502c531935cc9e1badcafd9a9d7e2dbb95f31",
+      "rust/matchmaking_service/src/rooms.rs": "05a1b84701e4d3b61ca9e62bf1c8fd64d6de61f78c9a56620461e6d3231102dc",
+      "rust/matchmaking_service/src/room_websocket.rs": "f07b961b02b67e70304f0ddf64c7c4ffcd1f6c772ce609e02b98e3806fda9ff8",
+      "rust/matchmaking_service/src/eos_identity.rs": "1bc0942ec37d5981257e28077827663f517fca2df51f2686f64215ec1ce04e89",
+      "rust/matchmaking_service/src/eos_verifier.rs": "ad47c4708083da980085cf1ccf64be623ce96fbde439262d39c85959acfcb8e3",
+      "rust/matchmaking_service/src/eos_binding.rs": "5db1ad108c4ed121affdb05f06031322e89313dabc8b2414413107ffc397268b",
+      "rust/matchmaking_service/src/eos_http.rs": "be807583142bb90b1e2a46c5765c0b6b3bec2521767bcfc125b492d196e9dab0",
+      "rust/matchmaking_service/src/steam_login.rs": "509c5dca7b38c8764f12e9d89130cb99aad4baf5d3a4819e41cf0cf59c7b89cf",
+      "rust/matchmaking_service/src/steam_provider.rs": "15500cb52b421861e9838a2574b26d375ff54770e2292b6a0bc13ec764c0597a",
+      "rust/matchmaking_service/src/steam_sessions.rs": "1938ddcfdb3abae6cfe59c2ab1ab188d747474ef4f665ab983373f24ce266a44",
+      "rust/matchmaking_service/src/steam_http.rs": "937bcef1ab3364206ac93ba0a4fe9b42828bf5ab29f286288a441be2679b9f74",
+      "rust/matchmaking_service/src/social.rs": "38852fca71a021b48c3cb1e1719cbf157380942365825785d726fac98815f567",
+      "rust/matchmaking_service/src/steam_friends.rs": "21bfd5da403a642ad7ffd616c9794ea9c8b8ab30f02ec4a57d6bb76af9026c6b",
+      "rust/matchmaking_service/src/steam_friends_provider.rs": "b2d40810b558962f79c669bd440ee93ca16db18112e04acf4729ffb630361454",
+      "rust/matchmaking_service/src/connection_budget.rs": "02510158f4603341a7c7c409d3219ef6ace2645fce67b7ee43da82e7881c347e",
+      "rust/matchmaking_service/src/steam_friends_http.rs": "d50c8ee47eb10a8065bfb37459c9045ac9646b8c3258d7696b1cf7b36109b1f4",
+      "rust/matchmaking_service/src/friend_cloud.rs": "a374205c249bc252010dbd2f0997165b1fcda837a2d1557ef9045c0b84dbbc8c",
+      "rust/matchmaking_service/src/friend_cloud_runtime.rs": "938aa697d552208a5be7c273aff091a7ae629faa5643d3f5ec405ce619a60b1b",
+      "rust/matchmaking_service/src/social_voice.rs": "06b92dacd54dbb5057ad339eb105386de74c89154ade7c329c4efd9956fc2b50",
+      "rust/matchmaking_service/src/social_voice_http.rs": "30635871394b5ca1bf10b81f65d7881f8504e9f207194f65571bcb3c9b385c07",
+      "rust/matchmaking_service/src/registration_clock_tests.rs": "5c900f87786aa7540c721fab285f30d380138be14fc38b4de8e4dc8ee419dfee",
+      "rust/matchmaking_service/src/variant_catalog_tests.rs": "111cd75a1548e3e31e9092e3d88b9fe03d2f2a45c77b1da044b8273327d8a783",
+      "rust/online_protocol/src/lib.rs": "043daca2604c50ab6a8e12ab0429b1e09f8f449ad4e1bf812e4a608efeef794d",
+      "rust/online_protocol/src/native_requests.rs": "8ddc00433afb4ece7e8bf3e2ba2904339ae25330a110ed236e5c367e0d2f8cfa",
+      "rust/online_protocol/src/authority_archive.rs": "691b4bf8fe5a7f5715efdc91d1a912931a9da99f9ac6eda7bffe10698029d59a",
+      "rust/online_protocol/src/eos_wire.rs": "5154a76798a1e83c16aafbc03509004ae6ce125bf81cca746980524d55da8bc8",
+      "rust/online_protocol/src/migration_preparation.rs": "1a5ad045c7cc48231f0f1a3180b56f750dca74831e7d83a7fa6392f14e982abe",
+      "rust/online_protocol/src/peer_pacing.rs": "01e9173cd4204273cd47b195864fea9b3f7d8246e235824d4daf6c24b73f5d39",
+      "rust/online_protocol/src/host_agreement.rs": "3856a8d008bb24e51b6f4f4116ccf5e6e7c1057670bf80b80e94ad3ab9af4261",
+      "rust/online_protocol/src/common_cut.rs": "eeae0747328e32d6aa8312dee2c04e4f4a23b2e72d2590d3e1abc66fd2dd6035",
+      "rust/online_protocol/src/survivor_selection.rs": "aa8cdf1218694fd5039f1f69569692b1c53aa43feb98e0663fdc4a50a8c15e97",
+      "rust/online_protocol/src/prospective_role.rs": "4cb7efdd20d8f075c76c6d0b7d7257004471088b807d46ca92cccc2e1dd8e685",
+      "rust/online_protocol/src/migration_driver.rs": "5ba6ef71f097e776ab728a528e9da50a13208ecde815bed43af4bb21d664c340",
+      "rust/online_protocol/src/eos_account_auth.rs": "11586f175fa16b8d6c39f97e0177676759a1bec028681606e4734fdbd44b5b91",
+      "rust/online_protocol/src/lan_auth.rs": "883cf24371221d496fb07c9b53dc8872029a658550baa0a52f21451827373fa8",
+      "rust/online_protocol/src/security_policy.rs": "3e95d883dffd98c903006d3081740ddf0d6e74944332ae21a51aa143f85ae8eb",
+      "rust/online_protocol/src/eos_outgoing.rs": "292c42cba1767905a1e2c96a5866ec6abcf846a4fedd22294da87962f0daa873",
+      "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+      "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+      "rust/online_protocol/src/matchmaking_readiness.rs": "b8b2ccb062d8eb7956b1714f177a8dc09045fd4e0944d667aefd5569cebd4bf3",
+      "rust/online_protocol/src/party_privacy.rs": "56315211b71cbac524f61a47978b9d6476cc9b825c6b27326817887a538f5e92",
+      "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+      "rust/online_protocol/src/hopper_selection.rs": "dfc47195ced2500f0a928eee3bddbb72f255a87e55beee8ee34351aca90183e9",
+      "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+      "rust/online_protocol/src/session_candidates.rs": "522251ae3f0e6cd449f678ceccb527efae2b85e0e432037e340b4673d053243f",
+      "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+      "rust/online_protocol/src/matchmaking_model.rs": "34816e466596abaaf511743abc3c6dae61f3893f683b12de2efacb243609280b",
+      "rust/online_protocol/src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+      "rust/online_protocol/src/matchmaking_gatherings.rs": "96093a2c7e2f1d99d2d64862d11b1a5726a950d4d5ce6d8e6fa31c6f9326bc00",
+      "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+      "rust/online_protocol/src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+      "rust/online_protocol/src/matchmaking_persistence.rs": "56217497815fed7f80fe945a75e1aa6ca8b62c744a2d53cccca3856206612c38",
+      "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+      "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+      "rust/online_protocol/src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+      "rust/online_protocol/src/matchmaking_parties.rs": "74df6958e49eb5900a01888f39acf5d0f7fe21a52c7e1c4b3012cd2324e40ef4",
+      "rust/online_protocol/src/matchmaking_party_countdowns.rs": "9d899eb34296fa30a00aea749f89ff32af93f2321bed36800d6177393d95b91c",
+      "rust/online_protocol/src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+      "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+      "rust/online_protocol/src/matchmaking_room_setup.rs": "2044f332e43d0701d6d8f54090e6cc73cbdb1203c3b68dca6e93432a2a4e4671",
+      "rust/online_protocol/src/matchmaking_continuity.rs": "bd444109d876b1ceb3e982fc609c26152f88cd0d8efc7f1a8dd915ff920b2758",
+      "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "d9a9bbc75a2261d05b579194d897d3fb245b58eaaa0a9c4c820b792bc33b597c",
+      "rust/online_protocol/src/matchmaking_room_wire.rs": "51ab682a1b6d8f0e3e8dc8b115e9b63816f4a4f1f9b47e33e393924db59cd5ab",
+      "rust/online_protocol/src/matchmaking_packet_budget.rs": "96646f99f08e997ce0c6823b68ed2dfd29c83dee282fe75574fe8098adc52ad2",
+      "rust/online_protocol/src/matchmaking_room_packets.rs": "34f885da19331846424b7f99c7121ff28e5744f624c58f240a1ab6df66e440cf",
+      "rust/online_protocol/src/matchmaking_room_control.rs": "45184c06e788162c541356d51b176f5e9a039e29f4fd49fc4890bd21aac90eb8",
+      "rust/online_protocol/src/matchmaking_search_qos.rs": "f2d222201f29d3a77b0666e6ab8dee64f65a19d655ba7979dc0190b058568a5e",
+      "rust/online_protocol/src/matchmaking_party_directory.rs": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+      "rust/online_protocol/src/matchmaking_accounts.rs": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+      "rust/online_protocol/src/matchmaking_clan_directory.rs": "9f4638f0cb7638df1cacb74476d9fe52a4365e4a68138bd0e5226b8c3db42f51",
+      "rust/online_protocol/src/matchmaking_public_history.rs": "8e60a14e8728d911523aadbe84a92ca985f69ed9834975673a6974be44279e94",
+      "rust/online_protocol/src/matchmaking_profiles.rs": "325f7e71df4c6a7d1ed99dc68cd6809b4755d6c385e3dfc32075e2d762c7c2e1",
+      "rust/online_protocol/src/matchmaking_profile_directory.rs": "f61a14ca95a1bc3e5d4b560ab047332010aef60dbdff434875679c2f272f4be2",
+      "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+      "rust/online_protocol/src/matchmaking_unicode.rs": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+      "rust/online_protocol/src/matchmaking_unicode_fold_table.rs": "ea8126a271bdf120ce1cddae5a64a421ecf7c7c499ff89a6213b562055c62537",
+      "rust/online_protocol/src/matchmaking_friend_cache.rs": "de20a771ea36803ac96eb666a677cf8e55a623cf06e52b26dd5dd8f07212109a",
+      "rust/online_protocol/src/matchmaking_friend_directory.rs": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+      "rust/online_protocol/src/matchmaking_friend_cloud.rs": "1b6144e6e68c30dfeb245324428c80c04cb9d6a7e929a79036f2f8123c4ce32f",
+      "rust/online_protocol/src/matchmaking_voice_directory.rs": "b9ea5a1dd8f00beb9bb45ae80885195922c417e7153c062d02800426e39a982c",
+      "rust/online_protocol/src/matchmaking_social_voice.rs": "f42501c569ecb7fa717e1905a6d38309468ff63e2d571ba735001032676c652d",
+      "rust/online_protocol/src/matchmaking_steam_cache.rs": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+      "rust/online_protocol/src/matchmaking_steam_request.rs": "57263fc4f3c7f7079acf72c0e1c91b75ceb0bec720d8ec5e6c1a64b49c9f2879",
+      "rust/online_protocol/src/matchmaking_identity_directory.rs": "84939f5ed108f78ab656c42e6af65274ea26a3459e86874e010a825074a30073",
+      "rust/online_protocol/src/matchmaking_owners.rs": "3e659557279f44a339bdb61035cdf333472ab7b07fa342021a37ed83ed30e677",
+      "rust/online_protocol/src/matchmaking_room_service.rs": "6fa1c1d0330b3049646c9924f4278c2c63b193b207235f53286363836c4ceff3",
+      "rust/online_protocol/src/matchmaking_variant.rs": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b",
+      "rust/online_protocol/src/matchmaking_client.rs": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+      "rust/online_protocol/src/matchmaking_origin.rs": "c2e50bc3391e177096e328e4663ce7a5b9da284604be5a296ea0f14e19b2f9d3",
+      "rust/online_protocol/src/matchmaking_native_qos.rs": "c61846b071c5e4d85ee2b3f518b84f0d2e81322867d7dd1302de6f5436635c6d",
+      "rust/online_protocol/src/matchmaking_native_session.rs": "0edcd771593582759df803e107d78a8017aa2bb83204ccec4c3f745156da2a24",
+      "rust/online_protocol/src/matchmaking_native_socket.rs": "818ecdb2376800c1da6c85ab7e71562dd5c745ca0cdcf782a4dba1662715a587",
+      "rust/online_protocol/src/matchmaking_native_control.rs": "ba6f23c095c4fcc5c1244a7a7b7175f7dff5c0dd47b650c418f9111df094e582",
+      "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+      "rust/online_protocol/src/matchmaking_native_peers.rs": "c97d831327b82abd2d2f544121358dc17f1f0911225c3dc03fb70a806043d7bc",
+      "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+      "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+      "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+      "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+      "rust/online_protocol/tests/matchmaking_coordinator.rs": "82ae3a3cf740f5b9824504d2afb645767e16dd4cb8e1a9b2be002e58a546bab7",
+      "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+      "rust/online_protocol/tests/matchmaking_results.rs": "166e932749344d6525975aca83bb0d4c1a9712768be7f910a7ee2b7db09bebf0",
+      "rust/online_protocol/tests/matchmaking_skill_original.rs": "a7e0fcdfe55ff4b298612a227692ddc74cbf51a05be9fdea626e66c2ae84cc1c",
+      "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+      "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+      "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+      "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+      "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+      "rust/online_protocol/tests/matchmaking_room_setup.rs": "bfad18614680a2007d5eae6a6c330770c079e2d1fc00f592c1bdbc245edf4c55",
+      "rust/online_protocol/tests/matchmaking_continuity.rs": "da577d56b818f02fc926c9082ad89a0bd19eda413cb4a33ea75c687a0740fac7",
+      "rust/online_protocol/tests/matchmaking_assignment_tu15.rs": "67f8a5eebdc52dd5554d9ecf7a5f5bb1345c2d28692f1e53f8174f1be76881ad",
+      "rust/online_protocol/tests/matchmaking_native_readiness.rs": "33d98ddcad387d01c54cecb0303764ff61a175bdb781ff29080145ca6bb0e9a9",
+      "rust/online_protocol/tests/matchmaking_variant_admission.rs": "9ed44b8e97af2da2ec8b9f95670ca2c4657cc3058aebee070c42d9b3fbbac501",
+      "rust/online_protocol/tests/matchmaking_client_controller.rs": "5f82077ed889d21b49a29a7884d03283d27e8b1333618178bc438fe127c0d289",
+      "rust/online_protocol/tests/matchmaking_native_qos_worker.rs": "91e24aa880e59d0e9ba90128aa13e79aa2500134bd4bc52168d27ec79f6c0650",
+      "rust/online_protocol/tests/matchmaking_native_session.rs": "91b053e75de5c6e49aab6d6e6235e1c4e015ffd38874620f7b20484ac0c24d4a",
+      "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+      "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+      "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+      "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+      "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+      "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+      "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+      "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+      "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+      "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+      "rust/online_protocol/data/unicode16/CaseFolding.txt": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+      "rust/online_protocol/data/unicode16/LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "rust/online_protocol/data/unicode16/provenance.json": "68995ccbb6629c3d789dec9f4ea9b30976db42f4d12b92a570ab98bb0cda3f3e",
+      "rust/online_protocol/src/netcode/range.rs": "490b50be09203a24750edbdb470d94d3728fc0c49e820bad53bf3b08fc7044a9",
+      "rust/online_protocol/src/netcode/pose.rs": "4b91e33bc013b305e25b92b56ff36d8f4d739af38bcc2cdfd7b5b2ed7d913ed1",
+      "rust/online_protocol/src/netcode/bandwidth.rs": "efff209143ca9e8bd9484c0daff7bdaa108cf5b81c5ae73d954ae24f5dd4a1f5",
+      "rust/online_protocol/src/netcode/mod.rs": "65791ed28c6fb25a0efc42d3c74f9f8b190ecc3d6550de0dc21b200f7c58705c",
+      "rust/online_protocol/src/netcode/generic.rs": "06c961f78e717dd49dab8d0a9a853909d16cecdbabb9f2280b9a4fdaba577fd4",
+      "rust/online_protocol/src/netcode/stream.rs": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c"
+    }
+  },
+  "remaining": [
+    "C++ source-player admission exchange and its roster/identity/retry/resumption state",
+    "C++ native readiness/publication caller decisions and remaining host-candidate/capability view gates",
+    "Actual native world/objective/role/clock/identity/device owners remain genuine; Rust metadata never creates Ready or a world",
+    "Original historical/service recovery, genuine providers and positive EOS/native worlds, all required natural outcomes/topologies, physical installed input and complete delivered G01-G12 acceptance"
+  ],
+  "all_cpp_matchmaking_policy_removed": false,
+  "new_original_executable_calls": 0,
+  "original_live_wire_recovered": false,
+  "historical_service_configuration_recovered": false,
+  "played_world": false,
+  "positive_genuine_steam": false,
+  "positive_genuine_eos": false,
+  "physical_installed_input": false,
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "full_native_flow_qualified": false,
+  "original_whole_system_parity": false,
+  "full_matchmaking_ready": false,
+  "full_goal_complete": false,
+  "goal_criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "scope_inventory_snapshot_before_after_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved": true,
+  "retained_reports": {
+    "build/test-results/native-peer-driver-rust-20261101/before-include_halo2_peer_authority_transfer.hpp.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5a30543747c34965-before-include_halo2_peer_authority_transfer.hpp.txt",
+      "sha256": "5a30543747c34965157bbb51ad45b8635f83bf732e3222e19136eca87a3b0a2c",
+      "bytes": 6001
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_bridge_src_lib.rs.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c369184b3597e821-before-rust_online_protocol_bridge_src_lib.rs.txt",
+      "sha256": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+      "bytes": 73344
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_bridge_src_matchmaking_native_session.rs.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/653f2cfb07a5a593-before-rust_online_protocol_bridge_src_matchmaking_native_session.rs.txt",
+      "sha256": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+      "bytes": 21697
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before-rust_online_protocol_src_matchmaking_native_session.rs.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d5d0004a9288c0cb-before-rust_online_protocol_src_matchmaking_native_session.rs.txt",
+      "sha256": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+      "bytes": 57168
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before-src_network_online_match_session.cpp.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c37075dd11962d55-before-src_network_online_match_session.cpp.txt",
+      "sha256": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+      "bytes": 67008
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before-src_network_peer_authority_transfer.cpp.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/cc8d49724c38a48c-before-src_network_peer_authority_transfer.cpp.txt",
+      "sha256": "cc8d49724c38a48cf5073323f78e37d5d9d3b4268b2aa4671216ca3f91d1b030",
+      "bytes": 23828
+    },
+    "build/test-results/native-peer-driver-rust-20261101/before.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5cde6217b8282d99-before.json",
+      "sha256": "5cde6217b8282d99d4e511e547f34fd064954a36e5bf2204f9e01330e4bbdbec",
+      "bytes": 1698
+    },
+    "build/test-results/native-peer-driver-rust-20261101/cleanup.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e52e291a4ca2a0a3-cleanup.json",
+      "sha256": "e52e291a4ca2a0a30383332e51983bbeba4a8de8bc37aa0df8fce2056169e91a",
+      "bytes": 1150
+    },
+    "build/test-results/native-peer-driver-rust-20261101/criteria-before.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/fefb6ae2c7649173-criteria-before.json",
+      "sha256": "fefb6ae2c76491734a12df910224f47129936ec8904dafbdce1f0cf5a06b41ef",
+      "bytes": 447017
+    },
+    "build/test-results/native-peer-driver-rust-20261101/current-source-drift.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/96b5a626d91cacb0-current-source-drift.json",
+      "sha256": "96b5a626d91cacb01ead5e43cfbb887eaa91ff5f1cb002c1c72958b6b5379208",
+      "bytes": 2849
+    },
+    "build/test-results/native-peer-driver-rust-20261101/final-native-probe.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4f33649f1cb1e4c5-final-native-probe.json",
+      "sha256": "4f33649f1cb1e4c5f7972ebcae669017e935c0c409b5bfb448ef1a7467047a99",
+      "bytes": 318
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/additional-reference-inputs.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/8690318f4790f4c1-additional-reference-inputs.json",
+      "sha256": "8690318f4790f4c192ed2931158256059f71431a868f85e912aa1028cf2c5740",
+      "bytes": 1454
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/matchmaking_service-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/037ed9b0bf72098b-matchmaking_service-check.log",
+      "sha256": "037ed9b0bf72098b8f80141aed85233449131d81d44a46ea32d0ec02ab188716",
+      "bytes": 2431
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/matchmaking_service-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/0b7f7f4472ad5118-matchmaking_service-test.log",
+      "sha256": "0b7f7f4472ad51186fbb13615c474c59551052604e2320c701c1a51b73b82386",
+      "bytes": 4800
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/online_protocol-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d0f2fbd490ae0034-online_protocol-check.log",
+      "sha256": "d0f2fbd490ae00341e0b70eac0bf8b5486e4a77e62f59e1a4b398463a3c6d5f9",
+      "bytes": 1430
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/online_protocol-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4df6a0178f5fca3a-online_protocol-test.log",
+      "sha256": "4df6a0178f5fca3aeb4b6cb1a0035227526e3394f96efd911108004426f6b377",
+      "bytes": 42963
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/online_protocol_bridge-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91f3330c7f46e521-online_protocol_bridge-check.log",
+      "sha256": "91f3330c7f46e521b417a79756ebfa8d34fb6b5f20ec4b56468833e54cc88021",
+      "bytes": 51176
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/online_protocol_bridge-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b3fc541b53c6b305-online_protocol_bridge-test.log",
+      "sha256": "b3fc541b53c6b305b7d519f6fa80bbcbe97bcdf78551a0ff6dae9b4149012973",
+      "bytes": 57664
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/a34a3ffa57de29e2-report.json",
+      "sha256": "a34a3ffa57de29e27067db97c2b506d7e40cd1c2238a833dea7ea4311efb5fb8",
+      "bytes": 458877
+    },
+    "build/test-results/native-peer-driver-rust-20261101/full-rust.py.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91ca560f07046c5e-full-rust.py.txt",
+      "sha256": "91ca560f07046c5e1a0a1a658eec9d61926da71fb3423de62d8b85c1da572244",
+      "bytes": 2288
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/additional-reference-inputs.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/8690318f4790f4c1-additional-reference-inputs.json",
+      "sha256": "8690318f4790f4c192ed2931158256059f71431a868f85e912aa1028cf2c5740",
+      "bytes": 1454
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/matchmaking_service-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/7080e46d1cee62df-matchmaking_service-check.log",
+      "sha256": "7080e46d1cee62df44f6d4dd63cd706d5a26fceb8354da9dae84ddb07109b676",
+      "bytes": 2431
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/matchmaking_service-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ed251d141a285a58-matchmaking_service-test.log",
+      "sha256": "ed251d141a285a58d84afec91c22f3bf9b76476e38c9be2b95d6c061f13da350",
+      "bytes": 4800
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/online_protocol-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2343431a58da77ef-online_protocol-check.log",
+      "sha256": "2343431a58da77ef39c09d7a09e53782b67a0a9245617a2979638feaa72caa5f",
+      "bytes": 1430
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/online_protocol-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3be911c9a17b7118-online_protocol-test.log",
+      "sha256": "3be911c9a17b7118fc33d3747068a0fa82561a30b195d6822166dc0aad8f8c43",
+      "bytes": 42963
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/online_protocol_bridge-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/eb6c9bd41fc673fe-online_protocol_bridge-check.log",
+      "sha256": "eb6c9bd41fc673fe718e5d843acbdaa8f59d4d3f0a872f1cbbe237b3b54f7772",
+      "bytes": 51176
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/online_protocol_bridge-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c7fa7376d0fba2f5-online_protocol_bridge-test.log",
+      "sha256": "c7fa7376d0fba2f58c8d34884eec20e01f373fcc38fb81f376b11646879a6844",
+      "bytes": 57664
+    },
+    "build/test-results/native-peer-driver-rust-20261101/initial-rust-pass/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/248c463e9bb2efbe-report.json",
+      "sha256": "248c463e9bb2efbefcfa7f96a38fa6e0e4e75b096a656fb94f7abe8fd2753422",
+      "bytes": 457702
+    },
+    "build/test-results/native-peer-driver-rust-20261101/link-audit.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bbe29b22aead9898-link-audit.json",
+      "sha256": "bbe29b22aead9898fb94b46f5106bdeee1b288ee66e6d6d058b1d57fb7def316",
+      "bytes": 3112
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/coordinator.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/8ad7ea0c1055cbac-coordinator.log",
+      "sha256": "8ad7ea0c1055cbaca7d5aa7a2eb8d980dd266cbe6c0f70705d3310b67c39c61b",
+      "bytes": 533
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3c61dc720c65d796-final-source-pins-0.json",
+      "sha256": "3c61dc720c65d79615fd2fcc3fb4d0047352f7e5f487c4692a7d54587246777d",
+      "bytes": 43872
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/07d23fa828c26bf0-final-source-pins-1.json",
+      "sha256": "07d23fa828c26bf0283e7d749b035a4d5c41a01d20a263a05315899f3b7f78a8",
+      "bytes": 46658
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/54c54c19791af268-final-source-pins-10.json",
+      "sha256": "54c54c19791af268a143270b9a9debf961eacbb130e2a35149b2e8ea0f0e390f",
+      "bytes": 48080
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4d3791272045452f-final-source-pins-11.json",
+      "sha256": "4d3791272045452fe0c1334e3b49a721300cf55e0fdb973fd5aa009024728cf1",
+      "bytes": 48922
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2c8ec8fc1af68450-final-source-pins-12.json",
+      "sha256": "2c8ec8fc1af68450a38ea9d27a3159968d5448f4af677db4d75b8e6dba9d2217",
+      "bytes": 44852
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f3e71491a045ac7-final-source-pins-13.json",
+      "sha256": "5f3e71491a045ac702462804860d2ef4709303515736955e9ac909b62b7fd625",
+      "bytes": 51769
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3faa61d775c28d00-final-source-pins-14.json",
+      "sha256": "3faa61d775c28d007c2d6139e4803e38c2c520a8af168f01814576095ac3b547",
+      "bytes": 54003
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/f20c7c5fdb4baecc-final-source-pins-15.json",
+      "sha256": "f20c7c5fdb4baecc5be721358fe3fff981013c63bd5a0fae63ab04e2aefc8037",
+      "bytes": 58404
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/1e8c0088dd8db12b-final-source-pins-16.json",
+      "sha256": "1e8c0088dd8db12b70fa212de4e4ef2c0e10a5019fbd09fb2423196ad434b9f2",
+      "bytes": 51867
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/908ee7e6018abf50-final-source-pins-17.json",
+      "sha256": "908ee7e6018abf50319ccfe229f5dff8e2d33a64d639d2c5c15c2b409684a1aa",
+      "bytes": 54411
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b1703d4f2fde0a8e-final-source-pins-18.json",
+      "sha256": "b1703d4f2fde0a8efe6acdc0005c32fbd139f9ea70db471cd19f0aa8e802088f",
+      "bytes": 52713
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9b3ca727f993e282-final-source-pins-19.json",
+      "sha256": "9b3ca727f993e282ca232704a63b1bf284936d7b96cccbb224b696f24e76c83c",
+      "bytes": 45408
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4b4579cec3fb4d36-final-source-pins-2.json",
+      "sha256": "4b4579cec3fb4d36452710abc1c747e14389f37a330098c887b942d790428293",
+      "bytes": 47774
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6536fbee0f4ecde8-final-source-pins-20.json",
+      "sha256": "6536fbee0f4ecde86e4ef3b50fd994bfe028d001341186da85dc2db262f0877d",
+      "bytes": 47426
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/330c29e7edd4b2d8-final-source-pins-21.json",
+      "sha256": "330c29e7edd4b2d89015f01a005e4dd5b43bb4335be8b9ec0b3bb12dbe45f35c",
+      "bytes": 46878
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/18f0a2343df9a4e1-final-source-pins-22.json",
+      "sha256": "18f0a2343df9a4e1544cc57aff2e920cdba68a63de6a10671c1fdba5245529ec",
+      "bytes": 44926
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/84993e617cc8f47d-final-source-pins-23.json",
+      "sha256": "84993e617cc8f47dc75baac5cf5e485463400b2da49be687ce2bcc6e48f93cd6",
+      "bytes": 46222
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5cbebd497aa9d1ae-final-source-pins-24.json",
+      "sha256": "5cbebd497aa9d1ae9beb046fdaaf74a4dba97012c7b4e2fc44eec475287f4e35",
+      "bytes": 44293
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/13c5c98734202f69-final-source-pins-25.json",
+      "sha256": "13c5c98734202f696f5eb8c0ddaf90df719f65c91dcea85621fbb294b6c58ffe",
+      "bytes": 45956
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f55bc933f3d93d9-final-source-pins-26.json",
+      "sha256": "5f55bc933f3d93d9d02f405aa2de03c906431e25196bff6e23c91ddb83b1f026",
+      "bytes": 46011
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e1eeb0178c475c1c-final-source-pins-27.json",
+      "sha256": "e1eeb0178c475c1cd641c4f60ae46a42e20bebe94279b65e82eccc6c6127a55b",
+      "bytes": 46884
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ae741feab7ac4f77-final-source-pins-28.json",
+      "sha256": "ae741feab7ac4f770e142364ac5de0860b02c2af12c525a11dd6774196d2bd53",
+      "bytes": 45968
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/57107e95ae74d8e8-final-source-pins-29.json",
+      "sha256": "57107e95ae74d8e88da3b231e8cc0cb41fb29a2247078049115108be98584a08",
+      "bytes": 47715
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/65bd04a3b28851d8-final-source-pins-3.json",
+      "sha256": "65bd04a3b28851d8cee35c4813c5f84bcd6f793109555ef7113d2b195ca5fa2d",
+      "bytes": 46253
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d81d16a053f52b74-final-source-pins-30.json",
+      "sha256": "d81d16a053f52b74f159cb58a48eabbf92723be314075a81fcaa96a2a798d1d1",
+      "bytes": 46879
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91fd4578382bd75c-final-source-pins-31.json",
+      "sha256": "91fd4578382bd75c939ba22b55b01e8d9fdaef7074753cac335e89b2d7dfc30c",
+      "bytes": 45967
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/05089358c0891550-final-source-pins-32.json",
+      "sha256": "05089358c0891550d1bf38f9a7c5bcca2e0e577639dcdcd57f296fbeedadc7ea",
+      "bytes": 47226
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/53565074a486241c-final-source-pins-33.json",
+      "sha256": "53565074a486241c18d4dbe5d8ad3192e8cf567cb0866b89bbb91ae939cab82e",
+      "bytes": 59377
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9c2bf8c8e3c904d2-final-source-pins-34.json",
+      "sha256": "9c2bf8c8e3c904d2d640e1edcbc23911399205228699412a09ff6423591f9605",
+      "bytes": 62894
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e8ccfc82ddfcef44-final-source-pins-35.json",
+      "sha256": "e8ccfc82ddfcef441a884c40083199bbcaf25896ba6dc64b7e58597a857ee00d",
+      "bytes": 65425
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a7870409e25eb4b-final-source-pins-36.json",
+      "sha256": "9a7870409e25eb4b447e78a642b25102dcd1aae8f4af7a879db82fcd78c42988",
+      "bytes": 94439
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ec01843b20efc846-final-source-pins-37.json",
+      "sha256": "ec01843b20efc846676114fd7ae1653978de591757a16867185ede98aa285e46",
+      "bytes": 82327
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e4f9745a504fa3d0-final-source-pins-38.json",
+      "sha256": "e4f9745a504fa3d0bb37ebfb73d3d72598b9099b770074c2e053ef7cf5535fe9",
+      "bytes": 57782
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2d9ee5b9c1131551-final-source-pins-39.json",
+      "sha256": "2d9ee5b9c113155136ad46dd087544135ae52e01510c28608795a5b3ad357484",
+      "bytes": 51913
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/dacf6b436ca2d9ab-final-source-pins-4.json",
+      "sha256": "dacf6b436ca2d9ab5a4a38db445c1d57b90735dfc21fe66a95881e1fa5bedb59",
+      "bytes": 47579
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3e969af6dd2235ae-final-source-pins-40.json",
+      "sha256": "3e969af6dd2235ae7674a84948c8cd52a04896753c46b71306c0ced6b94eb7e3",
+      "bytes": 51605
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b4eaf875ecea2de5-final-source-pins-41.json",
+      "sha256": "b4eaf875ecea2de54f76b2be90e39a164df6838bfd9d400756bc3219647a2de5",
+      "bytes": 52445
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/95c371fafc5e7dc3-final-source-pins-42.json",
+      "sha256": "95c371fafc5e7dc35ef56f8cd4eee1f885cdce3791ab97c0929df9a918dfced7",
+      "bytes": 58521
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ff8b177c057f0d2a-final-source-pins-43.json",
+      "sha256": "ff8b177c057f0d2a45f9afc7d4511cdd8544f386e42bc13fa621321eb1c91609",
+      "bytes": 48542
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bcde02d891d6e0f9-final-source-pins-44.json",
+      "sha256": "bcde02d891d6e0f9a5f1cbc90896ee7a0fd8d0455cbcbc4ef0879b484fe77e97",
+      "bytes": 49182
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6062e0a8256661c5-final-source-pins-45.json",
+      "sha256": "6062e0a8256661c5650ce651251e443c9389fd5e90683d4d4744b8b64a79afb1",
+      "bytes": 42173
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ad253b928131bfb5-final-source-pins-5.json",
+      "sha256": "ad253b928131bfb53385b4233d2e1594a59a7b3e2d22aa2a8856200a9c8655bf",
+      "bytes": 47601
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bae7b974f0635abe-final-source-pins-6.json",
+      "sha256": "bae7b974f0635abedb540cac3cb97b7e2f9fd0794680b08cf4cc64c429faebb0",
+      "bytes": 56687
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e628a457ea51be5f-final-source-pins-7.json",
+      "sha256": "e628a457ea51be5fd91cba23f7d9f610faf1e3e315dea0d73d43fbc354273e78",
+      "bytes": 48881
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/fb53fb5f4fa47299-final-source-pins-8.json",
+      "sha256": "fb53fb5f4fa47299dc0a2620733feac51ddf21285fc5123df9c00f3805713b86",
+      "bytes": 50641
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/final-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d8390d6310ffe45f-final-source-pins-9.json",
+      "sha256": "d8390d6310ffe45fab49fbfae290c771d0924ef34fef2263cd90c06a3f4587fc",
+      "bytes": 48509
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/frozen-cmake.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/034e6876a2eb501c-frozen-cmake.txt",
+      "sha256": "034e6876a2eb501cb5234fa797bc92c70c7ed60e25842d0c9a21b1ef2a347a98",
+      "bytes": 971255
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/inputs.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/8dbb4d5496105efd-inputs.json",
+      "sha256": "8dbb4d5496105efd2773f7a0214c23e710973fea7f58c0f23d1ebad07547a028",
+      "bytes": 3967
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/01bcac0a5ae2212f-build.log",
+      "sha256": "01bcac0a5ae2212f1136b89678732b52d3d2218be92b588ae32151666b8d6a62",
+      "bytes": 40968
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/configure.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/40caf523b676ee92-configure.log",
+      "sha256": "40caf523b676ee926993d4911ca3e5232f4c20c3ba5e6232562e72e15bff6574",
+      "bytes": 4648
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/evidence/Testing/Temporary/LastTest.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/1ca73b07aadbab47-LastTest.log",
+      "sha256": "1ca73b07aadbab477914d12aa61238f850b99527ffb7c2e55335fc526c41b24f",
+      "bytes": 25325
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/evidence/online-protocol/Release/build-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/08b255186724f0f3-build-report.json",
+      "sha256": "08b255186724f0f32af724dda97ce668a8876ebc2ea5f8f3ce40fca0e72f6971",
+      "bytes": 2324
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ab44fad002cdd717-report.json",
+      "sha256": "ab44fad002cdd717212259fb8af3ab06d253023a4b50fd91707e08752a3f4449",
+      "bytes": 3993
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1/tests.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ba38481d65baa9ce-tests.log",
+      "sha256": "ba38481d65baa9cedc45990911faad076167df0fd1f042a880d37d1594c6ce27",
+      "bytes": 1964
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/7553868d47033f8d-iteration-1-report.json",
+      "sha256": "7553868d47033f8d04401b22044d7a2feaae9b67e8f77a724b9f1a3b1e516859",
+      "bytes": 9234
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-runner.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/34f6f3eefebf5a7d-iteration-1-runner.log",
+      "sha256": "34f6f3eefebf5a7dfc1152e4723c95f23e239711a375ee77d1c99ce89292223c",
+      "bytes": 49019
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3c61dc720c65d796-final-source-pins-0.json",
+      "sha256": "3c61dc720c65d79615fd2fcc3fb4d0047352f7e5f487c4692a7d54587246777d",
+      "bytes": 43872
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/07d23fa828c26bf0-final-source-pins-1.json",
+      "sha256": "07d23fa828c26bf0283e7d749b035a4d5c41a01d20a263a05315899f3b7f78a8",
+      "bytes": 46658
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/54c54c19791af268-final-source-pins-10.json",
+      "sha256": "54c54c19791af268a143270b9a9debf961eacbb130e2a35149b2e8ea0f0e390f",
+      "bytes": 48080
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4d3791272045452f-final-source-pins-11.json",
+      "sha256": "4d3791272045452fe0c1334e3b49a721300cf55e0fdb973fd5aa009024728cf1",
+      "bytes": 48922
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2c8ec8fc1af68450-final-source-pins-12.json",
+      "sha256": "2c8ec8fc1af68450a38ea9d27a3159968d5448f4af677db4d75b8e6dba9d2217",
+      "bytes": 44852
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f3e71491a045ac7-final-source-pins-13.json",
+      "sha256": "5f3e71491a045ac702462804860d2ef4709303515736955e9ac909b62b7fd625",
+      "bytes": 51769
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3faa61d775c28d00-final-source-pins-14.json",
+      "sha256": "3faa61d775c28d007c2d6139e4803e38c2c520a8af168f01814576095ac3b547",
+      "bytes": 54003
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/f20c7c5fdb4baecc-final-source-pins-15.json",
+      "sha256": "f20c7c5fdb4baecc5be721358fe3fff981013c63bd5a0fae63ab04e2aefc8037",
+      "bytes": 58404
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/1e8c0088dd8db12b-final-source-pins-16.json",
+      "sha256": "1e8c0088dd8db12b70fa212de4e4ef2c0e10a5019fbd09fb2423196ad434b9f2",
+      "bytes": 51867
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/908ee7e6018abf50-final-source-pins-17.json",
+      "sha256": "908ee7e6018abf50319ccfe229f5dff8e2d33a64d639d2c5c15c2b409684a1aa",
+      "bytes": 54411
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b1703d4f2fde0a8e-final-source-pins-18.json",
+      "sha256": "b1703d4f2fde0a8efe6acdc0005c32fbd139f9ea70db471cd19f0aa8e802088f",
+      "bytes": 52713
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9b3ca727f993e282-final-source-pins-19.json",
+      "sha256": "9b3ca727f993e282ca232704a63b1bf284936d7b96cccbb224b696f24e76c83c",
+      "bytes": 45408
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4b4579cec3fb4d36-final-source-pins-2.json",
+      "sha256": "4b4579cec3fb4d36452710abc1c747e14389f37a330098c887b942d790428293",
+      "bytes": 47774
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6536fbee0f4ecde8-final-source-pins-20.json",
+      "sha256": "6536fbee0f4ecde86e4ef3b50fd994bfe028d001341186da85dc2db262f0877d",
+      "bytes": 47426
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/330c29e7edd4b2d8-final-source-pins-21.json",
+      "sha256": "330c29e7edd4b2d89015f01a005e4dd5b43bb4335be8b9ec0b3bb12dbe45f35c",
+      "bytes": 46878
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/18f0a2343df9a4e1-final-source-pins-22.json",
+      "sha256": "18f0a2343df9a4e1544cc57aff2e920cdba68a63de6a10671c1fdba5245529ec",
+      "bytes": 44926
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/84993e617cc8f47d-final-source-pins-23.json",
+      "sha256": "84993e617cc8f47dc75baac5cf5e485463400b2da49be687ce2bcc6e48f93cd6",
+      "bytes": 46222
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5cbebd497aa9d1ae-final-source-pins-24.json",
+      "sha256": "5cbebd497aa9d1ae9beb046fdaaf74a4dba97012c7b4e2fc44eec475287f4e35",
+      "bytes": 44293
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/13c5c98734202f69-final-source-pins-25.json",
+      "sha256": "13c5c98734202f696f5eb8c0ddaf90df719f65c91dcea85621fbb294b6c58ffe",
+      "bytes": 45956
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f55bc933f3d93d9-final-source-pins-26.json",
+      "sha256": "5f55bc933f3d93d9d02f405aa2de03c906431e25196bff6e23c91ddb83b1f026",
+      "bytes": 46011
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e1eeb0178c475c1c-final-source-pins-27.json",
+      "sha256": "e1eeb0178c475c1cd641c4f60ae46a42e20bebe94279b65e82eccc6c6127a55b",
+      "bytes": 46884
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ae741feab7ac4f77-final-source-pins-28.json",
+      "sha256": "ae741feab7ac4f770e142364ac5de0860b02c2af12c525a11dd6774196d2bd53",
+      "bytes": 45968
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/57107e95ae74d8e8-final-source-pins-29.json",
+      "sha256": "57107e95ae74d8e88da3b231e8cc0cb41fb29a2247078049115108be98584a08",
+      "bytes": 47715
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/65bd04a3b28851d8-final-source-pins-3.json",
+      "sha256": "65bd04a3b28851d8cee35c4813c5f84bcd6f793109555ef7113d2b195ca5fa2d",
+      "bytes": 46253
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d81d16a053f52b74-final-source-pins-30.json",
+      "sha256": "d81d16a053f52b74f159cb58a48eabbf92723be314075a81fcaa96a2a798d1d1",
+      "bytes": 46879
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91fd4578382bd75c-final-source-pins-31.json",
+      "sha256": "91fd4578382bd75c939ba22b55b01e8d9fdaef7074753cac335e89b2d7dfc30c",
+      "bytes": 45967
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/05089358c0891550-final-source-pins-32.json",
+      "sha256": "05089358c0891550d1bf38f9a7c5bcca2e0e577639dcdcd57f296fbeedadc7ea",
+      "bytes": 47226
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/53565074a486241c-final-source-pins-33.json",
+      "sha256": "53565074a486241c18d4dbe5d8ad3192e8cf567cb0866b89bbb91ae939cab82e",
+      "bytes": 59377
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9c2bf8c8e3c904d2-final-source-pins-34.json",
+      "sha256": "9c2bf8c8e3c904d2d640e1edcbc23911399205228699412a09ff6423591f9605",
+      "bytes": 62894
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e8ccfc82ddfcef44-final-source-pins-35.json",
+      "sha256": "e8ccfc82ddfcef441a884c40083199bbcaf25896ba6dc64b7e58597a857ee00d",
+      "bytes": 65425
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a7870409e25eb4b-final-source-pins-36.json",
+      "sha256": "9a7870409e25eb4b447e78a642b25102dcd1aae8f4af7a879db82fcd78c42988",
+      "bytes": 94439
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ec01843b20efc846-final-source-pins-37.json",
+      "sha256": "ec01843b20efc846676114fd7ae1653978de591757a16867185ede98aa285e46",
+      "bytes": 82327
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e4f9745a504fa3d0-final-source-pins-38.json",
+      "sha256": "e4f9745a504fa3d0bb37ebfb73d3d72598b9099b770074c2e053ef7cf5535fe9",
+      "bytes": 57782
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2d9ee5b9c1131551-final-source-pins-39.json",
+      "sha256": "2d9ee5b9c113155136ad46dd087544135ae52e01510c28608795a5b3ad357484",
+      "bytes": 51913
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/dacf6b436ca2d9ab-final-source-pins-4.json",
+      "sha256": "dacf6b436ca2d9ab5a4a38db445c1d57b90735dfc21fe66a95881e1fa5bedb59",
+      "bytes": 47579
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3e969af6dd2235ae-final-source-pins-40.json",
+      "sha256": "3e969af6dd2235ae7674a84948c8cd52a04896753c46b71306c0ced6b94eb7e3",
+      "bytes": 51605
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b4eaf875ecea2de5-final-source-pins-41.json",
+      "sha256": "b4eaf875ecea2de54f76b2be90e39a164df6838bfd9d400756bc3219647a2de5",
+      "bytes": 52445
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/95c371fafc5e7dc3-final-source-pins-42.json",
+      "sha256": "95c371fafc5e7dc35ef56f8cd4eee1f885cdce3791ab97c0929df9a918dfced7",
+      "bytes": 58521
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ff8b177c057f0d2a-final-source-pins-43.json",
+      "sha256": "ff8b177c057f0d2a45f9afc7d4511cdd8544f386e42bc13fa621321eb1c91609",
+      "bytes": 48542
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bcde02d891d6e0f9-final-source-pins-44.json",
+      "sha256": "bcde02d891d6e0f9a5f1cbc90896ee7a0fd8d0455cbcbc4ef0879b484fe77e97",
+      "bytes": 49182
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6062e0a8256661c5-final-source-pins-45.json",
+      "sha256": "6062e0a8256661c5650ce651251e443c9389fd5e90683d4d4744b8b64a79afb1",
+      "bytes": 42173
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ad253b928131bfb5-final-source-pins-5.json",
+      "sha256": "ad253b928131bfb53385b4233d2e1594a59a7b3e2d22aa2a8856200a9c8655bf",
+      "bytes": 47601
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a80b122911491ce-iteration-1-source-pins-6.json",
+      "sha256": "9a80b122911491ce3162f9bc084ed6d5937b24c635a1606c32a7eebff9948595",
+      "bytes": 56687
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e628a457ea51be5f-final-source-pins-7.json",
+      "sha256": "e628a457ea51be5fd91cba23f7d9f610faf1e3e315dea0d73d43fbc354273e78",
+      "bytes": 48881
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/fb53fb5f4fa47299-final-source-pins-8.json",
+      "sha256": "fb53fb5f4fa47299dc0a2620733feac51ddf21285fc5123df9c00f3805713b86",
+      "bytes": 50641
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-1-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6863d0b180a54ced-iteration-1-source-pins-9.json",
+      "sha256": "6863d0b180a54cedff748009d9476e95229b2f2dd8ce457c2226d2b8f183eb98",
+      "bytes": 48509
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/286a877042c55060-build.log",
+      "sha256": "286a877042c55060971a3adf63753e00ac8b93eef887a48ff9bb244552c458cb",
+      "bytes": 21463
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/configure.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/cd2ccebcf11f1e89-configure.log",
+      "sha256": "cd2ccebcf11f1e89de79479ec0b9f3a77a14ce9f231d8a719a414af8114fdf3f",
+      "bytes": 933
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/evidence/Testing/Temporary/LastTest.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5b7c59938930f67b-LastTest.log",
+      "sha256": "5b7c59938930f67bd162959792652c41a158076d6f94fc78f106ba6a7ebef927",
+      "bytes": 25325
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/evidence/online-protocol/Release/build-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4621443b92665c2f-build-report.json",
+      "sha256": "4621443b92665c2ffbdd938c3c737827683602f7dcfcb03f0a60c3ab8c2b88d1",
+      "bytes": 2324
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ed7fa0c77cee8899-report.json",
+      "sha256": "ed7fa0c77cee8899459ded094baab2e48c5c8f03d7b2fa0be2892db70b0964bd",
+      "bytes": 3993
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2/tests.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/49aa11efaf8bf5e6-tests.log",
+      "sha256": "49aa11efaf8bf5e628d95a14a0de14b8eb6ec308bcd9cdee4792598288d95e16",
+      "bytes": 1964
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3bb8cc91702fe7b3-iteration-2-report.json",
+      "sha256": "3bb8cc91702fe7b3d900aa4211bf6e5c5f77af44fbd431064522f161482af474",
+      "bytes": 9961
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-runner.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ae8bf29abb8afb50-iteration-2-runner.log",
+      "sha256": "ae8bf29abb8afb50e2532c731a47f97fc6487259b6ed83a7f19528bd22b2a72a",
+      "bytes": 25799
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3c61dc720c65d796-final-source-pins-0.json",
+      "sha256": "3c61dc720c65d79615fd2fcc3fb4d0047352f7e5f487c4692a7d54587246777d",
+      "bytes": 43872
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/07d23fa828c26bf0-final-source-pins-1.json",
+      "sha256": "07d23fa828c26bf0283e7d749b035a4d5c41a01d20a263a05315899f3b7f78a8",
+      "bytes": 46658
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/54c54c19791af268-final-source-pins-10.json",
+      "sha256": "54c54c19791af268a143270b9a9debf961eacbb130e2a35149b2e8ea0f0e390f",
+      "bytes": 48080
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4d3791272045452f-final-source-pins-11.json",
+      "sha256": "4d3791272045452fe0c1334e3b49a721300cf55e0fdb973fd5aa009024728cf1",
+      "bytes": 48922
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2c8ec8fc1af68450-final-source-pins-12.json",
+      "sha256": "2c8ec8fc1af68450a38ea9d27a3159968d5448f4af677db4d75b8e6dba9d2217",
+      "bytes": 44852
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f3e71491a045ac7-final-source-pins-13.json",
+      "sha256": "5f3e71491a045ac702462804860d2ef4709303515736955e9ac909b62b7fd625",
+      "bytes": 51769
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3faa61d775c28d00-final-source-pins-14.json",
+      "sha256": "3faa61d775c28d007c2d6139e4803e38c2c520a8af168f01814576095ac3b547",
+      "bytes": 54003
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/f20c7c5fdb4baecc-final-source-pins-15.json",
+      "sha256": "f20c7c5fdb4baecc5be721358fe3fff981013c63bd5a0fae63ab04e2aefc8037",
+      "bytes": 58404
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/1e8c0088dd8db12b-final-source-pins-16.json",
+      "sha256": "1e8c0088dd8db12b70fa212de4e4ef2c0e10a5019fbd09fb2423196ad434b9f2",
+      "bytes": 51867
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/908ee7e6018abf50-final-source-pins-17.json",
+      "sha256": "908ee7e6018abf50319ccfe229f5dff8e2d33a64d639d2c5c15c2b409684a1aa",
+      "bytes": 54411
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b1703d4f2fde0a8e-final-source-pins-18.json",
+      "sha256": "b1703d4f2fde0a8efe6acdc0005c32fbd139f9ea70db471cd19f0aa8e802088f",
+      "bytes": 52713
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9b3ca727f993e282-final-source-pins-19.json",
+      "sha256": "9b3ca727f993e282ca232704a63b1bf284936d7b96cccbb224b696f24e76c83c",
+      "bytes": 45408
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4b4579cec3fb4d36-final-source-pins-2.json",
+      "sha256": "4b4579cec3fb4d36452710abc1c747e14389f37a330098c887b942d790428293",
+      "bytes": 47774
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6536fbee0f4ecde8-final-source-pins-20.json",
+      "sha256": "6536fbee0f4ecde86e4ef3b50fd994bfe028d001341186da85dc2db262f0877d",
+      "bytes": 47426
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/330c29e7edd4b2d8-final-source-pins-21.json",
+      "sha256": "330c29e7edd4b2d89015f01a005e4dd5b43bb4335be8b9ec0b3bb12dbe45f35c",
+      "bytes": 46878
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/18f0a2343df9a4e1-final-source-pins-22.json",
+      "sha256": "18f0a2343df9a4e1544cc57aff2e920cdba68a63de6a10671c1fdba5245529ec",
+      "bytes": 44926
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/84993e617cc8f47d-final-source-pins-23.json",
+      "sha256": "84993e617cc8f47dc75baac5cf5e485463400b2da49be687ce2bcc6e48f93cd6",
+      "bytes": 46222
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5cbebd497aa9d1ae-final-source-pins-24.json",
+      "sha256": "5cbebd497aa9d1ae9beb046fdaaf74a4dba97012c7b4e2fc44eec475287f4e35",
+      "bytes": 44293
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/13c5c98734202f69-final-source-pins-25.json",
+      "sha256": "13c5c98734202f696f5eb8c0ddaf90df719f65c91dcea85621fbb294b6c58ffe",
+      "bytes": 45956
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f55bc933f3d93d9-final-source-pins-26.json",
+      "sha256": "5f55bc933f3d93d9d02f405aa2de03c906431e25196bff6e23c91ddb83b1f026",
+      "bytes": 46011
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e1eeb0178c475c1c-final-source-pins-27.json",
+      "sha256": "e1eeb0178c475c1cd641c4f60ae46a42e20bebe94279b65e82eccc6c6127a55b",
+      "bytes": 46884
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ae741feab7ac4f77-final-source-pins-28.json",
+      "sha256": "ae741feab7ac4f770e142364ac5de0860b02c2af12c525a11dd6774196d2bd53",
+      "bytes": 45968
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/57107e95ae74d8e8-final-source-pins-29.json",
+      "sha256": "57107e95ae74d8e88da3b231e8cc0cb41fb29a2247078049115108be98584a08",
+      "bytes": 47715
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/65bd04a3b28851d8-final-source-pins-3.json",
+      "sha256": "65bd04a3b28851d8cee35c4813c5f84bcd6f793109555ef7113d2b195ca5fa2d",
+      "bytes": 46253
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d81d16a053f52b74-final-source-pins-30.json",
+      "sha256": "d81d16a053f52b74f159cb58a48eabbf92723be314075a81fcaa96a2a798d1d1",
+      "bytes": 46879
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91fd4578382bd75c-final-source-pins-31.json",
+      "sha256": "91fd4578382bd75c939ba22b55b01e8d9fdaef7074753cac335e89b2d7dfc30c",
+      "bytes": 45967
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/05089358c0891550-final-source-pins-32.json",
+      "sha256": "05089358c0891550d1bf38f9a7c5bcca2e0e577639dcdcd57f296fbeedadc7ea",
+      "bytes": 47226
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/53565074a486241c-final-source-pins-33.json",
+      "sha256": "53565074a486241c18d4dbe5d8ad3192e8cf567cb0866b89bbb91ae939cab82e",
+      "bytes": 59377
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9c2bf8c8e3c904d2-final-source-pins-34.json",
+      "sha256": "9c2bf8c8e3c904d2d640e1edcbc23911399205228699412a09ff6423591f9605",
+      "bytes": 62894
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e8ccfc82ddfcef44-final-source-pins-35.json",
+      "sha256": "e8ccfc82ddfcef441a884c40083199bbcaf25896ba6dc64b7e58597a857ee00d",
+      "bytes": 65425
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a7870409e25eb4b-final-source-pins-36.json",
+      "sha256": "9a7870409e25eb4b447e78a642b25102dcd1aae8f4af7a879db82fcd78c42988",
+      "bytes": 94439
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ec01843b20efc846-final-source-pins-37.json",
+      "sha256": "ec01843b20efc846676114fd7ae1653978de591757a16867185ede98aa285e46",
+      "bytes": 82327
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e4f9745a504fa3d0-final-source-pins-38.json",
+      "sha256": "e4f9745a504fa3d0bb37ebfb73d3d72598b9099b770074c2e053ef7cf5535fe9",
+      "bytes": 57782
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2d9ee5b9c1131551-final-source-pins-39.json",
+      "sha256": "2d9ee5b9c113155136ad46dd087544135ae52e01510c28608795a5b3ad357484",
+      "bytes": 51913
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/dacf6b436ca2d9ab-final-source-pins-4.json",
+      "sha256": "dacf6b436ca2d9ab5a4a38db445c1d57b90735dfc21fe66a95881e1fa5bedb59",
+      "bytes": 47579
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3e969af6dd2235ae-final-source-pins-40.json",
+      "sha256": "3e969af6dd2235ae7674a84948c8cd52a04896753c46b71306c0ced6b94eb7e3",
+      "bytes": 51605
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b4eaf875ecea2de5-final-source-pins-41.json",
+      "sha256": "b4eaf875ecea2de54f76b2be90e39a164df6838bfd9d400756bc3219647a2de5",
+      "bytes": 52445
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/95c371fafc5e7dc3-final-source-pins-42.json",
+      "sha256": "95c371fafc5e7dc35ef56f8cd4eee1f885cdce3791ab97c0929df9a918dfced7",
+      "bytes": 58521
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ff8b177c057f0d2a-final-source-pins-43.json",
+      "sha256": "ff8b177c057f0d2a45f9afc7d4511cdd8544f386e42bc13fa621321eb1c91609",
+      "bytes": 48542
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bcde02d891d6e0f9-final-source-pins-44.json",
+      "sha256": "bcde02d891d6e0f9a5f1cbc90896ee7a0fd8d0455cbcbc4ef0879b484fe77e97",
+      "bytes": 49182
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6062e0a8256661c5-final-source-pins-45.json",
+      "sha256": "6062e0a8256661c5650ce651251e443c9389fd5e90683d4d4744b8b64a79afb1",
+      "bytes": 42173
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ad253b928131bfb5-final-source-pins-5.json",
+      "sha256": "ad253b928131bfb53385b4233d2e1594a59a7b3e2d22aa2a8856200a9c8655bf",
+      "bytes": 47601
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bae7b974f0635abe-final-source-pins-6.json",
+      "sha256": "bae7b974f0635abedb540cac3cb97b7e2f9fd0794680b08cf4cc64c429faebb0",
+      "bytes": 56687
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e628a457ea51be5f-final-source-pins-7.json",
+      "sha256": "e628a457ea51be5fd91cba23f7d9f610faf1e3e315dea0d73d43fbc354273e78",
+      "bytes": 48881
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/fb53fb5f4fa47299-final-source-pins-8.json",
+      "sha256": "fb53fb5f4fa47299dc0a2620733feac51ddf21285fc5123df9c00f3805713b86",
+      "bytes": 50641
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/iteration-2-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d8390d6310ffe45f-final-source-pins-9.json",
+      "sha256": "d8390d6310ffe45fab49fbfae290c771d0924ef34fef2263cd90c06a3f4587fc",
+      "bytes": 48509
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3c61dc720c65d796-final-source-pins-0.json",
+      "sha256": "3c61dc720c65d79615fd2fcc3fb4d0047352f7e5f487c4692a7d54587246777d",
+      "bytes": 43872
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/07d23fa828c26bf0-final-source-pins-1.json",
+      "sha256": "07d23fa828c26bf0283e7d749b035a4d5c41a01d20a263a05315899f3b7f78a8",
+      "bytes": 46658
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/54c54c19791af268-final-source-pins-10.json",
+      "sha256": "54c54c19791af268a143270b9a9debf961eacbb130e2a35149b2e8ea0f0e390f",
+      "bytes": 48080
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4d3791272045452f-final-source-pins-11.json",
+      "sha256": "4d3791272045452fe0c1334e3b49a721300cf55e0fdb973fd5aa009024728cf1",
+      "bytes": 48922
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2c8ec8fc1af68450-final-source-pins-12.json",
+      "sha256": "2c8ec8fc1af68450a38ea9d27a3159968d5448f4af677db4d75b8e6dba9d2217",
+      "bytes": 44852
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f3e71491a045ac7-final-source-pins-13.json",
+      "sha256": "5f3e71491a045ac702462804860d2ef4709303515736955e9ac909b62b7fd625",
+      "bytes": 51769
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3faa61d775c28d00-final-source-pins-14.json",
+      "sha256": "3faa61d775c28d007c2d6139e4803e38c2c520a8af168f01814576095ac3b547",
+      "bytes": 54003
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/f20c7c5fdb4baecc-final-source-pins-15.json",
+      "sha256": "f20c7c5fdb4baecc5be721358fe3fff981013c63bd5a0fae63ab04e2aefc8037",
+      "bytes": 58404
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/1e8c0088dd8db12b-final-source-pins-16.json",
+      "sha256": "1e8c0088dd8db12b70fa212de4e4ef2c0e10a5019fbd09fb2423196ad434b9f2",
+      "bytes": 51867
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/908ee7e6018abf50-final-source-pins-17.json",
+      "sha256": "908ee7e6018abf50319ccfe229f5dff8e2d33a64d639d2c5c15c2b409684a1aa",
+      "bytes": 54411
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b1703d4f2fde0a8e-final-source-pins-18.json",
+      "sha256": "b1703d4f2fde0a8efe6acdc0005c32fbd139f9ea70db471cd19f0aa8e802088f",
+      "bytes": 52713
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9b3ca727f993e282-final-source-pins-19.json",
+      "sha256": "9b3ca727f993e282ca232704a63b1bf284936d7b96cccbb224b696f24e76c83c",
+      "bytes": 45408
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/4b4579cec3fb4d36-final-source-pins-2.json",
+      "sha256": "4b4579cec3fb4d36452710abc1c747e14389f37a330098c887b942d790428293",
+      "bytes": 47774
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6536fbee0f4ecde8-final-source-pins-20.json",
+      "sha256": "6536fbee0f4ecde86e4ef3b50fd994bfe028d001341186da85dc2db262f0877d",
+      "bytes": 47426
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/330c29e7edd4b2d8-final-source-pins-21.json",
+      "sha256": "330c29e7edd4b2d89015f01a005e4dd5b43bb4335be8b9ec0b3bb12dbe45f35c",
+      "bytes": 46878
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/18f0a2343df9a4e1-final-source-pins-22.json",
+      "sha256": "18f0a2343df9a4e1544cc57aff2e920cdba68a63de6a10671c1fdba5245529ec",
+      "bytes": 44926
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/84993e617cc8f47d-final-source-pins-23.json",
+      "sha256": "84993e617cc8f47dc75baac5cf5e485463400b2da49be687ce2bcc6e48f93cd6",
+      "bytes": 46222
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5cbebd497aa9d1ae-final-source-pins-24.json",
+      "sha256": "5cbebd497aa9d1ae9beb046fdaaf74a4dba97012c7b4e2fc44eec475287f4e35",
+      "bytes": 44293
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/13c5c98734202f69-final-source-pins-25.json",
+      "sha256": "13c5c98734202f696f5eb8c0ddaf90df719f65c91dcea85621fbb294b6c58ffe",
+      "bytes": 45956
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/5f55bc933f3d93d9-final-source-pins-26.json",
+      "sha256": "5f55bc933f3d93d9d02f405aa2de03c906431e25196bff6e23c91ddb83b1f026",
+      "bytes": 46011
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e1eeb0178c475c1c-final-source-pins-27.json",
+      "sha256": "e1eeb0178c475c1cd641c4f60ae46a42e20bebe94279b65e82eccc6c6127a55b",
+      "bytes": 46884
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ae741feab7ac4f77-final-source-pins-28.json",
+      "sha256": "ae741feab7ac4f770e142364ac5de0860b02c2af12c525a11dd6774196d2bd53",
+      "bytes": 45968
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/57107e95ae74d8e8-final-source-pins-29.json",
+      "sha256": "57107e95ae74d8e88da3b231e8cc0cb41fb29a2247078049115108be98584a08",
+      "bytes": 47715
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/65bd04a3b28851d8-final-source-pins-3.json",
+      "sha256": "65bd04a3b28851d8cee35c4813c5f84bcd6f793109555ef7113d2b195ca5fa2d",
+      "bytes": 46253
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d81d16a053f52b74-final-source-pins-30.json",
+      "sha256": "d81d16a053f52b74f159cb58a48eabbf92723be314075a81fcaa96a2a798d1d1",
+      "bytes": 46879
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/91fd4578382bd75c-final-source-pins-31.json",
+      "sha256": "91fd4578382bd75c939ba22b55b01e8d9fdaef7074753cac335e89b2d7dfc30c",
+      "bytes": 45967
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/05089358c0891550-final-source-pins-32.json",
+      "sha256": "05089358c0891550d1bf38f9a7c5bcca2e0e577639dcdcd57f296fbeedadc7ea",
+      "bytes": 47226
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/53565074a486241c-final-source-pins-33.json",
+      "sha256": "53565074a486241c18d4dbe5d8ad3192e8cf567cb0866b89bbb91ae939cab82e",
+      "bytes": 59377
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9c2bf8c8e3c904d2-final-source-pins-34.json",
+      "sha256": "9c2bf8c8e3c904d2d640e1edcbc23911399205228699412a09ff6423591f9605",
+      "bytes": 62894
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e8ccfc82ddfcef44-final-source-pins-35.json",
+      "sha256": "e8ccfc82ddfcef441a884c40083199bbcaf25896ba6dc64b7e58597a857ee00d",
+      "bytes": 65425
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a7870409e25eb4b-final-source-pins-36.json",
+      "sha256": "9a7870409e25eb4b447e78a642b25102dcd1aae8f4af7a879db82fcd78c42988",
+      "bytes": 94439
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ec01843b20efc846-final-source-pins-37.json",
+      "sha256": "ec01843b20efc846676114fd7ae1653978de591757a16867185ede98aa285e46",
+      "bytes": 82327
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e4f9745a504fa3d0-final-source-pins-38.json",
+      "sha256": "e4f9745a504fa3d0bb37ebfb73d3d72598b9099b770074c2e053ef7cf5535fe9",
+      "bytes": 57782
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/2d9ee5b9c1131551-final-source-pins-39.json",
+      "sha256": "2d9ee5b9c113155136ad46dd087544135ae52e01510c28608795a5b3ad357484",
+      "bytes": 51913
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/dacf6b436ca2d9ab-final-source-pins-4.json",
+      "sha256": "dacf6b436ca2d9ab5a4a38db445c1d57b90735dfc21fe66a95881e1fa5bedb59",
+      "bytes": 47579
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/3e969af6dd2235ae-final-source-pins-40.json",
+      "sha256": "3e969af6dd2235ae7674a84948c8cd52a04896753c46b71306c0ced6b94eb7e3",
+      "bytes": 51605
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/b4eaf875ecea2de5-final-source-pins-41.json",
+      "sha256": "b4eaf875ecea2de54f76b2be90e39a164df6838bfd9d400756bc3219647a2de5",
+      "bytes": 52445
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/95c371fafc5e7dc3-final-source-pins-42.json",
+      "sha256": "95c371fafc5e7dc35ef56f8cd4eee1f885cdce3791ab97c0929df9a918dfced7",
+      "bytes": 58521
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ff8b177c057f0d2a-final-source-pins-43.json",
+      "sha256": "ff8b177c057f0d2a45f9afc7d4511cdd8544f386e42bc13fa621321eb1c91609",
+      "bytes": 48542
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/bcde02d891d6e0f9-final-source-pins-44.json",
+      "sha256": "bcde02d891d6e0f9a5f1cbc90896ee7a0fd8d0455cbcbc4ef0879b484fe77e97",
+      "bytes": 49182
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6062e0a8256661c5-final-source-pins-45.json",
+      "sha256": "6062e0a8256661c5650ce651251e443c9389fd5e90683d4d4744b8b64a79afb1",
+      "bytes": 42173
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/ad253b928131bfb5-final-source-pins-5.json",
+      "sha256": "ad253b928131bfb53385b4233d2e1594a59a7b3e2d22aa2a8856200a9c8655bf",
+      "bytes": 47601
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9a80b122911491ce-iteration-1-source-pins-6.json",
+      "sha256": "9a80b122911491ce3162f9bc084ed6d5937b24c635a1606c32a7eebff9948595",
+      "bytes": 56687
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e628a457ea51be5f-final-source-pins-7.json",
+      "sha256": "e628a457ea51be5fd91cba23f7d9f610faf1e3e315dea0d73d43fbc354273e78",
+      "bytes": 48881
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/fb53fb5f4fa47299-final-source-pins-8.json",
+      "sha256": "fb53fb5f4fa47299dc0a2620733feac51ddf21285fc5123df9c00f3805713b86",
+      "bytes": 50641
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/6863d0b180a54ced-iteration-1-source-pins-9.json",
+      "sha256": "6863d0b180a54cedff748009d9476e95229b2f2dd8ce457c2226d2b8f183eb98",
+      "bytes": 48509
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native/supervisor.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/9db7283806ec76fb-supervisor.json",
+      "sha256": "9db7283806ec76fb9c98314afedc27c5eecdec8f86de0fff3bcfc376249684c6",
+      "bytes": 1550
+    },
+    "build/test-results/native-peer-driver-rust-20261101/native-coordinator.py.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/0914bcc79ff43df7-native-coordinator.py.txt",
+      "sha256": "0914bcc79ff43df795a3a8e0b32d112686c4c103deb91a9b0f4c851dfeb01173",
+      "bytes": 8033
+    },
+    "build/test-results/native-peer-driver-rust-20261101/preflight-missing-fixtures/matchmaking_service-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/7cd340d9599d24e3-matchmaking_service-check.log",
+      "sha256": "7cd340d9599d24e346e159f18a61aa28db25a6b05f277603ffcbeb8e76530649",
+      "bytes": 2431
+    },
+    "build/test-results/native-peer-driver-rust-20261101/preflight-missing-fixtures/online_protocol-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d674f4c22e6f8105-online_protocol-check.log",
+      "sha256": "d674f4c22e6f810511cd40a21c21669806c9f5a85e9a9e0fb66f79dcb9aeccb7",
+      "bytes": 1430
+    },
+    "build/test-results/native-peer-driver-rust-20261101/preflight-missing-fixtures/online_protocol-test.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/a0dbddca04f2022d-online_protocol-test.log",
+      "sha256": "a0dbddca04f2022d484f457e9c6b861026bae6d09f2ae1a4c76613f1a25c5d77",
+      "bytes": 2584
+    },
+    "build/test-results/native-peer-driver-rust-20261101/preflight-missing-fixtures/online_protocol_bridge-check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/e65f09306dc5e955-online_protocol_bridge-check.log",
+      "sha256": "e65f09306dc5e955d93fb2f3ed5c1a5a84bc367b201e6783b359d15ad2d8d3eb",
+      "bytes": 51176
+    },
+    "build/test-results/native-peer-driver-rust-20261101/preflight-missing-fixtures/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/eaa6ac79fdb0fdb3-report.json",
+      "sha256": "eaa6ac79fdb0fdb382577b432c0f203cb597f7a92ce16619bb032e8419df3b98",
+      "bytes": 24476
+    },
+    "build/test-results/native-peer-driver-rust-20261101/room/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c77340726350ba73-build.log",
+      "sha256": "c77340726350ba7386fee8d93940357bab52dec0aa9112667d9da48013a420a2",
+      "bytes": 3924
+    },
+    "build/test-results/native-peer-driver-rust-20261101/room/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/d68f501d2f498dad-report.json",
+      "sha256": "d68f501d2f498dad952c094f194528a8e6791fc2d98742d6dedc1b31378f617c",
+      "bytes": 20675
+    },
+    "build/test-results/native-peer-driver-rust-20261101/room-coordinator.py.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/f57e44070ea61282-room-coordinator.py.txt",
+      "sha256": "f57e44070ea61282e28b9eae602706c617b2dc78e7f5da9689ab383a23ef4c0e",
+      "bytes": 3704
+    },
+    "build/test-results/native-peer-driver-rust-20261101/staging-validation.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-peer-driver-rust-20261101/reports/c0eef887b9df7932-staging-validation.json",
+      "sha256": "c0eef887b9df7932a4398d30d1e13642ccf456b5e12e6837a39552b6dd6297c4",
+      "bytes": 813
+    }
+  },
+  "retained_unique_report_files": 106,
+  "retained_unique_report_bytes": 5751283,
+  "cleanup": {
+    "passed": true,
+    "owned_scratch_paths": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-f2t9spx7",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-2hmqi01j",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-fj6j7msv",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-room/halo2-test-iah8ls2i"
+    ],
+    "all_removed": true,
+    "parent_remaining": {
+      "native-peer-driver-full-rust": [],
+      "native-peer-driver-native": [],
+      "native-peer-driver-staging": [],
+      "native-peer-driver-audit": [],
+      "native-peer-driver-room": []
+    },
+    "native_unit_state": "LoadState=not-found\nActiveState=inactive\nSubState=dead\n",
+    "native_unit_inactive": true,
+    "retained_large_artifacts": [],
+    "preserved": "Original/reference assets, licensed SDK archive, preexisting evidence/snapshots, selected runtimes and unrelated active work",
+    "working_report_files_removed": 243,
+    "working_report_directory_removed": true,
+    "bounded_reports_exactly_deduplicated": true
+  },
+  "post_qualification_documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "28fd0f8f37cee948d6fa7bd385d732de4eac8b418491760b3484f8df8a82f88c",
+    "rust/online_protocol/README.md": "228045a7922e63acb50a977d26e361d72864643ec8edb32224ab322f1092a61c",
+    "rust/online_protocol_bridge/README.md": "f0a08e5a963d0b935bc64ae9690b010764c752168bd3fb7bebfda827fd4754cf",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "942b10f9bb1a17948ac3dbedf5533e19526abd71545ed269dd5014f3c2a26404"
+  },
+  "final_verification": {
+    "scope_inventory_snapshot_before_after_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+    "gap_count": 12,
+    "algorithm_id_count": 53,
+    "acceptance_gate_count": 12,
+    "all_acceptance_gates_open": true,
+    "current_source_pins_match": true,
+    "working_reports_removed": true,
+    "selected_runtime_changed_by_this_work": false,
+    "retained_large_artifacts": []
+  }
+}

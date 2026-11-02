@@ -1,0 +1,1114 @@
+{
+  "schema": "H2_RUST_NATIVE_HANDOFF_FAILCLOSED_VALIDATION_V1",
+  "recorded_at_utc": "2026-11-01T06:34:12.891331+00:00",
+  "component_passed": true,
+  "tests": [
+    "online_protocol_rust_build_helper",
+    "online_eos_release_bootstrap",
+    "rust_native_handoff_failclosed_http",
+    "online_matchmaking_client"
+  ],
+  "ctest_count": 4,
+  "ctest_seconds": 80.24,
+  "source_pins": {
+    "CMakeLists.txt": "507f003cc4ab6dbca5d5fa6f4da4df2aabb1099635c375358757a5d92fa949ad",
+    "tools/rust_service_native_handoff_probe.cpp": "e0fda00e4307e90323ffec6c7ff96e69251e501c85481d4e59dc1bc21e0c8fa7",
+    "tools/rust_service_native_handoff_controls.py": "ac0e8b17741626ba4926db8cdd4a0cbde17ea5f9175771ff8374d5a4cc8fb7a6",
+    "tools/test_rust_matchmaking_service.py": "f6cb5f522209b5afbd25a88fe4798b8074d06244b178fe9532389fb91dc20c30",
+    "tools/oracle_matchmaking_assignment.py": "b19d793d2ddcc4e72dae23e767452491b330cbd6ba8bdcc3dfddb46e0dabf3b4",
+    "tools/test_master_server.py": "6cec40c3d1be65d1af481c765d6e762f44a1dc85e73749f416fd2a63933b0a65",
+    "multiplayer/master_server/tests/test_team_balance_native.py": "561ca2fbd34d0619346c9d391e1eca3b652c584f7b19df878e0642097669e415",
+    "rust/online_protocol/tests/matchmaking_assignment_tu15.rs": "67f8a5eebdc52dd5554d9ecf7a5f5bb1345c2d28692f1e53f8174f1be76881ad",
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "tests/fixtures/matchmaking_assignment_tu15_original.json": "c22ab4203b11b7c4d101e7dd1b1844e87bc7ecce1c52b97492ae38f81385c02e"
+  },
+  "native_source_files": 4463,
+  "frozen_inputs_intact": true,
+  "current_cmake_sha256": "116a8071ad5cc6c50838f13b1d00b796f7d158625fae4d133e8d7d80ca7f6014",
+  "current_cmake_note": "The tested CMake identity is retained separately; a later unrelated scene-copy target gained halo2_cache linkage and was preserved.",
+  "source_pin_receipts": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "42a61e7eb10420c5096b6fddb1925b1122bb9e7824fa373bfc7b36b7efbe0798"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-10.json",
+      "bytes": 45423,
+      "sha256": "f18563c8ddf6b66708ac073f7da6e8634e355f26be5b3f2bf6ca402246764345"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-11.json",
+      "bytes": 6344,
+      "sha256": "161ee1794d358cfcf5fad744b88f3774e0d2fa889706004074217e48c4d00900"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-2.json",
+      "bytes": 46913,
+      "sha256": "33d462904b2af0e06326fdb1b3cd3330580f32a12ff726ed204e956cebc760e3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-3.json",
+      "bytes": 46568,
+      "sha256": "8142027707a8ecc3ca914a513fd485e794cc3bf40c5569d3909b3e4aa60fe2db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-4.json",
+      "bytes": 46828,
+      "sha256": "4cf0b075825c17d6f0ddc6ac59a7b1ab7c93c2b9f0d6c62a559ca42e9eba5284"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-5.json",
+      "bytes": 48507,
+      "sha256": "a06286bb2ce08dc99c4ab6ed151dbe3010858257562dfc4bf38617e82b3adaef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-6.json",
+      "bytes": 48775,
+      "sha256": "e8fd8fda44f18419f2ec74371b4b345a0a2cdfb71429fcb4a4f407af78a60c67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-7.json",
+      "bytes": 49824,
+      "sha256": "eca8d326e63cf3e79970aa2c7c81bbcac91cc4b4658f1edcf7b92606db0bdebb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-8.json",
+      "bytes": 48009,
+      "sha256": "c2a6697891b3fbebaa3983f115d9287dcf7e9fcc716bbd24436323e1fb702570"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-9.json",
+      "bytes": 48826,
+      "sha256": "3aa70993897ed5406a83cc0304a635e1083fa26571337e19e7f034a9f8477858"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/inputs.json",
+      "bytes": 2217,
+      "sha256": "56f1212b773e75882ed4a0f4f7d5ab61f0b4badaaf2bc7082f5f8924bbe074cb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "42a61e7eb10420c5096b6fddb1925b1122bb9e7824fa373bfc7b36b7efbe0798"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-10.json",
+      "bytes": 45423,
+      "sha256": "f18563c8ddf6b66708ac073f7da6e8634e355f26be5b3f2bf6ca402246764345"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-11.json",
+      "bytes": 6344,
+      "sha256": "25a6126bc04994665ec2a82a671bd4ff0afb24ac0ceb236586f61b5277242bec"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-2.json",
+      "bytes": 46913,
+      "sha256": "33d462904b2af0e06326fdb1b3cd3330580f32a12ff726ed204e956cebc760e3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-3.json",
+      "bytes": 46568,
+      "sha256": "8142027707a8ecc3ca914a513fd485e794cc3bf40c5569d3909b3e4aa60fe2db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-4.json",
+      "bytes": 46828,
+      "sha256": "4cf0b075825c17d6f0ddc6ac59a7b1ab7c93c2b9f0d6c62a559ca42e9eba5284"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-5.json",
+      "bytes": 48507,
+      "sha256": "a06286bb2ce08dc99c4ab6ed151dbe3010858257562dfc4bf38617e82b3adaef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-6.json",
+      "bytes": 48775,
+      "sha256": "e8fd8fda44f18419f2ec74371b4b345a0a2cdfb71429fcb4a4f407af78a60c67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-7.json",
+      "bytes": 49824,
+      "sha256": "eca8d326e63cf3e79970aa2c7c81bbcac91cc4b4658f1edcf7b92606db0bdebb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-8.json",
+      "bytes": 48009,
+      "sha256": "c2a6697891b3fbebaa3983f115d9287dcf7e9fcc716bbd24436323e1fb702570"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-9.json",
+      "bytes": 48826,
+      "sha256": "3aa70993897ed5406a83cc0304a635e1083fa26571337e19e7f034a9f8477858"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/inputs.json",
+      "bytes": 1977,
+      "sha256": "6f5d085ac2913b8ec36b8f23bc5bedc9c452be680c2775fcba887b00b58448b1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    }
+  ],
+  "full_settings_bytes": 304,
+  "control": {
+    "qualified": false,
+    "positive_handoff_qualified": false,
+    "negative_control_passed": true,
+    "attempts": [
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-053",
+            "map": "deltatap",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-053",
+            "map": "deltatap",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      },
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-058",
+            "map": "triplicate",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-058",
+            "map": "triplicate",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Single Bomb"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      }
+    ],
+    "configured_client": false,
+    "negative_control": "Missing EOS client configuration must refuse v16 without changing its transport.",
+    "native_clients_restarted_between_attempts": true,
+    "same_process_native_retry_verified": false,
+    "same_service_and_provider_grants": true,
+    "source_catalog_edited": false,
+    "source_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "installed_map_admission_verified": false,
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  },
+  "official_sdk_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "sha256": "56a3bd805df426606946d74ba662f25223ffe24159e7884a625225ba80b582fb",
+    "bytes": 587617718,
+    "borrowed_read_only": true
+  },
+  "diagnosis": [
+    "Private Steam fixture initially omitted its account endpoint; corrected before the regression.",
+    "Native private snapshot initially omitted the SDK archive and refused its v16 transport.",
+    "Explicit official SDK build reached the intended missing-product configuration refusal."
+  ],
+  "native_clients_restarted_between_attempts": true,
+  "same_native_process_retry_verified": false,
+  "real_provider": false,
+  "installed_map_admission_verified": false,
+  "native_loading_qualified": false,
+  "played_world": false,
+  "rendered_physical_input_verified": false,
+  "original_parity": false,
+  "production_service_activated": false,
+  "selected_runtime_replaced": false,
+  "full_goal_complete": false,
+  "receipts": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "42a61e7eb10420c5096b6fddb1925b1122bb9e7824fa373bfc7b36b7efbe0798"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-10.json",
+      "bytes": 45423,
+      "sha256": "f18563c8ddf6b66708ac073f7da6e8634e355f26be5b3f2bf6ca402246764345"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-11.json",
+      "bytes": 6344,
+      "sha256": "161ee1794d358cfcf5fad744b88f3774e0d2fa889706004074217e48c4d00900"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-2.json",
+      "bytes": 46913,
+      "sha256": "33d462904b2af0e06326fdb1b3cd3330580f32a12ff726ed204e956cebc760e3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-3.json",
+      "bytes": 46568,
+      "sha256": "8142027707a8ecc3ca914a513fd485e794cc3bf40c5569d3909b3e4aa60fe2db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-4.json",
+      "bytes": 46828,
+      "sha256": "4cf0b075825c17d6f0ddc6ac59a7b1ab7c93c2b9f0d6c62a559ca42e9eba5284"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-5.json",
+      "bytes": 48507,
+      "sha256": "a06286bb2ce08dc99c4ab6ed151dbe3010858257562dfc4bf38617e82b3adaef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-6.json",
+      "bytes": 48775,
+      "sha256": "e8fd8fda44f18419f2ec74371b4b345a0a2cdfb71429fcb4a4f407af78a60c67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-7.json",
+      "bytes": 49824,
+      "sha256": "eca8d326e63cf3e79970aa2c7c81bbcac91cc4b4658f1edcf7b92606db0bdebb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-8.json",
+      "bytes": 48009,
+      "sha256": "c2a6697891b3fbebaa3983f115d9287dcf7e9fcc716bbd24436323e1fb702570"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/final-source-pins-9.json",
+      "bytes": 48826,
+      "sha256": "3aa70993897ed5406a83cc0304a635e1083fa26571337e19e7f034a9f8477858"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/frozen-cmake.txt",
+      "bytes": 966651,
+      "sha256": "32ee9bd3851bff19ac8bef2cbce0a924ba075134a93ddf75283669648da53329"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/inputs.json",
+      "bytes": 2217,
+      "sha256": "56f1212b773e75882ed4a0f4f7d5ab61f0b4badaaf2bc7082f5f8924bbe074cb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-build/build.log",
+      "bytes": 39187,
+      "sha256": "d508f207d6775e59264283a6ef1e80d0708a9946565fad7810e8d0fdfe514e23"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-build/configure.log",
+      "bytes": 4642,
+      "sha256": "83c6789cd21e67a32803eb3bdbef88483b1dbc14813f823c5a127bcf1b48739a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-build/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1880,
+      "sha256": "827f3aadfcb1b86c8aed2ca7bcc0563fbba2d900e44cfb696758815a85897aa8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-build/report.json",
+      "bytes": 2436,
+      "sha256": "535bd51304aec92b323fe46dffe7d9f4992d1c6362115e2d01066446cc4384b9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-build-runner.log",
+      "bytes": 44465,
+      "sha256": "ec3fc77696411d1354aca0b083d333a1074e166840c11059f3116acfc618a783"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-report.json",
+      "bytes": 5939,
+      "sha256": "a1da5870d6a7c2dd045bf176c3cbbb972bc996af6f35ef2b798a0f2d2643aac8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-runtime/report.json",
+      "bytes": 3098,
+      "sha256": "ccf53b65f4f1f9d96983464d882edaaeba10ac30f5583480d2b92d0f676e10d3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-runtime/source-manifest.json",
+      "bytes": 18526,
+      "sha256": "8572773202a584cdc54e4bb25351146527f039b6db271eee6a612b2b178d9731"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-runtime/step-0.log",
+      "bytes": 6305,
+      "sha256": "2f2d8f7a2ded7a2b57ff0fed9df64954cec55df996eaca35453f63ded9e83a02"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-runtime/step-1.log",
+      "bytes": 280,
+      "sha256": "c02e2c42d9031a07922902404d67ac2a9e7b288617986cf2a03b1b2636383355"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-1-runtime-runner.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-build/build.log",
+      "bytes": 855,
+      "sha256": "42993a692c421f888ee64bdcc6c361814697008232206225782c595e2b498532"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-build/configure.log",
+      "bytes": 927,
+      "sha256": "12b56c028ed974b9368d2bfd1c58dc47a83fca5e12555f6a8a82d925a5f5450a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-build/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1880,
+      "sha256": "827f3aadfcb1b86c8aed2ca7bcc0563fbba2d900e44cfb696758815a85897aa8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-build/report.json",
+      "bytes": 2436,
+      "sha256": "c49e2e2c6146bb73f6acc4eabd5078640521aaf5956bf8a405ac03f61c0f7fa1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-build-runner.log",
+      "bytes": 2418,
+      "sha256": "9964165b59df4121ed926f06d158b0ec3788535dc365b57a80aabcafe6803108"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-2-report.json",
+      "bytes": 4001,
+      "sha256": "977ed88e67ff9e9d3109d7f560a220d94028aa8f23008e357e144ef62896e52a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/iteration-3-report.json",
+      "bytes": 2897,
+      "sha256": "0d98848b10575a05140c23f75bf71c3fc861041071bb4cc45d26765d576e7894"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/build.log",
+      "bytes": 18987,
+      "sha256": "efc67b28c0a2394c349d236693da8cdb4d955871be1a5791b52c9f6524c15e57"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/configure.log",
+      "bytes": 927,
+      "sha256": "1da5c6e965bd0267a3466d0b3f50767b4953789af6b7f395b55c8de2a8d720b6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1880,
+      "sha256": "d7cc8db573c0763f20c441d1a4cc0c54b83c3cd6d866e436e27f6bae8ca18d07"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/invocation.json",
+      "bytes": 1376,
+      "sha256": "ea8dc063b23f77dc3f581c074e3694831d619947015beb39e599814d8e25a19d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/report.json",
+      "bytes": 2549,
+      "sha256": "9234214fbba79e2f9dc86da7773fc8c825a2ff8d00928f0b0b95dc51eaa86524"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/sdk-enabled-build/runner.log",
+      "bytes": 20652,
+      "sha256": "5579ab581b04e20d1f2e7f27660ab90741e939d07505c6ac07bd349fc866576a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "42a61e7eb10420c5096b6fddb1925b1122bb9e7824fa373bfc7b36b7efbe0798"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-10.json",
+      "bytes": 45423,
+      "sha256": "f18563c8ddf6b66708ac073f7da6e8634e355f26be5b3f2bf6ca402246764345"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-11.json",
+      "bytes": 6344,
+      "sha256": "25a6126bc04994665ec2a82a671bd4ff0afb24ac0ceb236586f61b5277242bec"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-2.json",
+      "bytes": 46913,
+      "sha256": "33d462904b2af0e06326fdb1b3cd3330580f32a12ff726ed204e956cebc760e3"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-3.json",
+      "bytes": 46568,
+      "sha256": "8142027707a8ecc3ca914a513fd485e794cc3bf40c5569d3909b3e4aa60fe2db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-4.json",
+      "bytes": 46828,
+      "sha256": "4cf0b075825c17d6f0ddc6ac59a7b1ab7c93c2b9f0d6c62a559ca42e9eba5284"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-5.json",
+      "bytes": 48507,
+      "sha256": "a06286bb2ce08dc99c4ab6ed151dbe3010858257562dfc4bf38617e82b3adaef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-6.json",
+      "bytes": 48775,
+      "sha256": "e8fd8fda44f18419f2ec74371b4b345a0a2cdfb71429fcb4a4f407af78a60c67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-7.json",
+      "bytes": 49824,
+      "sha256": "eca8d326e63cf3e79970aa2c7c81bbcac91cc4b4658f1edcf7b92606db0bdebb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-8.json",
+      "bytes": 48009,
+      "sha256": "c2a6697891b3fbebaa3983f115d9287dcf7e9fcc716bbd24436323e1fb702570"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/diagnosed-native-handoff/source-pins-9.json",
+      "bytes": 48826,
+      "sha256": "3aa70993897ed5406a83cc0304a635e1083fa26571337e19e7f034a9f8477858"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/final-source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/frozen-cmake.txt",
+      "bytes": 967359,
+      "sha256": "507f003cc4ab6dbca5d5fa6f4da4df2aabb1099635c375358757a5d92fa949ad"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/inputs.json",
+      "bytes": 1977,
+      "sha256": "6f5d085ac2913b8ec36b8f23bc5bedc9c452be680c2775fcba887b00b58448b1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/build.log",
+      "bytes": 41158,
+      "sha256": "41adfb0efc76e4522bcdef0b331653518986bdfe467cc4a4deaf91a9c16a2729"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/configure.log",
+      "bytes": 4653,
+      "sha256": "5874ece3717ca300fa14b6211c951cf0d6e741c19e460433103dfd7110e2fbf1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/evidence/online-protocol/Release/build-report.json",
+      "bytes": 1913,
+      "sha256": "3434f13a96619715f594780d85cdfcc9bda8582f88b60ee7ed6627e616471502"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/evidence/rust-native-handoff-failclosed/report.json",
+      "bytes": 7791,
+      "sha256": "5cdf90ce3a65a875da2c22046d9ab8d20ac4d1b6a8430fe09fd4c79b484db94f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/evidence/rust-native-handoff-failclosed/source-manifest.json",
+      "bytes": 18581,
+      "sha256": "f89e746508b292777ca406e61cd9f5b76b291b1715c7365ff5b3a38cebcac50a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/report.json",
+      "bytes": 4231,
+      "sha256": "2f3a6ceae49f450592f3285fce6c256502bd0d19563ce71e9a9702896376e68a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1/tests.log",
+      "bytes": 683,
+      "sha256": "36aff6ebe1ee471450addf552146992c3d3466f333568c99f5fc71536912b014"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-report.json",
+      "bytes": 6456,
+      "sha256": "3de50f68064c46d5268415139ad2e8f3b748b18a4458a0879f40bd9a7c339a5c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-runner.log",
+      "bytes": 47668,
+      "sha256": "dfb8355d8838bfe0dc121ec8ce303fec4dc99b35f9fdd59ef90866689c516376"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/iteration-1-source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-0.json",
+      "bytes": 43874,
+      "sha256": "6b942581705066e4e59bacd8fbf3fa606ce590a1a8a9c4c7c4840806b62d4adb"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-1.json",
+      "bytes": 46804,
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-10.json",
+      "bytes": 45419,
+      "sha256": "4d62ebe3ff7c99b5a3dcbbfb2b1dcf8e684a0e5638eac9e046525e2b2bd7389d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-11.json",
+      "bytes": 7154,
+      "sha256": "f4efccf3605201b21a85c5a8acb4a5aa19a74e681354c776f2178a448284339d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-2.json",
+      "bytes": 46948,
+      "sha256": "f819c27229183a70ef43f9abd56801621fc2cb549312df344777157474ac9716"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-3.json",
+      "bytes": 46528,
+      "sha256": "62a7273b3fe8c20fe2777f6557805211e7973e8ba3ef5df5df902f63539ec49f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-4.json",
+      "bytes": 46870,
+      "sha256": "c59667504096aa8bae82248dae76bf9d915b9cad61a47bfede437c63cfa3dcdc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-5.json",
+      "bytes": 48464,
+      "sha256": "8721b258be87e075b00299b34fdad44b2400ed11bc4e7870c3c22ea67453b444"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-6.json",
+      "bytes": 48773,
+      "sha256": "73df020b84554e1dfa1d38353c5877e690361f8e2bb1f0bcc94a234cb489ea83"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-7.json",
+      "bytes": 49849,
+      "sha256": "931c6fe40d93c60d7fbfcb4869c275bd12a77c6d011e0c170904f9630a69ba16"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-8.json",
+      "bytes": 47943,
+      "sha256": "df8923674226b172a4d2fab83bfda0c66970390d3070f13547485747f97f6e7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-handoff-and-tu15-20261101/native-handoff-failclosed/source-pins-9.json",
+      "bytes": 48895,
+      "sha256": "2cd134e9baaa09438f9bf6fbe6656c33d3de657b0ac9fcc3a267f9db7e7043ab"
+    }
+  ],
+  "cleanup": {
+    "removed_owned_scratch": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-abi-corrected/halo2-test-t3g5e7vl",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-abi/halo2-test-ucsxgcob",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-candidates/halo2-test-31s9xm94",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-original/halo2-test-hnne5hvk",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-retail/halo2-test-14yaxjmz",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-static/halo2-test-rgyc9i89",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff-failclosed/halo2-test-xk4m903n",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel"
+    ],
+    "all_recorded_scratch_removed": true,
+    "retained_large_artifacts": [],
+    "preserved_concurrent_source_drift": [
+      "CMakeLists.txt",
+      "cmake/MultiplayerAudioContinuation.cmake",
+      "include/halo2/native_tu15_body_constraint_update.hpp",
+      "multiplayer/master_server/tests/test_team_balance_native.py",
+      "src/physics/native_tu15_body_constraint_update.cpp",
+      "src/physics/physics_live_support_tu15_generated.cpp"
+    ],
+    "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-tu15-evidence-corrected/halo2-test-m3fvts0l",
+    "report_writer_cleanup_pending": false,
+    "report_writer_removed": true,
+    "owned_scratch_parents": [
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff-failclosed",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-candidates",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-static",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-original",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-abi",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-abi-corrected",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-retail",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-tu15-evidence",
+        "remaining_entries": 0
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-tu15-evidence-corrected",
+        "remaining_entries": 0
+      }
+    ],
+    "duplicate_bounded_report_sources_removed_after_hash_verification": [
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-native-handoff-failclosed-owned-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-original-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-retail-assignment-recheck-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-candidates-20261101.json",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-static-20261101.json"
+    ]
+  },
+  "final_verification": {
+    "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "master_pdf_hash_matches": true,
+    "original_retail_fixture_preserved": true,
+    "relevant_source_pins_match": true,
+    "all_recorded_scratch_removed": true,
+    "retained_large_artifacts": []
+  }
+}

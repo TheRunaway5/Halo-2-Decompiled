@@ -1,0 +1,61 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/master-source/rust/online_protocol/Cargo.toml",
+        "--lib"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_identity_owner_native",
+        "multiplayer.master_server.tests.test_steam_login",
+        "multiplayer.master_server.tests.test_clans_http",
+        "multiplayer.master_server.tests.test_security_scan_20261023",
+        "multiplayer.master_server.tests.test_friends_http",
+        "multiplayer.master_server.tests.test_player_profile"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "ed2f9c7471a36d362548cedd28efe3e70d97b2a18993c445deab6740925a92b5",
+    "bytes": 4914920,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

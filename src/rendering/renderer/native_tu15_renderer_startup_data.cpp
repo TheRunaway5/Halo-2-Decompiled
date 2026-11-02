@@ -5,8 +5,9 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,123>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,127>{{
                 {0x4117e0u,8u},
+                {0x49219cu,144u},{0x49222cu,16u},{0x49223cu,16u},{0x49224cu,4u},
                 {0x4c6894u,192u},{0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
                 {0x474c8cu,4u},{0x44ab6cu,12u},{0x44ab4cu,12u},
@@ -299,6 +300,19 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
         "native TU1.5 loader-zeroed32340 shadow feature-mask destination");
     m.mount(0x4d1828,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 loader-zeroed32340 active shadow definition destination");
+    // Pinned TU1.5 .data flags7, beyond its raw end48C91C: these exact
+    // writable ranges begin loader-zeroed.4A3BD passes the144-byte C31..C39
+    // destination to49790;4A3A1..4A3AB pass both16-byte gel bases and the
+    // four-byte shift.49790 produces live values and preserves unwritten
+    // words across calls. Mount once per world, never reset per draw.
+    m.mount(0x49219cu,std::array<std::byte,144>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed49790 retained C31..C39 constant bank144");
+    m.mount(0x49222cu,std::array<std::byte,16>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed49790 retained gel basis U16");
+    m.mount(0x49223cu,std::array<std::byte,16>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed49790 retained gel basis V16");
+    m.mount(0x49224cu,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed49790 color shift destination4");
     m.mount(0x492250,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 loader-zeroed32340 shadow opacity destination");
     m.mount(0x4920e4,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,

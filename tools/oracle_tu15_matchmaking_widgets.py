@@ -21,8 +21,15 @@ from unicorn.x86_const import UC_X86_REG_EAX,UC_X86_REG_ECX,UC_X86_REG_EDX,UC_X8
 from oracle_tu15_team_balance import Xbe,NEW_DEFAULT,NEW_PIN,ROOT,STOP
 
 
+def policy_lines(raw):
+    lines=raw.decode().splitlines()
+    if lines[:1]==["Shutdown handler: initialize."] and lines[-1:]==["Shutdown handler: cleanup."]:
+        return lines[1:-1]
+    return lines
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--fixture',type=Path);parser.add_argument('--report',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--fixture',type=Path);parser.add_argument('--native',type=Path);parser.add_argument('--report',type=Path,required=True);args=parser.parse_args()
     scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     assert hashlib.sha256(NEW_DEFAULT.read_bytes()).hexdigest()==NEW_PIN
     source=Xbe(NEW_DEFAULT);m=Uc(UC_ARCH_X86,UC_MODE_32);m.mem_map(0x10000,0x800000)
@@ -50,10 +57,22 @@ def main():
         m.emu_start(0x25832c,STOP,count=2)
         expired=m.reg_read(UC_X86_REG_EIP)==0x258333
         cases.append(dict(input=value,title=title,category=group,icon=icon,seed=seed,count=count,updated_seed=updated,tip_index=index,tip_clock_expired=expired))
-    cpp=scratch/'widgets.cpp';binary=scratch/'widgets'
-    cpp.write_text('#include "halo2/original_matchmaking_widgets.hpp"\n#include<iostream>\nint main(){int x;unsigned seed,count;while(std::cin>>x>>seed>>count){auto tip=halo2::original_matchmaking_tip_index(seed,count);halo2::OriginalMatchmakingTipClock clock{0,true};auto expired=clock.update(std::bit_cast<unsigned>(x));std::cout<<halo2::original_matchmaking_title(x)<<" "<<halo2::original_matchmaking_option_category(x).value_or(0xffffffffu)<<" "<<halo2::original_matchmaking_game_icon(x)<<" "<<seed<<" "<<tip.value()<<" "<<expired<<"\\n";}}\n')
-    subprocess.run(['c++','-std=c++20','-I',str(ROOT/'include'),str(cpp),'-o',str(binary)],check=True)
-    lines=subprocess.check_output([str(binary)],input=('\n'.join(f"{c['input']} {c['seed']} {c['count']}"for c in cases)+'\n').encode()).decode().splitlines()
+    rust=scratch/'widgets.rs';binary=scratch/'widgets'
+    owner=ROOT/'rust/online_protocol/src/matchmaking_frontend_progress.rs'
+    if args.native:
+        command=[str(args.native.resolve(strict=True)),'--widgets']
+    else:
+        rust.write_text('#[path='+json.dumps(str(owner))+'] mod core;\n'+r'''use std::io::{self,BufRead};
+fn main(){for line in io::stdin().lock().lines(){let l=line.unwrap();let v:Vec<&str>=l.split_whitespace().collect();
+let x:i32=v[0].parse().unwrap();let mut seed:u32=v[1].parse().unwrap();let count:u32=v[2].parse().unwrap();
+let tip=core::tip_index(&mut seed,count).unwrap();let mut clock=core::TipClock::new(0,true);
+println!("{} {} {} {} {} {}",core::title(x).unwrap_or(0),core::option_category(x).unwrap_or(u32::MAX),
+core::game_icon(x),seed,tip,clock.update(x as u32) as u8);}}
+''')
+        subprocess.run(['rustup','run','1.96.0','rustc','--edition=2024','-Adead_code',str(rust),'-o',str(binary)],check=True)
+        command=[str(binary)]
+    lines=policy_lines(subprocess.check_output(command,input=('\n'.join(f"{c['input']} {c['seed']} {c['count']}"for c in cases)+'\n').encode()))
+    assert len(lines)==len(cases)
     for case,line in zip(cases,lines):assert list(map(int,line.split()))==[case['title'],case['category']&0xffffffff,case['icon'],case['updated_seed'],case['tip_index'],int(case['tip_clock_expired'])],(case,line)
     decoder=Cs(CS_ARCH_X86,CS_MODE_32)
     for at in executed:
@@ -63,7 +82,7 @@ def main():
     if args.fixture:args.fixture.parent.mkdir(parents=True,exist_ok=True);args.fixture.write_text(json.dumps(fixture,indent=2)+'\n')
     report=dict(passed=True,cases=len(cases),whole_original_calls=2*len(cases),bounded_category_selectors=len(cases),bounded_original_tip_selectors=len(cases),
         original_instructions=len(executed),original_sha256=NEW_PIN,no_instruction_patches=True,no_replaced_callees=True,
-        scope=__doc__,native_source_sha256=hashlib.sha256((ROOT/'include/halo2/original_matchmaking_widgets.hpp').read_bytes()).hexdigest(),scratch=str(scratch),scratch_retained=False)
+        scope=__doc__,backend='native CXX/Rust wrapper' if args.native else 'standalone current Rust owner',rust_source_sha256=hashlib.sha256(owner.read_bytes()).hexdigest(),native_binary_sha256=hashlib.sha256(args.native.read_bytes()).hexdigest() if args.native else None,native_source_sha256=hashlib.sha256((ROOT/'include/halo2/original_matchmaking_widgets.hpp').read_bytes()).hexdigest(),scratch=str(scratch),scratch_retained=False)
     args.report.parent.mkdir(parents=True,exist_ok=True);args.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
 
 

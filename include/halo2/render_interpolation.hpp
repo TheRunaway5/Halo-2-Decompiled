@@ -63,6 +63,13 @@ public:
     // has no published bank, its retained exact frame remains the explicit
     // interpolation owner; no marker/default skeleton is inferred.
     std::vector<Transform> sample(std::uint32_t object,float fraction,const ModelProvider&)const;
+    // PC primary on-foot body policy: sample each completed native WORLD
+    // matrix independently, with linear WORLD position/scale and quaternion
+    // NLERP. Native endpoints remain exact. This follows the inspected Vista
+    // mod's body interpolation domain; it is not a retail MCC math claim.
+    // Parented/legacy banks retain the ordinary admitted model/parent path.
+    std::vector<Transform> sample_first_person_body(std::uint32_t object,float fraction,
+        const ModelProvider&)const;
     // Non-host dead reckoning: a rigid world motion composed onto the newest
     // completed nodes of each listed object (the fraction is then unused).
     // An empty list restores ordinary interpolation. Presentation only.

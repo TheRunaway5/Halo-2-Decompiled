@@ -1,0 +1,225 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-jrr22t9v/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-jrr22t9v",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-jrr22t9v/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-jrr22t9v/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/Testing/Temporary/scratch/halo2-test-jrr22t9v/cargo/release/halo2-matchmaking-service",
+    "bytes": 11449272,
+    "sha256": "9469364f6c848e1472caf5f09e79641e75f7022f401e3460de94f3f8f7598e11",
+    "retained": false
+  },
+  "mode": "native-handoff-failclosed-only",
+  "native_handoff_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/rust_service_native_handoff_probe",
+    "sha256": "d1d7c9ac3de2157a0953ca5309ada1ceb6053cdd48bde3c84641cd62dc75c983",
+    "borrowed_read_only": true
+  },
+  "native_handoff": {
+    "qualified": false,
+    "positive_handoff_qualified": false,
+    "negative_control_passed": true,
+    "attempts": [
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-044",
+            "map": "zanzibar",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Multi Flag CTF"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-044",
+            "map": "zanzibar",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Multi Flag CTF"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      },
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-063",
+            "map": "foundation",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team Ball"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-063",
+            "map": "foundation",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team Ball"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      }
+    ],
+    "configured_client": false,
+    "negative_control": "Missing EOS client configuration must refuse v16 without changing its transport.",
+    "native_clients_restarted_between_attempts": true,
+    "same_process_native_retry_verified": false,
+    "same_service_and_provider_grants": true,
+    "source_catalog_edited": false,
+    "source_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "installed_map_admission_verified": false,
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  }
+}

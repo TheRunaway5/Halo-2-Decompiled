@@ -1,0 +1,12 @@
+import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);out=root/'build/test-results/frontend-lobby-rust-20261102'
+source=scratch/'source/rust/online_protocol'
+shutil.copytree(root/'rust/online_protocol',source,ignore=shutil.ignore_patterns('target','__pycache__'))
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source.rglob('*') if p.is_file()}
+command=['cargo','test','--locked','--offline','--test','matchmaking_frontend_lobby']
+run=subprocess.run(command,cwd=source,env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'cargo'),CARGO_BUILD_JOBS='2',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0'),capture_output=True)
+log=run.stdout+run.stderr;(out/'core-initial.log').write_bytes(log[-1048576:])
+record={'passed':run.returncode==0,'command':command,'scratch':str(scratch),'exit_code':run.returncode,'source_pins':pins,'log_sha256':hashlib.sha256(log).hexdigest()}
+(out/'core-initial.json').write_text(json.dumps(record,indent=2)+'\n')
+print(log.decode(errors='replace')[-5000:]);raise SystemExit(run.returncode)

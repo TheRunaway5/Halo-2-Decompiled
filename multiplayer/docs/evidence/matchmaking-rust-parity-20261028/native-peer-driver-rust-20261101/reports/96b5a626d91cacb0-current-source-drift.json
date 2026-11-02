@@ -1,0 +1,62 @@
+[
+  {
+    "path": "CMakeLists.txt",
+    "frozen_sha256": "034e6876a2eb501cb5234fa797bc92c70c7ed60e25842d0c9a21b1ef2a347a98",
+    "current_sha256": "f5a9f1afcd041d14aa77e3cc35c136b435698e822fdee602a059b9106f8f30a4"
+  },
+  {
+    "path": "include/halo2/cache.hpp",
+    "frozen_sha256": "e77b60e05e46c6d8a2d09aac8097f45690f51cfedd50b33bf87cfe2a5c8d8e95",
+    "current_sha256": "076942678750363e13984c8f65fe9cd097103e323dfb873f0d79b14dc1839f19"
+  },
+  {
+    "path": "src/assets/mcc/mcc_weapon_zoom_sound.cpp",
+    "frozen_sha256": "9589e4d3ceba2e966eeef94941c7d2450096a39d64baccfb17aec24538b32672",
+    "current_sha256": "220d64f354ec91b8fa7f70fad6a284605f6f58be64f6ca4d6ed9d6e183e1b83b"
+  },
+  {
+    "path": "src/assets/mcc_cache.cpp",
+    "frozen_sha256": "7310602d1c9ac040b42ba87b0b4b83a6e82343eef49846ec8d42c4231e98e76f",
+    "current_sha256": "fec5bd0ceac2e1652e9d4b5fa1efc836e986c0abaccb38be498d1c74b258103d"
+  },
+  {
+    "path": "src/gameplay/objects/source_machine_scene.cpp",
+    "frozen_sha256": "de06bbc09056bd9616bc8c8ef979669df0b61d402e084d653e0c97dc5b31f8c1",
+    "current_sha256": "0aa3bec9e42b62e2944167ad398cc9f39bc9b46b1d43a2b4d190c6e4af6e2e35"
+  },
+  {
+    "path": "src/physics/collision/collision.cpp",
+    "frozen_sha256": "b390aaa26c3adf029b803d7d6bb6fb314a6028d70a25d0a235f22e8d1e9ef2bc",
+    "current_sha256": "d8749fc151c8e01d032568b9ab6b0160e501bc63041cac9913539b37b4a28f06"
+  },
+  {
+    "path": "src/rendering/material.cpp",
+    "frozen_sha256": "d3bf57b4698612d3fc979d7a19310dc1911ac0c0f50a5fa05f94bac7359d4003",
+    "current_sha256": "04be2e6a6bdc8de56514ebcb294cd827e6b80eea55af7333a1ba42a82ceeb02e"
+  },
+  {
+    "path": "src/rendering/world/source_world_depth_input.cpp",
+    "frozen_sha256": "1dc8a64d4cb9dc32eac7f72c0ba3bc538a9d1293fb7a0ffb768fa7c3e3598304",
+    "current_sha256": "9be3189fc66a6580f12f90190886c8d60a5bac1eebe20ac8b071d8c9b0f5c065"
+  },
+  {
+    "path": "tests/collision_layers_tests.cpp",
+    "frozen_sha256": "6039939527909db1709e10795d070c4695ae434c192121a90ae4bcc69be28189",
+    "current_sha256": "15d9a430e6ae9e857426ba499fa232abe04cedde9f59d0be681ae187d16ff591"
+  },
+  {
+    "path": "tests/native_weapon_presentation_contracts_tu15_tests.cpp",
+    "frozen_sha256": "a97424a2eae17842d79aeb41d576ccfb1fc0b24e741601a6d31fed3a4b9a20e4",
+    "current_sha256": "9aefc2372b88905dac1bf128c624a023d59e4cc3d3df474096f9f3b3f67536da"
+  },
+  {
+    "path": "tests/source_machine_scene_tests.cpp",
+    "frozen_sha256": "4d48d31b1de5276750127b71854693ae3bc2413dc0bd48a486c4a444edbfac72",
+    "current_sha256": "ecb1733c9849c1c39fd565c2a1fdb0baaa77accb4a08cdad9ad938a819c49cac"
+  },
+  {
+    "path": "tools/test_zanzibar_runtime.py",
+    "frozen_sha256": "eec553c39e516db2af96c6c375c948a490bfc8ce54257a6ecd8782080c5064b2",
+    "current_sha256": "cfbaaa1833c80181d72cb49b7ce3955d687aaec4102d21d21fccc35c1b962aed"
+  }
+]

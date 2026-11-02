@@ -109,7 +109,8 @@ std::string uuid(const Json &object, const char *key) {
         : (result[i] >= '0' && result[i] <= '9') || (result[i] >= 'a' && result[i] <= 'f'));
   return result;
 }
-std::vector<OnlineServer> parse(const std::string &body, std::int64_t now) {
+struct Page { std::vector<OnlineServer> servers; std::string next; std::size_t count{}; };
+Page parse(const std::string &body, std::int64_t now) {
   require(body.size() <= max_body);
   std::vector<std::set<std::string>> keys;
   const auto root = Json::parse(body, [&](int depth, Json::parse_event_t event, Json &value) {
@@ -119,9 +120,18 @@ std::vector<OnlineServer> parse(const std::string &body, std::int64_t now) {
     if (event == Json::parse_event_t::object_end) keys.pop_back();
     return true;
   });
-  require(root.is_object() && root.size() == 1 && root.contains("servers"));
+  require(root.is_object() && root.contains("servers") &&
+          root.size() == (root.contains("next_cursor") ? 2 : 1));
   const auto &rows = root.at("servers");
   require(rows.is_array() && rows.size() <= 1000);
+  Page page;
+  page.count = rows.size();
+  if (root.contains("next_cursor") && !root.at("next_cursor").is_null()) {
+    page.next = text(root, "next_cursor", 73);
+    require(page.next.size() == 73 && page.next[36] == '.' && !rows.empty());
+    uuid(Json{{"id", page.next.substr(0, 36)}}, "id");
+    uuid(Json{{"id", page.next.substr(37)}}, "id");
+  }
   std::vector<OnlineServer> result;
   std::set<std::string> ids;
   for (const auto &row : rows) {
@@ -155,7 +165,8 @@ std::vector<OnlineServer> parse(const std::string &body, std::int64_t now) {
     if (server.expires_at > now) result.push_back(std::move(server));
   }
   std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) { return a.id < b.id; });
-  return result;
+  page.servers = std::move(result);
+  return page;
 }
 } // namespace
 OnlineDirectoryOptions online_directory_environment() {
@@ -216,9 +227,29 @@ struct OnlineDirectory::Impl {
         for (const auto &master : masters) {
           if (request.stop_requested()) break;
           try {
-            const auto response = http(master + "/v1/servers", request);
-            require(response.status == 200);
-            servers = parse(response.body, now());
+            std::vector<OnlineServer> collected;
+            std::set<std::string> ids;
+            std::string cursor;
+            std::size_t count = 0, bytes = 0;
+            for (unsigned index = 0; ; ++index) {
+              require(index <= 1000 && !request.stop_requested());
+              const auto response = http(master + "/v1/servers" +
+                                         (cursor.empty() ? "" : "?cursor=" + cursor), request);
+              require(response.status == 200 && response.body.size() <= max_body - bytes);
+              bytes += response.body.size();
+              auto page = parse(response.body, now());
+              count += page.count;
+              require(count <= 1000);
+              for (auto &server : page.servers) {
+                require(ids.insert(server.id).second);
+                collected.push_back(std::move(server));
+              }
+              if (page.next.empty()) break;
+              require(page.next > cursor);
+              cursor = std::move(page.next);
+            }
+            std::sort(collected.begin(), collected.end(), [](const auto &a, const auto &b) { return a.id < b.id; });
+            servers = std::move(collected);
             success = true;
             break; // An empty valid snapshot is also authoritative.
           } catch (...) { /* Try the next explicitly configured master. */ }

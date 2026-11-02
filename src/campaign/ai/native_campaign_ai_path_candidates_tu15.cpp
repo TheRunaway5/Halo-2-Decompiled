@@ -22,12 +22,6 @@ void publish(SourcePhysicsContactMemory &memory, const SourcePhysicsContactRecor
     for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(n*8u));
     memory.write(address,event.written);if(observe)observe(event);
 }
-void copy_point(SourcePhysicsContactMemory &memory, std::uint32_t source,
-    std::uint32_t destination, const std::array<std::uint32_t,3> &sites,
-    const SourcePhysicsContactRecordObserver &observe) {
-    for(unsigned axis=0;axis<3;++axis)
-        publish(memory,observe,sites[axis],destination+axis*4u,read(memory,source+axis*4u));
-}
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
 class SimdEnvironment {
     NativeTu15PhysicsFrameFp &fp_;unsigned previous_;
@@ -54,6 +48,46 @@ bool greater(Scalar a,Scalar b) {
     unsigned char result{};
     asm volatile("comiss %2,%1\n\tseta %0":"=qm"(result):"x"(a),"x"(b):"cc","memory");return result;
 }
+template<class Start,class End,class Query,class Sink>void segment_candidate(
+    const SourcePhysicsContactMemory &memory,const Start &start,const End &end,
+    const Query &query,NativeTu15PhysicsFrameFp &fp,const Sink &sink) {
+    const auto copy=[&](const auto &input,const std::array<std::uint32_t,3> &sites) {
+        for(unsigned n=0;n<3;++n)sink(n,input(n),sites[n]);
+    };
+    SimdEnvironment environment(fp);
+    const auto end_x=scalar(end(0));
+    auto dx=subtract(end_x,scalar(start(0)));
+    const auto end_y=scalar(end(1));
+    auto dy=subtract(end_y,scalar(start(1)));
+    const auto end_z=scalar(end(2));
+    auto dz=subtract(end_z,scalar(start(2)));
+    const auto x_squared=multiply(dx,dx),y_squared=multiply(dy,dy);
+    auto norm=add(x_squared,y_squared);
+    norm=add(norm,multiply(dz,dz));
+    if(nonpositive_or_unordered(norm)) {
+        copy(start,{0x27c50f,0x27c514,0x27c51a});return;
+    }
+    auto y=scalar(start(1));y=subtract(y,scalar(query(1)));
+    auto z=scalar(start(2));
+    auto x=scalar(start(0));
+    z=subtract(z,scalar(query(2)));
+    x=subtract(x,scalar(query(0)));
+    y=multiply(y,dy);z=multiply(z,dz);
+    auto numerator=add(y,z);x=multiply(x,dx);numerator=add(numerator,x);
+    const auto fraction=divide(numerator,norm);
+    if(greater(_mm_setzero_ps(),fraction)) {
+        copy(end,{0x27c4fe,0x27c503,0x27c509});return;
+    }
+    if(greater(fraction,scalar(read(memory,0x46a0d0u)))) {
+        copy(end,{0x27c4fe,0x27c503,0x27c509});return;
+    }
+    dx=multiply(dx,fraction);dx=add(dx,scalar(start(0)));
+    sink(0,bits(dx),0x27c4db);
+    dy=multiply(dy,fraction);dy=add(dy,scalar(start(1)));
+    sink(1,bits(dy),0x27c4e8);
+    dz=multiply(dz,fraction);dz=add(dz,scalar(start(2)));
+    sink(2,bits(dz),0x27c4f6);
+}
 #endif
 }
 std::int16_t native_campaign_ai_path_find_node_tu15(const SourcePhysicsContactMemory &memory,
@@ -72,42 +106,28 @@ void native_campaign_ai_path_segment_candidate_tu15(SourcePhysicsContactMemory &
     std::uint32_t destination, NativeTu15PhysicsFrameFp &fp,
     const SourcePhysicsContactRecordObserver &observe) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    SimdEnvironment environment(fp);
-    const auto end_x=scalar(read(memory,end));
-    auto dx=subtract(end_x,scalar(read(memory,start)));
-    const auto end_y=scalar(read(memory,end+4u));
-    auto dy=subtract(end_y,scalar(read(memory,start+4u)));
-    const auto end_z=scalar(read(memory,end+8u));
-    auto dz=subtract(end_z,scalar(read(memory,start+8u)));
-    const auto x_squared=multiply(dx,dx),y_squared=multiply(dy,dy);
-    auto norm=add(x_squared,y_squared);
-    norm=add(norm,multiply(dz,dz));
-    if(nonpositive_or_unordered(norm)) {
-        copy_point(memory,start,destination,{0x27c50f,0x27c514,0x27c51a},observe);return;
-    }
-    auto y=scalar(read(memory,start+4u));y=subtract(y,scalar(read(memory,query+4u)));
-    auto z=scalar(read(memory,start+8u));
-    auto x=scalar(read(memory,start));
-    z=subtract(z,scalar(read(memory,query+8u)));
-    x=subtract(x,scalar(read(memory,query)));
-    y=multiply(y,dy);z=multiply(z,dz);
-    auto numerator=add(y,z);x=multiply(x,dx);numerator=add(numerator,x);
-    const auto fraction=divide(numerator,norm);
-    if(greater(_mm_setzero_ps(),fraction)) {
-        copy_point(memory,end,destination,{0x27c4fe,0x27c503,0x27c509},observe);return;
-    }
-    if(greater(fraction,scalar(read(memory,0x46a0d0u)))) {
-        copy_point(memory,end,destination,{0x27c4fe,0x27c503,0x27c509},observe);return;
-    }
-    dx=multiply(dx,fraction);dx=add(dx,scalar(read(memory,start)));
-    publish(memory,observe,0x27c4db,destination,bits(dx));
-    dy=multiply(dy,fraction);dy=add(dy,scalar(read(memory,start+4u)));
-    publish(memory,observe,0x27c4e8,destination+4u,bits(dy));
-    dz=multiply(dz,fraction);dz=add(dz,scalar(read(memory,start+8u)));
-    publish(memory,observe,0x27c4f6,destination+8u,bits(dz));
+    segment_candidate(memory,[&](unsigned n){return read(memory,start+n*4u);},
+        [&](unsigned n){return read(memory,end+n*4u);},
+        [&](unsigned n){return read(memory,query+n*4u);},fp,
+        [&](unsigned n,std::uint32_t value,std::uint32_t site){publish(memory,observe,site,destination+n*4u,value);});
 #else
     (void)memory;(void)start;(void)end;(void)query;(void)destination;(void)fp;(void)observe;
     throw std::runtime_error("Exact native TU1.5 path candidate arithmetic unavailable");
 #endif
 }
+std::array<std::uint32_t,3> native_campaign_ai_path_segment_candidate_value_tu15(
+    const SourcePhysicsContactMemory &memory,const std::array<std::uint32_t,3> &start,
+    const std::array<std::uint32_t,3> &end,std::uint32_t query,NativeTu15PhysicsFrameFp &fp) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::array<std::uint32_t,3> result{};
+    segment_candidate(memory,[&](unsigned n){return start[n];},[&](unsigned n){return end[n];},
+        [&](unsigned n){return read(memory,query+n*4u);},fp,
+        [&](unsigned n,std::uint32_t value,std::uint32_t){result[n]=value;});
+    return result;
+#else
+    (void)memory;(void)start;(void)end;(void)query;(void)fp;
+    throw std::runtime_error("Exact native TU1.5 path candidate arithmetic unavailable");
+#endif
+}
+
 }

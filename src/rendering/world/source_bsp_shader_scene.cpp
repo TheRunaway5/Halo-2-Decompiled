@@ -1,11 +1,32 @@
 #include "halo2/source_bsp_shader_scene.hpp"
 #include "halo2/world_material.hpp"
+#include "halo2/source_bsp_part_commands.hpp"
+#include <limits>
 #include <algorithm>
 #include <set>
 
 namespace halo2 {
+std::set<std::pair<int,unsigned>> source_bsp_broken_parts(const SourceTransparentBspParts& parts,
+    std::span<const std::byte> visibility,std::size_t bsp) {
+    std::set<std::pair<int,unsigned>> hidden;
+    if(visibility.empty())return hidden;
+    if(visibility.size()!=0x4204 || bsp>std::size_t(std::numeric_limits<std::int16_t>::max()))
+        throw FormatError("BSP main selection requires its complete breakable source bank");
+    const auto section=[&](int geometry,const SourceTransparentPartSection& bank) {
+        for(const auto& part:bank.parts)if(part.breakable_surface!=255 &&
+            !source_bsp_material_visible(visibility,std::int16_t(bsp),geometry<=-2?-2-geometry:-1,part.breakable_surface))
+            hidden.emplace(geometry,part.ordinal);
+    };
+    for(unsigned cluster=0;cluster<parts.clusters.size();++cluster)section(int(cluster),parts.clusters[cluster]);
+    for(const auto& instance:parts.instances) {
+        if(instance.definition>=parts.instance_definitions.size())
+            throw FormatError("BSP breakable instance lost its authored definition");
+        section(-2-int(instance.ordinal),parts.instance_definitions[instance.definition]);
+    }
+    return hidden;
+}
 SourceBspShaderScene::SourceBspShaderScene(const Cache &cache,Mesh &mesh,std::size_t bsp)
-    :geometry_(cache.load_source_bsp_admission(bsp)),
+    :bsp_index_(bsp),geometry_(cache.load_source_bsp_admission(bsp)),
      parts_(cache.load_source_transparent_bsp_parts(bsp)),materials_(mesh.materials.size()),
      source_shaders_(mesh.materials.size(),0xffffffffu) {
     const unsigned roots=unsigned(mesh.materials.size());
@@ -48,6 +69,7 @@ SourceBspShaderScene::SourceBspShaderScene(const Cache &cache,Mesh &mesh,std::si
 }
 std::vector<SourceBspShaderPart> SourceBspShaderScene::select(
     std::vector<Vertex> &vertices,const SourceBspShaderView &view) const {
+    const auto broken=source_bsp_broken_parts(parts_,view.breakable_visibility,bsp_index_);
     const auto camera=source_shader_coverage_camera(view.camera);
     const auto shader_view=source_shader_lod_view(view.outer_top,view.outer_bottom,false,false);
     const auto multiplier=view.detail_multiplier.value_or(source_shader_lod_player_multiplier(view.local_players));
@@ -60,6 +82,7 @@ std::vector<SourceBspShaderPart> SourceBspShaderScene::select(
             const auto key=std::pair{owner,unsigned(part.ordinal)};
             const auto source=source_materials_.find(key);
             if(source==source_materials_.end())continue; // No emitted visible triangles.
+            if(broken.contains(key))continue;
             if(!alpha) {selected.emplace(key,Binding{0xffffffffu,0});continue;}
             const auto root=source->second;
             if(root>=materials_.size())throw FormatError("BSP shader root outside resident bank");
@@ -80,7 +103,7 @@ std::vector<SourceBspShaderPart> SourceBspShaderScene::select(
             if(lod>=slots.size())throw FormatError("BSP source shader LOD outside resident bank");
             // Alpha is constant for this selected authored part. Retain the
             // complete source helper's level once, before visiting its vertices.
-            selected.emplace(key,Binding{slots[lod],alpha,source_shader_instance_stipple(alpha).level});
+            selected.emplace(key,Binding{slots[lod],alpha,source_shader_instance_stipple_level(alpha)});
             result.push_back({owner,section_id,part.ordinal,lod,slots[lod],coverage,alpha});
         }
     };
@@ -103,6 +126,7 @@ std::vector<SourceBspShaderPart> SourceBspShaderScene::select(
             source_shader_instance_alpha(actual_coverage));
     }
     vertices.erase(std::remove_if(vertices.begin(),vertices.end(),[&](Vertex &vertex) {
+        if(broken.contains({vertex.bsp_cluster,vertex.source_part}))return true;
         const auto found=selected.find({vertex.bsp_cluster,vertex.source_part});
         if(found==selected.end())return false;
         if(found->second.material==0xffffffffu)return true;

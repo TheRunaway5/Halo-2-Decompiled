@@ -1,0 +1,44 @@
+{
+  "scope": "Exact modern C++ pregame UI controller bodies and necessary source/header reference inputs; original executable callers and installed runtime remain separate",
+  "source_sha256": {
+    "src/ui/frontend_state.cpp": "8c6a7cb37700faaf6239b38a25329c4d46ce1a71f3e108b84afeccdbad4bc17a",
+    "src/ui/frontend_party.cpp": "d18e34a4171608b3dfb446fe2b65e54ad1a5d1c8fa3dacee6b22e8bc5930bc43",
+    "src/ui/frontend_matchmaking.cpp": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+    "include/halo2/frontend.hpp": "de856e8cdb96aceae7cb1adfe263aabf69ca55acee1bcee1f9b73d550a4a950d",
+    "include/halo2/frontend_matchmaking_progress.hpp": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e"
+  },
+  "policy_functions": [
+    "enter_online_matchmaking_lobby",
+    "cancel_online_lobby_countdown",
+    "update_online_lobby_countdown",
+    "update_online_lobby_leave",
+    "online_lobby_start_error"
+  ],
+  "policy_sha256": "0fbd41d7a32ea33e149f9b038576c35f4ffc0c080ce5b2b0381ab9c882430773",
+  "input_fragments": {
+    "accept": {
+      "path": "tests/reference/frontend_lobby_before_rust_20261102/input-accept.cpp.inc",
+      "sha256": "cf58e87416242f5be11909fe5164cfbb7781d9b0f95038a86ab263a121fd7805",
+      "scope": "Unedited original modern native input branch, invoked with the declared outer input dispatch"
+    },
+    "back": {
+      "path": "tests/reference/frontend_lobby_before_rust_20261102/input-back.cpp.inc",
+      "sha256": "27275ce77408f92d9921091c6b65a1d2c085849f286e8c08ba751bd8e4f77b20",
+      "scope": "Unedited original modern native input branch, invoked with the declared outer input dispatch"
+    },
+    "auxiliary": {
+      "path": "tests/reference/frontend_lobby_before_rust_20261102/input-auxiliary.cpp.inc",
+      "sha256": "319e6019970212f1cd321a56c4f690b20fa6cf14a09bf92ef06cf3adf1dea829",
+      "scope": "Unedited original modern native input branch, invoked with the declared outer input dispatch"
+    },
+    "leave": {
+      "path": "tests/reference/frontend_lobby_before_rust_20261102/input-leave.cpp.inc",
+      "sha256": "a10aff620093b5072d163d02e1f1f12c804d1e70acdff94dec2c3e9ce826fc33",
+      "scope": "Unedited original modern native input branch, invoked with the declared outer input dispatch"
+    }
+  },
+  "outer_input_gate": {
+    "path": "tests/reference/frontend_lobby_before_rust_20261102/online_party_screen.cpp.inc",
+    "sha256": "40aaf0929f447883485d036e0d954dca334e4638c6a89af54d992f4f9163ece1"
+  }
+}

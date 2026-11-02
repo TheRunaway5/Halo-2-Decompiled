@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/iteration-5",
+  "commands": [],
+  "action": "social",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/test_rust_matchmaking_service.py",
+    "tools/rust_service_social_controls.py"
+  ],
+  "source_files": 136,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/cargo/release/halo2-matchmaking-service",
+    "sha256": "6c1546d05dbc46e762338b5a0482729c5b56227d3093aaccfd216906a90a63f2",
+    "bytes": 10989280,
+    "retained": false
+  },
+  "social": {
+    "qualified": true,
+    "checks": [
+      "real Rust friends authentication and anonymous population routes",
+      "real account observations and anonymous identity-free counts; native Unicode tags and nonfriend presence privacy; duplicate/forged inputs rejected",
+      "actual sender/recipient consent, request replay/conflict, no automatic acceptance and accepted-friend presence",
+      "real friend party privacy/context and invitation policy; failed block COMMIT restores relationship/cache epoch/invites, retry revokes both directions without auto-accepting on unblock",
+      "actual cancel, decline, remove and canonical rename preserve the public identifier/tag discriminator",
+      "revocation during actual body upload is rechecked before friend SQL, with no provisional relationship",
+      "private 250-row SQL roster crosses the actual 128-row continuation, preserves all unique private public projections and rejects the next friendship at capacity",
+      "actual account/matching-owner deduplication, transient guest and queued playlist counts, cancellation and anonymous response privacy",
+      "real process restart retains friendships/tags and retires presence/account grants without reviving pending capabilities",
+      "actual unshortened thirty-second activity window expires despite repeated anonymous population reads; using the still-valid account grant restores observed activity"
+    ],
+    "native": null,
+    "real_provider": false,
+    "native_played_world": false,
+    "scope": "Real Rust HTTP/SQLite; private provider fixtures, no original or delivered acceptance."
+  }
+}

@@ -1,0 +1,80 @@
+  // Typed native lock/owner IO. Rust owns the caller's classification, phase,
+  // capability, epoch, history-selection and effect ordering decisions.
+  struct ReceiveIo final:bridge::NativeReceiveIo {
+    Impl &s;mutable std::unique_lock<std::mutex> generation;
+    // Locked resources borrow the Session's genuine owners. Only the four
+    // unlocked paths retain shared owners, as in the previous receive caller.
+    mutable PeerSurvivorSelection *selection{};
+    mutable std::shared_ptr<PeerSnapshotCandidate> snapshot;
+    mutable PeerCommonCutAgreement *common{};
+    mutable PeerHostAgreement *agreement{};
+    mutable std::shared_ptr<PeerMeshQuality> quality;
+    mutable std::shared_ptr<PeerSourceAdmissions> admissions;
+    mutable std::shared_ptr<PeerAuthorityTransfer> authority;
+    using Target=bridge::NativeReceiveTarget;
+    explicit ReceiveIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
+    void held()const{require(generation.owns_lock());}
+    static std::span<const std::byte> bytes(rust::Slice<const std::uint8_t> p){return {reinterpret_cast<const std::byte*>(p.data()),p.size()};}
+    void receive_lock()const override{require(!generation.owns_lock());generation.lock();}
+    void receive_unlock()const override{held();generation.unlock();}
+    bridge::NativeReceiveSession receive_session()const override{
+      held();bridge::NativeReceiveSession out;out.common=s.projection.common_phase;out.native_control=s.projection.native_control_phase;
+      out.handoff=s.projection.peer_handoff_phase;out.direct=s.transport_options.direct_udp;out.epochs=s.packet_epochs;return out;
+    }
+    bool receive_supported(Target target)const override{
+      held();switch(target){case Target::Selection:return s.selection_supported();case Target::Snapshot:return s.snapshot_supported();case Target::Common:return s.common_supported();default:require(false);return false;}
+    }
+    void receive_pin(Target target)const override{
+      held();switch(target){
+        case Target::Selection:selection=s.survivor_selection.get();break;case Target::Snapshot:snapshot=s.snapshot_candidate;break;
+        case Target::Common:common=s.common_cut.get();break;case Target::Agreement:agreement=s.agreement.get();break;
+        case Target::Quality:quality=s.mesh_quality;break;case Target::Admissions:admissions=s.source_admissions;break;
+        case Target::Authority:authority=s.authority;break;default:require(false);
+      }
+    }
+    bool receive_present(Target target)const override{
+      switch(target){case Target::Selection:return bool(selection);case Target::Snapshot:return bool(snapshot);
+        case Target::Common:return bool(common);case Target::Agreement:return bool(agreement);case Target::Quality:return bool(quality);
+        case Target::Admissions:return bool(admissions);case Target::Authority:return bool(authority);default:require(false);return false;}
+    }
+    std::uint32_t receive_epoch(Target target)const override{
+      switch(target){case Target::Selection:held();require(bool(selection));return selection->state().context.epoch;
+        case Target::Snapshot:require(snapshot&&!generation.owns_lock());return snapshot->state().context.epoch;
+        case Target::Common:held();require(bool(common));return common->context().epoch;
+        case Target::Agreement:held();require(agreement&&s.agreement_context);return s.agreement_context->epoch;
+        case Target::Quality:require(quality&&!generation.owns_lock());return quality->context().epoch;
+        case Target::Admissions:require(admissions&&!generation.owns_lock());return admissions->context().epoch;
+        case Target::Authority:require(authority&&!generation.owns_lock());return authority->context().epoch;
+        default:require(false);return 0;}
+    }
+    bool receive_binding_present()const override{held();return s.agreement_context.has_value();}
+    std::uint32_t receive_binding_epoch()const override{held();require(s.agreement_context.has_value());return s.agreement_context->epoch;}
+    std::uint64_t receive_history_len()const override{held();return s.agreement_history.size();}
+    std::uint32_t receive_history_epoch(std::uint64_t index)const override{held();require(index<s.agreement_history.size());return s.agreement_history[std::size_t(index)].context.epoch;}
+    void receive_history_packet(std::uint64_t index,std::uint32_t source,rust::Slice<const std::uint8_t> p)const override{
+      held();require(index<s.agreement_history.size());s.agreement_history[std::size_t(index)].owner->receive(source,bytes(p),transfer_time());
+    }
+    void receive_packet(Target target,std::uint32_t source,rust::Slice<const std::uint8_t> p)const override{
+      const auto packet=bytes(p);switch(target){
+        case Target::Selection:held();require(bool(selection));selection->receive(source,packet,transfer_time());break;
+        case Target::Snapshot:require(snapshot&&!generation.owns_lock());snapshot->receive(source,packet,transfer_time());break;
+        case Target::Common:held();require(bool(common));common->receive(source,packet,transfer_time());break;
+        case Target::Agreement:held();require(bool(agreement));agreement->receive(source,packet,transfer_time());break;
+        case Target::Quality:require(quality&&!generation.owns_lock());quality->receive(source,packet,transfer_time());break;
+        case Target::Admissions:require(admissions&&!generation.owns_lock());admissions->receive(source,packet);break;
+        case Target::Authority:require(authority&&!generation.owns_lock());authority->receive(source,packet,transfer_time());break;
+        default:require(false);
+      }
+    }
+    void receive_abort()const override{held();s.selection_abort();}
+    void receive_progress()const override{held();s.selection_progress();}
+    void receive_fence()const override{held();s.fence_peer_generation();}
+    bool receive_general(std::uint32_t source,std::uint32_t epoch,rust::Slice<const std::uint8_t> p)const override{
+      held();return bridge::native_session_datagram(*s.controller,source,epoch,p);
+    }
+    void receive_observe_host()const override{held();require(bool(agreement));agreement->observe_host(transfer_time());}
+    void receive_refresh()const override{held();s.refresh();}
+  };
+  void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
+    ReceiveIo io(*this);bridge::native_receive_dispatch(io,source,wire(packet),epoch);
+  }

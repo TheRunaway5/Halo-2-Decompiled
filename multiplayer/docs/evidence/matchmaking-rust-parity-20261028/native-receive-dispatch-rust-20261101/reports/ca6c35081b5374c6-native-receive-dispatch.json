@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "scope": "Compare the exact preserved C++ receive caller with production Rust dispatch.\n\nPhase/capability/resource/history observations and injected IO refusals are\nfixtures. Both invoke the actual protocol recognizers; only the caller's routing,\nraw operand/payload forwarding, lock lifetime and effect order are compared.\nThis does not certify original Live, a native world, provider or installed client.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "commands": 110810,
+  "declared_native_io_refusals": 61,
+  "matched_events": 364696,
+  "sha256": "9e15dedbf25621c24fb46a7677d97dec21c81066b6a5a9465c229297361fe7f2",
+  "binary_sha256": "59c3d3fa9f78a15c02907b0d5277307544f95dcf81316dd1ba4bd8f83661bb84",
+  "source_pins": {
+    "tests/native_receive_dispatch_tests.cpp": "1d03791b5210f545fad539196caf79834fe5aae3674e3f0d6af285bbd92b0883",
+    "tests/test_native_receive_dispatch.py": "eb95b6035a08e29f855570c157cbdcf9762a8bde176fc34a16c9fe068123d750",
+    "tests/reference/native_receive_dispatch_before_rust_20261101.inc": "37b3ef4791019aef29e2ce0136117121e9df6682043a80fafc32a178dddcb349"
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ]
+}

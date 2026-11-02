@@ -18,6 +18,10 @@ def _parameter(value):
     return value
 
 
+def _cell(value):
+    return {'blob':value.hex()} if type(value) is bytes else value
+
+
 def apply(db, plan):
     """Execute a Rust plan inside the caller's existing transaction boundary."""
     for statement in plan['statements']:

@@ -80,8 +80,46 @@ int main(int argc,char **argv) try {
   check(menu.frame().screen==vista_menu(18) && actions.empty(),"Cancelling Leave Match exited the match");
   choose(menu,2);choose(menu,0);
   check(actions.size()==1 && actions.back()==GamePauseAction::Quit,"Leave Match did not reach the existing match-exit owner exactly once");
+  actions.clear();menu.open_game_pause(false,false,true);
+  check(menu.frame().entries.size()==4 && menu.frame().entries[2].label=="End Match" &&
+      menu.frame().entries[3].label=="Exit To Desktop","Split-screen pause omitted its separate match and desktop actions");
+  choose(menu,1);menu.back();
+  check(menu.frame().entries[2].label=="End Match","Returning from Settings lost End Match");
+  for(unsigned row:{2u,3u}) {
+    const std::string label=row==2?"End Match":"Exit To Desktop";
+    choose(menu,row);
+    check(menu.frame().screen==vista_menu(7) && menu.frame().title==label &&
+        menu.frame().entries[0].label==label && menu.frame().selected==1 && actions.empty(),
+        "Split-screen exit action did not require explicit confirmation with Cancel selected");
+    choose(menu,1);check(menu.frame().context==splitscreen_game_pause_context && actions.empty(),
+        "Cancel dispatched a split-screen exit action or lost its pause context");
+    choose(menu,row);menu.back();check(actions.empty(),"Back confirmed a split-screen exit action");
+    choose(menu,row);choose(menu,0);
+    check(actions.size()==1 && actions.back()==(row==2?GamePauseAction::EndMatch:GamePauseAction::ExitToDesktop),
+        "Split-screen exit actions reached the wrong game owner");
+    actions.clear();menu.open_game_pause(false,false,true);
+  }
+  for(const auto size:{std::array<unsigned,2>{640,480},{1280,720},{3440,1440}}) {
+    menu.select(3);painter.draw(menu,2,-1,2000,size);bool hit_exit{};
+    for(int y=0;y<480 && !hit_exit;y+=2)for(int x=0;x<640 && !hit_exit;x+=2)
+      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==3)
+        hit_exit=true;
+    check(hit_exit,"Split-screen Exit To Desktop has no visible mouse target");++draws;
+  }
+  menu.open_game_pause(false,true,true);
+  check(menu.frame().entries.size()==3 && menu.frame().entries[2].label=="Leave Match",
+      "Local viewport count replaced the ONLINE Leave Match action");
   GamePauseTeams team_choices;team_choices.enabled=true;team_choices.available=0xff;team_choices.current=3;
   std::int16_t chosen=-1;menu.game_pause_teams(team_choices,[&](std::int16_t team){chosen=team;return std::string{};});
+  menu.open_game_pause(false,false,true);
+  check(menu.frame().entries.size()==5 && menu.frame().entries[2].label=="Change Team" &&
+      menu.frame().entries[3].label=="End Match" && menu.frame().entries[4].label=="Exit To Desktop",
+      "Split-screen team matches lost their team or exit actions");
+  menu.select(4);painter.draw(menu,2,-1,2000,{640,480});bool hit_team_exit{};
+  for(int y=0;y<480 && !hit_team_exit;y+=2)for(int x=0;x<640 && !hit_team_exit;x+=2)
+    if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==4)
+      hit_team_exit=true;
+  check(hit_team_exit,"Team split-screen Exit To Desktop has no visible mouse target");++draws;
   menu.open_game_pause(false);check(menu.frame().entries.size()==4 && menu.frame().entries[2].label=="Change Team","Team pause omitted its selector");
   choose(menu,2);check(menu.frame().entries.size()==8 && menu.frame().selected==3,"Team selector lost available teams or current membership");
   for(unsigned team=0;team<8;++team) {
@@ -105,13 +143,23 @@ int main(int argc,char **argv) try {
   check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,
       "pause graphics mode did not start with Original");
   choose(menu,0);
+  check(menu.frame().screen==vista_menu(271) && menu.frame().context==video_graphics_mode_context &&
+      menu.frame().title=="GRAPHICS MODE" && menu.frame().entries.size()==3 && menu.frame().selected==0 &&
+      menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original &&
+      !painter.draw(menu,2,-1,2000).vertices.empty(),"pause graphics picker did not show the current mode");
+  menu.select(2);menu.back();
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,
+      "Canceling pause graphics picker changed the mode");
+  choose(menu,0);choose(menu,1);
   check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,
       "pause Graphics Mode did not select pStencil");
   choose(menu,0);
+  check(menu.frame().selected==1,"pause graphics picker did not focus pStencil");
+  choose(menu,2);
   check(menu.frame().screen==vista_menu(261) &&
       menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing &&
       menu.pc_value_label(menu.frame(),0)=="Path Tracing",
-      "pause Graphics Mode did not select Path Tracing in place");
+      "pause Graphics Mode did not apply Path Tracing and return");
   check(menu.frame().entries.at(14).label=="Path Tracing Quality" &&
       menu.pc_display_settings().path_tracing_samples==1 && menu.pc_display_settings().path_tracing_bounces==1,
       "pause Path Tracing quality defaults missing");
@@ -126,10 +174,10 @@ int main(int argc,char **argv) try {
       menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing &&
       !painter.draw(menu,2,-1,2000).vertices.empty(),"pause RT quality did not apply or render");
   menu.back();
-  choose(menu,0);
+  choose(menu,0);choose(menu,0);
   check(menu.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original && menu.frame().entries.size()==14 &&
       menu.pc_display_settings().path_tracing_samples==2 && menu.pc_display_settings().path_tracing_bounces==2,
-      "pause Graphics Mode did not wrap to Original");
+      "pause Graphics Mode did not select Original directly");
   menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,9);choose(menu,50);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().field_of_view==120 &&
       menu.pc_display_settings().vehicle_field_of_view==70,"pause on-foot FOV did not apply independently");

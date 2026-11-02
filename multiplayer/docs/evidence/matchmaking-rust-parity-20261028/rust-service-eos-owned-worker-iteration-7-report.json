@@ -1,0 +1,52 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/iteration-7",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "eos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/online_protocol/src/matchmaking_room_service.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "rust/matchmaking_service/src/eos_binding.rs",
+    "tools/rust_service_eos_controls.py"
+  ],
+  "source_files": 128,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/cargo/release/halo2-matchmaking-service",
+    "sha256": "1ba1c5cdfeaa1a80cfad9c021a89e026bee45bef5d3232f432804814e94b9e17",
+    "bytes": 10508192,
+    "retained": false
+  },
+  "error": "('/v1/matches/5ab356ca-2de2-4527-a929-229a0392e3f0/eos-token', 404, 200, 'Match no longer exists')"
+}

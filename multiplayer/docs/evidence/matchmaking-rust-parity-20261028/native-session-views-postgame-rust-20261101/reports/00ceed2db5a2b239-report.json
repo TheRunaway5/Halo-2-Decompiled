@@ -1,0 +1,120 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "native_session_access_tests",
+        "peer_host_session_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^(native_session_access_cpp_rust|peer_host_native_session)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 4322,
+      "sha256": "494db079190a3de306a4770362243c4067b7cda03d55d60745c37ad387eecc8a",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 3022,
+      "sha256": "2a4be824b069fa7a818f13619969af991ca5a2204e0022de7f8858742c1083e5",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "test-artifacts/source-admissions-cpp-rust.json",
+      "status": "retained",
+      "bytes": 1509,
+      "sha256": "30fd51e3583559ef449866dc12da3168f184459b41c58dff172b044a36c82c14",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/test-artifacts/source-admissions-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/authority-transfer-cpp-rust.json",
+      "status": "retained",
+      "bytes": 2328,
+      "sha256": "c926918e705eb068dddfbfffcf913e880c6ae5d202024afedf7156ed25a8aae7",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/test-artifacts/authority-transfer-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/snapshot-candidate-cpp-rust.json",
+      "status": "retained",
+      "bytes": 2758,
+      "sha256": "e506b217e9d262b3d134d31869ddb2ef991cab6e8c2c4f6dbd46bdefc34df822",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/test-artifacts/snapshot-candidate-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/native-receive-dispatch.json",
+      "status": "retained",
+      "bytes": 1258,
+      "sha256": "692b5ffc571a38d3e88636863f7d00c8f32981aa931c13729855abd690f2691f",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/test-artifacts/native-receive-dispatch.json"
+    },
+    {
+      "path": "test-artifacts/native-session-access.json",
+      "status": "retained",
+      "bytes": 1552,
+      "sha256": "f22f170c8413ed420298ba2b0057c0072b14f8fd45b3510916f84a4382f496e8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-views-postgame-rust-20261101/native/iteration-2/evidence/test-artifacts/native-session-access.json"
+    }
+  ]
+}

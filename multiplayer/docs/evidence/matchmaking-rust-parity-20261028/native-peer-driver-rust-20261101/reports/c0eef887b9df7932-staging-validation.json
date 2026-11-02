@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-peer-driver-staging",
+    "--",
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_build_online_protocol_rust.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests": 7,
+  "scope": "Existing staging tests use mocked Cargo/compiler outputs; selected SDK headers/library/worker staging contract, no positive provider or cross-platform runtime claim",
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "1b47ba651fbf2ca29a53e1059828cc8ba077bea94ec831eed5513e18dd8fdda8",
+    "tools/build_online_protocol_rust.py": "fbf8c09711610e9959dc6454e235e1d56cfa84267bcaaa771f2347bbee191dec"
+  },
+  "retained_large_artifacts": []
+}

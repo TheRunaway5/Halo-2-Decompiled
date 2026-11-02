@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "commands": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "tests/generate_frontend_party_reference.py",
+        "--reference",
+        "tests/reference/frontend_party_before_rust_20261102",
+        "--current",
+        "src/ui/frontend_party.cpp",
+        "--before",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-syntax-20261102/halo2-test-fa8xkk6e/frontend_party_before.inc",
+        "--after",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-syntax-20261102/halo2-test-fa8xkk6e/frontend_party_after.inc"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "c++",
+        "-std=c++20",
+        "-fsyntax-only",
+        "-Iinclude",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-syntax-20261102/halo2-test-fa8xkk6e",
+        "tests/native_frontend_party_rust_tests.cpp"
+      ],
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-syntax-20261102/halo2-test-fa8xkk6e",
+  "source_sha256": "7d0d155d242f0d66abb17d86942b9526d77704dc42afa55434a33fc0d9002c3a"
+}

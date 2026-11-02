@@ -1,0 +1,12 @@
+{
+  "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-qos-rust-validation.json",
+  "source_reports": 310,
+  "unique_report_payloads": 127,
+  "retained_report_count": 129,
+  "retained_report_bytes": 5250470,
+  "deduplication": "Exact retained bytes SHA256; every working report is authenticated against its retained payload. Routine logs over 256KiB retain their tail and full original digest.",
+  "retained_large_artifacts": [],
+  "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-evidence/halo2-test-ya36wihk",
+  "report_writer_cleanup_pending": false,
+  "duplicate_report_cleanup_pending": false
+}

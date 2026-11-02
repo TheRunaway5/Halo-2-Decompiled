@@ -52,7 +52,11 @@ EffectLightRawDraw SourceModelEffectLights::draw(const SourceModelEffectLightDra
     const auto& i=*impl_;
     if(in.object==0xffffffffu)throw FormatError("source model light binding requires its actual object identity");
     const auto found=i.slots.find({in.light,in.shader,in.shader_lod,in.pass});
-    if(found==i.slots.end())throw FormatError("selected model light pass was not admitted during preload");
+    if(found==i.slots.end())throw FormatError("selected model light pass was not admitted during preload: light="+
+        std::to_string(in.light)+" shader="+std::to_string(in.shader)+" lod="+std::to_string(in.shader_lod)+
+        " pass="+std::to_string(in.pass)+" model="+std::to_string(i.geometry->owner_datum())+
+        " section="+std::to_string(i.geometry->section())+" part="+std::to_string(in.part)+
+        " object="+std::to_string(in.object)+" known_light="+std::to_string(i.lights.contains(in.light)));
     const auto& slot=*found->second;
     auto completed=prepare_effect_light_diffuse_material(i.cache,*slot.authored,i.lights.at(in.light),in.uniforms);
     if(in.pass>=completed.size())throw FormatError("selected model light pass disappeared");

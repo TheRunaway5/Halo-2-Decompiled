@@ -24,6 +24,10 @@ struct AuthorityCutSeal {
     bool operator==(const AuthorityCutSeal &)const=default;
 };
 struct AuthorityTransferPacket {unsigned peer{};std::vector<std::byte> bytes;};
+struct AuthorityTransferFeatures {
+    AuthorityTransferContext context;
+    std::array<std::uint32_t,16> features{};
+};
 struct ReceivedAuthorityCut {
     unsigned peer{};
     AuthorityTransferContext context;
@@ -74,9 +78,20 @@ public:
     bool replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next);
     bool supported(unsigned peer)const;
     bool feature_supported(unsigned peer,std::uint32_t feature)const;
+    AuthorityTransferFeatures feature_snapshot()const;
     AuthorityCutSeal publish(const AuthorityTransferContext &expected,std::uint64_t tick,
         std::vector<std::byte> archive,std::span<const unsigned> targets,std::uint64_t now_ms);
     bool delivered_to(const AuthorityTransferContext &,const AuthorityCutSeal &,unsigned peer)const;
+    // Observe only an exact existing host send/retiring cut's idle/lifetime
+    // expiry or authenticated rejection. Never validates, renews or revives a
+    // cut. Foreign/partial/unknown seals and validated sends return false.
+    bool failed_to(const AuthorityTransferContext &,const AuthorityCutSeal &,unsigned peer,
+        std::uint64_t now_ms);
+    // Authenticated shadow construction progress for bytes already delivered to
+    // this peer. Renews only the existing idle lease, never its total lifetime
+    // or a validated-world receipt. Expired/foreign/partial cuts cannot revive.
+    bool note_native_preparation(const AuthorityTransferContext &,const AuthorityCutSeal &,
+        unsigned peer,std::uint64_t now_ms);
     // Append one cut only after all previous bytes were acknowledged. Requires
     // both endpoints' pipeline capability; preserves the earlier validation
     // receipt and permits at most two unvalidated cuts per physical peer.

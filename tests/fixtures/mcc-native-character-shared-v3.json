@@ -1,0 +1,10 @@
+{
+  "schema": "H2_MCC_NATIVE_CHARACTER_SHARED_REGRESSION_V1",
+  "compressed_file": "mcc-native-character-shared-v3.json.zlib",
+  "compressed_bytes": 15199,
+  "compressed_sha256": "4fdda05b97ad04270e32f5e456eb2a55ee7a70704611b0cbbc6e376e8f433e6f",
+  "decoded_bytes": 225715,
+  "decoded_sha256": "26b5bc6f1826b412078d46cc8ab6e121bb6ff84d2b62872ba8a735fbee498136",
+  "source_policy_sha256": "9f65193bd3e2b89411fdc919aee97e84395059095c47cf31a661e23da220ff95",
+  "source": "Eleven exact retained MCC shared source tuples; originalv1/v2fixtures preserved. Gauge uses proved authored five-color permutation and identical named functions/curves; existing compiled Vulkan consumer metadata, no execution bank import."
+}

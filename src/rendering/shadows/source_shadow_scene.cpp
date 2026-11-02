@@ -1,8 +1,11 @@
 #include "halo2/source_shadow_scene.hpp"
+#include "assets/tag_owner_index.hpp"
 #include "halo2/source_live_shadow_phase_inputs_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/model_selection.hpp"
+#include "halo2/source_transparent_parts.hpp"
 #include "halo2/source_shadow_bitmap_frames.hpp"
 #include "halo2/source_view_projection.hpp"
 #include <algorithm>
@@ -29,6 +32,12 @@ SourceShadowRawPassOwnerTu15 source_shadow_raw_pass_owner_tu15(
     return SourceShadowRawPassOwnerTu15(pass,address);
 }
 namespace {
+template<class F>decltype(auto) shadow_preload_context(const std::string& context,F&& run) {
+    try {return run();}
+    catch(const FormatError& error) {throw FormatError("shadow scene preload ["+context+"]: "+error.what());}
+    catch(const std::out_of_range& error) {throw std::out_of_range("shadow scene preload ["+context+"]: "+error.what());}
+    catch(const std::invalid_argument& error) {throw std::invalid_argument("shadow scene preload ["+context+"]: "+error.what());}
+}
 std::uint32_t word(const SourceRuntimeMemory& memory,std::uint32_t address) {
     return Bytes(memory.view(address,4)).u32(0);
 }
@@ -96,6 +105,86 @@ void phase_input(const SourceShadowScenePhaseInput& input,unsigned phase) {
     for(auto scale:input.raster.surface_scale)if(scale<=0)
         throw FormatError("shadow scene lacks actual source-AA/renderer surface scale");
 }
+std::set<std::uint32_t> shadow_model_roots(const Cache& cache,
+    std::span<const std::uint32_t> models) {
+    std::string context="hlmt index";
+    return shadow_preload_context(context,[&] {
+    std::set<std::uint32_t> roots(models.begin(),models.end());
+    if(roots.empty())return roots;
+    std::map<std::uint32_t,SourceTagMetadata> retained;
+    const auto read=[&](std::uint32_t address,std::size_t extent)->std::span<const std::byte> {
+        if(!address || !extent || extent>(std::uint64_t{1}<<32)-address)
+            throw FormatError("shadow child metadata has an invalid resident extent");
+        const Tag* backing=nullptr;
+        for(const auto* candidate:indexed_tag_owners(cache,{.group=tag_groups::model,
+            .contains=TagAddressRange{address,extent},.require_address=true,.minimum_size=1})) {
+            if(backing && (candidate->address!=backing->address || candidate->size!=backing->size ||
+                candidate->group!=backing->group))
+                throw FormatError("shadow child metadata has ambiguous resident hlmt backing");
+            backing=candidate;
+        }
+        if(!backing)throw FormatError("shadow child metadata escapes resident hlmt backing");
+        auto at=retained.find(backing->datum);
+        if(at==retained.end())at=retained.emplace(backing->datum,cache.load_source_tag_metadata(backing->datum)).first;
+        const auto& owner=at->second;
+        if(owner.group()!="hlmt" || owner.source_address()!=backing->address || owner.size()!=backing->size)
+            throw FormatError("shadow child metadata lost its full resident hlmt identity");
+        return owner.bytes_at(address,extent);
+    };
+    std::map<std::uint32_t,std::vector<std::uint32_t>> owners;
+    for(const auto& tag:cache.select_tags({.group=tag_groups::model,.require_address=true})) {
+        context="hlmt index owner="+std::to_string(tag.datum);
+        const auto metadata=cache.load_source_tag_metadata(tag.datum);
+        const auto model=Bytes(metadata.bytes_at(metadata.source_address(),8)).u32(4);
+        if(model!=0xffffffffu)owners[model].push_back(tag.datum);
+    }
+    std::vector<std::uint32_t> pending;
+    std::set<std::uint32_t> visited;
+    const auto include_owner=[&](std::uint32_t owner) {
+        if(owner!=0xffffffffu && visited.insert(owner).second)pending.push_back(owner);
+    };
+    const auto include_mode=[&](std::uint32_t model) {
+        if(model==0xffffffffu)return;
+        roots.insert(model);
+        if(const auto at=owners.find(model);at!=owners.end())
+            for(auto owner:at->second)include_owner(owner);
+    };
+    for(auto model:models)include_mode(model);
+    // Common C0790 creates children for every object class. Retain all
+    // authored variants before later native/script selection can reach them.
+    for(std::size_t next=0;next<pending.size();++next) {
+        const auto owner=pending[next];
+        context="child owner="+std::to_string(owner);
+        const auto metadata=cache.load_source_tag_metadata(owner);
+        if(metadata.group()!="hlmt")throw FormatError("shadow scene child owner is not hlmt metadata");
+        const Bytes root(metadata.bytes_at(metadata.source_address(),0x58));
+        const auto variants=read_tag_block_descriptor(root,0x50);
+        const auto owner_context=context+" root="+std::to_string(metadata.source_address());
+        context=owner_context+" variants address="+std::to_string(variants.address)+" count="+std::to_string(variants.count);
+        const auto extent=variants.extent(0x38,65536);
+        // MCC may share complete variant/child arrays across hlmt payloads.
+        // Resolve their actual resident owner, retaining its full salted tag.
+        const Bytes rows(variants.count?read(variants.address,extent):std::span<const std::byte>{});
+        for(unsigned n=0;n<unsigned(variants.count);++n) {
+            const auto children=read_tag_block_descriptor(rows,n*0x38u+0x1cu);
+            const auto child_context=owner_context+" variant="+std::to_string(n)+" children address="+
+                std::to_string(children.address)+" count="+std::to_string(children.count);
+            context=child_context;
+            const auto extent=children.extent(0x10,65536);
+            const Bytes entries(children.count?read(children.address,extent):std::span<const std::byte>{});
+            for(unsigned child=0;child<unsigned(children.count);++child) {
+                const auto definition=entries.u32(child*0x10u+0xcu);
+                if(definition==0xffffffffu)continue;
+                context=child_context+" child="+std::to_string(child)+" definition="+std::to_string(definition);
+                const auto initial=cache.load_initial_model_definition(definition);
+                include_owner(initial.model);
+                include_mode(initial.render_model);
+            }
+        }
+    }
+    return roots;
+    });
+}
 }
 struct SourceShadowScene::Impl {
     const Cache& cache;
@@ -119,68 +208,105 @@ struct SourceShadowScene::Impl {
     };
     std::map<MaterialKey,Slot> slots;
     std::vector<SourceShadowRawPlanMaterial> resident;
+    SourceShadowModelPartBank model_parts;
 
     Impl(const Cache& c,Mesh& mesh,std::size_t bsp,std::span<const std::uint32_t> models)
       :cache(c),bsp_index(bsp),bsp_datum(c.bsps().at(bsp).datum),
        bsp_address(c.is_mcc()?bsp_tag(c,bsp_datum).address:c.bsps().at(bsp).memory_address+16u) {
+        std::string context="BSP metadata datum="+std::to_string(bsp_datum);
+        shadow_preload_context(context,[&] {
         const auto metadata=cache.load_source_bsp_metadata(bsp);
         // The raw resource APIs retain the legacy chunk-header view. MCC's
         // actual sbsp tag root is separately allocated and relocated; it need
         // not be chunk+16 even when both views describe the same resources.
         const Bytes root(metadata.bytes_at(c.bsps().at(bsp).memory_address+16u,0x160));
-        std::set<std::uint32_t> shader_ids;
+        std::set<std::uint32_t> shader_ids,model_shader_ids;
         const auto add=[&](MenuWorldSourceSectionKind kind,std::uint32_t owner,unsigned n,
             std::uint32_t source_section) {
             const SectionKey key{kind,owner,n};if(sections.contains(key))return;
+            context="section kind="+std::to_string(unsigned(kind))+" owner="+std::to_string(owner)+
+                " index="+std::to_string(n)+" address="+std::to_string(source_section);
             auto raw=std::make_shared<const MenuWorldSourceSection>(kind==MenuWorldSourceSectionKind::render_model?
                 load_menu_world_source_model_section(cache,owner,n):
                 load_menu_world_source_bsp_section(cache,bsp,kind,n));
             auto ranges=kind==MenuWorldSourceSectionKind::render_model?
                 source_model_range_geometry(*raw):source_bsp_range_geometry(*raw);
-            for(const auto& part:raw->parts())if(part.shader!=0xffffffffu)shader_ids.insert(part.shader);
+            for(const auto& part:raw->parts())if(part.shader!=0xffffffffu) {
+                shader_ids.insert(part.shader);
+                if(kind==MenuWorldSourceSectionKind::render_model)model_shader_ids.insert(part.shader);
+            }
             sections.emplace(key,Section{std::move(raw),std::move(ranges),source_section});
         };
         for(unsigned n=0;n<root.u32(0x9c);++n) {
             const auto address=root.u32(0xa0)+n*0xb0u;
+            context="BSP cluster="+std::to_string(n)+" address="+std::to_string(address);
             if(Bytes(metadata.bytes_at(address+0x24u,2)).u16(0))
                 add(MenuWorldSourceSectionKind::bsp_cluster,bsp_datum,n,address);
         }
         for(unsigned n=0;n<root.u32(0x138);++n) {
             const auto address=root.u32(0x13c)+n*0xc8u;
+            context="BSP instance definition="+std::to_string(n)+" address="+std::to_string(address);
             if(Bytes(metadata.bytes_at(address+0x24u,2)).u16(0))
                 add(MenuWorldSourceSectionKind::bsp_instance_definition,bsp_datum,n,address);
         }
         for(unsigned n=0;n<root.u32(0x140);++n) {
             const auto address=root.u32(0x144)+n*88u;Transform transform;
+            context="BSP instance="+std::to_string(n)+" address="+std::to_string(address);
             std::memcpy(&transform,metadata.bytes_at(address,sizeof(transform)).data(),sizeof(transform));
             instances.push_back({load_menu_world_source_bsp_owner(cache,bsp,n),transform,address});
         }
         // Preload every authored material row as well as referenced raw parts.
         // Unused materials may still have source-selected shadow passes.
         for(unsigned n=0;n<root.u32(0xa4);++n) {
+            context="BSP material="+std::to_string(n)+" rows="+std::to_string(root.u32(0xa8));
             const auto shader=Bytes(metadata.bytes_at(root.u32(0xa8)+n*32u+12u,4)).u32(0);
             if(shader!=0xffffffffu)shader_ids.insert(shader);
         }
-        for(auto model:models) {
+        context="model child closure";
+        for(auto model:shadow_model_roots(cache,models)) {
+            context="model metadata datum="+std::to_string(model);
             const auto metadata=cache.load_source_tag_metadata(model);
             if(metadata.group()!="mode")throw FormatError("shadow scene model preload is not mode metadata");
             const Bytes root(metadata.bytes_at(metadata.source_address(),0x68));
             for(unsigned n=0;n<root.u32(0x60);++n) {
+                context="model="+std::to_string(model)+" material="+std::to_string(n)+
+                    " root="+std::to_string(metadata.source_address())+" rows="+std::to_string(root.u32(0x64));
                 const auto shader=Bytes(metadata.bytes_at(root.u32(0x64)+n*32u+12u,4)).u32(0);
-                if(shader!=0xffffffffu)shader_ids.insert(shader);
+                if(shader!=0xffffffffu) {
+                    shader_ids.insert(shader);model_shader_ids.insert(shader);
+                }
             }
             for(unsigned n=0;n<root.u32(0x24);++n) {
                 const auto address=root.u32(0x28)+n*92u;
+                context="model="+std::to_string(model)+" section="+std::to_string(n)+" address="+std::to_string(address);
                 if(Bytes(metadata.bytes_at(address+4u,2)).u16(0))
                     add(MenuWorldSourceSectionKind::render_model,model,n,address);
             }
         }
+        std::map<std::uint32_t,std::vector<std::uint32_t>> layer_banks;
+        for(const auto& [key,section]:sections)if(std::get<0>(key)==MenuWorldSourceSectionKind::render_model)
+            for(unsigned part=0;part<section.raw->parts().size();++part) {
+                const auto shader=section.raw->parts()[part].shader;
+                if(shader!=~0u && !layer_banks.contains(shader))
+                    layer_banks.emplace(shader,cache.load_source_transparent_shader(shader).template_lod_layers);
+                const auto& bytes=section.ranges.parts.at(part);
+                const auto type=Bytes(bytes).u16(0);
+                model_parts.emplace(std::tuple{std::get<1>(key),std::get<2>(key),part},
+                    SourceShadowModelPart{shader,type,shader==~0u?std::vector<std::uint32_t>{}:layer_banks.at(shader)});
+            }
         for(auto shader:shader_ids) {
+            const auto shader_context="shader="+std::to_string(shader);
+            context=shader_context+" authored material";
             const auto at=shaders.emplace(shader,cache.load_material(shader)).first;
             auto& authored=at->second;
             for(unsigned lod=0;lod<authored.lods.size();++lod) {
                 authored.selected_shader_lod=lod;
                 for(unsigned phase=0;phase<2;++phase) {
+                    // Fixed-root168900 clears BSP caster bit2000 at168A39/
+                    //168A69. The collector maps it to unit flag4, required
+                    // by category2 Generate; BSP shaders only reach Apply.
+                    if(!phase && !model_shader_ids.contains(shader))continue;
+                    context=shader_context+" lod="+std::to_string(lod)+" phase="+(phase?"Apply":"Generate");
                     const auto kind=phase?SourceShadowPhase::Apply:SourceShadowPhase::Generate;
                     auto materials=prepare_shadow_material(cache,authored,kind,true,false,1.f);
                     for(unsigned n=0;n<materials.size();++n) {
@@ -194,6 +320,8 @@ struct SourceShadowScene::Impl {
                         if(selected.template_pass<range.first() || selected.template_pass-range.first()>=range.count())
                             throw FormatError("shadow scene preload pass escapes selected layer");
                         const auto pass_ordinal=unsigned(selected.template_pass-range.first());
+                        context=shader_context+" lod="+std::to_string(lod)+" phase="+(phase?"Apply":"Generate")+
+                            " pass="+std::to_string(pass_ordinal);
                         const auto slot=unsigned(mesh.materials.size());
                         // Mesh retains textures for renderer residency. The separate
                         // immutable authored value keeps a stable identity thereafter.
@@ -209,6 +337,7 @@ struct SourceShadowScene::Impl {
                 }
             }
         }
+        });
     }
     const Section& section(const SourceCullDrawUnit& unit)const {
         const auto& u=unit.words;const bool model=u[1]!=0xffffffffu;
@@ -217,17 +346,20 @@ struct SourceShadowScene::Impl {
             MenuWorldSourceSectionKind::bsp_instance_definition:MenuWorldSourceSectionKind::bsp_cluster;
         const auto n=instance?instances.at(u[3]>>18&2047u).owner.section:(u[3]>>9&511u);
         const auto at=sections.find({kind,model?u[1]:bsp_datum,n});
-        if(at==sections.end())throw FormatError("shadow scene selected a section that was not preloaded");
+        if(at==sections.end())throw FormatError("shadow scene selected a section that was not preloaded: kind="+
+            std::to_string(unsigned(kind))+" owner="+std::to_string(model?u[1]:bsp_datum)+
+            " section="+std::to_string(n));
         return at->second;
     }
 };
 SourceShadowRawPlanRoot SourceShadowSceneRoot::view() const {
-    return {owner_,uniforms_,command_masks_,casters_,receivers_};
+    return {owner_,uniforms_,command_masks_,casters_,receivers_,model_commands_};
 }
 SourceShadowScene::SourceShadowScene(const Cache& cache,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> models):impl_(std::make_unique<Impl>(cache,mesh,bsp,models)){}
 SourceShadowScene::~SourceShadowScene()=default;
 std::span<const SourceShadowRawPlanMaterial> SourceShadowScene::resident()const{return impl_->resident;}
+const SourceShadowModelPartBank& SourceShadowScene::model_parts()const{return impl_->model_parts;}
 SourceShadowBitmapFrameOwnerTu15 SourceShadowScene::complete_bitmap_frames(
     PhysicsLiveWorldTu15& world,const MenuWorldSourcePass& pass,
     const MenuWorldSourceOwner& owner,SourceShadowMaterial& completed)const {
@@ -363,6 +495,21 @@ SourceShadowSceneRoot SourceShadowScene::draw_with_phase(PhysicsLiveWorldTu15& w
            ordered.phase!=kind || ordered.bank!=address || ordered.category!=(phase?1u:2u) ||
            ordered.layer!=(phase?11u:10u) || ordered.capacity!=2560 || ordered.records.size()>ordered.capacity)
             throw FormatError("shadow scene phase bank differs from its original ordered owner");
+        std::map<unsigned,std::size_t> model_command_indices;
+        if(phase)for(unsigned index=bank.header[3];index<bank.commands.size();++index) {
+            const auto& command=bank.commands[index];const auto unit_index=command[3]>>8&65535u;
+            if(unit_index>=state.draw_count)throw FormatError("shadow model part command escaped actual unit bank");
+            const auto& unit=state.units[unit_index];const auto& u=unit.words;
+            if(u[1]==~0u || state.override_slots[unit_index]!=255)continue;
+            const auto section=u[3]>>9&511u,part=command[3]&255u,lod=command[5]>>8&255u;
+            const auto& authored=i.model_parts.at({u[1],section,part});
+            if(command[0]!=0x4cbe0u || command[1]!=0x4d0a0u || command[2]!=authored.shader ||
+               lod>=authored.template_lod_layers.size() || command[4]!=authored.template_lod_layers[lod])
+                throw FormatError("shadow model command lost its authored shader/template-LOD layers");
+            const auto owner=word(memory,u[4]);(void)world.object_body(owner);
+            model_command_indices.emplace(index,output.model_commands_.size());
+            output.model_commands_.push_back({owner,u[1],section,part,command[2],lod,command[4],false});
+        }
         auto& draws=phase?output.receivers_:output.casters_;
         for(unsigned ordinal=0;ordinal<ordered.records.size();++ordinal) {
             const auto& descriptor=ordered.records[ordinal];const auto command_index=descriptor[0]&65535u;
@@ -502,7 +649,10 @@ SourceShadowSceneRoot SourceShadowScene::draw_with_phase(PhysicsLiveWorldTu15& w
                     input.clip_range,input.fog_parameters,input.surface_size,bound->frames,entry));
                 submitted=true;
             }
-            if(!submitted)++output.empty_descriptors_;
+            if(!submitted) {
+                ++output.empty_descriptors_;
+                if(phase && model)output.model_commands_.at(model_command_indices.at(command_index)).empty_ranges=true;
+            }
         }
     }
     const auto view=output.view();SourceShadowRawPlan plan;

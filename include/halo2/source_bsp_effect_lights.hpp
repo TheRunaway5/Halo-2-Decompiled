@@ -44,18 +44,16 @@ struct SourceEffectLightModelViewTu15 {
     // The view's actual portal visibility, borrowed for this draw.
     const SourcePortalVisibilitySet* visibility=nullptr;
     // Set by draw only while main_collected runs. Performs the main44710 cull
-    // around the caller's translated call: accelerated BSP units take the
-    // native44E80 corridor with identical unit/mask results, other units stay
-    // translated. HALO2_REFERENCE_MAIN_CULL keeps the translated call alone.
+    // in original unit/association order: each accelerated BSP entry publishes
+    // its native44E80 result before genuine model/unavailable44E80 services.
+    // HALO2_REFERENCE_MAIN_CULL keeps the complete translated parent alone.
     std::function<void(const std::function<void()>&)> main_cull;
-    // Set by draw only under HALO2_MAIN_COMMANDS_CENSUS: observes every source
-    // store the translated main40E80 performs and reports the closed write
-    // set, as the foundation for its native oracle. No behavior change.
-    std::function<void(const std::function<void()>&)> main_commands;
-    // Set by draw only while main_collected runs: the same native40E80
-    // kernel for the shadow roots' secondary-context calls; the first
-    // argument is the call's EAX layer selector.
-    std::function<void(std::uint32_t,const std::function<void()>&)> secondary_commands;
+    // Ordered native40E80/44AB0/460C0 around genuine retained services.
+    // The caller ABI receives final FP state; its GP fields remain diagnostic
+    // input to the typed call. Census/containment select the literal parent.
+    std::function<void(SourcePhysicsWorldRuntimeAbi&,const std::function<void()>&)> main_commands;
+    // Same typed parent for opted-in secondary shadow-root calls.
+    std::function<void(SourcePhysicsWorldRuntimeAbi&,const std::function<void()>&)> secondary_commands;
     // The actual main view/C35D0 must finish before sampling native attached
     // light fades and selecting the shared light budget. This producer returns
     // completed simulation-pool views and genuine receiver queries for draw.

@@ -1,10 +1,13 @@
 #include "halo2/frontend.hpp"
 #include "halo2/frontend_canvas.hpp"
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <bit>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
+#include <sstream>
 
 using namespace halo2;
 using Action = FrontendPointerAction;
@@ -33,6 +36,47 @@ void click(MenuState &state, FrontendPainter &painter, Action action, unsigned i
 void create(MenuState &state) {
   state.accept(); state.accept(); state.text("Mouse Prompts"); state.commit_text();
   check(state.frame().screen == 38, "profile creation failed");
+}
+struct PromptRect {unsigned x{}, y{}, width{}, height{};};
+struct PromptAtlas {unsigned width{}, height{};std::vector<PromptRect> rectangles;};
+std::map<std::string, PromptAtlas> reference_prompt_atlases(const std::filesystem::path &root) {
+  std::map<std::string, PromptAtlas> result;
+  for (const auto *family : {"xbox", "playstation"}) {
+    const auto bank = root / (std::string("prompts-") + family);
+    std::ifstream manifest_file(bank / "manifest.json");
+    const auto manifest = nlohmann::json::parse(manifest_file);
+    std::ifstream table(bank / "prompts.tsv");
+    std::string line;
+    check(bool(std::getline(table, line)) && line == "H2_VISTA_PROMPT_RASTERS_V1",
+        "missing controller prompt reference table");
+    while (std::getline(table, line)) {
+      unsigned selector{}, code{};PromptRect rectangle;std::string atlas, extra;
+      std::istringstream row(line);
+      check(bool(row >> selector >> code >> rectangle.x >> rectangle.y >> rectangle.width >> rectangle.height >> atlas) && !(row >> extra),
+          "invalid controller prompt reference rectangle");
+      const auto material = std::string("controller-prompts/") + family + "/" + atlas + "/" +
+          manifest.at("files").at(atlas).at("sha256").get<std::string>();
+      auto &record = result[material];
+      if (!record.width) {
+        std::ifstream image(bank / atlas, std::ios::binary);
+        std::array<std::byte, 128> header{};
+        image.read(reinterpret_cast<char *>(header.data()), header.size());
+        check(bool(image), "missing controller prompt reference DDS header");
+        const Bytes bytes(header);
+        check(bytes.u32(0) == 0x20534444u && bytes.u32(4) == 124,
+            "invalid controller prompt reference DDS header");
+        record.height = bytes.u32(12);record.width = bytes.u32(16);
+      }
+      check(rectangle.x < record.width && rectangle.y < record.height && rectangle.width && rectangle.height &&
+          rectangle.width <= record.width - rectangle.x && rectangle.height <= record.height - rectangle.y,
+          "controller prompt reference rectangle exceeds DDS");
+      if (code == 0xe100 || code == 0xe101 || code == 0xe102 || code == 0xe103 || code == 0xe10c || code == 0xe10d)
+        record.rectangles.push_back(rectangle);
+    }
+    check(table.eof(), "truncated controller prompt reference table");
+  }
+  check(!result.empty(), "empty controller prompt reference inventory");
+  return result;
 }
 void pc_special_button_hit(const FrontendContent& original,
                            const std::filesystem::path& source,
@@ -83,8 +127,8 @@ void pc_special_button_hit(const FrontendContent& original,
 }
 }
 int main(int argc, char **argv) try {
-  if (argc != 3 || !std::filesystem::exists(std::filesystem::path(argv[1]) / "mainmenu.map") ||
-      !std::filesystem::exists(argv[2])) return 77;
+  if (argc != 4 || !std::filesystem::exists(std::filesystem::path(argv[1]) / "mainmenu.map") ||
+      !std::filesystem::exists(argv[2]) || !std::filesystem::exists(std::filesystem::path(argv[3]) / "prompts-xbox/manifest.json")) return 77;
   const std::filesystem::path maps = argv[1];
   auto content = Cache(maps / "mainmenu.map").load_frontend();
   content.vista = load_vista_settings(argv[2]);
@@ -96,17 +140,17 @@ int main(int argc, char **argv) try {
   MenuState guest_exit(content);
   guest_exit.open(6);
   check(guest_exit.signed_in_profile().empty() &&
-      guest_exit.frame().entries.size() == 6 &&
+      guest_exit.frame().entries.size() == 7 &&
       guest_exit.frame().entries.at(4).destination == 19 &&
       guest_exit.frame().entries.back().label == "EXIT GAME",
-      "Exit Game must follow Settings as the final main-menu option");
+      "Exit Game must follow Mods as the final main-menu option");
   guest_exit.move(-1);
-  check(guest_exit.frame().selected == 5 && !guest_exit.quit,
+  check(guest_exit.frame().selected == 6 && !guest_exit.quit,
       "keyboard/controller focus does not wrap to Exit Game");
   guest_exit.move(1);
   check(guest_exit.frame().selected == 0 && !guest_exit.quit,
       "Exit Game focus does not wrap back to Campaign");
-  guest_exit.move(5);
+  guest_exit.move(6);
   guest_exit.accept();
   check(guest_exit.quit && !guest_exit.launch && guest_exit.frame().screen == 6,
       "Exit Game did not request shutdown from the unsigned main menu");
@@ -115,7 +159,7 @@ int main(int argc, char **argv) try {
   profile_exit.back();
   check(profile_exit.frame().screen == 6 && !profile_exit.signed_in_profile().empty(),
       "Exit Game mouse fixture did not sign in");
-  click(profile_exit, painter, Action::Entry, 5);
+  click(profile_exit, painter, Action::Entry, 6);
   check(profile_exit.quit && !profile_exit.launch && profile_exit.frame().screen == 6,
       "Exit Game click did not request shutdown from the signed-in main menu");
   MenuState state(content);
@@ -202,8 +246,34 @@ int main(int argc, char **argv) try {
 
   // Verify actual submitted icon ink against independently decoded font UVs
   // across every menu pane/selection, including parameter/category contexts.
+  // The cached screen13 definitions remain source data; neither namespace
+  // admits that retired route as an interactive MenuState screen.
+  for (const auto retired : {13u, vista_menu(13)}) {
+    MenuState sample(content);
+    bool rejected = false;
+    try { sample.open(retired); }
+    catch (const FormatError &error) {
+      rejected = std::string_view(error.what()) ==
+          "Retired screen13 is unavailable in native navigation";
+    }
+    check(rejected, "retired screen13 became an interactive navigation route");
+  }
+  // These newly imported map selectors retain source resources without a
+  // native widget/row lifetime (frontend_vista.cpp's shell_selected owner).
+  // PC210 supplies presentation to native route210, not a PC settings route.
+  for (const auto imported : {17u, 206u, 210u}) {
+    MenuState sample(content);
+    bool rejected = false;
+    try { sample.open(vista_menu(imported)); }
+    catch (const FormatError &error) {
+      rejected = std::string_view(error.what()) ==
+          "unimplemented source Vista settings route";
+    }
+    check(rejected, "source layout without direct navigation became an interactive route");
+  }
   std::map<std::pair<bool, std::string>, RetailFont> fonts;
-  unsigned draws{}, icons{};
+  const auto prompt_atlases = reference_prompt_atlases(argv[3]);
+  unsigned draws{}, icons{}, controller_icons{};
   auto verify = [&](MenuState &sample, int pane) {
     const auto draw = painter.draw(sample, 5, pane, 10000);
     const bool vista = is_vista_menu(sample.frame().screen);
@@ -211,6 +281,24 @@ int main(int argc, char **argv) try {
     for (std::size_t i = first; i + 5 < draw.vertices.size(); i += 6) {
       const auto &a = draw.vertices[i], &b = draw.vertices[i + 4];
       const auto &material = mesh.materials.at(a.material);
+      if (material.name.starts_with("controller-prompts/") && (a.color.x != 0 || a.color.y != 0 || a.color.z != 0)) {
+        const auto found = prompt_atlases.find(material.name);
+        check(found != prompt_atlases.end(), "rendered controller atlas lacks its admitted reference");
+        const auto &atlas = found->second;
+        check(material.diffuse.width == atlas.width && material.diffuse.height == atlas.height,
+            "rendered controller atlas dimensions differ from source DDS");
+        const float u = (a.uv.x + b.uv.x) * .5f * atlas.width;
+        const float v = (a.uv.y + b.uv.y) * .5f * atlas.height;
+        if (std::any_of(atlas.rectangles.begin(), atlas.rectangles.end(), [&](const auto &r) {
+              return u >= r.x && u < r.x + r.width && v >= r.y && v < r.y + r.height;
+            })) {
+          const auto hit = painter.pointer_hit((a.position.x + b.position.x) * .5f, (a.position.y + b.position.y) * .5f);
+          if (!hit) throw std::runtime_error("unclickable rendered controller prompt on screen " +
+              std::to_string(sample.frame().screen) + " pane " + std::to_string(pane));
+          ++icons;++controller_icons;
+        }
+        continue;
+      }
       if (!material.name.starts_with("font/") || (a.color.x == 0 && a.color.y == 0 && a.color.z == 0)) continue;
       const auto name = material.name.substr(5);
       const auto key = std::pair{vista, name};
@@ -237,12 +325,14 @@ int main(int argc, char **argv) try {
   for (const bool vista : {false, true}) {
     const auto &source = vista ? *content.vista : content;
     for (const auto &[id, definition] : source.screens) {
+      if (id == 13) continue;
       // PC16/185 use the retained-result factory and dedicated painter suite.
       // PC209 is retained transition data, not a MenuState navigation route.
-      // PC14/23 are imported ahead of their dynamic widget/factory binding;
+      // PC210 is rendered through the native progress route, not build_pc.
+      // PC14/23 and map selectors17/206 are imported ahead of their dynamic widget/factory binding;
       // their raw authored children do not supply an interactive live owner.
-      if (vista && (id == 5 || id == 38 || id == 14 || id == 23 ||
-          id == 16 || id == 185 || id == 209)) continue;
+      if (vista && (id == 5 || id == 38 || id == 14 || id == 23 || id == 17 || id == 206 ||
+          id == 16 || id == 185 || id == 209 || id == 210)) continue;
       MenuState sample(content);
       if (id != 9 || vista) sample.open(vista ? vista_menu(id) : id);
       for (unsigned pane = 0; pane < std::max(1u, unsigned(definition.panes.size())); ++pane)
@@ -270,7 +360,7 @@ int main(int argc, char **argv) try {
   }
   pc_special_button_hit(content,argv[2],maps/"fonts");
   std::cout << draws << " menu pane/selection/context draws; " << icons
-            << " visible prompt glyphs clickable; menu/keyboard/dialog/Vista actions passed\n";
+            << " visible prompt glyphs clickable (" << controller_icons << " controller atlas glyphs); menu/keyboard/dialog/Vista actions passed\n";
   return 0;
 } catch (const std::exception &error) {
   std::cerr << error.what() << '\n';

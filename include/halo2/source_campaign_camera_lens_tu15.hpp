@@ -2,6 +2,7 @@
 #include "halo2/scene.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/source_frustum_camera.hpp"
+#include <cmath>
 
 namespace halo2 {
 // Ordinary single-view cinematic lens. Canonical safe edges come from the
@@ -20,7 +21,17 @@ struct SourceCampaignCameraLensTu15 {
 };
 inline SourceCampaignCameraLensTu15 source_campaign_camera_lens_tu15(
     float projection_angle,std::uint32_t width,std::uint32_t height,
-    RenderViewport canonical_safe) {
+    RenderViewport canonical_safe,float authored_aspect=1.3333333730697632f) {
+    if(!width || !height || !(authored_aspect>0) || !std::isfinite(authored_aspect))
+        throw FormatError("Cinematic lens requires a positive surface and authored observer aspect");
+    const float surface_aspect=float(width)/float(height);
+    // The completed observer's horizontal composition bounds finite authored
+    // matte planes. A wider PC surface must not reveal scenery outside that
+    // frame. Keep the standard-view angle bit-for-bit, and reduce only the
+    // vertical angle for wider surfaces. Both culling and raster consume it.
+    if(surface_aspect>authored_aspect)
+        projection_angle=float(2*std::atan(std::tan(double(projection_angle)*.5)*
+            double(authored_aspect)/double(surface_aspect)));
     const auto outer=full_surface_viewport({0,0,640,480},width,height);
     const auto safe=full_surface_viewport(canonical_safe,width,height);
     const auto edges=[](RenderViewport r) {

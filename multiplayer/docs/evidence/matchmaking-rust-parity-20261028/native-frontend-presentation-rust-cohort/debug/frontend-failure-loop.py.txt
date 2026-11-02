@@ -1,0 +1,17 @@
+import argparse,hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-presentation-rust-20261102'
+p=argparse.ArgumentParser();p.add_argument('--case',choices=('playlist','gathering','party','legacy-clan'),required=True);p.add_argument('--label',default='direct');a=p.parse_args()
+info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source']);scratch=Path(os.environ['HALO2_TEST_SCRATCH'])
+lib=build/'online-protocol/Release/libhalo2_online_security_ffi.so';copy=scratch/lib.name
+shutil.copyfile(lib,copy);digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+assert digest(lib)==digest(copy)
+test={'playlist':'frontend_matchmaking_http_test.py','gathering':'frontend_matchmaking_http_test.py','party':'frontend_parties_http_test.py','legacy-clan':'frontend_clans_http_test.py'}[a.case]
+native=build/'frontend_online_tests';native_hash=digest(native)
+cmd=[sys.executable,'-B',str(source/'tests'/test),str(native)]
+if a.case!='legacy-clan':cmd+=['--mcc-root',str(root/'assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b')]
+if a.case=='gathering':cmd+=['--gathering-ui','1']
+r=subprocess.run(cmd,env=dict(os.environ,H2_SECURITY_LIBRARY=str(copy),H2_NET_PROFILE='unlimited',SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=60)
+report={'passed':r.returncode==0,'case':a.case,'command':cmd,'exit_code':r.returncode,'native_sha256':native_hash,'native_unchanged_during_run':digest(native)==native_hash,'library_sha256':digest(copy),'stdout':r.stdout.decode(errors='replace')[-10000:],'stderr':r.stderr.decode(errors='replace')[-10000:],'retained_large_artifacts':[]}
+(work/(a.label+'-'+a.case+'.json')).write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps(report));raise SystemExit(r.returncode)

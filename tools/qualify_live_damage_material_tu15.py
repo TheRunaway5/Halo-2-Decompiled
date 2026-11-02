@@ -125,7 +125,9 @@ target_link_libraries(probe PRIVATE nlohmann_json::nlohmann_json)
 '''
     cmake+='target_include_directories(probe PRIVATE '+' '.join('"'+str(inputs/p)+'"'for p in ('include','src','tests'))+' /usr/include/SDL2)\n'
     cmake+='target_link_libraries(probe PRIVATE '+' '.join('"'+token+'"'for token in libraries)+')\n'
-    map_path=ROOT/'assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/coagulation.map'
+    from weapon_test_cache import require_mcc_map
+    map_path=require_mcc_map(args.map if args.map else
+        ROOT/'assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/coagulation.map')
     cmake+=f'add_test(NAME live_native_material_original COMMAND "${{Python3_EXECUTABLE}}" "{ROOT/"tools/run_test.py"}" -- "{sys.executable}" -B "{Path(__file__).resolve()}" --run-probe --binary $<TARGET_FILE:probe> --map "{map_path}" --security-library "{security}" --output "{args.output/"actual-entry"}")\n'
     cmake+='set_tests_properties(live_native_material_original PROPERTIES TIMEOUT 360)\n'
     (source/'CMakeLists.txt').write_text(cmake)

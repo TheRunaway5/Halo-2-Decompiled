@@ -1,0 +1,8 @@
+std::uint64_t GameVoice::fence(){
+  static std::atomic<std::uint64_t> next{1};auto stamp=next.load(std::memory_order_relaxed);
+  do{if(!stamp||stamp==UINT64_MAX)throw std::overflow_error("Voice delivery generation exhausted");}
+  while(!next.compare_exchange_weak(stamp,stamp+1,std::memory_order_relaxed));
+  std::lock_guard lock(impl_->mutex);impl_->generation=stamp;impl_->suspended=true;
+  impl_->sent.clear();impl_->received.clear();impl_->state.talking={};impl_->state.transmitting=impl_->state.radio=false;
+  impl_->condition.notify_all();return stamp;
+}

@@ -1,0 +1,17 @@
+{
+  "reason": "Rejected source freezes ran no build or test. Keep original diagnostics and critical source hashes; replace overinclusive unqualified pin banks with bounded hashes before canonical report retention.",
+  "attempts": [
+    {
+      "name": "freeze-drift-first",
+      "original_source_pins_count": 18868,
+      "canonical_source_pins_sha256": "c91717d67512bb9812150f4629809cbb67502db79afd827dc8fbd3206f1ddab3",
+      "build_or_test_run": false
+    },
+    {
+      "name": "freeze-drift-second",
+      "original_source_pins_count": 18868,
+      "canonical_source_pins_sha256": "7d4abc60cc2d547c51ca1807f4c7078509a9021388bd456ca2463b4c121ae619",
+      "build_or_test_run": false
+    }
+  ]
+}

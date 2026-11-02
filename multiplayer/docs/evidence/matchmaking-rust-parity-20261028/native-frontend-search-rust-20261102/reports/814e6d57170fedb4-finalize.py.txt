@@ -1,0 +1,139 @@
+import datetime,hashlib,json,re,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-search-rust-20261102';evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028';receipt_path=evidence/'native-frontend-search-rust-validation.json';bucket=evidence/'native-frontend-search-rust-20261102/reports'
+read=lambda p:json.loads(p.read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n')
+assert not receipt_path.exists() and not bucket.exists()
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json';ledger=read(ledger_path);fixed={k:ledger[k] for k in ('algorithm_index','scope','gaps','acceptance_gates')};fixed_sha=hashlib.sha256(json.dumps(fixed,sort_keys=True).encode()).hexdigest();assert fixed_sha=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+original=read(evidence/'friend-goal-criteria-before.json');criteria={k:ledger[k] for k in original['criteria'] if k!='gap_criteria'};keys=list(original['criteria']['gap_criteria'][0]);criteria['gap_criteria']=[{k:g[k] for k in keys} for g in ledger['gaps']];assert criteria==original['criteria'];criteria_sha=hashlib.sha256(json.dumps(criteria,sort_keys=True).encode()).hexdigest();assert criteria_sha=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+goal=read(work/'goal-checkpoint-final.json')['goal'];assert goal['status']=='active';objective_sha=hashlib.sha256(goal['objective'].encode()).hexdigest();assert objective_sha=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+assert len(ledger['gaps'])==12 and len(ledger['algorithm_index']['ids'])==53 and len(ledger['acceptance_gates']['gates'])==12
+assert all(g['status']=='open' and not g['certified'] for g in ledger['acceptance_gates']['gates']);assert sha(root/ledger['reference']['path'])==ledger['reference']['sha256']
+cleanup=read(work/'cleanup.json');assert cleanup['passed'] and cleanup['all_owned_scratch_removed'];assert all(not Path(p).exists() for p in cleanup['owned_scratch_paths'])
+audit=read(work/'source-link-qualification.json');assert audit['passed'] and all(sha(root/n)==h for n,h in audit['source_pins'].items())
+rust=read(work/'full-rust/report.json');assert rust['passed'] and rust['frozen_inputs_intact'];counts={n:r['passed'] for n,r in audit['rust_counts'].items()};assert sum(counts.values())==605
+replay=read(work/'native-candidate/iteration-1/evidence/test-artifacts/frontend-search-policy.json');assert replay['passed'] and not replay['mismatches'] and replay['commands']==5563 and replay['variant_controls']==532
+functional=read(work/'functional-comparison.json');assert functional['passed'];assert len(functional['native_runs'][0]['successful_tests'])==9 and len(functional['final_unique_successful_tests'])==12
+shared=sum(c['shared_failure'] for c in functional['cases']);assert shared==4 and not functional['all_final_native_tests_passed']
+frontends={c:read(work/('qualified/rust-frontend-'+c+'/report.json'))['frontend'] for c in ('blocked','complete','rendered')};assert all(f['passed'] and f['native_binary_sha256']==audit['native_binary_sha256'] for f in frontends.values())
+native=read(work/'native-candidate/inputs.json');assert native['iterations']==2 and not native['drift_during_freeze']
+relative=str(receipt_path.relative_to(root));remaining=['Remaining production C++ matchmaking progress, roster and input policy; all 53 owners and original caller/service/historical recovery','Resolve the four broader frontend functional failures and qualify every required family, profile, topology, unshortened natural outcome and continuity route','Genuine providers, physical installed Linux playlist/Start input and delivered client/library/service/catalog/feature identity','Production restart, retry, configuration-change and rollback qualification; all twelve gaps and G01-G12 gates']
+entry={'receipt':relative,'implementation':'rust/online_protocol/src/matchmaking_frontend_search.rs','bridge':'rust/online_protocol_bridge/src/matchmaking_frontend_search.rs','native_handle':'src/ui/frontend_matchmaking_search_bridge.cpp','native_io':'src/ui/frontend_matchmaking_search.cpp','component_passed':True,'search_consent_playlist_intent_profile_pane_countdown_and_launch_policy_in_rust':True,'cpp_search_controller_fallback':False,'rust_guard_across_native_callback':False,'native_exception_identity_and_reentry_preserved':True,'value_semantics_clone_preserved':True,'unsafe_core_rust':False,'rust_counts':counts,'rust_total':605,'new_rust_controls':14,'modern_cpp_rust_sequences':replay['cases'],'modern_cpp_rust_commands':replay['commands'],'variant_choice_controls':replay['variant_controls'],'mismatches':0,'native_refusals':replay['native_refusals'],'native_callback_state_observations':replay['callback_observations'],'actual_wrapper_identity_reentry_controls':replay['wrapper_reentry_identity_controls'],'final_native_passing_tests':12,'wider_shared_functional_failures':shared,'all_final_native_functional_tests_passed':False,'actual_rendered_observations':23,'actual_sdl_mouse_inputs':3,'compiled_production_rust_entries':len(audit['production_rust_calls']),'fresh_original_execution':False,'selected_runtime_replaced':False,'production_service_activated':False,'physical_installed_input':False,'original_whole_system_parity':False,'full_matchmaking_ready':False,'full_goal_complete':False,'remaining':remaining}
+ledger['native_frontend_search_rust']=entry
+if relative not in ledger['receipts']:ledger['receipts'].append(relative)
+ledger['last_implementation_update_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat();write(ledger_path,ledger);assert fixed=={k:read(ledger_path)[k] for k in fixed}
+section=f"""## Native frontend search and launch controller in Rust (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json).
+The source frontend now gives safe Rust ownership of search intent, selected
+playlist, asynchronous accepted-party consent, profile/couch generations,
+party search notices, progress pane/title/clock and the observed B countdown.
+Rust chooses the default eligible playlist and gates search on actual published
+consent. It admits the selected full variant/map, transport team mode, local
+seat count and profile names before requesting native cache validation and
+publication. The old C++ policy bodies are removed. Typed CXX retains genuine
+native snapshots, worker/resource IO, gameplay rule/profile writers, rendering,
+input and menu effects. No Rust state guard spans a native callback; native
+reentry and deep-copy value semantics remain valid. Raw profile/error bytes
+avoid converting arbitrary native bytes to UTF8. Native FormatError recovery
+discards launch ownership before cancellation; only the actual map validator
+produces content rejection. Other exception objects/types propagate unchanged.
+
+All 605 Rust tests pass (520 protocol, 65 bridge, 20 service), including 14 new
+search controls; four existing ignored tests remain ignored. Unedited captured
+modern C++ methods agree with production Rust/CXX across {replay['cases']:,}
+sequences and {replay['commands']:,} operations, with
+{replay['callback_observations']:,} observations made inside native callbacks.
+The controls cover consent busy/ack/refusal, leaders/members, invalid retained
+choices, generation changes, published countdown boundaries/retry, pane/overlay
+transitions and ordered launch refusal/IO. {replay['native_refusals']} native IO
+refusals match, and {replay['wrapper_reentry_identity_controls']:,} actual public
+wrapper controls preserve clone independence, callback reentry and native
+exception identity. Another 532 controls compare the unedited modern variant
+selector, including all 39 original presets and exact authored-name/suffix order.
+The previously qualified full-settings validator and readiness error-dialog
+mapping are shared Rust leaves. This turn
+executes no new original binary; it compares the modern caller over declared IO.
+
+The captured native C++ baseline passes nine focused CTests. Its build owner\nwas later terminated before candidate validation and cleaned up. A fresh\nfrozen candidate includes separately recorded unrelated dependency changes;\nthe native comparison is not a same-whole-source A/B proof. The rebuilt Rust
+client passes those checks, both search/lobby replays and the build-helper test,
+for 12 focused passes. Actual SDL/Vulkan menus against Rust HTTP include three
+mouse actions and 23 rendered observations of playlist/Start behavior, shared
+countdown, search and return. Each report matches the qualified native binary.
+Four wider failures share the same observed diagnostics as the baseline: clan-requirement
+text, matched/empty-row artwork and imported bitmap sampling. They remain red;
+the complete native suite did not pass. Private provider fixtures do not certify
+genuine providers, a played world or physical installed Linux input.
+
+Native objects show eight policy definitions removed from the old C++ unit,
+with their native methods delegating through 12 compiled Rust entries. Retired
+C++ state fields are absent. Syntax/helper include issues and a slice-only CXX
+vector link error were corrected before the final native qualification. All
+owned Cargo/compiler/native build, SDK and capture scratch is removed; bounded
+reports and source hashes remain. No selected runtime or production service was
+replaced. Remaining progress/roster/input policy, the four broader failures,
+original service/historical recovery, full natural outcomes/continuity, delivered
+identities and restart/configuration/rollback remain open. All twelve gaps,
+53 algorithm IDs and G01-G12 criteria are preserved unchanged.
+
+"""
+doc=root/'multiplayer/docs/matchmaking-rust-parity-audit-20261028.md';text=doc.read_text();assert section.splitlines()[0] not in text;marker='## Rust implementation boundary';assert marker in text;doc.write_text(text.replace(marker,section+marker,1))
+paragraphs={
+ 'rust/online_protocol/README.md':"""
+`matchmaking_frontend_search` owns source frontend search/consent, playlist and
+profile-generation intent, party search notices, progress state and native
+launch admission. C++ supplies typed native IO and rendering/input effects;
+Rust guards end before callbacks and menu reentry. [Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+records 605 Rust tests, 5,563 modern C++/Rust operations, 532 variant controls and
+actual rendered playlist/Start flow against Rust HTTP. Four wider frontend
+failures, remaining native matching policy, original service/full played-world
+scope and installed delivery remain open.
+""",
+ 'multiplayer/master_server/README.md':"""
+The source native frontend search/launch controller now runs in safe Rust via
+typed CXX. Accepted-party consent, playlist intent, profile generations, B's
+published countdown and launch checks are Rust policy; native resource/cache IO,
+rendering and input remain native. [Qualification](../docs/evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+binds the tested native client to rendered private-service menu reports.
+It does not activate a production service or replace the selected Linux runtime;
+four broader frontend failures and full original/delivery acceptance stay open.
+""",
+ 'docs/FRONTEND_ONLINE_HD.md':"""
+The source search controller and launch admission now use safe Rust through
+`FrontendMatchmakingSearch`; native snapshots, profile writers, map validation,
+widgets and physical input remain native IO/effects. Consent acknowledgements
+and the service's published B countdown gate search/launch. [Qualification](../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+records the rebuilt Linux client's SDL/Vulkan playlist/Start checks, 5,563 exact
+modern C++/Rust operations and the four unchanged broader frontend failures.
+Physical installed input and full original/provider/gameplay delivery stay open.
+""",
+ 'multiplayer/docs/native-party-countdown-tu15.md':"""
+The subsequent source frontend search/launch port is
+`matchmaking_frontend_search.rs`. It owns search consent and retained playlist/
+profile state, party search notices, progress clocks and observation of B's
+published countdown. Native IO transfers the actual admitted transport and
+validates the actual cache before Rust requests publication; an unavailable
+transport is retried without inventing a local B timer.
+[Qualification](evidence/matchmaking-rust-parity-20261028/native-frontend-search-rust-validation.json)
+keeps modern caller equivalence, rendered private-service input, the four wider
+functional failures and original/provider/installed-delivery scope separate.
+"""}
+for name,paragraph in paragraphs.items():
+ assert paragraph.strip().splitlines()[0] not in (root/name).read_text()
+ with (root/name).open('a') as f:f.write(paragraph)
+docs=[str(doc.relative_to(root)),str(ledger_path.relative_to(root)),*paragraphs]
+check=subprocess.run(['git','diff','--check','--']+list(audit['source_pins'])+docs,capture_output=True,text=True);assert check.returncode==0,check.stdout+check.stderr
+files=sorted(p for p in work.rglob('*') if p.is_file());mapping={};dedup={};total=0;bucket.mkdir(parents=True)
+for p in files:
+ assert not p.is_symlink();data=p.read_bytes();size=len(data);full_sha=hashlib.sha256(data).hexdigest()
+ if p.suffix=='.log' and size>262144:data=data[-131072:]
+ assert len(data)<=1048576,(str(p),size)
+ h=hashlib.sha256(data).hexdigest()
+ if h not in dedup:
+  target=bucket/(h[:16]+('-tail-' if size!=len(data) else '-')+p.name);target.write_bytes(data);dedup[h]=target;total+=len(data)
+ mapping[str(p.relative_to(root))]={'path':str(dedup[h].relative_to(root)),'sha256':full_sha,'bytes':size,'retained_sha256':h,'retained_bytes':len(data),'complete':size==len(data)}
+ assert sha(dedup[h])==h
+receipt={'schema':'halo2-native-frontend-search-rust-validation-v1','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),**entry,'scope':'Native frontend search/consent/launch controller and state in Rust over genuine native IO; modern caller equivalence and private-service menus, not complete original Live or installed delivery proof','source_pins':audit['source_pins'],'reference':audit['reference'],'rust_manifest_report':mapping[str((work/'full-rust/report.json').relative_to(root))],'modern_cpp_rust_replay':replay,'native_functional_comparison':functional,'build_interruption':read(work/'native-build-interruption.json'),'native_source_cohort_comparison':read(work/'native-cohort-comparison.json'),'native_routing':audit,'source_pin_metadata_retirement':read(work/'source-pin-retirement.json'),'probe_source_pin_metadata_retirement':read(work/'probe-source-pin-retirement.json'),'remaining_native_policy_inventory':read(work/'remaining-native-ui-policy.json'),'wider_failure_source_triage':read(work/'wider-failure-source-triage.json'),'native_before_symbols':read(work/'before-link-audit.json'),'native_after_symbols':read(work/'after-link-audit.json'),'frontends':frontends,'rust_ignored_tests':4,'frozen_native_files':native['frozen_files'],'unrelated_current_source_drift':native['current_source_drift'],'intentional_modern_cpp_behavior_deltas':[],'shared_previously_qualified_leaves':['full-settings validator','readiness error-dialog mapping'],'positive_genuine_steam':False,'positive_genuine_eos':False,'gameplay_played':False,'unshortened_natural_match_qualification':False,'full_delivered_identity_acceptance':False,'goal_criteria_sha256':criteria_sha,'scope_inventory_snapshot_before_after_sha256':fixed_sha,'goal_objective_sha256':objective_sha,'all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved':True,'retained_reports':mapping,'retained_unique_report_files':len(dedup),'retained_unique_report_bytes':total,'cleanup':cleanup,'post_qualification_documentation':{n:sha(root/n) for n in docs},'retained_large_artifacts':[]}
+write(receipt_path,receipt);assert receipt_path.stat().st_size<=1048576;assert total+receipt_path.stat().st_size<=8*1024*1024;assert all(p.stat().st_size<=1048576 for p in bucket.iterdir())
+for p in files:assert sha(p)==mapping[str(p.relative_to(root))]['sha256']
+shutil.rmtree(work);receipt['cleanup']['working_reports_removed']=not work.exists();receipt['final_verification']={'critical_sources_match':all(sha(root/n)==h for n,h in audit['source_pins'].items()),'gap_count':12,'algorithm_id_count':53,'acceptance_gate_count':12,'all_acceptance_gates_open':True,'goal_still_active':True,'owned_scratch_removed':all(not Path(p).exists() for p in cleanup['owned_scratch_paths']),'whitespace_passed':True,'retained_large_artifacts':[]};assert receipt['final_verification']['critical_sources_match'] and receipt['final_verification']['owned_scratch_removed'];write(receipt_path,receipt);assert total+receipt_path.stat().st_size<=8*1024*1024
+print(json.dumps({'receipt':str(receipt_path.relative_to(root)),'rust_tests':605,'modern_cpp_rust_commands':replay['commands'],'variant_controls':532,'final_native_passing_tests':12,'wider_shared_failures':shared,'actual_sdl_mouse_inputs':3,'rendered_observations':23,'retained_reports':len(dedup),'retained_bytes_including_receipt':total+receipt_path.stat().st_size,'scratch_removed':True,'full_goal_complete':False}))

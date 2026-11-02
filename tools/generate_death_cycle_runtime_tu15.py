@@ -491,7 +491,27 @@ def main():
     assert source.count(producer_entry) == 1
     if producer_entry + '\n' + producer_observation not in source:
         source = source.replace(producer_entry,producer_entry + '\n' + producer_observation)
-    args.output.write_text(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_earlier_owners
+    source=install_native_effect_earlier_owners(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_location_copies
+    source=install_native_effect_location_copies(source)
+    from native_weapon_effect_iterator_bridge_tu15 import install_native_effect_iterator
+    source=install_native_effect_iterator(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_state,install_native_effect_creation,install_native_effect_initialization,install_native_effect_allocation
+    source=install_native_effect_state(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_advance
+    source=install_native_effect_advance(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_next_event
+    source=install_native_effect_next_event(source)
+    source=install_native_effect_creation(source)
+    source=install_native_effect_initialization(source)
+    source=install_native_effect_allocation(source)
+    from native_region_transition_kernel_tu15 import install_region_transition_kernel
+    source=install_region_transition_kernel(source)
+    from native_model_region_state_kernel_tu15 import install_model_region_state_kernel
+    source=install_model_region_state_kernel(source)
+    from native_normalize_vector_bridge_tu15 import install_native_normalizer
+    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
     report = json.loads((args.directory / 'generation.json').read_text())
     report['bounded_blocks'] = {'000dbd64': {'stop_before': '000dbfcc',
         'scope': 'DBB90 physical delivery only; native caller frame'},

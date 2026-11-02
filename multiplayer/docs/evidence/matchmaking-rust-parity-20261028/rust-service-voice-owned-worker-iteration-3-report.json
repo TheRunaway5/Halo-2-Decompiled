@@ -1,0 +1,31 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/iteration-3",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 101
+    }
+  ],
+  "action": "voice",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/Cargo.toml",
+    "rust/matchmaking_service/src/social_voice.rs",
+    "rust/matchmaking_service/src/social_voice_http.rs"
+  ],
+  "source_files": 147,
+  "error": "Rust build/test failed"
+}

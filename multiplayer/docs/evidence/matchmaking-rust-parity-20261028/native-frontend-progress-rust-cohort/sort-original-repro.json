@@ -1,0 +1,107 @@
+{
+  "passed": false,
+  "original_execution_passed": true,
+  "modern_stable_sort_equivalent": false,
+  "cases": 852,
+  "mismatches": 316,
+  "first_counterexamples": [
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": true,
+      "teams": false,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    }
+  ],
+  "original_instruction_addresses": 474,
+  "original_instruction_visits": 3781380,
+  "original_comparator_calls": 15841,
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "scope": "Unchanged TU1.5 pane3 sort caller block through complete original qsort/comparators/game-session and membership getters, using explicit synthetic session/player banks; stops before native widget allocation. No full networking, source slot producer or installed runtime claim.",
+  "fixture_sha256": "d722bfd679bd56e4d2d06aad7e126c79def1aa54615412eb4c217a6999e8652e",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-original-20261102/halo2-test-j4l5czh0",
+  "retained_large_artifacts": []
+}

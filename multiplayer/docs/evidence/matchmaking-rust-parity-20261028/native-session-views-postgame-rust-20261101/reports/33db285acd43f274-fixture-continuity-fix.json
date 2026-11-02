@@ -1,0 +1,8 @@
+{
+  "source": "tests/native_session_access_tests.cpp",
+  "before_sha256": "7c5ab9bace2f858c629c9cd7415e48657f3346e96c0570c49046c88bd0d0b2a2",
+  "after_sha256": "d6d6fc9264c3354e0a10532717c5f7447e6fc9f263b2d566e17337c81ceb8d2a",
+  "before": "send({{\"phase\",\"running\"},{\"host\",host}});",
+  "after": "Json start={{\"phase\",\"running\"},{\"host\",host}};if(c.continuity)start[\"continuity\"]={{\"phase\",\"running\"},{\"host\",host},{\"epoch\",0},{\"members\",(1u<<c.seats.size())-1}};send(start);",
+  "scope": "Fixture phase message now supplies the preexisting required full continuity object; no production validation or policy changed"
+}

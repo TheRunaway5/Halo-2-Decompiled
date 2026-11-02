@@ -1,0 +1,20 @@
+import json,sys
+from pathlib import Path
+root=Path.cwd();sys.path.insert(0,str(root/'tools'))
+from oracle_game_variants import Source
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+s=Source(dict(path=str(NEW_DEFAULT.resolve()),pin=NEW_PIN,globals=0x4ecc1c))
+found=[]
+for section in s.image.sections:
+ raw=s.image.section_bytes(section)
+ for word in (b'hopper',b'Hopper',b'matchmaking',b'playlist',b'Playlist'):
+  at=0
+  while True:
+   at=raw.find(word,at)
+   if at<0:break
+   start=max(0,at-36);end=raw.find(b'\0',at)
+   if end<0:end=min(len(raw),at+100)
+   found.append({'address':hex(section.va+at),'bytes':raw[start:end][:170].decode('ascii',errors='replace')})
+   at+=len(word)
+print(json.dumps(found,indent=2))
+(root/'build/test-results/frontend-presentation-rust-20261102/original-playlist-string-locators.json').write_text(json.dumps(found,indent=2)+'\n')

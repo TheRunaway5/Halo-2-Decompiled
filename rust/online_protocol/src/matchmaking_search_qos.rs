@@ -23,10 +23,12 @@ impl Budget {
         self.at = now;
     }
 }
+#[derive(Clone)]
 struct Leg {
     pair: Pair,
     nonce: String,
 }
+#[derive(Clone)]
 struct Peer {
     connection: u64,
     generation: u64,
@@ -37,6 +39,7 @@ struct Peer {
     control: Budget,
     reserve: Budget,
 }
+#[derive(Clone)]
 struct Probe {
     nonce: String,
     expires: f64,
@@ -45,10 +48,12 @@ struct Probe {
     second: bool,
     sent: bool,
 }
+#[derive(Clone)]
 struct Measurement {
     milliseconds: i64,
     expires: f64,
 }
+#[derive(Clone)]
 struct Row {
     generations: [u64; 2],
     probe: Option<Probe>,
@@ -56,6 +61,7 @@ struct Row {
     sample_expires: Option<f64>,
     measurement: Option<Measurement>,
 }
+#[derive(Clone)]
 pub(super) struct Registry {
     now: f64,
     cleanup_at: f64,

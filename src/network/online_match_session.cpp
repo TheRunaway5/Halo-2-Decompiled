@@ -2,87 +2,126 @@
 #include "halo2/frontend.hpp"
 #include "halo2/online_match_session.hpp"
 #include "halo2/online_peer_transport.hpp"
-#include "halo2/online_voice_protocol.hpp"
-#include "halo2/voice_origin.hpp"
-#include "halo2/online_packet_role.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/peer_migration_preparation.hpp"
 #include "halo2-online-protocol-bridge/src/lib.rs.h"
-#include <curl/curl.h>
-#include <nlohmann/json.hpp>
-#include <openssl/sha.h>
+#include "halo2/native_matchmaking_socket.hpp"
 #include <chrono>
 #include <algorithm>
 #include <atomic>
 #include <bit>
 #include <cmath>
 #include <deque>
-#include <iomanip>
+#include <exception>
 #include <functional>
 #include <mutex>
 #include <limits>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 #include <thread>
 
 namespace halo2 {
 namespace {
-using Json = nlohmann::json;
-using Clock = std::chrono::steady_clock;
-void require(bool ok) { if (!ok) throw std::runtime_error("ONLINE match connection failed or ended. Search again."); }
-struct Frame { unsigned peer; std::vector<std::byte> data;std::uint32_t epoch{};std::uint64_t audio_generation{}; };
-struct TerminalMatchError : std::runtime_error {using std::runtime_error::runtime_error;};
-struct ControlPresence {std::atomic<bool> &active;~ControlPresence(){active=false;}};
-bool valid_world_digest(const std::string &value) {
-  return value.size()==64 && value.find_first_not_of("0123456789abcdef")==std::string::npos;
-}
-void put(std::vector<std::byte>& p,unsigned value,unsigned count){for(unsigned i=0;i<count;++i)p.push_back(std::byte(value>>(i*8)));}
-unsigned get(std::span<const std::byte> p,unsigned at,unsigned count){require(at+count<=p.size());unsigned n{};for(unsigned i=0;i<count;++i)n|=std::to_integer<unsigned>(p[at+i])<<(i*8);return n;}
-std::vector<std::byte> voice_header(unsigned type){std::vector<std::byte> p;put(p,0x324e3248,4);put(p,native_multiplayer_protocol,2);put(p,6,1);put(p,type,1);return p;}
-std::string digest(std::span<const std::byte> bytes) {
-  unsigned char hash[SHA256_DIGEST_LENGTH];require(SHA256(reinterpret_cast<const unsigned char*>(bytes.data()),bytes.size(),hash));
-  constexpr char digits[]="0123456789abcdef";std::string result;result.reserve(64);
-  for(auto n:hash){result+=digits[n>>4];result+=digits[n&15];}return result;
-}
+namespace bridge=online_protocol_bridge;
+using Clock=std::chrono::steady_clock;
+void require(bool ok){if(!ok)throw std::runtime_error("ONLINE match connection failed or ended. Search again.");}
 std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
-AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false,bool terminal=false){
-  AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
-  limits.features|=authority_feature_source_presented_model_poses;
-  if(snapshot_candidates)limits.features|=authority_feature_source_snapshot_candidate;
-  if(survivor_selection)limits.features|=authority_feature_survivor_selection;
-  if(terminal){limits.features&=~authority_feature_source_common_cut;limits.features|=authority_feature_source_admitted_camera;}
-  return limits;
+rust::Slice<const std::uint8_t> wire(std::span<const std::byte> bytes){return {reinterpret_cast<const std::uint8_t*>(bytes.data()),bytes.size()};}
+std::vector<std::byte> native_bytes(const rust::Vec<std::uint8_t>& bytes){std::vector<std::byte> out;out.reserve(bytes.size());for(auto b:bytes)out.push_back(std::byte(b));return out;}
+bridge::HostAgreementContext wire_context(const AuthorityTransferContext &c){
+  bridge::HostAgreementContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
 }
+AuthorityTransferContext native_context(const bridge::HostAgreementContext &c){
+  AuthorityTransferContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::byte(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+bridge::NativeSessionAudio wire_audio(const GameVoiceFrame &f){
+  bridge::NativeSessionAudio out;out.source=f.source;out.sequence=f.sequence;out.radio=f.radio;out.left=f.gains.left;out.right=f.gains.right;out.generation=f.delivery_generation;
+  for(auto b:f.opus)out.opus.push_back(b);
+  if(f.origin_signature)for(auto b:*f.origin_signature)out.signature.push_back(std::to_integer<std::uint8_t>(b));
+  return out;
+}
+GameVoiceFrame native_audio(const bridge::NativeSessionAudio &f){
+  GameVoiceFrame out;out.source=f.source;out.sequence=f.sequence;out.radio=f.radio;out.gains={f.left,f.right};out.delivery_generation=f.generation;
+  out.opus.assign(f.opus.begin(),f.opus.end());if(f.signature.size()==64){std::array<std::byte,64> sig;std::ranges::transform(f.signature,sig.begin(),[](auto b){return std::byte(b);});out.origin_signature=sig;}return out;
+}
+bridge::NativeSessionConfig configuration(const std::string &origin,const std::string &room,const std::string &bearer,unsigned self,
+    const std::vector<OnlineAdmission>& roster,bool local,std::optional<bool> teams,bool continuity,const OnlineMatchTransportOptions &transport){
+  bridge::NativeSessionConfig c;c.origin=native_matchmaking_io::origin(origin,bearer,local);c.room=room;c.self_peer=self;
+  for(const auto &p:roster){bridge::NativeSessionSeat s;s.slot=p.slot;s.peer=p.peer;s.name=p.name;s.guest=p.guest;s.team=p.team;
+    std::ranges::transform(p.identity,s.identity.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});c.seats.push_back(std::move(s));}
+  c.team_present=teams.has_value();c.team_mode=teams.value_or(false);c.protocol=native_multiplayer_protocol;c.extension_floor=native_slayer_ruleset_parameter;
+  c.direct=transport.direct_udp;c.continuity=continuity;c.peer_migration=transport.peer_host_migration;c.snapshot_candidates=transport.snapshot_candidates;
+  c.survivor_selection=transport.survivor_cut_selection;c.terminal_recovery=transport.terminal_recovery;c.eos=transport.eos.has_value();
+  if(transport.eos)for(const auto &p:transport.eos->peers)c.eos_peers.push_back(p.slot);
+  c.now=transfer_time();return c;
+}
+AuthorityTransferLimits native_limits(const bridge::AuthorityTransferLimits &l){
+  AuthorityTransferLimits out;out.maximum_bytes=l.maximum_bytes;out.bytes_per_second=l.bytes_per_second;out.burst_bytes=l.burst_bytes;
+  out.retry_ms=l.retry_ms;out.offer_ms=l.offer_ms;out.idle_ms=l.idle_ms;out.lifetime_ms=l.lifetime_ms;out.window_chunks=l.window_chunks;out.features=l.features;return out;
+}
+std::vector<unsigned> native_slots(const rust::Vec<std::uint32_t> &slots){return {slots.begin(),slots.end()};}
 online_protocol_bridge::MigrationPreparationCut preparation_cut(const AuthorityCutSeal &cut){
   online_protocol_bridge::MigrationPreparationCut out{};
   out.present=true;out.id=cut.id;out.tick=cut.tick;out.bytes=cut.bytes;
   std::ranges::transform(cut.digest,out.digest.begin(),[](auto byte){return std::to_integer<std::uint8_t>(byte);});
   return out;
 }
+bridge::HostAgreementDecision wire_decision(const std::optional<PeerMigrationDecision> &value){
+  bridge::HostAgreementDecision out;out.present=value.has_value();if(!value)return out;
+  out.previous=wire_context(value->previous);out.next=wire_context(value->next);
+  out.ballot.round=value->ballot.round;out.ballot.proposer=value->ballot.proposer;
+  out.value.host=value->value.host;out.value.cut=preparation_cut(value->value.cut);out.voters=value->voters;return out;
+}
+bridge::HostAgreementState wire_agreement(const PeerHostAgreementState &v){
+  bridge::HostAgreementState out;out.suspected=v.suspected;out.fenced=v.fenced;out.electorate=v.electorate;out.silent=v.silent;out.majority=v.majority;out.rejected=v.rejected;
+  for(unsigned p=0;p<16;++p)if(v.ready[p])out.ready[p]=preparation_cut(*v.ready[p]);
+  out.decision=wire_decision(v.decision);return out;
+}
+bridge::NativePublicationContext publication_context(const AuthorityTransferContext &c){
+  bridge::NativePublicationContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+AuthorityTransferContext publication_context(const bridge::NativePublicationContext &c){
+  AuthorityTransferContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::byte(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+bridge::NativePreparationTicket preparation_ticket(const PeerMigrationPreparationTicket &t){
+  bridge::NativePreparationTicket out;out.present=true;out.context=publication_context(t.context);out.self_peer=t.self;out.id=t.id;return out;
+}
+PeerMigrationPreparationTicket preparation_ticket(const bridge::NativePreparationTicket &t){return {publication_context(t.context),t.self_peer,t.id};}
+bridge::MigrationDriverAction preparation_action(const PeerMigrationPreparationAction &a){
+  bridge::MigrationDriverAction out;out.kind=static_cast<bridge::MigrationDriverActionKind>(a.kind);out.reason=static_cast<bridge::MigrationDriverReason>(a.reason);
+  if(a.ticket){out.ticket.present=true;out.ticket.context=wire_context(a.ticket->context);out.ticket.self_peer=a.ticket->self;out.ticket.id=a.ticket->id;}return out;
+}
+bridge::NativePublicationDecision publication_decision(const PeerMigrationDecision &d){
+  bridge::NativePublicationDecision out;out.present=true;out.previous=publication_context(d.previous);out.next=publication_context(d.next);
+  out.round=d.ballot.round;out.proposer=d.ballot.proposer;out.host=d.value.host;out.cut=preparation_cut(d.value.cut);out.voters=d.voters;return out;
+}
+AuthorityCutSeal publication_cut(const bridge::MigrationPreparationCut &c){
+  AuthorityCutSeal out;out.id=c.id;out.tick=c.tick;out.bytes=c.bytes;
+  std::ranges::transform(c.digest,out.digest.begin(),[](auto b){return std::byte(b);});return out;
+}
+rust::Vec<bridge::SourceAdmissionsPlayer> publication_players(std::span<const SourcePlayerAdmission> rows){
+  rust::Vec<bridge::SourceAdmissionsPlayer> out;for(const auto &p:rows){bridge::SourceAdmissionsPlayer v;v.slot=p.slot;v.player=p.player;v.identity=p.identity;out.push_back(v);}return out;
+}
+
 }
 struct OnlineMatchSession::Impl {
   unsigned self, host = 16;
   const std::vector<OnlineAdmission> roster;
   mutable std::mutex mutex;
   Phase phase = Phase::Connecting;
-  std::string error, loaded;
+  std::string error;
   std::optional<std::uint64_t> native_fingerprint;
-  std::string completion, confirmation;
-  std::vector<std::byte> report;
   std::optional<bool> result_recorded;
   std::optional<TerminalObservation> terminal;
   std::uint16_t departed_players{};
-  std::uint16_t direct_failed_players{};
-  bool gameplay_admitted{};
-  std::deque<Frame> incoming, outgoing;
-  std::deque<std::string> continuation_outgoing;
-  std::deque<OnlineWorldSeal> seals;
   const bool supports_continuity;
   const OnlineMatchTransportOptions transport_options;
   OnlineContinuityState continuity_state;
   AuthorityTransferDigest authority_session{};
-  VoiceOrigin voice_origin;
   std::shared_ptr<PeerAuthorityTransfer> authority;
   std::shared_ptr<PeerSourceAdmissions> source_admissions;
   std::shared_ptr<PeerCommonCutAgreement> common_cut;
@@ -96,22 +135,12 @@ struct OnlineMatchSession::Impl {
   std::optional<AuthorityTransferContext> agreement_context;
   struct AgreementGeneration {AuthorityTransferContext context;std::shared_ptr<PeerHostAgreement> owner;};
   std::vector<AgreementGeneration> agreement_history;
-  unsigned agreement_cursor{};
   bool peer_started{},peer_fenced{};
   std::optional<std::vector<SourcePlayerAdmission>> continuity_admissions;
-  std::deque<MatchVoicePacket> voices;
   std::shared_ptr<GameVoice> audio;
   std::uint64_t audio_generation{};
-  std::array<bool,16> voice_enabled{};
-  std::array<std::uint16_t,16> voice_mutes{};
-  std::array<unsigned,16> voice_sequences{};
   std::uint16_t voice_members{};
-  bool postgame_presence_observed{};
-  bool postgame_presence_closed{};
   std::uint16_t voice_blocked{};
-  Clock::time_point voice_preferences_at{};
-  std::array<double,16> voice_credits{10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10};
-  Clock::time_point voice_credit_at=Clock::now();
   std::atomic<bool> voice_focused{false};
   std::atomic<bool> control_online{false};
   std::atomic<std::uint16_t> direct_ready{0};
@@ -119,362 +148,549 @@ struct OnlineMatchSession::Impl {
   std::function<void()> postgame_voice_pump;
   std::jthread worker;
   const std::optional<bool> team_mode;
+  rust::Box<bridge::NativeSession> controller;
+  const bool packet_epochs;
+  const std::vector<unsigned> local_seats;
+  bridge::NativeSessionView projection;
+  void refresh(){
+    projection=bridge::native_session_view(*controller);
+    phase=Phase(projection.phase);host=projection.host;error=std::string(projection.error);
+    native_fingerprint=projection.fingerprint_present?std::optional(projection.fingerprint):std::nullopt;
+    result_recorded=projection.recorded_present?std::optional(projection.recorded):std::nullopt;
+    departed_players=projection.departed;peer_started=projection.peer_started;peer_fenced=projection.peer_fenced;
+    selection_started=projection.selection_started;audio_generation=projection.audio_generation;
+    voice_members=projection.voice_members;voice_blocked=projection.voice_blocked;
+    continuity_state={projection.epoch,projection.continuity_host,projection.members,std::nullopt};
+    if(projection.selected.present)continuity_state.selected=OnlineWorldSeal{projection.selected.epoch,projection.selected.tick,std::string(projection.selected.digest)};
+    std::ranges::transform(projection.session,authority_session.begin(),[](auto b){return std::byte(b);});
+  }
+  void apply(const bridge::NativeSessionEffects &effect){
+    refresh();
+    if(effect.initialize){
+      const auto context=native_context(effect.context);
+      authority=std::make_shared<PeerAuthorityTransfer>(self,context,native_limits(bridge::native_session_authority_limits(*controller)));
+      source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
+      if(effect.common)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
+      if(effect.snapshot)snapshot_candidate=std::make_shared<PeerSnapshotCandidate>(self,context);
+      if(effect.agreement){agreement_context=context;agreement=std::make_shared<PeerHostAgreement>(self,context,transfer_time());}
+      if(effect.selection){survivor_selection=std::make_shared<PeerSurvivorSelection>(self,context);preparation_driver=std::make_unique<PeerMigrationPreparation>(self,context);}
+    }
+    if(effect.quality_present)mesh_quality=std::make_shared<PeerMeshQuality>(self,native_context(effect.quality));
+    if(effect.observe_host&&agreement)agreement->observe_host(transfer_time());
+    if(effect.audio_fence)fence_audio();
+    if(effect.audio_stop&&audio)audio->enable(false);
+  }
+  bridge::NativeSessionResources resources()const{
+    bridge::NativeSessionResources out;out.authority_present=bool(authority);if(authority)out.authority=wire_context(authority->context());
+    out.quality_present=bool(mesh_quality);if(mesh_quality)out.quality=wire_context(mesh_quality->context());
+    out.agreement_present=agreement_context.has_value();if(agreement_context)out.agreement=wire_context(*agreement_context);return out;
+  }
+
   Impl(std::string origin, std::string room, std::string bearer, unsigned s,
-       std::vector<OnlineAdmission> r, bool local,std::optional<bool> teams,bool continuation,OnlineMatchTransportOptions transport) : self(s), roster(std::move(r)),supports_continuity(continuation),transport_options(std::move(transport)),voice_origin(room),team_mode(teams) {
-    require(self < roster.size() && roster.size() >= 2 && roster.size() <= 16);
-    require(!transport_options.eos || transport_options.direct_udp);
-    require(!transport_options.peer_host_migration || (transport_options.direct_udp&&!supports_continuity));
-    require(!transport_options.snapshot_candidates || (transport_options.direct_udp&&transport_options.peer_host_migration));
-    require(!transport_options.survivor_cut_selection || transport_options.peer_host_migration);
-    require(!transport_options.terminal_recovery || (transport_options.direct_udp&&!supports_continuity&&
-        !transport_options.peer_host_migration&&!transport_options.snapshot_candidates&&!transport_options.survivor_cut_selection));
-    agreement_history.reserve(15); // Each committed generation removes one of at most sixteen PCs.
-    require(online_admission_peer(roster[self])==self && !roster[self].guest);
-    for(unsigned i=0;i<roster.size();++i) {
-      const auto &player=roster[i];const auto peer=online_admission_peer(player);
-      require(player.slot==i && peer<roster.size() && online_admission_peer(roster[peer])==peer && !roster[peer].guest);
-      if(team_mode.value_or(true))require(player.team==roster[peer].team);
-      require(std::count_if(roster.begin(),roster.end(),[&](const auto &p){return online_admission_peer(p)==peer;})<=4);
-    }
-    voice_members=std::uint16_t((1u<<roster.size())-1);
-    continuity_state.members=voice_members;
-    require(room.size() == 36 && room.find_first_not_of("0123456789abcdef-") == std::string::npos);
-    require(SHA256(reinterpret_cast<const unsigned char *>(room.data()),room.size(),reinterpret_cast<unsigned char *>(authority_session.data())));
-    if(transport_options.direct_udp){
-      std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
-      if(std::popcount(physical)>1)mesh_quality=std::make_shared<PeerMeshQuality>(self,
-          AuthorityTransferContext{authority_session,0,0,physical,16});
-    }
-    require(bearer.size() >= 32 && bearer.size() <= 128 && bearer.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == std::string::npos);
-    require(origin.starts_with("https://") || (local && origin.starts_with("http://127.0.0.1:")));
-    require(origin.find_first_of("@?#\\\r\n\t ") == std::string::npos);
-    const auto scheme = origin.find(':');
-    const auto url = std::string(origin.starts_with("https:") ? "wss" : "ws") + origin.substr(scheme) + "/v1/matches/" + room + (transport_options.direct_udp?"/signal":"/relay") +
-        (transport_options.peer_host_migration?"?completion=1&native_handoff=1&departure_game_over=1":"?completion=1&departure_game_over=1");
-    const auto room_api=origin+"/v1/matches/"+room;
-    worker = std::jthread([this, url, room_api, bearer](std::stop_token stop) { run(url, room_api, bearer, stop); });
+       std::vector<OnlineAdmission> r, bool local,std::optional<bool> teams,bool continuation,OnlineMatchTransportOptions transport) : self(s),roster(std::move(r)),supports_continuity(continuation),transport_options(std::move(transport)),team_mode(teams),
+      controller(bridge::new_native_session(configuration(origin,room,bearer,self,roster,local,teams,continuation,transport_options))),
+      packet_epochs(bridge::native_session_epoch_packets(*controller)),
+      local_seats(native_slots(bridge::native_session_local_slots(*controller))){
+    agreement_history.reserve(15);refresh();
+    if(projection.quality_present)mesh_quality=std::make_shared<PeerMeshQuality>(self,native_context(projection.quality));
+    auto socket_worker=bridge::native_session_worker(*controller);
+    const auto room_api=std::string(bridge::native_session_room_api(*controller));
+    worker=std::jthread([this,room_api,bearer,socket_worker=std::move(socket_worker)](std::stop_token stop){run(*socket_worker,room_api,bearer,stop);});
   }
-  ~Impl() { worker.request_stop(); if (worker.joinable()) worker.join(); }
-  static OnlineWorldSeal parse_seal(const Json &value) {
-    require(value.is_object() && value.size()==3 && value.contains("epoch") &&
-        value.contains("tick") && value.contains("digest") && value["epoch"].is_number_unsigned() &&
-        value["epoch"].get<std::uint64_t>()<=UINT32_MAX && value["tick"].is_number_unsigned() && value["digest"].is_string());
-    OnlineWorldSeal seal{value["epoch"].get<std::uint32_t>(),value["tick"].get<std::uint64_t>(),value["digest"].get<std::string>()};
-    require(valid_world_digest(seal.digest));return seal;
-  }
-  bool epoch_packets()const{return supports_continuity||transport_options.peer_host_migration;}
+  ~Impl(){worker.request_stop();if(worker.joinable())worker.join();}
+  bool epoch_packets()const{return packet_epochs;}
   // Session mutex is held. Capability Hello state persists through transport
   // loss; direct readiness never removes a participant from this barrier.
-  bool common_supported()const{
-    if(!transport_options.direct_udp||!common_cut||!authority)return false;
-    const auto context=common_cut->context();if(authority->context()!=context)return false;
-    for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&
-        !authority->feature_supported(peer,authority_feature_source_common_cut))return false;
-    return true;
+  bridge::NativePeerPlan peer_plan()const{
+    static_assert(authority_feature_source_common_cut==512u&&authority_feature_source_snapshot_candidate==1024u&&
+        authority_feature_survivor_selection==2048u);
+    bridge::NativePeerResources out;
+    if(authority){const auto observed=authority->feature_snapshot();out.authority_present=true;out.authority=wire_context(observed.context);out.features=observed.features;}
+    if(common_cut){out.common_present=true;out.common=wire_context(common_cut->context());}
+    if(survivor_selection){out.selection_present=true;out.selection=wire_context(survivor_selection->state().context);}
+    if(snapshot_candidate){out.snapshot_present=true;out.snapshot=wire_context(snapshot_candidate->state().context);}
+    return bridge::native_session_peer_plan(*controller,out);
   }
-  bool common_phase()const{return phase==Phase::Loading||phase==Phase::Running||phase==Phase::AwaitingWorld||phase==Phase::Migrating||phase==Phase::Rebinding;}
-  bool native_control_phase()const{return phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding||
-      (selection_started&&phase==Phase::AwaitingWorld);}
-  bool selection_supported()const{
-    if(!transport_options.survivor_cut_selection||!survivor_selection||!authority)return false;
-    const auto context=survivor_selection->state().context;
-    if(authority->context()!=context)return false;
-    for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&
-        !authority->feature_supported(peer,authority_feature_survivor_selection))return false;
-    return true;
+  bool common_supported()const{return peer_plan().common_supported;}
+  bool common_phase()const{return projection.common_phase;}
+  bool native_control_phase()const{return projection.native_control_phase;}
+  bool selection_supported()const{return peer_plan().selection_supported;}
+  // The caller holds the Session generation mutex. Rust controls sampling and
+  // application order; callbacks observe the genuine owners or invoke the
+  // existing Rust Session operation after the prior borrow has ended.
+  struct MigrationIo final:bridge::NativeMigrationIo {
+    Impl &s;
+    explicit MigrationIo(Impl &session):s(session){}
+    bridge::NativeMigrationBinding migration_binding()const override{
+      bridge::NativeMigrationBinding out;out.present=s.agreement_context.has_value();
+      if(s.agreement_context)out.context=publication_context(*s.agreement_context);return out;
+    }
+    bool migration_agreement_present()const override{return bool(s.agreement);}
+    std::uint64_t migration_now_ms()const override{return transfer_time();}
+    bridge::HostAgreementState migration_agreement(std::uint64_t now)const override{
+      require(bool(s.agreement));return wire_agreement(s.agreement->state(now));
+    }
+    bool migration_handoff()const override{return s.projection.peer_handoff_phase;}
+    bool migration_selection_started()const override{return s.selection_started;}
+    bridge::NativeMigrationBinding migration_quality()const override{
+      bridge::NativeMigrationBinding out;out.present=bool(s.mesh_quality);
+      if(s.mesh_quality)out.context=publication_context(s.mesh_quality->context());return out;
+    }
+    rust::Vec<std::uint32_t> migration_ranked(std::uint64_t now)const override{
+      require(bool(s.mesh_quality));rust::Vec<std::uint32_t> out;
+      for(const auto &q:s.mesh_quality->migration_candidates(now))out.push_back(q.peer);return out;
+    }
+    bool migration_selection_supported()const override{return s.selection_supported();}
+    bridge::NativeMigrationSelection migration_selection()const override{
+      bridge::NativeMigrationSelection out;out.present=bool(s.survivor_selection);
+      if(s.survivor_selection){const auto value=s.survivor_selection->state();out.complete=value.selection_complete;out.failed=value.failed;}return out;
+    }
+    void migration_apply_fence(const bridge::NativeSessionFence &value)const override{s.apply(bridge::native_session_fence(*s.controller,value));}
+    void migration_begin(const bridge::HostAgreementContext &context)const override{bridge::native_session_selection(*s.controller,context);s.refresh();}
+    std::uint32_t migration_pick(const bridge::NativeSessionCandidate &value)const override{return bridge::native_session_candidate(*s.controller,value);}
+  };
+  void native_fence(bool force=false,bool selected_failed=false){
+    MigrationIo io(*this);bridge::native_migration_fence(io,force,selected_failed);
   }
-  // One Session lock and one HostAgreement clock sample bind these facts.
-  // Neither the snapshot nor its Rust request certifies native ownership.
-  PeerMigrationPreparationObservation preparation_observation(std::uint64_t now)const{
+  void preparation_terminal(){native_fence(true);}
+  void begin_selection(){
+    MigrationIo io(*this);bridge::native_migration_begin(io);
+  }
+  // Every callback below runs under the caller-held Session generation lock.
+  // It observes/executes actual owners; the Rust driver controls all admission
+  // and sequencing. No mutable Rust Session borrow spans a native callback.
+  struct PublicationIo final:bridge::NativePublicationIo{
+    Impl &s;const ValidatedAuthorityCut *ready{};const PeerMigrationDecision *decision{};
+    NativeCommit commit{};void *native{};
+    mutable std::optional<AcceptedSourcePlayers> prior;
+    struct SuccessorOwners{
+      std::shared_ptr<PeerAuthorityTransfer> transfer;
+      std::shared_ptr<PeerSourceAdmissions> admissions;
+      std::shared_ptr<PeerMeshQuality> quality;
+      std::shared_ptr<PeerHostAgreement> agreement;
+      std::shared_ptr<PeerCommonCutAgreement> common;
+      std::shared_ptr<PeerSurvivorSelection> selection;
+      std::unique_ptr<PeerMigrationPreparation> preparation;
+      std::shared_ptr<const unsigned char> identity;
+      std::shared_ptr<PeerSnapshotCandidate> candidate;
+      std::vector<SourcePlayerAdmission> players;
+    };
+    mutable std::unique_ptr<SuccessorOwners> pending;
+    explicit PublicationIo(Impl &session):s(session){}
+    std::uint64_t publication_now_ms()const override{return transfer_time();}
+    bridge::NativePublicationSession publication_session(const bridge::NativePublicationDecision &d)const override{
+      return bridge::native_publication_session(*s.controller,d);
+    }
+    bridge::NativePublicationResources publication_resources()const override{
+      bridge::NativePublicationResources out;out.agreement_present=bool(s.agreement);out.agreement_context_present=s.agreement_context.has_value();
+      if(s.agreement_context)out.agreement_context=publication_context(*s.agreement_context);
+      out.authority_present=bool(s.authority);if(s.authority)out.authority=publication_context(s.authority->context());
+      out.source_present=bool(s.source_admissions);out.history=s.agreement_history.size();return out;
+    }
+    bridge::NativePublicationSelection publication_selection(const bridge::MigrationPreparationCut &cut)const override{
+      bridge::NativePublicationSelection out;out.present=bool(s.survivor_selection);out.started=s.selection_started;
+      if(s.survivor_selection){out.supported=s.selection_supported();const auto value=s.survivor_selection->state();out.complete=value.selection_complete;out.failed=value.failed;out.survivors=value.survivors;
+        if(cut.present)out.allows_ready=s.survivor_selection->allows_ready(s.self,publication_cut(cut));}
+      return out;
+    }
+    bridge::NativePublicationAgreement publication_agreement(std::uint64_t now)const override{
+      bridge::NativePublicationAgreement out;out.present=bool(s.agreement);if(s.agreement)out.state=wire_agreement(s.agreement->state(now));return out;
+    }
+    bridge::NativePublicationCommon publication_common()const override{
+      bridge::NativePublicationCommon out;
+      if(s.common_cut){const auto value=s.common_cut->state();out.abort=value.abort;out.pending=value.pending.has_value();
+        if(value.pending){out.context=publication_context(value.pending->context);out.cut=preparation_cut(value.pending->seal);}}
+      return out;
+    }
+    bridge::NativePublicationAdmission publication_admission()const override{
+      bridge::NativePublicationAdmission out;prior=s.source_admissions?s.source_admissions->accepted():std::nullopt;out.present=prior.has_value();
+      if(prior){out.context=publication_context(prior->context);out.players=publication_players(prior->players);}
+      out.continuity_present=s.continuity_admissions.has_value();if(s.continuity_admissions)out.continuity=publication_players(*s.continuity_admissions);return out;
+    }
+    bridge::NativePublicationAudio publication_audio()const override{
+      bridge::NativePublicationAudio out;out.present=bool(s.audio);if(s.audio)out.ready=s.audio->ready(s.audio_generation);return out;
+    }
+    bridge::NativePublicationSnapshot publication_snapshot()const override{
+      bridge::NativePublicationSnapshot out;out.present=bool(s.snapshot_candidate);
+      if(s.snapshot_candidate){const auto value=s.snapshot_candidate->state();out.pending=value.pending.has_value();out.retired=value.retired;}return out;
+    }
+    bool publication_blocks()const override{return s.preparation_driver&&s.preparation_driver->blocks_publication();}
+    void publication_invalidate(const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));s.survivor_selection->invalidate(publication_cut(cut));
+    }
+    bool publication_observe_ready(std::uint8_t peer,const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));return s.survivor_selection->observe_ready(peer,publication_cut(cut));
+    }
+    void publication_fence(bool failed)const override{s.native_fence(false,failed);}
+    bool publication_ready()const override{require(ready&&s.agreement);return s.agreement->publish_ready(*ready);}
+    bool publication_propose(std::uint32_t peer,std::uint64_t now)const override{require(bool(s.agreement));return s.agreement->propose(peer,now);}
+    std::uint32_t publication_candidate(std::uint64_t now)const override{return s.migration_candidate(now).value_or(16);}
+    void publication_allocate(const bridge::NativePublicationSuccessor &plan)const override{
+      require(decision&&prior);const auto &next=decision->next;auto owners=std::make_unique<SuccessorOwners>();
+      owners->transfer=std::make_shared<PeerAuthorityTransfer>(s.self,next,native_limits(plan.limits));
+      owners->admissions=PeerSourceAdmissions::resume_after_host_loss(s.self,next,s.roster,*prior);
+      owners->identity=std::make_shared<const unsigned char>(0);
+      if(plan.multiple){
+        owners->quality=std::make_shared<PeerMeshQuality>(s.self,next);
+        owners->agreement=std::make_shared<PeerHostAgreement>(s.self,next,transfer_time());
+        owners->common=std::make_shared<PeerCommonCutAgreement>(s.self,next);
+      }
+      if(plan.selection){owners->selection=std::make_shared<PeerSurvivorSelection>(s.self,next);owners->preparation=std::make_unique<PeerMigrationPreparation>(s.self,next);}
+      if(plan.snapshot)owners->candidate=std::make_shared<PeerSnapshotCandidate>(s.self,next);
+      owners->players=prior->players;pending=std::move(owners);
+    }
+    bool publication_has_commit()const override{return commit!=nullptr;}
+    bool publication_commit()const override{require(commit!=nullptr);return commit(native);}
+    void publication_publish()const override{
+      require(pending&&decision&&s.agreement_context);auto &owners=*pending;
+      s.continuity_admissions=std::move(owners.players);s.authority=std::move(owners.transfer);s.source_admissions=std::move(owners.admissions);s.mesh_quality=std::move(owners.quality);
+      s.common_cut=std::move(owners.common);s.survivor_selection=std::move(owners.selection);
+      s.preparation_driver=std::move(owners.preparation);s.preparation_identity=std::move(owners.identity);s.snapshot_candidate=std::move(owners.candidate);
+      s.agreement_history.push_back({*s.agreement_context,s.agreement});s.agreement=std::move(owners.agreement);s.agreement_context=decision->next;
+      bridge::native_session_committed(*s.controller,wire_decision(*decision));s.refresh();s.sync_audio();
+    }
+  };
+  // The observation retains native facts only; Rust authorizes context and
+  // continuity consistency before the existing Rust state machine sees them.
+  PeerMigrationPreparationObservation preparation_observation(std::uint64_t now){
     static_assert(unsigned(Phase::Connecting)==0&&unsigned(Phase::Loading)==1&&unsigned(Phase::Running)==2&&
         unsigned(Phase::Reviewing)==3&&unsigned(Phase::Postgame)==4&&unsigned(Phase::Failed)==5&&
         unsigned(Phase::AwaitingWorld)==6&&unsigned(Phase::Migrating)==7&&unsigned(Phase::Rebinding)==8);
+    PublicationIo io(*this);const auto resources=io.publication_resources();const auto admission=io.publication_admission();
+    const auto authorized=bridge::native_preparation_authorize(*controller,resources,admission,selection_supported());
     PeerMigrationPreparationObservation out;
-    out.context=authority?std::optional{authority->context()}:std::nullopt;
-    out.self=self;out.phase=std::uint8_t(phase);
-    out.supported=peer_started&&agreement_context&&out.context==agreement_context&&selection_supported();
-    out.selection_started=selection_started;
-    const auto admitted=source_admissions?source_admissions->accepted():std::nullopt;
-    if(admitted&&(!continuity_admissions||admitted->players==*continuity_admissions))out.admitted=admitted->context;
+    if(resources.authority_present)out.context=publication_context(resources.authority);
+    out.self=self;out.phase=std::uint8_t(phase);out.supported=authorized.supported;out.selection_started=selection_started;
+    if(authorized.admitted_present)out.admitted=publication_context(authorized.admitted);
     if(agreement)out.agreement=agreement->state(now);
     if(survivor_selection)out.selection=survivor_selection->state();
     return out;
   }
-  void preparation_terminal(){
-    // Rust has rejected reuse of this preparation. This mechanical fence
-    // preserves actual agreement decisions and never publishes native Ready.
-    if(!peer_handoff_phase())return;
-    if(!peer_fenced){peer_fenced=true;incoming.clear();outgoing.clear();fence_audio();}
-    fence_peer_generation();
-    if(phase==Phase::Running)phase=Phase::AwaitingWorld;
-  }
-  // Session lock serializes actual Common Abort, selection and Ready. These
-  // metadata calls never create native freezes, leases or preparation owners.
-  void selection_abort(){
-    if(!survivor_selection||!common_cut)return;
-    const auto common=common_cut->state();
-    if(common.abort&&common.pending)survivor_selection->invalidate(common.pending->seal);
-  }
-  void selection_progress(){
-    if(!survivor_selection)return;
-    auto selected=survivor_selection->state();
-    if(selected.selection_complete&&!selected.failed&&agreement){
-      const auto learned=agreement->state(transfer_time());
-      for(unsigned peer=0;peer<16;++peer)if((selected.survivors&(1u<<peer))&&learned.ready[peer])
-        survivor_selection->observe_ready(peer,*learned.ready[peer]);
-      selected=survivor_selection->state();
+  // The actual request identity and native observations remain with their
+  // owners. Rust decides all request, completion and publication sequencing.
+  struct PreparationIo final:bridge::NativePreparationIo{
+    Impl &s;const PeerSurvivorInventory *inventory{};bool owner_matches{};
+    mutable std::optional<PeerMigrationPreparationObservation> observed;
+    explicit PreparationIo(Impl &session):s(session){}
+    bool preparation_driver_present()const override{return bool(s.preparation_driver);}
+    bool preparation_owner_matches()const override{return owner_matches;}
+    void preparation_observe()const override{observed=s.preparation_observation(transfer_time());}
+    bridge::MigrationDriverAction preparation_step()const override{
+      require(s.preparation_driver&&observed);return preparation_action(s.preparation_driver->step(*observed));
     }
-    if(!selection_started)return;
-    if(!peer_fenced){peer_fenced=true;incoming.clear();outgoing.clear();fence_audio();}
-    if(selected.failed||!agreement||!agreement->state(transfer_time()).decision)phase=Phase::AwaitingWorld;
+    bool preparation_reserve(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed);return s.preparation_driver->reserve_retirement(*observed,preparation_ticket(ticket));
+    }
+    bool preparation_retained(const bridge::NativePreparationTicket &ticket,std::uint64_t lease)const override{
+      require(bool(s.preparation_driver));return s.preparation_driver->retained(preparation_ticket(ticket),lease);
+    }
+    bridge::MigrationDriverRetirement preparation_retired(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed);return static_cast<bridge::MigrationDriverRetirement>(s.preparation_driver->retired(*observed,preparation_ticket(ticket)));
+    }
+    bridge::MigrationDriverFreezeKind preparation_admit(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed&&inventory);const auto common=s.common_cut?std::optional{s.common_cut->state()}:std::nullopt;
+      return static_cast<bridge::MigrationDriverFreezeKind>(s.preparation_driver->admit_freeze(*observed,preparation_ticket(ticket),*inventory,common).kind);
+    }
+    bridge::MigrationDriverFreezeKind preparation_admit_external()const override{
+      require(s.preparation_driver&&observed&&inventory);const auto common=s.common_cut?std::optional{s.common_cut->state()}:std::nullopt;
+      return static_cast<bridge::MigrationDriverFreezeKind>(s.preparation_driver->admit_external_freeze(*observed,*inventory,common).kind);
+    }
+    bridge::NativePreparationSelection preparation_selection()const override{
+      bridge::NativePreparationSelection out;out.present=bool(s.survivor_selection);out.started=s.selection_started;
+      if(s.survivor_selection){const auto selected=s.survivor_selection->state();out.context=publication_context(selected.context);out.failed=selected.failed;}return out;
+    }
+    bool preparation_publish()const override{require(s.survivor_selection&&inventory);return s.survivor_selection->publish_inventory(*inventory);}
+    bool preparation_invalidate(const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));return s.survivor_selection->invalidate(cut.present?std::optional{publication_cut(cut)}:std::nullopt);
+    }
+    void preparation_abort()const override{s.selection_abort();}
+    void preparation_progress()const override{s.selection_progress();}
+    void preparation_begin()const override{s.begin_selection();}
+    void preparation_terminal()const override{s.preparation_terminal();}
+    bool preparation_retirement_pending()const override{require(bool(s.preparation_driver));return s.preparation_driver->retirement_pending();}
+  };
+  void selection_abort(){PublicationIo io(*this);bridge::native_publication_abort(io);}
+  void selection_progress(){PublicationIo io(*this);bridge::native_publication_progress(io);}
+  bool snapshot_supported()const{return peer_plan().snapshot_supported;}
+  struct SnapshotViewIo final:bridge::NativeSnapshotViewIo {
+    Impl &s;mutable std::shared_ptr<PeerSnapshotCandidate> selected;
+    explicit SnapshotViewIo(Impl &session):s(session){}
+    bool snapshot_view_common()const override{return s.projection.common_phase;}
+    bool snapshot_view_supported()const override{return s.snapshot_supported();}
+    void snapshot_view_select()const override{selected=s.snapshot_candidate;}
+  };
+  struct PostgameIo final:bridge::NativePostgameIo {
+    Impl &s;mutable std::shared_ptr<GameVoice> audio;mutable std::unique_lock<std::mutex> generation;
+    explicit PostgameIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
+    bool postgame_pin_audio()const override{std::lock_guard lock(s.mutex);audio=s.audio;return bool(audio);}
+    std::uint32_t postgame_phase()const override{std::lock_guard lock(s.mutex);return std::uint32_t(s.phase);}
+    void postgame_enable(bool value)const override{require(bool(audio));audio->enable(value);}
+    bool postgame_focused()const override{return s.voice_focused;}
+    void postgame_focus(bool value)const override{require(bool(audio));audio->focus(value);}
+    void postgame_radio(bool pressed,bool active)const override{require(bool(audio));audio->radio(pressed,active);}
+    std::uint16_t postgame_blocks()const override{std::lock_guard lock(s.mutex);return s.voice_blocked;}
+    void postgame_set_blocks(std::uint16_t value)const override{require(bool(audio));audio->blocks(value);}
+    bridge::NativePostgamePreferences postgame_preferences()const override{
+      require(bool(audio));const auto selected=audio->snapshot();bridge::NativePostgamePreferences out;
+      out.enabled=selected.enabled;out.muted=selected.muted;out.blocked=selected.blocked;return out;
+    }
+    rust::Vec<bridge::NativeSessionAudio> postgame_outgoing()const override{
+      require(bool(audio));rust::Vec<bridge::NativeSessionAudio> out;for(const auto &frame:audio->outgoing())out.push_back(wire_audio(frame));return out;
+    }
+    void postgame_lock()const override{require(!generation.owns_lock());generation.lock();}
+    void postgame_unlock()const override{require(generation.owns_lock());generation.unlock();}
+    void postgame_fence()const override{require(generation.owns_lock());s.fence_peer_generation();}
+    rust::Vec<bridge::NativeSessionAudio> postgame_exchange(const bridge::NativePostgamePreferences &selected,rust::Vec<bridge::NativeSessionAudio> outgoing)const override{
+      require(audio&&generation.owns_lock());return bridge::native_session_postgame_voice(*s.controller,transfer_time(),selected.enabled,
+          selected.muted,selected.blocked,std::move(outgoing),audio->ready(s.audio_generation));
+    }
+    void postgame_deliver(rust::Vec<bridge::NativeSessionAudio> frames)const override{
+      require(audio&&!generation.owns_lock());for(const auto &frame:frames)audio->receive(native_audio(frame));
+    }
+  };
+
+  // Construct under the actual Session lock. The captured source/authority and
+  // quality owners then support the same unlocked calls as the prior caller.
+  // Common callbacks are used only while that outer lock remains held.
+  struct ExchangeIo final:bridge::NativeExchangeIo{
+    Impl &s;const bridge::NativeExchangeSession observed;
+    const std::shared_ptr<PeerSourceAdmissions> source;
+    const std::shared_ptr<PeerAuthorityTransfer> transfer;
+    const std::shared_ptr<PeerMeshQuality> quality;
+    const std::shared_ptr<PeerCommonCutAgreement> common;
+    const std::optional<std::vector<SourcePlayerAdmission>> continuity;
+    const AuthorityTransferContext *context{};const AuthorityCutSeal *previous{};
+    const PeerCommonCut *cut{};std::span<const SourcePlayerAdmission> players;
+    std::uint64_t tick{};unsigned target{};std::span<const unsigned> targets;
+    mutable std::vector<std::byte> archive;
+    mutable std::optional<AcceptedSourcePlayers> accepted;
+    mutable std::optional<PeerCommonCutState> common_result;
+    mutable std::vector<PeerHostQuality> candidates;
+    explicit ExchangeIo(Impl &session):s(session),observed(bridge::native_exchange_session(*session.controller)),
+      source(session.source_admissions),transfer(session.authority),quality(session.mesh_quality),common(session.common_cut),continuity(session.continuity_admissions){}
+    bridge::NativeExchangeSession exchange_session()const override{return observed;}
+    std::uint64_t exchange_now_ms()const override{return transfer_time();}
+    std::uint16_t exchange_direct_ready()const override{return s.direct_ready.load(std::memory_order_relaxed);}
+    bool exchange_source_present()const override{return bool(source);}
+    bridge::NativePublicationAdmission exchange_continuity()const override{
+      bridge::NativePublicationAdmission out;out.continuity_present=continuity.has_value();if(continuity)out.continuity=publication_players(*continuity);return out;
+    }
+    bool exchange_publish_source()const override{require(source&&context);return source->publish(*context,players);}
+    bridge::NativePublicationAdmission exchange_admission()const override{
+      auto out=exchange_continuity();accepted=source?source->accepted():std::nullopt;out.present=accepted.has_value();
+      if(accepted){out.context=publication_context(accepted->context);out.players=publication_players(accepted->players);}return out;
+    }
+    bool exchange_source_confirmed(std::uint32_t peer)const override{require(bool(source));return source->confirmed(peer);}
+    bool exchange_authority_present()const override{return bool(transfer);}
+    bridge::MigrationPreparationCut exchange_publish_authority(bool ahead,std::uint64_t now)const override{
+      require(transfer&&context);
+      if(ahead){require(previous);return preparation_cut(transfer->publish_ahead(*context,*previous,tick,std::move(archive),target,now));}
+      return preparation_cut(transfer->publish(*context,tick,std::move(archive),targets,now));
+    }
+    bool exchange_authority_supported(std::uint32_t peer,std::uint32_t features)const override{
+      static_assert((authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|
+        authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|
+        authority_feature_source_projectile_contacts|authority_feature_source_presented_model_poses)==8319u&&
+        authority_feature_source_pipeline==128u&&authority_feature_source_host_continuation==256u&&authority_feature_source_admitted_camera==4096u);
+      require(bool(transfer));return features?transfer->feature_supported(peer,features):transfer->supported(peer);
+    }
+    bridge::NativeExchangeCommon exchange_common()const override{
+      bridge::NativeExchangeCommon out;out.supported=s.common_supported();out.present=bool(common);if(common)out.context=publication_context(common->context());return out;
+    }
+    bool exchange_common_perform(bridge::NativeExchangeCommonAction action)const override{
+      require(common&&cut);using A=bridge::NativeExchangeCommonAction;
+      switch(action){
+        case A::Offer:return common->offer(*cut);case A::ConfirmNative:return common->confirm_native(*cut);
+        case A::Associate:return common->associate(*cut);case A::Apply:return common->apply(*cut);
+        case A::Release:return common->release(*cut);case A::Reject:return common->reject(*cut);
+        case A::Abort:return common->abort(*cut);case A::AcknowledgeAbort:return common->acknowledge_abort(*cut);
+        default:require(false);return false;
+      }
+    }
+    void exchange_common_view()const override{require(bool(common));common_result=common->state();}
+    void exchange_selection_abort()const override{s.selection_abort();}
+    void exchange_selection_progress()const override{s.selection_progress();}
+    bridge::NativeExchangeCommon exchange_quality()const override{
+      bridge::NativeExchangeCommon out;out.present=bool(quality);if(quality)out.context=publication_context(quality->context());return out;
+    }
+    void exchange_candidates(std::uint64_t now)const override{require(bool(quality));candidates=quality->candidates(now);}
+  };
+  bool common_action(const PeerCommonCut &cut,bridge::NativeExchangeCommonAction action){
+    std::lock_guard lock(mutex);ExchangeIo io(*this);io.cut=&cut;
+    return bridge::native_exchange_common(io,publication_context(cut.context),action);
   }
-  bool snapshot_supported()const{
-    if(!transport_options.snapshot_candidates||!snapshot_candidate||!authority||!common_supported())return false;
-    const auto context=snapshot_candidate->state().context;
-    if(authority->context()!=context)return false;
-    for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&
-        !authority->feature_supported(peer,authority_feature_source_snapshot_candidate))return false;
-    return true;
+  bool capability(bridge::NativeExchangeCapability kind,unsigned peer){
+    const auto io=[&]{std::lock_guard lock(mutex);return ExchangeIo(*this);}();
+    return bridge::native_exchange_capability(io,kind,peer);
   }
-  using CommonAction=bool(PeerCommonCutAgreement::*)(const PeerCommonCut &);
-  bool common_action(const PeerCommonCut &cut,CommonAction action,bool retirement=false){
-    std::lock_guard lock(mutex);
-    if((phase!=Phase::Running&&!(retirement&&common_phase()))||!common_supported()||common_cut->context()!=cut.context)return false;
-    const auto result=((*common_cut).*action)(cut);selection_abort();selection_progress();return result;
-  }
-  bool peer_handoff_phase()const{return peer_started&&(phase==Phase::Running||phase==Phase::AwaitingWorld||phase==Phase::Migrating||phase==Phase::Rebinding);}
-  std::optional<unsigned> migration_candidate(std::uint64_t now)const{
-    if(!peer_handoff_phase()||!agreement||!agreement_context||!mesh_quality||mesh_quality->context()!=*agreement_context)return {};
-    const auto state=agreement->state(now);
-    if(transport_options.survivor_cut_selection&&(!selection_supported()||
-        !survivor_selection->state().selection_complete||survivor_selection->state().failed))return {};
-    if((!state.suspected&&!state.fenced)||state.decision||!(state.electorate&(1u<<self)))return {};
-    if(std::popcount(state.electorate)==1)return state.ready[self]?std::optional(self):std::nullopt;
-    for(const auto &q:mesh_quality->migration_candidates(now))
-      if((state.electorate&(1u<<q.peer))&&state.ready[q.peer])return q.peer;
-    return {};
+  bool peer_handoff_phase()const{return projection.peer_handoff_phase;}
+  std::optional<unsigned> migration_candidate(std::uint64_t now){
+    MigrationIo io(*this);const auto selected=bridge::native_migration_candidate(io,now);
+    return selected.present?std::optional(unsigned(selected.peer)):std::nullopt;
   }
   // Session mutex is held. Once a vote is accepted, no queued predecessor
   // gameplay or voice can reach a native consumer, even before a learner has
   // enough independent receipts to identify the successor.
-  void fence_audio(){
-    if(audio)audio_generation=audio->fence();
-    voices.clear();
-    std::erase_if(outgoing,[](const auto &p){return p.data.size()>6&&p.data[6]==std::byte{6};});
+  struct ApiIo final:bridge::NativeSessionApiIo {
+    Impl &s;
+    // Incoming/pinned owners outlive mutex release on unwinding, matching the
+    // prior parameter/if-statement lifetimes. Partial output conversion stays
+    // local to its callback and retires while the actual lock is still held.
+    mutable std::shared_ptr<GameVoice> incoming_audio,closing_audio;
+    mutable std::unique_lock<std::mutex> generation;
+    mutable std::vector<MatchVoicePacket> voices;
+    mutable std::exception_ptr failure;
+    const GameVoiceFrame *frame{};unsigned *received_peer{};std::vector<std::byte> *received_bytes{};
+    explicit ApiIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
+    void held()const{require(generation.owns_lock());}
+    template<class F> decltype(auto) capture(F &&action)const{
+      try{return action();}catch(...){if(!failure)failure=std::current_exception();throw;}
+    }
+    // Re-emit the actual native exception object after the Rust caller has
+    // completed its cleanup. This preserves type, message and identity.
+    template<class F> decltype(auto) invoke(F &&action)const{
+      try{return action();}catch(...){if(failure)std::rethrow_exception(failure);throw;}
+    }
+    void api_lock()const override{capture([&]{require(!generation.owns_lock());generation.lock();});}
+    void api_unlock()const override{capture([&]{held();generation.unlock();});}
+    void api_fence()const override{capture([&]{held();s.fence_peer_generation();});}
+    void api_send(std::uint32_t peer,rust::Slice<const std::uint8_t> bytes)const override{
+      capture([&]{held();bridge::native_session_send(*s.controller,peer,bytes);});
+    }
+    rust::Vec<bridge::NativeSessionPacket> api_receive()const override{
+      return capture([&]{held();return bridge::native_session_receive(*s.controller);});
+    }
+    void api_receive_peer(std::uint32_t peer)const override{capture([&]{held();require(received_peer);*received_peer=peer;});}
+    void api_receive_bytes(rust::Slice<const std::uint8_t> bytes)const override{
+      capture([&]{held();require(received_bytes);std::vector<std::byte> copied;copied.reserve(bytes.size());
+        for(auto value:bytes)copied.push_back(std::byte(value));*received_bytes=std::move(copied);});
+    }
+    // These observations also serve standalone audio effects whose caller
+    // already holds the same generation mutex. They do not acquire it again.
+    bool api_audio_present()const override{return bool(s.audio);}
+    bool api_audio_resume_allowed()const override{return s.projection.sync_audio;}
+    void api_audio_resume()const override{capture([&]{require(bool(s.audio));(void)s.audio->resume(s.audio_generation);});}
+    bool api_audio_ready()const override{return capture([&]{require(bool(s.audio));return s.audio->ready(s.audio_generation);});}
+    std::uint64_t api_audio_generation()const override{return s.audio_generation;}
+    std::uint64_t api_audio_fence()const override{return capture([&]{require(bool(s.audio));return s.audio->fence();});}
+    void api_apply_audio_fence(std::uint64_t stamp)const override{
+      capture([&]{bridge::native_session_fence_audio(*s.controller,stamp);s.refresh();});
+    }
+    void api_voice(std::uint32_t target,bool ready)const override{
+      capture([&]{held();require(frame);bridge::native_session_voice(*s.controller,target,wire_audio(*frame),ready);});
+    }
+    void api_preferences(std::uint32_t target,bool enabled,std::uint16_t muted)const override{
+      capture([&]{held();bridge::native_session_preferences(*s.controller,target,enabled,muted);});
+    }
+    void api_collect_voices()const override{
+      capture([&]{held();std::vector<MatchVoicePacket> result;
+        for(const auto &v:bridge::native_session_voices(*s.controller))result.push_back({v.peer,v.preferences,v.enabled,v.muted,native_audio(v.audio)});
+        voices=std::move(result);});
+    }
+    bridge::NativeApiAudioBinding api_audio_binding()const override{
+      bridge::NativeApiAudioBinding out;out.existing=bool(s.audio);out.same=s.audio==incoming_audio;return out;
+    }
+    void api_install_audio()const override{capture([&]{held();s.audio=std::move(incoming_audio);});}
+    void api_bind_audio()const override{capture([&]{held();bridge::native_session_bind_audio(*s.controller);});}
+    void api_close_presence()const override{capture([&]{held();bridge::native_session_close_postgame(*s.controller);s.refresh();});}
+    bool api_pin_audio()const override{
+      return capture([&]{require(!generation.owns_lock());std::lock_guard lock(s.mutex);closing_audio=s.audio;return bool(closing_audio);});
+    }
+    void api_close_audio()const override{capture([&]{require(closing_audio&&!generation.owns_lock());closing_audio->close();});}
+    void api_unpin_audio()const override{capture([&]{closing_audio.reset();});}
+    void api_stop_worker()const override{capture([&]{require(!generation.owns_lock());s.worker.request_stop();});}
+    bool api_worker_joinable()const override{return s.worker.joinable();}
+    void api_join_worker()const override{capture([&]{require(!generation.owns_lock());s.worker.join();});}
+  };
+  void fence_audio(){ApiIo io(*this);io.invoke([&]{bridge::native_api_fence_audio(io);});}
+  void sync_audio(){ApiIo io(*this);io.invoke([&]{bridge::native_api_sync_audio(io);});}
+  void fence_peer_generation(){PublicationIo io(*this);bridge::native_publication_fence(io);}
+  void world_request(std::uint8_t kind,std::uint64_t tick,const std::string &digest,std::uint32_t epoch=0){
+    bridge::NativeSessionSeal value;value.present=true;value.epoch=epoch;value.tick=tick;value.digest=digest;
+    bridge::native_session_world(*controller,kind,value);refresh();
   }
-  void sync_audio(){
-    if(audio&&!peer_fenced&&(phase==Phase::Running||phase==Phase::Reviewing||phase==Phase::Postgame))
-      (void)audio->resume(audio_generation);
-  }
-  void fence_peer_generation(){
-    if(selection_started&&survivor_selection&&survivor_selection->state().failed){selection_progress();return;}
-    if(!agreement||!peer_handoff_phase())return;
-    const auto state=agreement->state(transfer_time());
-    if(!state.fenced)return;
-    if(!peer_fenced){peer_fenced=true;incoming.clear();outgoing.clear();fence_audio();}
-    if(state.decision){
-      if(!(state.decision->next.peers&(1u<<self))){phase=Phase::Failed;error="This player host was replaced by the surviving peer majority.";}
-      else phase=self==state.decision->next.host?Phase::Migrating:Phase::Rebinding;
-    }else phase=Phase::AwaitingWorld;
-  }
-  void control(const Json &data) {
-    require(data.size()==(supports_continuity?3u:2u) && data["phase"].is_string());
-    const auto name=data["phase"].get<std::string>();
-    require(name=="connecting" || name=="loading" || name=="running" ||
-        (supports_continuity && (name=="awaiting_world" || name=="migrating" || name=="rebinding")));
-    std::lock_guard lock(mutex);
-    // A direct/native terminal failure retires this Session. A delayed master
-    // phase publication cannot revive its stopped peer worker or relabel the
-    // retained source retirement observation as a live generation.
-    if(phase==Phase::Failed)return;
-    // After initial admission this direct mode obtains host/epoch/membership
-    // only from its local peer agreement, including across master reconnects.
-    if(transport_options.peer_host_migration&&peer_started)return;
-    const auto previous_host=host,previous_epoch=continuity_state.epoch;
-    if(name!="connecting") {
-      if(name=="awaiting_world"){require(data["host"].is_null());host=16;}
-      else {
-        require(data["host"].is_number_unsigned() && data["host"]<roster.size());
-        host=data["host"].get<unsigned>();
-        require(online_admission_peer(roster[host])==host && !roster[host].guest);
+  // Typed native lock/owner IO. Rust owns the caller's classification, phase,
+  // capability, epoch, history-selection and effect ordering decisions.
+  struct ReceiveIo final:bridge::NativeReceiveIo {
+    Impl &s;mutable std::unique_lock<std::mutex> generation;
+    // Locked resources borrow the Session's genuine owners. Only the four
+    // unlocked paths retain shared owners, as in the previous receive caller.
+    mutable PeerSurvivorSelection *selection{};
+    mutable std::shared_ptr<PeerSnapshotCandidate> snapshot;
+    mutable PeerCommonCutAgreement *common{};
+    mutable PeerHostAgreement *agreement{};
+    mutable std::shared_ptr<PeerMeshQuality> quality;
+    mutable std::shared_ptr<PeerSourceAdmissions> admissions;
+    mutable std::shared_ptr<PeerAuthorityTransfer> authority;
+    using Target=bridge::NativeReceiveTarget;
+    explicit ReceiveIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
+    void held()const{require(generation.owns_lock());}
+    static std::span<const std::byte> bytes(rust::Slice<const std::uint8_t> p){return {reinterpret_cast<const std::byte*>(p.data()),p.size()};}
+    void receive_lock()const override{require(!generation.owns_lock());generation.lock();}
+    void receive_unlock()const override{held();generation.unlock();}
+    bridge::NativeReceiveSession receive_session()const override{
+      held();bridge::NativeReceiveSession out;out.common=s.projection.common_phase;out.native_control=s.projection.native_control_phase;
+      out.handoff=s.projection.peer_handoff_phase;out.direct=s.transport_options.direct_udp;out.epochs=s.packet_epochs;return out;
+    }
+    bool receive_supported(Target target)const override{
+      held();switch(target){case Target::Selection:return s.selection_supported();case Target::Snapshot:return s.snapshot_supported();case Target::Common:return s.common_supported();default:require(false);return false;}
+    }
+    void receive_pin(Target target)const override{
+      held();switch(target){
+        case Target::Selection:selection=s.survivor_selection.get();break;case Target::Snapshot:snapshot=s.snapshot_candidate;break;
+        case Target::Common:common=s.common_cut.get();break;case Target::Agreement:agreement=s.agreement.get();break;
+        case Target::Quality:quality=s.mesh_quality;break;case Target::Admissions:admissions=s.source_admissions;break;
+        case Target::Authority:authority=s.authority;break;default:require(false);
       }
     }
-    if(supports_continuity) {
-      require(data.contains("continuity"));const auto &value=data["continuity"];
-      if(name=="connecting" || name=="loading")require(value.is_null());
-      else {
-        require(value.is_object() && value["epoch"].is_number_unsigned() &&
-            value["epoch"].get<std::uint64_t>()<=UINT32_MAX && value["members"].is_number_unsigned() &&
-            value["phase"]==name && value["host"]==data["host"]);
-        const auto epoch=value["epoch"].get<std::uint32_t>(),members=value["members"].get<unsigned>();
-        require(epoch>=continuity_state.epoch && !(members&~((1u<<roster.size())-1)) &&
-            (members&(1u<<self)) && (host==16 || (members&(1u<<host))));
-        for(const auto &player:roster)
-          require(bool(members&(1u<<player.slot))==bool(members&(1u<<online_admission_peer(player))));
-        std::optional<OnlineWorldSeal> selected;
-        if(name=="migrating" || name=="rebinding") {
-          require(value.size()==6);
-          selected=parse_seal(Json{{"epoch",epoch},{"tick",value["tick"]},{"digest",value["digest"]}});
-        } else require(value.size()==4);
-        continuity_state={epoch,host,std::uint16_t(members),std::move(selected)};
-        voice_members=std::uint16_t(members);
-        for(unsigned i=0;i<roster.size();++i)if(!(members&(1u<<i)))voice_enabled[i]=false;
+    bool receive_present(Target target)const override{
+      switch(target){case Target::Selection:return bool(selection);case Target::Snapshot:return bool(snapshot);
+        case Target::Common:return bool(common);case Target::Agreement:return bool(agreement);case Target::Quality:return bool(quality);
+        case Target::Admissions:return bool(admissions);case Target::Authority:return bool(authority);default:require(false);return false;}
+    }
+    std::uint32_t receive_epoch(Target target)const override{
+      switch(target){case Target::Selection:held();require(bool(selection));return selection->state().context.epoch;
+        case Target::Snapshot:require(snapshot&&!generation.owns_lock());return snapshot->state().context.epoch;
+        case Target::Common:held();require(bool(common));return common->context().epoch;
+        case Target::Agreement:held();require(agreement&&s.agreement_context);return s.agreement_context->epoch;
+        case Target::Quality:require(quality&&!generation.owns_lock());return quality->context().epoch;
+        case Target::Admissions:require(admissions&&!generation.owns_lock());return admissions->context().epoch;
+        case Target::Authority:require(authority&&!generation.owns_lock());return authority->context().epoch;
+        default:require(false);return 0;}
+    }
+    bool receive_binding_present()const override{held();return s.agreement_context.has_value();}
+    std::uint32_t receive_binding_epoch()const override{held();require(s.agreement_context.has_value());return s.agreement_context->epoch;}
+    std::uint64_t receive_history_len()const override{held();return s.agreement_history.size();}
+    std::uint32_t receive_history_epoch(std::uint64_t index)const override{held();require(index<s.agreement_history.size());return s.agreement_history[std::size_t(index)].context.epoch;}
+    void receive_history_packet(std::uint64_t index,std::uint32_t source,rust::Slice<const std::uint8_t> p)const override{
+      held();require(index<s.agreement_history.size());s.agreement_history[std::size_t(index)].owner->receive(source,bytes(p),transfer_time());
+    }
+    void receive_packet(Target target,std::uint32_t source,rust::Slice<const std::uint8_t> p)const override{
+      const auto packet=bytes(p);switch(target){
+        case Target::Selection:held();require(bool(selection));selection->receive(source,packet,transfer_time());break;
+        case Target::Snapshot:require(snapshot&&!generation.owns_lock());snapshot->receive(source,packet,transfer_time());break;
+        case Target::Common:held();require(bool(common));common->receive(source,packet,transfer_time());break;
+        case Target::Agreement:held();require(bool(agreement));agreement->receive(source,packet,transfer_time());break;
+        case Target::Quality:require(quality&&!generation.owns_lock());quality->receive(source,packet,transfer_time());break;
+        case Target::Admissions:require(admissions&&!generation.owns_lock());admissions->receive(source,packet);break;
+        case Target::Authority:require(authority&&!generation.owns_lock());authority->receive(source,packet,transfer_time());break;
+        default:require(false);
       }
-      if(previous_epoch!=continuity_state.epoch || previous_host!=host) {
-        incoming.clear();outgoing.clear();voices.clear();
-      }
     }
-    phase=name=="running"?Phase::Running:name=="loading"?Phase::Loading:
-        name=="awaiting_world"?Phase::AwaitingWorld:name=="migrating"?Phase::Migrating:
-        name=="rebinding"?Phase::Rebinding:Phase::Connecting;
-    gameplay_admitted|=phase==Phase::Running;
-    if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
-      std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
-      const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
-      authority=std::make_shared<PeerAuthorityTransfer>(self,context,source_transfer_limits(transport_options.snapshot_candidates,transport_options.survivor_cut_selection,transport_options.terminal_recovery));
-      source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
-      if(std::popcount(physical)>1&&!transport_options.terminal_recovery)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
-      if(transport_options.snapshot_candidates&&std::popcount(physical)>1)
-        snapshot_candidate=std::make_shared<PeerSnapshotCandidate>(self,context);
-      if(transport_options.peer_host_migration&&std::popcount(physical)>1){agreement_context=context;
-        agreement=std::make_shared<PeerHostAgreement>(self,context,transfer_time());
-        if(transport_options.survivor_cut_selection&&self!=host){
-          survivor_selection=std::make_shared<PeerSurvivorSelection>(self,context);
-          preparation_driver=std::make_unique<PeerMigrationPreparation>(self,context);
-        }}
+    void receive_abort()const override{held();s.selection_abort();}
+    void receive_progress()const override{held();s.selection_progress();}
+    void receive_fence()const override{held();s.fence_peer_generation();}
+    bool receive_general(std::uint32_t source,std::uint32_t epoch,rust::Slice<const std::uint8_t> p)const override{
+      held();return bridge::native_session_datagram(*s.controller,source,epoch,p);
     }
-    if(transport_options.direct_udp&&host<16&&phase!=Phase::Connecting){
-      std::uint16_t physical=0;for(const auto &player:roster)
-        if(online_admission_peer(player)==player.slot&&(continuity_state.members&(1u<<player.slot)))physical|=std::uint16_t(1u<<player.slot);
-      auto context=AuthorityTransferContext{authority_session,continuity_state.epoch,continuity_state.members,physical,host};
-      // The internally gated peer-owned generation uses the same admission
-      // revision for QoS, native cuts and votes. Legacy setup keeps its seat-mask
-      // revision; it cannot be mistaken for this peer migration certificate.
-      if(transport_options.peer_host_migration&&agreement_context){
-        require(agreement_context->session==context.session&&agreement_context->epoch==context.epoch&&
-            agreement_context->peers==physical&&agreement_context->host==host);
-        context=*agreement_context;
-      }
-      if(std::popcount(physical)>1&&(!mesh_quality||mesh_quality->context()!=context))mesh_quality=std::make_shared<PeerMeshQuality>(self,context);
-    }
-    if(transport_options.peer_host_migration&&phase==Phase::Running){
-      peer_started=true;continuity_state.host=host;
-      if(agreement)agreement->observe_host(transfer_time());
-    }
-  }
-  void queue_world(const char *action,const OnlineWorldSeal &seal) {
-    require(supports_continuity && valid_world_digest(seal.digest) && continuation_outgoing.size()<64);
-    continuation_outgoing.push_back(Json{{action,{{"epoch",seal.epoch},{"tick",seal.tick},{"digest",seal.digest}}}}.dump());
-  }
+    void receive_observe_host()const override{held();require(bool(agreement));agreement->observe_host(transfer_time());}
+    void receive_refresh()const override{held();s.refresh();}
+  };
   void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
-    if(PeerSurvivorSelection::is_packet(packet)){
-      std::lock_guard lock(mutex);
-      if(common_phase()&&selection_supported()&&epoch==survivor_selection->state().context.epoch){
-        survivor_selection->receive(source,packet,transfer_time());selection_abort();selection_progress();
-      }
-      return;
-    }
-    if(PeerSnapshotCandidate::is_packet(packet)){
-      std::shared_ptr<PeerSnapshotCandidate> candidate;
-      {std::lock_guard lock(mutex);if(common_phase()&&snapshot_supported())candidate=snapshot_candidate;}
-      if(candidate&&epoch==candidate->state().context.epoch)candidate->receive(source,packet,transfer_time());
-      return;
-    }
-    if(PeerCommonCutAgreement::is_packet(packet)){
-      // Serialize Abort with the final native publication check. The Rust
-      // metadata owner invokes no native/session callbacks; lock ordering is
-      // session then common-cut, as for the explicit common actions.
-      std::lock_guard lock(mutex);
-      if(common_phase()&&common_supported()&&(!epoch_packets()||epoch==common_cut->context().epoch))
-        common_cut->receive(source,packet,transfer_time());
-      selection_abort();selection_progress();
-      return;
-    }
-    if(PeerHostAgreement::is_packet(packet)){
-      std::lock_guard lock(mutex);
-      if(peer_handoff_phase()&&agreement_context&&epoch==agreement_context->epoch&&agreement){
-        agreement->receive(source,packet,transfer_time());selection_progress();fence_peer_generation();
-      }else for(const auto &past:agreement_history)if(epoch==past.context.epoch){past.owner->receive(source,packet,transfer_time());break;}
-      return;
-    }
-    if(PeerMeshQuality::is_packet(packet)){
-      std::shared_ptr<PeerMeshQuality> quality;
-      {std::lock_guard lock(mutex);if(transport_options.direct_udp)quality=mesh_quality;}
-      if(quality&&(!epoch_packets()||epoch==quality->context().epoch))quality->receive(source,packet,transfer_time());
-      return;
-    }
-    if(PeerSourceAdmissions::is_packet(packet)){
-      std::shared_ptr<PeerSourceAdmissions> admissions;
-      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&native_control_phase())admissions=source_admissions;}
-      if(admissions&&(!epoch_packets()||epoch==admissions->context().epoch))admissions->receive(source,packet);
-      return;
-    }
-    if(PeerAuthorityTransfer::is_packet(packet)){
-      std::shared_ptr<PeerAuthorityTransfer> transfer;
-      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&native_control_phase())transfer=authority;}
-      if(transfer&&(!epoch_packets()||epoch==transfer->context().epoch))transfer->receive(source,packet,transfer_time());
-      return;
-    }
-    std::lock_guard lock(mutex);
-    fence_peer_generation();
-    const bool frozen_selection=selection_started&&phase==Phase::AwaitingWorld;
-    if(phase!=Phase::Running && phase!=Phase::Reviewing && phase!=Phase::Postgame&&!frozen_selection)return;
-    require(source<roster.size() && source!=self && online_admission_peer(roster[source])==source);
-    if(epoch_packets() && (epoch!=continuity_state.epoch || !(continuity_state.members&(1u<<source))))return;
-    require(packet.size()>=7 && packet.size()<=1400 && get(packet,0,4)==0x324e3248 && get(packet,4,2)==native_multiplayer_protocol);
-    const auto kind=get(packet,6,1);
-    require(online_packet_role(self==host,source==host,kind));
-    if(kind!=6) {
-      // A native freeze cannot manufacture predecessor silence. Authenticated
-      // current-host traffic still services suspicion; it never reaches the
-      // frozen native owner or undoes an already accepted election vote.
-      if(agreement&&source==host&&(phase==Phase::Running||frozen_selection))agreement->observe_host(transfer_time());
-      if(phase!=Phase::Running)return;
-      if(incoming.size()<512)incoming.push_back({source,{packet.begin(),packet.end()},epoch});
-      return;
-    }
-    if(frozen_selection)return;
-    if(!(voice_members&(1u<<source)))return;
-    // The mandatory Rust reader returns owned syntax-checked fields. Sender,
-    // seat, role and generation authority still comes from this real session.
-    std::optional<VoiceOrigin::Signature> origin_signature;
-    if(packet.size()>7&&get(packet,7,1)==0){
-      if(packet.size()<=64)return;
-      VoiceOrigin::Signature signature;std::copy(packet.end()-64,packet.end(),signature.begin());
-      packet=packet.first(packet.size()-64);
-      const auto speaker=get(packet,8,1);
-      if(speaker>=roster.size()||online_admission_peer(roster[speaker])!=source||
-          !voice_origin.verify(packet,signature,source,epoch,self))return;
-      origin_signature=signature;
-    }
-    auto parsed=decode_online_voice_frame(packet,native_multiplayer_protocol);
-    require(parsed.has_value());
-    MatchVoicePacket voice;voice.peer=source;
-    if(const auto *preferences=std::get_if<ParsedOnlineVoicePreferences>(&*parsed)) {
-      require(!preferences->forwarded_source);
-      voice.preferences=true;voice.frame.source=preferences->forwarded_source.value_or(source);
-      require(voice.frame.source<roster.size());
-      voice.enabled=preferences->enabled;voice.muted=preferences->muted;
-    } else {
-      auto &frame=std::get<ParsedOnlineVoiceAudio>(*parsed);
-      voice.frame.source=frame.source;voice.frame.sequence=frame.sequence;
-      require(voice.frame.source<roster.size() && (voice_members&(1u<<voice.frame.source)) &&
-          online_admission_peer(roster[voice.frame.source])==source);
-      voice.frame.radio=frame.radio;voice.frame.gains={frame.left,frame.right};
-      // The coordinator supplies the account block mask. The receiving PC
-      // enforces it even when a player host forwards a blocked speaker.
-      if(voice_blocked&(1u<<voice.frame.source))return;
-      voice.frame.opus=std::move(frame.opus);
-      voice.frame.origin_signature=origin_signature;
-    }
-    voice.frame.delivery_generation=audio_generation;
-    if(voices.size()==80)voices.pop_front();voices.push_back(std::move(voice));
+    ReceiveIo io(*this);bridge::native_receive_dispatch(io,source,wire(packet),epoch);
   }
-  void fail(const std::string &message) {
-    std::shared_ptr<GameVoice> stopped_audio;
-    {std::lock_guard lock(mutex);if(phase!=Phase::Postgame)phase=Phase::Failed;
-      error=message;voice_enabled.fill(false);fence_audio();stopped_audio=audio;}
-    if(stopped_audio)stopped_audio->enable(false);
+  void fail(const std::string &message){
+    std::lock_guard lock(mutex);apply(bridge::native_session_fail(*controller,message));
   }
   void run_eos_authentication(const std::shared_ptr<OnlinePeerTransport> &direct,const std::string &room_api,
                               const std::string &bearer,std::stop_token stop) {
@@ -498,381 +714,162 @@ struct OnlineMatchSession::Impl {
     }catch(const std::exception &e){fail(e.what());}
     catch(...){fail("EOS account authentication could not complete.");}
   }
-  void run_peers(const std::shared_ptr<OnlinePeerTransport> &direct,std::stop_token stop) {
-    try {
-      std::vector<unsigned> physical;
-      for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical.push_back(player.slot);
-      bool announced=false;
-      std::uint16_t opened_peers{};
-      std::optional<Clock::time_point> measurement_started;
-      while(!stop.stop_requested()) {
-        std::uint16_t ready_mask=0;for(auto peer:physical)if(peer!=self&&direct->ready(peer))ready_mask|=std::uint16_t(1u<<peer);
-        direct_ready.store(ready_mask,std::memory_order_relaxed);
-        opened_peers|=ready_mask;
-        for(auto &signal:direct->signals()) {
-          const auto value=Json{{"peer_signal",{{"peer",signal.peer},{"type",signal.type},{"payload",signal.payload},{"mid",signal.mid}}}}.dump();
-          std::lock_guard lock(mutex);require(continuation_outgoing.size()<1024);continuation_outgoing.push_back(value);
-        }
-        if(!measurement_started&&direct->authentication_ready())measurement_started=Clock::now();
-        std::shared_ptr<PeerMeshQuality> quality;Phase current_phase;
-        {std::lock_guard lock(mutex);quality=mesh_quality;current_phase=phase;}
-        if(current_phase==Phase::Running) {
-          std::uint16_t retired{};
-          for(const auto &player:roster) {
-            const auto owner=online_admission_peer(player);
-            if(owner!=self && (opened_peers&(1u<<owner)) && direct->failed(owner))
-              retired|=std::uint16_t(1u<<player.slot);
-          }
-          std::lock_guard lock(mutex);direct_failed_players=retired;
-        }
-        const auto measured=quality?quality->local(transfer_time()):std::nullopt;
-        const auto complete_measurement=std::all_of(physical.begin(),physical.end(),[&](auto peer){
-          return peer==self||(measured&&measured->links[peer].measured);});
-        if(!announced&&measurement_started&&
-            (Clock::now()-*measurement_started>=std::chrono::seconds(transport_options.eos?45:10)||complete_measurement)) {
-          Json ready=Json::array();
-          for(auto peer:physical)if(peer!=self){
-            const auto q=measured?measured->links[peer]:PeerLinkQuality{};
-            ready.push_back({{"peer",peer},{"rtt_ms",q.measured?Json(q.rtt_ms):Json(nullptr)},
-              {"upload_bytes_per_second",q.measured?Json(q.upload_bytes_per_second):Json(nullptr)},
-              {"loss_per_mille",q.measured?Json(q.loss_per_mille):Json(nullptr)}});
-          }
-          std::lock_guard lock(mutex);continuation_outgoing.push_back(Json{{"peer_ready",ready}}.dump());announced=true;
-        }
-        std::vector<std::byte> packet;unsigned peer{};
-        for(unsigned received=0;received<64 && direct->receive(packet,peer);++received) {
-          try {
-            const auto offset=epoch_packets()?4u:0u;require(packet.size()>=offset+7);
-            datagram(peer,std::span(packet).subspan(offset),epoch_packets()?get(packet,0,4):0);
-          } catch(const std::exception &) {
-            // Count actual receive/dispatch rejection without logging payloads
-            // or account IDs. Untrusted bytes cannot evict healthy peers.
-            auto value=rejected_direct.load(std::memory_order_relaxed);
-            while(value!=UINT64_MAX && !rejected_direct.compare_exchange_weak(
-                value,value+1,std::memory_order_relaxed)){}
-          }
-        }
-        std::deque<Frame> frames;std::function<void()> pump;
-        {std::lock_guard lock(mutex);sync_audio();frames.swap(outgoing);pump=postgame_voice_pump;}
-        if(pump)pump();
-        for(auto &frame:frames) {
-          std::lock_guard lock(mutex);fence_peer_generation();
-          if(peer_fenced || (epoch_packets()&&frame.epoch!=continuity_state.epoch))continue;
-          if(frame.data.size()>6&&frame.data[6]==std::byte{6}&&frame.audio_generation!=audio_generation)continue;
-          unsigned target=frame.peer;
-          const auto members=phase==Phase::Reviewing||phase==Phase::Postgame?voice_members:continuity_state.members;
-          if(epoch_packets()&&!(members&(1u<<target)))continue;
-          if(epoch_packets()) {
-            std::vector<std::byte> prefix;put(prefix,frame.epoch,4);frame.data.insert(frame.data.begin(),prefix.begin(),prefix.end());
-          }
-          direct->send(frame.data,target);
-        }
-        std::shared_ptr<PeerAuthorityTransfer> transfer;
-        {std::lock_guard lock(mutex);if(native_control_phase())transfer=authority;}
-        if(transfer){const auto epoch=transfer->context().epoch;
-          // Gameplay and microphone frames are drained first. Authority data
-          // has its own rate/window budget and cannot grow the media queue.
-          for(auto packet:transfer->poll(transfer_time(),2)){
-            if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
-            direct->send(packet.bytes,packet.peer);
-          }
-        }
-        std::shared_ptr<PeerSourceAdmissions> admissions;
-        {std::lock_guard lock(mutex);if(native_control_phase())admissions=source_admissions;}
-        if(admissions){const auto epoch=admissions->context().epoch;
-          for(auto packet:admissions->poll(transfer_time(),2)){
-            if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
-            direct->send(packet.bytes,packet.peer);
-          }
-        }
-        std::shared_ptr<PeerCommonCutAgreement> common;
-        {std::lock_guard lock(mutex);if(common_phase()&&common_supported())common=common_cut;}
-        if(common){const auto epoch=common->context().epoch;
-          for(auto packet:common->poll(transfer_time(),4)){
-            if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
-            direct->send(packet.bytes,packet.peer);
-          }
-        }
-        {
-          std::lock_guard lock(mutex);
-          if(common_phase()&&selection_supported()){
-            selection_abort();selection_progress();const auto epoch=survivor_selection->state().context.epoch;
-            for(auto packet:survivor_selection->poll(transfer_time(),4)){
-              std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());
-              direct->send(packet.bytes,packet.peer);
-            }
-          }
-        }
-        std::shared_ptr<PeerSnapshotCandidate> candidate;
-        {std::lock_guard lock(mutex);if(common_phase()&&snapshot_supported())candidate=snapshot_candidate;}
-        if(candidate){const auto epoch=candidate->state().context.epoch;
-          for(auto packet:candidate->poll(transfer_time(),4)){
-            std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());
-            direct->send(packet.bytes,packet.peer);
-          }
-        }
-        if(quality){const auto epoch=quality->context().epoch;
-          // Only setup/measurement summaries use the coordinator. All probes,
-          // replies and full mesh rows use the authenticated direct links.
-          for(auto packet:quality->poll(ready_mask,transfer_time(),
-              current_phase==Phase::Connecting||current_phase==Phase::Loading?16:4)){
-            if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
-            direct->send(packet.bytes,packet.peer);
-          }
-        }
-        {
-          std::lock_guard lock(mutex);
-          const auto now=transfer_time();
-          if(const auto candidate=migration_candidate(now))agreement->drive(*candidate,now);
-          // Retain the full bounded generation chain for a delayed learner.
-          // All generations share one four-packet budget after gameplay/media.
-          for(unsigned i=0;i<4&&peer_handoff_phase();++i){
-            const auto index=agreement_cursor++%(agreement_history.size()+1);
-            const auto owner=index?agreement_history[index-1].owner:agreement;
-            if(!owner)continue;
-            const auto epoch=index?agreement_history[index-1].context.epoch:agreement_context->epoch;
-            for(auto packet:owner->poll(transfer_time(),1)){
-              std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());
-              direct->send(packet.bytes,packet.peer);
-            }
-          }
-          fence_peer_generation();
-          if(phase==Phase::Failed)return;
-          if(!(transport_options.peer_host_migration&&peer_started)&&host<roster.size()&&self!=host&&phase!=Phase::Postgame&&phase!=Phase::Reviewing&&direct->failed(host)) {
-            bool observing_survivors=false;
-            if(transport_options.terminal_recovery&&phase==Phase::Running&&authority&&source_admissions&&source_admissions->accepted()) {
-              const auto context=authority->context();std::uint16_t retired{};
-              for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&direct->failed(peer))retired|=std::uint16_t(1u<<peer);
-              if(context.host==host&&context.peers==std::uint16_t(retired|(1u<<self)))
-                terminal=TerminalObservation(context,self,retired);
-              else if(context.host==host)observing_survivors=true;
-            }
-            // A host callback can precede other genuine close/failure
-            // callbacks in the same mass departure. Keep observing the live
-            // transport until all are retired or the existing native client
-            // liveness timeout returns. No new grace clock or host is created.
-            if(observing_survivors)error="Player host was lost; observing the remaining direct connections.";
-            else throw std::runtime_error("Direct player connection was lost. Search again.");
-          }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  struct PeerIo final:bridge::NativeMatchPeersIo{
+    Impl &session;OnlinePeerTransport &direct;std::stop_token stop;
+    mutable std::shared_ptr<PeerMeshQuality> sampled_quality;
+    PeerIo(Impl &s,OnlinePeerTransport &d,std::stop_token token):session(s),direct(d),stop(token){}
+    bool peers_cancelled()const override{return stop.stop_requested();}
+    void peers_wait(std::uint32_t ms)const override{std::this_thread::sleep_for(std::chrono::milliseconds(ms));}
+    bool peers_ready(std::uint8_t peer)const override{return direct.ready(peer);}
+    bool peers_failed(std::uint8_t peer)const override{return direct.failed(peer);}
+    rust::Vec<bridge::NativeSessionSignal> peers_signals()const override{
+      rust::Vec<bridge::NativeSessionSignal> out;
+      for(auto &s:direct.signals()){bridge::NativeSessionSignal v;v.peer=s.peer;v.kind=s.type;v.payload=s.payload;v.mid=s.mid;out.push_back(std::move(v));}
+      return out;
+    }
+    void peers_signal(const bridge::NativeSessionSignal &signal)const override{
+      std::lock_guard lock(session.mutex);bridge::native_session_signal(*session.controller,signal);
+    }
+    bridge::NativePeerSample peers_sample(std::uint16_t ready)const override{
+      session.direct_ready.store(ready,std::memory_order_relaxed);
+      bridge::NativePeerSample out;
+      {std::lock_guard lock(session.mutex);sampled_quality=session.mesh_quality;out.setup=session.peer_plan().setup;}
+      const auto measured=sampled_quality?sampled_quality->local(transfer_time()):std::nullopt;
+      out.now=transfer_time();out.authenticated=direct.authentication_ready();
+      for(unsigned peer=0;peer<16;++peer){const auto link=measured?measured->links[peer]:PeerLinkQuality{};
+        bridge::NativeSessionLink row;row.peer=peer;row.measured=link.measured;row.rtt=link.rtt_ms;row.upload=link.upload_bytes_per_second;row.loss=link.loss_per_mille;out.links.push_back(row);}
+      return out;
+    }
+    bridge::NativePeerDatagram peers_receive()const override{
+      std::vector<std::byte> bytes;unsigned peer{};bridge::NativePeerDatagram out;
+      out.present=direct.receive(bytes,peer);out.peer=peer;
+      if(out.present)for(auto byte:bytes)out.bytes.push_back(std::to_integer<std::uint8_t>(byte));
+      return out;
+    }
+    void peers_datagram(std::uint32_t peer,std::uint32_t epoch,rust::Slice<const std::uint8_t> bytes)const override{
+      session.datagram(peer,{reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},epoch);
+    }
+    void peers_rejected()const override{
+      auto value=session.rejected_direct.load(std::memory_order_relaxed);
+      while(value!=UINT64_MAX&&!session.rejected_direct.compare_exchange_weak(value,value+1,std::memory_order_relaxed)){}
+    }
+    rust::Vec<bridge::NativeSessionPacket> peers_drain()const override{
+      rust::Vec<bridge::NativeSessionPacket> frames;std::function<void()> pump;
+      {std::lock_guard lock(session.mutex);session.fence_peer_generation();session.sync_audio();frames=bridge::native_session_outgoing(*session.controller);pump=session.postgame_voice_pump;}
+      if(pump)pump();return frames;
+    }
+    void peers_send_media(const bridge::NativeSessionPacket &frame,rust::Slice<const std::uint8_t> bytes)const override{
+      std::lock_guard lock(session.mutex);session.fence_peer_generation();
+      if(bridge::native_session_packet_current(*session.controller,frame))peers_send(frame.peer,bytes);
+    }
+    void peers_send(std::uint32_t peer,rust::Slice<const std::uint8_t> bytes)const override{
+      direct.send({reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},peer);
+    }
+    template<class Packets> static rust::Vec<bridge::NativePeerDatagram> packets(Packets values,std::uint32_t epoch){
+      rust::Vec<bridge::NativePeerDatagram> out;
+      for(auto &p:values){bridge::NativePeerDatagram v;v.present=true;v.peer=p.peer;v.epoch=epoch;
+        for(auto b:p.bytes)v.bytes.push_back(std::to_integer<std::uint8_t>(b));out.push_back(std::move(v));}
+      return out;
+    }
+    rust::Vec<bridge::NativePeerDatagram> peers_poll(bridge::NativePeerPoll kind,std::uint32_t budget,std::uint16_t ready,std::uint32_t index)const override{
+      std::unique_lock lock(session.mutex);
+      if(!bridge::native_peer_poll_allowed(session.peer_plan(),kind))return {};
+      switch(kind){
+        case bridge::NativePeerPoll::Authority:{const auto owner=session.authority;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Admissions:{const auto owner=session.source_admissions;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Common:{const auto owner=session.common_cut;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Selection:
+          session.selection_abort();session.selection_progress();
+          return packets(session.survivor_selection->poll(transfer_time(),budget),session.survivor_selection->state().context.epoch);
+        case bridge::NativePeerPoll::Snapshot:{const auto owner=session.snapshot_candidate;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->state().context.epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Quality:{const auto owner=sampled_quality;lock.unlock();
+          return owner?packets(owner->poll(ready,transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Agreement:{
+          if(index>session.agreement_history.size())return {};
+          const auto owner=index?session.agreement_history[index-1].owner:session.agreement;
+          if(!owner||(!index&&!session.agreement_context))return {};
+          const auto epoch=index?session.agreement_history[index-1].context.epoch:session.agreement_context->epoch;
+          return packets(owner->poll(transfer_time(),budget),epoch);}
+        default:return {};
       }
-    } catch(const std::exception &e){fail(e.what());}
+    }
+    void peers_drive()const override{
+      std::lock_guard lock(session.mutex);const auto now=transfer_time();
+      if(const auto candidate=session.migration_candidate(now))session.agreement->drive(*candidate,now);
+    }
+    std::uint32_t peers_agreement_generations()const override{
+      std::lock_guard lock(session.mutex);return session.peer_plan().handoff?session.agreement_history.size()+1:0;
+    }
+    bool peers_finish(const bridge::NativeSessionDirect &sample)const override{
+      std::lock_guard lock(session.mutex);session.fence_peer_generation();if(session.peer_plan().failed)return false;
+      bridge::NativeSessionDirect observation;observation.now=sample.now;observation.authenticated=sample.authenticated;
+      observation.ready=sample.ready;observation.failed=sample.failed;
+      for(const auto &link:sample.links)observation.links.push_back(link);
+      observation.authority_present=bool(session.authority);if(session.authority)observation.authority=wire_context(session.authority->context());
+      const auto admitted=session.source_admissions?session.source_admissions->accepted():std::nullopt;
+      observation.admitted_present=admitted.has_value();if(admitted)observation.admitted=wire_context(admitted->context);
+      const auto result=bridge::native_session_direct(*session.controller,observation);session.apply(result.effects);
+      if(result.terminal_present){const auto context=native_context(result.terminal);
+        session.terminal=TerminalObservation(context,session.self,std::uint16_t(context.peers&~(1u<<session.self)));}
+      return !result.failed;
+    }
+    void peers_failure()const override{session.fail("ONLINE match connection failed or ended. Search again.");}
+  };
+  void run_peers(const std::shared_ptr<OnlinePeerTransport> &direct,std::stop_token stop){
+    try{
+      auto peer_worker=[&]{std::lock_guard lock(mutex);return bridge::native_session_peer_worker(*controller);}();
+      PeerIo io(*this,*direct,stop);bridge::native_peer_run(*peer_worker,io);
+    }catch(const std::exception &e){fail(e.what());}
   }
-  void run(const std::string &url,const std::string &room_api,const std::string &bearer,std::stop_token stop) {
-    try {
-      require(curl_global_init(CURL_GLOBAL_DEFAULT)==CURLE_OK);
+  struct ControlIo final:bridge::NativeMatchSessionIo{
+    Impl &session;OnlinePeerTransport *direct;native_matchmaking_io::Socket socket;
+    ControlIo(Impl &s,OnlinePeerTransport *peer,std::stop_token stop):session(s),direct(peer),socket(stop){}
+    std::uint64_t session_now_ms()const override{return socket.now_ms();}
+    bool session_cancelled()const override{return socket.cancelled();}
+    void session_wait(std::uint32_t ms)const override{socket.wait(ms);}
+    void session_open(const bridge::MatchmakingQosOpen &options)const override{socket.open(options);session.control_online=true;}
+    bridge::MatchmakingQosFrame session_receive()const override{return socket.receive();}
+    bridge::MatchmakingQosSent session_send(bridge::NativeSessionSendKind kind,rust::Slice<const std::uint8_t> bytes)const override{return socket.send(kind,bytes);}
+    void session_close()const override{session.control_online=false;socket.close();}
+    rust::String session_text(rust::Slice<const std::uint8_t> bytes)const override{
+      bridge::NativeSessionEffects effect;
+      {std::lock_guard lock(session.mutex);effect=bridge::native_session_text(*session.controller,bytes,session.resources());session.apply(effect);}
+      if(effect.signal_present){require(direct);direct->signal({effect.signal.peer,std::string(effect.signal.kind),std::string(effect.signal.payload),std::string(effect.signal.mid)});}
+      return effect.reply;
+    }
+    void session_datagram(std::uint8_t peer,std::uint32_t epoch,rust::Slice<const std::uint8_t> bytes)const override{
+      session.datagram(peer,{reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},epoch);
+    }
+    void session_pump()const override{
+      std::function<void()> pump;{std::lock_guard lock(session.mutex);session.sync_audio();if(bridge::native_session_control_postgame(direct!=nullptr))pump=session.postgame_voice_pump;}
+      if(pump)pump();
+    }
+    bridge::NativeSessionFlush session_flush()const override{std::lock_guard lock(session.mutex);return bridge::native_session_flush(*session.controller);}
+    bool session_packet_current(const bridge::NativeSessionPacket &packet)const override{
+      std::lock_guard lock(session.mutex);return bridge::native_session_packet_current(*session.controller,packet);
+    }
+    bool session_failure(bool terminal,rust::Str message)const override{
+      std::lock_guard lock(session.mutex);const auto result=bridge::native_session_failure(*session.controller,terminal,message);session.apply(result.effects);return !result.failed;
+    }
+  };
+  void run(const bridge::NativeSessionWorker &socket_worker,const std::string &room_api,const std::string &bearer,std::stop_token stop){
+    try{
       std::shared_ptr<OnlinePeerTransport> direct;
-      if(transport_options.direct_udp) {
-        std::vector<unsigned> physical;
-        for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical.push_back(player.slot);
-        if(transport_options.eos){
-          const auto &eos=*transport_options.eos;
-          require(eos.peers.size()+1==physical.size());
-          for(auto peer:physical)if(peer!=self)require(std::count_if(eos.peers.begin(),eos.peers.end(),[&](const auto &p){return p.slot==peer;})==1);
-          direct=std::make_shared<OnlinePeerTransport>(self,eos);
-        }else direct=std::make_shared<OnlinePeerTransport>(self,physical,transport_options.stun_servers);
+      if(transport_options.direct_udp){
+        std::vector<unsigned> physical;{std::lock_guard lock(mutex);for(auto p:bridge::native_session_physical_peers(*controller))physical.push_back(p);}
+        if(transport_options.eos)direct=std::make_shared<OnlinePeerTransport>(self,*transport_options.eos);
+        else direct=std::make_shared<OnlinePeerTransport>(self,physical,transport_options.stun_servers);
       }
-      std::jthread peer_worker;
-      if(direct)peer_worker=std::jthread([this,direct](std::stop_token token){run_peers(direct,token);});
-      // Stop/join this worker before the peer worker and their shared transport.
+      std::jthread peer_worker;if(direct)peer_worker=std::jthread([this,direct](std::stop_token token){run_peers(direct,token);});
       std::jthread eos_auth_worker;
       if(direct&&transport_options.eos&&transport_options.eos->account_login)
-        eos_auth_worker=std::jthread([this,direct,room_api,bearer](std::stop_token token){
-          run_eos_authentication(direct,room_api,bearer,token);
-        });
-      while(!stop.stop_requested()) {
-        try {run_control(url,bearer,stop,direct.get());}
-        catch(const TerminalMatchError &){
-          std::lock_guard lock(mutex);
-          if(transport_options.terminal_recovery&&direct&&phase==Phase::Running) {
-            error="Match admission ended; waiting for actual direct-peer status.";
-          } else {
-            if(!transport_options.peer_host_migration||!peer_started||phase==Phase::Failed)throw;
-            error="Master admission ended; direct peers retain authority until the native handoff completes.";
-          }
-        }
-        catch(const std::exception &) {
-          // Once admitted, gameplay/audio do not depend on the master socket.
-          // Its reconnect worker may stall on TLS without stalling peer UDP.
-          std::lock_guard lock(mutex);
-          if(!direct || (phase!=Phase::Running && phase!=Phase::Reviewing && phase!=Phase::Postgame&&
-              !(transport_options.peer_host_migration&&peer_started&&phase!=Phase::Failed)))throw;
-          error="Master connection unavailable; the player-hosted match continues. Results will retry.";
-        }
-        for(unsigned i=0;i<100 && !stop.stop_requested();++i)std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      }
-    } catch(const std::exception &e){fail(e.what());}
-  }
-  void run_control(const std::string &url,const std::string &bearer,std::stop_token stop,OnlinePeerTransport *direct) {
-      ControlPresence presence{control_online};
-      require(curl_global_init(CURL_GLOBAL_DEFAULT) == CURLE_OK);
-      std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> client(curl_easy_init(), curl_easy_cleanup);
-      require(bool(client));
-      const auto header = "Authorization: Bearer " + bearer;
-      std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)> headers(curl_slist_append(nullptr, header.c_str()), curl_slist_free_all);
-      curl_easy_setopt(client.get(), CURLOPT_URL, url.c_str());
-      curl_easy_setopt(client.get(), CURLOPT_HTTPHEADER, headers.get());
-      curl_easy_setopt(client.get(), CURLOPT_CONNECT_ONLY, 2L);
-      curl_easy_setopt(client.get(), CURLOPT_PROTOCOLS_STR, "wss,ws");
-      curl_easy_setopt(client.get(), CURLOPT_FOLLOWLOCATION, 0L);
-      curl_easy_setopt(client.get(), CURLOPT_PROXY, "");
-      curl_easy_setopt(client.get(), CURLOPT_NOSIGNAL, 1L);
-      curl_easy_setopt(client.get(), CURLOPT_TIMEOUT_MS, 3000L);
-      curl_easy_setopt(client.get(), CURLOPT_CONNECTTIMEOUT_MS, 2000L);
-      curl_easy_setopt(client.get(), CURLOPT_SSL_VERIFYPEER, 1L);
-      curl_easy_setopt(client.get(), CURLOPT_SSL_VERIFYHOST, 2L);
-#ifdef CURLWS_NOAUTOPONG
-      curl_easy_setopt(client.get(), CURLOPT_WS_OPTIONS, CURLWS_NOAUTOPONG);
-#endif
-      require(curl_easy_perform(client.get()) == CURLE_OK);
-      control_online=true;
-      auto send = [&](const void *bytes, std::size_t size, unsigned flags) {
-        std::size_t offset{};
-        const auto deadline = Clock::now() + std::chrono::milliseconds(500);
-        for (;;) {
-          std::size_t sent{};
-          const auto code = curl_ws_send(client.get(), static_cast<const std::byte*>(bytes)+offset, size-offset, &sent, 0, flags);
-          require(code == CURLE_OK || code == CURLE_AGAIN);
-          offset+=sent;
-          if(offset==size)break;
-          require(!stop.stop_requested() && Clock::now() < deadline);
-          std::this_thread::sleep_for(std::chrono::milliseconds(2));
-        }
-      };
-      std::vector<std::byte> assembled;
-      bool loaded_sent = false, completion_sent = false, confirmation_sent = false;
-      auto last = Clock::now();
-      while (!stop.stop_requested()) {
-        for (unsigned i = 0; i < 256; ++i) {
-          std::byte chunk[1401]; std::size_t count{}; const curl_ws_frame *meta{};
-          const auto result = curl_ws_recv(client.get(), chunk, sizeof(chunk), &count, &meta);
-          if (result == CURLE_AGAIN) break;
-          require(result == CURLE_OK && meta);
-          if(meta->flags&CURLWS_CLOSE) {
-            std::string reason="ONLINE match ended.";
-            if(count>2 && count<=122)reason.assign(reinterpret_cast<const char*>(chunk+2),count-2);
-            const auto code=count>=2?(std::to_integer<unsigned>(chunk[0])<<8)|std::to_integer<unsigned>(chunk[1]):1000;
-            if(direct && code!=1001 && reason!="Match service is restarting.")throw TerminalMatchError(reason);
-            throw std::runtime_error(reason);
-          }
-          last = Clock::now();
-          if (meta->flags & CURLWS_PING) { require(count <= 125 && !meta->bytesleft); send(chunk, count, CURLWS_PONG); continue; }
-          if (meta->flags & CURLWS_PONG) continue;
-          require((meta->flags & (CURLWS_BINARY | CURLWS_TEXT)) && assembled.size() + count <= 119000);
-          assembled.insert(assembled.end(), chunk, chunk + count);
-          if (meta->bytesleft || (meta->flags & CURLWS_CONT)) continue;
-          if (meta->flags & CURLWS_TEXT) {
-            const auto data = Json::parse(reinterpret_cast<const char *>(assembled.data()), reinterpret_cast<const char *>(assembled.data()+assembled.size()));
-            if(data.contains("departed_players")) {
-              require(data.size()==1 && data["departed_players"].is_number_unsigned() &&
-                  data["departed_players"].get<std::uint64_t>()<=UINT16_MAX);
-              const auto mask=data["departed_players"].get<std::uint16_t>();
-              std::lock_guard lock(mutex);
-              require(gameplay_admitted && !(mask&~((1u<<roster.size())-1)));
-              for(const auto &player:roster) {
-                const auto owner=online_admission_peer(player);
-                require(bool(mask&(1u<<player.slot))==bool(mask&(1u<<owner)) &&
-                    (owner!=self || !(mask&(1u<<player.slot))));
-              }
-              departed_players|=mask;
-            } else if(data.contains("voice_auth")) {
-              require(data.size()==1);const auto &value=data["voice_auth"];
-              require(value.is_object()&&value.size()==3&&value["version"]==1&&value["keys"].is_array()&&value["keys"].size()==roster.size());
-              const auto key=[](const Json &text){
-                require(text.is_string());const auto hex=text.get<std::string>();
-                require(hex.size()==64&&hex.find_first_not_of("0123456789abcdef")==std::string::npos);
-                VoiceOrigin::Key result;for(unsigned i=0;i<32;++i)result[i]=std::stoul(hex.substr(i*2,2),nullptr,16);return result;
-              };
-              std::vector<VoiceOrigin::Key> keys;for(const auto &item:value["keys"])keys.push_back(key(item));
-              for(const auto &player:roster)require(keys[player.slot]==keys[online_admission_peer(player)]);
-              std::lock_guard lock(mutex);require(voice_origin.configure(key(value["seed"]),std::move(keys),self));
-            } else if(data.contains("peer_signal")) {
-              require(direct && data.size()==1);
-              const auto &signal=data["peer_signal"];
-              require(signal.is_object() && signal.size()==4 && signal["peer"].is_number_unsigned() &&
-                  signal["type"].is_string() && signal["payload"].is_string() && signal["mid"].is_string());
-              direct->signal({signal["peer"].get<unsigned>(),signal["type"].get<std::string>(),
-                  signal["payload"].get<std::string>(),signal["mid"].get<std::string>()});
-            } else if(data.contains("world_seal")) {
-              require(supports_continuity && data.size()==1);auto seal=parse_seal(data["world_seal"]);
-              std::lock_guard lock(mutex);require(seal.epoch<=continuity_state.epoch);
-              if(seals.size()==64)seals.pop_front();seals.push_back(std::move(seal));
-            } else if(data.contains("postgame")) {
-              require(data.size()==1 && data["postgame"].is_string());
-              const auto hex=data["postgame"].get<std::string>();
-              require(hex.size()==2*0xdc78 && hex.find_first_not_of("0123456789abcdef")==std::string::npos);
-              std::vector<std::byte> bytes;bytes.reserve(0xdc78);
-              for(std::size_t i=0;i<hex.size();i+=2)bytes.push_back(std::byte(std::stoul(hex.substr(i,2),nullptr,16)));
-              std::lock_guard lock(mutex);require(phase==Phase::Running || (direct && (phase==Phase::Reviewing || phase==Phase::Postgame)));
-              require(report.empty() || report==bytes);report=std::move(bytes);phase=Phase::Reviewing;
-            } else if(data.contains("voice_blocked")) {
-              require(data.size()==1 && data["voice_blocked"].is_number_unsigned());
-              const auto mask=data["voice_blocked"].get<unsigned>();
-              require(!(mask&~((1u<<roster.size())-1)) && !(mask&(1u<<self)));
-              std::lock_guard lock(mutex);voice_blocked=std::uint16_t(mask);
-            } else if(data.contains("voice_host")) {
-              require(data.size()==2 && data["voice_host"].is_number_unsigned() && data["voice_members"].is_number_unsigned());
-              const auto leader=data["voice_host"].get<unsigned>(),members=data["voice_members"].get<unsigned>();
-              std::lock_guard lock(mutex);
-              require((phase==Phase::Postgame || ((supports_continuity || transport_options.direct_udp) && phase==Phase::Reviewing)) && leader<roster.size() && (members&(1u<<leader)) &&
-                  (members&(1u<<self)) && !(members&~((1u<<roster.size())-1)));
-              require(online_admission_peer(roster[leader])==leader && !roster[leader].guest);
-              for(const auto &p:roster)require(bool(members&(1u<<p.slot))==bool(members&(1u<<online_admission_peer(p))));
-              if(host!=leader||voice_members!=members)fence_audio();
-              host=leader;voice_members=std::uint16_t(members);
-              postgame_presence_observed=true;
-              for(unsigned slot=0;slot<16;++slot)if(!(members&(1u<<slot)))voice_enabled[slot]=false;
-            } else if(data.contains("completed")) {
-              require(data.size()==1+unsigned(data.contains("recorded")) && data["completed"].is_string());
-              if(data.contains("recorded"))require(data["recorded"].is_boolean());
-              std::lock_guard lock(mutex);require(phase==Phase::Reviewing && !confirmation.empty() && data["completed"].get<std::string>()==digest(report));
-              result_recorded=data.contains("recorded")?std::optional(data["recorded"].get<bool>()):std::nullopt;
-              phase=Phase::Postgame;
-            } else if (data.contains("ping")) {
-              require(data.size() == 1 && data["ping"].is_string() && data["ping"].get<std::string>().size() == 16);
-              const auto pong = Json{{"pong", data["ping"]}}.dump(); send(pong.data(), pong.size(), CURLWS_TEXT);
-            } else {
-              control(data);
-            }
-          } else {
-            require(!direct);
-            const auto offset=supports_continuity?5u:1u;
-            require(assembled.size()>=offset+7 && assembled.size()<=offset+1400);
-            datagram(std::to_integer<unsigned>(assembled.front()),std::span(assembled).subspan(offset),supports_continuity?get(assembled,1,4):0);
-          }
-          assembled.clear();
-        }
-        require(Clock::now() - last < std::chrono::seconds(20));
-        std::function<void()> pump;
-        {std::lock_guard lock(mutex);sync_audio();pump=postgame_voice_pump;}
-        if(pump && !direct)pump();
-        std::deque<Frame> frames;std::deque<std::string> commands; std::string admission, publication, approval;
-        { std::lock_guard lock(mutex); if(!direct)frames.swap(outgoing); if (!loaded_sent && phase == Phase::Loading) admission = loaded;
-          commands.swap(continuation_outgoing);
-          if(!completion_sent && phase==Phase::Running)publication=completion;
-          if(!confirmation_sent && phase==Phase::Reviewing)approval=confirmation; }
-        if (!admission.empty()) { const auto data = Json{{"loaded", admission}}.dump(); send(data.data(), data.size(), CURLWS_TEXT); loaded_sent = true; }
-        for(const auto &command:commands)send(command.data(),command.size(),CURLWS_TEXT);
-        for (auto &frame : frames) {
-          {std::lock_guard lock(mutex);if(frame.data.size()>6&&frame.data[6]==std::byte{6}&&frame.audio_generation!=audio_generation)continue;}
-          if(supports_continuity) {
-            std::vector<std::byte> prefix;put(prefix,frame.epoch,4);
-            frame.data.insert(frame.data.begin(),prefix.begin(),prefix.end());
-          }
-          require(!direct);
-          frame.data.insert(frame.data.begin(), std::byte(frame.peer));
-          send(frame.data.data(), frame.data.size(), CURLWS_BINARY);
-        }
-        if(!publication.empty()) {send(publication.data(),publication.size(),CURLWS_TEXT);completion_sent=true;}
-        if(!approval.empty()) {send(approval.data(),approval.size(),CURLWS_TEXT);confirmation_sent=true;}
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-      }
-      if(direct) {
-        const auto value=Json{{"leave",true}}.dump();
-        try {send(value.data(),value.size(),CURLWS_TEXT);} catch(const std::exception &) {}
-      }
-      std::size_t ignored{};curl_ws_send(client.get(),"",0,&ignored,0,CURLWS_CLOSE);
+        eos_auth_worker=std::jthread([this,direct,room_api,bearer](std::stop_token token){run_eos_authentication(direct,room_api,bearer,token);});
+      ControlIo io(*this,direct.get(),stop);bridge::native_session_run(socket_worker,io);
+    }catch(const std::exception &e){fail(e.what());}
   }
 
 };
@@ -891,12 +888,11 @@ OnlineMatchSession::~OnlineMatchSession() {
   if(impl_->audio)impl_->audio->enable(false);
 }
 OnlineMatchSession::Phase OnlineMatchSession::phase() const { std::lock_guard lock(impl_->mutex); return impl_->phase; }
-std::uint16_t OnlineMatchSession::departed_players() const { std::lock_guard lock(impl_->mutex);return impl_->departed_players|impl_->direct_failed_players; }
+std::uint16_t OnlineMatchSession::departed_players() const { std::lock_guard lock(impl_->mutex);return impl_->departed_players; }
 std::optional<bool> OnlineMatchSession::result_recorded() const { std::lock_guard lock(impl_->mutex);return impl_->result_recorded; }
 std::optional<std::uint16_t> OnlineMatchSession::postgame_presence() const {
-  std::lock_guard lock(impl_->mutex);
-  return !impl_->postgame_presence_closed&&impl_->postgame_presence_observed&&(impl_->phase==Phase::Reviewing||impl_->phase==Phase::Postgame)?
-      std::optional(impl_->voice_members):std::nullopt;
+  std::lock_guard lock(impl_->mutex);const auto p=bridge::native_session_presence(*impl_->controller);
+  return p.present?std::optional(p.members):std::nullopt;
 }
 bool OnlineMatchSession::terminal_recovery_enabled() const{return impl_->transport_options.terminal_recovery;}
 std::optional<OnlineMatchSession::TerminalObservation> OnlineMatchSession::terminal_observation() const {
@@ -909,25 +905,24 @@ std::uint64_t OnlineMatchSession::rejected_direct_dispatches()const noexcept {
 }
 bool OnlineMatchSession::snapshot_candidates_enabled()const{return impl_->transport_options.snapshot_candidates;}
 std::shared_ptr<PeerSnapshotCandidate> OnlineMatchSession::snapshot_candidates()const{
-  std::lock_guard lock(impl_->mutex);
-  return impl_->common_phase()&&impl_->snapshot_supported()?impl_->snapshot_candidate:nullptr;
+  std::lock_guard lock(impl_->mutex);Impl::SnapshotViewIo io(*impl_);bridge::native_session_snapshot_view(io);return std::move(io.selected);
 }
 bool OnlineMatchSession::master_connected() const {return impl_->control_online;}
 std::vector<unsigned> OnlineMatchSession::local_slots() const {
-  std::vector<unsigned> slots;
-  for(const auto &player:impl_->roster)
-    if(online_admission_peer(player)==impl_->self)slots.push_back(player.slot);
-  return slots;
+  return impl_->local_seats;
 }
 unsigned OnlineMatchSession::host() const { std::lock_guard lock(impl_->mutex); return impl_->host; }
 std::optional<bool> OnlineMatchSession::team_mode() const { return impl_->team_mode; }
 const std::vector<OnlineAdmission> &OnlineMatchSession::roster() const { return impl_->roster; }
 std::string OnlineMatchSession::error() const { std::lock_guard lock(impl_->mutex); return impl_->error; }
 std::optional<OnlineContinuityState> OnlineMatchSession::continuity() const {
-  std::lock_guard lock(impl_->mutex);if(!impl_->epoch_packets())return std::nullopt;return impl_->continuity_state;
+  std::lock_guard lock(impl_->mutex);const auto c=bridge::native_session_continuity_view(*impl_->controller);if(!c.present)return std::nullopt;
+  OnlineContinuityState out{c.epoch,c.host,c.members,std::nullopt};if(c.selected.present)out.selected=OnlineWorldSeal{c.selected.epoch,c.selected.tick,std::string(c.selected.digest)};return out;
 }
-std::vector<OnlineWorldSeal> OnlineMatchSession::world_seals() {
-  std::lock_guard lock(impl_->mutex);std::vector<OnlineWorldSeal> result(impl_->seals.begin(),impl_->seals.end());impl_->seals.clear();return result;
+std::vector<OnlineWorldSeal> OnlineMatchSession::world_seals(){
+  std::lock_guard lock(impl_->mutex);std::vector<OnlineWorldSeal> result;
+  for(const auto &s:bridge::native_session_seals(*impl_->controller))result.push_back({s.epoch,s.tick,std::string(s.digest)});
+  return result;
 }
 std::optional<AuthorityTransferContext> OnlineMatchSession::authority_context() const {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
@@ -935,40 +930,27 @@ std::optional<AuthorityTransferContext> OnlineMatchSession::authority_context() 
   return transfer->context();
 }
 bool OnlineMatchSession::authority_supported(unsigned peer) const {
-  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
-  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&transfer->supported(peer);
+  return impl_->capability(bridge::NativeExchangeCapability::Authority,peer);
 }
 bool OnlineMatchSession::authority_replay_supported(unsigned peer) const {
-  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
-  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
-      transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_presented_model_poses);
+  return impl_->capability(bridge::NativeExchangeCapability::Replay,peer);
 }
 bool OnlineMatchSession::authority_pipeline_supported(unsigned peer)const{
-  std::shared_ptr<PeerAuthorityTransfer> transfer;
-  {std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
-  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
-      transfer->feature_supported(peer,authority_feature_source_pipeline);
+  return impl_->capability(bridge::NativeExchangeCapability::Pipeline,peer);
 }
 bool OnlineMatchSession::authority_delivered(unsigned peer,const AuthorityTransferContext &context,const AuthorityCutSeal &seal)const{
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return transfer&&transfer->delivered_to(context,seal,peer);
 }
 bool OnlineMatchSession::authority_host_continuation_supported(unsigned peer)const{
-  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
-  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
-      transfer->feature_supported(peer,authority_feature_source_host_continuation);
+  return impl_->capability(bridge::NativeExchangeCapability::HostContinuation,peer);
 }
 bool OnlineMatchSession::authority_admitted_camera_supported(unsigned peer)const{
-  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
-  return impl_->transport_options.terminal_recovery&&peer<16&&
-      (impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
-      transfer->feature_supported(peer,authority_feature_source_admitted_camera);
+  return impl_->capability(bridge::NativeExchangeCapability::AdmittedCamera,peer);
 }
 std::vector<PeerHostQuality> OnlineMatchSession::host_candidates()const {
-  std::shared_ptr<PeerMeshQuality> quality;unsigned host;Phase phase;
-  {std::lock_guard lock(impl_->mutex);quality=impl_->mesh_quality;host=impl_->host;phase=impl_->phase;}
-  if(!quality||phase==Phase::Connecting||phase==Phase::Failed||quality->context().host!=host)return {};
-  return quality->candidates(transfer_time());
+  auto io=[&]{std::lock_guard lock(impl_->mutex);return Impl::ExchangeIo(*impl_);}();
+  bridge::native_exchange_candidates(io);return std::move(io.candidates);
 }
 std::optional<PeerHostAgreementState> OnlineMatchSession::peer_migration()const{
   std::lock_guard lock(impl_->mutex);
@@ -976,107 +958,30 @@ std::optional<PeerHostAgreementState> OnlineMatchSession::peer_migration()const{
   return impl_->agreement->state(transfer_time());
 }
 OnlineMatchSession::MigrationPreparationStep OnlineMatchSession::migration_preparation_request(){
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  using Outcome=MigrationPreparationOutcome;
-  if(!s.preparation_driver)return {Outcome::Inactive,{}};
-  s.selection_abort();
-  const auto observation=s.preparation_observation(transfer_time());
-  const auto action=s.preparation_driver->step(observation);
-  using Kind=PeerMigrationPreparationActionKind;
-  if(action.kind==Kind::Terminal){s.preparation_terminal();return {Outcome::Terminal,{}};}
-  if(action.kind==Kind::Published)return {Outcome::Published,{}};
-  if(action.kind==Kind::Wait)return {Outcome::Inactive,{}};
-  if(!action.ticket)return {Outcome::Refused,{}};
-  if(action.kind==Kind::Retire&&!s.preparation_driver->reserve_retirement(observation,*action.ticket))return {Outcome::Refused,{}};
-  return {action.kind==Kind::Prepare?Outcome::Preparing:Outcome::Retiring,
-      MigrationPreparationRequest(action.kind==Kind::Prepare?MigrationPreparationKind::Prepare:MigrationPreparationKind::Retire,
-          action.ticket->context,action.ticket->self,action.ticket->id,s.preparation_identity)};
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);const auto result=bridge::native_preparation_request(io);
+  MigrationPreparationStep step{static_cast<MigrationPreparationOutcome>(result.outcome),{}};
+  if(result.ticket.present)step.request=MigrationPreparationRequest(static_cast<MigrationPreparationKind>(result.kind),
+      publication_context(result.ticket.context),result.ticket.self_peer,result.ticket.id,s.preparation_identity);
+  return step;
 }
 OnlineMatchSession::MigrationPreparationOutcome OnlineMatchSession::complete_migration_preparation(
     const MigrationPreparationRequest &request,const std::optional<PeerSurvivorInventory> &inventory){
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  using Outcome=MigrationPreparationOutcome;
-  if(!s.preparation_driver||request.owner_.lock()!=s.preparation_identity)return Outcome::Refused;
-  const PeerMigrationPreparationTicket ticket{request.context(),request.self(),request.id()};
-  s.selection_abort();
-  if(request.kind()==MigrationPreparationKind::Retire){
-    if(inventory)return Outcome::Refused;
-    const auto result=s.preparation_driver->retired(s.preparation_observation(transfer_time()),ticket);
-    switch(result){
-    case PeerMigrationPreparationRetirement::Retryable:return Outcome::Retryable;
-    case PeerMigrationPreparationRetirement::RetiredButFenced:s.preparation_terminal();return Outcome::Terminal;
-    case PeerMigrationPreparationRetirement::Stale:return Outcome::Refused;
-    }
-    return Outcome::Refused;
-  }
-  // This records only the exact caller-retained lease identity. It grants no
-  // native readiness; fresh admission and actual selector publication follow
-  // under this same lock, after all fallible native capture has returned.
-  if(!s.preparation_driver->retained(ticket,inventory?inventory->lease:0))return Outcome::Refused;
-  const auto observation=s.preparation_observation(transfer_time());
-  if(inventory){
-    const auto common=s.common_cut?std::optional{s.common_cut->state()}:std::nullopt;
-    const auto admission=s.preparation_driver->admit_freeze(observation,ticket,*inventory,common);
-    switch(admission.kind){
-    case PeerMigrationPreparationFreezeKind::Publish:{
-      const bool published=s.survivor_selection->publish_inventory(*inventory);
-      if(published||s.survivor_selection->state().failed)s.selection_started=true;
-      s.selection_abort();s.selection_progress();
-      const auto after=s.preparation_driver->step(s.preparation_observation(transfer_time()));
-      if(after.kind==PeerMigrationPreparationActionKind::Terminal){s.preparation_terminal();return Outcome::Terminal;}
-      return after.kind==PeerMigrationPreparationActionKind::Published?Outcome::Published:Outcome::Refused;
-    }
-    case PeerMigrationPreparationFreezeKind::Invalidate:
-      s.survivor_selection->invalidate();s.selection_started=true;s.selection_progress();break;
-    case PeerMigrationPreparationFreezeKind::Retire:break;
-    case PeerMigrationPreparationFreezeKind::Refuse:break;
-    }
-  }
-  const auto action=s.preparation_driver->step(s.preparation_observation(transfer_time()));
-  if(action.kind==PeerMigrationPreparationActionKind::Terminal){s.preparation_terminal();return Outcome::Terminal;}
-  if(action.kind==PeerMigrationPreparationActionKind::Retire)return Outcome::Retiring;
-  if(action.kind==PeerMigrationPreparationActionKind::Published)return Outcome::Published;
-  return Outcome::Refused;
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);io.owner_matches=request.owner_.lock()==s.preparation_identity;
+  io.inventory=inventory?&*inventory:nullptr;
+  const auto ticket=preparation_ticket(PeerMigrationPreparationTicket{request.context(),request.self(),request.id()});
+  return static_cast<MigrationPreparationOutcome>(bridge::native_preparation_complete(io,
+      static_cast<bridge::NativePreparationKind>(request.kind()),ticket,inventory.has_value(),inventory?inventory->lease:0));
 }
 bool OnlineMatchSession::migration_preparation_retiring()const{
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  return s.preparation_driver&&s.preparation_driver->retirement_pending();
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);return bridge::native_preparation_retiring(io);
 }
 bool OnlineMatchSession::prepare_peer_migration(const ValidatedAuthorityCut &cut){
-  std::lock_guard lock(impl_->mutex);
-  if(impl_->preparation_driver&&impl_->preparation_driver->blocks_publication())return false;
-  if(!impl_->peer_handoff_phase()||!impl_->agreement||!impl_->source_admissions)return false;
-  const auto admitted=impl_->source_admissions->accepted();
-  if(!admitted||admitted->context!=cut.context||(impl_->continuity_admissions&&admitted->players!=*impl_->continuity_admissions))return false;
-  if(impl_->transport_options.survivor_cut_selection){
-    impl_->selection_abort();impl_->selection_progress();
-    if(!impl_->selection_started||!impl_->selection_supported()||
-        !impl_->survivor_selection->allows_ready(impl_->self,cut.seal))return false;
-  }
-  const auto result=impl_->agreement->publish_ready(cut);
-  if(result&&impl_->transport_options.survivor_cut_selection)
-    return impl_->survivor_selection->observe_ready(impl_->self,cut.seal);
-  return result;
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);io.ready=&cut;
+  return bridge::native_publication_prepare(io,publication_context(cut.context),preparation_cut(cut.seal));
 }
 bool OnlineMatchSession::freeze_survivor_selection(const AuthorityTransferContext &context,const PeerSurvivorInventory &inventory){
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  if(!s.preparation_driver||!s.survivor_selection||s.survivor_selection->state().context!=context)return false;
-  const auto common=s.common_cut?std::optional(s.common_cut->state()):std::nullopt;
-  const auto observation=s.preparation_observation(transfer_time());
-  switch(s.preparation_driver->admit_external_freeze(observation,inventory,common).kind){
-  case PeerMigrationPreparationFreezeKind::Invalidate:
-    s.survivor_selection->invalidate();s.selection_started=true;s.selection_progress();
-    (void)s.preparation_driver->step(s.preparation_observation(transfer_time()));return false;
-  case PeerMigrationPreparationFreezeKind::Refuse:
-  case PeerMigrationPreparationFreezeKind::Retire:return false;
-  case PeerMigrationPreparationFreezeKind::Publish:break;
-  }
-  const auto result=s.survivor_selection->publish_inventory(inventory);
-  if(result||s.survivor_selection->state().failed)s.selection_started=true;
-  s.selection_abort();s.selection_progress();
-  const auto after=s.preparation_driver->step(s.preparation_observation(transfer_time()));
-  if(after.kind==PeerMigrationPreparationActionKind::Terminal)s.preparation_terminal();
-  return result&&!s.survivor_selection->state().failed;
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);io.inventory=&inventory;
+  return bridge::native_preparation_freeze(io,publication_context(context));
 }
 std::optional<PeerSurvivorSelectionState> OnlineMatchSession::survivor_selection()const{
   std::lock_guard lock(impl_->mutex);
@@ -1084,119 +989,42 @@ std::optional<PeerSurvivorSelectionState> OnlineMatchSession::survivor_selection
   return impl_->survivor_selection->state();
 }
 bool OnlineMatchSession::invalidate_survivor_selection(const AuthorityTransferContext &context,std::optional<AuthorityCutSeal> cut){
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  if(!s.selection_started||!s.survivor_selection||s.survivor_selection->state().context!=context)return false;
-  const auto result=s.survivor_selection->invalidate(cut);s.selection_progress();return result;
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);bridge::MigrationPreparationCut selected;
+  if(cut)selected=preparation_cut(*cut);
+  return bridge::native_preparation_invalidate(io,publication_context(context),selected);
 }
 bool OnlineMatchSession::propose_peer_migration(unsigned peer){
-  std::lock_guard lock(impl_->mutex);
-  if(!impl_->peer_handoff_phase()||!impl_->agreement)return false;
-  if(impl_->transport_options.survivor_cut_selection&&(!impl_->selection_started||!impl_->selection_supported()||
-      !impl_->survivor_selection->state().selection_complete||impl_->survivor_selection->state().failed))return false;
-  const auto result=impl_->agreement->propose(peer,transfer_time());impl_->fence_peer_generation();return result;
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);return bridge::native_publication_propose(io,peer);
 }
 std::optional<unsigned> OnlineMatchSession::migration_candidate()const{
   std::lock_guard lock(impl_->mutex);return impl_->migration_candidate(transfer_time());
 }
 bool OnlineMatchSession::propose_peer_migration(){
-  std::lock_guard lock(impl_->mutex);const auto now=transfer_time();const auto peer=impl_->migration_candidate(now);
-  if(!peer)return false;
-  const bool result=impl_->agreement->propose(*peer,now);impl_->fence_peer_generation();return result;
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);return bridge::native_publication_propose_automatic(io);
 }
 bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision){
   return finish_peer_migration(decision,nullptr,nullptr);
 }
 bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision,NativeCommit commit,void *native){
-  auto &s=*impl_;std::lock_guard lock(s.mutex);
-  if(!s.peer_handoff_phase()||!s.agreement||!s.agreement_context||!s.authority||!s.source_admissions)return false;
-  if(s.transport_options.survivor_cut_selection){
-    s.selection_abort();s.selection_progress();
-    if(!s.selection_started||!s.selection_supported()||!s.survivor_selection->allows_ready(s.self,decision.value.cut))return false;
-  }
-  const auto agreement_state=s.agreement->state(transfer_time());
-  const auto &learned=agreement_state.decision;
-  if(!learned||*learned!=decision||decision.previous!=*s.agreement_context||s.agreement_history.size()>=15||
-      !(decision.next.peers&(1u<<s.self))||s.authority->context()!=decision.previous)return false;
-  if(s.common_cut){const auto common=s.common_cut->state();
-    if(common.abort&&common.pending&&common.pending->context==decision.previous&&common.pending->seal==decision.value.cut)return false;
-  }
-  // Majority election selects a host; it does not prove every physical
-  // survivor retained that exact preparation. Rust enforces the fixed set
-  // before any successor owner is allocated or native publication is called.
-  std::array<online_protocol_bridge::MigrationPreparationCut,16> prepared{};
-  for(unsigned peer=0;peer<prepared.size();++peer)
-    if(agreement_state.ready[peer])prepared[peer]=preparation_cut(*agreement_state.ready[peer]);
-  const auto selected=preparation_cut(decision.value.cut);
-  if(!online_protocol_bridge::all_survivors_prepared(decision.previous.peers,decision.next.peers,
-      std::uint8_t(decision.previous.host),std::uint8_t(decision.value.host),selected,
-      {prepared.data(),prepared.size()}))return false;
-  const auto prior=s.source_admissions->accepted();
-  if(!prior||prior->context!=decision.previous||(s.continuity_admissions&&*s.continuity_admissions!=prior->players))return false;
-  if(s.audio&&!s.audio->ready(s.audio_generation))return false;
-  if(s.snapshot_candidate){const auto candidate=s.snapshot_candidate->state();
-    if(candidate.pending&&!(candidate.retired&(std::uint16_t(1)<<s.self)))return false;
-  }
-  // Construct every successor owner before publication. Outstanding old-context
-  // workers retain only their old objects and cannot reset a new epoch.
-  auto transfer=std::make_shared<PeerAuthorityTransfer>(s.self,decision.next,source_transfer_limits(s.transport_options.snapshot_candidates,s.transport_options.survivor_cut_selection));
-  std::shared_ptr<PeerSourceAdmissions> admissions=PeerSourceAdmissions::resume_after_host_loss(s.self,decision.next,s.roster,*prior);
-  std::shared_ptr<PeerMeshQuality> quality;
-  std::shared_ptr<PeerHostAgreement> agreement;
-  std::shared_ptr<PeerCommonCutAgreement> common;
-  std::shared_ptr<PeerSurvivorSelection> selection;
-  std::unique_ptr<PeerMigrationPreparation> preparation;
-  auto preparation_identity=std::make_shared<const unsigned char>(0);
-  std::shared_ptr<PeerSnapshotCandidate> candidate;
-  if(std::popcount(decision.next.peers)>1){
-    quality=std::make_shared<PeerMeshQuality>(s.self,decision.next);
-    agreement=std::make_shared<PeerHostAgreement>(s.self,decision.next,transfer_time());
-    common=std::make_shared<PeerCommonCutAgreement>(s.self,decision.next);
-    if(s.transport_options.survivor_cut_selection&&s.self!=decision.next.host){
-      selection=std::make_shared<PeerSurvivorSelection>(s.self,decision.next);
-      preparation=std::make_unique<PeerMigrationPreparation>(s.self,decision.next);
-    }
-    if(s.transport_options.snapshot_candidates)candidate=std::make_shared<PeerSnapshotCandidate>(s.self,decision.next);
-  }
-  std::uint16_t members{};
-  for(const auto &p:s.roster)if(decision.next.peers&(1u<<online_admission_peer(p)))members|=std::uint16_t(1u<<p.slot);
-  auto continuity_players=prior->players;
-  if(commit&&!commit(native))return false;
-  s.continuity_admissions=std::move(continuity_players);s.authority=std::move(transfer);s.source_admissions=std::move(admissions);s.mesh_quality=std::move(quality);
-  s.common_cut=std::move(common);
-  s.survivor_selection=std::move(selection);s.selection_started=false;
-  s.preparation_driver=std::move(preparation);s.preparation_identity=std::move(preparation_identity);
-  s.snapshot_candidate=std::move(candidate);
-  s.agreement_history.push_back({*s.agreement_context,s.agreement});
-  s.agreement=std::move(agreement);s.agreement_context=decision.next;s.peer_fenced=false;
-  s.host=decision.next.host;s.continuity_state={decision.next.epoch,s.host,members,std::nullopt};s.voice_members=members;
-  for(unsigned slot=0;slot<16;++slot)if(!(members&(1u<<slot)))s.voice_enabled[slot]=false;
-  s.incoming.clear();s.outgoing.clear();s.voices.clear();s.phase=Phase::Running;
-  s.sync_audio();
-  return true;
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);io.decision=&decision;io.commit=commit;io.native=native;
+  return bridge::native_publication_finish(io,publication_decision(decision));
 }
 bool OnlineMatchSession::publish_source_players(const AuthorityTransferContext &context,std::span<const SourcePlayerAdmission> players) {
-  std::shared_ptr<PeerSourceAdmissions> admissions;
-  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
-    if(impl_->continuity_admissions&&!std::ranges::equal(players,*impl_->continuity_admissions))return false;
-    admissions=impl_->source_admissions;}
-  return admissions&&admissions->publish(context,players);
+  auto io=[&]{std::lock_guard lock(impl_->mutex);return Impl::ExchangeIo(*impl_);}();io.context=&context;io.players=players;
+  const auto rows=publication_players(players);return bridge::native_exchange_source_publish(io,{rows.data(),rows.size()});
 }
 std::optional<AcceptedSourcePlayers> OnlineMatchSession::source_players()const {
-  std::lock_guard lock(impl_->mutex);const auto admissions=impl_->source_admissions;
-  const auto value=admissions?admissions->accepted():std::nullopt;
-  if(value&&impl_->continuity_admissions&&value->players!=*impl_->continuity_admissions)return std::nullopt;
-  return value;
+  std::lock_guard lock(impl_->mutex);Impl::ExchangeIo io(*impl_);
+  return bridge::native_exchange_source_visible(io)?std::move(io.accepted):std::nullopt;
 }
 bool OnlineMatchSession::source_players_confirmed(unsigned peer)const {
-  std::shared_ptr<PeerSourceAdmissions> admissions;{std::lock_guard lock(impl_->mutex);admissions=impl_->source_admissions;}
-  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&admissions&&admissions->confirmed(peer);
+  return impl_->capability(bridge::NativeExchangeCapability::SourceConfirmed,peer);
 }
 AuthorityCutSeal OnlineMatchSession::publish_authority(const AuthorityTransferContext &context,std::uint64_t tick,
     std::vector<std::byte> archive,std::span<const unsigned> targets) {
-  std::shared_ptr<PeerAuthorityTransfer> transfer;
-  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
-    transfer=impl_->authority;require(bool(transfer));}
-  return transfer->publish(context,tick,std::move(archive),targets,transfer_time());
+  auto io=[&]{std::lock_guard lock(impl_->mutex);return Impl::ExchangeIo(*impl_);}();
+  io.context=&context;io.tick=tick;io.archive=std::move(archive);io.targets=targets;
+  return publication_cut(bridge::native_exchange_authority_publish(io,false));
 }
 std::optional<ReceivedAuthorityCut> OnlineMatchSession::received_authority() {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
@@ -1205,10 +1033,9 @@ std::optional<ReceivedAuthorityCut> OnlineMatchSession::received_authority() {
 }
 AuthorityCutSeal OnlineMatchSession::publish_authority_ahead(const AuthorityTransferContext &context,const AuthorityCutSeal &previous,
     std::uint64_t tick,std::vector<std::byte> bytes,unsigned target){
-  std::shared_ptr<PeerAuthorityTransfer> transfer;
-  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
-    transfer=impl_->authority;require(bool(transfer));}
-  return transfer->publish_ahead(context,previous,tick,std::move(bytes),target,transfer_time());
+  auto io=[&]{std::lock_guard lock(impl_->mutex);return Impl::ExchangeIo(*impl_);}();
+  io.context=&context;io.previous=&previous;io.tick=tick;io.archive=std::move(bytes);io.target=target;
+  return publication_cut(bridge::native_exchange_authority_publish(io,true));
 }
 bool OnlineMatchSession::acknowledge_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
@@ -1224,165 +1051,81 @@ std::vector<ValidatedAuthorityCut> OnlineMatchSession::validated_authority() {
   return transfer->validated_cuts();
 }
 std::optional<PeerCommonCutState> OnlineMatchSession::common_cut()const{
-  std::lock_guard lock(impl_->mutex);if(!impl_->common_supported())return {};
-  return impl_->common_cut->state();
+  std::lock_guard lock(impl_->mutex);Impl::ExchangeIo io(*impl_);bridge::native_exchange_common_view(io);return std::move(io.common_result);
 }
-bool OnlineMatchSession::offer_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::offer);}
-bool OnlineMatchSession::confirm_common_cut_native(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::confirm_native);}
-bool OnlineMatchSession::associate_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::associate);}
-bool OnlineMatchSession::apply_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::apply);}
-bool OnlineMatchSession::release_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::release);}
-bool OnlineMatchSession::reject_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::reject);}
-bool OnlineMatchSession::abort_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::abort);}
-bool OnlineMatchSession::acknowledge_common_cut_abort(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::acknowledge_abort,true);}
+bool OnlineMatchSession::offer_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Offer);}
+bool OnlineMatchSession::confirm_common_cut_native(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::ConfirmNative);}
+bool OnlineMatchSession::associate_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Associate);}
+bool OnlineMatchSession::apply_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Apply);}
+bool OnlineMatchSession::release_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Release);}
+bool OnlineMatchSession::reject_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Reject);}
+bool OnlineMatchSession::abort_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::Abort);}
+bool OnlineMatchSession::acknowledge_common_cut_abort(const PeerCommonCut &cut){return impl_->common_action(cut,bridge::NativeExchangeCommonAction::AcknowledgeAbort);}
 void OnlineMatchSession::seal_world(std::uint64_t tick,const std::string &hash) {
-  std::lock_guard lock(impl_->mutex);require(impl_->phase==Phase::Running && impl_->host==impl_->self);
-  impl_->queue_world("world_seal",{impl_->continuity_state.epoch,tick,hash});
+  std::lock_guard lock(impl_->mutex);impl_->world_request(0,tick,hash);
 }
 void OnlineMatchSession::acknowledge_world(const OnlineWorldSeal &seal) {
-  std::lock_guard lock(impl_->mutex);
-  require((impl_->phase==Phase::Running && seal.epoch==impl_->continuity_state.epoch) ||
-      (impl_->phase==Phase::AwaitingWorld && seal.epoch+std::uint64_t{1}==impl_->continuity_state.epoch));
-  impl_->queue_world("world_ack",seal);
+  std::lock_guard lock(impl_->mutex);impl_->world_request(1,seal.tick,seal.digest,seal.epoch);
 }
 void OnlineMatchSession::accept_migration(std::uint64_t tick,const std::string &hash) {
-  std::lock_guard lock(impl_->mutex);const auto &selected=impl_->continuity_state.selected;
-  require(impl_->phase==Phase::Migrating && impl_->self==impl_->host && selected && selected->tick==tick && selected->digest==hash);
-  impl_->queue_world("migration_accept",*selected);
+  std::lock_guard lock(impl_->mutex);impl_->world_request(2,tick,hash);
 }
 void OnlineMatchSession::rebind_migration(std::uint64_t tick,const std::string &hash) {
-  std::lock_guard lock(impl_->mutex);const auto &selected=impl_->continuity_state.selected;
-  require(impl_->phase==Phase::Rebinding && impl_->self!=impl_->host && selected && selected->tick==tick && selected->digest==hash);
-  impl_->queue_world("migration_rebind",*selected);
+  std::lock_guard lock(impl_->mutex);impl_->world_request(3,tick,hash);
 }
-void OnlineMatchSession::loaded(std::uint64_t fingerprint,const UiVariant& variant) {
-  // The cache/weapon fingerprint alone does not distinguish score limits,
-  // clocks, life limits or the other authored variant settings.
-  const auto source=source_game_variant(variant);std::vector<std::byte> admitted;
-  for(unsigned i=0;i<8;++i)admitted.push_back(std::byte(fingerprint>>(8*i)));
-  for(auto byte:source.bytes)admitted.push_back(std::byte(byte));
-  for(const auto &[id,value]:variant.values)if(id>=native_slayer_ruleset_parameter)
-    for(auto word:{id,unsigned(value)})for(unsigned i=0;i<4;++i)admitted.push_back(std::byte(word>>(8*i)));
-  std::ostringstream value; value << digest(admitted).substr(0,16) << ':' << std::hex << std::setfill('0') << std::setw(7) << native_multiplayer_protocol;
-  std::lock_guard lock(impl_->mutex); impl_->loaded = value.str();impl_->native_fingerprint=fingerprint;
+void OnlineMatchSession::loaded(std::uint64_t fingerprint,const UiVariant& variant){
+  const auto source=source_game_variant(variant);std::vector<bridge::NativeSessionParameter> parameters;
+  for(const auto &[id,value]:variant.values){bridge::NativeSessionParameter out;out.id=id;out.value=value;parameters.push_back(out);}
+  std::lock_guard lock(impl_->mutex);
+  bridge::native_session_loaded(*impl_->controller,fingerprint,{source.bytes.data(),source.bytes.size()},{parameters.data(),parameters.size()});impl_->refresh();
 }
 std::optional<std::uint64_t> OnlineMatchSession::loaded_fingerprint()const{
   std::lock_guard lock(impl_->mutex);return impl_->native_fingerprint;
 }
-void OnlineMatchSession::send(std::span<const std::byte> packet, unsigned peer) {
-  std::lock_guard lock(impl_->mutex);
-  impl_->fence_peer_generation();
-  if (impl_->phase != Phase::Running || peer >= impl_->roster.size() || packet.size() > 1400 || impl_->outgoing.size() >= 512) return;
-  if(impl_->epoch_packets() && !(impl_->continuity_state.members&(1u<<peer)))return;
-  impl_->outgoing.push_back({peer, {packet.begin(), packet.end()},impl_->continuity_state.epoch});
+void OnlineMatchSession::send(std::span<const std::byte> packet,unsigned peer){
+  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_send(io,peer,wire(packet));});
 }
-bool OnlineMatchSession::receive(std::vector<std::byte> &packet, unsigned &peer) {
-  std::lock_guard lock(impl_->mutex);
-  impl_->fence_peer_generation();
-  if (impl_->incoming.empty()) return false;
-  auto frame = std::move(impl_->incoming.front()); impl_->incoming.pop_front();
-  peer = frame.peer; packet = std::move(frame.data); return true;
+bool OnlineMatchSession::receive(std::vector<std::byte> &packet,unsigned &peer){
+  Impl::ApiIo io(*impl_);io.received_bytes=&packet;io.received_peer=&peer;
+  return io.invoke([&]{return bridge::native_api_receive(io);});
 }
-void OnlineMatchSession::voice(unsigned target,const GameVoiceFrame &frame) {
-  if(frame.source>=16 || frame.opus.empty() || frame.opus.size()>256)return;
-  auto packet=voice_header(0);put(packet,frame.source,1);put(packet,frame.sequence,4);put(packet,frame.radio,1);
-  put(packet,std::bit_cast<unsigned>(frame.gains.left),4);put(packet,std::bit_cast<unsigned>(frame.gains.right),4);
-  for(auto byte:frame.opus)packet.push_back(std::byte(byte));
-  std::lock_guard lock(impl_->mutex);
-  impl_->fence_peer_generation();
-  impl_->sync_audio();
-  std::optional<VoiceOrigin::Signature> signature;
-  if(frame.source>=impl_->roster.size())return;
-  const auto owner=online_admission_peer(impl_->roster[frame.source]);
-  if(owner==impl_->self && target<16 && !(impl_->voice_blocked&(1u<<target)))
-    signature=impl_->voice_origin.sign(packet,impl_->continuity_state.epoch,target);
-  if(!signature)return;
-  packet.insert(packet.end(),signature->begin(),signature->end());
-  if(impl_->audio&&(frame.delivery_generation!=impl_->audio_generation||!impl_->audio->ready(impl_->audio_generation)))return;
-  if((impl_->phase==Phase::Running || impl_->phase==Phase::Reviewing || impl_->phase==Phase::Postgame) &&
-      target<impl_->roster.size() && (!impl_->epoch_packets()||(impl_->voice_members&(1u<<target)))&&impl_->outgoing.size()<512)impl_->outgoing.push_back({target,std::move(packet),impl_->continuity_state.epoch,impl_->audio_generation});
+void OnlineMatchSession::voice(unsigned target,const GameVoiceFrame &frame){
+  Impl::ApiIo io(*impl_);io.frame=&frame;io.invoke([&]{bridge::native_api_voice(io,target);});
 }
-void OnlineMatchSession::voice_preferences(unsigned target,bool enabled,std::uint16_t muted) {
-  auto packet=voice_header(1);put(packet,enabled,1);put(packet,muted,2);
-  std::lock_guard lock(impl_->mutex);
-  impl_->fence_peer_generation();
-  if((impl_->phase==Phase::Running || impl_->phase==Phase::Reviewing || impl_->phase==Phase::Postgame) &&
-      target<impl_->roster.size() && (!impl_->epoch_packets()||(impl_->voice_members&(1u<<target)))&&impl_->outgoing.size()<512)impl_->outgoing.push_back({target,std::move(packet),impl_->continuity_state.epoch,impl_->audio_generation});
+void OnlineMatchSession::voice_preferences(unsigned target,bool enabled,std::uint16_t muted){
+  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_preferences(io,target,enabled,muted);});
 }
 std::uint16_t OnlineMatchSession::voice_blocks() const {std::lock_guard lock(impl_->mutex);return impl_->voice_blocked;}
-std::vector<MatchVoicePacket> OnlineMatchSession::voice_packets() {
-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();std::vector<MatchVoicePacket> packets(impl_->voices.begin(),impl_->voices.end());impl_->voices.clear();return packets;
+std::vector<MatchVoicePacket> OnlineMatchSession::voice_packets(){
+  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_voices(io);});return std::move(io.voices);
 }
 void OnlineMatchSession::retain_voice(std::shared_ptr<GameVoice> audio) {
-  std::lock_guard lock(impl_->mutex);require(!impl_->audio || impl_->audio==audio);
-  if(impl_->audio==audio)return;
-  impl_->audio=std::move(audio);impl_->fence_audio();impl_->sync_audio();
+  Impl::ApiIo io(*impl_);io.incoming_audio=std::move(audio);
+  require(io.invoke([&]{return bridge::native_api_retain_audio(io);}));
 }
 std::shared_ptr<GameVoice> OnlineMatchSession::retained_voice() const {
   std::lock_guard lock(impl_->mutex);return impl_->audio;
 }
 bool OnlineMatchSession::postgame_voice_enabled(unsigned slot) const {
-  std::lock_guard lock(impl_->mutex);return slot<impl_->roster.size() && (impl_->voice_members&(1u<<slot)) && impl_->voice_enabled[online_admission_peer(impl_->roster[slot])];
+  std::lock_guard lock(impl_->mutex);return bridge::native_session_voice_enabled(*impl_->controller,slot);
 }
 void OnlineMatchSession::update_postgame_voice(bool focused) {
   impl_->voice_focused=focused;
 }
 void OnlineMatchSession::pump_postgame_voice() {
-  const auto audio=retained_voice();if(!audio)return;
-  const auto phase_now=phase();
-  if(phase_now==Phase::Failed){audio->enable(false);return;}
-  if(phase_now!=Phase::Reviewing && phase_now!=Phase::Postgame)return;
-  audio->focus(impl_->voice_focused);audio->radio(false,true);
-  audio->blocks(voice_blocks());
-  const auto selected=audio->snapshot();const auto local=self();
-  {std::lock_guard lock(impl_->mutex);impl_->voice_enabled[local]=selected.enabled;impl_->voice_mutes[local]=selected.muted;}
-  const auto now=Clock::now();
-  const double elapsed=std::chrono::duration<double>(now-impl_->voice_credit_at).count();impl_->voice_credit_at=now;
-  for(auto &credit:impl_->voice_credits)credit=std::min(10.,credit+50*elapsed);
-  const bool announce=now-impl_->voice_preferences_at>std::chrono::milliseconds(200);
-  if(announce) {
-    impl_->voice_preferences_at=now;
-    for(const auto &member:roster())if(online_admission_peer(member)==member.slot && member.slot!=local)
-      voice_preferences(member.slot,selected.enabled,selected.muted | selected.blocked);
-  }
-  auto route=[&](GameVoiceFrame frame) {
-    const auto source=frame.source;if(source>=roster().size() || !(impl_->voice_members&(1u<<source)))return;
-    if(frame.sequence<=impl_->voice_sequences[source] || impl_->voice_credits[source]<1)return;
-    impl_->voice_credits[source]-=1;
-    impl_->voice_sequences[source]=frame.sequence;
-    // Original passive mode2 uses session membership, without world distance
-    // or team filtering. Both ends' actual mute/enable preferences still apply.
-    for(const auto &p:roster())if(online_admission_peer(p)==p.slot && p.slot!=online_admission_peer(roster()[source]) && (impl_->voice_members&(1u<<p.slot)) && impl_->voice_enabled[source] && impl_->voice_enabled[p.slot] &&
-        !(impl_->voice_mutes[source]&(1u<<p.slot)) && !(impl_->voice_mutes[p.slot]&(1u<<source))) {
-      frame.gains={1,1};frame.radio=false;
-      if(p.slot==local)audio->receive(frame);else voice(p.slot,frame);
-    }
-  };
-  for(auto &packet:voice_packets()) {
-    if(packet.peer>=roster().size() || packet.peer==local)continue;
-    if(packet.preferences) {
-      std::lock_guard lock(impl_->mutex);impl_->voice_enabled[packet.peer]=packet.enabled;impl_->voice_mutes[packet.peer]=packet.muted;
-    } else audio->receive(std::move(packet.frame));
-  }
-  for(auto &frame:audio->outgoing()){frame.source=local;route(std::move(frame));}
+  Impl::PostgameIo io(*impl_);bridge::native_session_pump_postgame(io);
 }
+
 void OnlineMatchSession::close_postgame() {
-  {std::lock_guard lock(impl_->mutex);impl_->postgame_presence_closed=true;impl_->postgame_presence_observed=false;}
-  if(const auto audio=retained_voice())audio->close();
-  impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
+  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_close(io);});
 }
-void OnlineMatchSession::complete(std::span<const std::byte> report) {
-  require(report.size()==0xdc78);
-  std::string hex;hex.reserve(report.size()*2);constexpr char digits[]="0123456789abcdef";
-  for(auto b:report){auto n=std::to_integer<unsigned>(b);hex+=digits[n>>4];hex+=digits[n&15];}
-  std::lock_guard lock(impl_->mutex);require(impl_->self==impl_->host && impl_->phase==Phase::Running);
-  if(impl_->completion.empty())impl_->completion=Json{{"postgame",hex}}.dump();
+void OnlineMatchSession::complete(std::span<const std::byte> report){
+  std::lock_guard lock(impl_->mutex);bridge::native_session_complete(*impl_->controller,wire(report));
 }
-void OnlineMatchSession::confirm_result() {
-  std::lock_guard lock(impl_->mutex);require(impl_->phase==Phase::Reviewing && impl_->report.size()==0xdc78);
-  if(impl_->confirmation.empty())impl_->confirmation=Json{{"confirm_result",digest(impl_->report)}}.dump();
+void OnlineMatchSession::confirm_result(){
+  std::lock_guard lock(impl_->mutex);bridge::native_session_confirm(*impl_->controller);
 }
-std::vector<std::byte> OnlineMatchSession::postgame() const {
-  std::lock_guard lock(impl_->mutex);return impl_->report;
+std::vector<std::byte> OnlineMatchSession::postgame()const{
+  std::lock_guard lock(impl_->mutex);return native_bytes(bridge::native_session_postgame(*impl_->controller));
 }
 } // namespace halo2

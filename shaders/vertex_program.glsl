@@ -36,7 +36,13 @@ vec4 vpConstant(uint index) {
     // uploads it as c6. Reversing this flips the authored face/edge gel colors.
     if(index==6u)return vec4(-camera.eyeForward.xyz,2);
     if(index==7u)return vec4(camera.eyePosition.xyz,767.8125);
-    if(index>=8u && index<12u)return retailViewportConstant(index,camera.viewport,1.0,false,false,0u);
+    if(index>=8u && index<12u)return retailViewportConstant(index,
+#ifdef H2_PATH_TRACING_SOURCE_DEPTH
+        traceSourceProjection.viewport,
+#else
+        camera.viewport,
+#endif
+        1.0,false,false,0u);
     if(index>=12u && index<18u && camera.eyeForward.w!=0.0)return material.fogConstants[index-12u];
     if(index>=18u && index<34u)return material.vertexConstants[index-18u];
     if(index==172u)return vec4(1,1,0,0); // UVs already decompressed by the cache reader.

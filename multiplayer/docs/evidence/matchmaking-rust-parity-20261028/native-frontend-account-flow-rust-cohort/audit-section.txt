@@ -1,0 +1,43 @@
+## Native account observation and join continuation in Rust (2026-11-02)
+
+`matchmaking_frontend_account_flow` now owns the complete native account-refresh
+observer and pending friend-join continuation. It selects identity/profile names,
+admits changed account/voice revisions, bounds and orders notifications, handles
+accepted joins and departures, switches requested party voice, prunes invitations,
+and preserves retained-panel focus by opaque member identity. The existing Rust
+party controller owns the pending join serial, account name, voice group and voice
+intent; their four former C++ fields are removed. Rust also composes the voice flag
+passed into matchmaking search. C++ retains worker, device and primitive frame IO.
+
+All three Rust suites pass **702 tests**, including sixteen new account-flow
+controls; four existing environment-dependent tests remain ignored. The exact
+captured modern observer and production Rust/CXX adapter agree over **1,547
+cases**, with **8,804 callback-boundary state observations and Rust reentries**.
+All **72 injected standard/nonstandard native exceptions** preserve their original
+identity/value and side-effect prefix. The tests cover unsigned serials and
+indices, raw identity bytes, revision short-circuits, retained parties at sign-in,
+join/departure guards, voice constructor/join failures, duplicate member labels,
+search focus, partial population failures and real continuation reentry.
+
+The frozen native cohort passes **@NATIVE_COUNT@ checks without skips**, including
+the actual SDL/Vulkan playlist, Start, privacy and party-pixel controls, native
+matchmaking/gathering HTTP, and existing original-bound lobby/team fixtures.
+Compiled-object checks confirm that both native observer entry points reach this
+Rust owner and that the four duplicate C++ fields are absent. The initial harness
+omitted its native-friends flag; its corrected run is the accepted comparison.
+Two initial unit fixtures reused an already committed worker revision and were
+corrected to advance that revision, preserving the observer's existing guard.
+The first full native build exposed an older party comparator's missing voice
+getter; that fixture now reads the real Rust controller, with its cases and
+expected outputs preserved. Only that test and its link dependency were refreshed.
+
+[The bounded receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-account-flow-rust-validation.json)
+records source identities, comparison limits and verified scratch cleanup. This
+ports modern client behavior; it adds no original Live provider or TU1.5 recovery
+claim. Native account/provider binding, friends/clan menus and actions, team
+editing, postgame policy and every remaining matchmaking policy/state owner still
+require work. Full original callers, historical profiles/ordering/arbitration,
+natural played-world outcomes, genuine providers, physical installed Linux input
+and delivered G01-G12 restart/retry/configuration/rollback acceptance remain open.
+All twelve GAP records, 53 algorithm IDs and full goal criteria are unchanged.
+

@@ -1,0 +1,6 @@
+{
+  "matched_rust_input_count": 253,
+  "mismatches": [],
+  "full_rust_suite": "rust/report.json",
+  "native_report": "native/iteration-4-report.json"
+}

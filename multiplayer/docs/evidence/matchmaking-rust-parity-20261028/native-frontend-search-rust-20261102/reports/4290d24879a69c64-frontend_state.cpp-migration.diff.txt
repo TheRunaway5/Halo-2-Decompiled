@@ -1,0 +1,101 @@
+--- tests/reference/frontend_search_before_rust_20261102/frontend_state.cpp.reference
++++ src/ui/frontend_state.cpp
+@@ -283,7 +283,7 @@
+   online_prior_report_.reset();
+   if(online_account_)online_account_->sign_out();account_={};
+   if(online_matchmaking_)online_matchmaking_->sign_out();
+-  matchmaking_active_=quickmatch_pending_=false;
++  matchmaking_search_.stop();
+   if(online_voice_)online_voice_->leave();
+   if(discord_social_)discord_social_->disconnect();
+   dismissed_party_invites_.clear();
+@@ -304,7 +304,7 @@
+   // End its completed/abandoned intent explicitly; renderer teardown keeps
+   // the retained service alive, and a later Start needs a fresh queue intent.
+   if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-  quickmatch_pending_=false;
++  matchmaking_search_.quick(false);
+   reset_online_matchmaking_progress();
+   return_online();
+   if(frame().screen==20){pending_online_screen_=14;pending_online_context_=0;}
+@@ -355,7 +355,7 @@
+     if (status.status == DiscordLoginStatus::Failed) awaiting_discord_login_ = false;
+   } else if (!status.identity && std::any_of(stack_.begin(), stack_.end(), [](const auto &f) { return online_screen(f.screen); })) {
+     if (online_matchmaking_) online_matchmaking_->sign_out();
+-    matchmaking_active_ = quickmatch_pending_ = false;
++    matchmaking_search_.stop();
+     while (stack_.size() > 1 && frame().screen != 6) stack_.pop_back();
+     open(20);
+   }
+@@ -1041,16 +1041,12 @@
+     // Custom Game/Create Party from the ONLINE menu forms a lobby with no
+     // matchmaking hopper; matchmaking returns re-mark it afterwards.
+     if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_.exit();}
+-    if(online_account_ && !account_.party && !online_account_->snapshot().busy)
+-      online_account_->party_command({"create"});
+-    if(!matchmaking_active_)refresh_online_matchmaking();
++    search_drive(FrontendSearchAction::OpenedLobby);
+   }
+   if (screen == 219 && context == online_server_browser_context) refresh_online_directory();
+   if ((screen == 219 || screen == 237) && context == 0) refresh_online_matchmaking();
+   if (screen == 210) {
+-    quickmatch_pending_ = true;
+-    if (!matchmaking_active_) refresh_online_matchmaking();
+-    update_online_matchmaking();
++    search_drive(FrontendSearchAction::OpenedSearch);
+   }
+   preview_appearance_selection();
+   if (screen == 167) {
+@@ -1583,15 +1579,7 @@
+       lobby_session_action_(f.selected?FrontendLobbySessionAction::Setup:FrontendLobbySessionAction::Start))return;
+   if (f.screen == 210) return;
+   if ((f.screen == 219 || f.screen == 237) && f.context == 0) {
+-    if (f.selected < matchmaking_.playlists.size()) {
+-      const auto &playlist=matchmaking_.playlists[f.selected];
+-      if(!playlist.eligible){
+-        pending_ui_sounds_.push_back(FrontendUiSound::Error);
+-        unavailable("This playlist is unavailable for your ONLINE client, party, or installed maps. Use an updated ONLINE build and check the playlist's party and map requirements.");
+-        return;
+-      }
+-      selected_playlist_=playlist.id;prepare_online_matchmaking_lobby(false);
+-    } else refresh_online_matchmaking();
++    search_drive(FrontendSearchAction::Select,f.selected);
+     return;
+   }
+   if (f.screen == 219 && f.context == online_server_browser_context) {
+@@ -1614,7 +1602,7 @@
+       }
+       else {
+         if (online_matchmaking_) online_matchmaking_->sign_out();
+-        matchmaking_active_ = quickmatch_pending_ = false;
++        matchmaking_search_.stop();
+         if (online_account_) online_account_->sign_out();
+         if (online_voice_) online_voice_->leave();
+         party_voice_wanted_=false;
+@@ -1860,7 +1848,7 @@
+   } else if (entry.destination == -16) {
+     // 0x252150 "Leave Matchmaking": cancel the search; party A returns to
+     // pre-game, which 0x19B1C9 presents as pregame lobby14 pane2.
+-    quickmatch_pending_ = false;
++    matchmaking_search_.quick(false);
+     if (online_matchmaking_) online_matchmaking_->cancel_queue();
+     reset_online_matchmaking_progress();
+     while (stack_.size() > 1 && frame().screen != 186) stack_.pop_back();
+@@ -2065,7 +2053,7 @@
+     // TU1.5 0x25217B: once a game is found (pane2+), Cancel is refused with
+     // UI sound2 until that pane has been current for a minute.
+     if (!matchmaking_progress_cancel_allowed(online_matchmaking_progress_pane(),
+-                                             ui_clock_ - matchmaking_pane_clock_)) {
++                                             ui_clock_ - matchmaking_search_.clock())) {
+       if (pending_ui_sounds_.size() < 16) pending_ui_sounds_.push_back(FrontendUiSound::Error);
+       back_refused_ = true;
+       return;
+@@ -2819,7 +2807,7 @@
+           // 22D52E/22D566 retain party A's selected hopper. The service
+           // catalog supplies its actual public name/description.
+           if(const auto hopper=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
+-              [&](const auto &p){return p.id==selected_playlist_;});hopper!=matchmaking_.playlists.end())
++              [&](const auto &p){return p.id==matchmaking_search_.selected();});hopper!=matchmaking_.playlists.end())
+             result += code==0xe43a?hopper->name:hopper->description;
+           break;
+         default:

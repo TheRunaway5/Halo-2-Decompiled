@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "command": [
+    "c++",
+    "-std=c++20",
+    "-fsyntax-only",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102/halo2-test-ade1fmc7/generated",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102/halo2-test-ade1fmc7/module",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102/halo2-test-ade1fmc7/fixture.cpp"
+  ],
+  "exit_code": 0,
+  "fixture_sha256": "290e182f1a80b450e87f838bb9334e630ac4a39dc2d6cfc51d0c3aa6fd6c0f4a",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-results-syntax-fixed-20261102/halo2-test-ade1fmc7"
+}

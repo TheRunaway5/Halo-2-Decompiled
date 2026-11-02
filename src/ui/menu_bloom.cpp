@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <stdexcept>
 namespace halo2 {
 CinematicBloomParameters cinematic_bloom_parameters(float threshold,float strength,
     bool cinematic,const CinematicBloomOverride &override) {
@@ -31,6 +32,28 @@ MenuBloom menu_bloom(float threshold,float strength) {
     out.radii[0]=.5f;float step=1.f;
     const float passes=std::bit_cast<float>(0x407f7ceeu);
     for(unsigned i=0;i<4;++i) {out.radii[i+1]=std::clamp(passes-float(i),0.f,1.f)*step;step=(.75f+.5f)*step;}
+    return out;
+}
+MenuBloom cinematic_bloom(float threshold,float strength,bool cinematic,
+    const CinematicBloomOverride &override) {
+    const auto parameters=cinematic_bloom_parameters(threshold,strength,cinematic,override);
+    auto out=menu_bloom(parameters.threshold,parameters.strength);
+    if(!cinematic || !override.enabled)return out;
+    const float amount=override.blur_amount==-1.f?std::bit_cast<float>(0x407f7ceeu):
+        std::max(0.f,override.blur_amount);
+    const float box=override.box_factor==-1.f?.25f:std::clamp(override.box_factor,0.f,1.f);
+    // The renderer owns a finite descriptor budget. Reject larger authored
+    // requests explicitly instead of silently changing the filter schedule.
+    if(!std::isfinite(amount) || amount>31.f)
+        throw std::runtime_error("Cinematic bloom exceeds the 31-pass filter budget");
+    out.radii.resize(1+unsigned(std::ceil(amount)));out.radii[0]=.5f;
+    float step=1.f;
+    const float multiplier=(1.f-box)+box*2.f;
+    for(unsigned i=0;i+1<out.radii.size();++i) {
+        out.radii[i+1]=std::clamp(amount-float(i),0.f,1.f)*step;
+        step=multiplier*step;
+    }
+    out.silver_bullet=override.silver_bullet;
     return out;
 }
 }

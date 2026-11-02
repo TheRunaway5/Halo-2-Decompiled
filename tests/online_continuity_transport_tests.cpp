@@ -21,7 +21,8 @@ const char *name(OnlineMatchSession::Phase phase) {
   }
 }
 template<class F>void wait(OnlineMatchSession &session,F predicate) {
-  const auto limit=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+  // The authoritative normal start gate lasts ten real seconds.
+  const auto limit=std::chrono::steady_clock::now()+std::chrono::seconds(15);
   while(!predicate()) {
     if(session.phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session.error());
     if(std::chrono::steady_clock::now()>limit)throw FormatError("Native continuation transport timed out");

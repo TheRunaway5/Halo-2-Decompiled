@@ -14,6 +14,7 @@ from mcc_content import directory, discover
 from mcc_conversion_coverage import validate as validate_conversion_coverage
 from prepare_mcc_gameplay import PROFILE, prepare, source_files, source_directories
 from mcc_movies import _cancellation
+from setup_progress import WorkProgress
 
 SCHEMA = "H2_MCC_ASSET_SOURCE_V1"
 REGISTRY = "assets/mcc-source.tsv"
@@ -69,6 +70,7 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
                 raise FormatError("MCC graphics conversion does not match the copied donor")
             output_hashes[name] = change["converted_sha256"]
         progress(f"Checking the existing MCC cache ({len(records)} copied files)…")
+        verification = WorkProgress('verify-cache', 'Checking existing game files', len(records), progress)
         for index, (name, expected) in enumerate(records.items()):
             relative = PurePosixPath(name)
             if relative.is_absolute() or any(p in ("", ".", "..") for p in relative.parts) or "\\" in name:
@@ -83,6 +85,7 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
                 raise FormatError("MCC cached file extent changed: " + name)
             if source is not None and file_sha(source / relative) != expected["sha256"]:
                 raise FormatError("The installed MCC file has changed: " + name)
+            verification.advance()
             if index and index % 100 == 0:
                 progress(f"Checked {index}/{len(records)} MCC files…")
         if source is not None:
@@ -104,6 +107,7 @@ def private_cache(root, cache, *, verify=False, source=None, progress=print):
         if report.get('h2ek_loading_ambience', {}).get('complete') is True:
             from h2ek_loading_ambience import verify as verify_h2ek_ambience
             verify_h2ek_ambience(cache, report['h2ek_loading_ambience'])
+        verification.finish()
     return cache, report
 
 
@@ -125,19 +129,29 @@ def selected(root):
 def select(root, cache, *, verify=True, progress=print):
     root = Path(root).resolve()
     cache, report = private_cache(root, cache, verify=verify, progress=progress)
+    activation = WorkProgress('select-cache', 'Selecting prepared game files', 6, progress)
     from custom_map_assets import compatible as custom_maps_compatible
     if not custom_maps_compatible(root, cache, report):
         raise FormatError("The selected cache needs the bundled custom maps; run MCC setup to prepare a fresh cache. Existing files were retained.")
     from custom_ui_assets import repair as repair_custom_ui
     cache, report = repair_custom_ui(root, cache, progress=progress)
+    activation.advance()
+    # Cached selection and Repair need the same authored control rasters as a
+    # fresh import. MCC fonts remain unchanged as text and metric owners.
+    from controller_prompt_assets import repair as repair_controller_prompts
+    cache, report = repair_controller_prompts(root, cache, progress=progress)
+    activation.advance()
     # Selecting an already prepared cache is also an onboarding entry point.
     # Import/repair the authenticated kit bank before publishing the selection,
     # including when the kit was installed after the original MCC import.
     from h2ek_loading_ambience import repair as repair_h2ek_ambience
     cache, report = repair_h2ek_ambience(root, cache, progress=progress)
+    activation.advance()
     from native_variant_assets import install as install_variants
     install_variants(root, cache, progress=progress)
+    activation.advance()
     install_variants(root, root, progress=progress)
+    activation.advance()
     relative = cache.relative_to(root).as_posix()
     registry = root / REGISTRY
     registry.parent.mkdir(parents=True, exist_ok=True)
@@ -148,6 +162,7 @@ def select(root, cache, *, verify=True, progress=print):
     finally:
         pending.unlink(missing_ok=True)
     progress("Selected private MCC cache: " + str(cache))
+    activation.finish()
     return cache, report
 
 
@@ -567,6 +582,12 @@ def setup(root, mcc_source=None, *, progress=print):
                 continue
             if _needs_graphics_reimport(root, report):
                 progress("Existing MCC cache predates the current graphics corrections; preparing a fresh private import. The previous cache is preserved.")
+                continue
+            # Reject a known incompatible presentation family before hashing
+            # both entire MCC trees. This grants no admission; compatible
+            # candidates still pass every existing byte/owner check below.
+            if not mcc_presentation.compatible(report, presentation):
+                progress("Existing MCC loading presentation belongs to a different runtime family; preserving it and preparing a separate cache.")
                 continue
             # This validates the entire private copy. Reuse never makes the
             # live MCC installation a normal runtime data source.

@@ -354,9 +354,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "next_cursor": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f-]{36}\\.[0-9a-f-]{36}$"
+        },
         "servers": {
           "type": "array",
-          "maxItems": 1000,
+          "maxItems": 64,
           "items": {
             "allOf": [
               {
@@ -375,7 +379,8 @@
       },
       "required": [
         "servers"
-      ]
+      ],
+      "description": "At most 64 KiB serialized. Follow next_cursor when present and non-null."
     },
     "enrollment": {
       "type": "object",

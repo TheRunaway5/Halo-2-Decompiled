@@ -78,6 +78,7 @@ Admission read_admission(std::span<const std::byte> body) {
 }
 Packet control(unsigned type,const Admission& a){Writer w;w.u(0x31504853u,4);w.u(type,1);if(type==0){auto body=admission_body(a);w.blob(body,1200);w.raw(a.digest);}else{context(w,a.context);w.raw(a.digest);}need(w.bytes.size()<=1300);return std::move(w.bytes);}
 Packet transfer_packet(std::span<const std::byte> inner){Writer w;w.u(0x31504853u,4);w.u(2,1);w.raw(inner);need(w.bytes.size()<=1300);return std::move(w.bytes);}
+Packet preparation_packet(const Admission& a,const AuthorityCutSeal& seal){Writer w;w.u(0x31504853u,4);w.u(3,1);context(w,a.context);w.raw(a.digest);w.u(seal.id,8);w.u(seal.tick,8);w.u(seal.bytes,8);w.raw(seal.digest);return std::move(w.bytes);}
 bool same_roster(std::span<const OnlineAdmission> a,std::span<const OnlineAdmission> b){if(a.size()!=b.size())return false;for(unsigned i=0;i<a.size();++i)if(a[i].slot!=b[i].slot||a[i].name!=b[i].name||a[i].team!=b[i].team||a[i].identity!=b[i].identity||online_admission_peer(a[i])!=online_admission_peer(b[i])||a[i].guest!=b[i].guest||a[i].matchmaking_level!=b[i].matchmaking_level)return false;return true;}
 
 class HostLane final:public SourceShadowHostLane {
@@ -89,16 +90,18 @@ class HostLane final:public SourceShadowHostLane {
         SourceShadowPeer peer;Admission admission;bool admitted{};std::uint64_t offered_at{};
         std::unique_ptr<PeerAuthorityTransfer> transfer;std::optional<AuthorityArchiveImage> base;
         std::uint64_t base_serial{};std::deque<Pending> pending;std::optional<Queued> queued;
+        std::uint64_t revision{};bool force_full{};
     };
     std::map<std::uint64_t,Pipe> pipes_;
     struct Emission {SourceShadowPeer peer;SourceShadowSnapshotStamp stamp;Packet body;};
     std::map<std::uint64_t,Emission> emitted_;
-    struct Target {Emission emission;Admission admission;std::optional<AuthorityArchiveImage> base;std::uint64_t base_serial{};};
+    struct Target {Emission emission;Admission admission;std::optional<AuthorityArchiveImage> base;std::uint64_t base_serial{},pipe_revision{};};
     struct Job {std::uint64_t generation;SourceMatchAuthority::Checkpoint checkpoint;std::vector<Target> targets;std::uint64_t capture_us{};};
-    struct Encoded {Packet bytes;SourceShadowTransportStatistics::Cut timing;};
+    struct Encoded {Packet bytes;SourceShadowTransportStatistics::Cut timing;std::uint64_t pipe_revision{};};
     struct Output {std::uint64_t generation{},tick{},encode_us{},full_bytes{},raw_bytes{};std::optional<AuthorityArchiveImage> image;std::map<std::uint64_t,Encoded> frames;std::string error;};
     mutable std::mutex mutex_;std::condition_variable_any cv_;std::optional<Job> job_;std::optional<Output> output_;bool working_{};std::jthread worker_;
     SourceShadowTransportStatistics stats_;
+    std::uint64_t trace_at_ms_{};
     std::vector<SourcePlayerAdmission> players_;
     std::vector<OnlineAdmission> rows_;
     std::size_t retained_images()const {
@@ -158,7 +161,7 @@ class HostLane final:public SourceShadowHostLane {
                     w.u(target.admission.roster.size(),1);
                     for(const auto& row:target.admission.roster){need(row.name.size()<=256);w.u(row.slot,1);w.blob(std::as_bytes(std::span(row.name)),256);}
                     need(w.bytes.size()<=frame_limit);timing.encode_us=serialized_us+micros(target_started);
-                    out.frames.emplace(target.emission.peer.key,Encoded{std::move(w.bytes),timing});
+                    out.frames.emplace(target.emission.peer.key,Encoded{std::move(w.bytes),timing,target.pipe_revision});
                 }
                 out.full_bytes=full?full->size():0;
             }catch(const std::exception& e){out.error=e.what();out.frames.clear();out.image.reset();}
@@ -178,6 +181,7 @@ class HostLane final:public SourceShadowHostLane {
             else if(output->generation==context_.membership_revision) {
                 stats_.error.clear();++stats_.encoded;stats_.full_bytes+=output->full_bytes;stats_.raw_bytes+=output->raw_bytes;
                 for(auto& [key,frame]:output->frames)if(auto found=pipes_.find(key);found!=pipes_.end()) {
+                    if(frame.pipe_revision!=found->second.revision){++stats_.coalesced;continue;}
                     need(!found->second.queued);
                     if(frame.timing.delta){++stats_.delta_cuts;stats_.delta_bytes+=frame.timing.native_bytes;}else ++stats_.full_cuts;
                     found->second.queued.emplace(Queued{std::move(frame.bytes),*output->image,frame.timing});
@@ -186,11 +190,28 @@ class HostLane final:public SourceShadowHostLane {
         }
         for(auto& [key,p]:pipes_)if(p.transfer)for(const auto& receipt:p.transfer->validated_cuts()){
             const auto found=std::find_if(p.pending.begin(),p.pending.end(),[&](const auto& old){return old.seal==receipt.seal&&receipt.context==context_;});
-            if(found==p.pending.end())continue;if(receipt.seal.id>p.base_serial){p.base=found->image;p.base_serial=receipt.seal.id;}
+            if(found==p.pending.end())continue;if(receipt.seal.id>p.base_serial){p.base=found->image;p.base_serial=receipt.seal.id;p.force_full=false;}
             stats_.latest_acknowledged_sequence=found->sequence;
             for(auto& timing:stats_.cuts)if(timing.publication==found->publication)
                 timing.native_ready_us=(now_ms()-found->published_at_ms)*1000;
             while(!p.pending.empty()&&p.pending.front().seal.id<=receipt.seal.id)p.pending.pop_front();++stats_.acknowledged;
+        }
+        const auto observed=now_ms();
+        for(auto& [key,p]:pipes_)if(p.transfer&&!p.pending.empty()) {
+            const auto failed=std::count_if(p.pending.begin(),p.pending.end(),[&](const auto& cut){
+                return p.transfer->failed_to(context_,cut.seal,1,observed);
+            });
+            if(!failed)continue;
+            if(std::getenv("HALO2_SHADOW_TRANSPORT_TRACE"))
+                std::fprintf(stderr,"[shadow-transport] native cut abandoned generation=%llu serial=%llu pending=%zu failed=%zu; requesting fresh full cut\n",
+                    static_cast<unsigned long long>(context_.membership_revision),
+                    static_cast<unsigned long long>(p.pending.front().seal.id),p.pending.size(),std::size_t(failed));
+            need(p.revision!=UINT64_MAX);++p.revision;p.force_full=true;
+            stats_.rejected+=failed;stats_.coalesced+=p.pending.size()+bool(p.queued)+emitted_.erase(key);
+            p.pending.clear();p.queued.reset();
+            // Keep the transfer/context/serial allocator and only a genuinely
+            // ACKed dictionary. Old Ready cannot match fresh pending seals;
+            // queued or running deltas from the abandoned pipeline retire.
         }
     }
     std::vector<OnlineAdmission> roster(std::span<const SourcePlayerAdmission> players,const SourceMatchAuthority::Checkpoint& saved) {
@@ -229,6 +250,7 @@ public:
         if(!room_for_image()){++stats_.backpressure;return false;}
         if(emitted_.contains(key)||p.queued){++stats_.backpressure;return false;}
         if(p.pending.empty())return true;
+        if(p.force_full){++stats_.backpressure;return false;}
         // Bootstrap needs its first genuine native ACK before another capture:
         // a byte-delivered full archive does not yet supply a validated base.
         const bool ahead=p.base&&p.pending.size()==1&&p.transfer&&p.transfer->feature_supported(1,authority_feature_source_pipeline)&&p.transfer->delivered_to(context_,p.pending.front().seal,1);
@@ -262,18 +284,43 @@ public:
             for(auto& [key,e]:emitted_)if(auto found=pipes_.find(key);found!=pipes_.end()){
                 auto& p=found->second;
                 if(!p.transfer){p.admission={context_,{},players,rows,{},producer_,p.peer.slots};for(const auto& row:rows)p.admission.names.push_back(name_digest(row.name));p.admission.digest=digest(admission_body(p.admission));p.transfer=std::make_unique<PeerAuthorityTransfer>(0,context_,transfer_limits());p.offered_at=0;}
-                job.targets.push_back({std::move(e),p.admission,p.base,p.base_serial});
+                job.targets.push_back({std::move(e),p.admission,p.force_full?std::nullopt:p.base,
+                    p.force_full?0:p.base_serial,p.revision});
             }
             emitted_.clear();need(!job.targets.empty());const auto now=now_ms();if(stats_.latest_capture_at_ms)stats_.largest_capture_gap_ms=std::max(stats_.largest_capture_gap_ms,now-stats_.latest_capture_at_ms);stats_.latest_capture_at_ms=now;stats_.latest_tick=tick;stats_.capture_us+=micros(started);++stats_.captures;job.capture_us=micros(started);
             {std::lock_guard lock(mutex_);job_=std::move(job);}cv_.notify_one();return true;
-        }catch(const std::exception& error){stats_.error=error.what();stats_.coalesced+=emitted_.size();emitted_.clear();++stats_.rejected;return false;}
+        }catch(const std::exception& error){
+            if(stats_.error!=error.what()&&std::getenv("HALO2_SHADOW_TRANSPORT_TRACE"))
+                std::fprintf(stderr,"[shadow-transport] native capture rejected generation=%llu error=%.512s\n",
+                    static_cast<unsigned long long>(context_.membership_revision),error.what());
+            stats_.error=error.what();stats_.coalesced+=emitted_.size();emitted_.clear();++stats_.rejected;return false;
+        }
     }
     void receive(std::uint64_t key,std::span<const std::byte> bytes,std::uint64_t now)override {
         own();auto found=pipes_.find(key);if(found==pipes_.end())return;auto& p=found->second;
-        try{Reader r{bytes};need(r.u(4)==0x31504853u);const auto type=r.u(1);if(type==1){need(p.transfer&&context(r)==context_&&r.hash()==p.admission.digest);r.end();p.admitted=true;}else if(type==2){need(p.admitted&&p.transfer);p.transfer->receive(1,r.raw(bytes.size()-r.at),now);}else need(false);}catch(const std::exception&){++stats_.rejected;}
+        try{Reader r{bytes};need(r.u(4)==0x31504853u);const auto type=r.u(1);if(type==1){need(p.transfer&&context(r)==context_&&r.hash()==p.admission.digest);r.end();p.admitted=true;}else if(type==2){need(p.admitted&&p.transfer);p.transfer->receive(1,r.raw(bytes.size()-r.at),now);}
+            else if(type==3){
+                need(p.admitted&&p.transfer&&context(r)==context_&&r.hash()==p.admission.digest);
+                AuthorityCutSeal seal{r.u(8),r.u(8),r.u(8),r.hash()};r.end();
+                need(std::ranges::any_of(p.pending,[&](const auto& pending){return pending.seal==seal;}));
+                // This authentic phase pulse owns only the delivered native
+                // construction lease. It never updates the socket peer's
+                // gameplay heard/input clock or produces native readiness.
+                need(p.transfer->note_native_preparation(context_,seal,1,now));
+            }else need(false);
+        }catch(const std::exception&){++stats_.rejected;}
     }
     std::vector<Packet> poll(std::uint64_t key,std::uint64_t now)override {
-        update();std::vector<Packet> out;auto found=pipes_.find(key);if(found==pipes_.end())return out;auto& p=found->second;if(!p.transfer)return out;
+        update();
+        if(std::getenv("HALO2_SHADOW_TRANSPORT_TRACE")&&now>=trace_at_ms_){
+            trace_at_ms_=now+2000;
+            const auto observed=statistics();
+            std::fprintf(stderr,"[shadow-transport] native host progress captures=%llu encoded=%llu published=%llu acknowledged=%llu rejected=%llu encoding=%u awaiting_native=%u error=%.512s\n",
+                static_cast<unsigned long long>(observed.captures),static_cast<unsigned long long>(observed.encoded),
+                static_cast<unsigned long long>(observed.published),static_cast<unsigned long long>(observed.acknowledged),
+                static_cast<unsigned long long>(observed.rejected),unsigned(observed.encoding),unsigned(observed.awaiting_native),observed.error.c_str());
+        }
+        std::vector<Packet> out;auto found=pipes_.find(key);if(found==pipes_.end())return out;auto& p=found->second;if(!p.transfer)return out;
         if(!p.admitted){if(!p.offered_at||now-p.offered_at>=50){out.push_back(control(0,p.admission));p.offered_at=now;}return out;}
         if(p.queued&&p.transfer->supported(1)){
             AuthorityCutSeal seal;
@@ -303,7 +350,7 @@ class ClientLane final:public SourceShadowClientLane {
     std::map<std::uint64_t,AuthorityArchiveImage> bases_;
     struct Delivered {AuthorityCutSeal seal;AuthorityArchiveImage image;SourceShadowPayload payload;std::uint64_t decoded_at_ms{};};
     std::map<std::uint64_t,Delivered> delivered_;std::deque<SourceShadowPayload> completed_;std::optional<SourceShadowPayload> acknowledged_;
-    bool admission_ack_{};Digest binding_{};std::optional<Packet> pending_offer_;SourceShadowTransportStatistics stats_;
+    bool admission_ack_{};Digest binding_{};std::optional<Packet> pending_offer_,preparation_;SourceShadowTransportStatistics stats_;
     void offer(std::span<const std::byte> body,const Digest& expected) {
         need(peer_&&digest(body)==expected);auto next=read_admission(body);
         if(!peer_->slots.empty())need(next.local==peer_->slots);
@@ -318,7 +365,7 @@ class ClientLane final:public SourceShadowClientLane {
         }
         if(admission_){need(next.context.session==admission_->context.session&&next.context.membership_revision>=admission_->context.membership_revision);
             if(next.context==admission_->context){need(next.digest==admission_->digest);admission_ack_=true;return;}}
-        admission_=std::move(next);binding_=source_authority_binding(admission_->context);transfer_=std::make_unique<PeerAuthorityTransfer>(1,admission_->context,transfer_limits());bases_.clear();delivered_.clear();completed_.clear();acknowledged_.reset();admission_ack_=true;stats_.generation=admission_->context.membership_revision;
+        admission_=std::move(next);binding_=source_authority_binding(admission_->context);transfer_=std::make_unique<PeerAuthorityTransfer>(1,admission_->context,transfer_limits());bases_.clear();delivered_.clear();completed_.clear();acknowledged_.reset();preparation_.reset();admission_ack_=true;stats_.generation=admission_->context.membership_revision;
     }
     void decode(ReceivedAuthorityCut value) {
         const auto started=Clock::now();
@@ -347,7 +394,7 @@ public:
     void connection(const SourceShadowPeer& next)override {
         need(next.key&&next.cookie&&next.nonce);
         if(peer_&&(peer_->key!=next.key||peer_->fingerprint!=next.fingerprint||peer_->nonce!=next.nonce||peer_->cookie!=next.cookie||peer_->revision!=next.revision)){
-            admission_.reset();transfer_.reset();bases_.clear();delivered_.clear();completed_.clear();acknowledged_.reset();pending_offer_.reset();online_context_.reset();
+            admission_.reset();transfer_.reset();bases_.clear();delivered_.clear();completed_.clear();acknowledged_.reset();pending_offer_.reset();preparation_.reset();online_context_.reset();
         }
         if(admission_&&!next.slots.empty())need(next.slots==admission_->local);peer_=next;
     }
@@ -361,9 +408,17 @@ public:
         if(pending_offer_&&!admission_){auto packet=std::move(*pending_offer_);pending_offer_.reset();receive(packet,now);}
         std::vector<Packet> out;if(!admission_||!transfer_)return out;
         if(admission_ack_){out.push_back(control(1,*admission_));admission_ack_=false;}
-        for(auto& packet:transfer_->poll(now,32)){stats_.wire_bytes+=packet.bytes.size();out.push_back(transfer_packet(packet.bytes));}return out;
+        for(auto& packet:transfer_->poll(now,32)){stats_.wire_bytes+=packet.bytes.size();out.push_back(transfer_packet(packet.bytes));}
+        if(preparation_){out.push_back(std::move(*preparation_));preparation_.reset();}return out;
     }
     std::optional<SourceShadowPayload> completed()override {if(completed_.empty())return {};auto value=std::move(completed_.front());completed_.pop_front();return value;}
+    bool preparation_progress(const SourceShadowPayload& payload)override {
+        if(!current(payload)||!transfer_||!admission_)return false;
+        const auto found=delivered_.find(payload.serial);
+        if(found==delivered_.end()||found->second.payload.archive!=payload.archive||
+            found->second.payload.snapshot!=payload.snapshot)return false;
+        preparation_=preparation_packet(*admission_,found->second.seal);return true;
+    }
     bool acknowledge(const SourceShadowPayload& payload)override {
         if(!current(payload))return false;if(acknowledged_&&acknowledged_->serial==payload.serial&&acknowledged_->archive==payload.archive)return true;
         const auto found=delivered_.find(payload.serial);if(found==delivered_.end()||found->second.payload.archive!=payload.archive||found->second.payload.snapshot!=payload.snapshot)return false;

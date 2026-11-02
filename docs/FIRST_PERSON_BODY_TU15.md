@@ -358,3 +358,111 @@ capture remains required before claiming delivered online shadow coverage; the
 declared transport and asset checks alone do not prove it.
 
 The [current storage closeout](../build/test-results/player-shadows-20261028/frozen-validation/cleanup.json) verifies removal of the complete private source/build and raw outputs after the final 35 tests and both 960×720 fixed-shadow checks. No new large artifacts were retained. The new torso/eye source has not been promoted to a launcher-selected runtime by this work.
+
+## Falling self-body timing, 2026-10-29
+
+The reported offline rubberbanding while falling and looking down remains a
+separate temporal acceptance gate. The grounded checks above sampled tick
+endpoints and cannot establish smooth falling motion between those endpoints.
+
+The clarified trigger is walking off Lockout into the void. The unthrottled
+`native_tu15_first_person_body_render_human_falling` case creates an actual local
+native authority, establishes steep down-look, and declares one setup placement
+at an independently accepted native ledge. After30 native settling ticks and48
+actual standing GPU submissions, ordinary SDL W input walks the unit off that
+ledge. Subsequent velocity, collision, body poses, death and camera transitions
+come from ordinary native game ticks. No velocity or contact is supplied.
+The test submits unpinned render frames, checks the pelvis and eye
+against their completed native endpoint pair at each measured fraction, and
+requires changing repeated render samples inside descending game ticks.
+Measured render FPS and insufficient fractional exposure are reported
+separately from pose disagreement. The uncapped lower-anatomy subset is checked
+against its submitted palette, and the capture must contain actual nonuniform
+RGB output. The wrapper requests Vulkan validation and rejects its diagnostics.
+The actual void run additionally requires a long descent belowZ-20, fast native
+falling samples, genuine unit death and two submitted native death-camera
+frames. Per-tick camera roles and per-render first-person admission accompany
+the bounded receipt. The controlled reference below keeps its separate shorter
+falling pair; it does not replace the void case.
+
+The native receiver path can replace ordinary vertex positions after the
+animation observation. A synchronous `model_depth_vertices_observer` therefore
+observes the exact original and final banks and their source-owned ranges just
+before renderer submission. The falling test identifies only its local primary
+body/model range and compares each final triangle with the sampled pose,
+allowing the native strip's cyclic ordering. This distinguishes a final native
+Apply occurrence from a body/camera interpolation disagreement. All borrowed
+spans remain within that callback. Actual native red/green evidence is pending;
+the diagnostic source changes alone do not establish a correction.
+
+The earlier shorter validation-on Original/Off run observed12 descending fractional
+samples in240 submitted frames, with zero pelvis, eye or relative-position
+error and no native model-depth replacement of the primary body. Its measured
+16.70 submitted FPS produced no repeated render samples inside one native
+tick, so it failed the required exposure gate. It does not qualify the reported
+high-rate behavior. A separate validation-off case preserves those assertions
+and reports its own actual FPS. Its shorter validation-off run also failed
+exposure only:16.32 submitted FPS and no repeated samples within a descending
+tick. These preserved reports predate the clarified void trigger.
+
+`native_tu15_first_person_body_render_human_falling_sweep` is an explicitly
+scoped reference capture. After ordinary native gravity creates a descending
+endpoint pair, the existing capture-tick owner freezes gameplay while five
+actual render submissions sample that same pair at0,.25,.5,.75 and1. One
+admitted reference alpha drives both ordinary presentation and animation
+fractions before camera or palette construction. The test compares every
+primary body vertex, the ordinary eye, native main projection and completed
+material camera bank at all five points. Existing borrowed-frame verification
+compares the actual mapped vertex upload with an independent staging copy.
+Its diagnostic post-fence readback also compares every completed nondeferred
+vertex byte with that copy, excluding only actual deferred-skin destinations;
+the wrapper requires a completed readback witness for all five points.
+Fourteen admission negatives reject interactive or network use of this private
+diagnostic mode. The controlled sweep is not an actual FPS qualification or
+evidence that the user's rubberbanding has been corrected.
+
+The initial five-point GPU reference run retained distinct body-position and
+completed upload hashes at every fraction, with zero body/eye/vertex error and
+1395 matching completed native camera-bank observations. All19164 nondeferred
+uploaded vertices were read back unchanged at each point. That excludes the
+suspected same-tick primary vertex-upload cache in this shorter reference;
+it is not a void or real-time acceptance claim.
+
+A CPU-only canonical native walk from the declared ledge reached103 descending
+ticks,57 ticks faster than-6, and native death atZ-29.2781. Its authenticated
+ramped down-look produced137 actual168DED body packets; every named lower-joint
+position matched the full-unit WORLD endpoint, and all138 completed full-palette
+hashes changed across ticks. This establishes the longer route and excludes a
+frozen full-unit endpoint bank in that CPU route. The corresponding warmed GPU
+void case remains required before any correction claim.
+
+The coherent `final-void-split-v5` cohort subsequently passed both warmed void
+cases. Validation-on submitted139 frames at17.43 average submitted FPS and
+observed13 changing same-tick falling pairs. Validation-off submitted164 frames
+at21.16 average submitted FPS and observed38 changing same-tick pairs; its
+measured falling-sample wall rate was33.47 samples/s. Both runs observed100
+living descending native ticks,55 living ticks faster than-6, and the same last
+living root atZ-28.6174 with vertical velocity-13.6418. Native death began at
+Z-29.0767. The living views admitted the original mode0 body and submitted the
+2892-vertex subset; both submitted death views retired that body and ordinary
+eye. All measured pelvis, eye, camera-relative and final-depth errors were zero.
+No primary body range encountered a native model-depth replacement in these
+runs. Post-death corpse movement is excluded from the living-body counts above.
+The bounded derivation and source-report hashes are in
+[`falling-v5-final-analysis.json`](../analysis/first-person-body-tu15-20261029/falling-v5-final-analysis.json).
+
+The final controlled sweep also passed its final-depth assertion, all five
+completed19164-vertex GPU readbacks and1395 camera-bank comparisons. This is
+evidence of coherent submitted geometry and camera inputs at the measured
+fractions. The RGB check establishes a nonuniform scene, not a body-fragment
+motion oracle. No temporal body fix was applied, and these results do not
+establish that the reported visible vertical bob is corrected.
+
+The original TU1.5 path has no separate leg interpolation step in its body
+collector: `2B9F0` installs its camera then calls `3D2B0`; the ordinary director
+selects `168DED`, which reads the unit WORLD bank through `BAC30` and copies it
+unchanged through mode0 `168D76`. The cached first-person node-bank path skips
+the ordinary deferred `BF640` branch. Generic PC interpolation domain, camera
+update order, and final GPU draw bindings therefore remain separate diagnostic
+questions. An open-source Vista mod's per-WORLD-node interpolation is a useful
+comparison, not authenticated retail Vista/MCC interpolation arithmetic.

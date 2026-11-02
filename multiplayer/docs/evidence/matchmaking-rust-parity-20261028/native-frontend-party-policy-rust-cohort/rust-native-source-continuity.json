@@ -1,0 +1,7 @@
+{
+  "rust_suite_steps_passed": true,
+  "matched_rust_input_count": 249,
+  "mismatches": [],
+  "native_inventory": "native/iteration-7-source-pins-*.json",
+  "rust_inventory": "rust/report.json:source_pins"
+}

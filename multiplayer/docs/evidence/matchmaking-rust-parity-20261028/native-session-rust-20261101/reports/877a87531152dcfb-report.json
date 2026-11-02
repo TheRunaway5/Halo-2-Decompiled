@@ -1,0 +1,44 @@
+{
+  "passed": false,
+  "status": "failed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-component-20261101/iteration-1/configure.log",
+      "exit_code": 1
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": true,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "not produced"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "not produced"
+    }
+  ]
+}

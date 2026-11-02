@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "one_production_query_definition": true,
+  "sole_native_adapter_translation_unit": true,
+  "compile_owner": "halo2_systems",
+  "required_rust_imports": [
+    "                 U halo2::online_protocol_bridge::frontend_lobby_query(halo2::online_protocol_bridge::NativeFrontendLobbyQueryIo const&)"
+  ],
+  "native_query_definitions": [
+    "00000000000000ac T halo2::MenuState::lobby_view() const"
+  ],
+  "old_state_translation_unit_query_definitions": [],
+  "objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_lobby_query.cpp.o": {
+      "sha256": "47cfde939beebab6f16d9b688b03a478cfeedd9e30415f46c4cd915e69e7d649",
+      "bytes": 532600
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o": {
+      "sha256": "d8c398189be7458de0fbc9307f56d1bd589a859b8ab9c6164235ba106941ab23",
+      "bytes": 1923056
+    }
+  },
+  "scope": "Actual compiled MenuState query imports the Rust owner; no second native query definition. Component linkage, not installed runtime delivery.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-query-linkage-20261102/halo2-test-slsw8pp5",
+  "retained_large_artifacts": []
+}

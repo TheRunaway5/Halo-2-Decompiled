@@ -1,0 +1,333 @@
+{
+  "schema": "H2_RUST_NATIVE_WORLD_ACCEPTANCE_INPUTS_V1",
+  "classification": "prepared_inputs_and_static_boundary_audit",
+  "runtime_validation_run": false,
+  "original_oracle_called": false,
+  "original_parity": false,
+  "full_goal_complete": false,
+  "source_pins": {
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "tests/fixtures/multiplayer_engines_original_tu15.json": "c84eed61c3fcdac7788329917f764cb0f43523c9d800c68ee471fde21b171d19",
+    "tests/multiplayer_engines_world_tu15_tests.cpp": "201dd4d84daf0ea49da7cca60a35b9163085f8c07687192e70d80f765d1463d4",
+    "tests/online_match_launch_tests.cpp": "ac0e500bd0a6b025f7634192c46df92ca0bd1176a2fc8c5a7a30637357e5aab9",
+    "tests/online_match_launch_http_test.py": "18896870c480698df263a593bb39ebf457e3a3c74bdef8b4870198418a44e4b1",
+    "tools/rust_service_room_probe.cpp": "e4ad16be51751f16f28633f1c459528bc38e5043a80a26b6982273820262f04e",
+    "tools/rust_service_room_controls.py": "044bf2062629afaefda9707036330a8f0960cf3866527a98e94d358fb3989a72"
+  },
+  "preset_count": 39,
+  "engine_counts": {
+    "2": 9,
+    "3": 6,
+    "4": 5,
+    "7": 5,
+    "1": 4,
+    "9": 5,
+    "8": 5
+  },
+  "recorded_original_code_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "recorded_original_fixture_sha256": "c84eed61c3fcdac7788329917f764cb0f43523c9d800c68ee471fde21b171d19",
+  "engine_fixture_matches_recorded_preset_input": true,
+  "variants": [
+    {
+      "name": "Slayer",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "0fedfa0ecf97fc475475b5fccee56eee246ce2dabab0a531fbc3c44e62d68a50"
+    },
+    {
+      "name": "Team Slayer",
+      "engine": 2,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "e0a5c08280df3e15f548f5de8f2059040ef71eb3e366fbec49d5457e6dd0b10a"
+    },
+    {
+      "name": "Rockets",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "d165bd1c3b798747b3072a0dc78f352760167f5b29913477e08b03855fc37055"
+    },
+    {
+      "name": "Swords",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "4896f3449d7fe2e90d3403e1427ae2de59ca8633d1fa2a3203b87274d93f4dea"
+    },
+    {
+      "name": "Snipers",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "bd3aa3c8c318ba446acb58c2071823b69eec010b70e56816a3bd4294ed7a1565"
+    },
+    {
+      "name": "Phantoms",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "1001d33aaf242b965d3ee02238392f50edb36ac35085d81b3d454a5c238031cc"
+    },
+    {
+      "name": "Team Phantoms",
+      "engine": 2,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "78d82eeaeff2e5fd5019b0b42f57d438a057900bb102839827487d9880e9b541"
+    },
+    {
+      "name": "Elimination",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "68f5c6e58c7a4bc2f5579e189b74bb2922a8a8048efde471228e03af18177150"
+    },
+    {
+      "name": "Phantom Elim",
+      "engine": 2,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "882e935ed7262964bdb43bef7de85e16aa430398201888f6d3e00a7d9478bcc2"
+    },
+    {
+      "name": "Oddball",
+      "engine": 3,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "a24ecf343bb69f082a9b969f0890b0c2d0e5c771ea36f30c3059d9c68ff492e1"
+    },
+    {
+      "name": "Rocketball",
+      "engine": 3,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "75b9e80e09da6d757dd9b1f6c06922f673dd2c8f66e5bdcde9e05d3e53581022"
+    },
+    {
+      "name": "Swordball",
+      "engine": 3,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "e140cb2a9ee7e74b3f9db43e7732bfd63af6722905119f3918fecfe5c074440b"
+    },
+    {
+      "name": "Team Ball",
+      "engine": 3,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "f891f3e644d78622eb320e2d5e7775f84ceb9f3caca485a0e264c0ac281350a7"
+    },
+    {
+      "name": "Low Ball",
+      "engine": 3,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "e33218bf53950f8030bc6268516fb9c9e94a7b6d62338fa41764d9b71d065004"
+    },
+    {
+      "name": "King",
+      "engine": 4,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "d691defa3fc0910c3be4680ab1c01b168fed85c290c1d4f5dfd0eb04db53484d"
+    },
+    {
+      "name": "Team King",
+      "engine": 4,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "4ed4025f55344b2696e7c84f389f4e09ca43099d51e600f130901548af3fca84"
+    },
+    {
+      "name": "Phantom King",
+      "engine": 4,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "ecc87d0dff3b1188200c5051b09f16c69b8f09cb6412174805aac6be058eb4b3"
+    },
+    {
+      "name": "Crazy King",
+      "engine": 4,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "d691defa3fc0910c3be4680ab1c01b168fed85c290c1d4f5dfd0eb04db53484d"
+    },
+    {
+      "name": "Team Crazy King",
+      "engine": 4,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "066bf6a4ebb6b6943c30920e92ba479f5d0fb403b22524bf65c7d1267383da17"
+    },
+    {
+      "name": "2 on 1",
+      "engine": 7,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "cb4b8c88962686c5ff267cb6f6e19fa1b291023d4726a779fef2dfd56fb7971a"
+    },
+    {
+      "name": "Multi Flag CTF",
+      "engine": 1,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "52a4665577272c1a7916d1b15b87d7d06508d3871ce6a34e8406329cd647877c"
+    },
+    {
+      "name": "CTF Classic",
+      "engine": 1,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "920f2a35a82db366cc48c868551a9239c8ee11ddcac2a9eb886e037ee8172067"
+    },
+    {
+      "name": "1 Flag CTF",
+      "engine": 1,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "e665dff02fbd6f090919b28359ab7c6ca033f7b293de1a2c9db758ef6c6495e1"
+    },
+    {
+      "name": "1 Flag CTF Fast",
+      "engine": 1,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "442c4e5be630bfd51e79c87c8f7142662e76fbe9427d9fd6b93a72f7085a1019"
+    },
+    {
+      "name": "Multi Bomb",
+      "engine": 9,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "e385309f5e90b7eba7037f3e9d43ff8da0eacf695047dc56d54f666a28c47b50"
+    },
+    {
+      "name": "Single Bomb",
+      "engine": 9,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "82915e0111bd689abdb88678cff1980d540a63603c6c66713a9f13d9a9624f0e"
+    },
+    {
+      "name": "Single Bomb Fast",
+      "engine": 9,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "d1fbe3351eae19108f5fa71bcb55928680d84342af7515dc16ef4964418b18cf"
+    },
+    {
+      "name": "Neutral Bomb",
+      "engine": 9,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "1c36ab34bc9a010ad6a397c1a8720f1390d52f6b5fd33696c971382a985f0b37"
+    },
+    {
+      "name": "3 Plots",
+      "engine": 8,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "966a727badffc6d5eed3b6aec6c70e23158ead66338ce05288ff73caba4bbd15"
+    },
+    {
+      "name": "Land Grab",
+      "engine": 8,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "59e692668744a1d9c414785e562fdea9f8527866b8409fe93ec83b3e37d1a450"
+    },
+    {
+      "name": "3 on 1",
+      "engine": 7,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "1ea2c10efade0bd9e90a6896c96bf4909001e2a84c6d9ef61861be8fc6a1411c"
+    },
+    {
+      "name": "Ninjanaut",
+      "engine": 7,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "0f956a210583a86bf70e3a6a4268a6505040090f9ca33d39b1b9d008456e9891"
+    },
+    {
+      "name": "Gold Rush",
+      "engine": 8,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "9e9eae7169f3b5ed11ab9a1ec8b867019505d43c89304f7adbae82fd0bd29d3f"
+    },
+    {
+      "name": "Fiesta",
+      "engine": 3,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "6232d5bac1b5b4bb2c4c39b65b879be2f1df4ef555f08b91844af7fe93ef9f04"
+    },
+    {
+      "name": "Blast Resort",
+      "engine": 9,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "c2fc31f4be26fdad8702dd877128608206ac207726522cb563aa34b2297081fb"
+    },
+    {
+      "name": "Phantom Fodder",
+      "engine": 7,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "12a9af8872020db81bf7e1b87b69f58a9a6cc7cbd66dafc8c5571907a631d0e6"
+    },
+    {
+      "name": "Dreadnaut",
+      "engine": 7,
+      "team": false,
+      "settings_bytes": 304,
+      "settings_sha256": "cb2d2d2093782378a4d089a8e230c26bb5905c6a8a94ac626d84b89a1f8cd980"
+    },
+    {
+      "name": "Control Issues",
+      "engine": 8,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "1e1627f4a671199bd8adc44d0799dc76e79bbf956b752775ba12e2c6467e4277"
+    },
+    {
+      "name": "Contention",
+      "engine": 8,
+      "team": true,
+      "settings_bytes": 304,
+      "settings_sha256": "7ebfcf535edfdcc709a3192adca03035e8110ad3112c980de0a50bb42a1e2de2"
+    }
+  ],
+  "observed_boundaries": [
+    {
+      "source": "tools/rust_service_room_probe.cpp",
+      "finding": "Current Rust-service native room probe explicitly sends synthetic27-byte input,1400-byte snapshot and authored PCR data; it constructs no native world."
+    },
+    {
+      "source": "tests/online_match_launch_tests.cpp",
+      "finding": "Existing core/blocks path constructs an actual TU1.5 authority world, but its non-party Slayer fixture explicitly writes variant parameters10=8 and2=0. It does not qualify unmodified authored profiles."
+    },
+    {
+      "source": "tests/online_match_launch_http_test.py",
+      "finding": "Existing native launch driver starts the Python HTTP service with a test catalog. A complete native-world flow through the standalone Rust service remains unqualified."
+    },
+    {
+      "source": "tests/multiplayer_engines_world_tu15_tests.cpp",
+      "finding": "The39-variant source-world integration explicitly leaves full objective-driven matches, presentation and replication open."
+    }
+  ],
+  "next_required_evidence": [
+    "Bind each original-valid required preset/profile to an actual native world reached through the Rust API and current compatibility contract.",
+    "Keep complete304-byte authored settings and map/profile/executable/catalog/roster identities; record any edited control separately.",
+    "Drive actual objective or time outcomes, departures/continuity, native final PCR, Rust exactly-once XP/history and party return/requeue.",
+    "Keep private provider fixtures, real SDK/provider acceptance, installed input and delivered identity as separate evidence.",
+    "Preserve executable-default and historical scopes; do not infer missing historical settings or unsupported Cartesian combinations."
+  ],
+  "retained_large_artifacts": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-world-inputs/halo2-test-cvsbqmkl",
+  "scratch_cleanup_checked_after_exit": true
+}

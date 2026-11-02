@@ -1,0 +1,21 @@
+{
+  "at_utc": "2026-11-02T15:22:55.058486+00:00",
+  "state": "Native full validation active at this checkpoint",
+  "session_id": 97790,
+  "native_folder": "native-restart",
+  "iteration": 1,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/native-source",
+  "fifo": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/control.fifo",
+  "expected_native_tests": 27,
+  "rust_passed": 653,
+  "modern_cpp_rust_cases": 5927,
+  "linkage_passed": true,
+  "full_native_pass_not_yet_observed": true,
+  "goal_status": "active",
+  "goal_complete": false,
+  "source_docs_not_yet_finalized": false,
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "subsequent_state": "Completed: 27 native checks passed, all owned scratch removed, goal active"
+}

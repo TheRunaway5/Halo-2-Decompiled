@@ -1,0 +1,57 @@
+{
+  "label": "before",
+  "objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o": {
+      "sha256": "18af1feb8b9985163a41dcc08d791440940a8c02d50853cc9a87c9ffc7f8e609",
+      "bytes": 1924120,
+      "symbols": [
+        "                 U halo2::MenuState::update_online_matchmaking()",
+        "                 U halo2::MenuState::refresh_online_matchmaking()",
+        "                 U halo2::MenuState::enter_online_matchmaking_lobby()",
+        "                 U halo2::MenuState::prepare_online_matchmaking_lobby(bool)",
+        "                 U halo2::MenuState::reset_online_matchmaking_progress()",
+        "                 U halo2::MenuState::populate_online_matchmaking(halo2::MenuFrame&) const",
+        "                 U halo2::MenuState::online_matchmaking_progress_pane() const"
+      ]
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o": {
+      "sha256": "cf78eeebf690a5a2a7001c93f4ea0b620cec34500851b7f1de68ae7121c62ae7",
+      "bytes": 1616608,
+      "symbols": [
+        "0000000000004030 T halo2::MenuState::launch_online_match()",
+        "000000000000049e t halo2::MenuState::launch_online_match() [clone .cold]",
+        "0000000000002790 T halo2::MenuState::set_online_matchmaking(std::shared_ptr<halo2::OnlineMatchmaking>)",
+        "000000000000c8d0 T halo2::MenuState::update_online_matchmaking()",
+        "0000000000001788 t halo2::MenuState::update_online_matchmaking() [clone .cold]",
+        "000000000000ece0 T halo2::MenuState::refresh_online_matchmaking()",
+        "0000000000001984 t halo2::MenuState::refresh_online_matchmaking() [clone .cold]",
+        "0000000000006300 T halo2::MenuState::update_online_party_search()",
+        "0000000000000e82 t halo2::MenuState::update_online_party_search() [clone .cold]",
+        "                 U halo2::MenuState::enter_online_matchmaking_lobby()",
+        "000000000000f030 T halo2::MenuState::prepare_online_matchmaking_lobby(bool)",
+        "00000000000025b0 T halo2::MenuState::reset_online_matchmaking_progress()",
+        "0000000000002670 T halo2::MenuState::online_matchmaking_ui() const",
+        "0000000000002740 T halo2::MenuState::online_matchmaking_pane() const",
+        "0000000000007eb0 T halo2::MenuState::online_matchmaking_rank(unsigned int) const",
+        "000000000000f3b0 T halo2::MenuState::online_matchmaking_text[abi:cxx11](halo2::MenuFrame const&, unsigned int) const",
+        "00000000000019ae t halo2::MenuState::online_matchmaking_text[abi:cxx11](halo2::MenuFrame const&, unsigned int) const [clone .cold]",
+        "00000000000086a0 T halo2::MenuState::online_matchmaking_speaker(unsigned int) const",
+        "0000000000000f86 t halo2::MenuState::online_matchmaking_speaker(unsigned int) const [clone .cold]",
+        "0000000000009500 T halo2::MenuState::populate_online_matchmaking(halo2::MenuFrame&) const",
+        "00000000000013b0 t halo2::MenuState::populate_online_matchmaking(halo2::MenuFrame&) const [clone .cold]",
+        "0000000000003f20 T halo2::MenuState::online_matchmaking_game_icon() const",
+        "0000000000009170 T halo2::MenuState::online_matchmaking_map_bitmap() const",
+        "00000000000011c0 t halo2::MenuState::online_matchmaking_map_bitmap() const [clone .cold]",
+        "0000000000003c90 T halo2::MenuState::online_matchmaking_team_colors() const",
+        "0000000000000462 t halo2::MenuState::online_matchmaking_team_colors() const [clone .cold]",
+        "00000000000074c0 T halo2::MenuState::online_matchmaking_roster_order() const",
+        "0000000000000ef4 t halo2::MenuState::online_matchmaking_roster_order() const [clone .cold]",
+        "0000000000010840 T halo2::MenuState::online_matchmaking_original_text[abi:cxx11](unsigned int, unsigned int) const",
+        "0000000000001e72 t halo2::MenuState::online_matchmaking_original_text[abi:cxx11](unsigned int, unsigned int) const [clone .cold]",
+        "00000000000026f0 T halo2::MenuState::online_matchmaking_progress_pane() const",
+        "00000000000083d0 T halo2::MenuState::online_matchmaking_player_appearance(unsigned int) const"
+      ]
+    }
+  },
+  "retained_large_artifacts": []
+}

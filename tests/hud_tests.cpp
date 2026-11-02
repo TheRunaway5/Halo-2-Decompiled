@@ -27,9 +27,13 @@ Vec2 presented_anchor(unsigned anchor, const HudViewport &reference,
                       unsigned width, unsigned height) {
   const float scale=std::min(width/640.f,height/480.f);
   const auto &outer=reference.outer;
-  const UiRect corners{outer.top*height/480+8*scale,
-      outer.left*width/640+8*scale,outer.bottom*height/480-8*scale,
-      outer.right*width/640-8*scale};
+  // A full view retains the original floating inset. Only split cells move
+  // the four corner anchors, while source sprite offsets remain unchanged.
+  const bool single=reference.mode==0;
+  const UiRect corners{outer.top*height/480+(single?reference.safe.top-outer.top:8)*scale,
+      outer.left*width/640+(single?reference.safe.left-outer.left:8)*scale,
+      outer.bottom*height/480+(single?reference.safe.bottom-outer.bottom:-8)*scale,
+      outer.right*width/640+(single?reference.safe.right-outer.right:-8)*scale};
   if(anchor<4)return source_anchor(anchor,corners);
   // The aiming anchor keeps the old adapted safe-area midpoint, including
   // its original floor before converting back to physical pixels.
@@ -306,9 +310,12 @@ void retail_counter_positions(const HudContent &content,
           const bool ammo = std::string_view(name) == "bullets_right";
           const float local_width =
               (outer.right - outer.left) * width / 640 / scale;
-          const float anchor_x = ammo ? local_width-8 : 8;
+          const float left_inset=players==1?viewport.safe.left-outer.left:8,
+              right_inset=players==1?outer.right-viewport.safe.right:8,
+              top_inset=players==1?viewport.safe.top-outer.top:8;
+          const float anchor_x = ammo ? local_width-right_inset : left_inset;
           const float local_x = anchor_x + widget->offset[viewport.mode].x,
-                      local_y = 8 + widget->offset[viewport.mode].y;
+                      local_y = top_inset + widget->offset[viewport.mode].y;
           float expected_left =
                     outer.left * width / 640 +
                     (std::trunc(local_x - (ammo ? 13 : 4)) + 1) * scale,
@@ -380,7 +387,7 @@ void corner_presentation(const HudContent &content,
       "motion_tracker_background","player_arrow","crosshair"};
   constexpr std::array dimensions{std::array{640u,480u},std::array{1280u,720u},
       std::array{2560u,720u},std::array{3840u,2160u},std::array{853u,479u}};
-  unsigned cases=0;
+  unsigned cases=0,single_cases=0,split_cases=0;
   for(unsigned anchor=0;anchor<names.size();++anchor) {
     const auto widget=std::find_if(content.widgets.begin(),content.widgets.end(),
         [&](const auto &w){return !w.is_text && w.name==names[anchor];});
@@ -422,10 +429,13 @@ void corner_presentation(const HudContent &content,
           throw std::runtime_error(error.str());
         }
         ++cases;
+        (players==1?single_cases:split_cases)++;
       }
   }
   check(cases==500,"Incomplete corner and unchanged aiming-anchor coverage");
-  std::cout<<cases<<" actual HUD corner/aiming quads verified across 1-4 players, both split preferences and SD/HD/ultrawide/4K/odd sizes\n";
+  check(single_cases==50 && split_cases==450,"Incomplete single-view preservation or split-corner coverage");
+  std::cout<<single_cases<<" original floating single-view and "<<split_cases
+      <<" split corner/unchanged aiming quads verified across both split preferences and SD/HD/ultrawide/4K/odd sizes\n";
 }
 void sampled_layout(const HudContent &content,const std::filesystem::path &fonts,
                     const std::filesystem::path &assets) {

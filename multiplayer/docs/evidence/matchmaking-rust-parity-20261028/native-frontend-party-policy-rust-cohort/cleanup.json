@@ -1,0 +1,43 @@
+{
+  "owned_native": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4",
+  "owned_regular_bytes_before_removal": 5956432228,
+  "owned_regular_files_before_removal": 62491,
+  "scratch_roots": [
+    ".local/test-scratch/frontend-party-policy-build-helper-20261102",
+    ".local/test-scratch/frontend-party-policy-component-20261102",
+    ".local/test-scratch/frontend-party-policy-component-fixed-20261102",
+    ".local/test-scratch/frontend-party-policy-native-20261102",
+    ".local/test-scratch/frontend-party-policy-receipt-syntax-20261102",
+    ".local/test-scratch/frontend-party-policy-scope-20261102",
+    ".local/test-scratch/frontend-party-policy-source-review-20261102",
+    ".local/test-scratch/frontend-party-policy-syntax-20261102",
+    ".local/test-scratch/frontend-party-policy-validation-20261102"
+  ],
+  "retained_large_artifacts": [],
+  "owned_scratch_removed": true,
+  "native_owner_exit_code": 0,
+  "scratch_roots_verified_empty": {
+    ".local/test-scratch/frontend-party-policy-build-helper-20261102": [],
+    ".local/test-scratch/frontend-party-policy-component-20261102": [],
+    ".local/test-scratch/frontend-party-policy-component-fixed-20261102": [],
+    ".local/test-scratch/frontend-party-policy-native-20261102": [],
+    ".local/test-scratch/frontend-party-policy-receipt-syntax-20261102": [],
+    ".local/test-scratch/frontend-party-policy-scope-20261102": [],
+    ".local/test-scratch/frontend-party-policy-source-review-20261102": [],
+    ".local/test-scratch/frontend-party-policy-syntax-20261102": [],
+    ".local/test-scratch/frontend-party-policy-validation-20261102": []
+  },
+  "private_native_bytes_removed": 5956432228,
+  "post_documentation_scratch_roots_verified_empty": {
+    ".local/test-scratch/frontend-party-policy-build-helper-20261102": [],
+    ".local/test-scratch/frontend-party-policy-component-20261102": [],
+    ".local/test-scratch/frontend-party-policy-component-fixed-20261102": [],
+    ".local/test-scratch/frontend-party-policy-finalization-20261102": [],
+    ".local/test-scratch/frontend-party-policy-native-20261102": [],
+    ".local/test-scratch/frontend-party-policy-receipt-syntax-20261102": [],
+    ".local/test-scratch/frontend-party-policy-scope-20261102": [],
+    ".local/test-scratch/frontend-party-policy-source-review-20261102": [],
+    ".local/test-scratch/frontend-party-policy-syntax-20261102": [],
+    ".local/test-scratch/frontend-party-policy-validation-20261102": []
+  }
+}

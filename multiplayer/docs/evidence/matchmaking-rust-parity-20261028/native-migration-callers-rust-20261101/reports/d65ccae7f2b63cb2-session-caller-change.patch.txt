@@ -1,0 +1,83 @@
+--- before
+
++++ after
+
+@@ -214,19 +214,46 @@
+
+   bool common_phase()const{return projection.common_phase;}
+   bool native_control_phase()const{return projection.native_control_phase;}
+   bool selection_supported()const{return peer_plan().selection_supported;}
++  // The caller holds the Session generation mutex. Rust controls sampling and
++  // application order; callbacks observe the genuine owners or invoke the
++  // existing Rust Session operation after the prior borrow has ended.
++  struct MigrationIo final:bridge::NativeMigrationIo {
++    Impl &s;
++    explicit MigrationIo(Impl &session):s(session){}
++    bridge::NativeMigrationBinding migration_binding()const override{
++      bridge::NativeMigrationBinding out;out.present=s.agreement_context.has_value();
++      if(s.agreement_context)out.context=publication_context(*s.agreement_context);return out;
++    }
++    bool migration_agreement_present()const override{return bool(s.agreement);}
++    std::uint64_t migration_now_ms()const override{return transfer_time();}
++    bridge::HostAgreementState migration_agreement(std::uint64_t now)const override{
++      require(bool(s.agreement));return wire_agreement(s.agreement->state(now));
++    }
++    bool migration_handoff()const override{return s.projection.peer_handoff_phase;}
++    bool migration_selection_started()const override{return s.selection_started;}
++    bridge::NativeMigrationBinding migration_quality()const override{
++      bridge::NativeMigrationBinding out;out.present=bool(s.mesh_quality);
++      if(s.mesh_quality)out.context=publication_context(s.mesh_quality->context());return out;
++    }
++    rust::Vec<std::uint32_t> migration_ranked(std::uint64_t now)const override{
++      require(bool(s.mesh_quality));rust::Vec<std::uint32_t> out;
++      for(const auto &q:s.mesh_quality->migration_candidates(now))out.push_back(q.peer);return out;
++    }
++    bool migration_selection_supported()const override{return s.selection_supported();}
++    bridge::NativeMigrationSelection migration_selection()const override{
++      bridge::NativeMigrationSelection out;out.present=bool(s.survivor_selection);
++      if(s.survivor_selection){const auto value=s.survivor_selection->state();out.complete=value.selection_complete;out.failed=value.failed;}return out;
++    }
++    void migration_apply_fence(const bridge::NativeSessionFence &value)const override{s.apply(bridge::native_session_fence(*s.controller,value));}
++    void migration_begin(const bridge::HostAgreementContext &context)const override{bridge::native_session_selection(*s.controller,context);s.refresh();}
++    std::uint32_t migration_pick(const bridge::NativeSessionCandidate &value)const override{return bridge::native_session_candidate(*s.controller,value);}
++  };
+   void native_fence(bool force=false,bool selected_failed=false){
+-    if(!agreement_context)return;
+-    bridge::NativeSessionFence observation;observation.context=wire_context(*agreement_context);
+-    const auto learned=agreement?std::optional(agreement->state(transfer_time())):std::nullopt;
+-    observation.fenced=force||(learned&&learned->fenced);
+-    observation.decision=wire_decision(learned?learned->decision:std::nullopt);
+-    observation.selection_started=selection_started;observation.selection_failed=selected_failed;
+-    apply(bridge::native_session_fence(*controller,observation));
++    MigrationIo io(*this);bridge::native_migration_fence(io,force,selected_failed);
+   }
+   void preparation_terminal(){native_fence(true);}
+   void begin_selection(){
+-    if(!agreement_context)return;
+-    bridge::native_session_selection(*controller,wire_context(*agreement_context));refresh();
++    MigrationIo io(*this);bridge::native_migration_begin(io);
+   }
+   // Every callback below runs under the caller-held Session generation lock.
+   // It observes/executes actual owners; the Rust driver controls all admission
+@@ -496,17 +523,9 @@
+
+     return bridge::native_exchange_capability(io,kind,peer);
+   }
+   bool peer_handoff_phase()const{return projection.peer_handoff_phase;}
+-  std::optional<unsigned> migration_candidate(std::uint64_t now)const{
+-    if(!projection.peer_handoff_phase)return {};
+-    bridge::NativeSessionCandidate observed;
+-    observed.agreement_present=agreement&&agreement_context;
+-    if(observed.agreement_present){observed.context=wire_context(*agreement_context);observed.agreement=wire_agreement(agreement->state(now));}
+-    observed.quality_present=bool(mesh_quality);
+-    if(mesh_quality){observed.quality=wire_context(mesh_quality->context());for(const auto &q:mesh_quality->migration_candidates(now))observed.ranked.push_back(q.peer);}
+-    observed.selection_supported=selection_supported();
+-    if(survivor_selection){const auto state=survivor_selection->state();observed.selection_complete=state.selection_complete;observed.selection_failed=state.failed;}
+-    const auto selected=bridge::native_session_candidate(*controller,observed);
+-    return selected<16?std::optional(unsigned(selected)):std::nullopt;
++  std::optional<unsigned> migration_candidate(std::uint64_t now){
++    MigrationIo io(*this);const auto selected=bridge::native_migration_candidate(io,now);
++    return selected.present?std::optional(unsigned(selected.peer)):std::nullopt;
+   }
+   // Session mutex is held. Once a vote is accepted, no queued predecessor
+   // gameplay or voice can reach a native consumer, even before a learner has

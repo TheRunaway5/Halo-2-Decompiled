@@ -1,0 +1,80 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/iteration-6",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "rooms",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/room_io.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "tools/rust_service_room_controls.py"
+  ],
+  "source_files": 123,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/cargo/release/halo2-matchmaking-service",
+    "sha256": "7af021c501205b2d5f5b0c294bbc33f9d1933c1f6851dd6c6164df9f637bc1cc",
+    "bytes": 10082760,
+    "retained": false
+  },
+  "rooms": {
+    "checks": [
+      "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+    ],
+    "relay": {
+      "checks": [
+        "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+        "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+        "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+        "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+        "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+      ],
+      "observed": {
+        "start_countdown_ms": 9998,
+        "real_start_elapsed_seconds": 9.997728093003388,
+        "physical_connections": 2,
+        "logical_seats": 3,
+        "persistent_xp_total": 100
+      },
+      "fixture": {
+        "compatibility": "halo2-native-queue-v10",
+        "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+        "declared": true,
+        "original_profile": false,
+        "real_gameplay": false
+      },
+      "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+    },
+    "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate."
+  }
+}

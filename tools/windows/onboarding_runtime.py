@@ -83,6 +83,8 @@ def collect(root, sdk, extra):
         if not source.is_file() or source.is_symlink():
             raise RuntimeError('Missing shared launcher artwork/layout: ' + str(source))
         inputs['resources/' + name] = source
+    for source in _files(root / 'resources/launcher'):
+        inputs['resources/launcher/' + source.name] = source
     for source in _files(root / 'resources/licenses'):
         inputs['resources/licenses/' + source.relative_to(root / 'resources/licenses').as_posix()] = source
     for name in ('COPYING', 'PROVENANCE.json', 'README.md', 'packed_codebooks_aoTuV_603.bin'):

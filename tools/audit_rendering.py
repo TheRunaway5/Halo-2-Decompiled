@@ -10,7 +10,6 @@ import hashlib
 import json
 import mmap
 import os
-import stat
 from pathlib import Path
 import struct
 
@@ -44,33 +43,13 @@ class ImportBudget:
 
 
 def donor_inventory(root, *, members=100_000, depth=32, byte_limit=256 * 1024**3):
-    """Bound enumeration before sorting; empty directories and files count."""
-    rows, total = [], 0
-    def walk(parent, level):
-        nonlocal total
-        if level > depth:
-            raise FormatError("Donor directory depth budget exceeded")
-        with os.scandir(parent) as entries:
-            for entry in entries:
-                if len(rows) >= members:
-                    raise FormatError("Donor directory member budget exceeded")
-                # Windows directory entries may cache zero st_ino/st_dev
-                # values. Keep a complete no-follow snapshot now so later
-                # Path.stat checks compare the same file identity without
-                # refreshing away a source change between inventory and copy.
-                info = Path(entry.path).lstat() if os.name == "nt" else entry.stat(follow_symlinks=False)
-                directory = stat.S_ISDIR(info.st_mode)
-                if not directory and not stat.S_ISREG(info.st_mode):
-                    raise FormatError("Symlink or nonregular donor entry")
-                total += info.st_size if not directory else 0
-                if total > byte_limit:
-                    raise FormatError("Donor directory byte budget exceeded")
-                path = Path(entry.path)
-                rows.append((path.relative_to(root), info, directory))
-                if directory:
-                    walk(path, level + 1)
-    walk(root, 0)
-    return sorted(rows, key=lambda row: row[0])
+    """Bound enumeration through admitted directory owners, never path reopens."""
+    from donor_tree import DonorTree, DonorError
+    try:
+        with DonorTree(root) as tree:
+            return tree.inventory(members=members, depth=depth, byte_limit=byte_limit)
+    except (DonorError, OSError) as error:
+        raise FormatError(str(error)) from error
 
 
 def sha(data):

@@ -27,6 +27,12 @@ struct SourceBspDrawWorld {
     // request selector, the actual130980 request, then the published+50
     // geometry. Absent, the definition's prepared residency applies.
     std::function<bool(unsigned definition,bool request)> definition_resident;
+    // The resource-request flag is independent of the cluster/instance
+    // selector. Actual2CF23 derives it from the draw unit's owner being NONE.
+    std::function<bool(unsigned cluster,bool request)> cluster_resident;
+    // A live renderer supplies the complete44930/2CFE0/449D0 services.
+    // The static metadata path remains for explicitly prepared fixtures.
+    const SourceDrawUnitServices* services{};
 };
 using SourceBspDrawState=SourceDrawUnitState;
 struct SourceBspDrawContext {

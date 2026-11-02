@@ -1,0 +1,12 @@
+{
+  "source": "src/network/online_account.cpp",
+  "capture": "Pre-migration working tree, before this account-controller port",
+  "sha256": "75704c0462560aab673f4159b2829e2ecaee4e7a5a5785fae33d761fce6c6a6e",
+  "bytes": 47704,
+  "scope": "Modern C++ account client reference; not Xbox Live evidence",
+  "public_header_reference": {
+    "path": "tests/reference/account_client_before_rust_20261101/online_account.hpp.reference",
+    "sha256": "9ca0ad4f64573f90635e62ae426c2a183f31159afd150986085ada89c97337bf",
+    "helpers": "Exact two inline helper bodies emitted out of line in the reference TU to satisfy current frontend callers; no Rust account caller"
+  }
+}

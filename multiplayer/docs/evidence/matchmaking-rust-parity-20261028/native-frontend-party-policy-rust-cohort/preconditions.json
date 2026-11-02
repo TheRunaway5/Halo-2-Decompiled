@@ -1,0 +1,17 @@
+{
+  "previous_goal_turn": "progress",
+  "previous_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-presentation-rust-validation.json",
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "full_goal_complete": false,
+  "reference_source_pins": {
+    "src/ui/frontend_party.cpp": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+    "include/halo2/frontend.hpp": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+    "include/halo2/online_account.hpp": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b",
+    "tests/frontend_online_tests.cpp": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+    "src/ui/frontend_painter.cpp": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+    "include/halo2/frontend_emblem.hpp": "732c311f2a72e7a2046789b73a82552609cf571cb4c2e7dc51fbedf10bd78d72",
+    "src/ui/frontend_emblem.cpp": "eddc8fc5a8ad0da03c509a1963ee8e2b28dbcb9f3c2c8ada4bc53f5a353b4611"
+  }
+}

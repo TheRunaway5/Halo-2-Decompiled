@@ -1,0 +1,100 @@
+import hashlib,json,lzma,os,re,shutil
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-query-rust-20261102'
+evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+cohort=evidence/'native-frontend-lobby-query-rust-cohort';receipt=evidence/'native-frontend-lobby-query-rust-validation.json'
+assert not cohort.exists() and not receipt.exists()
+cohort.mkdir()
+sha=lambda b:hashlib.sha256(b).hexdigest()
+LIMIT=1048576;BUDGET=8*LIMIT
+logical=[];stored=[];dedup={}
+def retain(path,raw,logical_path=None):
+ expected=raw;digest=sha(raw);original_bytes=len(raw);tail=False
+ if digest in dedup:
+  entry=dedup[digest];logical.append({'path':logical_path or path,'stored':entry['path'],'sha256':digest,'bytes':len(raw),'compression':entry['compression']});return
+ compressed=lzma.compress(raw)
+ compression='xz' if len(raw)>65536 and len(compressed)<len(raw)*.8 else 'none'
+ output=compressed if compression=='xz' else raw
+ if len(output)>LIMIT:
+  assert path.endswith('.log'),(path,len(output))
+  expected=raw[-LIMIT:];tail=True;compression='xz';output=lzma.compress(expected)
+ assert len(output)<=LIMIT,(path,len(output))
+ actual=path+('.xz' if compression=='xz' else '')
+ target=cohort/actual;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(output)
+ assert (lzma.decompress(target.read_bytes()) if compression=='xz' else target.read_bytes())==expected
+ entry={'path':actual,'sha256':sha(output),'bytes':len(output),'compression':compression,'decoded_sha256':sha(expected),'decoded_bytes':len(expected)}
+ stored.append(entry);dedup[digest]=entry
+ row={'path':logical_path or path,'stored':actual,'sha256':digest,'bytes':original_bytes,'compression':compression}
+ if tail:row.update(diagnostic_tail_only=True,retained_decoded_sha256=sha(expected),retained_decoded_bytes=len(expected))
+ logical.append(row)
+# Recode repeated full pin manifests as exact deltas. Key order and original
+# formatting are reconstructed and checked byte-for-byte before retention.
+pin_files=sorted(work.rglob('*source-pins-*.json'))
+base={}
+for p in pin_files:
+ part=re.search(r'(source-pins-\d+\.json)$',p.name).group(1)
+ if part not in base:base[part]=json.loads(p.read_text())
+groups=[list(base)[i:i+20] for i in range(0,len(base),20)];reconstructed=0
+for index,parts in enumerate(groups):
+ rows=[]
+ for p in pin_files:
+  part=re.search(r'(source-pins-\d+\.json)$',p.name).group(1)
+  if part not in parts:continue
+  value=json.loads(p.read_text());original=p.read_bytes();baseline=base[part]
+  changes={k:v for k,v in value.items() if baseline.get(k)!=v};removed=[k for k in baseline if k not in value]
+  rebuilt=dict(baseline)
+  for k in removed:rebuilt.pop(k)
+  rebuilt.update(changes);row={'path':str(p.relative_to(work)),'base':part,'set':changes,'remove':removed,'sha256':sha(original),'bytes':len(original)}
+  if list(rebuilt)!=list(value):row['order']=list(value);rebuilt={k:rebuilt[k] for k in row['order']}
+  assert (json.dumps(rebuilt,indent=2)+'\n').encode()==original
+  rows.append(row);reconstructed+=1
+ payload={'schema':'H2_SOURCE_PIN_EXACT_DELTAS_V1','base':{k:base[k] for k in parts},'inventories':rows}
+ raw=json.dumps(payload,separators=(',',':')).encode();packed=lzma.compress(raw);assert len(packed)<=LIMIT
+ name=f'source-pin-inventories-{index}.json.xz';(cohort/name).write_bytes(packed)
+ restored=json.loads(lzma.decompress((cohort/name).read_bytes()))
+ for r in restored['inventories']:
+  v=dict(restored['base'][r['base']])
+  for k in r['remove']:v.pop(k)
+  v.update(r['set'])
+  if 'order' in r:v={k:v[k] for k in r['order']}
+  b=(json.dumps(v,indent=2)+'\n').encode();assert sha(b)==r['sha256'] and len(b)==r['bytes']
+  logical.append({'path':r['path'],'source_pin_archive':name,'sha256':r['sha256'],'bytes':r['bytes']})
+ stored.append({'path':name,'sha256':sha(packed),'bytes':len(packed),'compression':'xz','decoded_sha256':sha(raw),'decoded_bytes':len(raw),'source_pin_inventories':len(rows)})
+assert reconstructed==len(pin_files),(reconstructed,len(pin_files))
+pin_set=set(pin_files)
+for p in sorted(work.rglob('*')):
+ if not p.is_file() or p in pin_set:continue
+ assert not p.is_symlink()
+ relative=str(p.relative_to(work));name='debug/'+relative if p.name.endswith('.py.txt') else relative
+ retain(name,p.read_bytes(),relative)
+manifest={'schema':'H2_FRONTEND_LOBBY_QUERY_BOUNDED_COHORT_V1','logical_reports':logical,'stored_files':stored,
+ 'source_pin_inventories_reconstructed_exactly':reconstructed,'per_file_limit_bytes':LIMIT,'cohort_and_receipt_limit_bytes':BUDGET,
+ 'large_binaries_objects_archives_frames_banks_retained':False}
+manifest_path=cohort/'retained.json';manifest_path.write_text(json.dumps(manifest,indent=2)+'\n');assert manifest_path.stat().st_size<=LIMIT
+summary=json.loads((work/'implementation-summary.json').read_text())
+summary['storage'].update(manifest=str(manifest_path.relative_to(root)),manifest_sha256=sha(manifest_path.read_bytes()),
+ source_pin_inventories_reconstructed_exactly=reconstructed,stored_reports=len(stored)+1,
+ max_report_bytes=max([p.stat().st_size for p in cohort.rglob('*') if p.is_file()]),
+ per_file_limit_bytes=LIMIT,cohort_and_receipt_limit_bytes=BUDGET,
+ work_reports_removed=False)
+def save():receipt.write_text(json.dumps(summary,indent=2)+'\n')
+save()
+total=sum(p.stat().st_size for p in cohort.rglob('*') if p.is_file())+receipt.stat().st_size
+assert total<=BUDGET,total
+# Verify immutable stored bytes and decoded identities one final time.
+for entry in stored:
+ blob=(cohort/entry['path']).read_bytes();assert sha(blob)==entry['sha256'] and len(blob)==entry['bytes']
+ decoded=lzma.decompress(blob) if entry['compression']=='xz' else blob
+ assert sha(decoded)==entry['decoded_sha256'] and len(decoded)==entry['decoded_bytes']
+assert not Path(json.loads((work/'native/inputs.json').read_text())['scratch']).exists()
+summary['storage'].update(retained_bytes_including_receipt=total,archive_verified=True)
+save();shutil.rmtree(work);assert not work.exists()
+summary['storage']['work_reports_removed']=True
+save()
+for _ in range(3):
+ summary['storage']['retained_bytes_including_receipt']=sum(p.stat().st_size for p in cohort.rglob('*') if p.is_file())+receipt.stat().st_size
+ save()
+assert summary['storage']['retained_bytes_including_receipt']<=BUDGET
+print(json.dumps({'receipt':str(receipt.relative_to(root)),'stored_reports':len(stored)+1,'logical_reports':len(logical),'exact_pin_inventories':reconstructed,
+ 'retained_bytes':summary['storage']['retained_bytes_including_receipt'],'max_report_bytes':summary['storage']['max_report_bytes'],
+ 'owned_work_reports_removed':not work.exists(),'retained_large_artifacts':[]}))

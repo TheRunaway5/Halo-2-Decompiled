@@ -1,0 +1,126 @@
+{
+  "passed": true,
+  "scope": "Current production CXX/native routing and frozen-source identity; installed runtime and original service are outside this component proof",
+  "source_pins": {
+    "src/ui/frontend_matchmaking.cpp": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+    "src/ui/frontend_state.cpp": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879",
+    "src/ui/frontend_clans.cpp": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+    "src/ui/frontend_party.cpp": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+    "src/ui/frontend_matchmaking_lobby.cpp": "7ed120cc76bb2ea1a4980d64d59af1007ed9071271ce7b2541a6eaff2124d3f5",
+    "include/halo2/frontend.hpp": "439b7612f4fee4f000f494571a638611f8ea67841f0931c4f4854be31a109594",
+    "rust/online_protocol/src/matchmaking_frontend_search.rs": "5a88b7a6dbdf2002641a5cb6867496158d063a373ae78295944017b5e6c3f920",
+    "rust/online_protocol/tests/matchmaking_frontend_search.rs": "c864f585060130ceb142355c49c7598b491003377f47d127c7e2148689bfc3fb",
+    "rust/online_protocol/src/lib.rs": "fdf15e25368028586d63b10176ca3b515417aec4632bddced1571c2972231fd5",
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_search.rs": "7a67a96164c139398ed3a9a2092777b89b18f161923c2deb844133c3dfb4aff6",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_search.hpp": "1a4b23e3e8f73bb0b435225e76d9d249e55359c59b68fb59110c744ae36d2b27",
+    "rust/online_protocol_bridge/src/lib.rs": "2449b5d762bac936c191c8c90e0c3aea7905d81268622407a96613a6e09c564c",
+    "rust/online_protocol_bridge/build.rs": "6a9194072d7765c7fb44ad08de229f46e577cf1f0ed78e9cc5e8d6a6569d1543",
+    "include/halo2/frontend_matchmaking_search.hpp": "8977da0421a0fecc67891f65da69efdac716cf401aeffa6cb1793c87931c79ed",
+    "src/ui/frontend_matchmaking_search.cpp": "69626b2f626f103d12f3f7a6dbace94dd4eddc4c1be92f03b335f605aa8ac850",
+    "src/ui/frontend_matchmaking_search_bridge.cpp": "f525f48060fdfb5abdd2b73b597656e283414ebc53abe5c9efc30b5e0caf3c2f",
+    "cmake/OnlinePeers.cmake": "30a6f9f89be533e64352869c96438ca3613525e101138c27b70a688787ef99f3",
+    "cmake/OnlineProtocolRust.cmake": "84a7101996531d764a9765a99d8b9b69de13a68cf34ce56af47caaf64ed82c22",
+    "tools/build_online_protocol_rust.py": "514c2656567a2a2941205be266c539a3d82bf4dc0910ab3649b4e1bfe62d6c56",
+    "tests/test_build_online_protocol_rust.py": "f990b5c25abacd9895df74737bd574093b9945991d98b953a980c16a20db829a",
+    "tests/native_frontend_search_rust_tests.cpp": "4d86c22d8404cf3ad80a235accd271426ceb927db3d11db7be6a06437c06e479",
+    "tests/test_native_frontend_search_rust.py": "b8901e53a99020a0ee6e35504d8f5e708b8f9b9c518da293ced82787bc70e824",
+    "tests/frontend_lobby_policy_tests.cpp": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+    "tests/reference/frontend_lobby_before_rust_20261102/frontend_matchmaking_progress.hpp.reference": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_matchmaking.cpp.reference": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_state.cpp.reference": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_clans.cpp.reference": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_party.cpp.reference": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_matchmaking_lobby.cpp.reference": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+    "tests/reference/frontend_search_before_rust_20261102/frontend.hpp.reference": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb",
+    "tests/reference/frontend_search_before_rust_20261102/frontend_search_policy.cpp.inc": "06f3f67d94408cad3861acdec12824e954b5a53deda2617aab3be7d26fad4347",
+    "tests/reference/frontend_search_before_rust_20261102/provenance.json": "8b4fc58cc125538e5f7263157bb5b9e955e6995b5481cb058dc13eaa57423104",
+    "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc": "d3ee3e3bd1e7bba0eb0441b7978f0a29f64e596d230221f6f449c425cccbe988"
+  },
+  "retired_cpp_fields": [
+    "matchmaking_active_",
+    "quickmatch_pending_",
+    "selected_playlist_",
+    "matchmaking_name_",
+    "matchmaking_couch_revision_",
+    "matchmaking_consent_pending_",
+    "matchmaking_start_clock_",
+    "matchmaking_countdown_",
+    "matchmaking_have_fun_",
+    "matchmaking_progress_pane_",
+    "matchmaking_progress_title_state_",
+    "matchmaking_pane_clock_",
+    "matchmaking_search_party_",
+    "online_lobby_playlist_pending_",
+    "online_lobby_create_submitted_"
+  ],
+  "eight_policy_definitions_moved_from_old_cpp": true,
+  "cpp_search_controller_fallback": false,
+  "production_rust_calls": [
+    "clone_frontend_search",
+    "frontend_search_left",
+    "frontend_search_pane",
+    "frontend_search_quick",
+    "frontend_search_reset",
+    "frontend_search_run",
+    "frontend_search_scalar",
+    "frontend_search_selected",
+    "frontend_search_stop",
+    "frontend_search_ui",
+    "frontend_search_variant",
+    "new_frontend_search"
+  ],
+  "native_binary_sha256": "33d589b45fb0c0fe6d04babf808c061741275c3d6a9347e6dbe322e00c9af917",
+  "rust_counts": {
+    "online_protocol": {
+      "passed": 520,
+      "failed": 0,
+      "ignored": 2
+    },
+    "online_protocol_bridge": {
+      "passed": 65,
+      "failed": 0,
+      "ignored": 2
+    },
+    "matchmaking_service": {
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "reference": {
+    "scope": "Exact modern native frontend search controller reference; genuine original callers/Live and installed delivery remain separate",
+    "sources": {
+      "src/ui/frontend_matchmaking.cpp": "6f52299c77ad6702dba1675c1967791a7a98f1a3b4c04abf54211e8d3aff680c",
+      "src/ui/frontend_state.cpp": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320",
+      "src/ui/frontend_clans.cpp": "84be4474feac95201e14bbe3a85d3c2089940c51a97e383330f1e05fd663425f",
+      "src/ui/frontend_party.cpp": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914",
+      "src/ui/frontend_matchmaking_lobby.cpp": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906",
+      "include/halo2/frontend.hpp": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb"
+    },
+    "functions": [
+      "set_online_matchmaking",
+      "prepare_online_matchmaking_lobby",
+      "reset_online_matchmaking_progress",
+      "update_online_party_search",
+      "refresh_online_matchmaking",
+      "update_online_matchmaking",
+      "launch_online_match",
+      "online_matchmaking_ui",
+      "online_matchmaking_progress_pane"
+    ],
+    "policy_sha256": "06f3f67d94408cad3861acdec12824e954b5a53deda2617aab3be7d26fad4347",
+    "variant_function": {
+      "path": "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc",
+      "sha256": "d3ee3e3bd1e7bba0eb0441b7978f0a29f64e596d230221f6f449c425cccbe988",
+      "scope": "Unedited modern C++ selection function; shared previously qualified full-settings validator remains a declared leaf"
+    }
+  },
+  "rendered_observations": 23,
+  "actual_sdl_mouse_inputs": 3,
+  "frozen_native_inputs_intact": true,
+  "baseline_same_full_source_cohort": false,
+  "prior_native_owner_interrupted": true,
+  "selected_runtime_replaced": false,
+  "retained_large_artifacts": []
+}

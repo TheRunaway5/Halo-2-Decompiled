@@ -1,0 +1,24 @@
+{
+  "source_changes": [
+    {
+      "path": "src/ui/frontend_party.cpp",
+      "before_sha256": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+      "after_sha256": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+      "diff": "source-review/frontend_party.cpp.diff.txt"
+    },
+    {
+      "path": "src/ui/frontend_painter.cpp",
+      "before_sha256": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+      "after_sha256": "8f85457ec75346aea1655b64bb83865f10ac5c406fd20b473cef26bb8ce1eab6",
+      "diff": "source-review/frontend_painter.cpp.diff.txt"
+    },
+    {
+      "path": "tests/frontend_online_tests.cpp",
+      "before_sha256": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+      "after_sha256": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775",
+      "diff": "source-review/frontend_online_tests.cpp.diff.txt"
+    }
+  ],
+  "temporary_debug_instrumentation_removed": true,
+  "core_party_rust_safe": true
+}

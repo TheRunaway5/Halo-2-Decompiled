@@ -1,0 +1,38 @@
+{
+  "scope": "Next ownership pointers, not a complete original-producer audit",
+  "sources": {
+    "src/ui/frontend_state.cpp": "dcf88e2c7008fc37e3278aae89f34ade70eee179ba3944702bf0b457446a0efe",
+    "src/ui/frontend_clans.cpp": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a",
+    "src/ui/frontend_friends.cpp": "c135aabe9fe9d4daaf32e31e18452e2a15ffe0a1e96ebcf8150dafed77c059c7",
+    "include/halo2/frontend_lobby_team.hpp": "597708c77e5fabcecea3fc051173d271ba996c1b9d9c22561672c25445350eef"
+  },
+  "owners": [
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "owner": "has_online_prior_stats/review_online_postgame",
+      "line": 1137
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "owner": "local_players/controller_slot/local_team_event",
+      "line": 1261
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "owner": "update_online_account/voice intent",
+      "line": 46
+    },
+    {
+      "path": "src/ui/frontend_friends.cpp",
+      "owner": "update_online_friend_join",
+      "line": 41
+    },
+    {
+      "path": "include/halo2/frontend_lobby_team.hpp",
+      "owner": "native local team editing kernels and committed profile update",
+      "line": 24
+    }
+  ],
+  "original_native_committed_profile_to_resolved_member_team_producer_binding_complete": false,
+  "goal_complete": false
+}

@@ -43,7 +43,9 @@ enum Stage {
     Reviewing,
     Postgame,
 }
+#[derive(Clone)]
 struct Setup {
+    playlist: String,
     life: lifecycle::Life,
     wire: wire::Wire,
     packets: packets::Packets,
@@ -319,11 +321,91 @@ fn median(values: &[f64]) -> f64 {
     values.sort_by(f64::total_cmp);
     values[values.len() / 2]
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     rows: HashMap<String, Setup>,
 }
 impl Registry {
+    pub(super) fn service_rows(
+        &mut self,
+        now: f64,
+        results: &super::results::Registry,
+    ) -> Result<Value> {
+        let mut rows = Vec::new();
+        for (id, row) in &mut self.rows {
+            row.life.observe(&json!({"io_now":now}), now)?;
+            rows.push(json!({"id":id,"closed":row.life.closed,"phase":row.phase(),
+                "owners":row.players.iter().map(|p|(p.id.clone(),p.owner.clone())).collect::<BTreeMap<_,_>>(),
+                "active":row.wire.active(),"playlist":row.playlist,"clans":results.room_clans(id)?}));
+        }
+        rows.sort_by(|a, b| a["id"].as_str().cmp(&b["id"].as_str()));
+        Ok(json!(rows))
+    }
+    pub(super) fn service_contains(&self, id: &str) -> bool {
+        self.rows.get(id).is_some_and(|r| !r.life.closed)
+    }
+    pub(super) fn presence(&mut self, observations: &Value, now: f64) -> Result<Vec<Value>> {
+        let observations = observations
+            .as_array()
+            .ok_or(Error(400, "Room socket observations required"))?;
+        m::check(observations.len() <= 64, "Too many presence rooms")?;
+        let mut rooms = BTreeMap::new();
+        // Validate the complete bounded bank before observing any owner clock.
+        for room in observations {
+            m::fields(room, &["id", "io_now", "peers"])?;
+            let id = m::text(&room["id"], 64)?;
+            m::check(rooms.insert(id, room).is_none(), "Duplicate presence room")?;
+            let clock = m::real(&room["io_now"])?;
+            m::check(
+                clock >= 0. && (clock + 7200.).is_finite(),
+                "Invalid room clock",
+            )?;
+            let peers = room["peers"]
+                .as_array()
+                .ok_or(Error(400, "Room sockets required"))?;
+            m::check(peers.len() <= 16, "Too many physical room sockets")?;
+            let mut seen = BTreeSet::new();
+            for peer in peers {
+                m::fields(peer, &["player", "connection", "closed", "control_now"])?;
+                m::check(
+                    seen.insert(m::text(&peer["player"], 64)?),
+                    "Duplicate presence socket",
+                )?;
+                peer["connection"]
+                    .as_u64()
+                    .ok_or(Error(400, "Native connection generation required"))?;
+                m::boolean(&peer["closed"])?;
+                let clock = m::real(&peer["control_now"])?;
+                m::check(
+                    clock >= 0. && (clock + 15.).is_finite(),
+                    "Invalid room probe clock",
+                )?;
+            }
+        }
+        let mut result = Vec::new();
+        for (id, observation) in rooms {
+            let Some(row) = self.rows.get_mut(id) else {
+                continue;
+            };
+            row.life.observe(observation, now)?;
+            if row.life.closed {
+                continue;
+            }
+            let phase = row.phase().to_owned();
+            let mut seats = Vec::new();
+            for peer in array(observation, "peers") {
+                if peer["closed"] == true {
+                    continue;
+                }
+                // The same current-generation/challenge/deadline owner used
+                // by the room's private presence endpoint chooses all seats.
+                let observed = control::presence(row, peer)?;
+                seats.extend(observed.as_array().unwrap().iter().cloned());
+            }
+            result.push(json!({"playlist":row.playlist,"phase":phase,"seats":seats}));
+        }
+        Ok(result)
+    }
     pub(super) fn authority_epoch(&self, id: &str, required: bool) -> Result<u32> {
         match self.rows.get(id).and_then(|row| row.handoff.as_ref()) {
             Some(owner) => Ok(owner.epoch()),
@@ -373,6 +455,7 @@ impl Registry {
             ]
             .contains(&compatibility);
         let state = Setup {
+            playlist: s(proposal, "playlist").to_owned(),
             wire: wire::Wire::new(&owners, compatibility)?,
             packets: packets::Packets::new(&owners)?,
             life: lifecycle::Life::new(

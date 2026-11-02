@@ -1,7 +1,17 @@
 #include "halo2/mcc_sound_duration_tu15.hpp"
+#include "halo2/mcc_sound_dat_resources_tu15.hpp"
 #include "halo2/source_first_person_action_tu15.hpp"
 #include "halo2/source_sound_timing_input_observation_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/native_tu15_command_walk.hpp"
+#include "halo2/source_geometry_resource_request.hpp"
+#include "halo2/native_tu15_render_lighting.hpp"
+#include "halo2/native_tu15_draw_units.hpp"
+#include "halo2/native_tu15_sphere_rectangle.hpp"
+#include "halo2/native_tu15_light_parent_biped.hpp"
+#include "halo2/native_tu15_light_receiver_flags.hpp"
+#include "halo2/effect_light_receiver.hpp"
+#include "halo2/raw_datum_pool.hpp"
 #include "halo2/native_campaign_ai_queries_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_behavior_reset_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_area_tu15_binding.hpp"
@@ -17,9 +27,41 @@
 #include "halo2/native_campaign_camera_control_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
 #include "halo2/native_tu15_render_camera_packet_binding.hpp"
+#include "halo2/native_campaign_screen_flash_sample_tu15_binding.hpp"
+#include "halo2/native_campaign_model_pose_tu15_binding.hpp"
+#include "halo2/native_tu15_camera_bsp_selection_binding.hpp"
+#include "halo2/native_campaign_view_rectangle_tu15_binding.hpp"
+#include "halo2/native_tu15_camera_view_layout_binding.hpp"
+#include "halo2/native_tu15_camera_projection_binding.hpp"
+#include "halo2/native_tu15_camera_frame_policy_binding.hpp"
+#include "halo2/native_tu15_render_camera_default_binding.hpp"
+#include "halo2/native_tu15_render_object_ownership_binding.hpp"
+#include "halo2/native_tu15_render_object_ownership.hpp"
+#include "halo2/native_tu15_light_up_vector.hpp"
+#include "halo2/native_tu15_normalize_vector.hpp"
+#include "halo2/native_campaign_ai_awareness_tu15_binding.hpp"
+#include "halo2/native_tu15_shadow_inverse_binding.hpp"
+#include "halo2/native_tu15_camera_frame_policy_root.hpp"
 #include "halo2/native_campaign_level_transition_tu15.hpp"
+#include "halo2/native_campaign_session_timers_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_area_count_tu15.hpp"
+#include "halo2/native_campaign_ai_area_choice_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_path_distance_tu15_binding.hpp"
 #include "halo2/native_campaign_scenario_lookup_tu15.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
+#include "halo2/native_tu15_look_controller_input_observer.hpp"
+#include "halo2/native_tu15_look_reorientation_input_observer.hpp"
+#include "halo2/native_tu15_look_reorientation_binding.hpp"
+#include "halo2/native_tu15_look_initialization_binding.hpp"
+#include "halo2/native_tu15_look_pipeline_binding.hpp"
+#include "halo2/native_tu15_object_velocity_handoff.hpp"
+#include "halo2/native_tu15_contact_features_handoff.hpp"
+#include "halo2/native_tu15_simplex_helpers_handoff.hpp"
+#include "halo2/native_tu15_overlap_query_handoff.hpp"
+#include "halo2/native_tu15_vehicle_flip_binding.hpp"
+#include "halo2/native_tu15_vehicle_flip_handoff.hpp"
+#include "halo2/native_tu15_object_velocity_transport.hpp"
+#include "halo2/native_tu15_breakable_contact_damage.hpp"
 #include "halo2/source_damage_model_children_tu15.hpp"
 #include "halo2/source_runtime_mcc_preparation.hpp"
 #include "halo2/source_effect_world_locations.hpp"
@@ -62,6 +104,8 @@
 #include "halo2/source_transparent_group_tu15.hpp"
 #include "halo2/source_transparent_collection_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
+#include "halo2/source_workshop_script_builtins_tu15.hpp"
+#include "halo2/source_object_name_lookup_tu15.hpp"
 #include "halo2/source_effect_light_view_tu15.hpp"
 #include "halo2/source_first_person_light_pose_tu15.hpp"
 #include "halo2/pstencil/native_light_update_tu15.hpp"
@@ -97,6 +141,7 @@
 #include "halo2/source_bsp_part_commands.hpp"
 #include "halo2/source_render_cache.hpp"
 #include "halo2/source_multiplayer_render_history_tu15.hpp"
+#include "halo2/source_native_particle_history_tu15.hpp"
 #include "halo2/source_presented_model_pose_tu15.hpp"
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_scene_device_constructor_tu15.hpp"
@@ -112,6 +157,7 @@
 #include "halo2/native_tu15_heap_data.hpp"
 #include "halo2/native_tu15_world_memory.hpp"
 #include "halo2/mcc_runtime_delivery.hpp"
+#include "halo2/mcc_original_sound_runtime_delivery_tu15.hpp"
 #include "halo2/mcc_script_layout.hpp"
 #include "halo2/native_mcc_script_builtin.hpp"
 #include "halo2/source_runtime_image.hpp"
@@ -131,6 +177,7 @@
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/source_effect_compiled_symbols_tu15.hpp"
 #include "halo2/source_weapon_animation_query_symbols_tu15.hpp"
+#include "halo2/source_unit_speech_channel_symbols_tu15.hpp"
 #include "halo2/source_physics_store_observers_tu15.hpp"
 #include "halo2/native_tu15_physics_frame_observation.hpp"
 #include "halo2/native_lift_scalar_consumer_tu15.hpp"
@@ -192,8 +239,11 @@
 #include "halo2/source_sound_cache_query_tu15.hpp"
 #include "halo2/source_sound_scalar_tu15.hpp"
 #include "halo2/native_tu15_sound_manager.hpp"
+#include "halo2/native_weapon_effect_dispatch_tu15.hpp"
 #include "halo2/source_sound_listener_selection_tu15.hpp"
 #include "halo2/source_sound_gain_tu15.hpp"
+#include "halo2/source_loop_combined_publication_tu15.hpp"
+#include "halo2/source_loop_combined_routing_tu15.hpp"
 #include "halo2/source_sound_random_scalar_tu15.hpp"
 #include "halo2/source_sound_properties_tu15.hpp"
 #include "halo2/source_sound_random_short_tu15.hpp"
@@ -369,7 +419,93 @@ const SourceMainCameraOperandsTu15& SourceMainCameraRasterUseTu15::operands()con
 }
 
 struct PhysicsLiveWorldTu15::Impl {
-    // Declared first so the table outlives every other member: translated
+    struct GeometryRequestStats {
+        std::uint64_t calls{},acquire{},promote{},yield{},pump{},lighting{},lighting_reference{},bank_bsp{},bank_bsp_reference{};
+        std::uint64_t bank_bsp_units{},bank_bsp_reference_units{};
+        std::uint64_t bank_model{},bank_model_reference{},bank_model_units{},bank_model_reference_units{};
+        std::uint64_t bank_model_early_refusals{},bank_model_geometry_refusals{},bank_model_sections{},bank_model_overrides{};
+        std::uint64_t bank_model_rectangles{},bank_model_stack_records{},bank_model_requests{};
+        std::uint64_t sphere_rectangles{},sphere_rectangle_roots{};
+        std::uint64_t light_parent_tested{},light_parent_taken{},light_parent_none{},light_parent_steps{},light_parent_appended{},light_parent_refused{};
+        std::uint64_t light_flags_native{},light_flags_reference{},light_flags_bsp_rows{},light_flags_object_rows{},light_flags_changed{},light_flags_f8{};
+        ~GeometryRequestStats(){
+            if(const auto* p=std::getenv("HALO2_NATIVE_GEOMETRY_RESOURCE_STATS");p&&*p)
+                std::cerr<<"Native130980 stats: calls="<<calls<<" acquire="<<acquire<<" promote="<<promote<<
+                    " yield="<<yield<<" pump="<<pump<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_RENDER_ADMISSION_STATS");p&&*p)
+                std::cerr<<"Native2CFE0 stats: native="<<lighting<<" reference="<<lighting_reference<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_DRAW_UNIT_STATS");p&&*p)
+                std::cerr<<"Native bank BSP stats: native="<<bank_bsp<<" reference="<<bank_bsp_reference<<
+                    " native_units="<<bank_bsp_units<<" reference_units="<<bank_bsp_reference_units<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_DRAW_UNIT_STATS");p&&*p)
+                std::cerr<<"Native bank model stats: native="<<bank_model<<" reference="<<bank_model_reference<<
+                    " native_units="<<bank_model_units<<" reference_units="<<bank_model_reference_units<<
+                    " early="<<bank_model_early_refusals<<" geometry="<<bank_model_geometry_refusals<<
+                    " sections="<<bank_model_sections<<" overrides="<<bank_model_overrides<<
+                    " rectangles="<<bank_model_rectangles<<" stack_records="<<bank_model_stack_records<<
+                    " requests="<<bank_model_requests<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_SPHERE_RECTANGLE_STATS");p&&*p)
+                std::cerr<<"Native30270 stats: calls="<<sphere_rectangles<<" x87_triples="<<sphere_rectangle_roots<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_LIGHT_PARENT_STATS");p&&*p)
+                std::cerr<<"Native31C10 stats: tested="<<light_parent_tested<<" taken="<<light_parent_taken<<" none="<<light_parent_none<<
+                    " walk="<<light_parent_steps<<" appended="<<light_parent_appended<<" refused="<<light_parent_refused<<'\n';
+            if(const auto* p=std::getenv("HALO2_NATIVE_LIGHT_FLAGS_STATS");p&&*p)
+                std::cerr<<"Native31650 stats: native="<<light_flags_native<<" reference="<<light_flags_reference<<
+                    " bsp_rows="<<light_flags_bsp_rows<<" object_rows="<<light_flags_object_rows<<
+                    " changed="<<light_flags_changed<<" f8="<<light_flags_f8<<'\n';
+        }
+    } geometry_request_stats;
+    bool geometry_resource_request(std::uint32_t flags,std::uint32_t header,NativeTu15PhysicsFrameFp& arithmetic,
+        const SourcePhysicsContactRecordObserver& composed_observer={}) {
+        // A translated parent already owns its observer tee. Host callers
+        // supply none and use the retained registered collector directly.
+        const auto observed=composed_observer?composed_observer:physics_store_observer;
+        const auto invoke=[&](auto entry,auto& abi) {
+            abi.x87_status=arithmetic.status;
+            abi.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
+            try{run_actual(entry,abi,observed,true);}
+            catch(...){arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};throw;}
+            arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+        };
+        static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_GEOMETRY_RESOURCE");return p&&*p;}();
+        if(reference){auto abi=frame({});abi.gp[0]=flags;abi.gp[1]=header;invoke(0x130980u,abi);return (abi.gp[0]&255u)!=0;}
+        SourceGeometryResourceMemory memory;
+        memory.read=[&](auto at,auto size){return bank.view(at,size);};
+        memory.write=[&](auto at,auto size){return bank.mutable_view(at,size);};
+        memory.store_tu15=[&](auto pc,auto at,std::span<const std::byte> bytes) {
+            last_instruction=pc;
+            if(!observed){bank.write(at,bytes);return;}
+            SourcePhysicsContactRecordStore event{pc,at,std::vector<std::byte>(bytes.size()),
+                std::vector<std::byte>(bytes.begin(),bytes.end())};
+            bank.read(at,event.before);bank.write(at,bytes);observed(event);
+        };
+        SourceGeometryResourceRequestServices requests;
+        requests.acquire=[&](auto resource,bool blocking,bool selective,std::int32_t priority) {
+            ++geometry_request_stats.acquire;
+            auto abi=frame(std::array{resource,std::uint32_t(selective),std::bit_cast<std::uint32_t>(priority)});
+            abi.gp[0]=std::uint32_t(blocking);invoke(0x130eb0u,abi);
+        };
+        requests.promote=[&](auto job,std::int32_t priority) {
+            ++geometry_request_stats.promote;auto abi=frame(std::array{std::bit_cast<std::uint32_t>(priority)});
+            abi.gp[6]=job;invoke(0x1236a0u,abi);
+        };
+        requests.yield=[&]{++geometry_request_stats.yield;auto abi=frame({});invoke(0x2dbf74u,abi);};
+        requests.pump=[&]{++geometry_request_stats.pump;auto abi=frame({});invoke(0x128870u,abi);};
+        ++geometry_request_stats.calls;
+        return source_geometry_resource_request(header,flags,SourceGeometryResourceGlobals::title_update_1_5(),memory,requests);
+    }
+    bool geometry_resource_request(std::uint32_t flags,std::uint32_t header) {
+        NativeTu15PhysicsFrameFp arithmetic{fp.x87_control_word,0,fp.mxcsr};
+        return geometry_resource_request(flags,header,arithmetic);
+    }
+    // Diagnostics and the services table outlive teardown dispatch owners.
+    NativeTu15NormalizeStats normalize_vector_stats;
+    std::array<std::uint64_t,std::size_t(SourceRuntimeNativeWriteRefusal::Count)> normalize_policy_refusals{};
+    std::array<std::uint64_t,native_tu15_normalize_renderer_sites.size()+1> normalize_required_sites{};
+    std::uint64_t normalize_owner_refusals{};
+    const bool normalize_vector_diagnostics=[]{
+        const auto *p=std::getenv("HALO2_NATIVE_NORMALIZE_STATS");return p&&*p;}();
+    // Declared before owners so the table outlives them: translated
     // teardown dispatched while later members are destroyed still reads it.
     // Every cross-unit dispatch passes the services table. Its callbacks
     // capture only this owner and the table copies nothing that changes
@@ -495,6 +631,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::unique_ptr<SourceEffectCompiledSymbolsTu15> effect_compiled_symbols;
     std::unique_ptr<SourceVehicleCompiledSymbolsTu15> vehicle_compiled_symbols;
     std::unique_ptr<SourceWeaponAnimationQuerySymbolsTu15> weapon_animation_query_symbols;
+    std::unique_ptr<SourceUnitSpeechChannelSymbolsTu15> unit_speech_channel_symbols;
     std::unique_ptr<private_cpu_bitmap::WorldProjection> cpu_bitmap_projection;
     std::unique_ptr<SourceRuntimeDspSection> dsp_section;
     std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk_resources;
@@ -516,6 +653,7 @@ struct PhysicsLiveWorldTu15::Impl {
     NativeSynchronizationServices event_services=events.services();
     std::map<std::uint32_t,std::uint32_t> lock_events;
     bool body_pose_publication_active{};
+    NativeTu15BreakableContactDamageStats breakable_contact_damage_stats;
     std::map<std::thread::id,std::uint32_t> thread_ids;
     std::uint64_t next_thread_token=1;
     std::mutex mutex;
@@ -553,6 +691,14 @@ struct PhysicsLiveWorldTu15::Impl {
     bool physics_store_observer_read_only{};
     NativeLiftScalarActivityTu15 native_lift_activity;
     NativeVehicleRateActivityTu15 native_vehicle_rate_activity;
+    NativeTu15ObjectVelocityHandoffActivity native_object_velocity_handoffs;
+    NativeTu15ContactFeaturesHandoffActivity native_contact_features_handoffs;
+    NativeTu15SimplexHelpersHandoffActivity native_simplex_helpers_handoffs;
+    NativeTu15OverlapQueryHandoffActivity native_overlap_query_handoffs;
+    NativeTu15VehicleFlipHandoffActivity native_vehicle_flip_handoffs;
+    NativeTu15VehicleFlipBindingActivity native_vehicle_flips;
+    std::uint64_t native_vehicle_flip_unqualified_owners{};
+    NativeTu15ObjectVelocityTransportActivity native_object_velocity_transport;
     SourceBodyVelocityInputObserverTu15 body_velocity_input_observer;
     std::function<void(const SourceWeaponEffectEventTu15 &)> weapon_effect_observer;
     struct WeaponEffectCapture {
@@ -563,6 +709,7 @@ struct PhysicsLiveWorldTu15::Impl {
     std::vector<WeaponEffectCapture> weapon_effect_captures;
     SourceFirstPersonPhaseObserverTu15 weapon_effect_phase_observer;
     bool weapon_effect_phase_active{};
+    bool weapon_effect_phase_callback_active{},weapon_effect_instruction_trace=true;
     std::vector<std::uint32_t> weapon_effect_phase_trace;
     std::vector<SourceFirstPersonCpuInputTu15> weapon_effect_phase_cpu;
     SourceEffectDamageObserverTu15 effect_damage_observer;
@@ -573,6 +720,11 @@ struct PhysicsLiveWorldTu15::Impl {
     SourceFirstPersonPhaseObserverTu15 first_person_phase_observer;
     SourceSoundSubmitObserverTu15 sound_submit_observer;
     SourceSoundRequestObserverTu15 sound_request_observer;
+    SourceSoundRequestContextObserverTu15 sound_request_context_observer;
+    SourceWeaponZoomResetObserverTu15 weapon_zoom_reset_observer;
+    SourceWeaponZoomSoundObserverTu15 weapon_zoom_sound_observer;
+    std::optional<std::uint32_t> zoom_sound_unit;
+    bool zoom_sound_forced_reset{};
     SourceLoopSoundRequestObserverTu15 loop_sound_request_observer;
     SourceEffectLightBirthObserverTu15 effect_light_birth_observer;
     bool first_person_phase_active{};
@@ -644,7 +796,18 @@ struct PhysicsLiveWorldTu15::Impl {
         if(!binding)throw FormatError("MCC sound duration has no authenticated original timing key");
         const auto key=std::tuple{binding->sound.value,binding->relative_pitch,binding->relative_permutation};
         if(sound_timing_resource_key!=key) {
-            auto encoded=std::make_shared<const EncodedSound>(cache_owner.load_sound(binding->sound.value,binding->relative_pitch,binding->relative_permutation));
+            std::shared_ptr<const EncodedSound> encoded;
+            if(sound_runtime_plan&&sound_runtime_plan->original&&sound_runtime_plan->original->contains(binding->sound)){
+                const auto& original=sound_runtime_plan->original;
+                if(!canonical_cache||canonical_cache->original_sound_owner()!=original||resources.original_sound_owner()!=original)
+                    throw FormatError("Original sound timing lost its exact canonical metadata/resource owner");
+                encoded=std::make_shared<const EncodedSound>(original->bank()->encoded(binding->sound,binding->relative_pitch,binding->relative_permutation));
+            }else {
+                const auto dat=resources.sound_dat_owner();
+                if(!dat)throw FormatError("MCC sound timing lost its retained DAT owner");
+                encoded=std::make_shared<const EncodedSound>(cache_owner.load_sound(binding->sound.value,binding->relative_pitch,binding->relative_permutation,
+                    [&](const auto& request){return dat->read_encoded(cache_owner,request);}));
+            }
             auto proof=authenticate_mcc_sound_timing_resource(*sound_timing_bound,sound_timing_memory,binding->sound,binding->relative_pitch,binding->relative_permutation,std::move(encoded));
             sound_timing_resource.emplace(std::move(proof));sound_timing_resource_key=key;
         }
@@ -702,6 +865,8 @@ struct PhysicsLiveWorldTu15::Impl {
         vehicle_compiled_symbols=std::make_unique<SourceVehicleCompiledSymbolsTu15>(
             bank,cache.is_mcc(),[&cache](auto identifier){return cache.string_id(identifier);});
         weapon_animation_query_symbols=std::make_unique<SourceWeaponAnimationQuerySymbolsTu15>(
+            bank,cache.is_mcc(),[&cache](auto identifier){return cache.string_id(identifier);});
+        unit_speech_channel_symbols=std::make_unique<SourceUnitSpeechChannelSymbolsTu15>(
             bank,cache.is_mcc(),[&cache](auto identifier){return cache.string_id(identifier);});
         dsp_section=std::make_unique<SourceRuntimeDspSection>(bank,xbe,
             SourceRuntimeDspSection::LoadPolicy::on_demand);
@@ -851,6 +1016,9 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x228260u); // Actual row43 owns50EBF0's cleared feedback storage.
         call_actual(0x380dd0u); // Original_cinit speech-weight normalization constant.
         call_actual(0x380df0u); // Original_cinit facial-weight normalization constant.
+        // Actual_cinit slot46D82C (index79) precedes381710 at46DA68
+        // (index222). Publish the real copied default angle through its owner.
+        call_actual(0x380450u);
         for(auto entry:{0x381710u,0x381730u,0x381750u,0x381770u})call_actual(entry);
         // Literal _cinit table46D768 constructs the static contact agent.
         call_actual(0x383130u);
@@ -860,7 +1028,7 @@ struct PhysicsLiveWorldTu15::Impl {
         for(std::uint32_t slot=0x46dad8u;slot<0x46dbf4u;slot+=4u)
             call_actual(word(bank,slot));
         // Original _cinit scalar callbacks precede29BE40's AI geometry tables.
-        for(std::uint32_t slot=0x46dd00u;slot<0x46dd0cu;slot+=4u)
+        for(std::uint32_t slot=0x46dd00u;slot<0x46dd1cu;slot+=4u)
             call_actual(word(bank,slot));
         call_actual(0x13e9e0u); // Actual44B644 row53 owns cinematic interface storage.
         call_actual(0x2129d0u); // Actual row54 constructs HS syntax, object lists, threads and globals.
@@ -877,7 +1045,9 @@ struct PhysicsLiveWorldTu15::Impl {
                 // Serialized pointers remain logical32 tokens; the bank owns
                 // the host64 backing and includes it in normal checkpoints.
                 constexpr std::uint32_t native_base=0x90000000u,native_budget=0x60000000u;
-                if(auto prepared=take_prepared_mcc_world_metadata(cache,native_base,native_budget)) {
+                auto prepared=resources.take_mcc_world_metadata(native_base,native_budget);
+                if(!prepared)prepared=take_prepared_mcc_world_metadata(cache,native_base,native_budget);
+                if(prepared) {
                     canonical_cache.emplace(std::move(prepared->delivery));
                     sound_runtime_plan.emplace(std::move(prepared->sound));
                     sound_timing_plan.emplace(std::move(prepared->timing));
@@ -891,6 +1061,9 @@ struct PhysicsLiveWorldTu15::Impl {
                 sound_timing_plan.emplace(build_mcc_sound_timing_reference(cache,*sound_runtime_plan,
                     [this](auto address,auto bytes){return canonical_cache->runtime_address(address,bytes);}));
                 }
+                if(!sound_runtime_plan||canonical_cache->original_sound_owner()!=sound_runtime_plan->original)
+                    throw FormatError("Canonical sound metadata lost its complete original resource owner");
+                resources.require_sound_plan(*sound_runtime_plan);
                 // Strict complete-schema publication precedes every source
                 // tag consumer. The unchanged vanilla index/binders own the
                 // converted definitions after this native I/O boundary.
@@ -910,7 +1083,7 @@ struct PhysicsLiveWorldTu15::Impl {
                     std::span<const std::byte>{};
                 const auto syntax=project_mcc_script_layout(cache,script_block(0x238,20),
                     strings,script_block(0x1b8,0x28),{true});
-                mcc_script_profile.emplace(syntax,strings);
+                mcc_script_profile.emplace(syntax,strings,true);
                 MccScriptLayout unowned;
                 for(const auto& requirement:syntax.requirements)
                     if(!mcc_script_profile->owns(requirement))unowned.requirements.push_back(requirement);
@@ -1190,10 +1363,33 @@ struct PhysicsLiveWorldTu15::Impl {
         };
 #endif
         s.required_owner=[this](auto&m,const auto&c,auto&a,const auto&o){required(m,c,a,o);};
+        static const bool reference_normalize=[]{
+            const auto *p=std::getenv("HALO2_REFERENCE_NORMALIZE_VECTOR");
+            const auto *all=std::getenv("HALO2_REFERENCE_LITERAL_INSTRUCTIONS");
+            const auto *light=std::getenv("HALO2_REFERENCE_FP_LIGHT_UP");
+            return (p&&*p)||(all&&*all)||(light&&*light);}();
+        if(!reference_normalize)s.normalize_vector_30bd0_guarded=[this](auto&m,auto vector,auto sp,const auto &observe,auto constants)
+            ->std::optional<NativeTu15NormalizeOutcome> {
+            if(&m!=&bank){if(normalize_vector_diagnostics)++normalize_owner_refusals;return std::nullopt;}
+            const std::array<SourceRuntimeNativeWriteRange,2> ranges{{{vector,12},{sp-4u,4}}};
+            // This observer only retires host camera receipts when their final
+            // source anchors change. Every other callback retains literal
+            // stores/fault prefixes; no access guard is invoked or bypassed.
+            const std::array<const void*,1> allowed{{&main_receipts}};
+            SourceRuntimeNativeWriteLease lease(bank,ranges,allowed);
+            if(!lease){
+                if(normalize_vector_diagnostics)++normalize_policy_refusals[std::size_t(lease.refusal())];
+                return std::nullopt;
+            }
+            const auto result=native_tu15_normalize_vector_30bd0_resident(m,vector,observe,constants);
+            put(m,sp-4u,result.magnitude_bits);return result;
+        };
+        if(normalize_vector_diagnostics)s.normalize_vector_30bd0_stats=&normalize_vector_stats;
         return s;
     }
-    std::uint32_t retain_resource_read(NativeResourceRead read) {
-        if(body_pose_publication_active)throw FormatError("Body pose completion cannot retain a resource job");
+    std::uint32_t retain_resource_read(NativeResourceRead read,bool body_pose_animation=false) {
+        if(body_pose_publication_active && !body_pose_animation)
+            throw FormatError("Body pose completion cannot retain an unrelated resource job");
         if(next_resource_read>UINT32_MAX)throw FormatError("TU1.5 native resource-read namespace exhausted");
         const auto job=std::uint32_t(next_resource_read);
         if(!resource_reads.emplace(job,read).second)throw FormatError("TU1.5 native resource-read alias reused");
@@ -1300,6 +1496,8 @@ struct PhysicsLiveWorldTu15::Impl {
             {source_sound_range_selection_tu15_owns_entry,source_run_sound_range_selection_tu15},
             {source_sound_permutation_tu15_owns_entry,source_run_sound_permutation_tu15},
             {source_sound_gain_tu15_owns_entry,source_run_sound_gain_tu15},
+            {source_loop_combined_publication_tu15_owns_entry,source_run_loop_combined_publication_tu15},
+            {source_loop_combined_routing_tu15_owns_entry,source_run_loop_combined_routing_tu15},
             {source_sound_properties_tu15_owns_entry,source_run_sound_properties_tu15},
             {source_sound_listener_selection_tu15_owns_entry,source_run_sound_listener_selection_tu15},
             {source_sound_binding_tu15_owns_entry,source_run_sound_binding_tu15},
@@ -1313,9 +1511,174 @@ struct PhysicsLiveWorldTu15::Impl {
     }
     void required(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
+        if(normalize_vector_diagnostics&&c.target==0x30bd0u) {
+            auto site=native_tu15_normalize_renderer_sites.size();
+            for(std::size_t i=0;i<native_tu15_normalize_renderer_sites.size();++i)
+                if(native_tu15_normalize_renderer_sites[i]==c.instruction){site=i;break;}
+            ++normalize_required_sites[site];
+        }
+        if(image==SourcePhysicsContactImage::TitleUpdate15 &&
+            native_tu15_render_object_ownership_owns_entry(c.target)) {
+            native_tu15_render_object_ownership_run(m,c.target,a,o);return;
+        }
+        if(c.target==0x30270u) {
+            // Only2CBD0's2CD49 consumes this ABI. Its next scalar loads
+            // overwrite every XMM scratch result before use.
+            const auto sp=a.gp[4],output=a.gp[6];
+            if(image!=SourcePhysicsContactImage::TitleUpdate15 || c.tail || c.instruction!=0x2cd49u ||
+                word(m,sp)!=0x2cd4eu || a.gp[1]!=0x4c6634u || a.gp[2]!=0x4c65c0u ||
+                output<0x4cdd5cu || output>0x4ce194u || (output-0x4cdd5cu)%36u || a.x87_depth || a.active_mmx)
+                throw FormatError("TU1.5 sphere rectangle caller differs");
+            auto control=a.floating_point.value_or(fp);
+            NativeTu15PhysicsFrameFp arithmetic{control.x87_control_word,a.x87_status,control.mxcsr};
+            SourcePhysicsContactRecordObserver observed;
+            if(o)observed=[&](const auto& event){last_instruction=event.instruction;o(event);};
+            const auto result=native_tu15_sphere_rectangle_30270(m,a.gp[0],a.gp[1],a.gp[2],output,word(m,sp+4u),arithmetic,observed);
+            ++geometry_request_stats.sphere_rectangles;geometry_request_stats.sphere_rectangle_roots+=result.x87_triples;
+            a.gp[0]=result.eax;a.gp[1]=result.ecx;
+            // Every30270 return has these upper lanes zero. 2CBD0 keeps
+            // them, and a later child builder can use them for MXCSR status.
+            for(unsigned lane=1;lane<4;++lane)a.xmm[1][lane]=0;
+            a.eflags=native_tu15_sphere_rectangle_return_flags(sp,a.eflags);a.x87_status=arithmetic.status;
+            control.mxcsr=arithmetic.mxcsr;a.floating_point=control;a.gp[4]+=8u;return;
+        }
+        if(c.target==0x31650u&&(c.instruction==0x31650u||c.instruction==0x31ebdu)) {
+            if(image!=SourcePhysicsContactImage::TitleUpdate15||c.tail||std::this_thread::get_id()!=main_thread||
+                (c.instruction==0x31ebdu&&word(m,a.gp[4])!=0x31ec2u))
+                throw FormatError("TU1.5 light-flag caller differs");
+            std::optional<SourcePhysicsEntryObservation> diagnostic;
+            if(c.instruction!=c.target)diagnostic.emplace(m,0x31650u,[&]{return a;});
+            static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_LIGHT_FLAGS_31650");return p&&*p&&*p!='0';}();
+            static const bool census=[]{const auto* p=std::getenv("HALO2_NATIVE_LIGHT_FLAGS_STATS");return p&&*p&&*p!='0';}();
+            auto& stats=geometry_request_stats;SourcePhysicsContactRecordObserver observed;
+            if(o||census)observed=[&](const auto& event) {
+                last_instruction=event.instruction;
+                if(reference) {
+                    const auto pc=event.instruction;
+                    const bool bsp=pc==0x316bau||pc==0x316eeu||pc==0x31896u;
+                    const bool object=pc==0x3172au||pc==0x317b9u||pc==0x31826u;
+                    stats.light_flags_bsp_rows+=bsp;stats.light_flags_object_rows+=object;
+                    stats.light_flags_changed+=(bsp||object)&&event.before!=event.written;
+                    stats.light_flags_f8+=pc==0x31867u;
+                }
+                if(o)o(event);
+            };
+            if(reference) {
+                ++stats.light_flags_reference;
+                pstencil_run_native_light_portal_tu15(m,0x31650u,a,a.floating_point.value_or(fp),services(),observed);return;
+            }
+            ++stats.light_flags_native;NativeTu15LightReceiverFlagResult result;
+            const auto sp=a.gp[4];last_instruction=0x31650u;
+            const auto residue=[&]{if(result.f8_written)a.xmm[0]={result.xmm0_word,0,0,0};};
+            try{native_tu15_light_receiver_flags_31650(m,{a.gp[0],a.gp[1],a.gp[6],sp},result,observed);}
+            catch(...){residue();throw;}
+            residue();a.gp[4]=sp+0x14u;
+            stats.light_flags_bsp_rows+=result.bsp_rows;stats.light_flags_object_rows+=result.object_rows;
+            stats.light_flags_changed+=result.changed_rows;stats.light_flags_f8+=result.f8_written;
+            //31EC2 reloads volatile GP/flags. Every XMM0 read is defined by
+            //135E00/135EA0 first; still retain the exact MOVSS return residue.
+            return;
+        }
+        if(c.target==0x2cbd0u && c.instruction==0x136ce0u) {
+            // Sole dynamic-model site. The genuine body remains lowered for
+            // both BSP reference callers and this model reference switch.
+            const auto sp=a.gp[4];
+            if(image!=SourcePhysicsContactImage::TitleUpdate15 || c.tail ||
+                word(m,sp)!=0x136ce5u || a.x87_depth || a.active_mmx ||
+                std::this_thread::get_id()!=main_thread)
+                throw FormatError("TU1.5 dynamic model draw-unit caller differs");
+            SourcePhysicsEntryObservation diagnostic(m,0x2cbd0u,[&]{return a;});
+            const auto before=word(m,0x4cd398u);
+            const auto section=word(m,sp+44u)&31u,override=word(m,sp+36u);
+            auto& stats=geometry_request_stats;
+            stats.bank_model_sections+=section!=31u;stats.bank_model_overrides+=section!=31u&&override!=0xffffffffu;
+            stats.bank_model_stack_records+=a.gp[6]>=0x60000000u&&a.gp[6]<stack;
+            static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_MODEL_DRAW_UNITS");return p&&*p;}();
+            if(reference) {
+                ++stats.bank_model_reference;
+                source_run_shadow_frame_tu15(m,0x2cbd0u,a,fp,services(),o);
+                const auto after=word(m,0x4cd398u);if(after>before)stats.bank_model_reference_units+=after-before;
+                return;
+            }
+            ++stats.bank_model;
+            CallerFrame nested(*this,sp);
+            auto control=a.floating_point.value_or(fp);
+            NativeTu15PhysicsFrameFp arithmetic{control.x87_control_word,a.x87_status,control.mxcsr};
+            const auto carry=[&]{a.x87_status=arithmetic.status;control.mxcsr=arithmetic.mxcsr;a.floating_point=control;};
+            NativeTu15DrawUnitCall input{a.gp[0],a.gp[1],a.gp[2],{}};
+            for(unsigned index=0;index<input.stack.size();++index)input.stack[index]=word(m,sp+4u+4u*index);
+            SourcePhysicsContactRecordObserver observed;
+            if(o)observed=[&](const auto& event){last_instruction=event.instruction;o(event);};
+            NativeTu15DrawUnitServices calls;
+            calls.lighting.request=[&](auto header,auto& state) {
+                ++stats.bank_model_requests;return geometry_resource_request(3u,header,state,observed);
+            };
+            calls.argument_write=[&](auto pc,unsigned index,auto value) {
+                last_instruction=pc;const auto at=sp+4u+4u*index;
+                std::array<std::byte,4> bytes;for(unsigned n=0;n<4;++n)bytes[n]=std::byte(value>>(8u*n));
+                if(!observed){m.write(at,bytes);return;}
+                SourcePhysicsContactRecordStore event{pc,at,std::vector<std::byte>(4),std::vector<std::byte>(bytes.begin(),bytes.end())};
+                m.read(at,event.before);m.write(at,bytes);observed(event);
+            };
+            NativeTu15DrawUnitDetails result;last_instruction=0x2cbd0u;
+            try{native_tu15_draw_unit_2cbd0(m,input,arithmetic,calls,observed,&result);}
+            catch(...){carry();throw;}
+            carry();a.gp[0]=result.return_word;a.gp[4]=sp+0x58u;
+            // XMM values are dead at136CE5, including the child4B5C0
+            // closure. Discarded packed lanes can still affect MXCSR status:
+            // retain the original upper-lane zeros from2CDE7 and30270.
+            if(!result.early_refusal)for(unsigned lane=1;lane<4;++lane)a.xmm[0][lane]=0;
+            if(result.rectangle)for(unsigned lane=1;lane<4;++lane)a.xmm[1][lane]=0;
+            // EBX/EBP/ESI/EDI and the live caller frame are preserved;
+            // ECX/EDX/EFLAGS are overwritten by the continuation.
+            stats.bank_model_early_refusals+=result.early_refusal;stats.bank_model_geometry_refusals+=result.geometry_refusal;
+            stats.bank_model_rectangles+=result.rectangle;
+            const auto after=word(m,0x4cd398u);if(after>before)stats.bank_model_units+=after-before;
+            return;
+        }
+        if(c.target==0x1e2800u) {
+            // Sole TU1.5 caller:1E1980's current0x94-byte stack record.
+            // Keep the boundary strict; other images/call frames own no alias.
+            const auto sp=a.gp[4],frame=sp+4u,count=word(m,frame+0x38u);
+            if(image!=SourcePhysicsContactImage::TitleUpdate15 || c.tail || c.instruction!=0x1e1e4au || std::this_thread::get_id()!=main_thread ||
+                word(m,sp)!=0x1e1e4fu || count>=16u || a.gp[6]!=frame+0x32cu+count*0x94u ||
+                a.gp[1]!=word(m,frame+0x50u) || a.gp[0]!=word(m,a.gp[5]+8u) ||
+                (a.eflags&0x400u) || a.active_mmx)
+                throw FormatError("TU1.5 breakable contact damage caller differs");
+            auto control=a.floating_point.value_or(fp);
+            NativeTu15PhysicsFrameFp native_fp{control.x87_control_word,a.x87_status,control.mxcsr};
+            const auto result=native_tu15_build_breakable_contact_damage(m,a.gp[0],a.gp[1],{a.gp[6]},
+                native_fp,a.x87_depth,o,&breakable_contact_damage_stats);
+            a.gp[0]=result.eax;a.gp[1]=result.ecx;a.gp[2]=result.edx;a.xmm[0]=result.xmm0;
+            if(result.normalized){a.xmm[1]=result.xmm1;a.xmm[2]=result.xmm2;}
+            // Actual epilogue ADD ESP,0xC after restoring EDI/EBX/EBP.
+            const auto left=sp-0xcu,sum=left+0xcu;
+            const auto flags=std::uint32_t(sum<left) | (std::uint32_t(!(std::popcount(sum&255u)&1u))<<2) |
+                (((left^0xcu^sum)&0x10u)) | (std::uint32_t(sum==0)<<6) | ((sum>>24)&0x80u) |
+                (((~(left^0xcu)&(left^sum))>>20)&0x800u);
+            a.eflags=(a.eflags&~0x8d5u)|flags;a.x87_status=native_fp.status;
+            control.mxcsr=native_fp.mxcsr;a.floating_point=control;a.gp[4]+=4u;return;
+        }
+        if((sound_request_context_observer || weapon_zoom_sound_observer) &&
+            (c.target==0xcabc0u || (c.target==0x18c000u && c.instruction==0xc8106u && !c.tail))) {
+            struct ZoomScope {
+                std::optional<std::uint32_t> &unit;
+                std::optional<std::uint32_t> previous;
+                bool &forced;bool previous_forced;
+                ~ZoomScope(){unit=previous;forced=previous_forced;}
+            } scope{zoom_sound_unit,zoom_sound_unit,zoom_sound_forced_reset,zoom_sound_forced_reset};
+            zoom_sound_unit=c.target==0xcabc0u?a.gp[0]:a.gp[6];
+            zoom_sound_forced_reset=c.target==0xcabc0u;
+            required_entry(m,c,a,o);return;
+        }
         if(native_input_devices && native_input_devices->try_call(m,c,a))return;
-        if(body_pose_publication_active && c.target==0x1a3b70u)
-            throw FormatError("Body pose completion requires already admitted animation resources");
+        if(body_pose_publication_active && c.target==0x1a3b70u &&
+            (c.instruction!=0x126139u || c.tail)) {
+            std::ostringstream context;
+            context<<"Body pose completion requires already admitted animation resources; source 0x"
+                <<std::hex<<c.instruction<<" target 0x"<<c.target<<" stack 0x"<<a.gp[4];
+            throw FormatError(context.str());
+        }
         if(multiplayer_event_observer && !multiplayer_event_dispatch_active &&
             (c.target==0x1a8740u || c.target==0x1a87a0u)) {
             const auto options=word(m,0x4f3218u),mode=word(m,options+0xcu,1);
@@ -1461,14 +1824,71 @@ struct PhysicsLiveWorldTu15::Impl {
     void required_entry_original(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(native_campaign_ai_path_distance_tu15_owns_call(c)) {
+            native_campaign_ai_path_distance_tu15_run(m,c,a);return;
+        }
+        if(c.target==0x1bbb50u) {
+            native_campaign_ai_area_count_tu15_run(m,c,a);return;
+        }
+        if(c.target==0x1bbec0u) {
+            native_campaign_ai_area_choice_tu15_run(m,c,a,o);return;
+        }
+        if(native_campaign_session_timers_tu15_owns_entry(c.target)) {
+            native_campaign_session_timers_tu15_run(m,c,a,[this](std::uint32_t cell) {
+                // The native data kernel already read the actual41B774 IAT
+                // word. Reuse that operand and the existing adjusted, taped
+                // World producer at33B595; do not sample another clock or
+                // reread the IAT. Cached and inactive records never get here.
+                if(cell!=native_tick_count)throw NativeCampaignSessionTimerClockRequiredTu15(cell);
+                services().instruction(0x33b595u);
+            },o);return;
+        }
+        const SourceShadowProfileDirect shadow_inverse{image,c};
+        if(native_tu15_shadow_inverse_owns_call(shadow_inverse)) {
+            native_tu15_shadow_inverse_run(m,shadow_inverse,a,o);return;
+        }
         if(native_campaign_camera_startup_tu15_owns_entry(c.target)) {
             native_campaign_camera_startup_tu15_run(m,c.target,a,o);return;
         }
         if(native_campaign_camera_reset_tu15_owns_entry(c.target)) {
             native_campaign_camera_reset_tu15_run(m,c.target,a,o);return;
         }
+        if(c.target==0x380450u || (c.target==0x2f7e0u && a.gp[0]==0u)) {
+            // run_actual marks a native root as {entry,entry,false}; the
+            // initializer binding uses0 for this explicit bootstrap domain.
+            const auto caller=c.target==0x380450u && c.instruction==c.target && !c.tail
+                ?0u:c.instruction;
+            native_tu15_render_camera_default_run(m,c.target,caller,a,o);return;
+        }
         if(native_tu15_render_camera_packet_owns_entry(c.target)) {
             native_tu15_render_camera_packet_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_campaign_ai_awareness_tu15_owns_entry(c.target)) {
+            native_campaign_ai_awareness_tu15_run(m,c,a,o);return;
+        }
+        if(native_campaign_screen_flash_sample_tu15_owns_entry(c.target)) {
+            native_campaign_screen_flash_sample_tu15_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_campaign_model_pose_tu15_owns_entry(c.target)) {
+            native_campaign_model_pose_tu15_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_tu15_camera_bsp_selection_owns_entry(c.target)) {
+            native_tu15_camera_bsp_selection_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_campaign_view_rectangle_owns_entry_tu15(c.target)) {
+            native_campaign_view_rectangle_run_tu15(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_tu15_camera_view_layout_owns_entry(c.target)) {
+            native_tu15_camera_view_layout_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(native_tu15_camera_projection_owns_call(c.target,c.instruction)) {
+            native_tu15_camera_projection_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(c.target==0x2c470u && c.instruction==0x229b9eu) {
+            native_tu15_camera_frame_policy_run(m,c.target,c.instruction,a,o);return;
+        }
+        if(c.target==0x2c470u && c.instruction==c.target && !c.tail) {
+            native_tu15_camera_frame_policy_root_run(m,a,o);return;
         }
         if(native_campaign_camera_control_tu15_owns_entry(c.target)) {
             native_campaign_camera_control_tu15_run(m,c.target,a,o);return;
@@ -1485,7 +1905,8 @@ struct PhysicsLiveWorldTu15::Impl {
                 source_sound_startup_tu15_owns_entry(t) || source_sound_dma_storage_tu15_owns_entry(t) ||
                 source_sound_hardware_storage_tu15_owns_entry(t) || source_sound_cache_query_tu15_owns_entry(t) ||
                 source_sound_scalar_tu15_owns_entry(t) || source_sound_listener_selection_tu15_owns_entry(t) ||
-                source_sound_gain_tu15_owns_entry(t) || source_sound_random_scalar_tu15_owns_entry(t) ||
+                source_sound_gain_tu15_owns_entry(t) || source_loop_combined_publication_tu15_owns_entry(t) ||
+                source_loop_combined_routing_tu15_owns_entry(t) || source_sound_random_scalar_tu15_owns_entry(t) ||
                 source_sound_properties_tu15_owns_entry(t) || source_sound_random_short_tu15_owns_entry(t) ||
                 source_sound_range_selection_tu15_owns_entry(t) || source_sound_permutation_tu15_owns_entry(t) ||
                 source_sound_binding_tu15_owns_entry(t) || source_sound_chunk_readiness_tu15_owns_entry(t) ||
@@ -1645,10 +2066,11 @@ struct PhysicsLiveWorldTu15::Impl {
                     (ca?event.presentation.colors.a:event.presentation.colors.b)=color;
                     event.presentation.colors_observed=true;
                 };
-                const bool capture=weapon_effect_phase_observer && !weapon_effect_phase_active;
+                const bool capture=weapon_effect_phase_observer && !weapon_effect_phase_callback_active;
                 if(capture) {
                     weapon_effect_phase_trace.clear();weapon_effect_phase_cpu.clear();
-                    weapon_effect_phase_observer(true,a,bank,{},{});weapon_effect_phase_active=true;
+                    weapon_effect_phase_observer(true,a,bank,{},{});weapon_effect_phase_callback_active=true;
+                    weapon_effect_phase_active=weapon_effect_instruction_trace;
                 }
                 struct CaptureLifetime {
                     Impl& owner;
@@ -1666,9 +2088,10 @@ struct PhysicsLiveWorldTu15::Impl {
                     CaptureLifetime lifetime{*this};
                     required(m,{c.target,c.target,false},a,observed);
                 }
-                catch(...) {if(capture)weapon_effect_phase_active=false;throw;}
+                catch(...) {if(capture){weapon_effect_phase_active=false;weapon_effect_phase_callback_active=false;}throw;}
                 if(capture) {
                     weapon_effect_phase_active=false;
+                    weapon_effect_phase_callback_active=false;
                     weapon_effect_phase_observer(false,a,bank,weapon_effect_phase_trace,weapon_effect_phase_cpu);
                 }
                 if(a.gp[0]!=0xffffffffu) {
@@ -1742,12 +2165,13 @@ struct PhysicsLiveWorldTu15::Impl {
             SourceExecutionObserverScope read_only(bank);
             loop_sound_request_observer(request);return;
         }
-        if(c.instruction==0x18cefcu && c.target==0x223b20u && !c.tail && (sound_submit_observer || sound_request_observer)) {
+        if(c.instruction==0x18cefcu && c.target==0x223b20u && !c.tail &&
+            (sound_submit_observer || sound_request_observer || sound_request_context_observer || weapon_zoom_sound_observer)) {
             const auto sp=a.gp[4],request=a.gp[0],sound=word(m,sp+4u);
             if(word(m,sp)!=0x18cf01u)throw FormatError("Original sound submit caller differs");
             const auto raw=bank.view(request,160);
             std::array<std::byte,160> caller;
-            if(sound_request_observer)std::copy(raw.begin(),raw.end(),caller.begin());
+            if(sound_request_observer || sound_request_context_observer || weapon_zoom_sound_observer)std::copy(raw.begin(),raw.end(),caller.begin());
             const bool was_active=first_person_phase_active;
             if(!was_active){first_person_phase_trace.clear();first_person_phase_cpu.clear();}
             const auto trace_begin=first_person_phase_trace.size(),cpu_begin=first_person_phase_cpu.size();
@@ -1760,9 +2184,15 @@ struct PhysicsLiveWorldTu15::Impl {
             if(sound_submit_observer)sound_submit_observer(false,sound,request,a,bank,
                 std::span(first_person_phase_trace).subspan(trace_begin),
                 std::span(first_person_phase_cpu).subspan(cpu_begin));
-            if(sound_request_observer) {
+            if(sound_request_observer || sound_request_context_observer || weapon_zoom_sound_observer) {
                 SourceExecutionObserverScope read_only(bank);
-                sound_request_observer(sound,caller);
+                if(sound_request_observer)sound_request_observer(sound,caller);
+                if(sound_request_context_observer)sound_request_context_observer(sound,caller,zoom_sound_unit);
+                if(weapon_zoom_sound_observer && zoom_sound_unit && !zoom_sound_forced_reset) {
+                    SourceWeaponZoomSoundEventTu15 event{word(m,word(m,0x51df54u)+8u),*zoom_sound_unit,
+                        word(m,object_body(*zoom_sound_unit)+0x13cu),sound,caller};
+                    weapon_zoom_sound_observer(event);
+                }
             }
             return;
         }
@@ -1915,7 +2345,7 @@ struct PhysicsLiveWorldTu15::Impl {
         if(c.instruction==0x21f4bdu) {
             require_executor();
             const SourceSoundCacheIoTu15Services io{
-                [this](auto encoded,auto bytes){return resources.load(encoded,bytes);},
+                [this](const SourceSoundCacheReadTu15& read){return resources.sound_cache(read);},
                 [this](auto descriptor,auto destination,auto bytes){return retain_resource_read({descriptor,destination,bytes});}};
             if(source_try_sound_cache_io_tu15(m,c,a,io))return;
         }
@@ -1986,7 +2416,7 @@ struct PhysicsLiveWorldTu15::Impl {
                 throw FormatError("TU1.5 animation resource I/O differs from its actual cache descriptor");
             auto bytes=resources.load(a.gp[1],size);
             bank.write(destination,bytes);
-            const auto job=retain_resource_read({descriptor,destination,size});
+            const auto job=retain_resource_read({descriptor,destination,size},true);
             const std::array done{std::byte{1}};bank.write(tracking+4u,done);
             a.gp[0]=job;a.gp[4]+=28;return;
         }
@@ -2013,6 +2443,23 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_sound_sdk_tu15_owns_entry(c.target)) {
             source_run_sound_sdk_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(native_weapon_effect_dispatch_tu15_owns_entry(c.target)) {
+            NativeWeaponZoomResetObserverTu15 reset;
+            if(weapon_zoom_reset_observer)reset=[&](const auto &decision) {
+                SourceWeaponZoomResetEventTu15 event{decision,word(m,word(m,0x51df54u)+8u)};
+                SourceExecutionObserverScope read_only(bank);
+                if(decision.player!=0xffffffffu) {
+                    if(decision.weapon_scoped && !decision.request) {
+                        const auto definition=word(m,object_body(decision.weapon));
+                        const auto data=word(m,word(m,0x4f0414u)+(definition&65535u)*16u+8u);
+                        event.sound=word(m,data+0x278u);
+                    }else event.sound=word(m,word(m,word(m,0x4ecc1cu)+0x134u)+0xd0u);
+                    if(event.sound!=0xffffffffu)event.control_bits=word(m,0x46a0d0u);
+                }
+                weapon_zoom_reset_observer(event);
+            };
+            native_weapon_effect_dispatch_tu15_run(m,c.target,a,services(),o,reset);return;
         }
         if(native_tu15_sound_manager_owns_entry(c.target) && !native_tu15_sound_reference_active() &&
             native_tu15_sound_manager_mode()!=NativeTu15SoundManagerMode::reference) {
@@ -2045,6 +2492,12 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(c.target==0x127cf0u) {
             source_run_sound_gain_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_loop_combined_publication_tu15_owns_entry(c.target)) {
+            source_run_loop_combined_publication_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_loop_combined_routing_tu15_owns_entry(c.target)) {
+            source_run_loop_combined_routing_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(c.target==0x127d70u) {
             source_run_sound_random_scalar_tu15(m,c.target,a,fp,services(),o);return;
@@ -2228,6 +2681,12 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_crt_float_tu15_owns_entry(c.target)) {
             source_run_crt_float_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_object_name_lookup_tu15_owns_entry(c.target)) {
+            source_run_object_name_lookup_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_workshop_script_builtins_tu15_owns_entry(c.target)) {
+            source_run_workshop_script_builtins_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_cinematic_shadow_control_tu15_owns_entry(c.target)) {
             source_run_cinematic_shadow_control_tu15(m,c.target,a,fp,services(),o);return;
@@ -2522,6 +2981,17 @@ struct PhysicsLiveWorldTu15::Impl {
             const auto result=virtual_memory.allocate({word(m,bp),0,word(m,np),f.type,4});
             put(m,bp,result.base);put(m,np,result.bytes);a.gp[0]=result.status;a.gp[4]+=24;return;
         }
+        if(c.target==0x2f73c0u&&image==SourcePhysicsContactImage::TitleUpdate15) {
+            if(sp<0x600c2000u||sp>0x600fffc0u)
+                throw FormatError("Native overlap query has no retained caller DATA arena");
+            const NativeTu15OverlapQueryHandoffPolicy policy{
+                0x600c0000u,0x60100000u,(sp-0x2000u)&~15u,0x2000u,
+                !o&&(!physics_store_observer||physics_store_observer_read_only),
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}};
+            if(native_tu15_handoff_overlap_query(m,c,a,policy,services().timestamp_counter,
+                o,&native_overlap_query_handoffs))return;
+        }
         for(const auto&e:physics_live_entries_tu15::entries)if(c.target==e.actual) {
             using Module=physics_live_entries_tu15::Module;
             switch(e.module) {
@@ -2724,6 +3194,9 @@ struct PhysicsLiveWorldTu15::Impl {
     }
     NativeTu15PhysicsFrameExecutionStats native_physics_frames;
     NativeTu15WorldIntegrationStats native_physics_integrations;
+    NativeTu15LookInitializationBindingActivity native_look_initialization;
+    NativeTu15LookReorientationBindingActivity native_look_reorientation;
+    NativeTu15LookPipelineActivity native_look_pipeline;
     std::uint64_t native_world_residual_calls{};
     void step_native_physics_frame() {
         // The world phase is a genuine standalone host call: no caller reads
@@ -2764,16 +3237,27 @@ struct PhysicsLiveWorldTu15::Impl {
             });
     }
     void run_actual(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi&a,
-                    const SourcePhysicsContactRecordObserver&o={}) {
+                    const SourcePhysicsContactRecordObserver&o={},bool observer_is_composed=false) {
         source_execution_untracked(bank,entry);Execution execution(*this);
+        if(std::this_thread::get_id()!=main_thread)
+            throw FormatError("TU1.5 live entry requires its retained executor thread");
+        // Pure ownership leaves need none of the gameplay binding scopes.
+        // Retain public-call journaling and nested entry/store observation.
+        if(image==SourcePhysicsContactImage::TitleUpdate15 &&
+            native_tu15_render_object_ownership_owns_entry(entry)) {
+            SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
+            const auto observer=observer_is_composed?o:source_physics_store_observers_tu15(o,physics_store_observer);
+            last_instruction=entry;
+            native_tu15_render_object_ownership_run(bank,entry,a,
+                [&](const auto& store){last_instruction=store.instruction;if(observer)observer(store);});
+            return;
+        }
         SourceObjectAttachmentBindingTu15 attachment_events(bank,[this](const auto &event){model_attachments[event.child]=event;});
         VehicleInputCall input_call(*this);
         SourceVehicleInputResetBindingTu15 input_events(bank,[this](const auto &event){vehicle_input_resets.push_back(event);});
         SourceGameplayFadePhaseBindingTu15 fade_phase(bank,[this](unsigned phase,const auto& parent){capture_gameplay_fade(phase,parent);});
         SourcePlayerStatusPhaseBindingTu15 status_phase(bank,[this](const auto& parent){capture_player_status_phase(parent);},
             [this](const auto& parent){capture_player_scoreboard_gate(parent);});
-        if(std::this_thread::get_id()!=main_thread)
-            throw FormatError("TU1.5 live entry requires its retained executor thread");
         NativeLiftScalarConsumerScopeTu15 lift_consumer(bank,{0x60000000u,0x60100000u,
             [this](auto pc){last_instruction=pc;},&first_person_phase_active,&weapon_effect_phase_active,
             !o&&(!physics_store_observer||physics_store_observer_read_only),&native_lift_activity});
@@ -2784,10 +3268,56 @@ struct PhysicsLiveWorldTu15::Impl {
             [this]{return last_instruction;},[this](auto pc){last_instruction=pc;},
             &first_person_phase_active,&weapon_effect_phase_active,
             !o&&(!physics_store_observer||physics_store_observer_read_only),nullptr});
+        const bool velocity_observation_only=
+            !o&&(!physics_store_observer||physics_store_observer_read_only);
+        // Native kernels publish actual TU1.5 source PCs. Keep this root's
+        // owning observer tee before generated compositions wrap canonical
+        // PCs, so native stores reach both original observers exactly once.
+        const auto actual_store_observer=observer_is_composed?o:source_physics_store_observers_tu15(o,physics_store_observer);
+        NativeTu15ContactFeaturesHandoffBinding feature_handoff(bank,
+            {0x60000000u,0x60100000u,velocity_observation_only,
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}},&native_contact_features_handoffs);
+        NativeTu15SimplexHelpersHandoffBinding simplex_handoff(bank,
+            {0x60000000u,0x60100000u,velocity_observation_only,
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}},&native_simplex_helpers_handoffs);
+        NativeTu15VehicleFlipHandoffBinding flip_handoff(bank,
+            [this,actual_store_observer](auto object,auto sp,const auto&,auto&context,unsigned depth,const auto&){
+                if(sp<0x600c2000u||sp>0x600fffc0u)
+                    throw FormatError("Native TU1.5 flip has no caller-owned DATA arena");
+                const auto bounds=((sp-0x60u)&~15u)-32u,shape_end=(sp-0x100u)&~15u;
+                const NativeTu15ObjectActivationResidualCall remaining=[this](auto,auto,auto,unsigned,auto&)->std::uint32_t{
+                    ++native_vehicle_flip_unqualified_owners;
+                    throw FormatError("Native TU1.5 flip requires an unqualified activation owner");
+                };
+                const SourcePhysicsContactRecordObserver observed=[this,&actual_store_observer](const auto&store){
+                    last_instruction=store.instruction;if(actual_store_observer)actual_store_observer(store);
+                };
+                last_instruction=0xf1dd0u;
+                return native_tu15_flip_vehicle_with_activation(bank,object,context,depth,
+                    {sp-0x20u,sp-0x1cu,bounds,shape_end-0x200u,0x200u},remaining,observed,&native_vehicle_flips);
+            },{0x60000000u,0x60100000u,&first_person_phase_active,&weapon_effect_phase_active,
+                velocity_observation_only},&native_vehicle_flip_handoffs);
+        NativeTu15ObjectVelocityHandoffBinding velocity_handoff(bank,
+            [this,velocity_observation_only](auto&memory,const auto&call,auto&actual,const auto&observed) {
+                // F2091 owns its two source-local vectors above entry ESP.
+                // The native service arena stays below that active boundary,
+                // including every retained native caller's live data packet.
+                const auto sp=actual.gp[4];
+                if(sp<0x600c2000u || sp>0x600fffc0u)
+                    throw FormatError("Native TU1.5 velocity call has no qualified caller-owned arena");
+                NativeTu15ObjectVelocityTransportPolicy policy{
+                    0x600c0000u,0x60100000u,sp-0x2000u,0x2000u,
+                    velocity_observation_only,&first_person_phase_active,&weapon_effect_phase_active,
+                    [this](auto pc){last_instruction=pc;}};
+                native_tu15_run_object_velocity_handoff(memory,call,actual,policy,
+                    [this](auto owner,auto&state,const auto&){run_actual(owner,state);},
+                    observed,&native_object_velocity_transport);
+            },&native_object_velocity_handoffs);
         SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
         try {
-            const auto observed=source_physics_store_observers_tu15(o,physics_store_observer);
-            required(bank,{entry,entry,false},a,observed);
+            required(bank,{entry,entry,false},a,actual_store_observer);
         }catch(const std::exception&e) {
             std::ostringstream message;message<<"TU1.5 live actual root "<<std::hex<<entry
                 <<" at "<<last_instruction<<": "<<e.what();
@@ -2862,7 +3392,15 @@ struct PhysicsLiveWorldTu15::Impl {
             bank.write(input,bank.view(retained,0x94));
         else {
             put(bank,input,0xffffffffu);
-            auto a=frame({});a.gp[0]=0;a.gp[1]=unit;run_actual(0x18a0c0u,a);
+            auto a=frame({});
+            source_execution_untracked(bank,0x18a0c0u);Execution execution(*this);
+            SourcePhysicsContactRecordObserver observed;
+            if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+                last_instruction=store.instruction;collector(store);
+            };
+            native_tu15_initialize_bound_look_controller(bank,0u,unit,
+                {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+                !physics_store_observer||physics_store_observer_read_only,observed,&native_look_initialization);
         }
         call_actual(0x157fe0u,std::array{std::bit_cast<std::uint32_t>(seconds)});
         camera_random=word(bank,auxiliary);
@@ -2959,13 +3497,39 @@ struct PhysicsLiveWorldTu15::Impl {
         //18A0C0 again under that flag would discard the retained limits/look.
         // Construct only at the actual new-unit boundary.
         if(!initialized) {
-            auto a=frame({});a.gp[0]=0;a.gp[1]=unit;run_actual(0x18a0c0u,a);
+            auto a=frame({});
+            source_execution_untracked(bank,0x18a0c0u);Execution execution(*this);
+            SourcePhysicsContactRecordObserver observed;
+            if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+                last_instruction=store.instruction;collector(store);
+            };
+            native_tu15_initialize_bound_look_controller(bank,0u,unit,
+                {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+                !physics_store_observer||physics_store_observer_read_only,observed,&native_look_initialization);
         }
         // Native zoom selection is the same signed input field published by
         //1898A0 at189E34. Preserve it in the retained camera input record.
         bank.write(input+0x2eu,command.subspan(0x24u,2));
         const std::array args{std::bit_cast<std::uint32_t>(dy),std::bit_cast<std::uint32_t>(dp)};
-        auto a=frame(args);a.gp[0]=0;run_actual(0x18a300u,a);
+        auto a=frame(args);a.gp[0]=0;
+        // Read-only diagnostic at the actual typed Host look boundary,
+        // before the qualified native controller consumes its DATA formals.
+        (void)native_tu15_observe_look_controller_input(bank,{a.gp[0],args[0],args[1],
+          {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr},
+          a.x87_depth,player,unit});
+        {
+            source_execution_untracked(bank,0x18a300u);Execution execution(*this);
+            SourcePhysicsContactRecordObserver observed;
+            if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+                last_instruction=store.instruction;collector(store);
+            };
+            // Owned Host arithmetic DATA, disjoint from retained player rows,
+            // camera/model outputs and the original descending call stack.
+            native_tu15_update_bound_look_controller(bank,a.gp[0],args[0],args[1],
+                {{0x6005d000u},{0x6005d100u,{0x6005d200u}},{0x600a0000u}},
+                {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+                !physics_store_observer||physics_store_observer_read_only,observed,&native_look_pipeline);
+        }
         bank.write(retained,bank.view(input,0x94));
         put(bank,retained+0x94u,player);put(bank,retained+0x98u,std::bit_cast<std::uint32_t>(yaw));
         put(bank,retained+0x9cu,std::bit_cast<std::uint32_t>(pitch));
@@ -2992,12 +3556,31 @@ struct PhysicsLiveWorldTu15::Impl {
         if(initialized)bank.write(input,bank.view(retained,0x94));
         else {
             put(bank,input,0xffffffffu);
-            auto construct=frame({});construct.gp[0]=0;construct.gp[1]=unit;
-            run_actual(0x18a0c0u,construct);
+            auto a=frame({});
+            source_execution_untracked(bank,0x18a0c0u);Execution execution(*this);
+            SourcePhysicsContactRecordObserver observed;
+            if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+                last_instruction=store.instruction;collector(store);
+            };
+            native_tu15_initialize_bound_look_controller(bank,0u,unit,
+                {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+                !physics_store_observer||physics_store_observer_read_only,observed,&native_look_initialization);
         }
         constexpr std::uint32_t forward=0x6005e000u;
         bank.write(forward,completed_forward);
-        auto a=frame({});a.gp[0]=forward;a.gp[1]=0;run_actual(0x18a2a0u,a);
+        auto a=frame({});
+        (void)native_tu15_observe_look_reorientation_input(bank,{0u,forward,
+          {Bytes(completed_forward).u32(0),Bytes(completed_forward).u32(4),Bytes(completed_forward).u32(8)},
+          {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr},
+          a.x87_depth,player,unit});
+        source_execution_untracked(bank,0x18a2a0u);Execution execution(*this);
+        SourcePhysicsContactRecordObserver observed;
+        if(physics_store_observer)observed=[this,collector=physics_store_observer](const auto&store){
+            last_instruction=store.instruction;collector(store);
+        };
+        native_tu15_reorient_bound_look_controller(bank,0u,forward,
+            {a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr,a.x87_depth},
+            !physics_store_observer||physics_store_observer_read_only,observed,&native_look_reorientation);
         bank.write(retained,bank.view(input,0x94));
         if(!existing)put(bank,retained+0x94u,0xffffffffu);
     }
@@ -3510,7 +4093,7 @@ struct PhysicsLiveWorldTu15::Impl {
     void advance_effect_particles(float seconds,const SourceFirstPersonPhaseObserverTu15& observer) {
         if(!session_configured || !word(bank,0x52be48u) || !std::isfinite(seconds) || seconds<0)
             throw FormatError("TU1.5 particle frame requires a configured source world and finite frame delta");
-        if(observer && (first_person_phase_active || weapon_effect_phase_active))
+        if(observer && (first_person_phase_active || weapon_effect_phase_callback_active))
             throw FormatError("TU1.5 particle observation cannot nest a source phase");
         const std::array args{std::bit_cast<std::uint32_t>(seconds)};
         auto a=frame(args);
@@ -3977,7 +4560,7 @@ struct PhysicsLiveWorldTu15::Impl {
         SourceModelBuildWorld w;auto& m=w.admission.memory;
         m.banks={word(bank,0x4f0414u),word(bank,0x4ecc18u),word(bank,0x4ecc14u),word(bank,0x4ecbd0u),
             [this](auto p,auto n){return bank.view(p,n);},[this](auto flags,auto p){
-                auto a=frame({});a.gp[0]=flags;a.gp[1]=p;run_actual(0x130980u,a);return (a.gp[0]&255u)!=0;}};
+                return geometry_resource_request(flags,p);}};
         m.write=[this](auto p,auto n){return bank.mutable_view(p,n);};
         m.view=std::int32_t(view);m.render_frame=word(bank,0x4c6854u);m.render_cache_pool=word(bank,0x515f14u);
         m.cache_acquired=[this,frame=m.render_frame](auto owner,auto){
@@ -4063,10 +4646,21 @@ struct PhysicsLiveWorldTu15::Impl {
             if(section!=65535u && section>=word(bank,model+0x24u))throw FormatError("Native body publication section escapes its authored model");
             selected[n]=std::byte(std::uint8_t(section));
         }
-        // Only bytes are journaled. The native kernel owns no new collector,
-        // resource, backing or C++ owner; topology changes are rejected before
-        // publication. Restore in reverse store order, including stack/cache
-        // scratch, on successful completion and exceptions alike.
+        // BF640 can request a cold animation through1112E0..126139. Reuse
+        // that exact descriptor-validated synchronous native read. Its real
+        // completed job is temporary, just like the source cache/stack stores:
+        // restore the dense job namespace after byte rollback on both returns
+        // and exceptions. Other I/O, new backing and synchronization owners
+        // remain forbidden during this immutable publication.
+        struct TemporaryAnimationReads {
+            Impl& owner;const std::uint64_t first;
+            explicit TemporaryAnimationReads(Impl& owner):owner(owner),first(owner.next_resource_read){}
+            ~TemporaryAnimationReads() {
+                if(first<=UINT32_MAX)owner.resource_reads.erase(
+                    owner.resource_reads.lower_bound(std::uint32_t(first)),owner.resource_reads.end());
+                owner.next_resource_read=first;
+            }
+        } temporary_reads(*this);
         const auto* reference_journal=std::getenv("HALO2_REFERENCE_BODY_POSE_JOURNAL");
         SourceRuntimeUndoJournal journal(bank,reference_journal && *reference_journal?
             SourceRuntimeUndoJournal::Storage::store_vectors:SourceRuntimeUndoJournal::Storage::packed,
@@ -4082,7 +4676,12 @@ struct PhysicsLiveWorldTu15::Impl {
             ~PublicationScope(){active=false;}
         } publication(body_pose_publication_active);
         Execution execution(*this);
-        source_run_model_render_tu15(bank,0xbf640u,abi,fp,services());
+        try {source_run_model_render_tu15(bank,0xbf640u,abi,fp,services());}
+        catch(const std::exception& error) {
+            std::ostringstream context;
+            context<<"Native completed body pose for object 0x"<<std::hex<<object<<": "<<error.what();
+            throw FormatError(context.str());
+        }
         copy(abi.gp[0]);return result;
     }
     void build_render_model(SourceObjectDrawCollector& collector,const SourceObjectBuildRequest& request,
@@ -4172,15 +4771,12 @@ struct PhysicsLiveWorldTu15::Impl {
         for(unsigned i=0;i<count;++i) {
             const auto header=sections+i*0x5cu+0x38u;
             if(std::bit_cast<std::int32_t>(word(bank,header+8u))<=0)continue;
-            auto load=frame({});load.gp[0]=2u;load.gp[1]=header;
-            run_actual(0x130980u,load);
+            bool ready=geometry_resource_request(2u,header);
             // Native resource I/O completes synchronously. The original
             // admission/fixup owner must itself publish success; a header or
             // an uploaded preview mesh is not a successful source request.
-            if(!(load.gp[0]&255u)) {
-                load=frame({});load.gp[1]=header;run_actual(0x130980u,load);
-            }
-            if(!(load.gp[0]&255u))
+            if(!ready)ready=geometry_resource_request(0u,header);
+            if(!ready)
                 throw FormatError("TU1.5 original model-resource publication did not finish: model="+
                     std::to_string(model)+" section="+std::to_string(i)+" resource="+
                     std::to_string(word(bank,header))+" metadata_bytes="+std::to_string(word(bank,header+8u))+
@@ -4428,6 +5024,30 @@ PhysicsLiveWorldTu15::PhysicsLiveWorldTu15(const Cache&cache,const std::filesyst
 PhysicsLiveWorldTu15::~PhysicsLiveWorldTu15(){
     if(impl_ && impl_->publication_held.load(std::memory_order_acquire))std::terminate();
     if(impl_){
+        if(impl_->normalize_vector_diagnostics) {
+            const auto &s=impl_->normalize_vector_stats;
+            std::cerr<<"Native30BD0 stats: admitted="<<s.admitted<<" renderer="<<s.renderer_admitted
+                <<" last=0x"<<std::hex<<s.last_admitted_site<<std::dec<<" refused=[";
+            for(std::size_t n=0;n<s.refused.size();++n)std::cerr<<(n?",":"")<<s.refused[n];
+            std::cerr<<"] attempts="<<s.attempts<<'\n';
+            std::cerr<<"Native30BD0 policy refusals: [";
+            for(std::size_t n=0;n<impl_->normalize_policy_refusals.size();++n)
+                std::cerr<<(n?",":"")<<impl_->normalize_policy_refusals[n];
+            std::cerr<<"] owner="<<impl_->normalize_owner_refusals<<'\n';
+            for(std::size_t i=0;i<s.renderer_sites.size();++i) {
+                const auto &site=s.renderer_sites[i];
+                if(!site.admitted&&std::ranges::all_of(site.refused,[](auto n){return n==0;}))continue;
+                std::cerr<<"Native30BD0 renderer site: pc=0x"<<std::hex<<native_tu15_normalize_renderer_sites[i]
+                    <<" admitted="<<std::dec<<site.admitted<<" vector=0x"<<std::hex<<site.last_refused_vector
+                    <<" stack=0x"<<site.last_refused_stack<<std::dec<<" reason="<<unsigned(site.last_refusal)<<" refused=[";
+                for(std::size_t n=0;n<site.refused.size();++n)std::cerr<<(n?",":"")<<site.refused[n];
+                std::cerr<<"] first="<<site.first_admitted_ordinal<<" last="<<site.last_admitted_ordinal<<'\n';
+            }
+            for(std::size_t i=0;i<impl_->normalize_required_sites.size();++i)
+                if(impl_->normalize_required_sites[i])std::cerr<<"Native30BD0 required site: pc=0x"<<std::hex
+                    <<(i<native_tu15_normalize_renderer_sites.size()?native_tu15_normalize_renderer_sites[i]:0u)
+                    <<std::dec<<" entered="<<impl_->normalize_required_sites[i]<<'\n';
+        }
         native_lift_scalar_activity_reset_tu15(impl_->bank);
         native_vehicle_rate_activity_reset_tu15(impl_->bank);
         native_constraint_schema_emitter_activity_reset_tu15(impl_->bank);
@@ -4440,6 +5060,60 @@ const SourceRuntimeResources &PhysicsLiveWorldTu15::runtime_resources()const {
 }
 NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_activity() const {
     Impl::PublicCall active(*impl_,false);impl_->require_executor();auto result=impl_->native_physics_frames;
+    result.native_breakable_contact_calls=impl_->breakable_contact_damage_stats.calls;
+    result.native_breakable_damage_records=impl_->breakable_contact_damage_stats.calls-impl_->breakable_contact_damage_stats.below_threshold;
+    const auto&look_pipeline=impl_->native_look_pipeline;
+    result.native_look_update_attempts=look_pipeline.attempts;
+    result.native_look_update_calls=look_pipeline.completed;
+    result.native_look_update_refusals=look_pipeline.refusals;
+    result.native_look_update_context_calls=look_pipeline.controller.context.calls;
+    result.native_look_update_context_refusals=look_pipeline.controller.context.refusals;
+    result.native_look_update_camera_calls=look_pipeline.camera.calls;
+    result.native_look_update_camera_completions=look_pipeline.camera.completed;
+    result.native_look_update_camera_onfoot_calls=look_pipeline.camera.on_foot;
+    result.native_look_update_camera_marker_calls=look_pipeline.camera.markers;
+    result.native_look_update_marker_calls=look_pipeline.marker_calls;
+    result.native_look_update_angle_calls=look_pipeline.angles.calls;
+    result.native_look_update_angle_completions=look_pipeline.angles.completed;
+    result.native_look_update_angle_refusals=look_pipeline.angles.refusals;
+    result.native_look_update_query_refusals=look_pipeline.query_refusals;
+    result.native_look_update_marker_observer_refusals=look_pipeline.marker_observer_refusals;
+    const auto&camera_query=look_pipeline.scene_queries;
+    result.native_camera_query_attempts=camera_query.attempts;
+    result.native_camera_query_calls=camera_query.completed;
+    result.native_camera_query_refusals=camera_query.refusals;
+    result.native_camera_query_resource_refusals=camera_query.resource_refusals;
+    result.native_camera_query_unknown_owners=camera_query.unknown_owners();
+    result.native_camera_query_bsp_calls=camera_query.query.bsp_calls;
+    result.native_camera_query_bsp_hits=camera_query.query.bsp_hits;
+    result.native_camera_query_cluster_visits=camera_query.query.cluster_visits;
+    result.native_camera_query_instanced_attempts=camera_query.instanced.attempts;
+    result.native_camera_query_instanced_calls=camera_query.instanced.completed;
+    result.native_camera_query_instanced_refusals=camera_query.instanced.refusals;
+    result.native_camera_query_mopp_calls=camera_query.instanced.traversal.completed;
+    result.native_camera_query_mopp_opcodes=camera_query.instanced.traversal.opcodes;
+    result.native_camera_query_mopp_leaves=camera_query.instanced.traversal.leaves;
+    result.native_camera_query_primitive_calls=camera_query.instanced.instance.completed;
+    result.native_camera_query_primitive_hits=camera_query.instanced.instance.hits;
+    result.native_camera_query_dynamic_calls=camera_query.dynamic.completed;
+    result.native_camera_query_dynamic_ray_calls=camera_query.dynamic.ray_calls;
+    result.native_camera_query_unprovided_reads=camera_query.instanced.scene.setup.unprovided_reads;
+    result.native_camera_query_unprovided_writes=camera_query.instanced.scene.setup.unprovided_writes;
+    result.native_look_update_fp_refusals=look_pipeline.unsupported_fp_domains;
+    const auto&look_reorientation=impl_->native_look_reorientation;
+    result.native_look_reorientation_attempts=look_reorientation.attempts;
+    result.native_look_reorientation_calls=look_reorientation.completed;
+    result.native_look_reorientation_refusals=look_reorientation.refusals;
+    result.native_look_reorientation_kernel_calls=look_reorientation.reorientation.calls;
+    result.native_look_reorientation_kernel_refusals=look_reorientation.reorientation.refusals;
+    result.native_look_reorientation_yaw_wraps=look_reorientation.reorientation.yaw_wraps;
+    const auto&look_initialization=impl_->native_look_initialization;
+    result.native_look_initialization_attempts=look_initialization.attempts;
+    result.native_look_initialization_calls=look_initialization.completed;
+    result.native_look_initialization_refusals=look_initialization.refusals;
+    result.native_look_initialization_cleared_records=look_initialization.initialization.cleared_records;
+    result.native_look_initialization_unit_directions=look_initialization.initialization.unit_directions;
+    result.native_look_initialization_unchanged=look_initialization.initialization.unchanged;
     result.world_integrations=impl_->native_physics_integrations.world_integrations;
     result.island_integrations=impl_->native_physics_integrations.island.islands;
     result.native_force_calls=impl_->native_physics_integrations.island.native_force_calls;
@@ -4449,6 +5123,41 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_fixed_pose_calls=impl_->native_physics_integrations.native_fixed_pose_calls;
     result.native_prescribed_force_calls=impl_->native_physics_integrations.native_prescribed_force_calls;
     result.native_body_policy_calls=impl_->native_physics_integrations.native_body_policy_calls;
+    const auto&flip=impl_->native_vehicle_flips.flip;
+    result.native_vehicle_flip_handoff_attempts=impl_->native_vehicle_flip_handoffs.attempts;
+    result.native_vehicle_flip_handoff_calls=impl_->native_vehicle_flip_handoffs.completed;
+    result.native_vehicle_flip_handoff_refusals=impl_->native_vehicle_flip_handoffs.refusals;
+    result.native_vehicle_flip_calls=flip.calls;
+    result.native_vehicle_flip_flag_skips=flip.flag_skips;
+    result.native_vehicle_flip_direction_skips=flip.direction_skips;
+    result.native_vehicle_flip_timeouts=flip.timeouts;
+    result.native_vehicle_flip_orientation_skips=flip.orientation_skips;
+    result.native_vehicle_flip_get_calls=flip.get_calls;
+    result.native_vehicle_flip_set_calls=flip.set_calls;
+    result.native_vehicle_flip_completed=flip.completed;
+    result.native_vehicle_flip_unbound_services=flip.unbound_getters+flip.unbound_setters;
+    result.native_vehicle_flip_unqualified_owners=impl_->native_vehicle_flip_unqualified_owners;
+    result.native_vehicle_flip_residual_calls=impl_->native_vehicle_flips.activation.residual_calls;
+    const auto&features=impl_->native_contact_features_handoffs;
+    result.native_contact_features_attempts=features.attempts;
+    result.native_contact_features_calls=features.completed;
+    result.native_contact_features_refusals=features.refusals;
+    result.native_contact_features_source_calls={features.first_shape_calls,features.second_shape_calls};
+    result.native_contact_features_owner_calls={features.swept_calls,features.soa_calls,features.box_calls,features.capsule_calls,features.polygon_calls,features.sphere_calls};
+    const auto&simplex=impl_->native_simplex_helpers_handoffs;
+    result.native_simplex_helpers_attempts=simplex.attempts;
+    result.native_simplex_helpers_calls=simplex.completed;
+    result.native_simplex_helpers_refusals=simplex.refusals;
+    result.native_simplex_triangle_calls=simplex.triangle_calls;
+    result.native_closest_segment_calls=simplex.segment_calls;
+    result.native_simplex_helper_source_calls={simplex.triangle_30dad9_calls,simplex.triangle_30e3b6_calls,
+        simplex.triangle_30eb85_calls,simplex.triangle_30ece2_calls,simplex.segment_30eacc_calls};
+    const auto&gameplay_sleep=impl_->native_physics_integrations.gameplay_deactivation;
+    result.native_gameplay_deactivation_calls=gameplay_sleep.calls;
+    result.native_gameplay_deactivation_blocked=gameplay_sleep.blocked;
+    result.native_gameplay_deactivation_vehicle_tests=gameplay_sleep.vehicle_tests;
+    result.native_gameplay_deactivation_biped_tests=gameplay_sleep.biped_tests;
+    result.native_gameplay_deactivation_body_policies=gameplay_sleep.body_policies;
     result.native_island_transition_calls=impl_->native_physics_integrations.native_island_transition_calls;
     result.native_array_growth_calls=impl_->native_physics_integrations.native_array_growth_calls;
     result.native_array_reserve_calls=impl_->native_physics_integrations.native_array_reserve_calls;
@@ -4457,6 +5166,332 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_world_collision_calls=impl_->native_physics_integrations.native_world_collision_calls;
     result.native_world_collision_listener_calls=impl_->native_physics_integrations.native_world_collision_listener_calls;
     result.native_island_collision_listener_calls=impl_->native_physics_integrations.native_island_collision_listener_calls;
+    result.native_world_step_listener_calls=impl_->native_physics_integrations.native_world_step_listener_calls;
+    result.native_island_step_listener_calls=impl_->native_physics_integrations.native_island_step_listener_calls;
+    const auto&world_integration=impl_->native_physics_integrations;
+    result.native_broad_phase_edge_attempts=world_integration.broad_phase_edges.attempts;
+    result.native_broad_phase_edge_calls=world_integration.broad_phase_edges.completed;
+    result.native_broad_phase_edge_refusals=world_integration.broad_phase_edges.refusals;
+    result.native_broad_phase_edge_objects=world_integration.broad_phase_edges.edges.objects;
+    result.native_broad_phase_edge_shifted_edges=world_integration.broad_phase_edges.edges.shifted_edges;
+    result.native_broad_phase_edge_created_pairs=world_integration.broad_phase_edges.edges.created_pairs;
+    result.native_broad_phase_edge_removed_pairs=world_integration.broad_phase_edges.edges.removed_pairs;
+    result.native_broad_phase_edge_special_additions=world_integration.broad_phase_edges.edges.special_additions;
+    result.native_broad_phase_edge_special_removals=world_integration.broad_phase_edges.edges.special_removals;
+    result.native_broad_phase_edge_array_growths=world_integration.broad_phase_edges.edges.array_growths;
+
+    const auto&world_activation=world_integration.world_activation;
+    const auto&world_regroup=world_integration.island_regroup;
+    result.native_world_regroup_constant_info_queries=world_regroup.constant_info_queries;
+    result.native_world_regroup_extended_info_queries=world_regroup.extended_info_queries;
+    result.native_world_regroup_attempts=world_regroup.attempts;
+    result.native_world_regroup_calls=world_regroup.completed;
+    result.native_world_regroup_refusals=world_regroup.refusals;
+    result.native_world_regroup_active_visits=world_regroup.regroup.active_visits;
+    result.native_world_regroup_flag_skips=world_regroup.regroup.flag_skips;
+    result.native_world_regroup_fully_connected=world_regroup.regroup.fully_connected;
+    result.native_world_regroup_empty_islands=world_regroup.regroup.empty_islands;
+    result.native_world_regroup_created_islands=world_regroup.regroup.created_islands;
+    result.native_world_regroup_moved_bodies=world_regroup.regroup.moved_bodies;
+    result.native_world_regroup_compacted_bodies=world_regroup.regroup.compacted_bodies;
+    result.native_world_regroup_moved_actions=world_regroup.regroup.moved_actions;
+    result.native_world_regroup_moved_constraints=world_regroup.regroup.moved_constraints;
+    result.native_world_regroup_moved_contacts=world_regroup.regroup.moved_contacts;
+    result.native_world_regroup_retained_contacts=world_regroup.regroup.retained_contacts;
+    result.native_world_regroup_graph_builds=world_regroup.regroup.partition.builds;
+    result.native_world_regroup_edge_collections=world_regroup.regroup.edges.calls;
+    result.native_world_regroup_array_growths=world_regroup.regroup.array_growths;
+    result.native_world_regroup_group_allocations=world_regroup.regroup.partition.group_allocations;
+    result.native_world_regroup_group_releases=world_regroup.regroup.partition.group_releases;
+    result.native_world_regroup_temporary_constructors=world_regroup.regroup.lifetime.temporary_constructors;
+    result.native_world_regroup_temporary_destructors=world_regroup.regroup.lifetime.temporary_destructors;
+    result.native_world_regroup_pool_allocations=world_regroup.allocator.pool_allocations;
+    result.native_world_regroup_pool_releases=world_regroup.allocator.pool_releases;
+    result.native_world_regroup_unbound_services=world_regroup.regroup.unbound_services +
+      world_regroup.regroup.lifetime.unbound_services +
+      world_regroup.regroup.partition.unbound_services +
+      world_regroup.regroup.edges.unbound_services +
+      world_regroup.allocator.unbound_services +
+      world_regroup.allocator.raw.unbound_services;
+    result.native_world_merge_calls=world_integration.island_merge.calls;
+    result.native_world_merge_contact_calls=world_integration.island_contact_merge.calls;
+    result.native_world_merge_body_moves=world_integration.island_merge.moved_bodies;
+    result.native_world_merge_constraint_moves=world_integration.island_merge.moved_constraints;
+    result.native_world_merge_disposals=world_integration.island_lifetime.island_disposals;
+    result.native_world_merge_refusals=world_integration.native_world_merge_refusals;
+    result.native_world_merge_unbound_services=world_integration.island_merge.unbound_services+
+      world_integration.island_contact_merge.unbound_services+world_integration.island_contact_merge.lifetime.unbound_services+
+      world_integration.island_lifetime.unbound_services;
+    result.native_body_deactivation_attempts=world_integration.body_deactivation.attempts;
+    result.native_body_deactivation_calls=world_integration.body_deactivation.completed;
+    result.native_body_deactivation_refusals=world_integration.body_deactivation.refusals;
+    result.native_body_deactivation_deferred_bodies=world_integration.body_deactivation.listener.deferred_bodies;
+    result.native_body_deactivation_array_growths=world_integration.body_deactivation.listener.array_growths;
+    result.native_body_deactivation_property_queries=world_integration.body_deactivation.listener.property_queries;
+    result.native_body_deactivation_motion_publications=world_integration.body_deactivation.listener.component_motion_publications;
+    result.native_body_deactivation_unbound_services=world_integration.body_deactivation.listener.unbound_services;
+    result.native_body_deactivation_motion_snapshot_calls=world_integration.body_deactivation.snapshots.calls;
+    result.native_body_deactivation_motion_position_queries=world_integration.body_deactivation.snapshots.position_queries;
+    result.native_body_deactivation_motion_disabled_bodies=world_integration.body_deactivation.snapshots.disabled_bodies;
+    result.native_body_deactivation_motion_snapshot_stores=world_integration.body_deactivation.snapshots.stores;
+    result.native_pair_discrete_attempts=world_integration.pair_discrete_query.attempts;
+    result.native_pair_discrete_calls=world_integration.pair_discrete_query.completed;
+    result.native_pair_discrete_refusals=world_integration.pair_discrete_query.refusals;
+    result.native_pair_discrete_unbound_filters=world_integration.pair_discrete_query.unbound_filters;
+    result.native_pair_discrete_unbound_motion_types=world_integration.pair_discrete_query.unbound_motion_types;
+    result.native_pair_discrete_payload_filters=world_integration.pair_discrete_query.payload.calls;
+    result.native_pair_discrete_motion_queries=world_integration.pair_discrete_query.payload.motion_queries;
+    result.native_pair_island_wake_attempts=world_integration.pair_island_wake.attempts;
+    result.native_pair_island_wake_calls=world_integration.pair_island_wake.completed;
+    result.native_pair_island_wake_refusals=world_integration.pair_island_wake.refusals;
+    result.native_world_activation_agent_factories=world_activation.native_agent_factories;
+    result.native_world_activation_bound_factory_attempts=world_activation.native_bound_agent_factory_attempts;
+    result.native_world_activation_bound_factory_calls=world_activation.native_bound_agent_factory_calls;
+    result.native_world_activation_bound_factory_refusals=world_activation.native_bound_agent_factory_refusals;
+    result.native_reversed_list_agent_destructor_attempts=world_integration.reversed_list_agent_destructor.attempts;
+    result.native_reversed_list_agent_destructor_calls=world_integration.reversed_list_agent_destructor.completed;
+    result.native_reversed_list_agent_destructor_refusals=world_integration.reversed_list_agent_destructor.refusals;
+    result.native_reversed_list_agent_destructor_unqualified_owners=world_integration.reversed_list_agent_destructor.native_only.refused;
+    result.native_reversed_list_agent_destructor_refused_owners=world_integration.reversed_list_agent_destructor.native_only.owners;
+    result.native_pair_deletion_attempts=world_integration.pair_deletion.attempts;
+    result.native_pair_deletion_calls=world_integration.pair_deletion.completed;
+    result.native_pair_deletion_refusals=world_integration.pair_deletion.refusals;
+    result.native_pair_deletion_agent_cleanups=world_integration.pair_deletion.agent_cleanups;
+    result.native_pair_deletion_manager_releases=world_integration.pair_deletion.manager_releases;
+    result.native_pair_deletion_unqualified_owners=world_integration.pair_deletion.unqualified_owners;
+    result.native_pair_deletion_nested_refusals=world_integration.pair_deletion_scope.refused;
+    result.native_pair_deletion_refused_owners=world_integration.pair_deletion_scope.owners;
+    result.native_world_activation_calls=world_integration.native_world_activation_calls;
+    result.native_world_activation_refusals=world_integration.native_world_activation_refusals;
+    result.native_world_activation_body_updates=world_activation.services.body_updates;
+    result.native_world_activation_constraint_rows=world_activation.body_constraints.rows;
+    result.native_world_activation_residual_calls=world_activation.residual_calls;
+    const auto&velocity=impl_->native_object_velocity_transport;
+    result.native_object_velocity_handoff_attempts=impl_->native_object_velocity_handoffs.attempts;
+    result.native_object_velocity_handoff_calls=impl_->native_object_velocity_handoffs.completed;
+    result.native_object_velocity_handoff_refusals=impl_->native_object_velocity_handoffs.refusals;
+    result.native_object_velocity_calls=velocity.completed;
+    result.native_object_velocity_refusals=velocity.refusals;
+    result.native_object_velocity_unqualified_owners=velocity.unqualified_owner_calls;
+    result.native_object_velocity_body_wakes=velocity.binding.activation.body_calls;
+    result.native_object_velocity_island_wakes=velocity.binding.activation.island_calls;
+    result.native_object_velocity_agent_factories=velocity.binding.native_agent_factories;
+    result.native_object_velocity_pool_allocations=velocity.binding.native_pool_allocations;
+    result.native_object_velocity_unconverted_factories=velocity.binding.unconverted_agent_factories;
+    result.native_object_velocity_unconverted_getters=velocity.binding.unconverted_shape_type_getters+velocity.binding.unconverted_motion_type_getters+velocity.binding.unconverted_policy_type_getters;
+    result.native_object_velocity_residual_calls=velocity.binding.residual_calls;
+    result.native_object_velocity_residual_owners=velocity.binding.residual_owners;
+    result.native_object_velocity_constraint_updates=velocity.binding.body_constraints.calls;
+    result.native_object_velocity_constraint_flag_skips=velocity.binding.body_constraints.flag_skips;
+    result.native_object_velocity_constraint_empty_banks=velocity.binding.body_constraints.empty_banks;
+    result.native_object_velocity_constraint_rows=velocity.binding.body_constraints.rows;
+    result.native_object_velocity_constraint_unbound_services=velocity.binding.body_constraints.unbound_services;
+    result.native_object_velocity_constraint_lookup_calls=velocity.binding.constraint_lookup.calls;
+    result.native_object_velocity_constraint_capacity_calls=velocity.binding.constraint_capacity.calls;
+    result.native_object_velocity_constraint_unbound_removals=velocity.binding.constraint_capacity.unbound_removals;
+    const auto&removal=velocity.binding.constraint_removal;
+    const auto&flip_removal=impl_->native_vehicle_flips.activation.constraint_removal;
+    const auto&creation=velocity.binding.constraint_creation;
+    const auto&flip_creation=impl_->native_vehicle_flips.activation.constraint_creation;
+    const auto&handles=velocity.binding.constraint_runtime_handles;
+    const auto&flip_handles=impl_->native_vehicle_flips.activation.constraint_runtime_handles;
+    const auto&destruction=velocity.binding.constraint_handle_destruction;
+    const auto&flip_destruction=impl_->native_vehicle_flips.activation.constraint_handle_destruction;
+    result.native_constraint_creation_calls=creation.calls+flip_creation.calls+
+      world_activation.constraint_creation.calls;
+    result.native_constraint_created=creation.created+flip_creation.created+
+      world_activation.constraint_creation.created;
+    result.native_constraint_creation_allocations=creation.allocations+flip_creation.allocations+
+      world_activation.constraint_creation.allocations;
+    result.native_constraint_normalize_calls=creation.normalize.calls+flip_creation.normalize.calls+
+      world_activation.constraint_creation.normalize.calls;
+    result.native_constraint_local_point_calls=creation.points.calls+flip_creation.points.calls+
+      world_activation.constraint_creation.points.calls;
+    result.native_constraint_creation_storage_refusals=velocity.binding.unavailable_constraint_creation_storage+
+      impl_->native_vehicle_flips.activation.unavailable_constraint_creation_storage+
+      world_activation.unavailable_constraint_creation_storage;
+    result.native_constraint_creation_numerical_refusals=creation.unsupported_numerical_profiles+
+      flip_creation.unsupported_numerical_profiles+
+      world_activation.constraint_creation.unsupported_numerical_profiles;
+    result.native_constraint_handle_calls=handles.calls+flip_handles.calls+
+      world_activation.constraint_runtime_handles.calls;
+    result.native_constraint_valid_handles=handles.valid_handles+flip_handles.valid_handles+
+      world_activation.constraint_runtime_handles.valid_handles;
+    result.native_constraint_retained_handle_marks=handles.retained_marks+flip_handles.retained_marks+
+      world_activation.constraint_runtime_handles.retained_marks;
+    result.native_constraint_handle_unbound_services=handles.unbound_tag_value_calls+handles.unbound_destroy_calls+
+      flip_handles.unbound_tag_value_calls+flip_handles.unbound_destroy_calls+
+      destruction.tagged_values.unbound_tag_value_calls+destruction.tagged_values.unbound_destroy_calls+
+      flip_destruction.tagged_values.unbound_tag_value_calls+flip_destruction.tagged_values.unbound_destroy_calls+
+      world_activation.constraint_runtime_handles.unbound_tag_value_calls+world_activation.constraint_runtime_handles.unbound_destroy_calls+world_activation.constraint_handle_destruction.tagged_values.unbound_tag_value_calls+world_activation.constraint_handle_destruction.tagged_values.unbound_destroy_calls;
+    result.native_constraint_handle_destruction_calls=destruction.calls+flip_destruction.calls+
+      world_activation.constraint_handle_destruction.calls;
+    result.native_constraint_handle_row_deletions=destruction.row_deletions+flip_destruction.row_deletions+
+      world_activation.constraint_handle_destruction.row_deletions;
+    result.native_constraint_event_deletions=destruction.event_deletions+flip_destruction.event_deletions+
+      world_activation.constraint_handle_destruction.event_deletions;
+    result.native_constraint_object_detaches=destruction.detaches+flip_destruction.detaches+
+      world_activation.constraint_handle_destruction.detaches;
+    result.native_constraint_child_unbound_services=destruction.unbound_child_unlinks+destruction.unbound_child_deletions+
+      flip_destruction.unbound_child_unlinks+flip_destruction.unbound_child_deletions+
+      world_activation.constraint_handle_destruction.unbound_child_unlinks+world_activation.constraint_handle_destruction.unbound_child_deletions;
+    result.native_constraint_tag_value_calls=velocity.binding.constraint_tag_values.calls+
+      impl_->native_vehicle_flips.activation.constraint_tag_values.calls+
+      world_activation.constraint_tag_values.calls;
+    result.native_constraint_tag_value_publications=velocity.binding.constraint_tag_values.publications+
+      impl_->native_vehicle_flips.activation.constraint_tag_values.publications+
+      world_activation.constraint_tag_values.publications;
+    result.native_gameplay_policy_destructions=velocity.binding.body_policy.gameplay_destructions+
+      impl_->native_vehicle_flips.activation.body_policy.gameplay_destructions+
+      impl_->native_physics_integrations.inactive_island_policy.gameplay_destructions+
+      world_activation.body_policy.gameplay_destructions;
+    const auto&effect_selection=velocity.binding.constraint_effect_selector;
+    const auto&flip_effect_selection=impl_->native_vehicle_flips.activation.constraint_effect_selector;
+    result.native_constraint_effect_selection_calls=effect_selection.calls+flip_effect_selection.calls+
+      world_activation.constraint_effect_selector.calls;
+    result.native_constraint_effect_selected_rows=effect_selection.selected_rows+flip_effect_selection.selected_rows+
+      world_activation.constraint_effect_selector.selected_rows;
+    result.native_constraint_effect_camera_tests=effect_selection.camera_tests+flip_effect_selection.camera_tests+
+      world_activation.constraint_effect_selector.camera_tests;
+    result.native_constraint_effect_distance_refusals=effect_selection.distance_refusals+flip_effect_selection.distance_refusals+
+      world_activation.constraint_effect_selector.distance_refusals;
+    result.native_constraint_effect_unknown_constants=effect_selection.unknown_constant_targets+flip_effect_selection.unknown_constant_targets+
+      world_activation.constraint_effect_selector.unknown_constant_targets;
+    const auto&runtime=velocity.binding.constraint_runtime_update;
+    const auto&flip_runtime=impl_->native_vehicle_flips.activation.constraint_runtime_update;
+    result.native_constraint_runtime_calls=runtime.calls+flip_runtime.calls+
+      world_activation.constraint_runtime_update.calls;
+    result.native_constraint_runtime_counter_updates=runtime.counter_updates+flip_runtime.counter_updates+
+      world_activation.constraint_runtime_update.counter_updates;
+    result.native_constraint_runtime_state_updates=runtime.state_updates+flip_runtime.state_updates+
+      world_activation.constraint_runtime_update.state_updates;
+    result.native_constraint_runtime_geometry_updates=runtime.geometry_updates+flip_runtime.geometry_updates+
+      world_activation.constraint_runtime_update.geometry_updates;
+    result.native_constraint_runtime_effect_selections=runtime.effect_selections+flip_runtime.effect_selections+
+      world_activation.constraint_runtime_update.effect_selections;
+    result.native_constraint_runtime_effect_publications=runtime.effect_publications+flip_runtime.effect_publications+
+      world_activation.constraint_runtime_update.effect_publications;
+    result.native_constraint_runtime_handle_creations=runtime.handle_creations+flip_runtime.handle_creations+
+      world_activation.constraint_runtime_update.handle_creations;
+    result.native_constraint_runtime_storage_refusals=velocity.binding.unavailable_constraint_runtime_storage+
+      impl_->native_vehicle_flips.activation.unavailable_constraint_runtime_storage+
+      world_activation.unavailable_constraint_runtime_storage;
+    result.native_constraint_runtime_profile_refusals=velocity.binding.unqualified_constraint_runtime_profiles+
+      impl_->native_vehicle_flips.activation.unqualified_constraint_runtime_profiles+
+      runtime.unsupported_profiles+flip_runtime.unsupported_profiles+
+      world_activation.unqualified_constraint_runtime_profiles+world_activation.constraint_runtime_update.unsupported_profiles;
+    result.native_constraint_runtime_unbound_services=runtime.unbound_effect_selections+runtime.unbound_effect_publications+
+      runtime.unbound_handle_creations+runtime.handles.unbound_tag_value_calls+runtime.handles.unbound_destroy_calls+
+      flip_runtime.unbound_effect_selections+flip_runtime.unbound_effect_publications+
+      flip_runtime.unbound_handle_creations+flip_runtime.handles.unbound_tag_value_calls+flip_runtime.handles.unbound_destroy_calls+
+      world_activation.constraint_runtime_update.unbound_effect_selections+world_activation.constraint_runtime_update.unbound_effect_publications+world_activation.constraint_runtime_update.unbound_handle_creations+world_activation.constraint_runtime_update.handles.unbound_tag_value_calls+world_activation.constraint_runtime_update.handles.unbound_destroy_calls;
+    result.native_constraint_removal_calls=removal.calls+flip_removal.calls+
+      world_activation.constraint_removal.calls;
+    result.native_constraint_instance_deletions=removal.instance_deletions+flip_removal.instance_deletions+
+      world_activation.constraint_removal.instance_deletions;
+    result.native_constraint_list_removals=removal.list_removals+flip_removal.list_removals+
+      world_activation.constraint_removal.list_removals;
+    result.native_constraint_local_releases=removal.local_references+flip_removal.local_references+
+      world_activation.constraint_removal.local_references;
+    result.native_constraint_global_releases=removal.global_references+flip_removal.global_references+
+      world_activation.constraint_removal.global_references;
+    result.native_constraint_unbound_handle_releases=removal.unbound_handle_releases+flip_removal.unbound_handle_releases+
+      world_activation.constraint_removal.unbound_handle_releases;
+    result.native_constraint_unbound_runtime_removals=removal.unbound_runtime_removals+
+      removal.reference.unbound_runtime_removals+flip_removal.unbound_runtime_removals+
+      flip_removal.reference.unbound_runtime_removals+creation.reference.unbound_runtime_removals+
+      flip_creation.reference.unbound_runtime_removals+
+      world_activation.constraint_removal.unbound_runtime_removals+world_activation.constraint_removal.reference.unbound_runtime_removals+world_activation.constraint_creation.reference.unbound_runtime_removals;
+
+    result.native_object_velocity_payload_predicates=velocity.binding.payload_filter.calls;
+    result.native_object_velocity_manager_factories=velocity.binding.native_manager_factories;
+    result.native_object_velocity_manager_constructors=velocity.binding.managers.constructors;
+    result.native_object_velocity_manager_registrations=velocity.binding.managers.registrations;
+    result.native_object_velocity_unconverted_managers=velocity.binding.unconverted_manager_factories;
+    result.native_object_velocity_policy_calls=velocity.binding.body_policy.calls;
+    result.native_object_velocity_policy_constructors=velocity.binding.body_policy.constructors;
+    result.native_object_velocity_policy_bounds=velocity.binding.body_policy.shape_bounds_calls;
+    result.native_object_velocity_unconverted_policy_types=velocity.binding.body_policy.unconverted_type_queries;
+    result.native_object_velocity_unconverted_policy_destructions=velocity.binding.body_policy.unconverted_destructions;
+    result.native_object_velocity_policy_bounds_owners=velocity.binding.native_policy_bounds_owners;
+    result.native_object_velocity_unconverted_bounds_owners=velocity.binding.unconverted_policy_bounds_owners;
+
+    const auto&contact_entities=impl_->native_physics_integrations.contact_entities;
+    result.native_contact_body_attempts=world_integration.contact_body.attempts;
+    result.native_contact_body_calls=world_integration.contact_body.completed;
+    result.native_contact_body_refusals=world_integration.contact_body.refusals;
+    result.native_contact_body_point_queries=world_integration.contact_body.update.point_queries;
+    result.native_contact_body_property_queries=world_integration.contact_body.update.property_queries;
+    result.native_contact_body_motion_type_queries=world_integration.contact_body.update.motion_type_queries;
+    result.native_contact_body_point_velocity_queries=world_integration.contact_body.update.point_velocity_queries;
+    result.native_contact_body_impulse_requests=world_integration.contact_body.update.impulse_requests;
+    result.native_contact_body_wake_attempts=world_integration.contact_body_wake_attempts;
+    result.native_contact_body_wake_calls=world_integration.contact_body_wake_calls;
+    result.native_contact_body_wake_refusals=world_integration.contact_body_wake_refusals;
+    result.native_contact_body_unqualified_owners=world_integration.contact_body.update.unqualified_services+world_integration.contact_body.native_only.refused+world_integration.contact_body_wake_unqualified_owners;
+    result.native_contact_body_unsupported_fp_profiles=world_integration.contact_body.update.unsupported_fp_profiles;
+    result.native_contact_body_refused_owners=world_integration.contact_body.update.unqualified_owners;
+    for(const auto&[owner,count]:world_integration.contact_body.native_only.owners)
+      result.native_contact_body_refused_owners[owner]+=count;
+    for(const auto&[owner,count]:world_integration.contact_body_wake_refused_owners)
+      result.native_contact_body_refused_owners[owner]+=count;
+    result.native_main_heap_release_attempts=world_integration.main_heap_release.attempts;
+    result.native_main_heap_release_calls=world_integration.main_heap_release.completed;
+    result.native_main_heap_release_refusals=world_integration.main_heap_release.refusals;
+    result.native_main_heap_release_wrapper_calls=world_integration.main_heap_release.kernel.wrapper_calls;
+    result.native_main_heap_release_ledger_calls=world_integration.main_heap_release.kernel.ledger_calls;
+    result.native_main_heap_release_visited=world_integration.main_heap_release.kernel.visited;
+    result.native_main_heap_release_matches=world_integration.main_heap_release.kernel.matched;
+    result.native_main_heap_release_moved_rows=world_integration.main_heap_release.kernel.moved_rows;
+    result.native_main_heap_release_kernel_completed=world_integration.main_heap_release.kernel.completed;
+    result.native_main_heap_release_unbound_services=world_integration.main_heap_release.kernel.unbound_services;
+    result.native_main_heap_release_refused_owners=world_integration.main_heap_release.kernel.unbound_owners;
+    result.native_contact_entity_calls=contact_entities.calls;
+    result.native_contact_entity_missing_body_pairs=contact_entities.missing_body_pairs;
+    result.native_contact_entity_property_queries=contact_entities.property_queries;
+    result.native_contact_entity_disabled_components=contact_entities.disabled_components;
+    result.native_contact_entity_dispatch_calls=contact_entities.dispatch_calls;
+    const auto&inactive_cleanup=impl_->native_physics_integrations.inactive_island_cleanup;
+    result.native_inactive_island_cleanup_calls=inactive_cleanup.calls;
+    result.native_inactive_island_agent_invalidations=inactive_cleanup.invalidated_agents;
+    result.native_inactive_island_manager_invalidations=inactive_cleanup.invalidated_managers;
+    result.native_inactive_island_cleared_pairs=inactive_cleanup.cleared_pairs;
+    result.native_inactive_island_policy_queries=inactive_cleanup.policy_queries;
+    result.native_inactive_island_policy_selections=inactive_cleanup.policy_selections;
+    result.native_inactive_island_native_policy_calls=impl_->native_physics_integrations.inactive_island_policy.calls;
+    result.native_inactive_island_policy_residuals=impl_->native_physics_integrations.inactive_island_policy_kind_residuals+
+      impl_->native_physics_integrations.inactive_island_policy.unconverted_type_queries+
+      impl_->native_physics_integrations.inactive_island_policy.unconverted_destructions+
+      impl_->native_physics_integrations.inactive_island_policy.base_lock_releases;
+    result.native_inactive_island_cleanup_refusals=impl_->native_physics_integrations.native_inactive_island_cleanup_refusals;
+    const auto&contact_processor=impl_->native_physics_integrations.contact_processor;
+    result.native_contact_processor_calls=contact_processor.calls;
+    result.native_contact_processor_contacts=contact_processor.contacts;
+    result.native_contact_processor_candidate_rows=contact_processor.candidate_rows;
+    result.native_contact_processor_matched_rows=contact_processor.matched_rows;
+    result.native_contact_processor_updates=contact_processor.updates;
+    const auto&completion=impl_->native_physics_integrations.contact_completion;
+    result.native_contact_completion_calls=completion.calls;
+    result.native_contact_completion_contacts=completion.copied_contacts;
+    result.native_contact_completion_world_notifications=completion.world_notifications;
+    result.native_contact_completion_body_notifications=completion.body_notifications;
+    result.native_contact_completion_custom_callbacks=completion.custom_callbacks;
+    result.native_contact_completion_null_entries_removed=completion.null_entries_removed;
+    const auto&references=impl_->native_physics_integrations.body_references;
+    result.native_body_reference_calls=references.calls;
+    result.native_body_reference_cohorts=references.cohorts;
+    result.native_body_reference_moved_entries=references.moved_entries;
+    result.native_body_reference_reserves=references.reserves;
+    const auto&deferred=impl_->native_physics_integrations.deferred;
+    result.native_deferred_operation_calls=deferred.operation_calls;
+    result.native_deferred_action_calls=deferred.action_calls;
+    result.native_deferred_delete_calls=deferred.delete_calls;
+    result.native_deferred_update_calls=deferred.update_calls;
+    result.native_deferred_merges=deferred.merges;
+    result.native_deferred_body_removals=deferred.body_removals;
+    result.native_deferred_update_removals=deferred.update_removals;
+    result.native_deferred_reference_releases=deferred.reference_releases;
+    result.native_deferred_destructions=deferred.destructions;
     result.native_constraint_calls=impl_->native_physics_integrations.native_constraint_calls;
     result.native_dynamic_accumulator_calls=impl_->native_physics_integrations.native_dynamic_accumulator_calls;
     result.native_constraint_setup_calls=impl_->native_physics_integrations.native_constraint_setup_calls;
@@ -4471,6 +5506,12 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_island_contact_buffers_constructed=agents.constructed_buffers;
     result.native_island_contact_buffers_destroyed=agents.destroyed_buffers;
     const auto&advance=impl_->native_physics_integrations.contact_advance;
+    const auto&cached=impl_->native_physics_integrations.cached_motion;
+    result.native_cached_motion_calls=cached.calls;
+    result.native_cached_motion_rewinds=cached.rewinds;
+    result.native_cached_motion_advances=cached.advances;
+    result.native_contact_fixed_motion_calls=impl_->native_physics_integrations.native_contact_fixed_motion_calls;
+    result.contact_motion_residual_calls=impl_->native_physics_integrations.contact_motion_residual_calls;
     result.native_contact_advance_calls=advance.calls;
     result.native_contact_advance_motion_calls=advance.motion_calls;
     result.native_contact_advance_process_calls=advance.process_calls;
@@ -4481,6 +5522,213 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_motion_commit_calls=impl_->native_physics_integrations.native_motion_commit_calls;
     result.native_motion_commit_kinds=impl_->native_physics_integrations.native_motion_commit_kinds;
     result.native_broad_phase_calls=impl_->native_physics_integrations.native_broad_phase_calls;
+    result.native_pair_consumer_attempts=impl_->native_physics_integrations.native_pair_consumer_attempts;
+    result.native_pair_consumer_calls=impl_->native_physics_integrations.native_pair_consumer_calls;
+    result.native_pair_consumer_refusals=impl_->native_physics_integrations.native_pair_consumer_refusals;
+    result.native_pair_consumer_nonempty_calls=impl_->native_physics_integrations.native_pair_consumer_nonempty_calls;
+    result.native_pair_consumer_filter_calls=impl_->native_physics_integrations.native_pair_consumer_filter_calls;
+    result.native_pair_consumer_create_calls=impl_->native_physics_integrations.native_pair_consumer_create_calls;
+    result.native_phantom_pair_create_notifications=impl_->native_physics_integrations.native_phantom_pair_create_notifications;
+    result.native_phantom_added_listener_attempts=impl_->native_physics_integrations.native_phantom_added_listener_attempts;
+    result.native_phantom_added_listener_calls=impl_->native_physics_integrations.native_phantom_added_listener_calls;
+    result.native_phantom_added_listener_refusals=impl_->native_physics_integrations.native_phantom_added_listener_refusals;
+    result.native_phantom_added_components_marked=impl_->native_physics_integrations.native_phantom_added_components_marked;
+    result.native_phantom_added_protection_queries=impl_->native_physics_integrations.native_phantom_added_protection_queries;
+    result.native_phantom_added_objects_protected=impl_->native_physics_integrations.native_phantom_added_objects_protected;
+    result.native_phantom_added_delete_requests=impl_->native_physics_integrations.native_phantom_added_delete_requests;
+    result.native_phantom_added_unqualified_deletions=impl_->native_physics_integrations.native_phantom_added_unqualified_deletions;
+    result.native_phantom_object_deletion_attempts=impl_->native_physics_integrations.native_phantom_object_deletion_attempts;
+    result.native_phantom_object_deletion_calls=impl_->native_physics_integrations.native_phantom_object_deletion_calls;
+    result.native_phantom_object_deletion_refusals=impl_->native_physics_integrations.native_phantom_object_deletion_refusals;
+    result.native_phantom_object_deletion_unbound_services=impl_->native_physics_integrations.native_phantom_object_deletion_unbound_services;
+    result.native_phantom_object_detachment_calls=impl_->native_physics_integrations.native_phantom_object_detachment_calls;
+    result.native_phantom_object_detachment_objects=impl_->native_physics_integrations.native_phantom_object_detachment_objects;
+    result.native_phantom_object_detachment_refusals=impl_->native_physics_integrations.native_phantom_object_detachment_refusals;
+    result.native_phantom_object_spatial_queries=impl_->native_physics_integrations.native_phantom_object_spatial_queries;
+    result.native_phantom_object_tracking_clears=impl_->native_physics_integrations.native_phantom_object_tracking_clears;
+    result.native_phantom_object_player_clears=impl_->native_physics_integrations.native_phantom_object_player_clears;
+    result.native_phantom_object_schedule_updates=impl_->native_physics_integrations.native_phantom_object_schedule_updates;
+    result.native_phantom_object_reference_clears=impl_->native_physics_integrations.native_phantom_object_reference_clears;
+    result.native_phantom_object_spatial_flag_queries=impl_->native_physics_integrations.native_phantom_object_spatial_flag_queries;
+    result.native_phantom_object_spatial_packets=impl_->native_physics_integrations.native_phantom_object_spatial_packets;
+    result.native_phantom_object_spatial_chain_updates=impl_->native_physics_integrations.native_phantom_object_spatial_chain_updates;
+    result.native_phantom_object_spatial_chain_rows=impl_->native_physics_integrations.native_phantom_object_spatial_chain_rows;
+    result.native_phantom_object_spatial_record_searches=impl_->native_physics_integrations.native_phantom_object_spatial_record_searches;
+    result.native_phantom_object_spatial_searched_rows=impl_->native_physics_integrations.native_phantom_object_spatial_searched_rows;
+    result.native_phantom_object_spatial_matched_rows=impl_->native_physics_integrations.native_phantom_object_spatial_matched_rows;
+    result.native_phantom_object_spatial_missing_rows=impl_->native_physics_integrations.native_phantom_object_spatial_missing_rows;
+    result.native_phantom_object_spatial_word_copies=impl_->native_physics_integrations.native_phantom_object_spatial_word_copies;
+    result.native_phantom_object_spatial_byte_copies=impl_->native_physics_integrations.native_phantom_object_spatial_byte_copies;
+    result.native_phantom_object_spatial_zero_copies=impl_->native_physics_integrations.native_phantom_object_spatial_zero_copies;
+    result.native_phantom_pair_create_unqualified_owners=impl_->native_physics_integrations.native_phantom_pair_create_unqualified_owners;
+    result.native_phantom_pair_create_simple_adds=impl_->native_physics_integrations.native_phantom_pair_create_simple_adds;
+    result.native_phantom_pair_create_complex_adds=impl_->native_physics_integrations.native_phantom_pair_create_complex_adds;
+    result.native_pair_consumer_delete_calls=impl_->native_physics_integrations.native_pair_consumer_delete_calls;
+    result.native_pair_consumer_unqualified_services=impl_->native_physics_integrations.native_pair_consumer_unqualified_services;
+    result.native_pair_consumer_owned_allocations=impl_->native_physics_integrations.native_pair_consumer_owned_allocations;
+    result.native_pair_consumer_owned_releases=impl_->native_physics_integrations.native_pair_consumer_owned_releases;
+    result.native_pair_consumer_arena_allocations=impl_->native_physics_integrations.native_pair_consumer_arena_allocations;
+    result.native_pair_consumer_arena_releases=impl_->native_physics_integrations.native_pair_consumer_arena_releases;
+    result.native_pair_consumer_pool_allocations=impl_->native_physics_integrations.native_pair_consumer_pool_allocations;
+    result.native_pair_consumer_pool_releases=impl_->native_physics_integrations.native_pair_consumer_pool_releases;
+    result.native_pair_consumer_phantom_delete_calls=impl_->native_physics_integrations.native_pair_consumer_phantom_delete_calls;
+    result.native_pair_consumer_phantom_notifications=impl_->native_physics_integrations.native_pair_consumer_phantom_notifications;
+    result.native_pair_consumer_phantom_noops=impl_->native_physics_integrations.native_pair_consumer_phantom_noops;
+    result.native_pair_consumer_phantom_unqualified_owners=impl_->native_physics_integrations.native_pair_consumer_phantom_unqualified_owners;
+    result.native_pair_consumer_phantom_overlap_remove_calls=impl_->native_physics_integrations.native_pair_consumer_phantom_overlap_remove_calls;
+    result.native_pair_consumer_simple_phantom_overlap_remove_calls=impl_->native_physics_integrations.native_pair_consumer_simple_phantom_overlap_remove_calls;
+    result.native_stack_arena_allocations=impl_->native_physics_integrations.native_stack_arena_allocations;
+    result.native_stack_arena_releases=impl_->native_physics_integrations.native_stack_arena_releases;
+    result.native_stack_arena_refusals=impl_->native_physics_integrations.native_stack_arena_refusals;
+    result.native_constraint_arena_allocations=impl_->native_physics_integrations.native_constraint_arena_allocations;
+    result.native_constraint_arena_releases=impl_->native_physics_integrations.native_constraint_arena_releases;
+    result.native_constraint_arena_refusals=impl_->native_physics_integrations.native_constraint_arena_refusals;
+    result.native_contact_agent_cleanup_calls=impl_->native_physics_integrations.native_contact_agent_cleanup_calls;
+    result.native_contact_agent_record_cleanups=impl_->native_physics_integrations.native_contact_agent_record_cleanups;
+    result.native_contact_agent_pointer_cleanups=impl_->native_physics_integrations.native_contact_agent_pointer_cleanups;
+    result.native_contact_reference_disposals=impl_->native_physics_integrations.native_contact_reference_disposals;
+    result.native_contact_agent_child_residuals=impl_->native_physics_integrations.native_contact_agent_child_residuals;
+    result.native_contact_agent_destructor_residuals=impl_->native_physics_integrations.native_contact_agent_destructor_residuals;
+    result.native_contact_agent_cleanup_refusals=impl_->native_physics_integrations.native_contact_agent_cleanup_refusals;
+    result.native_joint_builder_attempts=impl_->native_physics_integrations.native_joint_builder_attempts;
+    result.native_joint_builder_calls=impl_->native_physics_integrations.native_joint_builder_calls;
+    result.native_joint_builder_refusals=impl_->native_physics_integrations.native_joint_builder_refusals;
+    result.native_joint_builder_unsupported_fp=impl_->native_physics_integrations.native_joint_builder_unsupported_fp;
+    result.native_joint_builder_kernel_entries=impl_->native_physics_integrations.native_joint_builder_kernel_entries;
+    result.native_joint_builder_kernel_completed=impl_->native_physics_integrations.native_joint_builder_kernel_completed;
+    result.native_joint_builder_headers=impl_->native_physics_integrations.native_joint_builder_headers;
+    result.native_joint_builder_angular_rows=impl_->native_physics_integrations.native_joint_builder_angular_rows;
+    result.native_joint_builder_motors=impl_->native_physics_integrations.native_joint_builder_motors;
+    result.native_joint_builder_linear_requests=impl_->native_physics_integrations.native_joint_builder_linear_requests;
+    result.native_joint_builder_linear_calls=impl_->native_physics_integrations.native_joint_builder_linear_calls;
+    result.native_joint_builder_linear_completed=impl_->native_physics_integrations.native_joint_builder_linear_completed;
+    result.native_joint_builder_linear_rows=impl_->native_physics_integrations.native_joint_builder_linear_rows;
+    result.native_joint_builder_linear_refusals=impl_->native_physics_integrations.native_joint_builder_linear_refusals;
+    result.native_joint_builder_limits=impl_->native_physics_integrations.native_joint_builder_limits;
+    result.native_joint_builder_positive_unwraps=impl_->native_physics_integrations.native_joint_builder_positive_unwraps;
+    result.native_joint_builder_negative_unwraps=impl_->native_physics_integrations.native_joint_builder_negative_unwraps;
+    result.native_joint_builder_unbound_linear=impl_->native_physics_integrations.native_joint_builder_unbound_linear;
+    result.native_joint_builder_linear_unaligned=impl_->native_physics_integrations.native_joint_builder_linear_unaligned;
+    result.native_joint_builder_linear_unsupported_fp=impl_->native_physics_integrations.native_joint_builder_linear_unsupported_fp;
+    result.native_contact_agent_cached_cleanups=impl_->native_physics_integrations.native_contact_agent_cached_cleanups;
+    result.native_contact_agent_wrapped_cleanups=impl_->native_physics_integrations.native_contact_agent_wrapped_cleanups;
+    result.native_contact_agent_native_destructors=impl_->native_physics_integrations.native_contact_agent_native_destructors;
+    result.native_contact_agent_point_residuals=impl_->native_physics_integrations.native_contact_agent_point_residuals;
+    result.native_transformed_agent_factory_attempts=impl_->native_physics_integrations.native_transformed_agent_factory_attempts;
+    result.native_transformed_agent_factory_calls=impl_->native_physics_integrations.native_transformed_agent_factory_calls;
+    result.native_transformed_agent_factory_refusals=impl_->native_physics_integrations.native_transformed_agent_factory_refusals;
+    result.native_wrapped_factory_attempts=impl_->native_physics_integrations.native_wrapped_factory_attempts;
+    result.native_wrapped_factory_calls=impl_->native_physics_integrations.native_wrapped_factory_calls;
+    result.native_wrapped_factory_refusals=impl_->native_physics_integrations.native_wrapped_factory_refusals;
+    result.native_wrapped_factory_wrapped_entries=impl_->native_physics_integrations.native_wrapped_factory_wrapped_entries;
+    result.native_wrapped_factory_transformed_entries=impl_->native_physics_integrations.native_wrapped_factory_transformed_entries;
+    result.native_wrapped_factory_convex_entries=impl_->native_physics_integrations.native_wrapped_factory_convex_entries;
+    result.native_wrapped_factory_class_queries=impl_->native_physics_integrations.native_wrapped_factory_class_queries;
+    result.native_wrapped_factory_unqualified_owners=impl_->native_physics_integrations.native_wrapped_factory_unqualified_owners;
+    result.native_contact_point_attempts=impl_->native_physics_integrations.native_contact_point_attempts;
+    result.native_contact_point_calls=impl_->native_physics_integrations.native_contact_point_calls;
+    result.native_contact_point_refusals=impl_->native_physics_integrations.native_contact_point_refusals;
+    result.native_contact_point_profile_refusals=impl_->native_physics_integrations.native_contact_point_profile_refusals;
+    result.native_contact_point_unqualified_services=impl_->native_physics_integrations.native_contact_point_unqualified_services;
+    result.native_contact_point_noop_listeners=impl_->native_physics_integrations.native_contact_point_noop_listeners;
+    result.native_contact_point_gameplay_listeners=impl_->native_physics_integrations.native_contact_point_gameplay_listeners;
+    result.native_contact_point_gameplay_rows=impl_->native_physics_integrations.native_contact_point_gameplay_rows;
+    result.native_contact_point_metadata_calls=impl_->native_physics_integrations.native_contact_point_metadata_calls;
+    result.native_contact_point_world_updates=impl_->native_physics_integrations.native_contact_point_world_updates;
+    result.native_contact_point_world_queued_updates=impl_->native_physics_integrations.native_contact_point_world_queued_updates;
+    result.native_contact_point_island_detaches=impl_->native_physics_integrations.native_contact_point_island_detaches;
+    result.native_contact_point_info_queries=impl_->native_physics_integrations.native_contact_point_info_queries;
+    result.native_contact_point_reference_releases=impl_->native_physics_integrations.native_contact_point_reference_releases;
+    result.native_contact_point_effect_requests=impl_->native_physics_integrations.native_contact_point_effect_requests;
+    result.native_contact_point_constraint_reference_calls=impl_->native_physics_integrations.native_contact_point_constraint_reference_calls;
+    result.native_contact_point_constraint_reference_decrements=impl_->native_physics_integrations.native_contact_point_constraint_reference_decrements;
+    result.native_contact_point_constraint_reference_runtime_removals=impl_->native_physics_integrations.native_contact_point_constraint_reference_runtime_removals;
+    result.native_contact_point_constraint_reference_runtime_refusals=impl_->native_physics_integrations.native_contact_point_constraint_reference_runtime_refusals;
+    result.native_contact_point_part_requests=impl_->native_physics_integrations.native_contact_point_part_requests;
+    result.native_contact_point_part_calls=impl_->native_physics_integrations.native_contact_point_part_calls;
+    result.native_contact_point_part_completions=impl_->native_physics_integrations.native_contact_point_part_completions;
+    result.native_contact_point_part_refusals=impl_->native_physics_integrations.native_contact_point_part_refusals;
+    result.native_contact_point_part_inactive=impl_->native_physics_integrations.native_contact_point_part_inactive;
+    result.native_contact_point_part_material_queries=impl_->native_physics_integrations.native_contact_point_part_material_queries;
+    result.native_contact_point_part_response_vectors=impl_->native_physics_integrations.native_contact_point_part_response_vectors;
+    result.native_contact_point_part_zero_properties=impl_->native_physics_integrations.native_contact_point_part_zero_properties;
+    result.native_contact_point_part_vector_properties=impl_->native_physics_integrations.native_contact_point_part_vector_properties;
+    result.native_contact_point_part_conveyor_bindings=impl_->native_physics_integrations.native_contact_point_part_conveyor_bindings;
+    result.native_contact_point_part_function_calls=impl_->native_physics_integrations.native_contact_point_part_function_calls;
+    result.native_contact_point_part_function_refusals=impl_->native_physics_integrations.native_contact_point_part_function_refusals;
+    result.native_contact_point_part_function_fp_refusals=impl_->native_physics_integrations.native_contact_point_part_function_fp_refusals;
+    result.native_list_agent_factory_attempts=impl_->native_physics_integrations.native_list_agent_factory_attempts;
+    result.native_list_agent_factory_calls=impl_->native_physics_integrations.native_list_agent_factory_calls;
+    result.native_list_agent_factory_refusals=impl_->native_physics_integrations.native_list_agent_factory_refusals;
+    result.native_list_agent_count_queries=impl_->native_physics_integrations.native_list_agent_count_queries;
+    result.native_list_agent_filter_queries=impl_->native_physics_integrations.native_list_agent_filter_queries;
+    result.native_list_agent_child_factories=impl_->native_physics_integrations.native_list_agent_child_factories;
+    result.native_list_agent_child_returns=impl_->native_physics_integrations.native_list_agent_child_returns;
+    result.native_reversed_contact_process_attempts=impl_->native_physics_integrations.contact_process.reversed_attempts;
+    result.native_reversed_contact_process_completions=impl_->native_physics_integrations.contact_process.reversed_completed;
+    result.native_reversed_contact_process_refusals=impl_->native_physics_integrations.contact_process.reversed_refusals;
+    result.native_reversed_wrapped_contact_process_calls=impl_->native_physics_integrations.contact_process.reversed_wrapped.calls;
+    result.native_reversed_compound_contact_process_calls=impl_->native_physics_integrations.contact_process.reversed_compound.calls;
+    result.native_reversed_contact_process_child_returns=impl_->native_physics_integrations.contact_process.reversed_wrapped.child_returns+impl_->native_physics_integrations.contact_process.reversed_compound.child_returns;
+    result.native_reversed_contact_normal_vectors=impl_->native_physics_integrations.contact_process.reversed_wrapped.normals_reversed+impl_->native_physics_integrations.contact_process.reversed_compound.normals_reversed;
+    result.native_contact_process_calls=impl_->native_physics_integrations.contact_process.attempts;
+    result.native_contact_process_completions=impl_->native_physics_integrations.contact_process.completed;
+    result.native_contact_process_refusals=impl_->native_physics_integrations.contact_process.refusals;
+    result.native_wrapped_contact_process_calls=impl_->native_physics_integrations.contact_process.wrapped.calls;
+    result.native_compound_contact_process_calls=impl_->native_physics_integrations.contact_process.compound.calls;
+    result.native_contact_process_geometry_calls=impl_->native_physics_integrations.contact_process.wrapped.geometry_calls;
+    result.native_contact_process_child_calls=impl_->native_physics_integrations.contact_process.wrapped.child_calls+impl_->native_physics_integrations.contact_process.compound.child_calls+impl_->native_physics_integrations.contact_process.reversed_wrapped.child_calls+impl_->native_physics_integrations.contact_process.reversed_compound.child_calls;
+    result.native_contact_process_child_residuals=impl_->native_physics_integrations.contact_process.remaining_child_calls;
+    result.native_contact_manager_cleanups=impl_->native_physics_integrations.native_contact_manager_cleanups;
+    result.native_contact_manager_deferred_growths=impl_->native_physics_integrations.native_contact_manager_deferred_growths;
+    const auto&pair_manager_factory=impl_->native_physics_integrations.pair_manager_factory;
+    result.native_pair_manager_factory_attempts=pair_manager_factory.attempts;
+    result.native_pair_manager_factory_calls=pair_manager_factory.completed;
+    result.native_pair_manager_factory_refusals=pair_manager_factory.refusals;
+    result.native_pair_manager_factory_unqualified_factories=pair_manager_factory.unqualified_factories;
+    result.native_pair_manager_factory_body_destructor_refusals=pair_manager_factory.body_destructor_refusals;
+    result.native_pair_manager_factory_base_lock_releases=pair_manager_factory.base_lock_releases;
+    result.native_pair_manager_factory_base_lock_refusals=pair_manager_factory.base_lock_refusals;
+    result.native_pair_manager_factory_source_factories=pair_manager_factory.managers.factories;
+    result.native_pair_manager_factory_constructors=pair_manager_factory.managers.constructors;
+    result.native_pair_manager_factory_collectors=pair_manager_factory.managers.collectors;
+    result.native_pair_manager_factory_registrations=pair_manager_factory.managers.registrations;
+    result.native_pair_manager_factory_unregistrations=pair_manager_factory.managers.unregistrations;
+    result.native_pair_manager_factory_deferred_references=pair_manager_factory.managers.deferred_references;
+    result.native_pair_manager_factory_array_growths=pair_manager_factory.managers.array_growths;
+    result.native_pair_manager_factory_body_destructions=pair_manager_factory.managers.body_destructions;
+    result.native_pair_manager_factory_protected_references=pair_manager_factory.managers.protected_references;
+    result.native_pair_manager_factory_storage_releases=pair_manager_factory.managers.storage_releases;
+    result.native_pair_manager_factory_collector_destructions=pair_manager_factory.managers.collector_destructions;
+    result.native_pair_manager_factory_collector_base_lock_releases=pair_manager_factory.managers.base_lock_releases;
+    result.native_pair_merge_queue_attempts=impl_->native_physics_integrations.pair_creation_queues.merge_attempts;
+    result.native_pair_merge_queue_calls=impl_->native_physics_integrations.pair_creation_queues.merge_calls;
+    result.native_pair_merge_queue_refusals=impl_->native_physics_integrations.pair_creation_queues.merge_refusals;
+    result.native_pair_defer_queue_attempts=impl_->native_physics_integrations.pair_creation_queues.defer_attempts;
+    result.native_pair_defer_queue_calls=impl_->native_physics_integrations.pair_creation_queues.defer_calls;
+    result.native_pair_defer_queue_refusals=impl_->native_physics_integrations.pair_creation_queues.defer_refusals;
+    result.native_contact_manager_base_lock_releases=impl_->native_physics_integrations.native_contact_manager_base_lock_releases;
+    result.native_contact_collector_cleanups=impl_->native_physics_integrations.native_contact_collector_cleanups;
+    result.native_contact_listener_unregistrations=impl_->native_physics_integrations.native_contact_listener_unregistrations;
+    result.native_contact_listener_deferred_references=impl_->native_physics_integrations.native_contact_listener_deferred_references;
+    result.native_contact_manager_service_residuals=impl_->native_physics_integrations.native_contact_manager_service_residuals;
+    result.native_contact_manager_cleanup_refusals=impl_->native_physics_integrations.native_contact_manager_cleanup_refusals;
+    result.native_pair_creation_attempts=impl_->native_physics_integrations.native_pair_creation_attempts;
+    result.native_pair_creation_calls=impl_->native_physics_integrations.native_pair_creation_calls;
+    result.native_pair_creation_refusals=impl_->native_physics_integrations.native_pair_creation_refusals;
+    result.native_convex_agent_attempts=impl_->native_physics_integrations.native_convex_agent_attempts;
+    result.native_convex_agent_calls=impl_->native_physics_integrations.native_convex_agent_calls;
+    result.native_gsk_agent_attempts=impl_->native_physics_integrations.native_gsk_agent_attempts;
+    result.native_gsk_agent_calls=impl_->native_physics_integrations.native_gsk_agent_calls;
+    result.native_gsk_agent_refusals=impl_->native_physics_integrations.native_gsk_agent_refusals;
+    result.native_convex_agent_refusals=impl_->native_physics_integrations.native_convex_agent_refusals;
+    result.native_convex_agent_pool_allocations=impl_->native_physics_integrations.native_convex_agent_pool_allocations;
+    result.native_convex_agent_pool_releases=impl_->native_physics_integrations.native_convex_agent_pool_releases;
+    result.native_convex_agent_class_queries=impl_->native_physics_integrations.native_convex_agent_class_queries;
+    result.native_convex_agent_centers=impl_->native_physics_integrations.native_convex_agent_centers;
+    result.native_convex_agent_supports=impl_->native_physics_integrations.native_convex_agent_supports;
+    result.native_convex_agent_encodings=impl_->native_physics_integrations.native_convex_agent_encodings;
+    result.native_pair_consumer_phantom_overlap_listener_noops=impl_->native_physics_integrations.native_pair_consumer_phantom_overlap_listener_noops;
     const auto&bounds=impl_->native_physics_integrations.shape_bounds;
     result.native_shape_bounds_box_calls=bounds.box_calls;
     result.native_shape_bounds_convex_calls=bounds.convex_calls;
@@ -4491,11 +5739,13 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_shape_bounds_centered_radius_calls=impl_->native_physics_integrations.centered_shape_bounds.radius_calls;
     result.shape_bounds_residual_calls=impl_->native_physics_integrations.shape_bounds_residual_calls;
     result.shape_bounds_residual_owners=impl_->native_physics_integrations.shape_bounds_residual_owners;
-    result.residual_owner_calls=impl_->native_physics_integrations.residual_owner_calls;
+    for(const auto&[owner,calls]:impl_->native_physics_integrations.residual_owner_calls)
+      result.residual_owner_calls[owner]+=calls;
     const auto&compound=impl_->native_physics_integrations.compound_shape_bounds;
     result.native_shape_bounds_endpoint_calls=compound.endpoint_calls;
     result.native_shape_bounds_compound_calls=compound.compound_calls;
     result.native_shape_bounds_compound_child_calls=compound.child_calls;
+    result.native_shape_bounds_sphere_calls=impl_->native_physics_integrations.sphere_bounds.calls;
     result.native_solver_calls=impl_->native_physics_integrations.native_solver_calls;
     result.native_solver_initializations=impl_->native_physics_integrations.native_solver_initializations;
     result.native_solver_iterations=impl_->native_physics_integrations.native_solver_iterations;
@@ -4508,6 +5758,8 @@ NativeTu15PhysicsFrameExecutionStats PhysicsLiveWorldTu15::native_physics_frame_
     result.native_solver_custom_kinds=impl_->native_physics_integrations.native_solver_custom_kinds;
     result.native_constraint_producer_axis_calls=impl_->native_physics_integrations.native_constraint_producer_axis_calls;
     result.native_constraint_producer_scaled_calls=impl_->native_physics_integrations.native_constraint_producer_scaled_calls;
+    result.native_constraint_direct_base_calls=impl_->native_physics_integrations.native_constraint_direct_base_calls;
+    result.native_constraint_direct_base_rows=impl_->native_physics_integrations.native_constraint_direct_base_rows;
     result.native_constraint_producer_base_calls=impl_->native_physics_integrations.native_constraint_producer_base_calls;
     result.native_constraint_producer_base_rows=impl_->native_physics_integrations.native_constraint_producer_base_rows;
     result.native_constraint_producer_property_lookups=impl_->native_physics_integrations.native_constraint_producer_property_lookups;
@@ -4553,7 +5805,7 @@ MccScriptSoundWorldAccess PhysicsLiveWorldTu15::script_sound_access(const Cache&
     if(!impl_->canonical_cache||!impl_->sound_runtime_plan||!impl_->sound_timing_plan||!impl_->sound_timing_memory)
         throw FormatError("Script sound World access requires complete converted sound ownership");
     auto provider=detail::make_mcc_sound_variation_provider(impl_->cache_owner,expected_owner,
-        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->sound_timing_memory);
+        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->resources,impl_->sound_timing_memory);
     return detail::make_mcc_script_sound_world_access(*this,impl_->cache_owner,expected_owner,
         std::move(provider),*impl_->sound_runtime_plan,*impl_->sound_timing_plan,impl_->sound_timing_memory,
         SoundDriverFloatingPointContext{fp.x87_control_word,fp.mxcsr});
@@ -4565,7 +5817,7 @@ MccSoundVariationProvider PhysicsLiveWorldTu15::sound_variation_provider(const C
     if(!impl_->canonical_cache||!impl_->sound_runtime_plan||!impl_->sound_timing_memory)
         throw FormatError("Native sound variation provider requires complete converted sound ownership");
     return detail::make_mcc_sound_variation_provider(impl_->cache_owner,expected_owner,
-        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->sound_timing_memory);
+        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->resources,impl_->sound_timing_memory);
 }
 void PhysicsLiveWorldTu15::require_publication_provider(const MccSoundVariationProvider &provider,
     const Cache &cache)const {
@@ -4577,6 +5829,7 @@ void PhysicsLiveWorldTu15::require_publication_provider(const MccSoundVariationP
         &cache!=&impl_->cache_owner || !impl_->sound_timing_memory)
         throw FormatError("Native metadata publication lost its retained World owner");
     detail::require_mcc_sound_variation_owner(provider,cache,impl_->sound_timing_memory);
+    detail::require_mcc_sound_variation_world_resources(provider,cache,impl_->resources);
 }
 void PhysicsLiveWorldTu15::write_source_call_input(std::uint32_t address,std::span<const std::byte> bytes){
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::WriteSourceCallInput,[&]{return source_execution_arguments(address,bytes);});
@@ -4671,66 +5924,84 @@ void PhysicsLiveWorldTu15::run_actual(std::uint32_t p,SourcePhysicsWorldRuntimeA
     // The actual native call returned completely. A later read-only consumer
     // exception is outside its mutation transaction and must not poison it.
     active.writes=impl_->mutations.serial.load();
-    if(main && observer) {
-        const auto frame=impl_->main_receipts.frame;
-        if(!frame||!frame->active||!impl_->session_configured)
-            throw FormatError("Completed main camera observation lacks an actual prepared World frame");
-        const auto& memory=impl_->bank;SourceMainCameraOperandsTu15 data;
-        data.frame=frame->frame;data.tick=frame->tick;data.bsp=frame->bsp;data.clock=frame->clock;
-        data.view=word(memory,0x4c66f8u);if(data.view>=4)throw FormatError("Completed main source view lacks its real local user");
-        const auto read=[&](auto address,auto& value){memory.read(address,std::as_writable_bytes(std::span(&value,1)));};
-        read(0x4c65c0u,data.raw_camera_words);read(0x4c6634u,data.projection_words);read(0x491e68u,data.viewport);
-        read(0x4117e0u,data.source_aa);read(0x4922f4u,data.near_far_words);
-        read(0x4c686cu,data.local_players);read(0x491e22u,data.submitting_mode);read(0x491e27u,data.submitting_scaled);
-        read(0x515ec0u,data.timed_effect_source);read(0x4f2950u,data.game_arena_source);read(0x4f2954u,data.game_arena_used);
-        if(!data.timed_effect_source || data.timed_effect_source==0xffffffffu || !data.game_arena_source ||
-           data.timed_effect_source<data.game_arena_source || std::uint64_t(data.timed_effect_source)+0x3fcu>
-           std::uint64_t(data.game_arena_source)+data.game_arena_used)
-            throw FormatError("Completed main timed-effect owner is outside actual allocated game arena");
-        data.timed_effect_backing=memory.native_address(data.timed_effect_source,0x3fcu);
-        if(data.timed_effect_backing.is_null() || memory.source_address(data.timed_effect_backing,0x3fcu)!=data.timed_effect_source)
-            throw FormatError("Completed main timed-effect owner lacks complete actual native backing");
-        constexpr std::array effect_offsets{0xacu,0x3cu,0x40u,0x190u,0x194u};
-        for(unsigned n=0;n<effect_offsets.size();++n)read(data.timed_effect_source+effect_offsets[n],data.timed_effect_overrides[n]);
-        if(data.local_players<0 || data.local_players>1 || std::ranges::any_of(data.timed_effect_overrides,[](auto word){return word!=0;}))
-            throw FormatError("Completed main split or timed-boundary overrides lack an owned ordinary depth route");
-        const Bytes global(memory.view(0x4c65c0u,0x74)),submitting(memory.view(0x491e38u,0x74));
-        if(data.submitting_mode||data.submitting_scaled||data.viewport[0] || data.viewport[1] ||
-           data.viewport[2]<=0 || data.viewport[3]<=0 ||
-           !std::ranges::equal(global.slice(0,12),submitting.slice(0,12))||!std::ranges::equal(global.slice(0x30,8),submitting.slice(0x30,8))||
-           !std::ranges::equal(global.slice(0x40,8),submitting.slice(0x40,8))||data.source_aa[0]||data.source_aa[1] ||
-           !std::ranges::equal(memory.view(0x4922f4u,8),submitting.slice(0x40,8)))
-            throw FormatError("Completed main receipt lacks its actual ordinary camera/viewport/AA aliases");
-        for(auto word:data.projection_words)if(!std::isfinite(std::bit_cast<float>(word)))
-            throw FormatError("Completed main source projection contains a nonfinite word");
-        SourceViewProjectionBank bank;std::memcpy(&bank,data.projection_words.data(),sizeof(bank));
-        const Vec3 eye{global.f32(0),global.f32(4),global.f32(8)};
-        const float near=std::bit_cast<float>(data.near_far_words[0]),far=std::bit_cast<float>(data.near_far_words[1]);
-        if(!std::isfinite(near)||!std::isfinite(far)||near<=0||far<=near||std::memcmp(&bank.camera_to_world.position,&eye,sizeof(eye)))
-            throw FormatError("Completed main receipt projection/eye/planes differ");
-        //226F0's640x480 test only selects the timed split. With the actual
-        //override bank zero the ordinary13430 W-depth calculation and its
-        //camera upload use this completed source viewport at every size.
-        const auto camera=source_view_shader_bank(bank,far,eye,
-            RenderViewport{0,0,float(data.viewport[3]),float(data.viewport[2]),1,false,false,0},false);
-        for(const auto& v:camera)for(float f:v)if(!std::isfinite(f))throw FormatError("Completed main camera contains nonfinite source operands");
-        std::memcpy(data.camera_words.data(),camera.data(),sizeof(data.camera_words));
-        const float reciprocal=1.f/far,maximum=16777215.f;const std::array<float,4> clip{0,maximum,std::clamp((reciprocal*near)*maximum,0.f,maximum),std::clamp((reciprocal*far)*maximum,0.f,maximum)};
-        std::memcpy(data.clip_words.data(),clip.data(),sizeof(clip));
-        const SourceMainCameraRasterReceiptTu15 receipt(frame,data);
-        struct ReadOnly {
-            Impl& owner;ReadOnly(Impl& o):owner(o){
-                source_runtime_register_write_guard(owner.bank,this,[](auto,auto){throw FormatError("Completed main callback cannot write source memory");});
-                try{source_runtime_register_topology_guard(owner.bank,this,[](auto,auto){throw FormatError("Completed main callback cannot replace source backing");});}
-                catch(...){source_runtime_unregister_write_guard(owner.bank,this);throw;}
-                ++owner.render_read_borrows;
-            }
-            ~ReadOnly(){source_runtime_unregister_topology_guard(owner.bank,this);source_runtime_unregister_write_guard(owner.bank,this);--owner.render_read_borrows;}
-        } read_only(*impl_);
-        SourceExecutionObserverScope observation(memory);
-        observer(receipt,memory);
-    }
+    if(main && observer)publish_completed_main_camera_tu15();
 }
+
+NativeTu15PhysicsFrameFp PhysicsLiveWorldTu15::run_native_command_frame_tu15(std::uint32_t selector) {
+    Impl::PublicCall active(*impl_);
+    const auto scoped_observer=impl_->scoped_main_camera_observer.lock();
+    const auto& observer=scoped_observer?scoped_observer->observer:impl_->main_camera_observer;
+    const bool main=bool(observer) && selector==0 && word(impl_->bank,0x4cd3a0u)==0x556e18u &&
+        !word(impl_->bank,0x556e18u+0x2a78u) && !word(impl_->bank,0x556e18u+0x2a7cu);
+    const auto fp=source_native_command_frame_tu15(*this,selector);
+    active.writes=impl_->mutations.serial.load();
+    if(main && observer)publish_completed_main_camera_tu15();
+    return fp;
+}
+
+void PhysicsLiveWorldTu15::publish_completed_main_camera_tu15() {
+    const auto scoped_observer=impl_->scoped_main_camera_observer.lock();
+    const auto& observer=scoped_observer?scoped_observer->observer:impl_->main_camera_observer;
+    if(!observer)return;
+    const auto frame=impl_->main_receipts.frame;
+    if(!frame||!frame->active||!impl_->session_configured)
+        throw FormatError("Completed main camera observation lacks an actual prepared World frame");
+    const auto& memory=impl_->bank;SourceMainCameraOperandsTu15 data;
+    data.frame=frame->frame;data.tick=frame->tick;data.bsp=frame->bsp;data.clock=frame->clock;
+    data.view=word(memory,0x4c66f8u);if(data.view>=4)throw FormatError("Completed main source view lacks its real local user");
+    const auto read=[&](auto address,auto& value){memory.read(address,std::as_writable_bytes(std::span(&value,1)));};
+    read(0x4c65c0u,data.raw_camera_words);read(0x4c6634u,data.projection_words);read(0x491e68u,data.viewport);
+    read(0x4117e0u,data.source_aa);read(0x4922f4u,data.near_far_words);
+    read(0x4c686cu,data.local_players);read(0x491e22u,data.submitting_mode);read(0x491e27u,data.submitting_scaled);
+    read(0x515ec0u,data.timed_effect_source);read(0x4f2950u,data.game_arena_source);read(0x4f2954u,data.game_arena_used);
+    if(!data.timed_effect_source || data.timed_effect_source==0xffffffffu || !data.game_arena_source ||
+       data.timed_effect_source<data.game_arena_source || std::uint64_t(data.timed_effect_source)+0x3fcu>
+       std::uint64_t(data.game_arena_source)+data.game_arena_used)
+        throw FormatError("Completed main timed-effect owner is outside actual allocated game arena");
+    data.timed_effect_backing=memory.native_address(data.timed_effect_source,0x3fcu);
+    if(data.timed_effect_backing.is_null() || memory.source_address(data.timed_effect_backing,0x3fcu)!=data.timed_effect_source)
+        throw FormatError("Completed main timed-effect owner lacks complete actual native backing");
+    constexpr std::array effect_offsets{0xacu,0x3cu,0x40u,0x190u,0x194u};
+    for(unsigned n=0;n<effect_offsets.size();++n)read(data.timed_effect_source+effect_offsets[n],data.timed_effect_overrides[n]);
+    if(data.local_players<0 || data.local_players>1 || std::ranges::any_of(data.timed_effect_overrides,[](auto word){return word!=0;}))
+        throw FormatError("Completed main split or timed-boundary overrides lack an owned ordinary depth route");
+    const Bytes global(memory.view(0x4c65c0u,0x74)),submitting(memory.view(0x491e38u,0x74));
+    if(data.submitting_mode||data.submitting_scaled||data.viewport[0] || data.viewport[1] ||
+       data.viewport[2]<=0 || data.viewport[3]<=0 ||
+       !std::ranges::equal(global.slice(0,12),submitting.slice(0,12))||!std::ranges::equal(global.slice(0x30,8),submitting.slice(0x30,8))||
+       !std::ranges::equal(global.slice(0x40,8),submitting.slice(0x40,8))||data.source_aa[0]||data.source_aa[1] ||
+       !std::ranges::equal(memory.view(0x4922f4u,8),submitting.slice(0x40,8)))
+        throw FormatError("Completed main receipt lacks its actual ordinary camera/viewport/AA aliases");
+    for(auto word:data.projection_words)if(!std::isfinite(std::bit_cast<float>(word)))
+        throw FormatError("Completed main source projection contains a nonfinite word");
+    SourceViewProjectionBank bank;std::memcpy(&bank,data.projection_words.data(),sizeof(bank));
+    const Vec3 eye{global.f32(0),global.f32(4),global.f32(8)};
+    const float near=std::bit_cast<float>(data.near_far_words[0]),far=std::bit_cast<float>(data.near_far_words[1]);
+    if(!std::isfinite(near)||!std::isfinite(far)||near<=0||far<=near||std::memcmp(&bank.camera_to_world.position,&eye,sizeof(eye)))
+        throw FormatError("Completed main receipt projection/eye/planes differ");
+    //226F0's640x480 test only selects the timed split. With the actual
+    //override bank zero the ordinary13430 W-depth calculation and its
+    //camera upload use this completed source viewport at every size.
+    const auto camera=source_view_shader_bank(bank,far,eye,
+        RenderViewport{0,0,float(data.viewport[3]),float(data.viewport[2]),1,false,false,0},false);
+    for(const auto& v:camera)for(float f:v)if(!std::isfinite(f))throw FormatError("Completed main camera contains nonfinite source operands");
+    std::memcpy(data.camera_words.data(),camera.data(),sizeof(data.camera_words));
+    const float reciprocal=1.f/far,maximum=16777215.f;const std::array<float,4> clip{0,maximum,std::clamp((reciprocal*near)*maximum,0.f,maximum),std::clamp((reciprocal*far)*maximum,0.f,maximum)};
+    std::memcpy(data.clip_words.data(),clip.data(),sizeof(clip));
+    const SourceMainCameraRasterReceiptTu15 receipt(frame,data);
+    struct ReadOnly {
+        Impl& owner;ReadOnly(Impl& o):owner(o){
+            source_runtime_register_write_guard(owner.bank,this,[](auto,auto){throw FormatError("Completed main callback cannot write source memory");});
+            try{source_runtime_register_topology_guard(owner.bank,this,[](auto,auto){throw FormatError("Completed main callback cannot replace source backing");});}
+            catch(...){source_runtime_unregister_write_guard(owner.bank,this);throw;}
+            ++owner.render_read_borrows;
+        }
+        ~ReadOnly(){source_runtime_unregister_topology_guard(owner.bank,this);source_runtime_unregister_write_guard(owner.bank,this);--owner.render_read_borrows;}
+    } read_only(*impl_);
+    SourceExecutionObserverScope observation(memory);
+    observer(receipt,memory);
+}
+
 void PhysicsLiveWorldTu15::completed_main_camera_observer(SourceCompletedMainCameraObserverTu15 observer){
     Impl::PublicCall active(*impl_,false);impl_->require_executor();if(impl_->execution_depth||impl_->render_read_borrows)throw FormatError("Main observer requires a completed source boundary");
     if(!impl_->scoped_main_camera_observer.expired())throw FormatError("Main camera observer slot has an active exclusive scoped owner");
@@ -4810,9 +6081,166 @@ std::vector<Transform> PhysicsLiveWorldTu15::completed_body_world_nodes(std::uin
 bool PhysicsLiveWorldTu15::request_render_geometry(std::uint32_t flags,std::uint32_t header) {
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::RenderGeometry,[&]{return source_execution_arguments(flags,header);});
     Impl::PublicCall active(*impl_);
-    auto a=impl_->frame({});a.gp[0]=flags;a.gp[1]=header;
-    impl_->run_actual(0x130980u,a);const bool result=(a.gp[0]&255u)!=0;
+    const bool result=impl_->geometry_resource_request(flags,header);
     journal.complete([&]{return source_execution_result(std::uint32_t(result));});return result;
+}
+bool PhysicsLiveWorldTu15::request_render_geometry_tu15(std::uint32_t flags,std::uint32_t header,NativeTu15PhysicsFrameFp& arithmetic) {
+    Impl::PublicCall active(*impl_);
+    return impl_->geometry_resource_request(flags,header,arithmetic);
+}
+std::uint32_t PhysicsLiveWorldTu15::classify_render_lighting_tu15(std::uint32_t object,std::uint32_t model,
+    std::uint32_t instance,NativeTu15PhysicsFrameFp& arithmetic) {
+    Impl::PublicCall active(*impl_);
+    static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_RENDER_LIGHTING");return p&&*p;}();
+    if(reference) {
+        ++impl_->geometry_request_stats.lighting_reference;
+        auto abi=impl_->frame({});abi.gp[0]=object;abi.gp[1]=instance;abi.gp[2]=model;
+        abi.x87_status=arithmetic.status;abi.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
+        impl_->run_actual(0x2cfe0u,abi);
+        arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};return abi.gp[0];
+    }
+    ++impl_->geometry_request_stats.lighting;
+    NativeTu15RenderLightingServices services;
+    services.request=[&](auto header,auto& fp){return impl_->geometry_resource_request(3u,header,fp);};
+    return native_tu15_render_lighting_2cfe0(impl_->bank,object,model,instance,arithmetic,services);
+}
+std::uint32_t PhysicsLiveWorldTu15::collect_render_bsp_units_tu15(NativeTu15PhysicsFrameFp& arithmetic) {
+    Impl::PublicCall active(*impl_);const auto context=word(impl_->bank,0x4cd3a0u);
+    static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_BANK_DRAW_UNITS");return p&&*p;}();
+    if(reference) {
+        ++impl_->geometry_request_stats.bank_bsp_reference;
+        const auto invoke=[&](auto entry,auto& abi) {
+            abi.x87_status=arithmetic.status;abi.floating_point=SourcePhysicsFactoryFloatingPoint{arithmetic.control_word,arithmetic.mxcsr};
+            impl_->run_actual(entry,abi);arithmetic={abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+        };
+        auto call=impl_->frame({});invoke(0x2cb10u,call);
+        const auto before=word(impl_->bank,0x4cd398u);
+        call=impl_->frame({});call.gp[3]=context;invoke(0x135ea0u,call);
+        call=impl_->frame(std::array{context});invoke(0x136030u,call);
+        const auto after=word(impl_->bank,0x4cd398u);
+        if(after>before)impl_->geometry_request_stats.bank_bsp_reference_units+=after-before;
+        return context;
+    }
+    ++impl_->geometry_request_stats.bank_bsp;
+    NativeTu15DrawUnitServices services;
+    services.lighting.request=[&](auto header,auto& fp){return impl_->geometry_resource_request(3u,header,fp);};
+    native_tu15_draw_units_begin_2cb10(impl_->bank);
+    const auto before=word(impl_->bank,0x4cd398u);
+    native_tu15_draw_clusters_135ea0(impl_->bank,context,arithmetic,services);
+    native_tu15_draw_instances_136030(impl_->bank,context,arithmetic,services);
+    const auto after=word(impl_->bank,0x4cd398u);
+    if(after>before)impl_->geometry_request_stats.bank_bsp_units+=after-before;
+    return context;
+}
+
+std::uint32_t PhysicsLiveWorldTu15::render_object_root(std::uint32_t object) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    return native_tu15_render_root_owner(impl_->bank,object);
+}
+void PhysicsLiveWorldTu15::append_light_parent_biped_tu15(std::uint32_t definition_data,std::uint32_t shadow_address,
+    std::uint32_t owner,std::uint32_t context) {
+    Impl::PublicCall active(*impl_);NativeTu15LightParentServices services;
+    static const bool reference=[]{const auto* p=std::getenv("HALO2_REFERENCE_LIGHT_PARENT_BIPED");return p&&*p;}();
+    if(reference)services.append=[&](auto queue,auto object,auto flags,auto value,auto association,auto entry_eax) {
+        auto abi=impl_->frame(std::array{object,flags,value,association});abi.gp[0]=entry_eax;abi.gp[1]=queue;
+        impl_->run_actual(0x166b60u,abi);return NativeTu15ObjectQueueResult{bool(abi.gp[0]&255u),abi.gp[0],abi.gp[1],abi.gp[2]};
+    };
+    const auto result=native_tu15_light_parent_biped_31ec2(impl_->bank,definition_data,shadow_address,owner,context,services);
+    auto& stats=impl_->geometry_request_stats;++stats.light_parent_tested;
+    stats.light_parent_taken+=result.taken;stats.light_parent_none+=result.owner_none;stats.light_parent_steps+=result.steps;
+    if(result.taken&&!result.owner_none){if(result.queue.appended)++stats.light_parent_appended;else ++stats.light_parent_refused;}
+}
+std::uint32_t PhysicsLiveWorldTu15::render_light_parent_biped(std::uint32_t owner) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    return native_tu15_light_parent_biped_walk(impl_->bank,owner).object;
+}
+void PhysicsLiveWorldTu15::set_effect_light_full_f8_tu15(std::uint32_t light) {
+    Impl::PublicCall active(*impl_);impl_->require_executor();auto& m=impl_->bank;
+    const SourceRawDatumPoolServices storage{.read=[&](auto at,auto n){return m.view(at,n);}};
+    const auto pool=word(m,0x4ecbdcu),record=source_raw_datum_lookup(pool,light,storage);
+    if(!record||word(m,pool+0x24u)!=0x110u||Bytes(m.view(record,2)).u16(0)!=std::uint16_t(light>>16))
+        throw FormatError("Sphere31650 lost its live light generation");
+    const auto at=record+0xf8u,value=word(m,0x46a0d0u);impl_->last_instruction=0x31867u;
+    const auto observe=source_physics_store_observers_tu15({},impl_->physics_store_observer);
+    if(observe) {
+        SourcePhysicsContactRecordStore event{0x31867u,at,std::vector<std::byte>(4),std::vector<std::byte>(4)};
+        m.read(at,event.before);for(unsigned n=0;n<4;++n)event.written[n]=std::byte(value>>(8*n));
+        m.write(at,event.written);observe(event);
+    }else put(m,at,value);
+    ++impl_->geometry_request_stats.light_flags_f8;
+}
+void PhysicsLiveWorldTu15::reference_effect_light_flags_tu15(const SourceEffectLightFlagReference31650& input) {
+    const auto* selected=std::getenv("HALO2_REFERENCE_LIGHT_FLAGS_31650");
+    if(!selected||!*selected||*selected=='0')throw FormatError("Original31650 comparison requires its explicit reference control");
+    Impl::PublicCall active(*impl_);impl_->require_executor();auto& m=impl_->bank;
+    const SourceRawDatumPoolServices storage{.read=[&](auto at,auto n){return m.view(at,n);}};
+    const auto pool=word(m,0x4ecbdcu),record=source_raw_datum_lookup(pool,input.light,storage);
+    if(!record||word(m,pool+0x24u)!=0x110u||Bytes(m.view(record,2)).u16(0)!=std::uint16_t(input.light>>16))
+        throw FormatError("Original sphere31650 lost its live light generation");
+    const auto definition=word(m,record+4u),tag=word(m,0x4f0414u)+16u*(definition&65535u);
+    if(word(m,tag+4u)!=definition)throw FormatError("Original sphere31650 lost its definition generation");
+    struct Saved {std::uint32_t at;std::vector<std::byte> bytes;};
+    std::vector<Saved> saved;std::vector<std::pair<std::uint32_t,std::vector<std::byte>>> writes;
+    const auto plan=[&](std::uint32_t at,std::span<const std::byte> bytes) {
+        if(bytes.empty())return;m.validate_mutable_view(at,bytes.size());
+        const auto before=m.view(at,bytes.size());saved.push_back({at,{before.begin(),before.end()}});
+        writes.emplace_back(at,std::vector<std::byte>(bytes.begin(),bytes.end()));
+    };
+    const auto value=[&](auto at,const auto& v){plan(at,std::as_bytes(std::span(&v,1)));};
+    const std::array<std::span<const SourceBspAdmissionRecord>,3> rows{
+        input.bsp_before.clusters,input.objects_before.objects,input.bsp_before.instances};
+    for(unsigned n=0;n<3;++n) {
+        const auto header=word(m,0x5598f8u+std::array{12u,20u,24u}[n]),capacity=word(m,header);
+        if(!capacity||capacity>32767u||rows[n].size()>=capacity)
+            throw FormatError("Original sphere31650 projection exceeds its existing queue");
+        std::vector<std::uint16_t> flags,associations;std::vector<std::uint32_t> ids,other;
+        for(const auto& row:rows[n]){flags.push_back(row.flags);ids.push_back(row.id);other.push_back(row.other);associations.push_back(row.association);}
+        plan(word(m,header+8u),std::as_bytes(std::span(flags)));plan(word(m,header+12u),std::as_bytes(std::span(ids)));
+        plan(word(m,header+16u),std::as_bytes(std::span(other)));plan(word(m,header+20u),std::as_bytes(std::span(associations)));
+        value(header+4u,std::uint16_t(rows[n].size()));
+    }
+    const auto before_f8=word(m,record+0xf8u),expected_f8=input.full_f8?word(m,0x46a0d0u):before_f8;
+    bool completed{};
+    struct Restore {
+        SourceRuntimeMemory& memory;const std::vector<Saved>& saved;std::uint32_t f8,before;bool& completed;
+        ~Restore(){for(auto p=saved.rbegin();p!=saved.rend();++p)memory.write(p->at,p->bytes);if(!completed)put(memory,f8,before);}
+    } restore{m,saved,record+0xf8u,before_f8,completed};
+    for(const auto& [at,bytes]:writes)m.write(at,bytes);
+    auto call=impl_->frame(std::array{input.owner,input.root,1u,0u});const auto shadow=call.gp[4]+0x80u;
+    const std::byte clear{};m.write(shadow,std::span(&clear,1));put(m,call.gp[4]+16u,shadow);
+    call.gp[0]=input.light;call.gp[1]=definition;call.gp[6]=0x5598f8u;
+    impl_->run_actual(0x31650u,call);
+    const std::array<std::span<const SourceBspAdmissionRecord>,3> expected{
+        input.bsp_after.clusters,input.objects_after.objects,input.bsp_after.instances};
+    for(unsigned n=0;n<3;++n) {
+        const auto header=word(m,0x5598f8u+std::array{12u,20u,24u}[n]);
+        if(Bytes(m.view(header+4u,2)).u16(0)!=expected[n].size())throw FormatError("Sphere31650 original queue count differs");
+        for(unsigned i=0;i<expected[n].size();++i) {
+            const auto& row=expected[n][i];
+            if(Bytes(m.view(word(m,header+8u)+2*i,2)).u16(0)!=row.flags||word(m,word(m,header+12u)+4*i)!=row.id||
+                word(m,word(m,header+16u)+4*i)!=row.other||Bytes(m.view(word(m,header+20u)+2*i,2)).u16(0)!=row.association)
+                throw FormatError("Sphere31650 native flags differ from unchanged original code");
+            if(n==1)input.objects_after.objects[i].flags=Bytes(m.view(word(m,header+8u)+2*i,2)).u16(0);
+        }
+    }
+    if(word(m,record+0xf8u)!=expected_f8||m.view(shadow,1)[0]!=std::byte{})
+        throw FormatError("Sphere31650 native F8/shadow byte differs from unchanged original code");
+    completed=true; // Keep the genuine F8 output; the temporary queues retire.
+}
+std::uint32_t PhysicsLiveWorldTu15::render_attachment_marker(std::uint32_t object,std::int16_t attachment) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    return native_tu15_render_attachment_marker(impl_->bank,object,attachment);
+}
+bool PhysicsLiveWorldTu15::render_object_has_view_priority(std::uint32_t object) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    NativeTu15PhysicsFrameFp environment{fp.x87_control_word,0,fp.mxcsr};
+    return native_tu15_render_owner_has_view_priority(impl_->bank,object,environment);
+}
+std::array<std::uint32_t,3> PhysicsLiveWorldTu15::render_light_up_vector(std::uint32_t up,std::uint32_t forward) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    const auto vector=[&](std::uint32_t at){return std::array{word(impl_->bank,at),word(impl_->bank,at+4u),word(impl_->bank,at+8u)};};
+    NativeTu15PhysicsFrameFp environment{fp.x87_control_word,0,fp.mxcsr};
+    return native_tu15_light_orthonormal_up(impl_->bank,vector(up),vector(forward),environment).up;
 }
 SourceObjectAdmission PhysicsLiveWorldTu15::admit_render_objects(const SourcePortalVisibilitySet& visibility,
     const SourceObjectAdmissionInput& input,std::span<const std::array<std::uint32_t,4>> prior)const {Impl::PublicCall active(*impl_,false);
@@ -5097,6 +6525,15 @@ void PhysicsLiveWorldTu15::observe_sound_submissions(SourceSoundSubmitObserverTu
 void PhysicsLiveWorldTu15::observe_sound_requests(SourceSoundRequestObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->sound_request_observer=std::move(observer);
 }
+void PhysicsLiveWorldTu15::observe_sound_requests_with_context(SourceSoundRequestContextObserverTu15 observer) {
+    Impl::PublicCall active(*impl_);impl_->sound_request_context_observer=std::move(observer);
+}
+void PhysicsLiveWorldTu15::observe_weapon_zoom_resets(SourceWeaponZoomResetObserverTu15 observer) {
+    Impl::PublicCall active(*impl_);impl_->weapon_zoom_reset_observer=std::move(observer);
+}
+void PhysicsLiveWorldTu15::observe_weapon_zoom_sounds(SourceWeaponZoomSoundObserverTu15 observer) {
+    Impl::PublicCall active(*impl_);impl_->weapon_zoom_sound_observer=std::move(observer);
+}
 void PhysicsLiveWorldTu15::observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->loop_sound_request_observer=std::move(observer);
 }
@@ -5292,8 +6729,9 @@ void PhysicsLiveWorldTu15::set_hitscan_rewind_owner(SourceHitscanRewindOwnerTu15
 void PhysicsLiveWorldTu15::observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)> observer) {Impl::PublicCall active(*impl_);
     impl_->weapon_effect_observer=std::move(observer);
 }
-void PhysicsLiveWorldTu15::observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15 observer) {Impl::PublicCall active(*impl_);
+void PhysicsLiveWorldTu15::observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15 observer,bool instruction_trace) {Impl::PublicCall active(*impl_);
     impl_->weapon_effect_phase_observer=std::move(observer);
+    impl_->weapon_effect_instruction_trace=instruction_trace;
 }
 std::vector<MeleeImpact> PhysicsLiveWorldTu15::take_melee_impacts() {Impl::PublicCall active(*impl_);
     auto result=std::move(impl_->melee_impacts);impl_->melee_impacts.clear();return result;
@@ -5701,6 +7139,20 @@ void PhysicsLiveWorldTu15::PreparedAuthority::retain_live_multiplayer_render_his
        source.impl_->bsp.index!=impl_->owner.bsp.index)
         throw FormatError("Native presentation history changed its admitted resource or BSP owner");
     source_stage_multiplayer_render_history_tu15(source.impl_->bank,impl_->replacement);
+}
+void PhysicsLiveWorldTu15::PreparedAuthority::retain_native_particle_history_from(
+    const PhysicsLiveWorldTu15 &source) {
+    if(!impl_ || !impl_->gate.owns_lock() || !impl_->barrier ||
+       &impl_->owner==source.impl_.get() || std::this_thread::get_id()!=impl_->owner.main_thread ||
+       !impl_->owner.staging || impl_->owner.public_calls || impl_->owner.execution_depth ||
+       impl_->owner.continuation_fault)
+        throw FormatError("Native particle history needs its held distinct preparation owner");
+    std::unique_lock gate(source.impl_->call_gate,std::try_to_lock);
+    source.require_presentation_boundary();
+    if(!gate.owns_lock() || source.impl_->resources.identity()!=impl_->owner.resources.identity() ||
+       source.impl_->bsp.index!=impl_->owner.bsp.index)
+        throw FormatError("Native particle history changed its admitted resource or BSP owner");
+    source_stage_native_particle_history_tu15(source.impl_->bank,impl_->replacement);
 }
 void PhysicsLiveWorldTu15::require_presentation_boundary() const {
     std::unique_lock gate(impl_->call_gate,std::try_to_lock);impl_->require_executor();

@@ -1,0 +1,126 @@
+{
+  "passed": false,
+  "status": "failed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "native_migration_callers_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^native_migration_callers_cpp_rust$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/tests.log",
+      "exit_code": 8
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 3579,
+      "sha256": "2b6a93481aecf6ba308af5d786ff8f6cf42a0aee10d9180ee77f2ac77ba9a2ab",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 3119,
+      "sha256": "c3473a493143a9e5120a59dfabe960a84aad4e3450f676ef276d9411a0e91282",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "test-artifacts/source-admissions-cpp-rust.json",
+      "status": "retained",
+      "bytes": 1509,
+      "sha256": "01d90ba291c3de12cd19f066ddb242ed29f8b396a530d73f1bf0a7e684ee03d2",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/source-admissions-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/authority-transfer-cpp-rust.json",
+      "status": "retained",
+      "bytes": 2328,
+      "sha256": "893b4c1d43bdd0966c74e7693201bc9cd0a8ab3066328064cabb0692f8a7d5ae",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/authority-transfer-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/snapshot-candidate-cpp-rust.json",
+      "status": "retained",
+      "bytes": 2758,
+      "sha256": "c957d9c0242ff371471ac91e72352723899a009e48bebca14b1ad1b00f97e440",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/snapshot-candidate-cpp-rust.json"
+    },
+    {
+      "path": "test-artifacts/native-receive-dispatch.json",
+      "status": "retained",
+      "bytes": 1258,
+      "sha256": "e118e1c645fd5067e2fd6dfd04fd9489e3c9c102e5f7bc1e64cd4a8b1e0a586e",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/native-receive-dispatch.json"
+    },
+    {
+      "path": "test-artifacts/native-session-access.json",
+      "status": "retained",
+      "bytes": 1552,
+      "sha256": "565dac6156ef05cb7cb0a3a8acdd039570b9cc542aeeddf21b925bbe74d694d8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/native-session-access.json"
+    },
+    {
+      "path": "test-artifacts/native-migration-callers.json",
+      "status": "retained",
+      "bytes": 2276,
+      "sha256": "da8d8d555c99ab391affd310693ffb88adcdc9b5e6cc2ac454f9525d71c45062",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-migration-callers-rust-20261101/native/iteration-2/evidence/test-artifacts/native-migration-callers.json"
+    }
+  ]
+}

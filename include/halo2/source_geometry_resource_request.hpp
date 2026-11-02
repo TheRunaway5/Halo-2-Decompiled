@@ -15,6 +15,10 @@ struct SourceGeometryResourceGlobals {
         return {0x4eb114,0x4eda6c,0x4eda5c,0x4eda64,0x4700ec,
             0x4eda70,0x4eda74,0x4eda78,0x4eda80};
     }
+    static constexpr SourceGeometryResourceGlobals title_update_1_5() {
+        return {0x4f0414,0x4f2d6c,0x4f2d5c,0x4f2d64,0x4751ac,
+            0x4f2d70,0x4f2d74,0x4f2d78,0x4f2d80};
+    }
 };
 struct SourceGeometryResourceRequestServices {
     // Whole12E3A0 (TU1.1 12FB10) must own admission, allocation and real IO.
@@ -26,7 +30,7 @@ struct SourceGeometryResourceRequestServices {
     std::function<void()> yield; //2D2084 / TU1.1 2D84C4
     std::function<void()> pump;  //125D60 / TU1.1 1274B0
 };
-// Whole retail12DE70 / TU1.1 12F5E0. Existing linked banks touch physical
+// Whole retail12DE70 / TU1.1 12F5E0 / TU1.5 130980. Existing linked banks touch physical
 // age; pending requests consume policy and real completion, then join native
 //223C70. No readiness result, allocation, completion or cache is invented.
 // Missing reached services throw after the original preceding mutations.

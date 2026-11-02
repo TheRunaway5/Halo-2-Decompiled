@@ -1,11 +1,30 @@
+#include "helpers/native_pair_deletion_child_input_capture_tu15.hpp"
+#include "helpers/native_contact_body_update_input_capture_tu15.hpp"
+#include "helpers/native_pair_pool_release_input_capture_tu15.hpp"
+#include "helpers/native_constraint_frame_build_input_capture_tu15.hpp"
+#include "helpers/native_dirty_island_objects_input_capture_tu15.hpp"
+#include "helpers/native_look_controller_input_capture_tu15.hpp"
+#include "helpers/native_look_reorientation_input_capture_tu15.hpp"
+#include "helpers/native_camera_query_input_capture_tu15.hpp"
+#include "helpers/native_seated_look_controller_input_capture_tu15.hpp"
 #include "halo2/source_match_authority.hpp"
 #include "halo2/native_tu15_physics_frame_residuals.hpp"
+#include "halo2/source_bsp_breakable_visibility_tu15.hpp"
+#include "halo2/source_bsp_part_commands.hpp"
+#include "halo2/source_bsp_resident_plan.hpp"
+#include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_contrail_draw.hpp"
 #include "halo2/physics_velocity_observation.hpp"
 #include "helpers/source_device_script_input_tu15.hpp"
 #include "helpers/live_phantom_original_capture_tu15.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
 #include "helpers/live_native_physics_frame_capture_tu15.hpp"
+#include "helpers/native_constraint_component_input_capture_tu15.hpp"
+#include "helpers/native_contact_manager_input_capture_tu15.hpp"
+#include "helpers/native_contact_point_input_capture_tu15.hpp"
+#include "helpers/native_contact_agent_factory_input_capture_tu15.hpp"
+#include "helpers/native_contact_time_input_capture_tu15.hpp"
+#include "helpers/native_pair_consumer_input_capture_tu15.hpp"
 #include "helpers/original_support_carry_tu15.hpp"
 #include "helpers/destruction_firing_lane_inputs_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
@@ -18,6 +37,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_model_depth_selection.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/source_vehicle_native_rates.hpp"
 #include "halo2/raw_datum_pool.hpp"
@@ -40,6 +60,7 @@
 #include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <numeric>
 #include <set>
 #include <future>
 #include <thread>
@@ -627,6 +648,36 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_fixed_pose_calls",native_frames.native_fixed_pose_calls},
         {"native_prescribed_force_calls",native_frames.native_prescribed_force_calls},
         {"native_body_policy_calls",native_frames.native_body_policy_calls},
+        {"native_contact_features_attempts",native_frames.native_contact_features_attempts},
+        {"native_contact_features_calls",native_frames.native_contact_features_calls},
+        {"native_contact_features_refusals",native_frames.native_contact_features_refusals},
+        {"native_contact_features_source_calls",native_frames.native_contact_features_source_calls},
+        {"native_contact_features_owner_calls",native_frames.native_contact_features_owner_calls},
+        {"native_vehicle_flip_handoff_attempts",native_frames.native_vehicle_flip_handoff_attempts},
+        {"native_vehicle_flip_handoff_calls",native_frames.native_vehicle_flip_handoff_calls},
+        {"native_vehicle_flip_handoff_refusals",native_frames.native_vehicle_flip_handoff_refusals},
+        {"native_vehicle_flip_calls",native_frames.native_vehicle_flip_calls},
+        {"native_vehicle_flip_flag_skips",native_frames.native_vehicle_flip_flag_skips},
+        {"native_vehicle_flip_direction_skips",native_frames.native_vehicle_flip_direction_skips},
+        {"native_vehicle_flip_timeouts",native_frames.native_vehicle_flip_timeouts},
+        {"native_vehicle_flip_orientation_skips",native_frames.native_vehicle_flip_orientation_skips},
+        {"native_vehicle_flip_get_calls",native_frames.native_vehicle_flip_get_calls},
+        {"native_vehicle_flip_set_calls",native_frames.native_vehicle_flip_set_calls},
+        {"native_vehicle_flip_completed",native_frames.native_vehicle_flip_completed},
+        {"native_vehicle_flip_unbound_services",native_frames.native_vehicle_flip_unbound_services},
+        {"native_vehicle_flip_unqualified_owners",native_frames.native_vehicle_flip_unqualified_owners},
+        {"native_vehicle_flip_residual_calls",native_frames.native_vehicle_flip_residual_calls},
+        {"native_simplex_helpers_attempts",native_frames.native_simplex_helpers_attempts},
+        {"native_simplex_helpers_calls",native_frames.native_simplex_helpers_calls},
+        {"native_simplex_helpers_refusals",native_frames.native_simplex_helpers_refusals},
+        {"native_simplex_triangle_calls",native_frames.native_simplex_triangle_calls},
+        {"native_closest_segment_calls",native_frames.native_closest_segment_calls},
+        {"native_simplex_helper_source_calls",native_frames.native_simplex_helper_source_calls},
+        {"native_gameplay_deactivation_calls",native_frames.native_gameplay_deactivation_calls},
+        {"native_gameplay_deactivation_blocked",native_frames.native_gameplay_deactivation_blocked},
+        {"native_gameplay_deactivation_vehicle_tests",native_frames.native_gameplay_deactivation_vehicle_tests},
+        {"native_gameplay_deactivation_biped_tests",native_frames.native_gameplay_deactivation_biped_tests},
+        {"native_gameplay_deactivation_body_policies",native_frames.native_gameplay_deactivation_body_policies},
         {"native_island_transition_calls",native_frames.native_island_transition_calls},
         {"native_array_growth_calls",native_frames.native_array_growth_calls},
         {"native_array_reserve_calls",native_frames.native_array_reserve_calls},
@@ -635,6 +686,270 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_world_collision_calls",native_frames.native_world_collision_calls},
         {"native_world_collision_listener_calls",native_frames.native_world_collision_listener_calls},
         {"native_island_collision_listener_calls",native_frames.native_island_collision_listener_calls},
+        {"native_world_step_listener_calls",native_frames.native_world_step_listener_calls},
+        {"native_island_step_listener_calls",native_frames.native_island_step_listener_calls},
+        {"native_world_regroup_constant_info_queries",native_frames.native_world_regroup_constant_info_queries},
+        {"native_world_regroup_extended_info_queries",native_frames.native_world_regroup_extended_info_queries},
+        {"native_world_regroup_attempts",native_frames.native_world_regroup_attempts},
+        {"native_world_regroup_calls",native_frames.native_world_regroup_calls},
+        {"native_world_regroup_refusals",native_frames.native_world_regroup_refusals},
+        {"native_world_regroup_active_visits",native_frames.native_world_regroup_active_visits},
+        {"native_world_regroup_flag_skips",native_frames.native_world_regroup_flag_skips},
+        {"native_world_regroup_fully_connected",native_frames.native_world_regroup_fully_connected},
+        {"native_world_regroup_empty_islands",native_frames.native_world_regroup_empty_islands},
+        {"native_world_regroup_created_islands",native_frames.native_world_regroup_created_islands},
+        {"native_world_regroup_moved_bodies",native_frames.native_world_regroup_moved_bodies},
+        {"native_world_regroup_compacted_bodies",native_frames.native_world_regroup_compacted_bodies},
+        {"native_world_regroup_moved_actions",native_frames.native_world_regroup_moved_actions},
+        {"native_world_regroup_moved_constraints",native_frames.native_world_regroup_moved_constraints},
+        {"native_world_regroup_moved_contacts",native_frames.native_world_regroup_moved_contacts},
+        {"native_world_regroup_retained_contacts",native_frames.native_world_regroup_retained_contacts},
+        {"native_world_regroup_graph_builds",native_frames.native_world_regroup_graph_builds},
+        {"native_world_regroup_edge_collections",native_frames.native_world_regroup_edge_collections},
+        {"native_world_regroup_array_growths",native_frames.native_world_regroup_array_growths},
+        {"native_world_regroup_group_allocations",native_frames.native_world_regroup_group_allocations},
+        {"native_world_regroup_group_releases",native_frames.native_world_regroup_group_releases},
+        {"native_world_regroup_temporary_constructors",native_frames.native_world_regroup_temporary_constructors},
+        {"native_world_regroup_temporary_destructors",native_frames.native_world_regroup_temporary_destructors},
+        {"native_world_regroup_pool_allocations",native_frames.native_world_regroup_pool_allocations},
+        {"native_world_regroup_pool_releases",native_frames.native_world_regroup_pool_releases},
+        {"native_world_regroup_unbound_services",native_frames.native_world_regroup_unbound_services},
+        {"native_world_merge_calls",native_frames.native_world_merge_calls},
+        {"native_world_merge_contact_calls",native_frames.native_world_merge_contact_calls},
+        {"native_world_merge_body_moves",native_frames.native_world_merge_body_moves},
+        {"native_world_merge_constraint_moves",native_frames.native_world_merge_constraint_moves},
+        {"native_world_merge_disposals",native_frames.native_world_merge_disposals},
+        {"native_world_merge_refusals",native_frames.native_world_merge_refusals},
+        {"native_world_merge_unbound_services",native_frames.native_world_merge_unbound_services},
+        {"native_body_deactivation_motion_snapshot_calls",native_frames.native_body_deactivation_motion_snapshot_calls},
+        {"native_body_deactivation_motion_position_queries",native_frames.native_body_deactivation_motion_position_queries},
+        {"native_body_deactivation_motion_disabled_bodies",native_frames.native_body_deactivation_motion_disabled_bodies},
+        {"native_body_deactivation_motion_snapshot_stores",native_frames.native_body_deactivation_motion_snapshot_stores},
+        {"native_body_deactivation_attempts",native_frames.native_body_deactivation_attempts},
+        {"native_body_deactivation_calls",native_frames.native_body_deactivation_calls},
+        {"native_body_deactivation_refusals",native_frames.native_body_deactivation_refusals},
+        {"native_body_deactivation_deferred_bodies",native_frames.native_body_deactivation_deferred_bodies},
+        {"native_body_deactivation_array_growths",native_frames.native_body_deactivation_array_growths},
+        {"native_body_deactivation_property_queries",native_frames.native_body_deactivation_property_queries},
+        {"native_body_deactivation_motion_publications",native_frames.native_body_deactivation_motion_publications},
+        {"native_body_deactivation_unbound_services",native_frames.native_body_deactivation_unbound_services},
+        {"native_pair_discrete_attempts",native_frames.native_pair_discrete_attempts},
+        {"native_pair_discrete_calls",native_frames.native_pair_discrete_calls},
+        {"native_pair_discrete_refusals",native_frames.native_pair_discrete_refusals},
+        {"native_pair_discrete_unbound_filters",native_frames.native_pair_discrete_unbound_filters},
+        {"native_pair_discrete_unbound_motion_types",native_frames.native_pair_discrete_unbound_motion_types},
+        {"native_pair_discrete_payload_filters",native_frames.native_pair_discrete_payload_filters},
+        {"native_pair_discrete_motion_queries",native_frames.native_pair_discrete_motion_queries},
+        {"native_pair_island_wake_attempts",native_frames.native_pair_island_wake_attempts},
+        {"native_pair_island_wake_calls",native_frames.native_pair_island_wake_calls},
+        {"native_pair_island_wake_refusals",native_frames.native_pair_island_wake_refusals},
+        {"native_world_activation_agent_factories",native_frames.native_world_activation_agent_factories},
+        {"native_world_activation_bound_factory_attempts",native_frames.native_world_activation_bound_factory_attempts},
+        {"native_world_activation_bound_factory_calls",native_frames.native_world_activation_bound_factory_calls},
+        {"native_world_activation_bound_factory_refusals",native_frames.native_world_activation_bound_factory_refusals},
+        {"native_world_activation_calls",native_frames.native_world_activation_calls},
+        {"native_world_activation_refusals",native_frames.native_world_activation_refusals},
+        {"native_world_activation_body_updates",native_frames.native_world_activation_body_updates},
+        {"native_world_activation_constraint_rows",native_frames.native_world_activation_constraint_rows},
+        {"native_world_activation_residual_calls",native_frames.native_world_activation_residual_calls},
+        {"native_object_velocity_handoff_attempts",native_frames.native_object_velocity_handoff_attempts},
+        {"native_object_velocity_handoff_calls",native_frames.native_object_velocity_handoff_calls},
+        {"native_object_velocity_handoff_refusals",native_frames.native_object_velocity_handoff_refusals},
+        {"native_object_velocity_calls",native_frames.native_object_velocity_calls},
+        {"native_object_velocity_refusals",native_frames.native_object_velocity_refusals},
+        {"native_object_velocity_unqualified_owners",native_frames.native_object_velocity_unqualified_owners},
+        {"native_object_velocity_body_wakes",native_frames.native_object_velocity_body_wakes},
+        {"native_object_velocity_island_wakes",native_frames.native_object_velocity_island_wakes},
+        {"native_object_velocity_agent_factories",native_frames.native_object_velocity_agent_factories},
+        {"native_object_velocity_pool_allocations",native_frames.native_object_velocity_pool_allocations},
+        {"native_object_velocity_unconverted_factories",native_frames.native_object_velocity_unconverted_factories},
+        {"native_object_velocity_unconverted_getters",native_frames.native_object_velocity_unconverted_getters},
+        {"native_object_velocity_residual_calls",native_frames.native_object_velocity_residual_calls},
+        {"native_object_velocity_residual_owners",native_frames.native_object_velocity_residual_owners},
+        {"native_object_velocity_constraint_updates",native_frames.native_object_velocity_constraint_updates},
+        {"native_object_velocity_constraint_flag_skips",native_frames.native_object_velocity_constraint_flag_skips},
+        {"native_object_velocity_constraint_empty_banks",native_frames.native_object_velocity_constraint_empty_banks},
+        {"native_object_velocity_constraint_rows",native_frames.native_object_velocity_constraint_rows},
+        {"native_object_velocity_constraint_unbound_services",native_frames.native_object_velocity_constraint_unbound_services},
+        {"native_object_velocity_constraint_lookup_calls",native_frames.native_object_velocity_constraint_lookup_calls},
+        {"native_object_velocity_constraint_capacity_calls",native_frames.native_object_velocity_constraint_capacity_calls},
+        {"native_object_velocity_constraint_unbound_removals",native_frames.native_object_velocity_constraint_unbound_removals},
+        {"native_constraint_removal_calls",native_frames.native_constraint_removal_calls},
+        {"native_constraint_creation_calls",native_frames.native_constraint_creation_calls},
+        {"native_constraint_created",native_frames.native_constraint_created},
+        {"native_constraint_creation_allocations",native_frames.native_constraint_creation_allocations},
+        {"native_constraint_normalize_calls",native_frames.native_constraint_normalize_calls},
+        {"native_constraint_local_point_calls",native_frames.native_constraint_local_point_calls},
+        {"native_constraint_creation_storage_refusals",native_frames.native_constraint_creation_storage_refusals},
+        {"native_constraint_creation_numerical_refusals",native_frames.native_constraint_creation_numerical_refusals},
+        {"native_constraint_handle_calls",native_frames.native_constraint_handle_calls},
+        {"native_constraint_valid_handles",native_frames.native_constraint_valid_handles},
+        {"native_constraint_retained_handle_marks",native_frames.native_constraint_retained_handle_marks},
+        {"native_constraint_handle_unbound_services",native_frames.native_constraint_handle_unbound_services},
+        {"native_constraint_handle_destruction_calls",native_frames.native_constraint_handle_destruction_calls},
+        {"native_constraint_handle_row_deletions",native_frames.native_constraint_handle_row_deletions},
+        {"native_constraint_event_deletions",native_frames.native_constraint_event_deletions},
+        {"native_constraint_object_detaches",native_frames.native_constraint_object_detaches},
+        {"native_constraint_child_unbound_services",native_frames.native_constraint_child_unbound_services},
+        {"native_constraint_tag_value_calls",native_frames.native_constraint_tag_value_calls},
+        {"native_constraint_tag_value_publications",native_frames.native_constraint_tag_value_publications},
+        {"native_gameplay_policy_destructions",native_frames.native_gameplay_policy_destructions},
+        {"native_constraint_runtime_calls",native_frames.native_constraint_runtime_calls},
+        {"native_constraint_runtime_counter_updates",native_frames.native_constraint_runtime_counter_updates},
+        {"native_constraint_runtime_state_updates",native_frames.native_constraint_runtime_state_updates},
+        {"native_constraint_runtime_geometry_updates",native_frames.native_constraint_runtime_geometry_updates},
+        {"native_constraint_runtime_effect_selections",native_frames.native_constraint_runtime_effect_selections},
+        {"native_constraint_runtime_effect_publications",native_frames.native_constraint_runtime_effect_publications},
+        {"native_constraint_runtime_handle_creations",native_frames.native_constraint_runtime_handle_creations},
+        {"native_constraint_runtime_storage_refusals",native_frames.native_constraint_runtime_storage_refusals},
+        {"native_constraint_runtime_profile_refusals",native_frames.native_constraint_runtime_profile_refusals},
+        {"native_constraint_runtime_unbound_services",native_frames.native_constraint_runtime_unbound_services},
+        {"native_constraint_instance_deletions",native_frames.native_constraint_instance_deletions},
+        {"native_constraint_list_removals",native_frames.native_constraint_list_removals},
+        {"native_constraint_local_releases",native_frames.native_constraint_local_releases},
+        {"native_constraint_global_releases",native_frames.native_constraint_global_releases},
+        {"native_constraint_unbound_handle_releases",native_frames.native_constraint_unbound_handle_releases},
+        {"native_constraint_unbound_runtime_removals",native_frames.native_constraint_unbound_runtime_removals},
+
+        {"native_object_velocity_payload_predicates",native_frames.native_object_velocity_payload_predicates},
+        {"native_object_velocity_manager_factories",native_frames.native_object_velocity_manager_factories},
+        {"native_object_velocity_manager_constructors",native_frames.native_object_velocity_manager_constructors},
+        {"native_object_velocity_manager_registrations",native_frames.native_object_velocity_manager_registrations},
+        {"native_object_velocity_unconverted_managers",native_frames.native_object_velocity_unconverted_managers},
+        {"native_object_velocity_policy_calls",native_frames.native_object_velocity_policy_calls},
+        {"native_object_velocity_policy_constructors",native_frames.native_object_velocity_policy_constructors},
+        {"native_object_velocity_policy_bounds",native_frames.native_object_velocity_policy_bounds},
+        {"native_object_velocity_unconverted_policy_types",native_frames.native_object_velocity_unconverted_policy_types},
+        {"native_object_velocity_unconverted_policy_destructions",native_frames.native_object_velocity_unconverted_policy_destructions},
+        {"native_object_velocity_policy_bounds_owners",native_frames.native_object_velocity_policy_bounds_owners},
+        {"native_object_velocity_unconverted_bounds_owners",native_frames.native_object_velocity_unconverted_bounds_owners},
+
+        {"native_camera_query_attempts",native_frames.native_camera_query_attempts},
+        {"native_camera_query_calls",native_frames.native_camera_query_calls},
+        {"native_camera_query_refusals",native_frames.native_camera_query_refusals},
+        {"native_camera_query_resource_refusals",native_frames.native_camera_query_resource_refusals},
+        {"native_camera_query_unknown_owners",native_frames.native_camera_query_unknown_owners},
+        {"native_camera_query_bsp_calls",native_frames.native_camera_query_bsp_calls},
+        {"native_camera_query_bsp_hits",native_frames.native_camera_query_bsp_hits},
+        {"native_camera_query_cluster_visits",native_frames.native_camera_query_cluster_visits},
+        {"native_camera_query_instanced_attempts",native_frames.native_camera_query_instanced_attempts},
+        {"native_camera_query_instanced_calls",native_frames.native_camera_query_instanced_calls},
+        {"native_camera_query_instanced_refusals",native_frames.native_camera_query_instanced_refusals},
+        {"native_camera_query_mopp_calls",native_frames.native_camera_query_mopp_calls},
+        {"native_camera_query_mopp_opcodes",native_frames.native_camera_query_mopp_opcodes},
+        {"native_camera_query_mopp_leaves",native_frames.native_camera_query_mopp_leaves},
+        {"native_camera_query_primitive_calls",native_frames.native_camera_query_primitive_calls},
+        {"native_camera_query_primitive_hits",native_frames.native_camera_query_primitive_hits},
+        {"native_camera_query_dynamic_calls",native_frames.native_camera_query_dynamic_calls},
+        {"native_camera_query_dynamic_ray_calls",native_frames.native_camera_query_dynamic_ray_calls},
+        {"native_camera_query_unprovided_reads",native_frames.native_camera_query_unprovided_reads},
+        {"native_camera_query_unprovided_writes",native_frames.native_camera_query_unprovided_writes},
+        {"native_look_update_fp_refusals",native_frames.native_look_update_fp_refusals},
+        {"native_look_update_attempts",native_frames.native_look_update_attempts},
+        {"native_look_update_calls",native_frames.native_look_update_calls},
+        {"native_look_update_refusals",native_frames.native_look_update_refusals},
+        {"native_look_update_context_calls",native_frames.native_look_update_context_calls},
+        {"native_look_update_context_refusals",native_frames.native_look_update_context_refusals},
+        {"native_look_update_camera_calls",native_frames.native_look_update_camera_calls},
+        {"native_look_update_camera_completions",native_frames.native_look_update_camera_completions},
+        {"native_look_update_camera_onfoot_calls",native_frames.native_look_update_camera_onfoot_calls},
+        {"native_look_update_camera_marker_calls",native_frames.native_look_update_camera_marker_calls},
+        {"native_look_update_marker_calls",native_frames.native_look_update_marker_calls},
+        {"native_look_update_angle_calls",native_frames.native_look_update_angle_calls},
+        {"native_look_update_angle_completions",native_frames.native_look_update_angle_completions},
+        {"native_look_update_angle_refusals",native_frames.native_look_update_angle_refusals},
+        {"native_look_update_query_refusals",native_frames.native_look_update_query_refusals},
+        {"native_look_update_marker_observer_refusals",native_frames.native_look_update_marker_observer_refusals},
+        {"native_look_reorientation_attempts",native_frames.native_look_reorientation_attempts},
+        {"native_look_reorientation_calls",native_frames.native_look_reorientation_calls},
+        {"native_look_reorientation_refusals",native_frames.native_look_reorientation_refusals},
+        {"native_look_reorientation_kernel_calls",native_frames.native_look_reorientation_kernel_calls},
+        {"native_look_reorientation_kernel_refusals",native_frames.native_look_reorientation_kernel_refusals},
+        {"native_look_reorientation_yaw_wraps",native_frames.native_look_reorientation_yaw_wraps},
+        {"native_look_initialization_attempts",native_frames.native_look_initialization_attempts},
+        {"native_look_initialization_calls",native_frames.native_look_initialization_calls},
+        {"native_look_initialization_refusals",native_frames.native_look_initialization_refusals},
+        {"native_look_initialization_cleared_records",native_frames.native_look_initialization_cleared_records},
+        {"native_look_initialization_unit_directions",native_frames.native_look_initialization_unit_directions},
+        {"native_look_initialization_unchanged",native_frames.native_look_initialization_unchanged},
+        {"native_dirty_island_objects_attempts",native_frames.native_dirty_island_objects_attempts},
+        {"native_dirty_island_objects_calls",native_frames.native_dirty_island_objects_calls},
+        {"native_dirty_island_objects_refusals",native_frames.native_dirty_island_objects_refusals},
+        {"native_dirty_island_objects_kernel_entries",native_frames.native_dirty_island_objects_kernel_entries},
+        {"native_dirty_island_objects_pending_skips",native_frames.native_dirty_island_objects_pending_skips},
+        {"native_dirty_island_objects_reentrant_skips",native_frames.native_dirty_island_objects_reentrant_skips},
+        {"native_dirty_island_objects_island_rows",native_frames.native_dirty_island_objects_island_rows},
+        {"native_dirty_island_objects_dirty_islands",native_frames.native_dirty_island_objects_dirty_islands},
+        {"native_dirty_island_objects_body_rows",native_frames.native_dirty_island_objects_body_rows},
+        {"native_dirty_island_objects_candidate_objects",native_frames.native_dirty_island_objects_candidate_objects},
+        {"native_dirty_island_objects_deferred_objects",native_frames.native_dirty_island_objects_deferred_objects},
+        {"native_dirty_island_objects_component_destructions",native_frames.native_dirty_island_objects_component_destructions},
+        {"native_dirty_island_objects_component_frees",native_frames.native_dirty_island_objects_component_frees},
+        {"native_dirty_island_objects_object_deletions",native_frames.native_dirty_island_objects_object_deletions},
+        {"native_dirty_island_objects_recursive_updates",native_frames.native_dirty_island_objects_recursive_updates},
+        {"native_dirty_island_objects_flag_calls",native_frames.native_dirty_island_objects_flag_calls},
+        {"native_dirty_island_objects_defer_calls",native_frames.native_dirty_island_objects_defer_calls},
+        {"native_dirty_island_objects_state_removals",native_frames.native_dirty_island_objects_state_removals},
+        {"native_dirty_island_objects_state_resets",native_frames.native_dirty_island_objects_state_resets},
+        {"native_dirty_island_objects_state_refreshes",native_frames.native_dirty_island_objects_state_refreshes},
+        {"native_dirty_island_objects_state_activations",native_frames.native_dirty_island_objects_state_activations},
+        {"native_dirty_island_objects_unqualified_services",native_frames.native_dirty_island_objects_unqualified_services},
+        {"native_dirty_island_objects_unsupported_local_sizes",native_frames.native_dirty_island_objects_unsupported_local_sizes},
+        {"native_dirty_island_objects_unqualified_owners",native_frames.native_dirty_island_objects_unqualified_owners},
+        {"native_contact_body_attempts",native_frames.native_contact_body_attempts},
+        {"native_contact_body_calls",native_frames.native_contact_body_calls},
+        {"native_contact_body_refusals",native_frames.native_contact_body_refusals},
+        {"native_contact_body_point_queries",native_frames.native_contact_body_point_queries},
+        {"native_contact_body_property_queries",native_frames.native_contact_body_property_queries},
+        {"native_contact_body_motion_type_queries",native_frames.native_contact_body_motion_type_queries},
+        {"native_contact_body_point_velocity_queries",native_frames.native_contact_body_point_velocity_queries},
+        {"native_contact_body_impulse_requests",native_frames.native_contact_body_impulse_requests},
+        {"native_contact_body_wake_attempts",native_frames.native_contact_body_wake_attempts},
+        {"native_contact_body_wake_calls",native_frames.native_contact_body_wake_calls},
+        {"native_contact_body_wake_refusals",native_frames.native_contact_body_wake_refusals},
+        {"native_contact_body_unqualified_owners",native_frames.native_contact_body_unqualified_owners},
+        {"native_contact_body_unsupported_fp_profiles",native_frames.native_contact_body_unsupported_fp_profiles},
+        {"native_contact_body_refused_owners",native_frames.native_contact_body_refused_owners},
+        {"native_main_heap_release_attempts",native_frames.native_main_heap_release_attempts},
+        {"native_main_heap_release_calls",native_frames.native_main_heap_release_calls},
+        {"native_main_heap_release_refusals",native_frames.native_main_heap_release_refusals},
+        {"native_main_heap_release_wrapper_calls",native_frames.native_main_heap_release_wrapper_calls},
+        {"native_main_heap_release_ledger_calls",native_frames.native_main_heap_release_ledger_calls},
+        {"native_main_heap_release_visited",native_frames.native_main_heap_release_visited},
+        {"native_main_heap_release_matches",native_frames.native_main_heap_release_matches},
+        {"native_main_heap_release_moved_rows",native_frames.native_main_heap_release_moved_rows},
+        {"native_main_heap_release_kernel_completed",native_frames.native_main_heap_release_kernel_completed},
+        {"native_main_heap_release_unbound_services",native_frames.native_main_heap_release_unbound_services},
+        {"native_main_heap_release_refused_owners",native_frames.native_main_heap_release_refused_owners},
+        {"native_contact_entity_calls",native_frames.native_contact_entity_calls},
+        {"native_contact_entity_missing_body_pairs",native_frames.native_contact_entity_missing_body_pairs},
+        {"native_contact_entity_property_queries",native_frames.native_contact_entity_property_queries},
+        {"native_contact_entity_disabled_components",native_frames.native_contact_entity_disabled_components},
+        {"native_contact_entity_dispatch_calls",native_frames.native_contact_entity_dispatch_calls},
+        {"native_contact_processor_calls",native_frames.native_contact_processor_calls},
+        {"native_contact_processor_contacts",native_frames.native_contact_processor_contacts},
+        {"native_contact_processor_candidate_rows",native_frames.native_contact_processor_candidate_rows},
+        {"native_contact_processor_matched_rows",native_frames.native_contact_processor_matched_rows},
+        {"native_contact_processor_updates",native_frames.native_contact_processor_updates},
+        {"native_contact_completion_calls",native_frames.native_contact_completion_calls},
+        {"native_contact_completion_contacts",native_frames.native_contact_completion_contacts},
+        {"native_contact_completion_world_notifications",native_frames.native_contact_completion_world_notifications},
+        {"native_contact_completion_body_notifications",native_frames.native_contact_completion_body_notifications},
+        {"native_contact_completion_custom_callbacks",native_frames.native_contact_completion_custom_callbacks},
+        {"native_contact_completion_null_entries_removed",native_frames.native_contact_completion_null_entries_removed},
+        {"native_body_reference_calls",native_frames.native_body_reference_calls},
+        {"native_body_reference_cohorts",native_frames.native_body_reference_cohorts},
+        {"native_body_reference_moved_entries",native_frames.native_body_reference_moved_entries},
+        {"native_body_reference_reserves",native_frames.native_body_reference_reserves},
+        {"native_deferred_operation_calls",native_frames.native_deferred_operation_calls},
+        {"native_deferred_action_calls",native_frames.native_deferred_action_calls},
+        {"native_deferred_delete_calls",native_frames.native_deferred_delete_calls},
+        {"native_deferred_update_calls",native_frames.native_deferred_update_calls},
+        {"native_deferred_merges",native_frames.native_deferred_merges},
+        {"native_deferred_body_removals",native_frames.native_deferred_body_removals},
+        {"native_deferred_update_removals",native_frames.native_deferred_update_removals},
+        {"native_deferred_reference_releases",native_frames.native_deferred_reference_releases},
+        {"native_deferred_destructions",native_frames.native_deferred_destructions},
         {"native_constraint_calls",native_frames.native_constraint_calls},
         {"native_dynamic_accumulator_calls",native_frames.native_dynamic_accumulator_calls},
         {"native_constraint_setup_calls",native_frames.native_constraint_setup_calls},
@@ -647,6 +962,11 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_island_contact_time_calls",native_frames.native_island_contact_time_calls},
         {"native_island_contact_buffers_constructed",native_frames.native_island_contact_buffers_constructed},
         {"native_island_contact_buffers_destroyed",native_frames.native_island_contact_buffers_destroyed},
+        {"native_cached_motion_calls",native_frames.native_cached_motion_calls},
+        {"native_cached_motion_rewinds",native_frames.native_cached_motion_rewinds},
+        {"native_cached_motion_advances",native_frames.native_cached_motion_advances},
+        {"native_contact_fixed_motion_calls",native_frames.native_contact_fixed_motion_calls},
+        {"contact_motion_residual_calls",native_frames.contact_motion_residual_calls},
         {"native_contact_advance_calls",native_frames.native_contact_advance_calls},
         {"native_contact_advance_motion_calls",native_frames.native_contact_advance_motion_calls},
         {"native_contact_advance_process_calls",native_frames.native_contact_advance_process_calls},
@@ -657,6 +977,258 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_motion_commit_calls",native_frames.native_motion_commit_calls},
         {"native_motion_commit_kinds",native_frames.native_motion_commit_kinds},
         {"native_broad_phase_calls",native_frames.native_broad_phase_calls},
+        {"native_broad_phase_edge_attempts",native_frames.native_broad_phase_edge_attempts},
+        {"native_broad_phase_edge_calls",native_frames.native_broad_phase_edge_calls},
+        {"native_broad_phase_edge_refusals",native_frames.native_broad_phase_edge_refusals},
+        {"native_broad_phase_edge_objects",native_frames.native_broad_phase_edge_objects},
+        {"native_broad_phase_edge_shifted_edges",native_frames.native_broad_phase_edge_shifted_edges},
+        {"native_broad_phase_edge_created_pairs",native_frames.native_broad_phase_edge_created_pairs},
+        {"native_broad_phase_edge_removed_pairs",native_frames.native_broad_phase_edge_removed_pairs},
+        {"native_broad_phase_edge_special_additions",native_frames.native_broad_phase_edge_special_additions},
+        {"native_broad_phase_edge_special_removals",native_frames.native_broad_phase_edge_special_removals},
+        {"native_broad_phase_edge_array_growths",native_frames.native_broad_phase_edge_array_growths},
+        {"native_memory_pressure_attempts",native_frames.native_memory_pressure_attempts},
+        {"native_memory_pressure_level_queries",native_frames.native_memory_pressure_level_queries},
+        {"native_memory_pressure_pool_queries",native_frames.native_memory_pressure_pool_queries},
+        {"native_memory_pressure_reentrant_skips",native_frames.native_memory_pressure_reentrant_skips},
+        {"native_memory_pressure_unbound_services",native_frames.native_memory_pressure_unbound_services},
+        {"native_memory_pressure_completions",native_frames.native_memory_pressure_completions},
+        {"native_memory_pressure_refusals",native_frames.native_memory_pressure_refusals},
+        {"native_contact_pressure_attempts",native_frames.native_contact_pressure_attempts},
+        {"native_contact_pressure_null_worlds",native_frames.native_contact_pressure_null_worlds},
+        {"native_contact_pressure_reentrant_skips",native_frames.native_contact_pressure_reentrant_skips},
+        {"native_contact_pressure_islands",native_frames.native_contact_pressure_islands},
+        {"native_contact_pressure_dense_islands",native_frames.native_contact_pressure_dense_islands},
+        {"native_contact_pressure_shape_queries",native_frames.native_contact_pressure_shape_queries},
+        {"native_contact_pressure_candidate_queries",native_frames.native_contact_pressure_candidate_queries},
+        {"native_contact_pressure_unbound_services",native_frames.native_contact_pressure_unbound_services},
+        {"native_contact_pressure_completions",native_frames.native_contact_pressure_completions},
+        {"native_contact_pressure_refusals",native_frames.native_contact_pressure_refusals},
+        {"native_object_publication_attempts",native_frames.native_object_publication_attempts},
+        {"native_object_publication_calls",native_frames.native_object_publication_calls},
+        {"native_object_publication_refusals",native_frames.native_object_publication_refusals},
+        {"native_object_publication_root_queries",native_frames.native_object_publication_root_queries},
+        {"native_object_publication_tree_calls",native_frames.native_object_publication_tree_calls},
+        {"native_object_publication_ancestor_wakes",native_frames.native_object_publication_ancestor_wakes},
+        {"native_object_publication_marked_headers",native_frames.native_object_publication_marked_headers},
+        {"native_pair_consumer_attempts",native_frames.native_pair_consumer_attempts},
+        {"native_pair_consumer_calls",native_frames.native_pair_consumer_calls},
+        {"native_pair_consumer_refusals",native_frames.native_pair_consumer_refusals},
+        {"native_pair_consumer_nonempty_calls",native_frames.native_pair_consumer_nonempty_calls},
+        {"native_pair_consumer_filter_calls",native_frames.native_pair_consumer_filter_calls},
+        {"native_pair_consumer_create_calls",native_frames.native_pair_consumer_create_calls},
+        {"native_phantom_pair_create_notifications",native_frames.native_phantom_pair_create_notifications},
+        {"native_phantom_added_listener_attempts",native_frames.native_phantom_added_listener_attempts},
+        {"native_phantom_added_listener_calls",native_frames.native_phantom_added_listener_calls},
+        {"native_phantom_added_listener_refusals",native_frames.native_phantom_added_listener_refusals},
+        {"native_phantom_added_components_marked",native_frames.native_phantom_added_components_marked},
+        {"native_phantom_added_protection_queries",native_frames.native_phantom_added_protection_queries},
+        {"native_phantom_added_objects_protected",native_frames.native_phantom_added_objects_protected},
+        {"native_phantom_added_delete_requests",native_frames.native_phantom_added_delete_requests},
+        {"native_phantom_added_unqualified_deletions",native_frames.native_phantom_added_unqualified_deletions},
+        {"native_phantom_object_deletion_attempts",native_frames.native_phantom_object_deletion_attempts},
+        {"native_phantom_object_deletion_calls",native_frames.native_phantom_object_deletion_calls},
+        {"native_phantom_object_deletion_refusals",native_frames.native_phantom_object_deletion_refusals},
+        {"native_phantom_object_deletion_unbound_services",native_frames.native_phantom_object_deletion_unbound_services},
+        {"native_phantom_object_detachment_calls",native_frames.native_phantom_object_detachment_calls},
+        {"native_phantom_object_detachment_objects",native_frames.native_phantom_object_detachment_objects},
+        {"native_phantom_object_detachment_refusals",native_frames.native_phantom_object_detachment_refusals},
+        {"native_phantom_object_spatial_queries",native_frames.native_phantom_object_spatial_queries},
+        {"native_phantom_object_tracking_clears",native_frames.native_phantom_object_tracking_clears},
+        {"native_phantom_object_player_clears",native_frames.native_phantom_object_player_clears},
+        {"native_phantom_object_schedule_updates",native_frames.native_phantom_object_schedule_updates},
+        {"native_phantom_object_reference_clears",native_frames.native_phantom_object_reference_clears},
+        {"native_phantom_object_spatial_flag_queries",native_frames.native_phantom_object_spatial_flag_queries},
+        {"native_phantom_object_spatial_packets",native_frames.native_phantom_object_spatial_packets},
+        {"native_phantom_object_spatial_chain_updates",native_frames.native_phantom_object_spatial_chain_updates},
+        {"native_phantom_object_spatial_chain_rows",native_frames.native_phantom_object_spatial_chain_rows},
+        {"native_phantom_object_spatial_record_searches",native_frames.native_phantom_object_spatial_record_searches},
+        {"native_phantom_object_spatial_searched_rows",native_frames.native_phantom_object_spatial_searched_rows},
+        {"native_phantom_object_spatial_matched_rows",native_frames.native_phantom_object_spatial_matched_rows},
+        {"native_phantom_object_spatial_missing_rows",native_frames.native_phantom_object_spatial_missing_rows},
+        {"native_phantom_object_spatial_word_copies",native_frames.native_phantom_object_spatial_word_copies},
+        {"native_phantom_object_spatial_byte_copies",native_frames.native_phantom_object_spatial_byte_copies},
+        {"native_phantom_object_spatial_zero_copies",native_frames.native_phantom_object_spatial_zero_copies},
+        {"native_phantom_pair_create_unqualified_owners",native_frames.native_phantom_pair_create_unqualified_owners},
+        {"native_phantom_pair_create_simple_adds",native_frames.native_phantom_pair_create_simple_adds},
+        {"native_phantom_pair_create_complex_adds",native_frames.native_phantom_pair_create_complex_adds},
+        {"native_pair_consumer_delete_calls",native_frames.native_pair_consumer_delete_calls},
+        {"native_pair_consumer_unqualified_services",native_frames.native_pair_consumer_unqualified_services},
+        {"native_pair_consumer_owned_allocations",native_frames.native_pair_consumer_owned_allocations},
+        {"native_pair_consumer_owned_releases",native_frames.native_pair_consumer_owned_releases},
+        {"native_pair_consumer_arena_allocations",native_frames.native_pair_consumer_arena_allocations},
+        {"native_pair_consumer_arena_releases",native_frames.native_pair_consumer_arena_releases},
+        {"native_pair_consumer_pool_allocations",native_frames.native_pair_consumer_pool_allocations},
+        {"native_pair_consumer_pool_releases",native_frames.native_pair_consumer_pool_releases},
+        {"native_pair_consumer_phantom_delete_calls",native_frames.native_pair_consumer_phantom_delete_calls},
+        {"native_pair_consumer_phantom_notifications",native_frames.native_pair_consumer_phantom_notifications},
+        {"native_pair_consumer_phantom_noops",native_frames.native_pair_consumer_phantom_noops},
+        {"native_pair_consumer_phantom_unqualified_owners",native_frames.native_pair_consumer_phantom_unqualified_owners},
+        {"native_pair_consumer_phantom_overlap_remove_calls",native_frames.native_pair_consumer_phantom_overlap_remove_calls},
+        {"native_pair_consumer_simple_phantom_overlap_remove_calls",native_frames.native_pair_consumer_simple_phantom_overlap_remove_calls},
+        {"native_stack_arena_allocations",native_frames.native_stack_arena_allocations},
+        {"native_stack_arena_releases",native_frames.native_stack_arena_releases},
+        {"native_stack_arena_refusals",native_frames.native_stack_arena_refusals},
+        {"native_constraint_arena_allocations",native_frames.native_constraint_arena_allocations},
+        {"native_constraint_arena_releases",native_frames.native_constraint_arena_releases},
+        {"native_constraint_arena_refusals",native_frames.native_constraint_arena_refusals},
+        {"native_contact_agent_cleanup_calls",native_frames.native_contact_agent_cleanup_calls},
+        {"native_contact_agent_record_cleanups",native_frames.native_contact_agent_record_cleanups},
+        {"native_contact_agent_pointer_cleanups",native_frames.native_contact_agent_pointer_cleanups},
+        {"native_contact_reference_disposals",native_frames.native_contact_reference_disposals},
+        {"native_contact_agent_child_residuals",native_frames.native_contact_agent_child_residuals},
+        {"native_contact_agent_destructor_residuals",native_frames.native_contact_agent_destructor_residuals},
+        {"native_contact_agent_cleanup_refusals",native_frames.native_contact_agent_cleanup_refusals},
+        {"native_joint_builder_attempts",native_frames.native_joint_builder_attempts},
+        {"native_joint_builder_calls",native_frames.native_joint_builder_calls},
+        {"native_joint_builder_refusals",native_frames.native_joint_builder_refusals},
+        {"native_joint_builder_unsupported_fp",native_frames.native_joint_builder_unsupported_fp},
+        {"native_joint_builder_kernel_entries",native_frames.native_joint_builder_kernel_entries},
+        {"native_joint_builder_kernel_completed",native_frames.native_joint_builder_kernel_completed},
+        {"native_joint_builder_headers",native_frames.native_joint_builder_headers},
+        {"native_joint_builder_angular_rows",native_frames.native_joint_builder_angular_rows},
+        {"native_joint_builder_motors",native_frames.native_joint_builder_motors},
+        {"native_joint_builder_linear_requests",native_frames.native_joint_builder_linear_requests},
+        {"native_joint_builder_linear_calls",native_frames.native_joint_builder_linear_calls},
+        {"native_joint_builder_linear_completed",native_frames.native_joint_builder_linear_completed},
+        {"native_joint_builder_linear_rows",native_frames.native_joint_builder_linear_rows},
+        {"native_joint_builder_linear_refusals",native_frames.native_joint_builder_linear_refusals},
+        {"native_joint_builder_limits",native_frames.native_joint_builder_limits},
+        {"native_joint_builder_positive_unwraps",native_frames.native_joint_builder_positive_unwraps},
+        {"native_joint_builder_negative_unwraps",native_frames.native_joint_builder_negative_unwraps},
+        {"native_joint_builder_unbound_linear",native_frames.native_joint_builder_unbound_linear},
+        {"native_joint_builder_linear_unaligned",native_frames.native_joint_builder_linear_unaligned},
+        {"native_joint_builder_linear_unsupported_fp",native_frames.native_joint_builder_linear_unsupported_fp},
+        {"native_contact_agent_cached_cleanups",native_frames.native_contact_agent_cached_cleanups},
+        {"native_contact_agent_wrapped_cleanups",native_frames.native_contact_agent_wrapped_cleanups},
+        {"native_contact_agent_native_destructors",native_frames.native_contact_agent_native_destructors},
+        {"native_contact_agent_point_residuals",native_frames.native_contact_agent_point_residuals},
+        {"native_transformed_agent_factory_attempts",native_frames.native_transformed_agent_factory_attempts},
+        {"native_transformed_agent_factory_calls",native_frames.native_transformed_agent_factory_calls},
+        {"native_transformed_agent_factory_refusals",native_frames.native_transformed_agent_factory_refusals},
+        {"native_wrapped_factory_attempts",native_frames.native_wrapped_factory_attempts},
+        {"native_wrapped_factory_calls",native_frames.native_wrapped_factory_calls},
+        {"native_wrapped_factory_refusals",native_frames.native_wrapped_factory_refusals},
+        {"native_wrapped_factory_wrapped_entries",native_frames.native_wrapped_factory_wrapped_entries},
+        {"native_wrapped_factory_transformed_entries",native_frames.native_wrapped_factory_transformed_entries},
+        {"native_wrapped_factory_convex_entries",native_frames.native_wrapped_factory_convex_entries},
+        {"native_wrapped_factory_class_queries",native_frames.native_wrapped_factory_class_queries},
+        {"native_wrapped_factory_unqualified_owners",native_frames.native_wrapped_factory_unqualified_owners},
+        {"native_contact_point_attempts",native_frames.native_contact_point_attempts},
+        {"native_contact_point_calls",native_frames.native_contact_point_calls},
+        {"native_contact_point_refusals",native_frames.native_contact_point_refusals},
+        {"native_contact_point_profile_refusals",native_frames.native_contact_point_profile_refusals},
+        {"native_contact_point_unqualified_services",native_frames.native_contact_point_unqualified_services},
+        {"native_contact_point_noop_listeners",native_frames.native_contact_point_noop_listeners},
+        {"native_contact_point_gameplay_listeners",native_frames.native_contact_point_gameplay_listeners},
+        {"native_contact_point_gameplay_rows",native_frames.native_contact_point_gameplay_rows},
+        {"native_contact_point_metadata_calls",native_frames.native_contact_point_metadata_calls},
+        {"native_contact_point_world_updates",native_frames.native_contact_point_world_updates},
+        {"native_contact_point_world_queued_updates",native_frames.native_contact_point_world_queued_updates},
+        {"native_contact_point_island_detaches",native_frames.native_contact_point_island_detaches},
+        {"native_contact_point_info_queries",native_frames.native_contact_point_info_queries},
+        {"native_contact_point_reference_releases",native_frames.native_contact_point_reference_releases},
+        {"native_contact_point_effect_requests",native_frames.native_contact_point_effect_requests},
+        {"native_contact_point_constraint_reference_calls",native_frames.native_contact_point_constraint_reference_calls},
+        {"native_contact_point_constraint_reference_decrements",native_frames.native_contact_point_constraint_reference_decrements},
+        {"native_contact_point_constraint_reference_runtime_removals",native_frames.native_contact_point_constraint_reference_runtime_removals},
+        {"native_contact_point_constraint_reference_runtime_refusals",native_frames.native_contact_point_constraint_reference_runtime_refusals},
+        {"native_contact_point_part_requests",native_frames.native_contact_point_part_requests},
+        {"native_contact_point_part_calls",native_frames.native_contact_point_part_calls},
+        {"native_contact_point_part_completions",native_frames.native_contact_point_part_completions},
+        {"native_contact_point_part_refusals",native_frames.native_contact_point_part_refusals},
+        {"native_contact_point_part_inactive",native_frames.native_contact_point_part_inactive},
+        {"native_contact_point_part_material_queries",native_frames.native_contact_point_part_material_queries},
+        {"native_contact_point_part_response_vectors",native_frames.native_contact_point_part_response_vectors},
+        {"native_contact_point_part_zero_properties",native_frames.native_contact_point_part_zero_properties},
+        {"native_contact_point_part_vector_properties",native_frames.native_contact_point_part_vector_properties},
+        {"native_contact_point_part_conveyor_bindings",native_frames.native_contact_point_part_conveyor_bindings},
+        {"native_contact_point_part_function_calls",native_frames.native_contact_point_part_function_calls},
+        {"native_contact_point_part_function_refusals",native_frames.native_contact_point_part_function_refusals},
+        {"native_contact_point_part_function_fp_refusals",native_frames.native_contact_point_part_function_fp_refusals},
+        {"native_list_agent_factory_attempts",native_frames.native_list_agent_factory_attempts},
+        {"native_list_agent_factory_calls",native_frames.native_list_agent_factory_calls},
+        {"native_list_agent_factory_refusals",native_frames.native_list_agent_factory_refusals},
+        {"native_list_agent_count_queries",native_frames.native_list_agent_count_queries},
+        {"native_list_agent_filter_queries",native_frames.native_list_agent_filter_queries},
+        {"native_list_agent_child_factories",native_frames.native_list_agent_child_factories},
+        {"native_list_agent_child_returns",native_frames.native_list_agent_child_returns},
+        {"native_reversed_contact_process_attempts",native_frames.native_reversed_contact_process_attempts},
+        {"native_reversed_contact_process_completions",native_frames.native_reversed_contact_process_completions},
+        {"native_reversed_contact_process_refusals",native_frames.native_reversed_contact_process_refusals},
+        {"native_reversed_wrapped_contact_process_calls",native_frames.native_reversed_wrapped_contact_process_calls},
+        {"native_reversed_compound_contact_process_calls",native_frames.native_reversed_compound_contact_process_calls},
+        {"native_reversed_contact_process_child_returns",native_frames.native_reversed_contact_process_child_returns},
+        {"native_reversed_contact_normal_vectors",native_frames.native_reversed_contact_normal_vectors},
+        {"native_contact_process_calls",native_frames.native_contact_process_calls},
+        {"native_contact_process_completions",native_frames.native_contact_process_completions},
+        {"native_contact_process_refusals",native_frames.native_contact_process_refusals},
+        {"native_wrapped_contact_process_calls",native_frames.native_wrapped_contact_process_calls},
+        {"native_compound_contact_process_calls",native_frames.native_compound_contact_process_calls},
+        {"native_contact_process_geometry_calls",native_frames.native_contact_process_geometry_calls},
+        {"native_contact_process_child_calls",native_frames.native_contact_process_child_calls},
+        {"native_contact_process_child_residuals",native_frames.native_contact_process_child_residuals},
+        {"native_contact_manager_cleanups",native_frames.native_contact_manager_cleanups},
+        {"native_contact_manager_deferred_growths",native_frames.native_contact_manager_deferred_growths},
+        {"native_pair_manager_factory_attempts",native_frames.native_pair_manager_factory_attempts},
+        {"native_pair_manager_factory_calls",native_frames.native_pair_manager_factory_calls},
+        {"native_pair_manager_factory_refusals",native_frames.native_pair_manager_factory_refusals},
+        {"native_pair_manager_factory_unqualified_factories",native_frames.native_pair_manager_factory_unqualified_factories},
+        {"native_pair_manager_factory_body_destructor_refusals",native_frames.native_pair_manager_factory_body_destructor_refusals},
+        {"native_pair_manager_factory_base_lock_releases",native_frames.native_pair_manager_factory_base_lock_releases},
+        {"native_pair_manager_factory_base_lock_refusals",native_frames.native_pair_manager_factory_base_lock_refusals},
+        {"native_pair_manager_factory_source_factories",native_frames.native_pair_manager_factory_source_factories},
+        {"native_pair_manager_factory_constructors",native_frames.native_pair_manager_factory_constructors},
+        {"native_pair_manager_factory_collectors",native_frames.native_pair_manager_factory_collectors},
+        {"native_pair_manager_factory_registrations",native_frames.native_pair_manager_factory_registrations},
+        {"native_pair_manager_factory_unregistrations",native_frames.native_pair_manager_factory_unregistrations},
+        {"native_pair_manager_factory_deferred_references",native_frames.native_pair_manager_factory_deferred_references},
+        {"native_pair_manager_factory_array_growths",native_frames.native_pair_manager_factory_array_growths},
+        {"native_pair_manager_factory_body_destructions",native_frames.native_pair_manager_factory_body_destructions},
+        {"native_pair_manager_factory_protected_references",native_frames.native_pair_manager_factory_protected_references},
+        {"native_pair_manager_factory_storage_releases",native_frames.native_pair_manager_factory_storage_releases},
+        {"native_pair_manager_factory_collector_destructions",native_frames.native_pair_manager_factory_collector_destructions},
+        {"native_pair_manager_factory_collector_base_lock_releases",native_frames.native_pair_manager_factory_collector_base_lock_releases},
+        {"native_pair_merge_queue_attempts",native_frames.native_pair_merge_queue_attempts},
+        {"native_pair_merge_queue_calls",native_frames.native_pair_merge_queue_calls},
+        {"native_pair_merge_queue_refusals",native_frames.native_pair_merge_queue_refusals},
+        {"native_pair_defer_queue_attempts",native_frames.native_pair_defer_queue_attempts},
+        {"native_pair_defer_queue_calls",native_frames.native_pair_defer_queue_calls},
+        {"native_pair_defer_queue_refusals",native_frames.native_pair_defer_queue_refusals},
+        {"native_contact_manager_base_lock_releases",native_frames.native_contact_manager_base_lock_releases},
+        {"native_contact_collector_cleanups",native_frames.native_contact_collector_cleanups},
+        {"native_contact_listener_unregistrations",native_frames.native_contact_listener_unregistrations},
+        {"native_contact_listener_deferred_references",native_frames.native_contact_listener_deferred_references},
+        {"native_contact_manager_service_residuals",native_frames.native_contact_manager_service_residuals},
+        {"native_contact_manager_cleanup_refusals",native_frames.native_contact_manager_cleanup_refusals},
+        {"native_constraint_effect_selection_calls",native_frames.native_constraint_effect_selection_calls},
+        {"native_constraint_effect_selected_rows",native_frames.native_constraint_effect_selected_rows},
+        {"native_constraint_effect_camera_tests",native_frames.native_constraint_effect_camera_tests},
+        {"native_constraint_effect_distance_refusals",native_frames.native_constraint_effect_distance_refusals},
+        {"native_constraint_effect_unknown_constants",native_frames.native_constraint_effect_unknown_constants},
+        {"native_pair_creation_attempts",native_frames.native_pair_creation_attempts},
+        {"native_pair_creation_calls",native_frames.native_pair_creation_calls},
+        {"native_pair_creation_refusals",native_frames.native_pair_creation_refusals},
+        {"native_convex_agent_attempts",native_frames.native_convex_agent_attempts},
+        {"native_gsk_agent_attempts",native_frames.native_gsk_agent_attempts},{"native_gsk_agent_calls",native_frames.native_gsk_agent_calls},
+      {"native_gsk_agent_refusals",native_frames.native_gsk_agent_refusals},{"native_convex_agent_calls",native_frames.native_convex_agent_calls},
+        {"native_convex_agent_refusals",native_frames.native_convex_agent_refusals},
+        {"native_convex_agent_pool_allocations",native_frames.native_convex_agent_pool_allocations},
+        {"native_convex_agent_pool_releases",native_frames.native_convex_agent_pool_releases},
+        {"native_convex_agent_class_queries",native_frames.native_convex_agent_class_queries},
+        {"native_convex_agent_centers",native_frames.native_convex_agent_centers},
+        {"native_convex_agent_supports",native_frames.native_convex_agent_supports},
+        {"native_convex_agent_encodings",native_frames.native_convex_agent_encodings},
+        {"native_inactive_island_cleanup_calls",native_frames.native_inactive_island_cleanup_calls},
+        {"native_inactive_island_agent_invalidations",native_frames.native_inactive_island_agent_invalidations},
+        {"native_inactive_island_manager_invalidations",native_frames.native_inactive_island_manager_invalidations},
+        {"native_inactive_island_cleared_pairs",native_frames.native_inactive_island_cleared_pairs},
+        {"native_inactive_island_policy_queries",native_frames.native_inactive_island_policy_queries},
+        {"native_inactive_island_policy_selections",native_frames.native_inactive_island_policy_selections},
+        {"native_inactive_island_native_policy_calls",native_frames.native_inactive_island_native_policy_calls},
+        {"native_inactive_island_policy_residuals",native_frames.native_inactive_island_policy_residuals},
+        {"native_inactive_island_cleanup_refusals",native_frames.native_inactive_island_cleanup_refusals},
+        {"native_pair_consumer_phantom_overlap_listener_noops",native_frames.native_pair_consumer_phantom_overlap_listener_noops},
         {"native_shape_bounds_box_calls",native_frames.native_shape_bounds_box_calls},
         {"native_shape_bounds_convex_calls",native_frames.native_shape_bounds_convex_calls},
         {"native_shape_bounds_transformed_calls",native_frames.native_shape_bounds_transformed_calls},
@@ -666,10 +1238,24 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_shape_bounds_centered_radius_calls",native_frames.native_shape_bounds_centered_radius_calls},
         {"shape_bounds_residual_calls",native_frames.shape_bounds_residual_calls},
         {"shape_bounds_residual_owners",native_frames.shape_bounds_residual_owners},
+        {"native_reversed_list_agent_destructor_attempts",native_frames.native_reversed_list_agent_destructor_attempts},
+        {"native_reversed_list_agent_destructor_calls",native_frames.native_reversed_list_agent_destructor_calls},
+        {"native_reversed_list_agent_destructor_refusals",native_frames.native_reversed_list_agent_destructor_refusals},
+        {"native_reversed_list_agent_destructor_unqualified_owners",native_frames.native_reversed_list_agent_destructor_unqualified_owners},
+        {"native_reversed_list_agent_destructor_refused_owners",native_frames.native_reversed_list_agent_destructor_refused_owners},
+        {"native_pair_deletion_attempts",native_frames.native_pair_deletion_attempts},
+        {"native_pair_deletion_calls",native_frames.native_pair_deletion_calls},
+        {"native_pair_deletion_refusals",native_frames.native_pair_deletion_refusals},
+        {"native_pair_deletion_agent_cleanups",native_frames.native_pair_deletion_agent_cleanups},
+        {"native_pair_deletion_manager_releases",native_frames.native_pair_deletion_manager_releases},
+        {"native_pair_deletion_unqualified_owners",native_frames.native_pair_deletion_unqualified_owners},
+        {"native_pair_deletion_nested_refusals",native_frames.native_pair_deletion_nested_refusals},
+        {"native_pair_deletion_refused_owners",native_frames.native_pair_deletion_refused_owners},
         {"named_residual_owner_calls",native_frames.residual_owner_calls},
         {"native_shape_bounds_endpoint_calls",native_frames.native_shape_bounds_endpoint_calls},
         {"native_shape_bounds_compound_calls",native_frames.native_shape_bounds_compound_calls},
         {"native_shape_bounds_compound_child_calls",native_frames.native_shape_bounds_compound_child_calls},
+        {"native_shape_bounds_sphere_calls",native_frames.native_shape_bounds_sphere_calls},
         {"native_solver_calls",native_frames.native_solver_calls},
         {"native_solver_initializations",native_frames.native_solver_initializations},
         {"native_solver_iterations",native_frames.native_solver_iterations},
@@ -682,6 +1268,8 @@ Json inventory(const MultiplayerPreparedWorld &world) {
         {"native_solver_custom_kinds",native_frames.native_solver_custom_kinds},
         {"native_constraint_producer_axis_calls",native_frames.native_constraint_producer_axis_calls},
         {"native_constraint_producer_scaled_calls",native_frames.native_constraint_producer_scaled_calls},
+        {"native_constraint_direct_base_calls",native_frames.native_constraint_direct_base_calls},
+        {"native_constraint_direct_base_rows",native_frames.native_constraint_direct_base_rows},
         {"native_constraint_producer_base_calls",native_frames.native_constraint_producer_base_calls},
         {"native_constraint_producer_base_rows",native_frames.native_constraint_producer_base_rows},
         {"native_constraint_producer_property_lookups",native_frames.native_constraint_producer_property_lookups},
@@ -949,8 +1537,174 @@ struct Host {
         original_force_capture=std::make_unique<test::LivePhantomOriginalCaptureTu15>(
             options.source_object_savegame_directory.parent_path()/"original-force-capture");
       }
+      NativeTu15PairConsumerInputObserverActivity native_pair_input_activity;
+      std::optional<test::NativePairConsumerInputCaptureTu15> native_pair_input_capture;
+      std::optional<NativeTu15PairConsumerInputObserverBinding> native_pair_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_PAIR_CONSUMER")) {
+        const auto selected=std::getenv("HALO2_TU15_PAIR_CAPTURE_DIRECTORY");
+        native_pair_input_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-pair-consumer-before");
+        native_pair_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15PairConsumerInput&input) {
+          check(&owner==&world.source_objects->memory(),"Native pair input observation memory owner differs");
+          native_pair_input_capture->observe(input,world.source_objects->memory());
+        },&native_pair_input_activity);
+      }
+
+      std::optional<test::NativeConstraintComponentInputCaptureTu15> native_constraint_component_capture;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CONSTRAINT_COMPONENT")) {
+        check(std::getenv("HALO2_TU15_CAPTURE_NATIVE_FRAME_SEMANTICS"),"Component census requires actual native frame observation");
+        const auto selected=std::getenv("HALO2_TU15_CONSTRAINT_COMPONENT_CAPTURE_DIRECTORY");
+        native_constraint_component_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-constraint-component-input");
+      }
+      std::optional<test::NativeContactManagerInputCaptureTu15> native_manager_input_capture;
+      std::optional<NativeTu15ContactManagerCleanupInputObserverBinding> native_manager_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CONTACT_MANAGER")) {
+        const auto selected=std::getenv("HALO2_TU15_CONTACT_MANAGER_CAPTURE_DIRECTORY");
+        native_manager_input_capture.emplace(selected?std::filesystem::path(selected):options.source_object_savegame_directory.parent_path()/"native-manager-before");
+        native_manager_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ContactManagerCleanupInput&input){
+          check(&owner==&world.source_objects->memory(),"Manager capture source owner differs");
+          native_manager_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeContactPointInputCaptureTu15> native_point_input_capture;
+      std::optional<NativeTu15ContactPointRemovalInputObserverBinding> native_point_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CONTACT_POINT")) {
+        const auto selected=std::getenv("HALO2_TU15_CONTACT_POINT_CAPTURE_DIRECTORY");
+        native_point_input_capture.emplace(selected?std::filesystem::path(selected):options.source_object_savegame_directory.parent_path()/"native-point-before");
+        native_point_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ContactPointRemovalInput&input){
+          check(&owner==&world.source_objects->memory(),"Point capture source owner differs");
+          native_point_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeContactAgentFactoryInputCaptureTu15> native_factory_input_capture;
+      std::optional<NativeTu15ContactAgentFactoryInputObserverBinding> native_factory_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_AGENT_FACTORY")) {
+        const auto selected=std::getenv("HALO2_TU15_AGENT_FACTORY_CAPTURE_DIRECTORY");
+        native_factory_input_capture.emplace(selected?std::filesystem::path(selected):options.source_object_savegame_directory.parent_path()/"native-factory-before");
+        native_factory_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ContactAgentFactoryInput&input){
+          check(&owner==&world.source_objects->memory(),"Factory capture source owner differs");
+          native_factory_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeCameraQueryInputCaptureTu15> native_camera_query_capture;
+      std::optional<NativeTu15CameraQueryInputObserverBinding> native_camera_query_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CAMERA_QUERY")) {
+        const auto selected=std::getenv("HALO2_TU15_CAMERA_QUERY_CAPTURE_DIRECTORY");
+        native_camera_query_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-camera-query-before");
+        native_camera_query_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15CameraQueryInput&input) {
+          check(&owner==&world.source_objects->memory(),"Native camera query capture memory owner differs");
+          native_camera_query_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeLookReorientationInputCaptureTu15> native_look_reorientation_capture;
+      std::optional<NativeTu15LookReorientationInputObserverBinding> native_look_reorientation_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_LOOK_REORIENTATION_INPUT")) {
+        const auto selected=std::getenv("HALO2_TU15_LOOK_REORIENTATION_INPUT_CAPTURE_DIRECTORY");
+        native_look_reorientation_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-look-reorientation-before");
+        native_look_reorientation_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15LookReorientationInput&input) {
+          check(&owner==&world.source_objects->memory(),"Native look reorientation capture memory owner differs");
+          native_look_reorientation_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeSeatedLookControllerInputCaptureTu15> native_look_input_capture;
+      std::optional<NativeTu15LookControllerInputObserverBinding> native_look_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_LOOK_CONTROLLER_INPUT")) {
+        const auto selected=std::getenv("HALO2_TU15_LOOK_CONTROLLER_INPUT_CAPTURE_DIRECTORY");
+        native_look_input_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-look-controller-before");
+        native_look_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15LookControllerInput&input){
+          check(&owner==&world.source_objects->memory(),"Look controller capture source owner differs");
+          native_look_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeConstraintFrameBuildInputCaptureTu15> native_constraint_frame_capture;
+      std::optional<NativeTu15ConstraintFrameBuildInputObserverBinding> native_constraint_frame_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CONSTRAINT_FRAME_BUILD")) {
+        const auto selected=std::getenv("HALO2_TU15_CONSTRAINT_FRAME_BUILD_CAPTURE_DIRECTORY");
+        native_constraint_frame_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-constraint-frame-before");
+        native_constraint_frame_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ConstraintFrameBuildInput&input){
+          check(&owner==&world.source_objects->memory(),"Constraint frame capture source owner differs");
+          native_constraint_frame_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativePairPoolReleaseInputCaptureTu15> native_pair_pool_capture;
+      std::optional<NativeTu15PairPoolReleaseInputObserverBinding> native_pair_pool_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_PAIR_POOL_RELEASE")) {
+        const auto selected=std::getenv("HALO2_TU15_PAIR_POOL_RELEASE_CAPTURE_DIRECTORY");
+        native_pair_pool_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-pair-pool-release-before");
+        native_pair_pool_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15PairPoolReleaseInput&input){
+          check(&owner==&world.source_objects->memory(),"Pair pool release capture source owner differs");
+          native_pair_pool_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativeDirtyIslandObjectsInputCaptureTu15> native_dirty_input_capture;
+      std::filesystem::path native_dirty_input_status_path;
+      std::uint64_t native_dirty_last_status_attempts{};
+      bool native_dirty_capture_status_written{};
+      std::optional<NativeTu15DirtyIslandObjectsInputObserverBinding> native_dirty_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_DIRTY_ISLAND_OBJECTS")) {
+        const auto selected=std::getenv("HALO2_TU15_DIRTY_ISLAND_OBJECTS_CAPTURE_DIRECTORY");
+        const auto directory=selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-dirty-island-before";
+        native_dirty_input_capture.emplace(directory);
+        native_dirty_input_status_path=std::filesystem::weakly_canonical(directory);
+        native_dirty_input_status_path+=".status.json";
+        native_dirty_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15DirtyIslandObjectsInput&input){
+          check(&owner==&world.source_objects->memory(),"Dirty island capture source owner differs");
+          native_dirty_input_capture->observe(input,world.source_objects->memory());
+          const auto&activity=native_dirty_input_capture->activity();
+          if((activity.captures&&!native_dirty_capture_status_written)||
+              (!activity.captures&&(activity.attempts==1||activity.attempts>=native_dirty_last_status_attempts+128u))) {
+            std::ofstream status(native_dirty_input_status_path);
+            status<<nlohmann::json{{"attempts",activity.attempts},{"pending_skips",activity.pending_skips},
+              {"reentrant_skips",activity.reentrant_skips},{"unavailable_banks",activity.unavailable_banks},
+              {"unsupported_depths",activity.unsupported_depths},{"no_dirty_island",activity.no_dirty_island},
+              {"captures",activity.captures},{"sampled_status",true}}.dump(2)<<'\n';
+            check(bool(status),"Cannot write bounded dirty island capture status");
+            native_dirty_last_status_attempts=activity.attempts;
+            native_dirty_capture_status_written=activity.captures!=0;
+          }
+        });
+      }
+      std::optional<test::NativeContactBodyUpdateInputCaptureTu15> native_body_input_capture;
+      std::optional<NativeTu15ContactBodyUpdateInputObserverBinding> native_body_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_CONTACT_BODY_UPDATE")) {
+        const auto selected=std::getenv("HALO2_TU15_CONTACT_BODY_UPDATE_CAPTURE_DIRECTORY");
+        native_body_input_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-body-update-before");
+        native_body_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ContactBodyUpdateInput&input){
+          check(&owner==&world.source_objects->memory(),"Body update capture source owner differs");
+          native_body_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
+      std::optional<test::NativePairDeletionChildInputCaptureTu15> native_pair_child_input_capture;
+      std::optional<NativeTu15PairDeletionChildInputObserverBinding> native_pair_child_input_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_PAIR_DELETION_CHILD")) {
+        const auto selected=std::getenv("HALO2_TU15_PAIR_DELETION_CHILD_CAPTURE_DIRECTORY");
+        native_pair_child_input_capture.emplace(selected?std::filesystem::path(selected):
+            options.source_object_savegame_directory.parent_path()/"native-pair-delete-child-before");
+        native_pair_child_input_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15PairDeletionChildInput&input){
+          check(&owner==&world.source_objects->memory(),"Pair child capture source owner differs");
+          native_pair_child_input_capture->observe(input,world.source_objects->memory());
+        });
+      }
       std::optional<test::LiveNativePhysicsFrameCaptureTu15> native_frame_capture;
       std::optional<NativeTu15PhysicsFrameObserverBinding> native_frame_observer;
+      std::optional<test::NativeContactTimeInputCaptureTu15> native_dynamic_pair_capture;
+      std::optional<NativeTu15ContactTimeInputObserverBinding> native_dynamic_pair_observer;
+      if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_DYNAMIC_PAIR")) {
+        native_dynamic_pair_capture.emplace(options.source_object_savegame_directory.parent_path()/"native-dynamic-pair-before");
+        native_dynamic_pair_observer.emplace(world.source_objects->memory(),[&](const SourcePhysicsContactMemory&owner,const NativeTu15ContactTimeInput&input) {
+          check(&owner==&world.source_objects->memory(),"Native dynamic-pair capture memory owner differs");
+          native_dynamic_pair_capture->observe(input,world.source_objects->memory());
+        });
+      }
+
       if(std::getenv("HALO2_TU15_CAPTURE_NATIVE_FRAME_SEMANTICS")) {
         native_frame_capture.emplace(options.source_object_savegame_directory.parent_path()/"original-native-frame-input");
         std::optional<std::uint32_t> requested_capture_tick;
@@ -964,6 +1718,8 @@ struct Host {
         }
         native_frame_observer.emplace(world.source_objects->memory(),[&,requested_capture_tick](const auto &event) {
           const auto tick=world.match.simulation().ticks();
+          if(event.entry && native_constraint_component_capture)
+            native_constraint_component_capture->observe(world.source_objects->memory(),tick,event.floating_point,event.entry->x87_depth);
           if(requested_capture_tick?tick>=*requested_capture_tick:(capture_world_requested.load() || tick>=180))
             native_frame_capture->observe(event,world.source_objects->memory());
         });
@@ -981,6 +1737,49 @@ struct Host {
       if(std::getenv("HALO2_TU15_AUTHORITY_RESTORE"))for(auto entry:{0xb8f40u,0x1cc8d0u})
         post_restore_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
             options.source_object_savegame_directory.parent_path()/(entry==0xb8f40u?"original-post-restore-object-capture":"original-post-restore-world-capture")));
+      // BEGIN bounded actual blast damage diagnosis
+      std::ofstream blast_damage_trace;
+      std::vector<std::uint32_t> blast_damage_requests;
+      struct BlastObjectRequest {std::uint32_t request,target,body;};
+      std::vector<BlastObjectRequest> blast_object_requests;
+      unsigned blast_damage_records{};
+      struct BlastDamageObservationScope {
+        MultiplayerObjectRuntime *runtime{};
+        ~BlastDamageObservationScope(){if(runtime)runtime->observe_physics_stores({});}
+      } blast_damage_scope;
+      const auto blast_damage_log=[&](Json row){
+        check(++blast_damage_records<=4096,"Actual blast damage diagnosis exceeded its bounded record budget");
+        blast_damage_trace<<row.dump()<<'\n';blast_damage_trace.flush();
+        check(bool(blast_damage_trace),"Cannot retain actual blast damage diagnosis");
+      };
+      if(std::getenv("HALO2_TU15_BLAST_DAMAGE_TRACE")) {
+        check(world.source_objects && !std::getenv("HALO2_TU15_PHANTOM_TRACE") &&
+          !std::getenv("HALO2_TU15_SUPPORT_FIELD_STORES") && !std::getenv("HALO2_TU15_CONTRAIL_STORE_TRACE"),
+          "Blast diagnosis requires its own read-only store observer");
+        blast_damage_trace.open(options.source_object_savegame_directory.parent_path()/"authority-blast-damage.jsonl");
+        check(bool(blast_damage_trace),"Cannot retain actual blast damage calls");
+        blast_damage_scope.runtime=world.source_objects.get();
+        world.source_objects->observe_physics_stores_read_only([&](std::uint32_t actual_instruction,const SourcePhysicsContactRecordStore&store){
+          if((store.instruction<0xd91d0u || store.instruction>=0xd94e0u) &&
+            (store.instruction<0xd9830u || store.instruction>=0xda020u))return;
+          const auto &memory=world.source_objects->memory();
+          const auto word=[&](auto at){return Bytes(memory.view(at,4)).u32(0);};
+          Json row{{"phase","area_store"},{"tick",word(word(0x51df54u)+8u)},
+            {"instruction",store.instruction},{"actual_instruction",actual_instruction},
+            {"address",store.address},{"written",hex_bytes(store.written)}};
+          if(!blast_object_requests.empty())row["target"]=blast_object_requests.back().target;
+          // D926D publishes the actual signed BD080 candidate count. Its
+          // original local array begins A8 bytes above this count slot.
+          if(store.instruction==0xd926du) {
+            const auto count=std::bit_cast<std::int32_t>(word(store.address));
+            check(count<=64,"Actual damage query candidate count exceeds its original64-entry array");
+            row["candidate_count"]=count;row["candidates"]=Json::array();
+            for(int n=0;n<count;++n)row["candidates"].push_back(word(store.address+0xa8u+std::uint32_t(n)*4u));
+          }
+          blast_damage_log(std::move(row));
+        });
+      }
+      // END bounded actual blast damage diagnosis
       std::optional<SourcePhysicsEntryObserverBinding> physics_entry_observer;
       const auto add_capture=[&](std::uint32_t entry) {
         const auto name=entry==0x14fec0u?"original-player-update-capture":entry==0x1cc8d0u?"original-world-capture":entry==0xb8f40u?"original-object-update-capture":entry==0x2ee660u?"original-broadphase-capture":entry==0x3205b0u?"original-contact-time-capture":"original-query-capture";
@@ -996,7 +1795,69 @@ struct Host {
         check(entry==0x2f9d70u || entry==0x2ee660u || entry==0x2f1930u || entry==0x2fc5d0u || entry==0x1cc8d0u || entry==0xb8f40u || entry==0x3205b0u,"Select an authenticated live physics entry");
         add_capture(entry);
       }
-      if(!physics_entry_captures.empty())physics_entry_observer.emplace(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &state) {
+      if(!physics_entry_captures.empty() || blast_damage_trace.is_open())physics_entry_observer.emplace(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &state) {
+        // BEGIN actual D9A30 object damage diagnosis
+        if(entry==0xd9a30u && blast_damage_trace.is_open()) {
+          const auto &memory=world.source_objects->memory();
+          const auto word=[&](auto at){return Bytes(memory.view(at,4)).u32(0);};
+          if(entering) {
+            const auto request=word(state.gp[4]+4u),target=word(state.gp[4]+8u);
+            const auto body=word(word(word(0x4ecbd0u)+0x44u)+(target&0xffffu)*12u+8u);
+            blast_object_requests.push_back({request,target,body});
+          }
+          check(!blast_object_requests.empty(),"Actual object damage lost its scoped request");
+          const auto input=blast_object_requests.back();
+          Json row{{"phase",entering?"object_enter":"object_return"},
+            {"tick",word(word(0x51df54u)+8u)},{"request",input.request},{"target",input.target},
+            {"body",input.body},{"request_bytes",hex_bytes(memory.view(input.request,0x88u))},
+            {"falloff_words",Json::array()}};
+          for(auto offset:{0x54u,0x58u,0x5cu,0x60u,0x64u})
+            row["falloff_words"].push_back({offset,word(input.request+offset)});
+          if(const auto vitality=memory.try_read_view(input.body+0xe4u,16u))
+            row["body_vitality_e4_f0"]=hex_bytes(*vitality);
+          else row["body_vitality_e4_f0"]=nullptr;
+          blast_damage_log(std::move(row));
+          if(!entering)blast_object_requests.pop_back();
+        }
+        // END actual D9A30 object damage diagnosis
+        // BEGIN actual D91D0 entry diagnosis
+        if(entry==0xd91d0u && blast_damage_trace.is_open()) {
+          const auto &memory=world.source_objects->memory();
+          const auto word=[&](auto at){return Bytes(memory.view(at,4)).u32(0);};
+          if(entering)blast_damage_requests.push_back(word(state.gp[4]+4u));
+          check(!blast_damage_requests.empty(),"Actual blast request lost its scoped entry");
+          const auto request=blast_damage_requests.back();
+          Json row{{"phase",entering?"area_enter":"area_return"},{"tick",word(word(0x51df54u)+8u)},
+            {"request",request},{"request_bytes",hex_bytes(memory.view(request,0x88u))}};
+          if(entering) {
+            row["caller"]=word(state.gp[4]);row["ignored_object"]=word(state.gp[4]+8u);
+            const auto damage=word(request),tag=word(word(0x4f0414u)+(damage&0xffffu)*16u+8u);
+            row["damage"]=damage;row["damage_header_6c"]=hex_bytes(memory.view(tag,0x6cu));
+            const auto pool=word(0x4ecbd0u),rows=word(pool+0x44u),occupied=word(pool+0x48u);
+            const auto component_pool=word(0x52be5cu),component_rows=word(component_pool+0x44u),
+              component_occupied=word(component_pool+0x48u),component_stride=word(component_pool+0x24u);
+            check(word(pool+0x24u)==12u && component_stride==0xa0u,"Blast diagnosis lost the genuine object/component layout");
+            row["vehicles"]=Json::array();
+            for(unsigned n=0;n<word(pool+0x38u);++n) {
+              if(!(word(occupied+(n>>5u)*4u)&(1u<<(n&31u))))continue;
+              const auto header=rows+n*12u;
+              if(std::to_integer<unsigned>(memory.view(header+3u,1)[0])!=1u)continue;
+              const auto object=(std::uint32_t(Bytes(memory.view(header,2)).u16(0))<<16u)|n,body=word(header+8u);
+              Json vehicle{{"object",object},{"body",body},{"header",hex_bytes(memory.view(header,12))},
+                {"body_header_44",hex_bytes(memory.view(body,0x44u))},{"components",Json::array()}};
+              for(unsigned k=0;k<word(component_pool+0x38u);++k) {
+                if(!(word(component_occupied+(k>>5u)*4u)&(1u<<(k&31u))))continue;
+                const auto component=component_rows+k*component_stride;
+                if(word(component+8u)==object)vehicle["components"].push_back({{"address",component},
+                  {"header",hex_bytes(memory.view(component,0xa0u))},{"body_list",word(component+0x70u)},
+                  {"body_count",word(component+0x74u)}});
+              }
+              row["vehicles"].push_back(std::move(vehicle));
+            }
+          }else {row["selected_object"]=state.gp[0];blast_damage_requests.pop_back();}
+          blast_damage_log(std::move(row));
+        }
+        // END actual D91D0 entry diagnosis
         const auto found=physics_entry_captures.find(entry);
         if(source_authority_restored)if(const auto post=post_restore_captures.find(entry);post!=post_restore_captures.end())
           post->second->observe(entering,state,world.source_objects->memory(),entry);
@@ -1185,6 +2046,16 @@ struct Host {
         collision_trace.open(options.source_object_savegame_directory.parent_path()/"authority-lift-structure-queries.jsonl");
         check(bool(collision_trace),"Could not retain original lift structure queries");
       }
+      // BEGIN bounded actual vehicle orientation diagnosis
+      std::ofstream vehicle_orientation_trace;
+      unsigned vehicle_orientation_records{},vehicle_orientation_dropped{},vehicle_orientation_missing{};
+      std::size_t vehicle_orientation_bytes{};
+      std::optional<float> vehicle_orientation_minimum_up_z;
+      if(std::getenv("HALO2_TU15_VEHICLE_ORIENTATION_TRACE")) {
+        vehicle_orientation_trace.open(options.source_object_savegame_directory.parent_path()/"authority-vehicle-orientation.jsonl");
+        check(bool(vehicle_orientation_trace),"Cannot retain actual vehicle orientation");
+      }
+      // END bounded actual vehicle orientation diagnosis
       std::optional<std::uint32_t> joined_tick;bool recreated_after_blast=false;
       auto next=std::chrono::steady_clock::now();
       while(!stop.stop_requested()) {
@@ -1363,6 +2234,45 @@ struct Host {
         if(world.source_objects && world.source_objects->owns_physics())
           world.source_objects->advance_effect_frame(
               world.match.simulation().ticks()==source_tick_before+1u?tick_seconds:0.f);
+        // BEGIN completed actual vehicle orientation observation
+        if(vehicle_orientation_trace.is_open() && world.match.simulation().ticks()!=source_tick_before &&
+            vehicle_attack_target.load()!=null_datum) {
+          const auto target=vehicle_attack_target.load();const auto &memory=world.source_objects->memory();
+          const SourceRawDatumPoolServices readback{.read=[&](auto p,auto n){return memory.view(p,n);}};
+          const auto header=source_raw_datum_lookup(world.source_objects->source_object_pool(),target,readback);
+          if(header && Bytes(memory.view(header+6u,2)).u16(0)>=0x350u) {
+            const auto body=Bytes(memory.view(header+8u,4)).u32(0);
+            const Bytes pose(memory.view(body+0x64u,0x24u));
+            const Vec3 position{pose.f32(0),pose.f32(4),pose.f32(8)};
+            const Vec3 forward{pose.f32(0xcu),pose.f32(0x10u),pose.f32(0x14u)};
+            const Vec3 up{pose.f32(0x18u),pose.f32(0x1cu),pose.f32(0x20u)};
+            if(!vehicle_orientation_minimum_up_z || up.z<*vehicle_orientation_minimum_up_z)
+              vehicle_orientation_minimum_up_z=up.z;
+            Json commands=Json::array();
+            const auto state=world.match.state();
+            for(unsigned slot=0;slot<controls.size();++slot)if(state.players[slot].connected) {
+              const auto &c=controls[slot];const auto &p=state.players[slot];
+              commands.push_back({{"slot",slot},{"unit",p.source_unit},
+                  {"forward",c.forward},{"right",c.right},{"yaw",c.yaw},{"pitch",c.pitch},
+                  {"pickup",c.pickup},{"pickup_ms",c.pickup_milliseconds},
+                  {"intent",c.vehicle_interaction_target?Json{{"action",c.vehicle_interaction_target->action},
+                    {"index",c.vehicle_interaction_target->index},{"object",c.vehicle_interaction_target->object}}:Json()},
+                  {"prompt",{{"action",p.action_prompt.target.action},{"index",p.action_prompt.target.index},
+                    {"object",p.action_prompt.target.object}}}});
+            }
+            const auto line=Json{{"tick",state.tick},{"source_tick_before",source_tick_before},
+                {"object",target},{"actual_body",body},{"position_64",xyz(position)},
+                {"forward_70",xyz(forward)},{"up_7c",xyz(up)},
+                {"flip_fields_348_34f",hex_bytes(memory.view(body+0x348u,8))},
+                {"commands",commands}}.dump();
+            if(vehicle_orientation_records<4096u && vehicle_orientation_bytes+line.size()+1u<=4u*1024u*1024u) {
+              vehicle_orientation_trace<<line<<'\n';vehicle_orientation_trace.flush();
+              check(bool(vehicle_orientation_trace),"Cannot write actual vehicle orientation");
+              ++vehicle_orientation_records;vehicle_orientation_bytes+=line.size()+1u;
+            } else ++vehicle_orientation_dropped;
+          } else ++vehicle_orientation_missing;
+        }
+        // END completed actual vehicle orientation observation
         if(place_source_scene_units()) {
           // Publish only after the next genuine source frame has solved and
           // synchronized the declared position. No stale Match/source pair
@@ -1554,6 +2464,28 @@ struct Host {
         transport.broadcast();
         next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
       }
+      // BEGIN actual vehicle orientation diagnosis status
+      if(vehicle_orientation_trace.is_open()) {
+        std::ofstream summary(options.source_object_savegame_directory.parent_path()/"authority-vehicle-orientation-status.json");
+        summary<<Json{{"read_only",true},{"physics_result_supplied",false},
+            {"phase","After each completed ordinary authority source tick"},
+            {"records",vehicle_orientation_records},{"bytes",vehicle_orientation_bytes},
+            {"dropped",vehicle_orientation_dropped},{"missing_target_body",vehicle_orientation_missing},
+            {"minimum_observed_source_up_z",vehicle_orientation_minimum_up_z?Json(*vehicle_orientation_minimum_up_z):Json()},
+            {"body_layout","position+64, forward+70, up+7C (F1DD0 reads upZ+84), flip bytes+348..34F"},
+            {"row_limit",4096u},{"byte_limit",4u*1024u*1024u}}.dump(2)<<'\n';
+        check(bool(summary),"Cannot retain actual vehicle orientation status");
+      }
+      // END actual vehicle orientation diagnosis status
+      if(native_pair_input_capture) {
+        std::ofstream result(options.source_object_savegame_directory.parent_path()/"authority-native-pair-input-status.json");
+        result<<Json{{"attempts",native_pair_input_activity.attempts},{"completed",native_pair_input_activity.completed},
+            {"failures",native_pair_input_activity.failures},{"capture",native_pair_input_capture->status()},
+            {"scope","Read-only actual typed321510 root BEFORE and genuine service INPUT windows; no ABI/postimage supplied"}}.dump(2)<<'\n';
+        check(bool(result),"Cannot retain actual native pair input status");
+      }
+
+      if(native_constraint_component_capture)native_constraint_component_capture->finish();
       native_frames=world.source_objects->tu15_world().native_physics_frame_activity();
       Json objects=Json::array();
       for(const auto &object:world.match.simulation().scene().objects())if(object.handle!=null_datum) {
@@ -1600,15 +2532,39 @@ int main(int argc,char **argv) try {
   const std::string scenario=argv[6];const bool lan=scenario.starts_with("lan-"),
       lift=scenario=="lift"||scenario=="lan-lift",vehicle=scenario=="vehicle"||scenario=="lan-vehicle",objects=scenario=="objects"||scenario=="lan-objects";
   const bool player_rearm_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_PLAYER_REARM_INPUT");
+  const bool glass_walk_test=scenario=="movement" && std::getenv("HALO2_TU15_GLASS_WALK_INPUT");
+  const bool terminal_walk_test=scenario=="movement"&&std::getenv("HALO2_TU15_TERMINAL_WALK_INPUT");
+  const bool terminal_physics_test=terminal_walk_test&&std::getenv("HALO2_TU15_TERMINAL_PHYSICS_INPUT");
+  unsigned terminal_walk_commands{};bool terminal_approached{};
+  const bool glass_state_test=glass_walk_test && std::getenv("HALO2_TU15_GLASS_STATE_INPUT");
+  std::set<std::tuple<int,unsigned,unsigned>> glass_authored_parts;
+  std::set<std::size_t> glass_submitted_slots;
+  Json glass_state_samples=Json::array();
+  unsigned glass_intact_frames{},glass_broken_frames{},glass_broken_bound_frames{};
+  bool glass_initial_intact{},glass_crossed_plane{};
+  std::optional<unsigned> glass_broken_elapsed;
+  bool glass_walk_reverse{};unsigned glass_walk_commands{};
   std::optional<unsigned> rearm_first_press,rearm_second_press;
   std::optional<std::uint32_t> rearm_last_tick;
   bool rearm_first_released{},rearm_second_released{},rearm_previous_grounded{};
   unsigned rearm_held_launches{},rearm_second_launches{},rearm_landed_ticks{},rearm_held_commands{},rearm_missing_held_commands{};
   const auto vehicle_selection=std::getenv("HALO2_TU15_VEHICLE_NAME");
   const std::string_view vehicle_name=vehicle_selection?vehicle_selection:"warthog";
+  const bool gauss_fire_test=vehicle&&vehicle_name=="warthog_gauss"&&std::getenv("HALO2_TU15_GAUSS_FIRE_INPUT");
+  std::uint32_t gauss_effect_definition=null_datum,gauss_light_definition=null_datum;
+  std::set<std::uint32_t> gauss_native_effects;
+  Json gauss_effect_observations=Json::array(),gauss_projectile_observations=Json::array();
+  unsigned gauss_light_frames{},gauss_model_receiver_units{},gauss_fire_presses{},gauss_native_flash_ticks{};
+  std::map<std::uint32_t,unsigned> model_receiver_units_by_light;
+  std::map<unsigned,unsigned> gauss_light_observer_phases;std::map<std::uint32_t,unsigned> observed_light_definitions;
+  bool gauss_fire_held{},gauss_aim_ready{};
+  float gauss_target_body_minimum=1.f;
+  Json gauss_native_light_samples=Json::array(),gauss_native_view_lights=Json::array();
+  std::size_t terminal_native_receiver_vertices{};
   const bool fixed_turret_test=vehicle && (vehicle_name=="h_turret_ap" || vehicle_name=="c_turret_ap");
-  const bool turret_damage_test=fixed_turret_test && std::getenv("HALO2_TU15_TURRET_DAMAGE_INPUT");
-  check(!turret_damage_test || vehicle_name=="h_turret_ap","Turret damage input selects the original human gun");
+  const bool gauss_damage_test=gauss_fire_test&&std::getenv("HALO2_TU15_GAUSS_DAMAGE_INPUT");
+  const bool turret_damage_test=(fixed_turret_test && std::getenv("HALO2_TU15_TURRET_DAMAGE_INPUT"))||gauss_damage_test;
+  check(!turret_damage_test || vehicle_name=="h_turret_ap" || gauss_damage_test,"Turret damage input selects the original human gun");
   const bool accompanied_driver=vehicle && std::getenv("HALO2_TU15_SEAT_DRIVER");
   std::optional<float> takeoff_pitch_input;
   if(const auto pitch=std::getenv("HALO2_TU15_VEHICLE_TAKEOFF_PITCH_INPUT")) {
@@ -1619,11 +2575,20 @@ int main(int argc,char **argv) try {
   }
   // Driving stimulus is budgeted in authority ticks, independent of render
   // cadence and repeated/skipped desktop observations.
+  const bool single_vehicle_view=std::getenv("HALO2_TU15_VEHICLE_SINGLE_VIEW_INPUT");
+  const bool wheel_full_drive=std::getenv("HALO2_TU15_VEHICLE_WHEEL_FULL_DRIVE");
+  check(!wheel_full_drive || single_vehicle_view,
+      "Full wheel drive requires the single-view authored Ghost route");
+  const bool wheel_boost_input=std::getenv("HALO2_TU15_VEHICLE_WHEEL_BOOST_INPUT");
+  check(!wheel_boost_input || (single_vehicle_view && wheel_full_drive),
+      "Wheel boost requires the full-drive authored Ghost route");
+  bool wheel_boost_held{};
+  unsigned wheel_boost_commands{};
   unsigned source_drive_ticks=vehicle && !fixed_turret_test && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT")?300u:0u;
   if(const auto duration=std::getenv("HALO2_TU15_VEHICLE_DRIVE_TICKS")) {
     source_drive_ticks=std::stoul(duration);
-    check(vehicle && !fixed_turret_test && source_drive_ticks>0 && source_drive_ticks<=600,
-        "Declared drive duration requires a moving vehicle and 1..600 source ticks");
+    check(vehicle && !fixed_turret_test && source_drive_ticks>0 && source_drive_ticks<=(single_vehicle_view?1200u:600u),
+        "Declared drive duration exceeds the selected moving-vehicle test's finite tick budget");
   }
   const bool vehicle_collision_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_COLLISION_INPUT");
   const bool vehicle_rate_reversal_input=std::getenv("HALO2_TU15_VEHICLE_RATE_REVERSAL_INPUT");
@@ -1638,6 +2603,12 @@ int main(int argc,char **argv) try {
   check(!vehicle_blast_test || lan,"Vehicle blast diagnostics require the actual LAN authority; select lan-vehicle");
   std::optional<unsigned> vehicle_blast_started;
   const bool vehicle_weapon_test=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_WEAPON_INPUT");
+  const bool player_self_grenade_test=std::getenv("HALO2_TU15_PLAYER_SELF_GRENADE_INPUT");
+  check(!player_self_grenade_test || (vehicle_blast_test&&!vehicle_weapon_test),"Player self-grenade input requires ordinary starting grenades");
+  std::optional<std::uint32_t> player_fatal_first_tick,player_fatal_last_observed_tick;
+  unsigned player_fatal_dead_ticks{};float player_fatal_minimum_health=1.f;
+  std::set<std::uint32_t> player_fatal_corpse_objects,player_fatal_physical_corpse_objects;
+  Json player_fatal_receipts=Json::array();
   bool vehicle_weapon_pressed{},vehicle_reload_pressed{};unsigned vehicle_weapon_commands{},vehicle_reload_commands{};
   unsigned vehicle_weapon_press_tick{},vehicle_last_shot{},vehicle_loaded_before{};
   std::optional<std::uint32_t> vehicle_blast_aim_tick;
@@ -1645,6 +2616,15 @@ int main(int argc,char **argv) try {
 
   const unsigned vehicle_blast_count=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")?std::stoul(std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")):1u;
   check(!vehicle_blast_test || (vehicle_blast_count>=1 && vehicle_blast_count<=2),"Vehicle blast uses the ordinary one/two starting grenades");
+  std::optional<float> vehicle_blast_input_range;
+  if(const auto range=std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT_RANGE")) {
+    const std::string text=range;std::size_t used{};
+    vehicle_blast_input_range=std::stof(text,&used);
+    check(vehicle_blast_test && !vehicle_weapon_test && used==text.size() &&
+        std::isfinite(*vehicle_blast_input_range) && *vehicle_blast_input_range>0.f &&
+        *vehicle_blast_input_range<=16.f,
+        "Declared grenade stance requires an ordinary vehicle blast and finite0..16-unit SDL backoff");
+  }
   unsigned vehicle_blast_detonations{};std::optional<unsigned> vehicle_last_detonation;
 
 
@@ -1652,6 +2632,13 @@ int main(int argc,char **argv) try {
   std::optional<RayHit> collision_wall;std::optional<std::pair<std::uint32_t,Vec3>> collision_previous;
   float collision_peak_speed{},collision_minimum_plane_distance=1000000.f;unsigned collision_stopped_ticks{};
   bool collision_camera_turned{};
+  std::optional<std::uint32_t> vehicle_wall_aim_tick,vehicle_wall_brake_start;
+  bool vehicle_wall_brake_released{};
+  std::uint32_t vehicle_wall_capture_tick{};
+  if(vehicle_collision_test)if(const auto capture=std::getenv("HALO2_TU15_NATIVE_FRAME_CAPTURE_TICK")) {
+    vehicle_wall_capture_tick=std::stoul(capture);
+    check(vehicle_wall_capture_tick<=9000u,"Wall observation capture tick exceeds declared frame bound");
+  }
 
   const bool control_test=lan && std::getenv("HALO2_TU15_CONTROL_ENTRY");
   const bool script_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_DEVICE_SCRIPT_INPUT");
@@ -1707,7 +2694,7 @@ int main(int argc,char **argv) try {
   bool control_pressed=false,control_released=false;
   std::optional<std::pair<float,float>> control_pending_look;
   const bool long_vehicle_sequence=vehicle && (vehicle_blast_test || accompanied_driver || !std::getenv("HALO2_TU15_VEHICLE_SEAT")) &&
-      (vehicle_blast_test || vehicle_name=="warthog" || vehicle_name=="banshee" || vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss");
+      (single_vehicle_view || vehicle_blast_test || vehicle_name=="warthog" || vehicle_name=="banshee" || vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss");
   check(!lan || scenario=="lan-movement" || lift || vehicle || objects,"Unknown LAN physics scenario");
   check(lan||lift||vehicle||objects||scenario=="movement","Unknown multiplayer physics scenario");
   check(std::getenv("DISPLAY")||std::getenv("WAYLAND_DISPLAY"),"Visible desktop display is required");
@@ -1716,10 +2703,33 @@ int main(int argc,char **argv) try {
   MultiplayerOptions o;o.map=std::filesystem::canonical(argv[1]);o.shared_maps=std::filesystem::canonical(argv[2]);
   const auto mcc_maps=std::filesystem::canonical(std::filesystem::path(argv[4])/"halo2/h2_maps_win64_dx11");
   check(o.shared_maps==mcc_maps && o.map.parent_path()==mcc_maps,"Physics map is outside the selected prepared MCC cache");
-  {const Cache admitted(o.map,o.shared_maps);check(admitted.is_mcc(),"Live physics acceptance requires an actual MCC cache");}
+  std::set<std::uint32_t> wheel_definitions;
+  std::uint32_t main_wheel_definition=null_datum;
+  std::optional<Vec3> single_vehicle_target;
+  std::vector<Vec3> single_vehicle_route;
+  std::size_t single_vehicle_route_index{};
+  unsigned single_vehicle_steering_looks{};
+  float single_vehicle_target_distance=1000000.f;
+  {const Cache admitted(o.map,o.shared_maps);check(admitted.is_mcc(),"Live physics acceptance requires an actual MCC cache");
+    for(const auto& tag:admitted.tags())if(tag.group=="mach" &&
+        (tag.name.ends_with("\\big_wheel\\big_wheel") || tag.name.ends_with("\\flywheel\\flywheel") ||
+         tag.name.ends_with("\\blades\\blades"))) {
+      wheel_definitions.insert(tag.datum);
+      if(tag.name.ends_with("\\big_wheel\\big_wheel"))main_wheel_definition=tag.datum;
+    }}
   // Native TU1.5 startup and HUD resource lookup consume the imported cache.
   // No Xbox image constructor or Vista UI path is supplied at runtime.
-  o.starting_weapon=vehicle_weapon_test?8:5;o.width=960;o.height=540;o.local_players=lan&&!vehicle&&!objects?1:2;o.mute=true;
+  check(!single_vehicle_view || (vehicle && !lan && !accompanied_driver && vehicle_name=="ghost" &&
+      o.map.filename()=="zanzibar.map" && !wheel_definitions.empty()),
+      "Single-view receiver regression requires a local Ghost driver");
+  o.starting_weapon=vehicle_weapon_test?8:5;o.width=single_vehicle_view?1280:960;o.height=single_vehicle_view?720:540;
+  o.local_players=single_vehicle_view?1:lan&&!vehicle&&!objects?1:2;o.mute=true;
+  if(glass_walk_test||terminal_walk_test){o.local_players=1;o.reference_tick_cadence=true;o.reference_render_fraction=1.f;}
+  if(gauss_fire_test){o.local_players=1;o.reference_tick_cadence=true;o.reference_render_fraction=1.f;}
+  if(single_vehicle_view) {
+    o.reference_tick_cadence=true;
+    o.reference_render_fraction=1.f;
+  }
   o.source_object_world=true;o.source_object_savegame_directory=output/"source-savegame";
   o.variant.values.set(2,0);o.variant.values.set(10,0); // Finite test lifecycle owns exit, not game-over.
   if(accompanied_driver) {o.variant.values.set(91,1);o.selected_teams.assign(o.local_players,0);}
@@ -1744,6 +2754,8 @@ int main(int argc,char **argv) try {
   }
   Json report{{"scenario",scenario},{"reference","English TU1.5 only"},{"runtime_cache_source","MCC"},{"visible",true},
       {"live_physics_parity",false},{"stimulus","SDL keyboard events; no supplied physics results"}};
+  if(single_vehicle_view)report["single_view_wheel_full_drive"]=wheel_full_drive;
+  if(single_vehicle_view)report["single_view_wheel_boost_input"]=wheel_boost_input;
   const bool prop_test=objects && std::getenv("HALO2_TU15_PROP_GRENADE");
   const bool recreate_test=lan && prop_test && std::getenv("HALO2_TU15_SCENE_RECREATE");
   // This fixture's actual spawn collector places the first client at the
@@ -1862,13 +2874,69 @@ int main(int argc,char **argv) try {
       report["declared_distant_authority_start"]=xyz(distant->position);
     }
   }
-  if(control_test || script_test) {
+  if(glass_walk_test) {
+    check(o.map.filename()=="zanzibar.map","Glass walk selects the authored Zanzibar computer-room pane");
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
-    control_start=control_entrance(cache,content);o.native_spawn_inputs={control_start->spawn};
+    const CollisionWorld terrain(content.collision);
+    const Vec3 start{-4.4f,-20.7f,5.7f};
+    const auto pane=terrain.raycast(start,{0,-1,0},3.f);
+    check(pane.has_value() && (pane->surface_flags&8u),"Declared glass approach has no authored breakable BSP pane");
+    const auto floor=terrain.raycast(start,{0,0,-1},3.f);
+    check(floor.has_value() && floor->normal.z>0,"Declared glass approach has no authored BSP floor");
+    Spawn spawn;spawn.position={start.x,start.y,floor->position.z+content.player.radius};spawn.facing=3.1415926535897932f;
+    if(glass_state_test) {
+      Camera observer;observer.position=spawn.position+Vec3{0,0,content.player.camera_height};
+      observer.forward={0,-1,0};observer.up={0,0,1};observer.oriented=true;o.capture_camera=observer;
+      const auto metadata=cache.load_source_bsp_metadata(o.bsp);
+      const Bytes bsp(metadata.bytes_at(metadata.source_address()+16u,0xb0u));
+      check(bsp.u32(0xa4u)>49,"Glass fixture lost its actual native-cache BSP material49");
+      const Bytes material(metadata.bytes_at(bsp.u32(0xa8u)+49u*0x20u,0x20u));
+      check((material.u16(0x1cu)&255u)==14,"Glass fixture material49 no longer owns breakable14");
+      const auto parts=cache.load_source_transparent_bsp_parts(o.bsp);
+      for(unsigned cluster=0;cluster<parts.clusters.size();++cluster)
+        for(const auto &part:parts.clusters[cluster].parts)if(part.material==49)
+          glass_authored_parts.emplace(int(cluster),cluster,part.ordinal);
+      check(!glass_authored_parts.empty(),"Glass fixture has no authored terrain parts for material49");
+    }
+    check(!terrain.overlaps(spawn.position,content.player.height,content.player.radius),"Glass approach starts inside cached geometry");
+    o.native_spawn_inputs={spawn};
+    report["glass_walk_input"]={{"spawn",xyz(spawn.position)},{"pane",xyz(pane->position)},
+        {"surface",pane->source.surface},{"flags",pane->surface_flags},{"floor",xyz(floor->position)}};
+    std::ofstream(output/"glass-input-survey.json")<<report.dump(2)<<'\n';
+  }
+  if(control_test || script_test || terminal_walk_test) {
+    const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
+    control_start=control_entrance(cache,content);
+    if(terminal_walk_test) {
+      const auto away=normalized(Vec3{control_start->spawn.position.x-control_start->target.x,
+          control_start->spawn.position.y-control_start->target.y,0});
+      control_start->spawn.position=control_start->spawn.position+away*.9f;
+      const CollisionWorld terrain(content.collision);
+      const auto floor=terrain.raycast(control_start->spawn.position+Vec3{0,0,2*content.player.height},{0,0,-1},4*content.player.height);
+      check(floor&&floor->normal.z>0,"Declared terminal walk has no authored floor");
+      control_start->spawn.position.z=floor->position.z+content.player.radius;
+      control_start->spawn.facing=3.1415926535897932f;
+      check(!terrain.overlaps(control_start->spawn.position,content.player.height,content.player.radius),"Terminal walk starts inside authored BSP");
+      Camera camera;camera.position=control_start->spawn.position+Vec3{0,0,content.player.camera_height};
+      camera.forward=away*-1.f;camera.up={0,0,1};camera.oriented=true;o.capture_camera=camera;
+    }
+    o.native_spawn_inputs={control_start->spawn};
     report["declared_control_approach"]=xyz(control_start->spawn.position);
     report["declared_control_target"]=xyz(control_start->target);
     report["control_definition"]=control_start->definition;
     report["control_input"]="Ordinary SDL approach/look and displayed control pickup hold; no supplied group or motion result";
+    if(terminal_walk_test) {
+      report["control_input"]="Ordinary local SDL approach/look until the actual control prompt; no pickup/activation input";
+      if(terminal_physics_test) {
+        Camera observer;observer.position=control_start->spawn.position+Vec3{0,0,content.player.camera_height};
+        observer.forward=normalized(Vec3{control_start->spawn.position.x-control_start->target.x,
+            control_start->spawn.position.y-control_start->target.y,0});observer.up={0,0,1};
+        observer.oriented=true;o.capture_camera=observer;
+        report["declared_physics_isolation_camera"]={{"position",xyz(observer.position)},{"forward",xyz(observer.forward)},
+            {"scope","Renderer looks away from the separate terminal model-depth failure; ordinary SDL body movement and native physics remain active"}};
+      }
+      std::ofstream(output/"terminal-input-survey.json")<<report.dump(2)<<'\n';
+    }
     if(script_test) {
       int gate_name=-1;
       for(unsigned n=0;n<content.objects.size();++n)if(n<content.devices.size() && content.devices[n] &&
@@ -1998,7 +3066,19 @@ int main(int argc,char **argv) try {
       report["selected_lift_instance"]=std::getenv("HALO2_TU15_LIFT_INSTANCE")?
           std::stoul(std::getenv("HALO2_TU15_LIFT_INSTANCE")):0u;
     } else {
-      vehicle_start=vehicle_entrance(cache,content);o.native_spawn_inputs={vehicle_start->spawn};
+      vehicle_start=vehicle_entrance(cache,content);
+      if(gauss_fire_test) {
+        auto delta=vehicle_start->spawn.position-vehicle_start->target;delta.z=0;
+        check(length(delta)>0,"Gauss entry clearance has no authored horizontal direction");
+        vehicle_start->spawn.position=vehicle_start->spawn.position+normalized(delta)*(3.f*content.player.radius);
+        const CollisionWorld terrain(content.collision);
+        const auto floor=terrain.raycast(vehicle_start->spawn.position+Vec3{0,0,2*content.player.height},{0,0,-1},4*content.player.height);
+        check(floor&&floor->normal.z>0,"Gauss entry clearance lost its authored BSP floor");
+        vehicle_start->spawn.position.z=floor->position.z+content.player.radius;
+        check(!terrain.overlaps(vehicle_start->spawn.position,content.player.height,content.player.radius),"Gauss clearance starts inside authored BSP");
+        report["gauss_declared_entry_clearance_radii"]=3;
+      }
+      o.native_spawn_inputs={vehicle_start->spawn};
       if(const auto row=std::getenv("HALO2_TU15_VEHICLE_EQUIPMENT_INPUT"))
         report["declared_vehicle_equipment_input"]=std::stoul(row);
       if(vehicle_collision_test) {
@@ -2009,8 +3089,27 @@ int main(int argc,char **argv) try {
         if(const auto direction=std::getenv("HALO2_TU15_VEHICLE_WALL_DIRECTION_INPUT"))
           report["declared_collision_wall"]["survey_direction_input"]=std::stoi(direction);
       }
-      report["declared_initial_location"]=xyz(vehicle_start->spawn.position);
-      report["location_authority"]="Declared half-radius approach to authored vehicle entry marker, above cached BSP floor before tick zero";
+      if(single_vehicle_view) {
+        o.native_spawn_inputs.clear();
+        const auto wheel=std::find_if(content.objects.begin(),content.objects.end(),
+            [&](const auto& object){return object.definition==main_wheel_definition;});
+        check(wheel!=content.objects.end(),"Single-view Ghost route lost the actual big wheel placement");
+        single_vehicle_target=wheel->position;
+        report["single_view_authored_wheel_target"]=xyz(*single_vehicle_target);
+        // Ordinary input waypoints from the cached BSP clearance survey.
+        // The beach wall blocks a straight approach; enter west of it and
+        // follow the actual sloped opening toward the wheel's front edge.
+        single_vehicle_route={{2.5f,23.5f,0},{-1.5f,19.5f,0},{-5.5f,19.5f,0},
+            {-7.5f,17.5f,0},{-12,17.5f,0},{-13.5f,16,0},{-13.5f,13.5f,0},
+            {-8,8,0},{-8,7.5f,0},{-7.5f,7,0},{-6,7,0},{-2.5f,3.5f,0},
+            {-1.5f,3.5f,0},{0,2,0},*single_vehicle_target};
+        report["single_view_input_route"]=Json::array();
+        for(const auto& point:single_vehicle_route)report["single_view_input_route"].push_back(xyz(point));
+        report["location_authority"]="Ordinary map-authored spawn, SDL approach to the actual Ghost entry marker";
+      } else {
+        report["declared_initial_location"]=xyz(vehicle_start->spawn.position);
+        report["location_authority"]="Declared half-radius approach to authored vehicle entry marker, above cached BSP floor before tick zero";
+      }
       const auto selected=std::getenv("HALO2_TU15_VEHICLE_NAME");
       report["selected_vehicle"]=selected?selected:"warthog";
       report["driver_seat"]=vehicle_start->seat;report["vehicle_placement"]=vehicle_start->placement;
@@ -2056,7 +3155,7 @@ int main(int argc,char **argv) try {
         }
         check(!turret_damage_definitions.empty(),"Human turret has no authored vehicle targets");
       }
-      if(fixed_turret_test) {
+      if(fixed_turret_test || gauss_fire_test) {
         // Original unit weapons and each barrel's authored projectile ref.
         // These definitions only select observations; no body is created here.
         const auto tag=cache.load_source_tag_metadata(placement.definition);
@@ -2070,6 +3169,13 @@ int main(int argc,char **argv) try {
             turret_projectile_definitions.insert(barrels.u32(b*0xecu+0x90u));
         }
         check(!turret_projectile_definitions.empty(),"Fixed turret has no authored barrel projectiles");
+        if(gauss_fire_test) {
+          for(const auto &tag:cache.tags())if(tag.name=="effects\\objects\\vehicles\\warthog\\gauss\\gauss_fire") {
+            if(tag.group=="effe")gauss_effect_definition=tag.datum;
+            if(tag.group=="ligh")gauss_light_definition=tag.datum;
+          }
+          check(gauss_effect_definition!=null_datum&&gauss_light_definition!=null_datum,"Gauss firing fixture lost its authored effect/light");
+        }
         report["fixed_turret_authored_projectiles"]=turret_projectile_definitions;
         for(const auto projectile:turret_projectile_definitions) {
           const auto tag=cache.load_source_tag_metadata(projectile);const Bytes value(tag.bytes_at(tag.source_address(),tag.size()));
@@ -2152,9 +3258,29 @@ int main(int argc,char **argv) try {
     }
   } else {
     o.prepared_world=std::make_shared<MultiplayerPreparedWorld>(o);
+    if(lift || vehicle || glass_walk_test || terminal_walk_test || gauss_fire_test) {
+      // Complete two genuine neutral player/first-person phases before this
+      // prepared world is rebound to the visible runner. No pose, packet or
+      // contact is supplied; the actual engine advances these startup ticks.
+      for(unsigned n=0;n<2;++n)o.prepared_world->match.step({});
+      report["prepared_neutral_startup_ticks"]=2;
+      if(glass_walk_test)report["glass_neutral_startup_ticks"]=2;
+      if(glass_state_test) {
+        const auto visibility=source_bsp_breakable_visibility_tu15(o.prepared_world->source_objects->tu15_world().memory());
+        glass_initial_intact=source_bsp_material_visible(visibility,0,-1,14);
+        check(glass_initial_intact,"Computer-room pane starts without its actual collision bit");
+        report["glass_initial_intact"]=glass_initial_intact;
+      }
+    }
     report["initial_inventory"]=inventory(*o.prepared_world);
   }
   const auto &interaction_content=lan?*host->content:o.prepared_world->content;
+  const float vehicle_blast_range=vehicle_blast_input_range.value_or(4*interaction_content.player.height);
+  if(vehicle_blast_test && !vehicle_weapon_test)
+    report["vehicle_blast_input_range"]={{"distance",vehicle_blast_range},
+        {"explicit_input",vehicle_blast_input_range.has_value()},
+        {"stance_radius",vehicle_blast_input_range?interaction_content.player.radius:0.f},
+        {"scope","Ordinary SDL stance band and approach/backoff before each throw; original grenade launch, fuse, contacts and damage unchanged"}};
   std::unique_ptr<test::DestructionFiringLaneInputs> vehicle_firing_lane;
   std::optional<Vec3> vehicle_walk_input;
   std::optional<std::uint32_t> vehicle_lane_plan_tick;
@@ -2189,7 +3315,7 @@ int main(int argc,char **argv) try {
 #endif
   SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);focus(window);
   std::unique_ptr<ObserverController> observer;
-  if(vehicle || objects) {
+  if((vehicle || objects) && !single_vehicle_view&&!gauss_fire_test) {
     observer=std::make_unique<ObserverController>();o.input_instances={-1,observer->instance};
     if(recreate_test)o.input_instances={observer->instance,-1};
     if(objects)observer->axis(SDL_CONTROLLER_AXIS_LEFTY,0.f);
@@ -2301,6 +3427,16 @@ int main(int argc,char **argv) try {
   o.frame_observer=[&](const MultiplayerFrameTiming &f) {
     if(frames.empty())std::cout<<"acceptance_first_frame=1"<<std::endl;
     frames.push_back({{"frame",f.frame},{"views",f.views},{"wall_ms",f.wall_ms},{"submitted",f.submitted}});
+  };
+  std::size_t single_view_receiver_vertices{},single_view_wheel_vertices{};
+  if(single_vehicle_view)o.model_depth_vertices_observer=[&](unsigned view,std::uint32_t,
+      std::span<const SourceModelDepthSelection> selections,std::span<const Vertex> before,
+      std::span<const Vertex> after) {
+    check(view==0 && before.size()==after.size(),"Single-view receiver lost its native posed bank");
+    for(const auto& selection:selections) {
+      single_view_receiver_vertices+=selection.source_vertices.size();
+      if(wheel_definitions.contains(selection.definition))single_view_wheel_vertices+=selection.source_vertices.size();
+    }
   };
   unsigned adopted_scene_frames{};
   unsigned adopted_dynamic_frames{};float maximum_debris_displacement{};
@@ -2534,7 +3670,99 @@ int main(int argc,char **argv) try {
         {"horizontal_fov",submitted_horizontal_fov[view]},
         {"received_source_vehicle_camera",player.source_vehicle_camera.has_value()}});
   };
+  if(glass_state_test)o.bsp_submission_observer=[&](unsigned view,std::uint32_t tick,
+      const SourceBspResidentViewPlan &plan,std::span<const Material>) {
+    if(view)return;
+    const auto visibility=source_bsp_breakable_visibility_tu15(o.prepared_world->source_objects->tu15_world().memory());
+    const bool intact=source_bsp_material_visible(visibility,0,-1,14);
+    for(std::size_t slot=0;slot<plan.decisions.size();++slot)if(plan.decisions[slot].selection) {
+      const auto &part=*plan.decisions[slot].selection;
+      if(glass_authored_parts.contains({part.geometry,part.section,part.part}))glass_submitted_slots.insert(slot);
+    }
+    unsigned bound{};
+    for(auto slot:glass_submitted_slots) {
+      check(slot<plan.bindings.size(),"Glass resident catalogue changed within the map");
+      bound+=plan.bindings[slot].material.has_value();
+    }
+    if(!glass_submitted_slots.empty()) {
+      if(intact&&bound)++glass_intact_frames;
+      if(!intact){++glass_broken_frames;glass_broken_bound_frames+=bound!=0;}
+    }
+    if(glass_state_samples.size()<240)glass_state_samples.push_back({{"tick",tick},{"intact",intact},
+        {"observed_slots",glass_submitted_slots.size()},{"bound_slots",bound}});
+  };
+  if(gauss_fire_test)o.shadow_admission_observer=[&](bool before,unsigned view,std::uint32_t tick,std::uint32_t,unsigned entry,
+      const SourcePhysicsWorldRuntimeAbi&,const SourceRuntimeMemory& memory) {
+    if(before||entry!=0x3d2b0u||gauss_native_view_lights.size()>=100)return;
+    const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+    const auto pool=word(0x4ecbdcu),data=word(pool+0x44u),bitmap=word(pool+0x48u),high=word(pool+0x38u);
+    check(high<=350,"Native view light diagnostic escaped capacity");
+    for(unsigned slot=0;slot<high;++slot)if(word(bitmap+(slot/32u)*4u)&(1u<<(slot&31u))) {
+      const auto at=data+slot*272u;if(word(at+4u)!=gauss_light_definition)continue;
+      std::array<std::uint32_t,68> record;std::memcpy(record.data(),memory.view(at,272).data(),272);
+      gauss_native_view_lights.push_back({{"view",view},{"tick",tick},{"record",record}});
+    }
+  };
+  if(terminal_walk_test&&!terminal_physics_test)o.model_depth_vertices_observer=[&](unsigned,std::uint32_t,
+      std::span<const SourceModelDepthSelection> selections,std::span<const Vertex> before,std::span<const Vertex> after) {
+    check(before.size()==after.size(),"Terminal receiver depth changed the complete color bank extent");
+    for(const auto& selected:selections)if(wheel_definitions.contains(selected.definition)) {
+      terminal_native_receiver_vertices+=selected.source_vertices.size();
+      for(const auto ordinal:selected.source_vertices)
+        if(selected.definition!=main_wheel_definition)
+          check(selected.model->vertex_origins.at(ordinal).part==0,"Flywheel energy streak was promoted to an Apply receiver");
+    }
+  };
+  if(gauss_fire_test)o.effect_light_command_observer=[&](unsigned,std::uint32_t,
+      const SourceEffectLightCommandObservationTu15 &observed) {
+    ++gauss_light_observer_phases[unsigned(observed.phase)];
+    const auto &memory=observed.world.memory();
+    const auto pool=Bytes(memory.view(0x4ecbdcu,4)).u32(0);
+    const SourceRawDatumPoolServices storage{.read=[&](auto at,auto size){return memory.view(at,size);}};
+    const auto light=source_raw_datum_lookup(pool,observed.light,storage);
+    check(light!=0,"Gauss light observation lost its actual salted pool owner");
+    const auto definition=Bytes(memory.view(light+4u,4)).u32(0);
+    ++observed_light_definitions[definition];
+    if(observed.phase!=SourceEffectLightCommandPhaseTu15::culled)return;
+    for(unsigned n=0;n<observed.state.draw_count;++n)
+      model_receiver_units_by_light[definition]+=observed.state.units.at(n).words[1]!=null_datum;
+    if(definition==gauss_light_definition) {
+      ++gauss_light_frames;gauss_model_receiver_units=model_receiver_units_by_light[definition];
+    }
+  };
   o.input_observer=[&](unsigned step,std::span<const Controls> commands,const MultiplayerState&s) {
+    if(gauss_fire_test&&!gauss_native_effects.empty()&&gauss_native_light_samples.size()<600) {
+      const auto& memory=o.prepared_world->source_objects->tu15_world().memory();
+      const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+      const auto pool=word(0x4ecbdcu),data=word(pool+0x44u),bitmap=word(pool+0x48u),high=word(pool+0x38u);
+      check(high<=350,"Gauss diagnostic light pool escaped native capacity");Json lights=Json::array();
+      for(unsigned slot=0;slot<high;++slot)if(word(bitmap+(slot/32u)*4u)&(1u<<(slot&31u))) {
+        const auto at=data+slot*272u;const auto definition=word(at+4u);
+        if(definition==gauss_light_definition)lights.push_back({{"slot",slot},{"definition",definition},
+            {"flags",word(at)},{"position_words",{word(at+0x84u),word(at+0x88u),word(at+0x8cu)}},
+            {"spatial_words",{word(at+0x18u),word(at+0x1cu),word(at+0x20u),word(at+0x24u)}},
+            {"fade_words",{word(at+0xf8u),word(at+0xfcu),word(at+0x100u),word(at+0x104u),word(at+0x108u)}}});
+      }
+      if(!lights.empty())++gauss_native_flash_ticks;
+      gauss_native_light_samples.push_back({{"tick",s.tick},{"active_lights",word(pool+0x3cu)},{"gauss_lights",lights}});
+    }
+    if(gauss_fire_test)for(const auto &projectile:s.weapon_projectiles)if(turret_projectile_definitions.contains(projectile.definition)) {
+      const auto [at,inserted]=turret_projectile_births.try_emplace(projectile.datum,projectile.position);
+      if(inserted&&gauss_projectile_observations.size()<64)gauss_projectile_observations.push_back({
+          {"tick",s.tick},{"object",projectile.datum},{"definition",projectile.definition},
+          {"position",xyz(projectile.position)},{"velocity",xyz(projectile.velocity)}});
+      turret_projectile_travel=std::max(turret_projectile_travel,length(projectile.position-at->second));
+      turret_projectile_speed=std::max(turret_projectile_speed,length(projectile.velocity));
+    }
+    if(gauss_fire_test)for(const auto &effect:s.weapon_effects) {
+      if(effect.effect!=gauss_effect_definition||!effect.source_scheduled)continue;
+      if(gauss_native_effects.insert(effect.serial).second&&gauss_effect_observations.size()<64)
+        gauss_effect_observations.push_back({{"serial",effect.serial},{"tick",effect.tick},{"unit",effect.unit},
+            {"weapon",effect.weapon},{"effect",effect.effect},{"source_instance",effect.source_instance},
+            {"scheduled",effect.source_scheduled},{"presentation",effect.source_presentation},
+            {"a_bits",effect.a_bits},{"b_bits",effect.b_bits},{"source_locations",effect.source_locations.size()},
+            {"source_locations_observed",effect.source_locations_observed}});
+    }
     if(!started) {
       std::vector<unsigned> local_slots;
       for(unsigned n=0;n<s.players.size();++n)
@@ -2576,6 +3804,23 @@ int main(int argc,char **argv) try {
           {"yaw",c.yaw},{"pitch",c.pitch}}}};
     grenade_commands+=c.grenade;row["grenade_command"]=c.grenade;
     row["dead"]=p.dead;row["health"]=p.health;row["shield"]=p.shield;
+    if(player_self_grenade_test && player_fatal_last_observed_tick!=s.tick) {
+      player_fatal_last_observed_tick=s.tick;player_fatal_minimum_health=std::min(player_fatal_minimum_health,p.health);
+      if(p.dead){++player_fatal_dead_ticks;if(!player_fatal_first_tick)player_fatal_first_tick=s.tick;}
+      Json corpses=Json::array();
+      for(const auto &corpse:s.corpses)if(corpse.player==p.source_player) {
+        player_fatal_corpse_objects.insert(corpse.object);
+        const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto&pose){return pose.object==corpse.object;});
+        const bool body_pose=pose!=s.source_body_poses.end()&&!pose->nodes.empty();
+        if(body_pose)player_fatal_physical_corpse_objects.insert(corpse.object);
+        corpses.push_back({{"object",corpse.object},{"definition",corpse.definition},{"death_tick",corpse.death_tick},
+          {"physical_state",corpse.physical_state},{"health",corpse.health},{"shield",corpse.shield},{"actual_source_body_pose",body_pose}});
+      }
+      if(p.dead||!corpses.empty())player_fatal_receipts.push_back({{"authority_tick",s.tick},{"player",p.source_player},
+        {"unit",p.source_unit},{"previous_unit",p.source_previous_unit},{"source_death_tick",p.source_death_tick},
+        {"dead",p.dead},{"health",p.health},{"shield",p.shield},{"received_source_death_camera",p.source_death_camera.has_value()},
+        {"corpses",corpses}});
+    }
     row["source_scene_roots"]=s.source_scene_roots.size();
     row["grenade_projectiles"]=Json::array();
     if(vehicle) {
@@ -2584,6 +3829,7 @@ int main(int argc,char **argv) try {
       row["pickup_buttons"]=source_pickup_buttons(c.pickup,c.pickup?c.pickup_milliseconds:0,
           c.dual_wield,c.dual_wield?c.dual_wield_milliseconds:0,threshold);
       row["parent"]=p.source_parent;row["seat"]=p.source_seat;row["unit_action_word"]=p.source_action_word;
+      if(single_vehicle_view)row["source_look"]={{"yaw",p.yaw},{"pitch",p.pitch}};
       row["action_prompt"]={{"action",p.action_prompt.target.action},
           {"index",p.action_prompt.target.index},{"object",p.action_prompt.target.object}};
       if(seat_invalid_for_player && p.action_prompt.target.object==driven_vehicle &&
@@ -2596,26 +3842,41 @@ int main(int argc,char **argv) try {
         for(const auto &target:s.world_vehicles)if(turret_damage_definitions.contains(interaction_content.objects.at(target.placement).definition)) {
           if(turret_damage_target!=null_datum && target.handle!=turret_damage_target)continue;
           const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &p){return p.object==target.handle;});
-          if(pose==s.source_body_poses.end())continue;
+          if(pose==s.source_body_poses.end()) {
+            row["turret_damage_candidates"].push_back({{"object",target.handle},{"placement",target.placement},{"missing_pose",true}});continue;
+          }
           const auto origin=vehicle_start->root.position+Vec3{0,0,interaction_content.player.camera_height};
           const auto delta=pose->sphere.center-origin;const auto distance=length(delta);
-          if(distance<=pose->sphere.radius)continue;
+          if(distance<=pose->sphere.radius) {
+            row["turret_damage_candidates"].push_back({{"object",target.handle},{"placement",target.placement},
+                {"definition",interaction_content.objects.at(target.placement).definition},{"position",xyz(pose->sphere.center)},
+                {"radius",pose->sphere.radius},{"range",distance},{"inside_bounds",true}});continue;
+          }
           const auto forward=dot(normalized(delta),vehicle_start->root.basis[0]);
           const bool blocked=turret_target_terrain->raycast(origin,normalized(delta),distance-pose->sphere.radius).has_value();
           row["turret_damage_candidates"].push_back({{"object",target.handle},{"definition",interaction_content.objects.at(target.placement).definition},
               {"position",xyz(pose->sphere.center)},{"forward_dot",forward},{"range",distance},{"bsp_occluded",blocked}});
           // A declared forward60-degree input cone, not a replacement for
           // the original turret's actual aiming limits or collision result.
-          if(forward<=.5f || blocked)continue;
+          if((!gauss_damage_test && forward<=.5f) || blocked)continue;
           if(distance<nearest){nearest=distance;closest=&target;}
         }
-        if(closest) {
+        // Native scenario births complete across early ticks. Choose only
+        // after ordinary seat entry has exposed the complete current vehicle set.
+        if(closest&&(!gauss_damage_test||vehicle_entered)) {
           if(turret_damage_target==null_datum)turret_damage_target=closest->handle;
-          host->turret_damage_target.store(turret_damage_target);
+          if(host)host->turret_damage_target.store(turret_damage_target);
           const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &p){return p.object==turret_damage_target;});
           check(pose!=s.source_body_poses.end(),"Human turret target lost its actual WORLD sphere");
-          turret_damage_position=pose->sphere.center;
+          // Declared upper-half aim point from the actual posed bounds keeps
+          // a nearby vehicle inside the turret's original depression limit.
+          turret_damage_position=pose->sphere.center+(gauss_damage_test?Vec3{0,0,.5f*pose->sphere.radius}:Vec3{});
           row["turret_damage_target"]={{"object",turret_damage_target},{"position",xyz(*turret_damage_position)}};
+          if(gauss_damage_test) {
+            const auto vitality=o.prepared_world->source_objects->object_vitality(turret_damage_target);
+            gauss_target_body_minimum=std::min(gauss_target_body_minimum,vitality.body);
+            row["turret_damage_target"]["body"]=vitality.body;
+          }
         }
       }
       if(fixed_turret_test) {
@@ -2676,7 +3937,7 @@ int main(int argc,char **argv) try {
         const auto &seat=definition.seats.at(vehicle_start->seat);
         const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==v.handle;});
         check(pose!=s.source_body_poses.end(),"Vehicle snapshot omitted the actual WORLD hierarchy");
-        if(fixed_turret_test && vehicle_entered) {
+        if((fixed_turret_test || gauss_fire_test) && vehicle_entered) {
           for(const auto &effect:s.weapon_effects)if(effect.unit==driven_vehicle && effect.source_scheduled && effect.source_presentation)
             turret_effect_serials.insert(effect.serial);
           for(unsigned n=0;n<pose->nodes.size();++n) {
@@ -2698,7 +3959,7 @@ int main(int argc,char **argv) try {
           row["entry_aim_angle"]=std::acos(std::clamp(dot(toward,direction(c.yaw,c.pitch)),-1.f,1.f));
           row["entry_facing_angle"]=3.1415927f-std::acos(std::clamp(dot(toward,markers.front().world.basis[0]),-1.f,1.f));
         }
-        if(!entry_press && report["selected_vehicle"]=="banshee") {
+        if(!entry_press && (single_vehicle_view || gauss_fire_test || report["selected_vehicle"]=="banshee")) {
           if(entry_distance>seat.radius*.75f) {
             if(!entry_approaching || !c.forward)key(window_id,SDL_SCANCODE_W,true);
             entry_approaching=true;
@@ -2850,13 +4111,15 @@ int main(int argc,char **argv) try {
       }
       if(entered_tick && vehicle_position && vehicle_forward && !drive_start && (!accompanied_driver || companion_entered) && elapsed>=*entered_tick+30) {
         drive_start=elapsed;drive_initial=*vehicle_position;
+        if(single_vehicle_target) {steering_started=true;steering_released=true;steering_forward=*vehicle_forward;}
         focus(window);key(window_id,SDL_SCANCODE_W,true);
         {
           const auto &settings=o.desktop->keyboard_settings;
           const float gain=.0025f*float(settings.sensitivity)/3.f;
           check(gain>0,"Invalid actual departure mouse gain");
           SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-          const auto yaw=std::atan2(vehicle_forward->y,vehicle_forward->x);
+          const auto departure=single_vehicle_target?single_vehicle_route.front()-*vehicle_position:*vehicle_forward;
+          const auto yaw=std::atan2(departure.y,departure.x);
           look.motion.xrel=-int(std::lround(std::remainder(yaw-p.yaw,6.283185307f)/gain));
           // A declared flight look is ordinary mouse input before throttle.
           // It leaves original controller/contact results and all flight
@@ -2867,7 +4130,44 @@ int main(int argc,char **argv) try {
         }
       }
       if(drive_start) {
-        if(fixed_turret_test) {
+        if(wheel_boost_input) {
+          const bool down=!forward_released && single_vehicle_route_index>=12u;
+          if(down!=wheel_boost_held) {
+            const auto binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::DualSecondary)];
+            if(binding>0 && binding<SDL_NUM_SCANCODES)key(window_id,SDL_Scancode(binding),down);
+            else {
+              check(binding>pc_mouse_button(0) && binding<=pc_mouse_button(5),"Ghost boost needs the actual secondary binding");
+              SDL_Event event{};event.type=down?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;event.button.windowID=window_id;
+              event.button.button=Uint8(binding-pc_mouse_button(0));event.button.state=down?SDL_PRESSED:SDL_RELEASED;
+              check(SDL_PushEvent(&event)==1,"SDL rejected Ghost boost input");
+            }
+            wheel_boost_held=down;
+          }
+          if(c.fire_secondary)++wheel_boost_commands;
+        }
+        if(single_vehicle_target && vehicle_position) {
+          const auto delta=*single_vehicle_target-*vehicle_position;
+          single_vehicle_target_distance=std::min(single_vehicle_target_distance,std::hypot(delta.x,delta.y));
+          while(single_vehicle_route_index+1<single_vehicle_route.size() &&
+              std::hypot(single_vehicle_route[single_vehicle_route_index].x-vehicle_position->x,
+                         single_vehicle_route[single_vehicle_route_index].y-vehicle_position->y)<.45f)
+            ++single_vehicle_route_index;
+          const auto route_delta=single_vehicle_route[single_vehicle_route_index]-*vehicle_position;
+          if(!forward_released && vehicle_forward) {
+            const auto desired=std::atan2(route_delta.y,route_delta.x);
+            const auto heading=std::atan2(vehicle_forward->y,vehicle_forward->x);
+            key(window_id,SDL_SCANCODE_W,std::abs(std::remainder(desired-heading,6.283185307f))<.4f);
+          }
+          if(!forward_released && elapsed%5u==0) {
+            const auto& settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+            SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+            // The original seat transition retains a view baseline distinct
+            // from the desktop sample. Aim against its completed source view.
+            look.motion.xrel=-int(std::lround(std::remainder(std::atan2(route_delta.y,route_delta.x)-p.yaw,6.283185307f)/gain));
+            if(look.motion.xrel) {check(SDL_PushEvent(&look)==1,"SDL rejected ordinary Ghost approach to the big wheel");++single_vehicle_steering_looks;}
+          }
+        }
+        if(fixed_turret_test || gauss_fire_test) {
           const auto &settings=o.desktop->keyboard_settings;
           const auto fire=[&](bool down) {
             const int binding=settings.bindings[unsigned(PcAction::Fire)];
@@ -2879,14 +4179,29 @@ int main(int argc,char **argv) try {
               check(SDL_PushEvent(&event)==1,"SDL rejected ordinary turret fire input");
             }
           };
-          if(!turret_fire_pressed && steering_started) {fire(true);turret_fire_pressed=true;turret_fire_started=elapsed;}
+          if(gauss_fire_test) {
+            const bool down=steering_started&&!forward_released&&(!gauss_damage_test||gauss_aim_ready)&&((elapsed-*drive_start)%30u)<5u;
+            if(down!=gauss_fire_held) {
+              fire(down);gauss_fire_held=down;
+              if(down){++gauss_fire_presses;turret_fire_pressed=true;if(!turret_fire_started)turret_fire_started=elapsed;}
+            }
+          } else if(!turret_fire_pressed && steering_started) {fire(true);turret_fire_pressed=true;turret_fire_started=elapsed;}
           if(turret_damage_test && turret_damage_position && vehicle_position && steering_started && !forward_released && elapsed%3u==0) {
-            const auto delta=*turret_damage_position-(*vehicle_position+Vec3{0,0,interaction_content.player.camera_height});
+            const auto eye=gauss_damage_test&&p.source_vehicle_camera?p.source_vehicle_camera->position:
+                *vehicle_position+Vec3{0,0,interaction_content.player.camera_height};
+            const auto delta=*turret_damage_position-eye;
             const auto yaw=std::atan2(delta.y,delta.x),pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
             const float gain=.0025f*float(settings.sensitivity)/3.f;
             SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-            look.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
-            look.motion.yrel=-int(std::lround((pitch-c.pitch)/gain))*(settings.invert?-1:1);
+            const auto actual_forward=gauss_damage_test&&p.source_vehicle_camera?p.source_vehicle_camera->forward:direction(c.yaw,c.pitch);
+            const auto actual_yaw=std::atan2(actual_forward.y,actual_forward.x);
+            const auto actual_pitch=std::atan2(actual_forward.z,std::hypot(actual_forward.x,actual_forward.y));
+            const auto yaw_error=std::remainder(yaw-actual_yaw,6.283185307f),pitch_error=pitch-actual_pitch;
+            gauss_aim_ready=std::abs(yaw_error)<.06f&&std::abs(pitch_error)<.06f;
+            row["gauss_target_aim"]={{"target",xyz(*turret_damage_position)},{"eye",xyz(eye)},
+                {"forward",xyz(actual_forward)},{"errors",{yaw_error,pitch_error}},{"ready",gauss_aim_ready}};
+            look.motion.xrel=-int(std::lround(yaw_error/gain));
+            look.motion.yrel=-int(std::lround(pitch_error/gain))*(settings.invert?-1:1);
             if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected actual turret target look input");
           }
           if(turret_fire_pressed && !turret_fire_released && forward_released) {fire(false);turret_fire_released=true;}
@@ -2894,22 +4209,55 @@ int main(int argc,char **argv) try {
         // A real desktop focus loss clears SDL's keys. Reacquire the actual
         // window and deliver the remaining observed input budget, instead of
         // silently shortening the driving sequence while counting wall ticks.
-        if(!vehicle_rate_reversal_input && !forward_released && !c.forward) {focus(window);key(window_id,SDL_SCANCODE_W,true);}
+        if(!single_vehicle_view && !vehicle_rate_reversal_input && !forward_released && !c.forward) {focus(window);key(window_id,SDL_SCANCODE_W,true);}
         if(vehicle_collision_test && vehicle_position && vehicle_forward && !forward_released) {
           const auto delta=collision_wall->position-*vehicle_position;
           const auto yaw=std::atan2(delta.y,delta.x);
-          const auto error=std::remainder(yaw-std::atan2(vehicle_forward->y,vehicle_forward->x),6.283185307f);
-          key(window_id,SDL_SCANCODE_D,error>.08f);key(window_id,SDL_SCANCODE_A,error<-.08f);
-          if(elapsed%5==0) {
+          const auto body_yaw=std::atan2(vehicle_forward->y,vehicle_forward->x);
+          const auto error=std::remainder(yaw-body_yaw,6.283185307f);
+          // Source columns are forward/left/up; positive yaw error is left.
+          // KBM Right minus Left therefore uses the opposite signed input.
+          const bool right_input=error<-.08f,left_input=error>.08f;
+          key(window_id,SDL_SCANCODE_D,right_input);key(window_id,SDL_SCANCODE_A,left_input);
+          if(elapsed%5==0 && vehicle_wall_aim_tick!=s.tick) {
+            vehicle_wall_aim_tick=s.tick;
+            Vec3 view_eye=p.position+Vec3{0,0,interaction_content.player.camera_height};
+            Vec3 view_forward=direction(p.yaw,p.pitch);std::optional<std::uint32_t> view_tick;
+            for(auto view=camera_frames.rbegin();view!=camera_frames.rend();++view) {
+              if(view->at("view").get<unsigned>()!=actor_view ||
+                  view->at("unit").get<std::uint32_t>()!=p.source_unit ||
+                  view->at("parent").get<std::uint32_t>()!=driven_vehicle ||
+                  !view->at("received_source_vehicle_camera").get<bool>())continue;
+              const auto vector=[](const Json &v){return Vec3{v.at(0).get<float>(),v.at(1).get<float>(),v.at(2).get<float>()};};
+              view_eye=vector(view->at("position"));view_forward=vector(view->at("forward"));
+              view_tick=view->at("tick").get<std::uint32_t>();break;
+            }
+            const auto aim_delta=collision_wall->position-view_eye;
+            const auto aim_yaw=std::atan2(view_forward.y,view_forward.x);
+            const auto aim_pitch=std::atan2(view_forward.z,std::hypot(view_forward.x,view_forward.y));
+            const auto desired_aim_yaw=std::atan2(aim_delta.y,aim_delta.x);
+            const auto desired_aim_pitch=std::atan2(aim_delta.z,std::hypot(aim_delta.x,aim_delta.y));
             const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
             SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-            look.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
-            look.motion.yrel=-int(std::lround(-c.pitch/gain))*(settings.invert?-1:1);
+            look.motion.xrel=-int(std::lround(std::remainder(desired_aim_yaw-aim_yaw,6.283185307f)/gain));
+            look.motion.yrel=-int(std::lround((desired_aim_pitch-aim_pitch)/gain))*(settings.invert?-1:1);
+            report["vehicle_wall_actual_input_trace"].push_back({{"authority_tick",s.tick},
+                {"source_camera_tick",view_tick?Json(*view_tick):Json()},
+                {"vehicle_position",xyz(*vehicle_position)},{"vehicle_forward",xyz(*vehicle_forward)},
+                {"body_yaw",body_yaw},{"desired_body_yaw",yaw},{"body_yaw_error",error},
+                {"source_eye",xyz(view_eye)},{"source_forward",xyz(view_forward)},
+                {"source_look",{aim_yaw,aim_pitch}},{"raw_input_look",{c.yaw,c.pitch}},
+                {"target",xyz(collision_wall->position)},{"SDL_right",right_input},{"SDL_left",left_input},
+                {"SDL_mouse",{look.motion.xrel,look.motion.yrel}}});
             if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected ordinary wall approach look");
           }
           if(collision_stopped_ticks>=8 || vehicle_drive_commands>=600) {
             key(window_id,SDL_SCANCODE_W,false);key(window_id,SDL_SCANCODE_A,false);key(window_id,SDL_SCANCODE_D,false);
-            forward_released=true;drive_end=elapsed;
+            forward_released=true;drive_end=elapsed;vehicle_wall_brake_start=s.tick;
+            report["vehicle_wall_completed_segment"]={{"authority_tick",s.tick},
+                {"forward_commands",vehicle_drive_commands},{"stopped_under_throttle_ticks",collision_stopped_ticks},
+                {"minimum_plane_distance",collision_minimum_plane_distance},
+                {"ordinary_brake_source_ticks",15u}};
             if(!collision_camera_turned) {
               steering_forward=*vehicle_forward;steering_started=true;collision_camera_turned=true;
               const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
@@ -2940,8 +4288,13 @@ int main(int argc,char **argv) try {
           if(steering_commands>=25) {key(window_id,SDL_SCANCODE_D,false);steering_released=true;}
           else if(!c.right)key(window_id,SDL_SCANCODE_D,true);
         }
-        if(!vehicle_collision_test && (source_drive_ticks?elapsed>=*drive_start+source_drive_ticks:
-            vehicle_drive_commands>=(long_vehicle_sequence?300u:65u)) && !forward_released &&
+        // Receiver coverage alone stops short of physical wheel contact.
+        // The full-drive input keeps ordinary throttle for the declared tick
+        // budget, allowing the actual pair/agent owners to handle contact.
+        const bool wheel_receiver_reached=single_vehicle_view && !wheel_full_drive && single_view_wheel_vertices>0 &&
+            single_vehicle_target_distance<8.f;
+        if(!vehicle_collision_test && (wheel_receiver_reached || (source_drive_ticks?elapsed>=*drive_start+source_drive_ticks:
+            vehicle_drive_commands>=(long_vehicle_sequence?300u:65u))) && !forward_released &&
             (!turret_damage_test || (turret_fire_started && elapsed>=*turret_fire_started+120u))) {
           key(window_id,SDL_SCANCODE_W,false);forward_released=true;drive_end=elapsed;
         }
@@ -2954,6 +4307,16 @@ int main(int argc,char **argv) try {
           key(window_id,SDL_SCANCODE_D,active&&!reverse);
           key(window_id,SDL_SCANCODE_A,active&&reverse);
           if(!active)steering_released=true;
+        }
+        if(vehicle_collision_test && vehicle_wall_brake_start && !exit_press) {
+          // The original wall approach segment is already complete. Deliver
+          // ordinary reverse/brake input, then coast before the existing exit.
+          const bool braking=s.tick<*vehicle_wall_brake_start+15u;
+          key(window_id,SDL_SCANCODE_S,braking);
+          if(!braking && !vehicle_wall_brake_released) {
+            vehicle_wall_brake_released=true;
+            report["vehicle_wall_brake_released_at_authority_tick"]=s.tick;
+          }
         }
         if(drive_end && elapsed>=*drive_end+45 && !exit_press) {
           exit_press=elapsed;key(window_id,SDL_Scancode(pickup),true);
@@ -3026,14 +4389,58 @@ int main(int argc,char **argv) try {
         }
         const auto delta=target-eye;
         const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+        auto blast_aim_delta=delta;
+        float blast_aim_yaw=p.yaw,blast_aim_pitch=p.pitch;
+        std::optional<std::uint32_t> blast_view_tick;
+        Vec3 blast_view_eye=eye,blast_view_forward=direction(p.yaw,p.pitch);
+        {
+          // The rendered source view includes the retained look rebase after
+          // leaving a seat. Raw mouse-input angles use a different baseline.
+          for(auto view=camera_frames.rbegin();view!=camera_frames.rend();++view) {
+            if(view->at("view").get<unsigned>()!=actor_view ||
+                view->at("unit").get<std::uint32_t>()!=p.source_unit ||
+                view->at("parent").get<std::uint32_t>()!=null_datum ||
+                view->at("received_source_vehicle_camera").get<bool>())continue;
+            const auto vector=[](const Json &v){return Vec3{
+                v.at(0).get<float>(),v.at(1).get<float>(),v.at(2).get<float>()};};
+            blast_view_tick=view->at("tick").get<std::uint32_t>();
+            blast_view_eye=vector(view->at("position"));
+            blast_view_forward=vector(view->at("forward"));
+            blast_aim_delta=pose->sphere.center-blast_view_eye;
+            blast_aim_yaw=std::atan2(blast_view_forward.y,blast_view_forward.x);
+            blast_aim_pitch=std::atan2(blast_view_forward.z,
+                std::hypot(blast_view_forward.x,blast_view_forward.y));
+            break;
+          }
+        }
+        Vec3 player_self_aim_target=p.position;
+        bool player_self_aim_ready=false;
+        if(player_self_grenade_test) {
+          const auto horizontal=std::hypot(blast_view_forward.x,blast_view_forward.y);
+          if(horizontal>0.f)player_self_aim_target=player_self_aim_target+
+            Vec3{blast_view_forward.x/horizontal,blast_view_forward.y/horizontal,0.f}*interaction_content.player.radius;
+          blast_aim_delta=player_self_aim_target-blast_view_eye;
+          const auto yaw_error=std::remainder(std::atan2(blast_aim_delta.y,blast_aim_delta.x)-blast_aim_yaw,6.283185307f);
+          const auto pitch_error=std::atan2(blast_aim_delta.z,std::hypot(blast_aim_delta.x,blast_aim_delta.y))-blast_aim_pitch;
+          player_self_aim_ready=blast_view_tick && *blast_view_tick+6u>=s.tick &&
+            std::abs(yaw_error)<.2f && std::abs(pitch_error)<.2f;
+        }
         if(elapsed%5==0 && vehicle_blast_aim_tick!=s.tick) {
           vehicle_blast_aim_tick=s.tick;
           SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
           // Native18A300 consumes changes in raw PC samples. Vehicle turns
           // can reorient the processed source view independently of that raw
           // baseline, so steer by the error in the actual source view.
-          look.motion.xrel=-int(std::lround(std::remainder(std::atan2(delta.y,delta.x)-p.yaw,6.283185307f)/gain));
-          look.motion.yrel=-int(std::lround((std::atan2(delta.z,std::hypot(delta.x,delta.y))-p.pitch)/gain))*(settings.invert?-1:1);
+          look.motion.xrel=-int(std::lround(std::remainder(std::atan2(blast_aim_delta.y,blast_aim_delta.x)-blast_aim_yaw,6.283185307f)/gain));
+          look.motion.yrel=-int(std::lround((std::atan2(blast_aim_delta.z,std::hypot(blast_aim_delta.x,blast_aim_delta.y))-blast_aim_pitch)/gain))*(settings.invert?-1:1);
+          report["vehicle_blast_actual_aim_trace"].push_back({
+              {"authority_tick",s.tick},{"elapsed",elapsed},
+              {"rendered_source_tick",blast_view_tick?Json(*blast_view_tick):Json(nullptr)},
+              {"eye",xyz(blast_view_eye)},{"forward",xyz(blast_view_forward)},
+              {"source_look",{blast_aim_yaw,blast_aim_pitch}},{"raw_input",{c.yaw,c.pitch}},
+              {"target",xyz(player_self_grenade_test?player_self_aim_target:pose->sphere.center)},
+              {"player_self_grenade",player_self_grenade_test},{"self_aim_ready",player_self_aim_ready},
+              {"SDL_mouse",{look.motion.xrel,look.motion.yrel}}});
           if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected ordinary vehicle-blast aim");
         }
         const auto range=std::hypot(p.position.x-vehicle_position->x,p.position.y-vehicle_position->y);
@@ -3093,15 +4500,19 @@ int main(int argc,char **argv) try {
           vehicle_blast_started.reset();grenade_pressed=false;grenade_released=false;vehicle_last_detonation.reset();
         }
         if(!vehicle_blast_started && vehicle_blast_detonations<vehicle_blast_count) {
-          key(window_id,SDL_SCANCODE_S,range<4*interaction_content.player.height);
-          if(range>=4*interaction_content.player.height) {
+          const float stance_radius=vehicle_blast_input_range?interaction_content.player.radius:0.f;
+          const bool backoff=!player_self_grenade_test && range<vehicle_blast_range-stance_radius;
+          const bool approach=!player_self_grenade_test && vehicle_blast_input_range && range>vehicle_blast_range+stance_radius;
+          key(window_id,SDL_SCANCODE_S,backoff);
+          if(vehicle_blast_input_range || player_self_grenade_test)key(window_id,SDL_SCANCODE_W,approach);
+          if(!backoff && !approach && (!player_self_grenade_test || player_self_aim_ready)) {
             const int grenade=settings.bindings[unsigned(PcAction::Grenade)];
             check(grenade>0 && grenade<SDL_NUM_SCANCODES,"Vehicle blast needs the actual grenade binding");
             key(window_id,SDL_Scancode(grenade),true);grenade_pressed=true;vehicle_blast_started=elapsed;
           }
         } else if(vehicle_blast_started) {
-          key(window_id,SDL_SCANCODE_S,elapsed<*vehicle_blast_started+90);
-          if(vehicle_blast_detonations>=vehicle_blast_count && vehicle_last_detonation && elapsed>=*vehicle_last_detonation+100)
+          key(window_id,SDL_SCANCODE_S,!player_self_grenade_test && elapsed<*vehicle_blast_started+90);
+          if(!player_self_grenade_test && vehicle_blast_detonations>=vehicle_blast_count && vehicle_last_detonation && elapsed>=*vehicle_last_detonation+100)
             key(window_id,SDL_SCANCODE_W,range>3*interaction_content.player.height);
           if(grenade_pressed && !grenade_released && c.grenade) {
             key(window_id,SDL_Scancode(settings.bindings[unsigned(PcAction::Grenade)]),false);grenade_released=true;
@@ -3338,7 +4749,7 @@ int main(int argc,char **argv) try {
       const auto desired=std::pair{std::atan2(look_delta.y,look_delta.x),std::atan2(eye.z,std::sqrt(eye.x*eye.x+eye.y*eye.y))};
       const auto current=std::pair{c.yaw,c.pitch};
       if(control_pending_look && current!=*control_pending_look)control_pending_look.reset();
-      if(elapsed>=5 && (!control_pressed || control_released) && !control_pending_look) {
+      if(elapsed>=5 && (!terminal_walk_test||elapsed>=50) && (!control_pressed || control_released) && !control_pending_look) {
         const auto &settings=o.desktop->keyboard_settings;
         const float gain=.0025f*float(settings.sensitivity)/3.f;check(gain>0,"Control approach has invalid mouse gain");
         SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
@@ -3352,11 +4763,14 @@ int main(int argc,char **argv) try {
         host->start_device_script.store(true);script_started=true;
       }
       const bool shown=p.action_prompt.target.action==3 && p.action_prompt.definition==control_start->definition;
-      key(window_id,SDL_SCANCODE_W,!script_test && elapsed>=10 && !control_pressed && !shown &&
+      if(terminal_walk_test){
+        terminal_walk_commands+=c.right!=0;terminal_approached|=shown;
+        key(window_id,SDL_SCANCODE_D,elapsed>=10&&elapsed<120&&!shown);
+      } else key(window_id,SDL_SCANCODE_W,!script_test && elapsed>=10 && !control_pressed && !shown &&
           delta.x*delta.x+delta.y*delta.y>interaction_content.player.radius*interaction_content.player.radius);
       const int binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Pickup)];
       check(binding>0 && binding<SDL_NUM_SCANCODES,"Control test requires the actual pickup key");
-      if(!script_test && shown && !control_pressed) {key(window_id,SDL_Scancode(binding),true);control_pressed=true;}
+      if(!script_test && !terminal_walk_test && shown && !control_pressed) {key(window_id,SDL_Scancode(binding),true);control_pressed=true;}
       if(control_pressed && !control_released && c.pickup_milliseconds>=
           source_pickup_hold_threshold(interaction_content.pickup_hold_seconds)+100u) {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
@@ -3388,26 +4802,63 @@ int main(int argc,char **argv) try {
       }
       if(rearm_second_launches==1)host->capture_world_requested.store(true);
     }
-    if(!player_rearm_test&&!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test&&!conveyor_test) switch(elapsed) {
+    if(glass_walk_test) {
+      // Ordinary lateral movement crosses this pane. If the first delivered
+      // key moves away, reverse it before leaving the surveyed floor. Stop
+      // after the real collision owner has built a damage record.
+      glass_walk_commands+=c.right!=0;
+      if(p.position.y>initial.y+.025f)glass_walk_reverse=true;
+      const auto activity=o.prepared_world->source_objects->tu15_world().native_physics_frame_activity();
+      if(glass_state_test) {
+        const auto visibility=source_bsp_breakable_visibility_tu15(o.prepared_world->source_objects->tu15_world().memory());
+        const bool intact=source_bsp_material_visible(visibility,0,-1,14);
+        if(!intact&&!glass_broken_elapsed)glass_broken_elapsed=elapsed;
+        glass_crossed_plane|=!intact&&p.position.y<-22.3f;
+        const bool walking=elapsed>=20&&elapsed<140&&
+            (!glass_broken_elapsed||elapsed<*glass_broken_elapsed+65);
+        key(window_id,SDL_SCANCODE_D,walking&&!glass_walk_reverse);
+        key(window_id,SDL_SCANCODE_A,walking&&glass_walk_reverse);
+      } else {
+        const bool walking=elapsed>=20 && elapsed<140 && !activity.native_breakable_damage_records;
+        key(window_id,SDL_SCANCODE_D,walking&&!glass_walk_reverse);
+        key(window_id,SDL_SCANCODE_A,walking&&glass_walk_reverse);
+      }
+    }
+    if(!glass_walk_test&&!terminal_walk_test&&!player_rearm_test&&!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test&&!conveyor_test) switch(elapsed) {
       case 25:focus(window);key(window_id,SDL_SCANCODE_W,true);break;
       case 40:key(window_id,SDL_SCANCODE_W,false);break;
       case 50:key(window_id,SDL_SCANCODE_LCTRL,true);break;
       case 65:key(window_id,SDL_SCANCODE_LCTRL,false);break;
       case 85:focus(window);key(window_id,SDL_SCANCODE_SPACE,true);key(window_id,SDL_SCANCODE_SPACE,false);break;
     }
-    if(vehicle && !vehicle_blast_test && vehicle_exited && exit_camera_frames>=40 && ordinary_after_exit_frames>0)quit();
+    if(vehicle && !vehicle_blast_test && vehicle_exited && exit_camera_frames>=40 && ordinary_after_exit_frames>0 &&
+        (!vehicle_collision_test || s.tick>=vehicle_wall_capture_tick))quit();
     if(accompanied_driver && companion_entered_tick && !vehicle_entered &&
         elapsed-*companion_entered_tick>=90)quit();
     // Every support input, including a declared device phase, must observe
     // enough real authority ticks to satisfy the shared170-sample minimum.
-    if(elapsed>=(player_rearm_test?450u:object_field_test?object_field_ticks:prop_watch_test?900u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle_blast_test?1800u:vehicle?(long_vehicle_sequence?900u:450u):180u))quit();
+    if(elapsed>=(single_vehicle_view?1500u:player_rearm_test?450u:object_field_test?object_field_ticks:prop_watch_test?900u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle_blast_test?1800u:vehicle?(long_vehicle_sequence?900u:450u):180u))quit();
   };
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
-  if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
+  if(!lan){o.capture_tick=single_vehicle_view?1501:vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
   int result{};
   try {result=run_multiplayer(o);if(host)host->finish();}
   catch(const std::exception &error) {
+    if(lift || vehicle || glass_walk_test || terminal_walk_test || gauss_fire_test || control_test) {
+      report["acceptance_passed"]=false;report["error"]=error.what();report["observed_input_ticks"]=samples.size();
+      if(gauss_fire_test)report["gauss_firing"]={{"entered",vehicle_entered},{"fire_commands",turret_fire_commands},
+          {"native_effect_serials",turret_effect_serials},{"native_projectile_births",turret_projectile_births.size()},
+          {"fire_presses",gauss_fire_presses},{"gauss_effects",gauss_effect_observations},
+          {"gauss_light_frames",gauss_light_frames},{"gauss_model_receiver_units",gauss_model_receiver_units},
+          {"target_body_minimum",gauss_target_body_minimum},{"damage_target",turret_damage_target},
+          {"native_flash_ticks",gauss_native_flash_ticks},{"model_receiver_units_by_light",model_receiver_units_by_light},
+          {"native_projectile_observations",gauss_projectile_observations},
+        {"observer_phases",gauss_light_observer_phases},{"light_definitions",observed_light_definitions},
+        {"native_light_samples",gauss_native_light_samples},{"native_view_light_samples",gauss_native_view_lights}};
+      if(!samples.empty())report["last_input_sample"]=samples.back();
+      std::ofstream(output/"failure.json")<<report.dump(2)<<'\n';
+    }
     if(vehicle_blast_test && host) {
       try {host->finish();}catch(const std::exception &authority_error) {
         report["authority_error"]=authority_error.what();
@@ -3580,6 +5031,14 @@ int main(int argc,char **argv) try {
     report["lift_travel_observed"]=lifted;report["lift_height_threshold"]=body_height;
     passed&=lifted;
   }
+  else if(gauss_fire_test) {
+    std::ofstream(output/"player-body-frames.json")<<body_frames.dump(2)<<'\n';
+    std::ofstream(output/"cameras.json")<<camera_frames.dump(2)<<'\n';
+    report["gauss_seat_lifecycle"]={{"entered",vehicle_entered},{"exited",vehicle_exited},
+      {"seated_camera_frames",seated_camera_frames},{"exit_camera_frames",exit_camera_frames},
+      {"submitted_vehicle_by_view",driven_vehicle_draws}};
+    passed&=vehicle_entered&&vehicle_exited&&seated_camera_frames>0&&exit_camera_frames>0&&driven_vehicle_draws[0]>0;
+  }
   else if(vehicle) {
     std::ofstream(output/"player-body-frames.json")<<body_frames.dump(2)<<'\n';
     report["submitted_seated_player_bodies_by_view"]=seated_body_draws;
@@ -3595,7 +5054,7 @@ int main(int argc,char **argv) try {
       report["source_seat_rejection_verified"]=!vehicle_entered && !invalid_seat_prompts && ordinary_rejected_seat_camera_frames>0;
       passed&=report["source_seat_rejection_verified"].get<bool>() && (!lan || matched_snapshots==samples.size());
     } else {
-    passed&=seated_body_draws[0]>0 && seated_body_draws[1]>0 && exited_body_draws[1]>0;
+    passed&=seated_body_draws[0]>0 && (single_vehicle_view || (seated_body_draws[1]>0 && exited_body_draws[1]>0));
     report["driving_and_solved_contacts_verified"]=false;
     report["source_driver_entered"]=vehicle_entered;report["source_driver_exited"]=vehicle_exited;
     report["source_seat_entered"]=vehicle_entered;report["source_seat_exited"]=vehicle_exited;
@@ -3608,11 +5067,12 @@ int main(int argc,char **argv) try {
     report["source_driving_observed"]=vehicle_entered && vehicle_drive_commands>0 && driven_distance>1;
     report["driver_steering_commands"]=steering_commands;report["source_driver_steering_radians"]=steering_angle;
     report["observer_backward_commands"]=observer_back_commands;report["observer_maximum_distance"]=observer_distance;
+    const bool steering_input=single_vehicle_view?single_vehicle_steering_looks>0:steering_commands>0;
     report["source_driver_controls_completed"]=vehicle_entered && vehicle_exited &&
-        vehicle_drive_commands>0 && driven_distance>1 && steering_commands>0 && steering_angle>.05f;
+        vehicle_drive_commands>0 && driven_distance>1 && steering_input && steering_angle>.05f;
     const bool driver=(vehicle_start->flags&4u)!=0;
     report["source_selected_seat_completed"]=vehicle_entered && vehicle_exited && vehicle_drive_commands>0 &&
-        steering_commands>0;
+        steering_input;
     if(vehicle_collision_test) {
       report["collision_peak_horizontal_speed"]=collision_peak_speed;
       report["collision_minimum_plane_distance"]=collision_minimum_plane_distance;
@@ -3662,7 +5122,16 @@ int main(int argc,char **argv) try {
         {std::ofstream file(output/"authority-vehicle-vitality.json");file<<host->vehicle_vitality_samples.dump(2)<<'\n';check(bool(file),"Could not retain source vehicle vitality");}
         report["vehicle_requested_blast_count"]=vehicle_blast_count;report["vehicle_observed_blast_detonations"]=vehicle_blast_detonations;
         report["vehicle_weapon_fire_commands"]=vehicle_weapon_commands;report["vehicle_weapon_reload_commands"]=vehicle_reload_commands;
-        if(vehicle_weapon_test)passed&=vehicle_weapon_commands>0 && target_impulses>0 && vital_samples>0 && minimum_body<=0.f && dead_samples>0;
+        if(player_self_grenade_test) {
+          report["player_self_grenade_input"]={{"scope","Ordinary SDL own-feet aim using actual source camera and authored player radius; no backoff, starting grenades only; original projectile/fuse/damage unchanged"},{"source_dead_ticks",player_fatal_dead_ticks},
+            {"first_dead_tick",player_fatal_first_tick?Json(*player_fatal_first_tick):Json(nullptr)},
+            {"minimum_player_health",player_fatal_minimum_health},{"corpse_objects",player_fatal_corpse_objects},
+            {"physical_corpse_objects",player_fatal_physical_corpse_objects}};
+          std::ofstream file(output/"authority-player-fatal-receipts.json");file<<player_fatal_receipts.dump(2)<<'\n';check(bool(file),"Cannot retain actual source player death/corpse receipts");
+          const bool fatal_passed=grenade_commands>0 && attached_grenade && released_grenade && detonated &&
+            player_fatal_dead_ticks>0 && !player_fatal_corpse_objects.empty() && !player_fatal_physical_corpse_objects.empty();
+          report["player_self_grenade_fatal_gate"]=fatal_passed;passed&=fatal_passed;
+        } else if(vehicle_weapon_test)passed&=vehicle_weapon_commands>0 && target_impulses>0 && vital_samples>0 && minimum_body<=0.f && dead_samples>0;
         else passed&=grenade_commands==vehicle_blast_count && attached_grenade && released_grenade && detonated &&
             vehicle_blast_detonations>=vehicle_blast_count && target_impulses>=vehicle_blast_count && vital_samples>0;
         report["vehicle_original_dead_flag_samples"]=dead_samples;
@@ -3674,7 +5143,7 @@ int main(int argc,char **argv) try {
         report["vehicle_original_debris_submitted_parts_by_view"]=visible_parts;
         report["vehicle_original_debris_pixel_visibility_verified"]=false;
         report["vehicle_blast_acceptance_scope"]="Original death/impulse/debris motion, LAN equality and draw submissions; pixel visibility and audio require separate verification";
-        if(vehicle_blast_count==2 || vehicle_weapon_test)passed&=minimum_body<=0.f && dead_samples>0 && !first_debris_position.empty() && maximum_debris_displacement>.01f && visible_parts[0]>0 && visible_parts[1]>0;
+        if(!player_self_grenade_test && (vehicle_blast_count==2 || vehicle_weapon_test))passed&=minimum_body<=0.f && dead_samples>0 && !first_debris_position.empty() && maximum_debris_displacement>.01f && visible_parts[0]>0 && visible_parts[1]>0;
       }
     if(accompanied_driver) {
       report["companion_driver_entered"]=companion_entered;
@@ -3683,7 +5152,7 @@ int main(int argc,char **argv) try {
       report["companion_original_camera_frames"]=companion_camera_frames;
       report["moving_occupied_vehicle_distance"]=driven_distance;
       passed&=companion_entered && companion_forward_commands>0 && companion_camera_frames>0 && driven_distance>1.f;
-    } else passed&=observer_back_commands>0 && observer_distance>.5f;
+    } else if(!single_vehicle_view)passed&=observer_back_commands>0 && observer_distance>.5f;
     report["submitted_seated_camera_frames"]=seated_camera_frames;
     report["submitted_exact_source_camera_frames"]=exact_source_camera_frames;
     report["submitted_original_third_person_frames"]=stable_source_third_person_frames;
@@ -3700,11 +5169,12 @@ int main(int argc,char **argv) try {
     report["submitted_seated_camera_look_turn_radians"]=steering_camera_angle;
     passed&=steering_camera_angle>.05f;
     report["submitted_driver_vehicle_geometry_by_view"]=driven_vehicle_draws;
-    passed&=driven_vehicle_draws[0]>0 && driven_vehicle_draws[1]>0;
+    passed&=driven_vehicle_draws[0]>0 && (single_vehicle_view || driven_vehicle_draws[1]>0);
     report["camera_acceptance_passed"]=vehicle_entered && vehicle_exited &&
         seated_camera_frames>0 && steering_camera_angle>.05f &&
-        exit_camera_frames>0 && seated_body_draws[0]>0 && seated_body_draws[1]>0 &&
-        exited_body_draws[1]>0 && driven_vehicle_draws[0]>0 && driven_vehicle_draws[1]>0 &&
+        exit_camera_frames>0 && seated_body_draws[0]>0 &&
+        (single_vehicle_view || (seated_body_draws[1]>0 && exited_body_draws[1]>0)) &&
+        driven_vehicle_draws[0]>0 && (single_vehicle_view || driven_vehicle_draws[1]>0) &&
         (!lan || (exact_source_camera_frames==seated_camera_frames && stable_source_third_person_frames>0 &&
           matched_snapshots==samples.size() && source_exit_transition_frames>0 &&
           ordinary_after_exit_frames>0)) && (!accompanied_driver ||
@@ -3887,7 +5357,11 @@ int main(int argc,char **argv) try {
     report["rearmed_landed_ticks"]=rearm_landed_ticks;
     passed&=rearm_first_released && rearm_second_released && rearm_held_launches==1 && rearm_second_launches==1 &&
         rearm_held_commands>=60 && rearm_missing_held_commands==0 && rearm_landed_ticks>=10 && fastest>0 && forward_commands==0;
-  } else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
+  } else if(glass_walk_test)passed&=distance>0 && glass_walk_commands>0 && jump_commands==0;
+  else if(terminal_walk_test){report["terminal_walk"]={{"commands",terminal_walk_commands},{"actual_prompt_reached",terminal_approached},
+    {"native_wheel_receiver_vertices",terminal_native_receiver_vertices}};
+    passed&=terminal_walk_commands>0&&(terminal_physics_test?distance>0:terminal_approached)&&jump_commands==0;}
+  else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
   if(!lan)report["final_inventory"]=inventory(*o.prepared_world);
   if(prop_placement) {
     if(lan)impulses=host->impulses;
@@ -3970,6 +5444,32 @@ int main(int argc,char **argv) try {
   const auto native_rates_after=source_vehicle_native_rate_activity();
   const auto native_frames=lan?host->native_frames:
       o.prepared_world->source_objects->tu15_world().native_physics_frame_activity();
+  if(gauss_fire_test) {
+    report["gauss_firing"]={{"entered",vehicle_entered},{"fire_commands",turret_fire_commands},
+        {"native_effect_serials",turret_effect_serials},{"native_projectile_births",turret_projectile_births.size()},
+        {"fire_presses",gauss_fire_presses},{"gauss_effects",gauss_effect_observations},
+        {"gauss_light_frames",gauss_light_frames},{"gauss_model_receiver_units",gauss_model_receiver_units},
+          {"target_body_minimum",gauss_target_body_minimum},{"damage_target",turret_damage_target},
+          {"native_flash_ticks",gauss_native_flash_ticks},{"model_receiver_units_by_light",model_receiver_units_by_light},
+          {"native_projectile_observations",gauss_projectile_observations},
+        {"observer_phases",gauss_light_observer_phases},{"light_definitions",observed_light_definitions},
+        {"native_light_samples",gauss_native_light_samples},{"native_view_light_samples",gauss_native_view_lights}};
+    passed&=vehicle_entered&&turret_fire_commands>0&&gauss_native_effects.size()>=3&&
+        turret_projectile_births.size()>=3&&gauss_native_flash_ticks>0;
+    if(gauss_damage_test)passed&=gauss_target_body_minimum<=0.f&&model_receiver_units_by_light[0xe7b648a9u]>0;
+  }
+  if(glass_walk_test) {
+    report["native_glass_contact_damage"]={{"calls",native_frames.native_breakable_contact_calls},
+        {"records",native_frames.native_breakable_damage_records},{"walking_commands",glass_walk_commands}};
+    passed&=native_frames.native_breakable_contact_calls>0 && native_frames.native_breakable_damage_records>0;
+    if(glass_state_test) {
+      report["glass_visual_lifecycle"]={{"initial_intact",glass_initial_intact},{"intact_bound_frames",glass_intact_frames},
+          {"broken_observed_frames",glass_broken_frames},{"broken_but_still_bound_frames",glass_broken_bound_frames},
+          {"crossed_broken_pane",glass_crossed_plane},{"samples",glass_state_samples}};
+      passed&=glass_initial_intact&&glass_intact_frames>0&&glass_broken_frames>=10&&
+          glass_broken_bound_frames==0&&glass_crossed_plane;
+    }
+  }
   report["native_physics_frame_activity"]={{"frame_calls",native_frames.frame_calls},
       {"residual_calls",native_frames.residual_calls},{"native_only_closure",false},
       {"world_integrations",native_frames.world_integrations},{"island_integrations",native_frames.island_integrations},
@@ -3978,6 +5478,36 @@ int main(int argc,char **argv) try {
         {"native_fixed_pose_calls",native_frames.native_fixed_pose_calls},
         {"native_prescribed_force_calls",native_frames.native_prescribed_force_calls},
         {"native_body_policy_calls",native_frames.native_body_policy_calls},
+        {"native_contact_features_attempts",native_frames.native_contact_features_attempts},
+        {"native_contact_features_calls",native_frames.native_contact_features_calls},
+        {"native_contact_features_refusals",native_frames.native_contact_features_refusals},
+        {"native_contact_features_source_calls",native_frames.native_contact_features_source_calls},
+        {"native_contact_features_owner_calls",native_frames.native_contact_features_owner_calls},
+        {"native_vehicle_flip_handoff_attempts",native_frames.native_vehicle_flip_handoff_attempts},
+        {"native_vehicle_flip_handoff_calls",native_frames.native_vehicle_flip_handoff_calls},
+        {"native_vehicle_flip_handoff_refusals",native_frames.native_vehicle_flip_handoff_refusals},
+        {"native_vehicle_flip_calls",native_frames.native_vehicle_flip_calls},
+        {"native_vehicle_flip_flag_skips",native_frames.native_vehicle_flip_flag_skips},
+        {"native_vehicle_flip_direction_skips",native_frames.native_vehicle_flip_direction_skips},
+        {"native_vehicle_flip_timeouts",native_frames.native_vehicle_flip_timeouts},
+        {"native_vehicle_flip_orientation_skips",native_frames.native_vehicle_flip_orientation_skips},
+        {"native_vehicle_flip_get_calls",native_frames.native_vehicle_flip_get_calls},
+        {"native_vehicle_flip_set_calls",native_frames.native_vehicle_flip_set_calls},
+        {"native_vehicle_flip_completed",native_frames.native_vehicle_flip_completed},
+        {"native_vehicle_flip_unbound_services",native_frames.native_vehicle_flip_unbound_services},
+        {"native_vehicle_flip_unqualified_owners",native_frames.native_vehicle_flip_unqualified_owners},
+        {"native_vehicle_flip_residual_calls",native_frames.native_vehicle_flip_residual_calls},
+        {"native_simplex_helpers_attempts",native_frames.native_simplex_helpers_attempts},
+        {"native_simplex_helpers_calls",native_frames.native_simplex_helpers_calls},
+        {"native_simplex_helpers_refusals",native_frames.native_simplex_helpers_refusals},
+        {"native_simplex_triangle_calls",native_frames.native_simplex_triangle_calls},
+        {"native_closest_segment_calls",native_frames.native_closest_segment_calls},
+        {"native_simplex_helper_source_calls",native_frames.native_simplex_helper_source_calls},
+        {"native_gameplay_deactivation_calls",native_frames.native_gameplay_deactivation_calls},
+        {"native_gameplay_deactivation_blocked",native_frames.native_gameplay_deactivation_blocked},
+        {"native_gameplay_deactivation_vehicle_tests",native_frames.native_gameplay_deactivation_vehicle_tests},
+        {"native_gameplay_deactivation_biped_tests",native_frames.native_gameplay_deactivation_biped_tests},
+        {"native_gameplay_deactivation_body_policies",native_frames.native_gameplay_deactivation_body_policies},
         {"native_island_transition_calls",native_frames.native_island_transition_calls},
         {"native_array_growth_calls",native_frames.native_array_growth_calls},
         {"native_array_reserve_calls",native_frames.native_array_reserve_calls},
@@ -3986,6 +5516,270 @@ int main(int argc,char **argv) try {
         {"native_world_collision_calls",native_frames.native_world_collision_calls},
         {"native_world_collision_listener_calls",native_frames.native_world_collision_listener_calls},
         {"native_island_collision_listener_calls",native_frames.native_island_collision_listener_calls},
+        {"native_world_step_listener_calls",native_frames.native_world_step_listener_calls},
+        {"native_island_step_listener_calls",native_frames.native_island_step_listener_calls},
+        {"native_world_regroup_constant_info_queries",native_frames.native_world_regroup_constant_info_queries},
+        {"native_world_regroup_extended_info_queries",native_frames.native_world_regroup_extended_info_queries},
+        {"native_world_regroup_attempts",native_frames.native_world_regroup_attempts},
+        {"native_world_regroup_calls",native_frames.native_world_regroup_calls},
+        {"native_world_regroup_refusals",native_frames.native_world_regroup_refusals},
+        {"native_world_regroup_active_visits",native_frames.native_world_regroup_active_visits},
+        {"native_world_regroup_flag_skips",native_frames.native_world_regroup_flag_skips},
+        {"native_world_regroup_fully_connected",native_frames.native_world_regroup_fully_connected},
+        {"native_world_regroup_empty_islands",native_frames.native_world_regroup_empty_islands},
+        {"native_world_regroup_created_islands",native_frames.native_world_regroup_created_islands},
+        {"native_world_regroup_moved_bodies",native_frames.native_world_regroup_moved_bodies},
+        {"native_world_regroup_compacted_bodies",native_frames.native_world_regroup_compacted_bodies},
+        {"native_world_regroup_moved_actions",native_frames.native_world_regroup_moved_actions},
+        {"native_world_regroup_moved_constraints",native_frames.native_world_regroup_moved_constraints},
+        {"native_world_regroup_moved_contacts",native_frames.native_world_regroup_moved_contacts},
+        {"native_world_regroup_retained_contacts",native_frames.native_world_regroup_retained_contacts},
+        {"native_world_regroup_graph_builds",native_frames.native_world_regroup_graph_builds},
+        {"native_world_regroup_edge_collections",native_frames.native_world_regroup_edge_collections},
+        {"native_world_regroup_array_growths",native_frames.native_world_regroup_array_growths},
+        {"native_world_regroup_group_allocations",native_frames.native_world_regroup_group_allocations},
+        {"native_world_regroup_group_releases",native_frames.native_world_regroup_group_releases},
+        {"native_world_regroup_temporary_constructors",native_frames.native_world_regroup_temporary_constructors},
+        {"native_world_regroup_temporary_destructors",native_frames.native_world_regroup_temporary_destructors},
+        {"native_world_regroup_pool_allocations",native_frames.native_world_regroup_pool_allocations},
+        {"native_world_regroup_pool_releases",native_frames.native_world_regroup_pool_releases},
+        {"native_world_regroup_unbound_services",native_frames.native_world_regroup_unbound_services},
+        {"native_world_merge_calls",native_frames.native_world_merge_calls},
+        {"native_world_merge_contact_calls",native_frames.native_world_merge_contact_calls},
+        {"native_world_merge_body_moves",native_frames.native_world_merge_body_moves},
+        {"native_world_merge_constraint_moves",native_frames.native_world_merge_constraint_moves},
+        {"native_world_merge_disposals",native_frames.native_world_merge_disposals},
+        {"native_world_merge_refusals",native_frames.native_world_merge_refusals},
+        {"native_world_merge_unbound_services",native_frames.native_world_merge_unbound_services},
+        {"native_body_deactivation_motion_snapshot_calls",native_frames.native_body_deactivation_motion_snapshot_calls},
+        {"native_body_deactivation_motion_position_queries",native_frames.native_body_deactivation_motion_position_queries},
+        {"native_body_deactivation_motion_disabled_bodies",native_frames.native_body_deactivation_motion_disabled_bodies},
+        {"native_body_deactivation_motion_snapshot_stores",native_frames.native_body_deactivation_motion_snapshot_stores},
+        {"native_body_deactivation_attempts",native_frames.native_body_deactivation_attempts},
+        {"native_body_deactivation_calls",native_frames.native_body_deactivation_calls},
+        {"native_body_deactivation_refusals",native_frames.native_body_deactivation_refusals},
+        {"native_body_deactivation_deferred_bodies",native_frames.native_body_deactivation_deferred_bodies},
+        {"native_body_deactivation_array_growths",native_frames.native_body_deactivation_array_growths},
+        {"native_body_deactivation_property_queries",native_frames.native_body_deactivation_property_queries},
+        {"native_body_deactivation_motion_publications",native_frames.native_body_deactivation_motion_publications},
+        {"native_body_deactivation_unbound_services",native_frames.native_body_deactivation_unbound_services},
+        {"native_pair_discrete_attempts",native_frames.native_pair_discrete_attempts},
+        {"native_pair_discrete_calls",native_frames.native_pair_discrete_calls},
+        {"native_pair_discrete_refusals",native_frames.native_pair_discrete_refusals},
+        {"native_pair_discrete_unbound_filters",native_frames.native_pair_discrete_unbound_filters},
+        {"native_pair_discrete_unbound_motion_types",native_frames.native_pair_discrete_unbound_motion_types},
+        {"native_pair_discrete_payload_filters",native_frames.native_pair_discrete_payload_filters},
+        {"native_pair_discrete_motion_queries",native_frames.native_pair_discrete_motion_queries},
+        {"native_pair_island_wake_attempts",native_frames.native_pair_island_wake_attempts},
+        {"native_pair_island_wake_calls",native_frames.native_pair_island_wake_calls},
+        {"native_pair_island_wake_refusals",native_frames.native_pair_island_wake_refusals},
+        {"native_world_activation_agent_factories",native_frames.native_world_activation_agent_factories},
+        {"native_world_activation_bound_factory_attempts",native_frames.native_world_activation_bound_factory_attempts},
+        {"native_world_activation_bound_factory_calls",native_frames.native_world_activation_bound_factory_calls},
+        {"native_world_activation_bound_factory_refusals",native_frames.native_world_activation_bound_factory_refusals},
+        {"native_world_activation_calls",native_frames.native_world_activation_calls},
+        {"native_world_activation_refusals",native_frames.native_world_activation_refusals},
+        {"native_world_activation_body_updates",native_frames.native_world_activation_body_updates},
+        {"native_world_activation_constraint_rows",native_frames.native_world_activation_constraint_rows},
+        {"native_world_activation_residual_calls",native_frames.native_world_activation_residual_calls},
+        {"native_object_velocity_handoff_attempts",native_frames.native_object_velocity_handoff_attempts},
+        {"native_object_velocity_handoff_calls",native_frames.native_object_velocity_handoff_calls},
+        {"native_object_velocity_handoff_refusals",native_frames.native_object_velocity_handoff_refusals},
+        {"native_object_velocity_calls",native_frames.native_object_velocity_calls},
+        {"native_object_velocity_refusals",native_frames.native_object_velocity_refusals},
+        {"native_object_velocity_unqualified_owners",native_frames.native_object_velocity_unqualified_owners},
+        {"native_object_velocity_body_wakes",native_frames.native_object_velocity_body_wakes},
+        {"native_object_velocity_island_wakes",native_frames.native_object_velocity_island_wakes},
+        {"native_object_velocity_agent_factories",native_frames.native_object_velocity_agent_factories},
+        {"native_object_velocity_pool_allocations",native_frames.native_object_velocity_pool_allocations},
+        {"native_object_velocity_unconverted_factories",native_frames.native_object_velocity_unconverted_factories},
+        {"native_object_velocity_unconverted_getters",native_frames.native_object_velocity_unconverted_getters},
+        {"native_object_velocity_residual_calls",native_frames.native_object_velocity_residual_calls},
+        {"native_object_velocity_residual_owners",native_frames.native_object_velocity_residual_owners},
+        {"native_object_velocity_constraint_updates",native_frames.native_object_velocity_constraint_updates},
+        {"native_object_velocity_constraint_flag_skips",native_frames.native_object_velocity_constraint_flag_skips},
+        {"native_object_velocity_constraint_empty_banks",native_frames.native_object_velocity_constraint_empty_banks},
+        {"native_object_velocity_constraint_rows",native_frames.native_object_velocity_constraint_rows},
+        {"native_object_velocity_constraint_unbound_services",native_frames.native_object_velocity_constraint_unbound_services},
+        {"native_object_velocity_constraint_lookup_calls",native_frames.native_object_velocity_constraint_lookup_calls},
+        {"native_object_velocity_constraint_capacity_calls",native_frames.native_object_velocity_constraint_capacity_calls},
+        {"native_object_velocity_constraint_unbound_removals",native_frames.native_object_velocity_constraint_unbound_removals},
+        {"native_constraint_removal_calls",native_frames.native_constraint_removal_calls},
+        {"native_constraint_creation_calls",native_frames.native_constraint_creation_calls},
+        {"native_constraint_created",native_frames.native_constraint_created},
+        {"native_constraint_creation_allocations",native_frames.native_constraint_creation_allocations},
+        {"native_constraint_normalize_calls",native_frames.native_constraint_normalize_calls},
+        {"native_constraint_local_point_calls",native_frames.native_constraint_local_point_calls},
+        {"native_constraint_creation_storage_refusals",native_frames.native_constraint_creation_storage_refusals},
+        {"native_constraint_creation_numerical_refusals",native_frames.native_constraint_creation_numerical_refusals},
+        {"native_constraint_handle_calls",native_frames.native_constraint_handle_calls},
+        {"native_constraint_valid_handles",native_frames.native_constraint_valid_handles},
+        {"native_constraint_retained_handle_marks",native_frames.native_constraint_retained_handle_marks},
+        {"native_constraint_handle_unbound_services",native_frames.native_constraint_handle_unbound_services},
+        {"native_constraint_handle_destruction_calls",native_frames.native_constraint_handle_destruction_calls},
+        {"native_constraint_handle_row_deletions",native_frames.native_constraint_handle_row_deletions},
+        {"native_constraint_event_deletions",native_frames.native_constraint_event_deletions},
+        {"native_constraint_object_detaches",native_frames.native_constraint_object_detaches},
+        {"native_constraint_child_unbound_services",native_frames.native_constraint_child_unbound_services},
+        {"native_constraint_tag_value_calls",native_frames.native_constraint_tag_value_calls},
+        {"native_constraint_tag_value_publications",native_frames.native_constraint_tag_value_publications},
+        {"native_gameplay_policy_destructions",native_frames.native_gameplay_policy_destructions},
+        {"native_constraint_runtime_calls",native_frames.native_constraint_runtime_calls},
+        {"native_constraint_runtime_counter_updates",native_frames.native_constraint_runtime_counter_updates},
+        {"native_constraint_runtime_state_updates",native_frames.native_constraint_runtime_state_updates},
+        {"native_constraint_runtime_geometry_updates",native_frames.native_constraint_runtime_geometry_updates},
+        {"native_constraint_runtime_effect_selections",native_frames.native_constraint_runtime_effect_selections},
+        {"native_constraint_runtime_effect_publications",native_frames.native_constraint_runtime_effect_publications},
+        {"native_constraint_runtime_handle_creations",native_frames.native_constraint_runtime_handle_creations},
+        {"native_constraint_runtime_storage_refusals",native_frames.native_constraint_runtime_storage_refusals},
+        {"native_constraint_runtime_profile_refusals",native_frames.native_constraint_runtime_profile_refusals},
+        {"native_constraint_runtime_unbound_services",native_frames.native_constraint_runtime_unbound_services},
+        {"native_constraint_instance_deletions",native_frames.native_constraint_instance_deletions},
+        {"native_constraint_list_removals",native_frames.native_constraint_list_removals},
+        {"native_constraint_local_releases",native_frames.native_constraint_local_releases},
+        {"native_constraint_global_releases",native_frames.native_constraint_global_releases},
+        {"native_constraint_unbound_handle_releases",native_frames.native_constraint_unbound_handle_releases},
+        {"native_constraint_unbound_runtime_removals",native_frames.native_constraint_unbound_runtime_removals},
+
+        {"native_object_velocity_payload_predicates",native_frames.native_object_velocity_payload_predicates},
+        {"native_object_velocity_manager_factories",native_frames.native_object_velocity_manager_factories},
+        {"native_object_velocity_manager_constructors",native_frames.native_object_velocity_manager_constructors},
+        {"native_object_velocity_manager_registrations",native_frames.native_object_velocity_manager_registrations},
+        {"native_object_velocity_unconverted_managers",native_frames.native_object_velocity_unconverted_managers},
+        {"native_object_velocity_policy_calls",native_frames.native_object_velocity_policy_calls},
+        {"native_object_velocity_policy_constructors",native_frames.native_object_velocity_policy_constructors},
+        {"native_object_velocity_policy_bounds",native_frames.native_object_velocity_policy_bounds},
+        {"native_object_velocity_unconverted_policy_types",native_frames.native_object_velocity_unconverted_policy_types},
+        {"native_object_velocity_unconverted_policy_destructions",native_frames.native_object_velocity_unconverted_policy_destructions},
+        {"native_object_velocity_policy_bounds_owners",native_frames.native_object_velocity_policy_bounds_owners},
+        {"native_object_velocity_unconverted_bounds_owners",native_frames.native_object_velocity_unconverted_bounds_owners},
+
+        {"native_camera_query_attempts",native_frames.native_camera_query_attempts},
+        {"native_camera_query_calls",native_frames.native_camera_query_calls},
+        {"native_camera_query_refusals",native_frames.native_camera_query_refusals},
+        {"native_camera_query_resource_refusals",native_frames.native_camera_query_resource_refusals},
+        {"native_camera_query_unknown_owners",native_frames.native_camera_query_unknown_owners},
+        {"native_camera_query_bsp_calls",native_frames.native_camera_query_bsp_calls},
+        {"native_camera_query_bsp_hits",native_frames.native_camera_query_bsp_hits},
+        {"native_camera_query_cluster_visits",native_frames.native_camera_query_cluster_visits},
+        {"native_camera_query_instanced_attempts",native_frames.native_camera_query_instanced_attempts},
+        {"native_camera_query_instanced_calls",native_frames.native_camera_query_instanced_calls},
+        {"native_camera_query_instanced_refusals",native_frames.native_camera_query_instanced_refusals},
+        {"native_camera_query_mopp_calls",native_frames.native_camera_query_mopp_calls},
+        {"native_camera_query_mopp_opcodes",native_frames.native_camera_query_mopp_opcodes},
+        {"native_camera_query_mopp_leaves",native_frames.native_camera_query_mopp_leaves},
+        {"native_camera_query_primitive_calls",native_frames.native_camera_query_primitive_calls},
+        {"native_camera_query_primitive_hits",native_frames.native_camera_query_primitive_hits},
+        {"native_camera_query_dynamic_calls",native_frames.native_camera_query_dynamic_calls},
+        {"native_camera_query_dynamic_ray_calls",native_frames.native_camera_query_dynamic_ray_calls},
+        {"native_camera_query_unprovided_reads",native_frames.native_camera_query_unprovided_reads},
+        {"native_camera_query_unprovided_writes",native_frames.native_camera_query_unprovided_writes},
+        {"native_look_update_fp_refusals",native_frames.native_look_update_fp_refusals},
+        {"native_look_update_attempts",native_frames.native_look_update_attempts},
+        {"native_look_update_calls",native_frames.native_look_update_calls},
+        {"native_look_update_refusals",native_frames.native_look_update_refusals},
+        {"native_look_update_context_calls",native_frames.native_look_update_context_calls},
+        {"native_look_update_context_refusals",native_frames.native_look_update_context_refusals},
+        {"native_look_update_camera_calls",native_frames.native_look_update_camera_calls},
+        {"native_look_update_camera_completions",native_frames.native_look_update_camera_completions},
+        {"native_look_update_camera_onfoot_calls",native_frames.native_look_update_camera_onfoot_calls},
+        {"native_look_update_camera_marker_calls",native_frames.native_look_update_camera_marker_calls},
+        {"native_look_update_marker_calls",native_frames.native_look_update_marker_calls},
+        {"native_look_update_angle_calls",native_frames.native_look_update_angle_calls},
+        {"native_look_update_angle_completions",native_frames.native_look_update_angle_completions},
+        {"native_look_update_angle_refusals",native_frames.native_look_update_angle_refusals},
+        {"native_look_update_query_refusals",native_frames.native_look_update_query_refusals},
+        {"native_look_update_marker_observer_refusals",native_frames.native_look_update_marker_observer_refusals},
+        {"native_look_reorientation_attempts",native_frames.native_look_reorientation_attempts},
+        {"native_look_reorientation_calls",native_frames.native_look_reorientation_calls},
+        {"native_look_reorientation_refusals",native_frames.native_look_reorientation_refusals},
+        {"native_look_reorientation_kernel_calls",native_frames.native_look_reorientation_kernel_calls},
+        {"native_look_reorientation_kernel_refusals",native_frames.native_look_reorientation_kernel_refusals},
+        {"native_look_reorientation_yaw_wraps",native_frames.native_look_reorientation_yaw_wraps},
+        {"native_look_initialization_attempts",native_frames.native_look_initialization_attempts},
+        {"native_look_initialization_calls",native_frames.native_look_initialization_calls},
+        {"native_look_initialization_refusals",native_frames.native_look_initialization_refusals},
+        {"native_look_initialization_cleared_records",native_frames.native_look_initialization_cleared_records},
+        {"native_look_initialization_unit_directions",native_frames.native_look_initialization_unit_directions},
+        {"native_look_initialization_unchanged",native_frames.native_look_initialization_unchanged},
+        {"native_dirty_island_objects_attempts",native_frames.native_dirty_island_objects_attempts},
+        {"native_dirty_island_objects_calls",native_frames.native_dirty_island_objects_calls},
+        {"native_dirty_island_objects_refusals",native_frames.native_dirty_island_objects_refusals},
+        {"native_dirty_island_objects_kernel_entries",native_frames.native_dirty_island_objects_kernel_entries},
+        {"native_dirty_island_objects_pending_skips",native_frames.native_dirty_island_objects_pending_skips},
+        {"native_dirty_island_objects_reentrant_skips",native_frames.native_dirty_island_objects_reentrant_skips},
+        {"native_dirty_island_objects_island_rows",native_frames.native_dirty_island_objects_island_rows},
+        {"native_dirty_island_objects_dirty_islands",native_frames.native_dirty_island_objects_dirty_islands},
+        {"native_dirty_island_objects_body_rows",native_frames.native_dirty_island_objects_body_rows},
+        {"native_dirty_island_objects_candidate_objects",native_frames.native_dirty_island_objects_candidate_objects},
+        {"native_dirty_island_objects_deferred_objects",native_frames.native_dirty_island_objects_deferred_objects},
+        {"native_dirty_island_objects_component_destructions",native_frames.native_dirty_island_objects_component_destructions},
+        {"native_dirty_island_objects_component_frees",native_frames.native_dirty_island_objects_component_frees},
+        {"native_dirty_island_objects_object_deletions",native_frames.native_dirty_island_objects_object_deletions},
+        {"native_dirty_island_objects_recursive_updates",native_frames.native_dirty_island_objects_recursive_updates},
+        {"native_dirty_island_objects_flag_calls",native_frames.native_dirty_island_objects_flag_calls},
+        {"native_dirty_island_objects_defer_calls",native_frames.native_dirty_island_objects_defer_calls},
+        {"native_dirty_island_objects_state_removals",native_frames.native_dirty_island_objects_state_removals},
+        {"native_dirty_island_objects_state_resets",native_frames.native_dirty_island_objects_state_resets},
+        {"native_dirty_island_objects_state_refreshes",native_frames.native_dirty_island_objects_state_refreshes},
+        {"native_dirty_island_objects_state_activations",native_frames.native_dirty_island_objects_state_activations},
+        {"native_dirty_island_objects_unqualified_services",native_frames.native_dirty_island_objects_unqualified_services},
+        {"native_dirty_island_objects_unsupported_local_sizes",native_frames.native_dirty_island_objects_unsupported_local_sizes},
+        {"native_dirty_island_objects_unqualified_owners",native_frames.native_dirty_island_objects_unqualified_owners},
+        {"native_contact_body_attempts",native_frames.native_contact_body_attempts},
+        {"native_contact_body_calls",native_frames.native_contact_body_calls},
+        {"native_contact_body_refusals",native_frames.native_contact_body_refusals},
+        {"native_contact_body_point_queries",native_frames.native_contact_body_point_queries},
+        {"native_contact_body_property_queries",native_frames.native_contact_body_property_queries},
+        {"native_contact_body_motion_type_queries",native_frames.native_contact_body_motion_type_queries},
+        {"native_contact_body_point_velocity_queries",native_frames.native_contact_body_point_velocity_queries},
+        {"native_contact_body_impulse_requests",native_frames.native_contact_body_impulse_requests},
+        {"native_contact_body_wake_attempts",native_frames.native_contact_body_wake_attempts},
+        {"native_contact_body_wake_calls",native_frames.native_contact_body_wake_calls},
+        {"native_contact_body_wake_refusals",native_frames.native_contact_body_wake_refusals},
+        {"native_contact_body_unqualified_owners",native_frames.native_contact_body_unqualified_owners},
+        {"native_contact_body_unsupported_fp_profiles",native_frames.native_contact_body_unsupported_fp_profiles},
+        {"native_contact_body_refused_owners",native_frames.native_contact_body_refused_owners},
+        {"native_main_heap_release_attempts",native_frames.native_main_heap_release_attempts},
+        {"native_main_heap_release_calls",native_frames.native_main_heap_release_calls},
+        {"native_main_heap_release_refusals",native_frames.native_main_heap_release_refusals},
+        {"native_main_heap_release_wrapper_calls",native_frames.native_main_heap_release_wrapper_calls},
+        {"native_main_heap_release_ledger_calls",native_frames.native_main_heap_release_ledger_calls},
+        {"native_main_heap_release_visited",native_frames.native_main_heap_release_visited},
+        {"native_main_heap_release_matches",native_frames.native_main_heap_release_matches},
+        {"native_main_heap_release_moved_rows",native_frames.native_main_heap_release_moved_rows},
+        {"native_main_heap_release_kernel_completed",native_frames.native_main_heap_release_kernel_completed},
+        {"native_main_heap_release_unbound_services",native_frames.native_main_heap_release_unbound_services},
+        {"native_main_heap_release_refused_owners",native_frames.native_main_heap_release_refused_owners},
+        {"native_contact_entity_calls",native_frames.native_contact_entity_calls},
+        {"native_contact_entity_missing_body_pairs",native_frames.native_contact_entity_missing_body_pairs},
+        {"native_contact_entity_property_queries",native_frames.native_contact_entity_property_queries},
+        {"native_contact_entity_disabled_components",native_frames.native_contact_entity_disabled_components},
+        {"native_contact_entity_dispatch_calls",native_frames.native_contact_entity_dispatch_calls},
+        {"native_contact_processor_calls",native_frames.native_contact_processor_calls},
+        {"native_contact_processor_contacts",native_frames.native_contact_processor_contacts},
+        {"native_contact_processor_candidate_rows",native_frames.native_contact_processor_candidate_rows},
+        {"native_contact_processor_matched_rows",native_frames.native_contact_processor_matched_rows},
+        {"native_contact_processor_updates",native_frames.native_contact_processor_updates},
+        {"native_contact_completion_calls",native_frames.native_contact_completion_calls},
+        {"native_contact_completion_contacts",native_frames.native_contact_completion_contacts},
+        {"native_contact_completion_world_notifications",native_frames.native_contact_completion_world_notifications},
+        {"native_contact_completion_body_notifications",native_frames.native_contact_completion_body_notifications},
+        {"native_contact_completion_custom_callbacks",native_frames.native_contact_completion_custom_callbacks},
+        {"native_contact_completion_null_entries_removed",native_frames.native_contact_completion_null_entries_removed},
+        {"native_body_reference_calls",native_frames.native_body_reference_calls},
+        {"native_body_reference_cohorts",native_frames.native_body_reference_cohorts},
+        {"native_body_reference_moved_entries",native_frames.native_body_reference_moved_entries},
+        {"native_body_reference_reserves",native_frames.native_body_reference_reserves},
+        {"native_deferred_operation_calls",native_frames.native_deferred_operation_calls},
+        {"native_deferred_action_calls",native_frames.native_deferred_action_calls},
+        {"native_deferred_delete_calls",native_frames.native_deferred_delete_calls},
+        {"native_deferred_update_calls",native_frames.native_deferred_update_calls},
+        {"native_deferred_merges",native_frames.native_deferred_merges},
+        {"native_deferred_body_removals",native_frames.native_deferred_body_removals},
+        {"native_deferred_update_removals",native_frames.native_deferred_update_removals},
+        {"native_deferred_reference_releases",native_frames.native_deferred_reference_releases},
+        {"native_deferred_destructions",native_frames.native_deferred_destructions},
         {"native_constraint_calls",native_frames.native_constraint_calls},
         {"native_dynamic_accumulator_calls",native_frames.native_dynamic_accumulator_calls},
         {"native_constraint_setup_calls",native_frames.native_constraint_setup_calls},
@@ -3998,6 +5792,11 @@ int main(int argc,char **argv) try {
         {"native_island_contact_time_calls",native_frames.native_island_contact_time_calls},
         {"native_island_contact_buffers_constructed",native_frames.native_island_contact_buffers_constructed},
         {"native_island_contact_buffers_destroyed",native_frames.native_island_contact_buffers_destroyed},
+        {"native_cached_motion_calls",native_frames.native_cached_motion_calls},
+        {"native_cached_motion_rewinds",native_frames.native_cached_motion_rewinds},
+        {"native_cached_motion_advances",native_frames.native_cached_motion_advances},
+        {"native_contact_fixed_motion_calls",native_frames.native_contact_fixed_motion_calls},
+        {"contact_motion_residual_calls",native_frames.contact_motion_residual_calls},
         {"native_contact_advance_calls",native_frames.native_contact_advance_calls},
         {"native_contact_advance_motion_calls",native_frames.native_contact_advance_motion_calls},
         {"native_contact_advance_process_calls",native_frames.native_contact_advance_process_calls},
@@ -4008,6 +5807,258 @@ int main(int argc,char **argv) try {
         {"native_motion_commit_calls",native_frames.native_motion_commit_calls},
         {"native_motion_commit_kinds",native_frames.native_motion_commit_kinds},
         {"native_broad_phase_calls",native_frames.native_broad_phase_calls},
+        {"native_broad_phase_edge_attempts",native_frames.native_broad_phase_edge_attempts},
+        {"native_broad_phase_edge_calls",native_frames.native_broad_phase_edge_calls},
+        {"native_broad_phase_edge_refusals",native_frames.native_broad_phase_edge_refusals},
+        {"native_broad_phase_edge_objects",native_frames.native_broad_phase_edge_objects},
+        {"native_broad_phase_edge_shifted_edges",native_frames.native_broad_phase_edge_shifted_edges},
+        {"native_broad_phase_edge_created_pairs",native_frames.native_broad_phase_edge_created_pairs},
+        {"native_broad_phase_edge_removed_pairs",native_frames.native_broad_phase_edge_removed_pairs},
+        {"native_broad_phase_edge_special_additions",native_frames.native_broad_phase_edge_special_additions},
+        {"native_broad_phase_edge_special_removals",native_frames.native_broad_phase_edge_special_removals},
+        {"native_broad_phase_edge_array_growths",native_frames.native_broad_phase_edge_array_growths},
+        {"native_memory_pressure_attempts",native_frames.native_memory_pressure_attempts},
+        {"native_memory_pressure_level_queries",native_frames.native_memory_pressure_level_queries},
+        {"native_memory_pressure_pool_queries",native_frames.native_memory_pressure_pool_queries},
+        {"native_memory_pressure_reentrant_skips",native_frames.native_memory_pressure_reentrant_skips},
+        {"native_memory_pressure_unbound_services",native_frames.native_memory_pressure_unbound_services},
+        {"native_memory_pressure_completions",native_frames.native_memory_pressure_completions},
+        {"native_memory_pressure_refusals",native_frames.native_memory_pressure_refusals},
+        {"native_contact_pressure_attempts",native_frames.native_contact_pressure_attempts},
+        {"native_contact_pressure_null_worlds",native_frames.native_contact_pressure_null_worlds},
+        {"native_contact_pressure_reentrant_skips",native_frames.native_contact_pressure_reentrant_skips},
+        {"native_contact_pressure_islands",native_frames.native_contact_pressure_islands},
+        {"native_contact_pressure_dense_islands",native_frames.native_contact_pressure_dense_islands},
+        {"native_contact_pressure_shape_queries",native_frames.native_contact_pressure_shape_queries},
+        {"native_contact_pressure_candidate_queries",native_frames.native_contact_pressure_candidate_queries},
+        {"native_contact_pressure_unbound_services",native_frames.native_contact_pressure_unbound_services},
+        {"native_contact_pressure_completions",native_frames.native_contact_pressure_completions},
+        {"native_contact_pressure_refusals",native_frames.native_contact_pressure_refusals},
+        {"native_object_publication_attempts",native_frames.native_object_publication_attempts},
+        {"native_object_publication_calls",native_frames.native_object_publication_calls},
+        {"native_object_publication_refusals",native_frames.native_object_publication_refusals},
+        {"native_object_publication_root_queries",native_frames.native_object_publication_root_queries},
+        {"native_object_publication_tree_calls",native_frames.native_object_publication_tree_calls},
+        {"native_object_publication_ancestor_wakes",native_frames.native_object_publication_ancestor_wakes},
+        {"native_object_publication_marked_headers",native_frames.native_object_publication_marked_headers},
+        {"native_pair_consumer_attempts",native_frames.native_pair_consumer_attempts},
+        {"native_pair_consumer_calls",native_frames.native_pair_consumer_calls},
+        {"native_pair_consumer_refusals",native_frames.native_pair_consumer_refusals},
+        {"native_pair_consumer_nonempty_calls",native_frames.native_pair_consumer_nonempty_calls},
+        {"native_pair_consumer_filter_calls",native_frames.native_pair_consumer_filter_calls},
+        {"native_pair_consumer_create_calls",native_frames.native_pair_consumer_create_calls},
+        {"native_phantom_pair_create_notifications",native_frames.native_phantom_pair_create_notifications},
+        {"native_phantom_added_listener_attempts",native_frames.native_phantom_added_listener_attempts},
+        {"native_phantom_added_listener_calls",native_frames.native_phantom_added_listener_calls},
+        {"native_phantom_added_listener_refusals",native_frames.native_phantom_added_listener_refusals},
+        {"native_phantom_added_components_marked",native_frames.native_phantom_added_components_marked},
+        {"native_phantom_added_protection_queries",native_frames.native_phantom_added_protection_queries},
+        {"native_phantom_added_objects_protected",native_frames.native_phantom_added_objects_protected},
+        {"native_phantom_added_delete_requests",native_frames.native_phantom_added_delete_requests},
+        {"native_phantom_added_unqualified_deletions",native_frames.native_phantom_added_unqualified_deletions},
+        {"native_phantom_object_deletion_attempts",native_frames.native_phantom_object_deletion_attempts},
+        {"native_phantom_object_deletion_calls",native_frames.native_phantom_object_deletion_calls},
+        {"native_phantom_object_deletion_refusals",native_frames.native_phantom_object_deletion_refusals},
+        {"native_phantom_object_deletion_unbound_services",native_frames.native_phantom_object_deletion_unbound_services},
+        {"native_phantom_object_detachment_calls",native_frames.native_phantom_object_detachment_calls},
+        {"native_phantom_object_detachment_objects",native_frames.native_phantom_object_detachment_objects},
+        {"native_phantom_object_detachment_refusals",native_frames.native_phantom_object_detachment_refusals},
+        {"native_phantom_object_spatial_queries",native_frames.native_phantom_object_spatial_queries},
+        {"native_phantom_object_tracking_clears",native_frames.native_phantom_object_tracking_clears},
+        {"native_phantom_object_player_clears",native_frames.native_phantom_object_player_clears},
+        {"native_phantom_object_schedule_updates",native_frames.native_phantom_object_schedule_updates},
+        {"native_phantom_object_reference_clears",native_frames.native_phantom_object_reference_clears},
+        {"native_phantom_object_spatial_flag_queries",native_frames.native_phantom_object_spatial_flag_queries},
+        {"native_phantom_object_spatial_packets",native_frames.native_phantom_object_spatial_packets},
+        {"native_phantom_object_spatial_chain_updates",native_frames.native_phantom_object_spatial_chain_updates},
+        {"native_phantom_object_spatial_chain_rows",native_frames.native_phantom_object_spatial_chain_rows},
+        {"native_phantom_object_spatial_record_searches",native_frames.native_phantom_object_spatial_record_searches},
+        {"native_phantom_object_spatial_searched_rows",native_frames.native_phantom_object_spatial_searched_rows},
+        {"native_phantom_object_spatial_matched_rows",native_frames.native_phantom_object_spatial_matched_rows},
+        {"native_phantom_object_spatial_missing_rows",native_frames.native_phantom_object_spatial_missing_rows},
+        {"native_phantom_object_spatial_word_copies",native_frames.native_phantom_object_spatial_word_copies},
+        {"native_phantom_object_spatial_byte_copies",native_frames.native_phantom_object_spatial_byte_copies},
+        {"native_phantom_object_spatial_zero_copies",native_frames.native_phantom_object_spatial_zero_copies},
+        {"native_phantom_pair_create_unqualified_owners",native_frames.native_phantom_pair_create_unqualified_owners},
+        {"native_phantom_pair_create_simple_adds",native_frames.native_phantom_pair_create_simple_adds},
+        {"native_phantom_pair_create_complex_adds",native_frames.native_phantom_pair_create_complex_adds},
+        {"native_pair_consumer_delete_calls",native_frames.native_pair_consumer_delete_calls},
+        {"native_pair_consumer_unqualified_services",native_frames.native_pair_consumer_unqualified_services},
+        {"native_pair_consumer_owned_allocations",native_frames.native_pair_consumer_owned_allocations},
+        {"native_pair_consumer_owned_releases",native_frames.native_pair_consumer_owned_releases},
+        {"native_pair_consumer_arena_allocations",native_frames.native_pair_consumer_arena_allocations},
+        {"native_pair_consumer_arena_releases",native_frames.native_pair_consumer_arena_releases},
+        {"native_pair_consumer_pool_allocations",native_frames.native_pair_consumer_pool_allocations},
+        {"native_pair_consumer_pool_releases",native_frames.native_pair_consumer_pool_releases},
+        {"native_pair_consumer_phantom_delete_calls",native_frames.native_pair_consumer_phantom_delete_calls},
+        {"native_pair_consumer_phantom_notifications",native_frames.native_pair_consumer_phantom_notifications},
+        {"native_pair_consumer_phantom_noops",native_frames.native_pair_consumer_phantom_noops},
+        {"native_pair_consumer_phantom_unqualified_owners",native_frames.native_pair_consumer_phantom_unqualified_owners},
+        {"native_pair_consumer_phantom_overlap_remove_calls",native_frames.native_pair_consumer_phantom_overlap_remove_calls},
+        {"native_pair_consumer_simple_phantom_overlap_remove_calls",native_frames.native_pair_consumer_simple_phantom_overlap_remove_calls},
+        {"native_stack_arena_allocations",native_frames.native_stack_arena_allocations},
+        {"native_stack_arena_releases",native_frames.native_stack_arena_releases},
+        {"native_stack_arena_refusals",native_frames.native_stack_arena_refusals},
+        {"native_constraint_arena_allocations",native_frames.native_constraint_arena_allocations},
+        {"native_constraint_arena_releases",native_frames.native_constraint_arena_releases},
+        {"native_constraint_arena_refusals",native_frames.native_constraint_arena_refusals},
+        {"native_contact_agent_cleanup_calls",native_frames.native_contact_agent_cleanup_calls},
+        {"native_contact_agent_record_cleanups",native_frames.native_contact_agent_record_cleanups},
+        {"native_contact_agent_pointer_cleanups",native_frames.native_contact_agent_pointer_cleanups},
+        {"native_contact_reference_disposals",native_frames.native_contact_reference_disposals},
+        {"native_contact_agent_child_residuals",native_frames.native_contact_agent_child_residuals},
+        {"native_contact_agent_destructor_residuals",native_frames.native_contact_agent_destructor_residuals},
+        {"native_contact_agent_cleanup_refusals",native_frames.native_contact_agent_cleanup_refusals},
+        {"native_joint_builder_attempts",native_frames.native_joint_builder_attempts},
+        {"native_joint_builder_calls",native_frames.native_joint_builder_calls},
+        {"native_joint_builder_refusals",native_frames.native_joint_builder_refusals},
+        {"native_joint_builder_unsupported_fp",native_frames.native_joint_builder_unsupported_fp},
+        {"native_joint_builder_kernel_entries",native_frames.native_joint_builder_kernel_entries},
+        {"native_joint_builder_kernel_completed",native_frames.native_joint_builder_kernel_completed},
+        {"native_joint_builder_headers",native_frames.native_joint_builder_headers},
+        {"native_joint_builder_angular_rows",native_frames.native_joint_builder_angular_rows},
+        {"native_joint_builder_motors",native_frames.native_joint_builder_motors},
+        {"native_joint_builder_linear_requests",native_frames.native_joint_builder_linear_requests},
+        {"native_joint_builder_linear_calls",native_frames.native_joint_builder_linear_calls},
+        {"native_joint_builder_linear_completed",native_frames.native_joint_builder_linear_completed},
+        {"native_joint_builder_linear_rows",native_frames.native_joint_builder_linear_rows},
+        {"native_joint_builder_linear_refusals",native_frames.native_joint_builder_linear_refusals},
+        {"native_joint_builder_limits",native_frames.native_joint_builder_limits},
+        {"native_joint_builder_positive_unwraps",native_frames.native_joint_builder_positive_unwraps},
+        {"native_joint_builder_negative_unwraps",native_frames.native_joint_builder_negative_unwraps},
+        {"native_joint_builder_unbound_linear",native_frames.native_joint_builder_unbound_linear},
+        {"native_joint_builder_linear_unaligned",native_frames.native_joint_builder_linear_unaligned},
+        {"native_joint_builder_linear_unsupported_fp",native_frames.native_joint_builder_linear_unsupported_fp},
+        {"native_contact_agent_cached_cleanups",native_frames.native_contact_agent_cached_cleanups},
+        {"native_contact_agent_wrapped_cleanups",native_frames.native_contact_agent_wrapped_cleanups},
+        {"native_contact_agent_native_destructors",native_frames.native_contact_agent_native_destructors},
+        {"native_contact_agent_point_residuals",native_frames.native_contact_agent_point_residuals},
+        {"native_transformed_agent_factory_attempts",native_frames.native_transformed_agent_factory_attempts},
+        {"native_transformed_agent_factory_calls",native_frames.native_transformed_agent_factory_calls},
+        {"native_transformed_agent_factory_refusals",native_frames.native_transformed_agent_factory_refusals},
+        {"native_wrapped_factory_attempts",native_frames.native_wrapped_factory_attempts},
+        {"native_wrapped_factory_calls",native_frames.native_wrapped_factory_calls},
+        {"native_wrapped_factory_refusals",native_frames.native_wrapped_factory_refusals},
+        {"native_wrapped_factory_wrapped_entries",native_frames.native_wrapped_factory_wrapped_entries},
+        {"native_wrapped_factory_transformed_entries",native_frames.native_wrapped_factory_transformed_entries},
+        {"native_wrapped_factory_convex_entries",native_frames.native_wrapped_factory_convex_entries},
+        {"native_wrapped_factory_class_queries",native_frames.native_wrapped_factory_class_queries},
+        {"native_wrapped_factory_unqualified_owners",native_frames.native_wrapped_factory_unqualified_owners},
+        {"native_contact_point_attempts",native_frames.native_contact_point_attempts},
+        {"native_contact_point_calls",native_frames.native_contact_point_calls},
+        {"native_contact_point_refusals",native_frames.native_contact_point_refusals},
+        {"native_contact_point_profile_refusals",native_frames.native_contact_point_profile_refusals},
+        {"native_contact_point_unqualified_services",native_frames.native_contact_point_unqualified_services},
+        {"native_contact_point_noop_listeners",native_frames.native_contact_point_noop_listeners},
+        {"native_contact_point_gameplay_listeners",native_frames.native_contact_point_gameplay_listeners},
+        {"native_contact_point_gameplay_rows",native_frames.native_contact_point_gameplay_rows},
+        {"native_contact_point_metadata_calls",native_frames.native_contact_point_metadata_calls},
+        {"native_contact_point_world_updates",native_frames.native_contact_point_world_updates},
+        {"native_contact_point_world_queued_updates",native_frames.native_contact_point_world_queued_updates},
+        {"native_contact_point_island_detaches",native_frames.native_contact_point_island_detaches},
+        {"native_contact_point_info_queries",native_frames.native_contact_point_info_queries},
+        {"native_contact_point_reference_releases",native_frames.native_contact_point_reference_releases},
+        {"native_contact_point_effect_requests",native_frames.native_contact_point_effect_requests},
+        {"native_contact_point_constraint_reference_calls",native_frames.native_contact_point_constraint_reference_calls},
+        {"native_contact_point_constraint_reference_decrements",native_frames.native_contact_point_constraint_reference_decrements},
+        {"native_contact_point_constraint_reference_runtime_removals",native_frames.native_contact_point_constraint_reference_runtime_removals},
+        {"native_contact_point_constraint_reference_runtime_refusals",native_frames.native_contact_point_constraint_reference_runtime_refusals},
+        {"native_contact_point_part_requests",native_frames.native_contact_point_part_requests},
+        {"native_contact_point_part_calls",native_frames.native_contact_point_part_calls},
+        {"native_contact_point_part_completions",native_frames.native_contact_point_part_completions},
+        {"native_contact_point_part_refusals",native_frames.native_contact_point_part_refusals},
+        {"native_contact_point_part_inactive",native_frames.native_contact_point_part_inactive},
+        {"native_contact_point_part_material_queries",native_frames.native_contact_point_part_material_queries},
+        {"native_contact_point_part_response_vectors",native_frames.native_contact_point_part_response_vectors},
+        {"native_contact_point_part_zero_properties",native_frames.native_contact_point_part_zero_properties},
+        {"native_contact_point_part_vector_properties",native_frames.native_contact_point_part_vector_properties},
+        {"native_contact_point_part_conveyor_bindings",native_frames.native_contact_point_part_conveyor_bindings},
+        {"native_contact_point_part_function_calls",native_frames.native_contact_point_part_function_calls},
+        {"native_contact_point_part_function_refusals",native_frames.native_contact_point_part_function_refusals},
+        {"native_contact_point_part_function_fp_refusals",native_frames.native_contact_point_part_function_fp_refusals},
+        {"native_list_agent_factory_attempts",native_frames.native_list_agent_factory_attempts},
+        {"native_list_agent_factory_calls",native_frames.native_list_agent_factory_calls},
+        {"native_list_agent_factory_refusals",native_frames.native_list_agent_factory_refusals},
+        {"native_list_agent_count_queries",native_frames.native_list_agent_count_queries},
+        {"native_list_agent_filter_queries",native_frames.native_list_agent_filter_queries},
+        {"native_list_agent_child_factories",native_frames.native_list_agent_child_factories},
+        {"native_list_agent_child_returns",native_frames.native_list_agent_child_returns},
+        {"native_reversed_contact_process_attempts",native_frames.native_reversed_contact_process_attempts},
+        {"native_reversed_contact_process_completions",native_frames.native_reversed_contact_process_completions},
+        {"native_reversed_contact_process_refusals",native_frames.native_reversed_contact_process_refusals},
+        {"native_reversed_wrapped_contact_process_calls",native_frames.native_reversed_wrapped_contact_process_calls},
+        {"native_reversed_compound_contact_process_calls",native_frames.native_reversed_compound_contact_process_calls},
+        {"native_reversed_contact_process_child_returns",native_frames.native_reversed_contact_process_child_returns},
+        {"native_reversed_contact_normal_vectors",native_frames.native_reversed_contact_normal_vectors},
+        {"native_contact_process_calls",native_frames.native_contact_process_calls},
+        {"native_contact_process_completions",native_frames.native_contact_process_completions},
+        {"native_contact_process_refusals",native_frames.native_contact_process_refusals},
+        {"native_wrapped_contact_process_calls",native_frames.native_wrapped_contact_process_calls},
+        {"native_compound_contact_process_calls",native_frames.native_compound_contact_process_calls},
+        {"native_contact_process_geometry_calls",native_frames.native_contact_process_geometry_calls},
+        {"native_contact_process_child_calls",native_frames.native_contact_process_child_calls},
+        {"native_contact_process_child_residuals",native_frames.native_contact_process_child_residuals},
+        {"native_contact_manager_cleanups",native_frames.native_contact_manager_cleanups},
+        {"native_contact_manager_deferred_growths",native_frames.native_contact_manager_deferred_growths},
+        {"native_pair_manager_factory_attempts",native_frames.native_pair_manager_factory_attempts},
+        {"native_pair_manager_factory_calls",native_frames.native_pair_manager_factory_calls},
+        {"native_pair_manager_factory_refusals",native_frames.native_pair_manager_factory_refusals},
+        {"native_pair_manager_factory_unqualified_factories",native_frames.native_pair_manager_factory_unqualified_factories},
+        {"native_pair_manager_factory_body_destructor_refusals",native_frames.native_pair_manager_factory_body_destructor_refusals},
+        {"native_pair_manager_factory_base_lock_releases",native_frames.native_pair_manager_factory_base_lock_releases},
+        {"native_pair_manager_factory_base_lock_refusals",native_frames.native_pair_manager_factory_base_lock_refusals},
+        {"native_pair_manager_factory_source_factories",native_frames.native_pair_manager_factory_source_factories},
+        {"native_pair_manager_factory_constructors",native_frames.native_pair_manager_factory_constructors},
+        {"native_pair_manager_factory_collectors",native_frames.native_pair_manager_factory_collectors},
+        {"native_pair_manager_factory_registrations",native_frames.native_pair_manager_factory_registrations},
+        {"native_pair_manager_factory_unregistrations",native_frames.native_pair_manager_factory_unregistrations},
+        {"native_pair_manager_factory_deferred_references",native_frames.native_pair_manager_factory_deferred_references},
+        {"native_pair_manager_factory_array_growths",native_frames.native_pair_manager_factory_array_growths},
+        {"native_pair_manager_factory_body_destructions",native_frames.native_pair_manager_factory_body_destructions},
+        {"native_pair_manager_factory_protected_references",native_frames.native_pair_manager_factory_protected_references},
+        {"native_pair_manager_factory_storage_releases",native_frames.native_pair_manager_factory_storage_releases},
+        {"native_pair_manager_factory_collector_destructions",native_frames.native_pair_manager_factory_collector_destructions},
+        {"native_pair_manager_factory_collector_base_lock_releases",native_frames.native_pair_manager_factory_collector_base_lock_releases},
+        {"native_pair_merge_queue_attempts",native_frames.native_pair_merge_queue_attempts},
+        {"native_pair_merge_queue_calls",native_frames.native_pair_merge_queue_calls},
+        {"native_pair_merge_queue_refusals",native_frames.native_pair_merge_queue_refusals},
+        {"native_pair_defer_queue_attempts",native_frames.native_pair_defer_queue_attempts},
+        {"native_pair_defer_queue_calls",native_frames.native_pair_defer_queue_calls},
+        {"native_pair_defer_queue_refusals",native_frames.native_pair_defer_queue_refusals},
+        {"native_contact_manager_base_lock_releases",native_frames.native_contact_manager_base_lock_releases},
+        {"native_contact_collector_cleanups",native_frames.native_contact_collector_cleanups},
+        {"native_contact_listener_unregistrations",native_frames.native_contact_listener_unregistrations},
+        {"native_contact_listener_deferred_references",native_frames.native_contact_listener_deferred_references},
+        {"native_contact_manager_service_residuals",native_frames.native_contact_manager_service_residuals},
+        {"native_contact_manager_cleanup_refusals",native_frames.native_contact_manager_cleanup_refusals},
+        {"native_constraint_effect_selection_calls",native_frames.native_constraint_effect_selection_calls},
+        {"native_constraint_effect_selected_rows",native_frames.native_constraint_effect_selected_rows},
+        {"native_constraint_effect_camera_tests",native_frames.native_constraint_effect_camera_tests},
+        {"native_constraint_effect_distance_refusals",native_frames.native_constraint_effect_distance_refusals},
+        {"native_constraint_effect_unknown_constants",native_frames.native_constraint_effect_unknown_constants},
+        {"native_pair_creation_attempts",native_frames.native_pair_creation_attempts},
+        {"native_pair_creation_calls",native_frames.native_pair_creation_calls},
+        {"native_pair_creation_refusals",native_frames.native_pair_creation_refusals},
+        {"native_convex_agent_attempts",native_frames.native_convex_agent_attempts},
+        {"native_gsk_agent_attempts",native_frames.native_gsk_agent_attempts},{"native_gsk_agent_calls",native_frames.native_gsk_agent_calls},
+      {"native_gsk_agent_refusals",native_frames.native_gsk_agent_refusals},{"native_convex_agent_calls",native_frames.native_convex_agent_calls},
+        {"native_convex_agent_refusals",native_frames.native_convex_agent_refusals},
+        {"native_convex_agent_pool_allocations",native_frames.native_convex_agent_pool_allocations},
+        {"native_convex_agent_pool_releases",native_frames.native_convex_agent_pool_releases},
+        {"native_convex_agent_class_queries",native_frames.native_convex_agent_class_queries},
+        {"native_convex_agent_centers",native_frames.native_convex_agent_centers},
+        {"native_convex_agent_supports",native_frames.native_convex_agent_supports},
+        {"native_convex_agent_encodings",native_frames.native_convex_agent_encodings},
+        {"native_inactive_island_cleanup_calls",native_frames.native_inactive_island_cleanup_calls},
+        {"native_inactive_island_agent_invalidations",native_frames.native_inactive_island_agent_invalidations},
+        {"native_inactive_island_manager_invalidations",native_frames.native_inactive_island_manager_invalidations},
+        {"native_inactive_island_cleared_pairs",native_frames.native_inactive_island_cleared_pairs},
+        {"native_inactive_island_policy_queries",native_frames.native_inactive_island_policy_queries},
+        {"native_inactive_island_policy_selections",native_frames.native_inactive_island_policy_selections},
+        {"native_inactive_island_native_policy_calls",native_frames.native_inactive_island_native_policy_calls},
+        {"native_inactive_island_policy_residuals",native_frames.native_inactive_island_policy_residuals},
+        {"native_inactive_island_cleanup_refusals",native_frames.native_inactive_island_cleanup_refusals},
+        {"native_pair_consumer_phantom_overlap_listener_noops",native_frames.native_pair_consumer_phantom_overlap_listener_noops},
         {"native_shape_bounds_box_calls",native_frames.native_shape_bounds_box_calls},
         {"native_shape_bounds_convex_calls",native_frames.native_shape_bounds_convex_calls},
         {"native_shape_bounds_transformed_calls",native_frames.native_shape_bounds_transformed_calls},
@@ -4017,10 +6068,24 @@ int main(int argc,char **argv) try {
         {"native_shape_bounds_centered_radius_calls",native_frames.native_shape_bounds_centered_radius_calls},
         {"shape_bounds_residual_calls",native_frames.shape_bounds_residual_calls},
         {"shape_bounds_residual_owners",native_frames.shape_bounds_residual_owners},
+        {"native_reversed_list_agent_destructor_attempts",native_frames.native_reversed_list_agent_destructor_attempts},
+        {"native_reversed_list_agent_destructor_calls",native_frames.native_reversed_list_agent_destructor_calls},
+        {"native_reversed_list_agent_destructor_refusals",native_frames.native_reversed_list_agent_destructor_refusals},
+        {"native_reversed_list_agent_destructor_unqualified_owners",native_frames.native_reversed_list_agent_destructor_unqualified_owners},
+        {"native_reversed_list_agent_destructor_refused_owners",native_frames.native_reversed_list_agent_destructor_refused_owners},
+        {"native_pair_deletion_attempts",native_frames.native_pair_deletion_attempts},
+        {"native_pair_deletion_calls",native_frames.native_pair_deletion_calls},
+        {"native_pair_deletion_refusals",native_frames.native_pair_deletion_refusals},
+        {"native_pair_deletion_agent_cleanups",native_frames.native_pair_deletion_agent_cleanups},
+        {"native_pair_deletion_manager_releases",native_frames.native_pair_deletion_manager_releases},
+        {"native_pair_deletion_unqualified_owners",native_frames.native_pair_deletion_unqualified_owners},
+        {"native_pair_deletion_nested_refusals",native_frames.native_pair_deletion_nested_refusals},
+        {"native_pair_deletion_refused_owners",native_frames.native_pair_deletion_refused_owners},
         {"named_residual_owner_calls",native_frames.residual_owner_calls},
         {"native_shape_bounds_endpoint_calls",native_frames.native_shape_bounds_endpoint_calls},
         {"native_shape_bounds_compound_calls",native_frames.native_shape_bounds_compound_calls},
         {"native_shape_bounds_compound_child_calls",native_frames.native_shape_bounds_compound_child_calls},
+        {"native_shape_bounds_sphere_calls",native_frames.native_shape_bounds_sphere_calls},
         {"native_solver_calls",native_frames.native_solver_calls},
         {"native_solver_initializations",native_frames.native_solver_initializations},
         {"native_solver_iterations",native_frames.native_solver_iterations},
@@ -4033,6 +6098,8 @@ int main(int argc,char **argv) try {
         {"native_solver_custom_kinds",native_frames.native_solver_custom_kinds},
         {"native_constraint_producer_axis_calls",native_frames.native_constraint_producer_axis_calls},
         {"native_constraint_producer_scaled_calls",native_frames.native_constraint_producer_scaled_calls},
+        {"native_constraint_direct_base_calls",native_frames.native_constraint_direct_base_calls},
+        {"native_constraint_direct_base_rows",native_frames.native_constraint_direct_base_rows},
         {"native_constraint_producer_base_calls",native_frames.native_constraint_producer_base_calls},
         {"native_constraint_producer_base_rows",native_frames.native_constraint_producer_base_rows},
         {"native_constraint_producer_property_lookups",native_frames.native_constraint_producer_property_lookups},
@@ -4057,6 +6124,131 @@ int main(int argc,char **argv) try {
     report["native_island_collision_gate"]=native_frames.native_island_collision_calls>0;
     passed&=native_frames.native_island_collision_calls>0;
   }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_OBJECT_VELOCITY")) {
+    const bool velocity_passed=native_frames.native_object_velocity_handoff_calls>0&&
+      native_frames.native_object_velocity_handoff_calls==native_frames.native_object_velocity_calls&&
+      native_frames.native_object_velocity_handoff_attempts==native_frames.native_object_velocity_handoff_calls&&
+      native_frames.native_object_velocity_handoff_refusals==0&&native_frames.native_object_velocity_refusals==0&&
+      native_frames.native_object_velocity_unqualified_owners==0&&
+      native_frames.native_object_velocity_unconverted_factories==0&&
+      native_frames.native_object_velocity_unconverted_getters==0&&
+      native_frames.native_object_velocity_unconverted_managers==0&&
+      native_frames.native_object_velocity_unconverted_policy_types==0&&
+      native_frames.native_object_velocity_unconverted_policy_destructions==0&&
+      native_frames.native_object_velocity_unconverted_bounds_owners.empty()&&
+      native_frames.native_object_velocity_constraint_unbound_services==0&&
+      native_frames.native_object_velocity_constraint_unbound_removals==0&&
+      native_frames.native_constraint_unbound_handle_releases==0&&
+      native_frames.native_constraint_unbound_runtime_removals==0&&
+      native_frames.native_constraint_handle_unbound_services==0&&
+      native_frames.native_constraint_child_unbound_services==0&&
+      native_frames.native_constraint_runtime_storage_refusals==0&&
+      native_frames.native_constraint_runtime_profile_refusals==0&&
+      native_frames.native_constraint_runtime_unbound_services==0&&
+      native_frames.native_constraint_creation_storage_refusals==0&&
+      native_frames.native_constraint_creation_numerical_refusals==0&&
+      native_frames.native_object_velocity_residual_calls==0;
+    report["native_object_velocity_gate"]=velocity_passed;passed&=velocity_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_VEHICLE_FLIP_CONTROLLER")) {
+    const bool flip_passed=native_frames.native_vehicle_flip_handoff_calls>0&&
+      native_frames.native_vehicle_flip_handoff_attempts==native_frames.native_vehicle_flip_handoff_calls&&
+      native_frames.native_vehicle_flip_handoff_calls==native_frames.native_vehicle_flip_calls&&
+      native_frames.native_vehicle_flip_handoff_refusals==0&&native_frames.native_vehicle_flip_unbound_services==0&&
+      native_frames.native_constraint_unbound_handle_releases==0&&
+      native_frames.native_constraint_unbound_runtime_removals==0&&
+      native_frames.native_constraint_handle_unbound_services==0&&
+      native_frames.native_constraint_child_unbound_services==0&&
+      native_frames.native_constraint_runtime_storage_refusals==0&&
+      native_frames.native_constraint_runtime_profile_refusals==0&&
+      native_frames.native_constraint_runtime_unbound_services==0&&
+      native_frames.native_constraint_creation_storage_refusals==0&&
+      native_frames.native_constraint_creation_numerical_refusals==0&&
+      native_frames.native_vehicle_flip_unqualified_owners==0&&native_frames.native_vehicle_flip_residual_calls==0;
+    report["native_vehicle_flip_controller_gate"]=flip_passed;passed&=flip_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_VEHICLE_FLIP_ACTION")) {
+    const bool flip_action_passed=native_frames.native_vehicle_flip_completed>0&&
+      native_frames.native_vehicle_flip_set_calls==native_frames.native_vehicle_flip_completed;
+    report["native_vehicle_flip_action_gate"]=flip_action_passed;passed&=flip_action_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_SIMPLEX_HELPERS")) {
+    const auto&source=native_frames.native_simplex_helper_source_calls;
+    const bool simplex_passed=native_frames.native_simplex_helpers_calls>0&&
+      native_frames.native_simplex_helpers_attempts==native_frames.native_simplex_helpers_calls&&
+      native_frames.native_simplex_helpers_refusals==0&&
+      native_frames.native_simplex_triangle_calls>0&&native_frames.native_closest_segment_calls>0&&
+      native_frames.native_simplex_triangle_calls+native_frames.native_closest_segment_calls==native_frames.native_simplex_helpers_calls&&
+      std::accumulate(source.begin(),source.end(),std::uint64_t{})==native_frames.native_simplex_helpers_calls;
+    report["native_simplex_helpers_gate"]=simplex_passed;passed&=simplex_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_FEATURES")) {
+    const auto&source=native_frames.native_contact_features_source_calls;
+    const auto&owners=native_frames.native_contact_features_owner_calls;
+    const bool feature_passed=native_frames.native_contact_features_calls>0&&
+      native_frames.native_contact_features_attempts==native_frames.native_contact_features_calls&&
+      native_frames.native_contact_features_refusals==0&&source[0]>0&&source[1]>0&&
+      source[0]+source[1]==native_frames.native_contact_features_calls&&
+      std::accumulate(owners.begin(),owners.end(),std::uint64_t{})==native_frames.native_contact_features_calls;
+    report["native_contact_features_gate"]=feature_passed;passed&=feature_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_GAMEPLAY_DEACTIVATION")) {
+    const bool policy_passed=native_frames.native_gameplay_deactivation_calls>0&&
+      native_frames.native_gameplay_deactivation_calls==native_frames.native_gameplay_deactivation_blocked+
+        native_frames.native_gameplay_deactivation_body_policies&&
+      !native_frames.residual_owner_calls.contains(0x1d9b20u)&&
+      !native_frames.residual_owner_calls.contains(0x1d9b70u);
+    report["native_gameplay_deactivation_gate"]=policy_passed;passed&=policy_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_PROCESSOR")) {
+    const bool processor_passed=native_frames.native_contact_processor_calls>0&&
+      native_frames.native_contact_processor_calls==native_frames.native_contact_entity_dispatch_calls&&
+      native_frames.native_contact_processor_updates<=native_frames.native_contact_processor_matched_rows&&
+      !native_frames.residual_owner_calls.contains(0x1d8a20u);
+    report["native_contact_processor_gate"]=processor_passed;passed&=processor_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_UPDATES")) {
+    const bool updates_passed=native_frames.native_contact_processor_updates>0;
+    report["native_contact_updates_gate"]=updates_passed;passed&=updates_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_ENTITIES")) {
+    const bool entities_passed=native_frames.native_contact_entity_calls>0&&
+      native_frames.native_contact_entity_property_queries%4==0&&
+      !native_frames.residual_owner_calls.contains(0x281e10u);
+    report["native_contact_entity_gate"]=entities_passed;passed&=entities_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_ENTITY_DISPATCH")) {
+    const bool dispatch_passed=native_frames.native_contact_entity_property_queries>0&&
+      native_frames.native_contact_entity_dispatch_calls>0;
+    report["native_contact_entity_dispatch_gate"]=dispatch_passed;passed&=dispatch_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_COMPLETION")) {
+    const bool completion_passed=native_frames.native_contact_completion_calls>0&&
+      native_frames.native_contact_completion_contacts>0&&
+      !native_frames.residual_owner_calls.contains(0x3230c0u);
+    report["native_contact_completion_gate"]=completion_passed;passed&=completion_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BODY_REFERENCES")) {
+    const bool references_passed=native_frames.native_body_reference_calls>0&&
+      native_frames.native_body_reference_cohorts==native_frames.native_body_reference_calls*3&&
+      !native_frames.residual_owner_calls.contains(0x3174a0u);
+    report["native_body_references_gate"]=references_passed;passed&=references_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_DEFERRED")) {
+    const bool deferred_passed=native_frames.native_deferred_operation_calls>0&&
+      native_frames.native_deferred_action_calls>0&&native_frames.native_deferred_delete_calls>0&&
+      native_frames.native_deferred_update_calls>0&&native_frames.native_deferred_reference_releases>0&&
+      !native_frames.residual_owner_calls.contains(0x319750u)&&
+      !native_frames.residual_owner_calls.contains(0x316e90u)&&
+      !native_frames.residual_owner_calls.contains(0x319cd0u)&&
+      !native_frames.residual_owner_calls.contains(0x316e10u);
+    report["native_world_deferred_gate"]=deferred_passed;passed&=deferred_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_STEP_LISTENERS")) {
+    const bool listeners_passed=native_frames.native_world_step_listener_calls>0&&
+      native_frames.native_island_step_listener_calls>0;
+    report["native_world_step_listeners_gate"]=listeners_passed;passed&=listeners_passed;
+  }
   if(std::getenv("HALO2_REQUIRE_NATIVE_ISLAND_AGENTS")) {
     const bool agents_passed=native_frames.native_island_agent_flag_clear_calls+
       native_frames.native_island_agent_flag_set_calls>0&&
@@ -4070,6 +6262,13 @@ int main(int argc,char **argv) try {
       native_frames.native_contact_advance_motion_calls>0&&native_frames.native_contact_advance_process_calls>0;
     report["native_contact_advance_gate"]=advance_passed;passed&=advance_passed;
   }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CACHED_MOTION")) {
+    const bool motion_passed=native_frames.native_cached_motion_calls>0&&
+      native_frames.native_cached_motion_rewinds==native_frames.native_cached_motion_calls&&
+      native_frames.native_cached_motion_advances==native_frames.native_cached_motion_calls&&
+      native_frames.native_contact_fixed_motion_calls>0&&native_frames.contact_motion_residual_calls==0;
+    report["native_cached_motion_gate"]=motion_passed;passed&=motion_passed;
+  }
   if(std::getenv("HALO2_REQUIRE_NATIVE_ISLAND_CONTACT_MINIMUM")) {
     report["native_island_contact_minimum_gate"]=native_frames.native_island_contact_minimum_calls>0;
     passed&=native_frames.native_island_contact_minimum_calls>0;
@@ -4082,11 +6281,606 @@ int main(int argc,char **argv) try {
     report["native_broad_phase_gate"]=native_frames.native_broad_phase_calls>0;
     passed&=native_frames.native_broad_phase_calls>0;
   }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BROAD_PHASE_EDGES")) {
+    const bool native_edges=native_frames.native_broad_phase_edge_calls>0&&
+      native_frames.native_broad_phase_edge_attempts==native_frames.native_broad_phase_edge_calls&&
+      native_frames.native_broad_phase_edge_objects>0&&native_frames.native_broad_phase_edge_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2ea380u);
+    report["native_broad_phase_edges_gate"]=native_edges;passed&=native_edges;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_CONSUMER")) {
+    const bool pair_passed=native_frames.native_pair_consumer_calls>0&&
+      native_frames.native_pair_consumer_nonempty_calls>0&&
+      native_frames.native_pair_consumer_attempts==native_frames.native_pair_consumer_calls&&
+      native_frames.native_pair_consumer_refusals==0&&
+      native_frames.native_pair_consumer_unqualified_services==0&&
+      native_frames.native_pair_consumer_calls==native_frames.native_broad_phase_calls&&
+      !native_frames.residual_owner_calls.contains(0x321510u)&&
+      !native_frames.residual_owner_calls.contains(0x2e9a00u);
+    report["native_pair_consumer_gate"]=pair_passed;passed&=pair_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_MEMORY_PRESSURE")) {
+    const bool memory=native_frames.native_memory_pressure_completions>0&&
+      native_frames.native_memory_pressure_attempts==native_frames.native_memory_pressure_completions&&
+      native_frames.native_memory_pressure_refusals==0&&native_frames.native_memory_pressure_unbound_services==0&&
+      !native_frames.residual_owner_calls.contains(0x1496f0u)&&!native_frames.residual_owner_calls.contains(0x149ad0u)&&
+      !native_frames.residual_owner_calls.contains(0x2335b0u);
+    report["native_memory_pressure_gate"]=memory;passed&=memory;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_PRESSURE")) {
+    const bool pressure=native_frames.native_contact_pressure_completions>0&&
+      native_frames.native_contact_pressure_attempts==native_frames.native_contact_pressure_completions&&
+      native_frames.native_contact_pressure_refusals==0&&native_frames.native_contact_pressure_unbound_services==0&&
+      !native_frames.residual_owner_calls.contains(0x1cce00u);
+    report["native_contact_pressure_gate"]=pressure;passed&=pressure;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_OBJECT_PUBLICATION")) {
+    const bool publication_passed=native_frames.native_object_publication_calls>0&&
+      native_frames.native_object_publication_attempts==native_frames.native_object_publication_calls&&
+      native_frames.native_object_publication_refusals==0&&
+      native_frames.native_object_publication_tree_calls>=native_frames.native_object_publication_calls&&
+      native_frames.native_object_publication_ancestor_wakes>0;
+    report["native_object_publication_gate"]=publication_passed;passed&=publication_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_FILTER")) {
+    const bool filter_passed=native_frames.native_pair_consumer_filter_calls>0&&
+      native_frames.native_pair_consumer_attempts==native_frames.native_pair_consumer_calls&&
+      native_frames.native_pair_consumer_refusals==0&&
+      native_frames.native_pair_consumer_unqualified_services==0&&
+      !native_frames.residual_owner_calls.contains(0x2e9a00u);
+    report["native_pair_filter_gate"]=filter_passed;passed&=filter_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_ALLOCATION")) {
+    const bool allocation_passed=native_frames.native_pair_consumer_owned_allocations>0&&
+      native_frames.native_pair_consumer_owned_releases>0&&
+      native_frames.native_pair_consumer_pool_allocations>0&&
+      native_frames.native_pair_consumer_pool_releases>0&&
+      native_frames.native_pair_consumer_refusals==0&&
+      native_frames.native_pair_consumer_unqualified_services==0;
+    report["native_pair_allocation_gate"]=allocation_passed;passed&=allocation_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHANTOM_PAIR_CREATION")) {
+    const bool phantom=native_frames.native_phantom_pair_create_notifications>0&&
+      native_frames.native_phantom_pair_create_notifications==native_frames.native_phantom_pair_create_simple_adds+native_frames.native_phantom_pair_create_complex_adds&&
+      native_frames.native_phantom_pair_create_unqualified_owners==0&&native_frames.native_pair_creation_refusals==0&&
+      native_frames.native_pair_creation_attempts==native_frames.native_pair_creation_calls&&
+      !native_frames.residual_owner_calls.contains(0x31ffc0u)&&!native_frames.residual_owner_calls.contains(0x315300u)&&
+      !native_frames.residual_owner_calls.contains(0x315b00u)&&!native_frames.residual_owner_calls.contains(0x314f80u);
+    report["native_phantom_pair_creation_gate"]=phantom;passed&=phantom;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHANTOM_PAIR_DELETION")) {
+    const bool phantom_passed=native_frames.native_pair_consumer_phantom_delete_calls>0&&
+      native_frames.native_pair_consumer_phantom_notifications==native_frames.native_pair_consumer_phantom_noops+
+        native_frames.native_pair_consumer_phantom_overlap_remove_calls+
+        native_frames.native_pair_consumer_simple_phantom_overlap_remove_calls&&
+      native_frames.native_pair_consumer_phantom_unqualified_owners==0&&
+      native_frames.native_pair_consumer_refusals==0;
+    report["native_phantom_pair_deletion_gate"]=phantom_passed;passed&=phantom_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHANTOM_OVERLAP_REMOVAL")) {
+    const bool removal_passed=native_frames.native_pair_consumer_phantom_overlap_remove_calls>0&&
+      native_frames.native_pair_consumer_phantom_unqualified_owners==0&&native_frames.native_pair_consumer_refusals==0;
+    report["native_phantom_overlap_removal_gate"]=removal_passed;passed&=removal_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_SIMPLE_PHANTOM_OVERLAP_REMOVAL")) {
+    const bool removal_passed=native_frames.native_pair_consumer_simple_phantom_overlap_remove_calls>0&&
+      native_frames.native_pair_consumer_phantom_unqualified_owners==0&&native_frames.native_pair_consumer_refusals==0;
+    report["native_simple_phantom_overlap_removal_gate"]=removal_passed;passed&=removal_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_STACK_ARENA")) {
+    const bool arena_passed=native_frames.native_stack_arena_allocations>0&&
+      native_frames.native_stack_arena_allocations==native_frames.native_stack_arena_releases&&
+      native_frames.native_stack_arena_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2e10a0u)&&
+      !native_frames.residual_owner_calls.contains(0x2e1110u);
+    report["native_stack_arena_gate"]=arena_passed;passed&=arena_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_INACTIVE_ISLAND_CLEANUP")) {
+    const bool cleanup_passed=native_frames.native_inactive_island_cleanup_calls>0&&
+      native_frames.native_inactive_island_cleanup_refusals==0&&
+      native_frames.native_inactive_island_policy_residuals==0&&
+      !native_frames.residual_owner_calls.contains(0x282ab0u);
+    report["native_inactive_island_cleanup_gate"]=cleanup_passed;passed&=cleanup_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_GAMEPLAY_POLICY_DESTRUCTION")) {
+    const bool destruction_passed=native_frames.native_gameplay_policy_destructions>0&&
+      native_frames.native_inactive_island_cleanup_refusals==0&&
+      native_frames.native_inactive_island_policy_residuals==0&&
+      !native_frames.residual_owner_calls.contains(0x1d9c80u);
+    report["native_gameplay_policy_destruction_gate"]=destruction_passed;passed&=destruction_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_AGENT_CLEANUP")) {
+    const bool cleanup_passed=native_frames.native_contact_agent_record_cleanups>0&&
+      native_frames.native_contact_agent_pointer_cleanups>0&&native_frames.native_contact_reference_disposals>0&&
+      native_frames.native_contact_agent_cleanup_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2f3100u)&&
+      !native_frames.residual_owner_calls.contains(0x2f7a20u)&&!native_frames.residual_owner_calls.contains(0x323220u);
+    report["native_contact_agent_cleanup_gate"]=cleanup_passed;passed&=cleanup_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_AGENT_CHILDREN")) {
+    const bool children_passed=native_frames.native_contact_agent_cached_cleanups>0&&
+      native_frames.native_contact_agent_wrapped_cleanups>0&&native_frames.native_contact_agent_native_destructors>0&&
+      native_frames.native_contact_agent_cleanup_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2f82d0u)&&!native_frames.residual_owner_calls.contains(0x2f6c80u)&&
+      !native_frames.residual_owner_calls.contains(0x2f8090u)&&!native_frames.residual_owner_calls.contains(0x3051a0u)&&
+      !native_frames.residual_owner_calls.contains(0x2fc540u);
+    report["native_contact_agent_children_gate"]=children_passed;passed&=children_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_REVERSED_CONTACT_PROCESS")||std::getenv("HALO2_REQUIRE_NATIVE_REVERSED_CONTACT_NORMALS")) {
+    const bool reversed=native_frames.native_reversed_contact_process_attempts>0&&
+      native_frames.native_reversed_contact_process_attempts==native_frames.native_reversed_contact_process_completions&&
+      native_frames.native_reversed_contact_process_refusals==0&&native_frames.native_contact_process_refusals==0&&
+      native_frames.native_reversed_contact_process_child_returns==native_frames.native_reversed_contact_process_completions&&
+      !native_frames.residual_owner_calls.contains(0x2f7480u)&&!native_frames.residual_owner_calls.contains(0x2f7fb0u);
+    report["native_reversed_contact_process_gate"]=reversed;passed&=reversed;
+    if(std::getenv("HALO2_REQUIRE_NATIVE_REVERSED_CONTACT_NORMALS")) {
+      const bool flipped=reversed&&native_frames.native_reversed_contact_normal_vectors>0;
+      report["native_reversed_contact_normals_gate"]=flipped;passed&=flipped;
+    }
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_COMPOUND_CONTACT_PROCESS")) {
+    const bool process_passed=native_frames.native_compound_contact_process_calls>0 &&
+      native_frames.native_contact_process_calls==native_frames.native_contact_process_completions &&
+      native_frames.native_contact_process_refusals==0 &&
+      !native_frames.residual_owner_calls.contains(0x2f7a50u);
+    report["native_compound_contact_process_gate"]=process_passed;passed&=process_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WRAPPED_CONTACT_PROCESS")) {
+    const bool process_passed=native_frames.native_wrapped_contact_process_calls>0 &&
+      native_frames.native_contact_process_calls==native_frames.native_contact_process_completions &&
+      native_frames.native_contact_process_refusals==0 &&
+      !native_frames.residual_owner_calls.contains(0x2f6ca0u);
+    report["native_wrapped_contact_process_gate"]=process_passed;passed&=process_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LIST_AGENT_FACTORY")) {
+    const bool list_passed=native_frames.native_list_agent_factory_calls>0&&
+      native_frames.native_list_agent_factory_attempts==native_frames.native_list_agent_factory_calls&&
+      native_frames.native_list_agent_factory_refusals==0&&
+      native_frames.native_list_agent_count_queries==native_frames.native_list_agent_factory_calls&&
+      native_frames.native_list_agent_filter_queries>0&&native_frames.native_list_agent_child_factories>0&&
+      native_frames.native_list_agent_child_factories==native_frames.native_list_agent_child_returns&&
+      !native_frames.residual_owner_calls.contains(0x2f8030u)&&
+      !native_frames.residual_owner_calls.contains(0x2f7d20u)&&
+      !native_frames.residual_owner_calls.contains(0x1cbe70u)&&!native_frames.residual_owner_calls.contains(0x3061f0u);
+    report["native_list_agent_factory_gate"]=list_passed;passed&=list_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WRAPPED_AGENT_FACTORY")) {
+    const bool wrapped=native_frames.native_wrapped_factory_calls>0&&
+      native_frames.native_wrapped_factory_attempts==native_frames.native_wrapped_factory_calls&&
+      native_frames.native_wrapped_factory_refusals==0&&native_frames.native_wrapped_factory_unqualified_owners==0&&
+      native_frames.native_wrapped_factory_wrapped_entries>0&&native_frames.native_wrapped_factory_transformed_entries>0&&
+      native_frames.native_wrapped_factory_convex_entries>0&&native_frames.native_wrapped_factory_class_queries>0&&
+      native_frames.native_wrapped_factory_calls==native_frames.native_wrapped_factory_wrapped_entries+
+        native_frames.native_wrapped_factory_transformed_entries+native_frames.native_wrapped_factory_convex_entries&&
+      native_frames.native_pair_creation_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2f1cc0u)&&!native_frames.residual_owner_calls.contains(0x2f0df0u)&&
+      !native_frames.residual_owner_calls.contains(0x2f7190u)&&!native_frames.residual_owner_calls.contains(0x2e44d0u)&&
+      !native_frames.residual_owner_calls.contains(0x2e4eb0u)&&!native_frames.residual_owner_calls.contains(0x2f8300u);
+    report["native_wrapped_agent_factory_gate"]=wrapped;passed&=wrapped;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONVEX_AGENT_FACTORY")) {
+    const bool factory_passed=native_frames.native_pair_creation_calls>0&&
+      native_frames.native_pair_creation_attempts==native_frames.native_pair_creation_calls&&
+      native_frames.native_pair_creation_refusals==0&&native_frames.native_convex_agent_calls>0&&
+      native_frames.native_convex_agent_attempts==native_frames.native_convex_agent_calls&&
+      native_frames.native_convex_agent_refusals==0&&native_frames.native_convex_agent_pool_allocations>0&&
+      !native_frames.residual_owner_calls.contains(0x320ef0u)&&
+      !native_frames.residual_owner_calls.contains(0x2e4eb0u)&&!native_frames.residual_owner_calls.contains(0x2f8300u);
+    report["native_convex_agent_factory_gate"]=factory_passed;passed&=factory_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_TRANSFORMED_AGENT_FACTORY")) {
+    const bool transformed_passed=native_frames.native_transformed_agent_factory_calls>0&&
+      native_frames.native_transformed_agent_factory_attempts==native_frames.native_transformed_agent_factory_calls&&
+      native_frames.native_transformed_agent_factory_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2f7190u);
+    report["native_transformed_agent_factory_gate"]=transformed_passed;passed&=transformed_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_POINT_PIPELINE")) {
+    const bool point_passed=native_frames.native_contact_point_calls>0&&
+      native_frames.native_contact_point_attempts==native_frames.native_contact_point_calls&&
+      native_frames.native_contact_point_refusals==0&&native_frames.native_contact_point_profile_refusals==0&&
+      native_frames.native_contact_point_unqualified_services==0&&native_frames.native_contact_agent_point_residuals==0&&
+      native_frames.native_contact_point_gameplay_listeners>0&&native_frames.native_contact_point_gameplay_rows>0&&
+      native_frames.native_contact_point_world_updates>0&&native_frames.native_contact_point_island_detaches>0&&
+      native_frames.native_contact_point_info_queries==native_frames.native_contact_point_island_detaches&&
+      native_frames.native_contact_point_reference_releases==native_frames.native_contact_point_island_detaches&&
+      native_frames.native_contact_point_metadata_calls>=native_frames.native_contact_point_calls+native_frames.native_contact_point_island_detaches&&
+      native_frames.native_contact_point_effect_requests==native_frames.native_contact_point_constraint_reference_calls&&
+      native_frames.native_contact_point_constraint_reference_decrements==native_frames.native_contact_point_constraint_reference_calls&&
+      native_frames.native_contact_point_constraint_reference_runtime_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x22e1b0u)&&native_frames.native_contact_point_part_requests==native_frames.native_contact_point_part_calls&&
+      native_frames.native_contact_point_part_completions==native_frames.native_contact_point_part_calls&&
+      native_frames.native_contact_point_part_refusals==0&&
+      native_frames.native_contact_point_part_function_refusals==0&&native_frames.native_contact_point_part_function_fp_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x1e0a60u)&&!native_frames.residual_owner_calls.contains(0x184c50u)&&
+      !native_frames.residual_owner_calls.contains(0x355d0u)&&!native_frames.residual_owner_calls.contains(0x13de70u)&&
+      !native_frames.residual_owner_calls.contains(0x322f70u)&&!native_frames.residual_owner_calls.contains(0x281d40u)&&
+      !native_frames.residual_owner_calls.contains(0x1d8880u)&&!native_frames.residual_owner_calls.contains(0x1d8970u)&&
+      !native_frames.residual_owner_calls.contains(0x325d90u)&&!native_frames.residual_owner_calls.contains(0x320100u)&&
+      !native_frames.residual_owner_calls.contains(0x3201b0u)&&!native_frames.residual_owner_calls.contains(0x325e90u);
+    report["native_contact_point_pipeline_gate"]=point_passed;passed&=point_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_MANAGER_BASE_LOCK")) {
+    const bool lock_passed=native_frames.native_contact_manager_base_lock_releases>0&&
+      native_frames.native_contact_manager_service_residuals==0&&native_frames.native_contact_manager_cleanup_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2e12a0u)&&!native_frames.residual_owner_calls.contains(0x2e11e0u)&&
+      !native_frames.residual_owner_calls.contains(0x2e33f0u)&&!native_frames.residual_owner_calls.contains(0x2e3350u);
+    report["native_contact_manager_base_lock_gate"]=lock_passed;passed&=lock_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_POINT_REFERENCE_RELEASE")) {
+    const bool reference_passed=native_frames.native_contact_point_calls>0&&
+      native_frames.native_contact_point_refusals==0&&native_frames.native_contact_point_unqualified_services==0&&
+      native_frames.native_contact_point_constraint_reference_calls>0&&
+      native_frames.native_contact_point_effect_requests==native_frames.native_contact_point_constraint_reference_calls&&
+      native_frames.native_contact_point_constraint_reference_decrements==native_frames.native_contact_point_constraint_reference_calls&&
+      native_frames.native_contact_point_constraint_reference_runtime_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x22e1b0u);
+    report["native_contact_point_reference_release_gate"]=reference_passed;passed&=reference_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_MANAGER_DEFERRED_GROWTH")) {
+    const bool growth=native_frames.native_contact_manager_deferred_growths>0&&
+      native_frames.native_contact_manager_cleanup_refusals==0&&native_frames.native_contact_manager_service_residuals==0&&
+      native_frames.native_contact_listener_deferred_references>=native_frames.native_contact_manager_deferred_growths&&
+      native_frames.native_contact_listener_unregistrations>=native_frames.native_contact_manager_deferred_growths&&
+      !native_frames.residual_owner_calls.contains(0x316dc0u)&&!native_frames.residual_owner_calls.contains(0x2e3250u)&&
+      !native_frames.residual_owner_calls.contains(0x2e3270u);
+    report["native_contact_manager_deferred_growth_gate"]=growth;passed&=growth;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_POINT_PART_RESPONSE")||std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_POINT_CONVEYOR")) {
+    const bool part=native_frames.native_contact_point_part_calls>0&&native_frames.native_contact_point_refusals==0&&
+      native_frames.native_contact_point_part_requests==native_frames.native_contact_point_part_calls&&
+      native_frames.native_contact_point_part_completions==native_frames.native_contact_point_part_calls&&
+      native_frames.native_contact_point_part_refusals==0&&native_frames.native_contact_point_part_function_refusals==0&&
+      native_frames.native_contact_point_part_function_fp_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x1e0a60u)&&!native_frames.residual_owner_calls.contains(0x184c50u)&&
+      !native_frames.residual_owner_calls.contains(0x355d0u)&&!native_frames.residual_owner_calls.contains(0x13de70u);
+    report["native_contact_point_part_response_gate"]=part;passed&=part;
+    if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_POINT_CONVEYOR")) {
+      const bool conveyor=part&&native_frames.native_contact_point_part_material_queries>0&&
+        native_frames.native_contact_point_part_response_vectors>0&&native_frames.native_contact_point_part_vector_properties>0&&
+        native_frames.native_contact_point_part_conveyor_bindings>0&&native_frames.native_contact_point_part_function_calls>0;
+      report["native_contact_point_conveyor_gate"]=conveyor;passed&=conveyor;
+    }
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_GAMEPLAY_PHANTOM_ADDED")) {
+    const bool added=native_frames.native_phantom_added_listener_calls>0&&
+      native_frames.native_phantom_added_listener_attempts==native_frames.native_phantom_added_listener_calls&&
+      native_frames.native_phantom_added_listener_refusals==0&&native_frames.native_phantom_added_unqualified_deletions==0&&
+      native_frames.native_phantom_added_delete_requests==native_frames.native_phantom_object_deletion_attempts&&
+      native_frames.native_phantom_object_deletion_calls==native_frames.native_phantom_object_deletion_attempts&&
+      native_frames.native_phantom_object_deletion_refusals==0&&native_frames.native_phantom_object_deletion_unbound_services==0&&
+      native_frames.native_phantom_pair_create_unqualified_owners==0&&native_frames.native_pair_creation_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x282700u)&&!native_frames.residual_owner_calls.contains(0xb1870u)&&
+      (native_frames.native_phantom_added_delete_requests==0||!native_frames.residual_owner_calls.contains(0xba570u));
+    report["native_gameplay_phantom_added_gate"]=added;passed&=added;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHANTOM_OBJECT_DELETION")) {
+    const bool deletion=native_frames.native_phantom_object_deletion_calls>0&&
+      native_frames.native_phantom_object_deletion_attempts==native_frames.native_phantom_object_deletion_calls&&
+      native_frames.native_phantom_object_deletion_attempts==native_frames.native_phantom_added_delete_requests&&
+      native_frames.native_phantom_object_deletion_refusals==0&&native_frames.native_phantom_object_deletion_unbound_services==0&&
+      native_frames.native_phantom_object_detachment_calls>0&&native_frames.native_phantom_object_detachment_refusals==0&&
+      native_frames.native_phantom_added_listener_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0xba570u)&&!native_frames.residual_owner_calls.contains(0xc0f60u)&&
+      !native_frames.residual_owner_calls.contains(0xbbd10u)&&!native_frames.residual_owner_calls.contains(0xbbd50u);
+    report["native_phantom_object_deletion_gate"]=deletion;passed&=deletion;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PHANTOM_OBJECT_SPATIAL")) {
+    const bool spatial=native_frames.native_phantom_object_deletion_calls>0&&
+      native_frames.native_phantom_object_deletion_calls==native_frames.native_phantom_object_deletion_attempts&&
+      native_frames.native_phantom_object_deletion_calls==native_frames.native_phantom_added_delete_requests&&
+      native_frames.native_phantom_object_deletion_refusals==0&&native_frames.native_phantom_object_deletion_unbound_services==0&&
+      native_frames.native_phantom_object_spatial_queries>0&&
+      native_frames.native_phantom_object_spatial_queries==native_frames.native_phantom_object_spatial_packets&&
+      native_frames.native_phantom_object_spatial_packets==native_frames.native_phantom_object_spatial_chain_updates&&
+      native_frames.native_phantom_added_listener_refusals==0&&native_frames.native_phantom_object_detachment_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0xba570u)&&!native_frames.residual_owner_calls.contains(0xc0f60u)&&
+      !native_frames.residual_owner_calls.contains(0xba910u)&&!native_frames.residual_owner_calls.contains(0x16e290u)&&
+      !native_frames.residual_owner_calls.contains(0x1d30a0u)&&!native_frames.residual_owner_calls.contains(0x29fff0u);
+    report["native_phantom_object_spatial_gate"]=spatial;passed&=spatial;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BODY_MOTION_SNAPSHOTS")) {
+    const bool native_snapshots=native_frames.native_body_deactivation_motion_snapshot_calls>0&&
+      native_frames.native_body_deactivation_motion_position_queries==native_frames.native_body_deactivation_motion_snapshot_calls&&
+      native_frames.native_body_deactivation_motion_snapshot_stores==9u*native_frames.native_body_deactivation_motion_snapshot_calls&&
+      native_frames.native_body_deactivation_refusals==0&&native_frames.native_body_deactivation_unbound_services==0&&
+      !native_frames.residual_owner_calls.contains(0x1d7260u)&&!native_frames.residual_owner_calls.contains(0x1d8b20u)&&
+      !native_frames.residual_owner_calls.contains(0x1d8b90u);
+    report["native_body_motion_snapshots_gate"]=native_snapshots;passed&=native_snapshots;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_BODY_DEACTIVATION")) {
+    const bool native_body_sleep=native_frames.native_body_deactivation_calls>0&&
+      native_frames.native_body_deactivation_attempts==native_frames.native_body_deactivation_calls&&
+      native_frames.native_body_deactivation_refusals==0&&native_frames.native_body_deactivation_unbound_services==0&&
+      native_frames.native_body_deactivation_property_queries>0&&!native_frames.residual_owner_calls.contains(0x2815f0u);
+    report["native_body_deactivation_gate"]=native_body_sleep;passed&=native_body_sleep;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_CREATION_QUEUES")) {
+    const bool queues=native_frames.native_pair_merge_queue_calls>0&&native_frames.native_pair_defer_queue_calls>0&&
+      native_frames.native_pair_merge_queue_attempts==native_frames.native_pair_merge_queue_calls&&
+      native_frames.native_pair_defer_queue_attempts==native_frames.native_pair_defer_queue_calls&&
+      native_frames.native_pair_merge_queue_refusals==0&&native_frames.native_pair_defer_queue_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x317200u)&&!native_frames.residual_owner_calls.contains(0x320da0u);
+    report["native_pair_creation_queues_gate"]=queues;passed&=queues;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_MANAGER_CLEANUP")) {
+    const bool manager_passed=native_frames.native_contact_manager_cleanups>0&&
+      native_frames.native_contact_collector_cleanups==native_frames.native_contact_manager_cleanups&&
+      native_frames.native_contact_listener_unregistrations==2*native_frames.native_contact_manager_cleanups&&
+      native_frames.native_contact_listener_deferred_references==2*native_frames.native_contact_manager_cleanups&&
+      native_frames.native_contact_manager_service_residuals==0&&native_frames.native_contact_manager_cleanup_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x3232b0u)&&!native_frames.residual_owner_calls.contains(0x3231b0u)&&
+      !native_frames.residual_owner_calls.contains(0x31f660u);
+    report["native_contact_manager_cleanup_gate"]=manager_passed;passed&=manager_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_REGROUP")||std::getenv("HALO2_REQUIRE_NATIVE_WORLD_REPARTITION")) {
+    const bool native_regroup=native_frames.native_world_regroup_calls>0&&
+      native_frames.native_world_regroup_attempts==native_frames.native_world_regroup_calls&&
+      native_frames.native_world_regroup_active_visits>0&&native_frames.native_world_regroup_refusals==0&&
+      native_frames.native_world_regroup_unbound_services==0&&
+      !native_frames.residual_owner_calls.contains(0x3187c0u)&&!native_frames.residual_owner_calls.contains(0x321eb0u);
+    report["native_world_regroup_gate"]=native_regroup;passed&=native_regroup;
+    if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_REPARTITION")) {
+      const bool split=native_regroup&&native_frames.native_world_regroup_graph_builds>0&&
+        native_frames.native_world_regroup_created_islands>0&&native_frames.native_world_regroup_moved_bodies>0&&
+        native_frames.native_world_regroup_group_allocations==native_frames.native_world_regroup_group_releases&&
+        native_frames.native_world_regroup_temporary_constructors==native_frames.native_world_regroup_temporary_destructors;
+      report["native_world_repartition_gate"]=split;passed&=split;
+    }
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_CONSTRAINT_INFO")) {
+    const bool info=native_frames.native_world_regroup_constant_info_queries+
+      native_frames.native_world_regroup_extended_info_queries>0&&
+      native_frames.native_world_regroup_attempts==native_frames.native_world_regroup_calls&&
+      native_frames.native_world_regroup_refusals==0&&native_frames.native_world_regroup_unbound_services==0&&
+      !native_frames.residual_owner_calls.contains(0x31d630u)&&!native_frames.residual_owner_calls.contains(0x31f840u);
+    report["native_world_constraint_info_gate"]=info;passed&=info;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_MANAGER_FACTORY")) {
+    const bool manager_factory=native_frames.native_pair_manager_factory_calls>0&&
+      native_frames.native_pair_manager_factory_attempts==native_frames.native_pair_manager_factory_calls&&
+      native_frames.native_pair_manager_factory_refusals==0&&native_frames.native_pair_manager_factory_unqualified_factories==0&&
+      native_frames.native_pair_manager_factory_body_destructor_refusals==0&&native_frames.native_pair_manager_factory_base_lock_refusals==0&&
+      native_frames.native_pair_manager_factory_source_factories==native_frames.native_pair_manager_factory_calls&&
+      native_frames.native_pair_manager_factory_constructors==native_frames.native_pair_manager_factory_calls&&
+      native_frames.native_pair_manager_factory_collectors==native_frames.native_pair_manager_factory_calls&&
+      native_frames.native_pair_manager_factory_registrations>0&&!native_frames.residual_owner_calls.contains(0x3232e0u);
+    report["native_pair_manager_factory_gate"]=manager_factory;passed&=manager_factory;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_MERGE")) {
+    const bool merge_passed=native_frames.native_world_merge_calls>0&&
+      native_frames.native_world_merge_contact_calls>0&&native_frames.native_world_merge_body_moves>0&&
+      native_frames.native_world_merge_disposals>0&&native_frames.native_world_merge_refusals==0&&
+      native_frames.native_world_merge_unbound_services==0&&native_frames.native_world_activation_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x3190d0u)&&!native_frames.residual_owner_calls.contains(0x318de0u)&&
+      !native_frames.residual_owner_calls.contains(0x322100u)&&!native_frames.residual_owner_calls.contains(0x3213a0u);
+    report["native_world_merge_gate"]=merge_passed;passed&=merge_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_DISCRETE_QUERY")) {
+    const bool native_discrete=native_frames.native_pair_discrete_calls>0&&
+      native_frames.native_pair_discrete_attempts==native_frames.native_pair_discrete_calls&&
+      native_frames.native_pair_discrete_refusals==0&&native_frames.native_pair_discrete_unbound_filters==0&&
+      native_frames.native_pair_discrete_unbound_motion_types==0&&native_frames.native_pair_discrete_payload_filters>0&&
+      !native_frames.residual_owner_calls.contains(0x281530u);
+    report["native_pair_discrete_query_gate"]=native_discrete;passed&=native_discrete;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_ACTIVATION_AGENT_FACTORY")) {
+    const bool native_wake_factory=native_frames.native_world_activation_bound_factory_calls>0&&
+      native_frames.native_world_activation_bound_factory_attempts==native_frames.native_world_activation_bound_factory_calls&&
+      native_frames.native_world_activation_bound_factory_refusals==0&&native_frames.native_world_activation_agent_factories>=native_frames.native_world_activation_bound_factory_calls&&
+      native_frames.native_world_activation_refusals==0&&native_frames.native_world_activation_residual_calls==0;
+    report["native_world_activation_agent_factory_gate"]=native_wake_factory;passed&=native_wake_factory;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_REVERSED_LIST_AGENT_DESTRUCTOR")) {
+    const bool native_destructor=native_frames.native_reversed_list_agent_destructor_calls>0&&
+      native_frames.native_reversed_list_agent_destructor_attempts==native_frames.native_reversed_list_agent_destructor_calls&&
+      native_frames.native_reversed_list_agent_destructor_refusals==0&&native_frames.native_reversed_list_agent_destructor_unqualified_owners==0&&
+      native_frames.native_reversed_list_agent_destructor_refused_owners.empty()&&
+      !native_frames.residual_owner_calls.contains(0x2f81b0u);
+    report["native_reversed_list_agent_destructor_gate"]=native_destructor;passed&=native_destructor;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_DIRTY_ISLAND_OBJECTS")) {
+    const bool native_dirty=native_frames.native_dirty_island_objects_calls>0&&
+      native_frames.native_dirty_island_objects_attempts==native_frames.native_dirty_island_objects_calls&&
+      native_frames.native_dirty_island_objects_refusals==0&&native_frames.native_dirty_island_objects_unqualified_services==0&&
+      native_frames.native_dirty_island_objects_unqualified_owners.empty()&&native_frames.native_dirty_island_objects_unsupported_local_sizes==0&&
+      !native_frames.residual_owner_calls.contains(0x282c10u);
+    report["native_dirty_island_objects_gate"]=native_dirty;passed&=native_dirty;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_DIRTY_ISLAND_CLEANUP")) {
+    const bool cleanup=native_frames.native_dirty_island_objects_dirty_islands>0&&
+      native_frames.native_dirty_island_objects_attempts==native_frames.native_dirty_island_objects_calls&&
+      native_frames.native_dirty_island_objects_refusals==0&&native_frames.native_dirty_island_objects_unqualified_services==0&&
+      native_frames.native_dirty_island_objects_unqualified_owners.empty();
+    report["native_dirty_island_cleanup_gate"]=cleanup;passed&=cleanup;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CAMERA_QUERY")) {
+    const bool native_query=native_frames.native_camera_query_calls>0&&
+      native_frames.native_camera_query_attempts==native_frames.native_camera_query_calls&&
+      native_frames.native_camera_query_refusals==0&&native_frames.native_camera_query_resource_refusals==0&&
+      native_frames.native_camera_query_unknown_owners==0&&native_frames.native_camera_query_instanced_refusals==0&&
+      native_frames.native_camera_query_unprovided_reads==0&&native_frames.native_camera_query_unprovided_writes==0&&
+      native_frames.native_look_update_query_refusals==0&&native_frames.native_look_update_fp_refusals==0;
+    report["native_camera_query_gate"]=native_query;passed&=native_query;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_CONTROLLER")) {
+    const bool native_look=native_frames.native_look_update_calls>0&&
+      native_frames.native_look_update_attempts==native_frames.native_look_update_calls&&
+      native_frames.native_look_update_refusals==0&&
+      native_frames.native_look_update_context_calls==native_frames.native_look_update_calls&&
+      native_frames.native_look_update_context_refusals==0&&
+      native_frames.native_look_update_camera_calls==native_frames.native_look_update_calls&&
+      native_frames.native_look_update_camera_completions==native_frames.native_look_update_camera_calls&&
+      native_frames.native_look_update_angle_completions==native_frames.native_look_update_angle_calls&&
+      native_frames.native_look_update_angle_refusals==0&&native_frames.native_look_update_query_refusals==0&&
+      native_frames.native_look_update_marker_observer_refusals==0&&native_frames.native_look_update_fp_refusals==0;
+    report["native_look_controller_gate"]=native_look;passed&=native_look;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_REORIENTATION")) {
+    const bool native_reorientation=native_frames.native_look_reorientation_calls>0&&
+      native_frames.native_look_reorientation_attempts==native_frames.native_look_reorientation_calls&&
+      native_frames.native_look_reorientation_kernel_calls==native_frames.native_look_reorientation_calls&&
+      native_frames.native_look_reorientation_refusals==0&&native_frames.native_look_reorientation_kernel_refusals==0;
+    report["native_look_reorientation_gate"]=native_reorientation;passed&=native_reorientation;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_LOOK_INITIALIZATION")) {
+    const bool native_initialization=native_frames.native_look_initialization_calls>0&&
+      native_frames.native_look_initialization_attempts==native_frames.native_look_initialization_calls&&
+      native_frames.native_look_initialization_refusals==0&&native_frames.native_look_initialization_unit_directions>0&&
+      native_frames.native_look_initialization_cleared_records>=native_frames.native_look_initialization_unit_directions;
+    report["native_look_initialization_gate"]=native_initialization;passed&=native_initialization;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_JOINT_CONSTRAINT_BUILDER")) {
+    const auto calls=native_frames.native_joint_builder_calls;
+    const bool native_joint=calls>0&&native_frames.native_joint_builder_attempts==calls&&
+      native_frames.native_joint_builder_kernel_entries==calls&&native_frames.native_joint_builder_kernel_completed==calls&&
+      native_frames.native_joint_builder_headers==calls&&native_frames.native_joint_builder_angular_rows==2u*calls&&
+      native_frames.native_joint_builder_motors==calls&&native_frames.native_joint_builder_linear_requests==calls&&
+      native_frames.native_joint_builder_linear_calls==calls&&native_frames.native_joint_builder_linear_completed==calls&&
+      native_frames.native_joint_builder_linear_rows==3u*calls&&native_frames.native_joint_builder_refusals==0&&
+      native_frames.native_joint_builder_unsupported_fp==0&&native_frames.native_joint_builder_linear_refusals==0&&
+      native_frames.native_joint_builder_unbound_linear==0&&native_frames.native_joint_builder_linear_unaligned==0&&
+      native_frames.native_joint_builder_linear_unsupported_fp==0&&
+      !native_frames.residual_owner_calls.contains(0x31d930u);
+    report["native_joint_constraint_builder_gate"]=native_joint;passed&=native_joint;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_JOINT_CONSTRAINT_LIMITS")) {
+    const bool native_limits=native_frames.native_joint_builder_limits>0&&
+      native_frames.native_joint_builder_attempts==native_frames.native_joint_builder_calls&&
+      native_frames.native_joint_builder_refusals==0;
+    report["native_joint_constraint_limits_gate"]=native_limits;passed&=native_limits;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_MAIN_HEAP_RELEASE")) {
+    const bool native_heap=native_frames.native_main_heap_release_calls>0&&
+      native_frames.native_main_heap_release_attempts==native_frames.native_main_heap_release_calls&&
+      native_frames.native_main_heap_release_wrapper_calls==native_frames.native_main_heap_release_calls&&
+      native_frames.native_main_heap_release_ledger_calls==native_frames.native_main_heap_release_calls&&
+      native_frames.native_main_heap_release_kernel_completed==native_frames.native_main_heap_release_calls&&
+      native_frames.native_main_heap_release_refusals==0&&native_frames.native_main_heap_release_unbound_services==0&&
+      native_frames.native_main_heap_release_refused_owners.empty()&&
+      !native_frames.residual_owner_calls.contains(0x232d20u)&&
+      !native_frames.residual_owner_calls.contains(0x232c80u);
+    report["native_main_heap_release_gate"]=native_heap;passed&=native_heap;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_MAIN_HEAP_LEDGER_REMOVAL")) {
+    const bool removed=native_frames.native_main_heap_release_matches>0;
+    report["native_main_heap_ledger_removal_gate"]=removed;passed&=removed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONTACT_BODY_UPDATE")) {
+    const bool native_body=native_frames.native_contact_body_calls>0&&
+      native_frames.native_contact_body_attempts==native_frames.native_contact_body_calls&&
+      native_frames.native_contact_body_refusals==0&&native_frames.native_contact_body_unqualified_owners==0&&
+      native_frames.native_contact_body_refused_owners.empty()&&native_frames.native_contact_body_unsupported_fp_profiles==0&&
+      native_frames.native_contact_body_wake_attempts==native_frames.native_contact_body_wake_calls&&
+      native_frames.native_contact_body_wake_refusals==0&&native_frames.native_world_activation_residual_calls==0&&
+      !native_frames.residual_owner_calls.contains(0x1d77d0u);
+    report["native_contact_body_update_gate"]=native_body;passed&=native_body;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_REVERSED_LIST_AGENT_DESTRUCTOR")) {
+    const bool native_destructor=native_frames.native_reversed_list_agent_destructor_calls>0&&
+      native_frames.native_reversed_list_agent_destructor_attempts==native_frames.native_reversed_list_agent_destructor_calls&&
+      native_frames.native_reversed_list_agent_destructor_refusals==0&&native_frames.native_reversed_list_agent_destructor_unqualified_owners==0&&
+      native_frames.native_reversed_list_agent_destructor_refused_owners.empty()&&
+      !native_frames.residual_owner_calls.contains(0x2f81b0u);
+    report["native_reversed_list_agent_destructor_gate"]=native_destructor;passed&=native_destructor;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_DELETION")) {
+    const bool native_deletion=native_frames.native_pair_deletion_calls>0&&
+      native_frames.native_pair_deletion_attempts==native_frames.native_pair_deletion_calls&&
+      native_frames.native_pair_deletion_refusals==0&&native_frames.native_pair_deletion_unqualified_owners==0&&
+      native_frames.native_pair_deletion_nested_refusals==0&&native_frames.native_pair_deletion_refused_owners.empty()&&
+      !native_frames.residual_owner_calls.contains(0x320260u);
+    report["native_pair_deletion_gate"]=native_deletion;passed&=native_deletion;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_ISLAND_WAKE")) {
+    const bool native_pair_wake=native_frames.native_pair_island_wake_calls>0&&
+      native_frames.native_pair_island_wake_attempts==native_frames.native_pair_island_wake_calls&&
+      native_frames.native_pair_island_wake_refusals==0&&native_frames.native_world_activation_refusals==0&&
+      native_frames.native_world_activation_residual_calls==0&&!native_frames.residual_owner_calls.contains(0x316d40u);
+    report["native_pair_island_wake_gate"]=native_pair_wake;passed&=native_pair_wake;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_WORLD_ACTIVATION")) {
+    const bool wake_passed=native_frames.native_world_activation_calls>0&&
+      native_frames.native_world_activation_body_updates>0&&native_frames.native_world_activation_refusals==0&&
+      native_frames.native_world_activation_residual_calls==0&&native_frames.native_world_merge_unbound_services==0;
+    report["native_world_activation_gate"]=wake_passed;passed&=wake_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_ARENA")) {
+    const bool arena_passed=native_frames.native_constraint_arena_allocations>0&&
+      native_frames.native_constraint_arena_allocations==native_frames.native_constraint_arena_releases&&
+      native_frames.native_constraint_arena_refusals==0&&native_frames.native_stack_arena_refusals==0&&
+      !native_frames.residual_owner_calls.contains(0x2e10a0u)&&!native_frames.residual_owner_calls.contains(0x2e1110u);
+    report["native_constraint_arena_gate"]=arena_passed;passed&=arena_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_EFFECT_SELECTION")) {
+    const bool selection_passed=native_frames.native_constraint_effect_selection_calls>0&&
+      native_frames.native_constraint_effect_selected_rows>0&&native_frames.native_constraint_effect_unknown_constants==0;
+    report["native_constraint_effect_selection_gate"]=selection_passed;passed&=selection_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_RUNTIME_UPDATE")) {
+    const bool runtime_passed=native_frames.native_constraint_runtime_calls>0&&
+      native_frames.native_constraint_runtime_counter_updates>0&&
+      native_frames.native_constraint_runtime_storage_refusals==0&&
+      native_frames.native_constraint_runtime_profile_refusals==0&&
+      native_frames.native_constraint_runtime_unbound_services==0;
+    report["native_constraint_runtime_update_gate"]=runtime_passed;passed&=runtime_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_REMOVAL")) {
+    const bool removal_passed=native_frames.native_constraint_removal_calls>0&&
+      native_frames.native_constraint_instance_deletions==native_frames.native_constraint_removal_calls&&
+      native_frames.native_constraint_list_removals>0&&
+      native_frames.native_constraint_unbound_handle_releases==0&&
+      native_frames.native_constraint_unbound_runtime_removals==0;
+    report["native_constraint_removal_gate"]=removal_passed;passed&=removal_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_CREATION")) {
+    const bool creation_passed=native_frames.native_constraint_creation_calls>0&&
+      native_frames.native_constraint_created==native_frames.native_constraint_creation_calls&&
+      native_frames.native_constraint_normalize_calls==native_frames.native_constraint_creation_calls&&
+      native_frames.native_constraint_creation_storage_refusals==0&&
+      native_frames.native_constraint_creation_numerical_refusals==0&&
+      native_frames.native_constraint_unbound_runtime_removals==0;
+    report["native_constraint_creation_gate"]=creation_passed;passed&=creation_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_HANDLES")) {
+    const bool handles_passed=native_frames.native_constraint_valid_handles>0&&
+      native_frames.native_constraint_retained_handle_marks>0&&
+      native_frames.native_constraint_handle_unbound_services==0;
+    report["native_constraint_handles_gate"]=handles_passed;passed&=handles_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_HANDLE_DESTRUCTION")) {
+    const bool destruction_passed=native_frames.native_constraint_handle_destruction_calls>0&&
+      native_frames.native_constraint_handle_row_deletions>0&&native_frames.native_constraint_event_deletions>0&&
+      native_frames.native_constraint_object_detaches>0&&native_frames.native_constraint_handle_unbound_services==0&&
+      native_frames.native_constraint_child_unbound_services==0;
+    report["native_constraint_handle_destruction_gate"]=destruction_passed;passed&=destruction_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_TAG_VALUES")) {
+    const bool values_passed=native_frames.native_constraint_tag_value_calls>0&&
+      native_frames.native_constraint_tag_value_publications>0&&native_frames.native_constraint_handle_unbound_services==0;
+    report["native_constraint_tag_values_gate"]=values_passed;passed&=values_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_PAIR_CHANGES")) {
+    const bool changes_passed=native_frames.native_pair_consumer_create_calls>0&&
+      native_frames.native_pair_consumer_delete_calls>0;
+    report["native_pair_changes_gate"]=changes_passed;passed&=changes_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_SPHERE_BOUNDS")) {
+    const bool sphere_passed=native_frames.native_shape_bounds_sphere_calls>0&&
+      !native_frames.shape_bounds_residual_owners.contains(0x2e8d90u);
+    report["native_sphere_bounds_gate"]=sphere_passed;passed&=sphere_passed;
+  }
   if(std::getenv("HALO2_REQUIRE_NATIVE_SHAPE_BOUNDS")) {
     const bool bounds_passed=native_frames.native_shape_bounds_box_calls+
       native_frames.native_shape_bounds_centered_box_calls+native_frames.native_shape_bounds_endpoint_calls>0&&
       native_frames.shape_bounds_residual_calls==0;
     report["native_shape_bounds_gate"]=bounds_passed;passed&=bounds_passed;
+  }
+  if(std::getenv("HALO2_REQUIRE_NATIVE_DIRECT_CONSTRAINT_BASE")) {
+    const bool direct_passed=native_frames.native_constraint_direct_base_calls>0&&
+      native_frames.native_constraint_direct_base_rows>0&&
+      !native_frames.residual_owner_calls.contains(0x325ef0u);
+    report["native_direct_constraint_base_gate"]=direct_passed;passed&=direct_passed;
   }
   if(std::getenv("HALO2_REQUIRE_NATIVE_CONSTRAINT_PRODUCERS")) {
     const auto&emissions=native_frames.native_constraint_producer_completed_emissions;
@@ -4157,6 +6951,17 @@ int main(int argc,char **argv) try {
       {"approach_calls",native_rates_after.approach_calls-native_rates_before.approach_calls},
       {"live_cursor_calls",native_rates_after.live_cursor_calls-native_rates_before.live_cursor_calls},
       {"scope","Process-local counters across actual host/local source worlds; no object attribution or gameplay/replay input"}};
+  if(single_vehicle_view) {
+    report["single_view_vehicle_input"]=true;
+    report["single_view_native_receiver_vertices"]=single_view_receiver_vertices;
+    report["single_view_wheel_receiver_vertices"]=single_view_wheel_vertices;
+    report["single_view_minimum_wheel_distance"]=single_vehicle_target_distance;
+    report["single_view_wheel_boost_commands"]=wheel_boost_commands;
+    if(wheel_boost_input)passed&=wheel_boost_commands>0;
+    report["single_view_route_waypoint"]=single_vehicle_route_index;
+    report["single_view_mouse_steering_commands"]=single_vehicle_steering_looks;
+    passed&=single_view_receiver_vertices>0 && single_view_wheel_vertices>0 && single_vehicle_target_distance<8.f;
+  }
   report["acceptance_passed"]=passed;
   report["limit"]="Live native behavior only. Full retail contact/solver, driving, dynamic-object impulses and complete TU1.5 parity remain required.";
   {std::ofstream file(output/"report.json");file<<report.dump(2)<<'\n';check(bool(file),"Could not write acceptance report");}

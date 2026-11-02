@@ -10,7 +10,7 @@ int main(int argc,char **argv)try {
   std::ifstream input(argv[1]);
   if(!input)throw FormatError("Missing TU1.5 player color fixture");
   std::vector<std::array<std::uint32_t,3>> palette,teams;
-  unsigned cases{};
+  unsigned cases{},multiplayer_cases{};
   for(std::string line;std::getline(input,line);) {
     if(line.empty() || line[0]=='#')continue;
     std::istringstream row(line);std::string kind;row>>kind;
@@ -32,6 +32,25 @@ int main(int argc,char **argv)try {
         if(std::bit_cast<std::uint32_t>(value)!=expected)
           throw FormatError("Player armor color differs from unchanged TU1.5 830C0");
       }
+      const auto multiplayer=[&](bool team_mode,std::int16_t membership) {
+        const auto actual=source_multiplayer_player_colors(profile,team_mode,membership,palette,teams);
+        for(unsigned channel=0;channel<4;++channel)
+          if(std::bit_cast<std::array<std::uint32_t,3>>(actual[channel])!=
+             std::bit_cast<std::array<std::uint32_t,3>>(colors[channel]))
+            throw FormatError("Multiplayer armor differs from original selected colors: team_mode="+
+                std::to_string(team_mode)+" membership="+std::to_string(membership)+
+                " channel="+std::to_string(channel)+" actual_rgb="+
+                std::to_string(actual[channel].x)+","+std::to_string(actual[channel].y)+","+std::to_string(actual[channel].z));
+        ++multiplayer_cases;
+      };
+      if(team==-1) {
+        if(neutral)multiplayer(true,-1);
+        else {
+          multiplayer(false,-1);
+          // A stale lobby membership must not color a non-team match.
+          multiplayer(false,0);multiplayer(false,7);
+        }
+      } else if(!neutral)multiplayer(true,std::int16_t(team));
       const auto emblem=source_player_emblem_colors(profile,palette);
       for(unsigned channel=0;channel<2;++channel)
         if(std::bit_cast<std::array<std::uint32_t,3>>(emblem[channel])!=
@@ -41,7 +60,8 @@ int main(int argc,char **argv)try {
     }
     if(!row)throw FormatError("Truncated original player color fixture");
   }
-  if(cases!=328)throw FormatError("Original player color coverage changed");
-  std::cout<<"PASS "<<cases<<" unchanged TU1.5 color cases: every team, FFA, neutral, signed palette and emblem ownership\n";
+  if(cases!=328 || multiplayer_cases!=813)throw FormatError("Original player color coverage changed");
+  std::cout<<"PASS "<<cases<<" unchanged TU1.5 color cases and "<<multiplayer_cases
+      <<" multiplayer mode/membership cases: every team, FFA, neutral, signed palette and emblem ownership\n";
   return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

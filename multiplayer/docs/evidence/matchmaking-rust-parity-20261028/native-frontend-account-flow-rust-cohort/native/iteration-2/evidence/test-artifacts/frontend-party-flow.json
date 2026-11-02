@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "cases": 5439,
+  "state_observations": 7090,
+  "native_io_observations": 7193,
+  "fault_observations": 54,
+  "preserved_native_exception_identity": 54,
+  "differences": [],
+  "native_exit_code": 0,
+  "native_output_lines": 5439,
+  "stderr": "",
+  "native_sha256": "fb2c372ae5074177b06d65510d58c4649cb00554e69547f500c0f7cadf028dc1",
+  "scope": "Compare captured native party callers with the actual Rust/CXX controller.\n\nWorker, frame, member and voice observations are declared synthetic IO. This\nqualifies modern caller/state equivalence, not original Live services, native\ndevice internals, physical input or installed runtime delivery. Raw outputs\nstay inside the enclosing run_tests.py/run_test.py scratch lifecycle.\n",
+  "admitted_native_framing": [
+    "Shutdown handler: initialize.",
+    "Shutdown handler: cleanup."
+  ],
+  "transport_error": null
+}

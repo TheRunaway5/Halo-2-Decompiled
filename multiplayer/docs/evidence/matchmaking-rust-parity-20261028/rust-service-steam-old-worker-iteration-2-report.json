@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "steam",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/Cargo.toml",
+    "rust/matchmaking_service/Cargo.lock",
+    "rust/matchmaking_service/src/main.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/admission.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/steam_login.rs",
+    "rust/matchmaking_service/src/steam_provider.rs",
+    "rust/matchmaking_service/src/steam_sessions.rs",
+    "rust/matchmaking_service/src/steam_http.rs"
+  ],
+  "source_files": 134,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/cargo/release/halo2-matchmaking-service",
+    "sha256": "9cd1e57cd5c49ce1e14feccadab01c7e77ad63014a6f29ee31e55b9493d5afa9",
+    "bytes": 10889912,
+    "retained": false
+  },
+  "steam": {
+    "checks": [
+      "actual Rust Steam start route owns the native proof-bound pending handoff"
+    ],
+    "real_steam": false
+  }
+}

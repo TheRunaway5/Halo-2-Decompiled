@@ -1,0 +1,9 @@
+import hashlib,json,os,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);w=root/'build/test-results/frontend-party-policy-rust-20261102'
+commands=[[sys.executable,'-B','tests/generate_frontend_party_reference.py','--reference','tests/reference/frontend_party_before_rust_20261102','--current','src/ui/frontend_party.cpp','--before',str(scratch/'frontend_party_before.inc'),'--after',str(scratch/'frontend_party_after.inc')],['c++','-std=c++20','-fsyntax-only','-Iinclude','-I'+str(scratch),'tests/native_frontend_party_rust_tests.cpp']]
+r={'passed':False,'commands':[],'scratch':str(scratch),'source_sha256':hashlib.sha256((root/'tests/native_frontend_party_rust_tests.cpp').read_bytes()).hexdigest()}
+for cmd in commands:
+ p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);r['commands'].append({'command':cmd,'exit_code':p.returncode,'output':p.stdout.decode(errors='replace')[-4000:]})
+ if p.returncode:break
+r['passed']=all(s['exit_code']==0 for s in r['commands']);(w/'native-syntax.json').write_text(json.dumps(r,indent=2)+'\n');print(json.dumps(r));raise SystemExit(0 if r['passed'] else 1)

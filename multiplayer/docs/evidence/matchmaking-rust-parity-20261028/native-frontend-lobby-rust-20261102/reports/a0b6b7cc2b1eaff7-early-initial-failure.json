@@ -1,0 +1,32 @@
+{
+  "scope": "Standalone compiler invocation only",
+  "command": {
+    "command": [
+      "c++",
+      "-std=c++20",
+      "-O2",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/source/include",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/source/tests",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/cargo/cxxbridge",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/source/tests/frontend_lobby_policy_tests.cpp",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/source/src/ui/frontend_matchmaking_lobby_bridge.cpp",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/cargo/debug/libhalo2_online_protocol_bridge.a",
+      "-lcurl",
+      "-lssl",
+      "-lcrypto",
+      "-ldl",
+      "-lpthread",
+      "-lm",
+      "-o",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/comparison"
+    ],
+    "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-lsmx4en3/source",
+    "exit_code": 1,
+    "log": "early-cpp.log",
+    "full_log_sha256": "0beb5519c50b1523e99e06974fc0d3bd7cdd212241559feead7e884eff5e4635",
+    "full_log_bytes": 1149
+  },
+  "diagnostic": "Generated CXX header includes bridge-owned src/*.hpp; missing bridge crate root include path",
+  "rust_build_passed": true,
+  "product_code_changed": false
+}

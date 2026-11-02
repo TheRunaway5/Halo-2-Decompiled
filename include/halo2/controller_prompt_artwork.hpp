@@ -8,6 +8,8 @@ struct ControllerPromptSample {unsigned material{};std::array<float,4> uv;};
 // Independent control-only textures. Ordinary font metrics, text, lookup and
 // original/MCC atlases stay with their existing owners. Prepare before GPU
 // upload; drawing only chooses immutable material/UV records per local view.
+// A visible button/keycap requires our bank; missing artwork never selects a
+// controller glyph from the underlying MCC font atlas.
 class ControllerPromptArtwork {
 public:
   ControllerPromptArtwork(Mesh &,const std::filesystem::path &font_directory);

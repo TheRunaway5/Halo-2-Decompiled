@@ -1,0 +1,1657 @@
+{
+  "schema": "H2_RUST_CANONICAL_IDENTITY_OWNER_VALIDATION_V1",
+  "updated_utc": "2026-10-29T22:34:53.178933+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "canonical_identity_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "rust_authorities": "Rust now owns canonical player/alias schema migration, capacity and serialized allocation, canonical account and couch-seat/party lookups, provider-name/profile updates, stable registration metadata and public friend-tag assignment. The complete dual-provider adoption transaction is Rust-owned: raw Steam bearer/current SQL expiry checks before and after Discord provider IO; current canonical aliases, one-provider uniqueness, all declared persistent player foreign-key checks with paged schema enumeration and quoted identifiers; actual native primary/signed-local session checks; atomic metadata-only adoption; persisted registration clock floor; and sealed post-COMMIT revocation of the deleted player's native account grants. Caller-owned canonical transactions and failed composed writes preserve the caller's earlier writes through typed SQLite savepoints; link operations reject outer transactions before provider IO. Three real controls go red before the port: canonical resolution commits its caller transaction, and links succeed after primary expiry or revocation during provider await. A subsequent native commit-effect regression exposed and fixed consumption of the shared readiness flag; failed COMMIT preserves the old mapping/grants and a successful retry retires the old grant. Python retains generic provider/source admission, HTTP/clock/SQLite IO and temporary endpoint coordination. Steam OpenID verification/pending/session/refresh issuance, Discord verifier policy, full Rust service/middleware replacement, cross-store/process recovery and all original/native played/delivered gates remain open. These are modern identity service rules, not recovered Xbox Live authentication. Rust also resolves complete couch rosters atomically: the reproduced one-free-slot/two-new-seats503 previously retained the first canonical player/profile/alias/tag; the final Rust roster transaction rolls all four tables back and publishes no native session. Successful primary/signed-local allocation uses distinct native identities and never stores a guest account.",
+  "reproduced_gaps": [
+    {
+      "trigger": "Resolve a canonical player while the caller has an open transaction and marker.",
+      "before": "The old helper commits the outer transaction.",
+      "after": "Caller transaction remains open; rollback removes canonical rows and marker."
+    },
+    {
+      "trigger": "Expire the Steam credential during the actual Discord verification await.",
+      "before": "Actual link endpoint incorrectly returns200 and adopts aliases.",
+      "after": "Rust current-session SQL rejects401 without relinking."
+    },
+    {
+      "trigger": "Delete the current Steam credential during the actual Discord verification await.",
+      "before": "Actual link endpoint incorrectly returns200.",
+      "after": "Rust current-session SQL rejects401 without relinking."
+    },
+    {
+      "trigger": "Retry after a failed deferred-constraint adoption COMMIT, then use the old native account grant.",
+      "before": "An intermediate Rust readiness flag was consumed by another commit hook; the deleted profile yields404 instead of revoking the grant.",
+      "after": "Independent identity commit readiness keeps the failed-COMMIT account valid, then successful retry revokes it401."
+    },
+    {
+      "trigger": "Register two fresh signed-in couch accounts with exactly one persistent player slot left.",
+      "before": "503 leaves counts [1000,3,3,3] instead of [999,2,2,2] for players/profiles/aliases/tags.",
+      "after": "One Rust roster transaction rolls all canonical rows back and publishes no native session."
+    }
+  ],
+  "checks": [
+    "Caller-owned schema/allocation/resolution rollback, failed savepoint composition and serialized two-connection final-slot quota",
+    "Current raw Steam credential before/after provider IO; existing one-provider and persistent-data adoption guards",
+    "Actual native signed-local activity cannot be bypassed by an empty Python session projection",
+    "Quoted table/column names, newline identifiers and a persistent player reference beyond the first128-table page",
+    "Deferred SQL COMMIT failure retains current mapping/grants; successful retry consumes the sealed native revocation once",
+    "New canonical registration uses the persisted server clock floor; legacy unknown registration remains NULL",
+    "Complete couch allocation is atomic; successful new primary/local IDs are distinct and a guest stays session-only",
+    "Existing linked-couch rejection now includes required title language and asserts the intended duplicate-account error",
+    "Source-frozen diagnostic/production cohorts with identical final manifests and shared final native source identities"
+  ],
+  "cohorts": {
+    "owner-red": {
+      "passed": false,
+      "files": 294,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_sessions.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_accounts.rs",
+        "rust/online_protocol/src/matchmaking_friend_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/steam_login.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_steam_login.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-owner-red-report.json",
+      "manifest": "identity-owner-red-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-1u2hlq_p/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "208ad0817cdfd3b469fc63d28d91b5bea99f8d848c39cb3dfa6b0e8e4bd3784e",
+        "bytes": 4870184,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-1u2hlq_p/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native"
+          ],
+          "returncode": 1
+        }
+      ],
+      "backend_tests": 3,
+      "backend_seconds": 0.21,
+      "backend_failures": 3
+    },
+    "owner-first": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_steam_login.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-owner-first-report.json",
+      "manifest": "identity-owner-first-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-tjf8vvt0/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "4fb4b0efa9baeb386de20bc1039594fcf1d3e4007f7088490f5178b1f8f8d924",
+        "bytes": 4918616,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-tjf8vvt0/master-source/rust/online_protocol/Cargo.toml",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-tjf8vvt0/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_player_profile"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 200,
+      "rust_ignored": 2,
+      "backend_tests": 50,
+      "backend_seconds": 5.668,
+      "backend_failures": 0
+    },
+    "boundaries": {
+      "passed": false,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/clans_http.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_steam_login.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-boundaries-report.json",
+      "manifest": "identity-boundaries-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "ed2f9c7471a36d362548cedd28efe3e70d97b2a18993c445deab6740925a92b5",
+        "bytes": 4914920,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/master-source/rust/online_protocol/Cargo.toml",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_player_profile"
+          ],
+          "returncode": 1
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 200,
+      "rust_ignored": 2,
+      "backend_tests": 58,
+      "backend_seconds": 5.61,
+      "backend_failures": 2
+    },
+    "boundaries-fixed": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_steam_login.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-boundaries-fixed-report.json",
+      "manifest": "identity-boundaries-fixed-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-cjk8taob/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "740b33ffae5621786a2201029cea03edd9fb81701442580d68e9970a476e1f08",
+        "bytes": 4940520,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-cjk8taob/master-source/rust/online_protocol/Cargo.toml",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-cjk8taob/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_player_profile"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 200,
+      "rust_ignored": 2,
+      "backend_tests": 58,
+      "backend_seconds": 5.631,
+      "backend_failures": 0
+    },
+    "seats-red": {
+      "passed": false,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-seats-red-report.json",
+      "manifest": "identity-seats-red-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "04643b0b435253b03cc44cf63fa6c7b4b149272a2241ed7220e0624f67ce0a1f",
+        "bytes": 4940256,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native.IdentityLinkOwnerTests.test_couch_identity_allocation_at_capacity_is_one_atomic_operation"
+          ],
+          "returncode": 1
+        }
+      ],
+      "backend_tests": 1,
+      "backend_seconds": 0.093,
+      "backend_failures": 1
+    },
+    "seats-fixed": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/native_identity.py"
+      ],
+      "report": "identity-seats-fixed-report.json",
+      "manifest": "identity-seats-fixed-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-wyqi7s9a/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "0a91f61c637aae9b41c0fab47b3df1cf787e7b6bb84b124400001d803be38bcf",
+        "bytes": 4925024,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-wyqi7s9a/master-source/rust/online_protocol/Cargo.toml",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-wyqi7s9a/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_identity_owner_native",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_player_profile"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 200,
+      "rust_ignored": 2,
+      "backend_tests": 60,
+      "backend_seconds": 7.36,
+      "backend_failures": 0
+    },
+    "full": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-full-report.json",
+      "manifest": "identity-full-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-mer476cn/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "30ad7cb4fb6b3d003ba1bb4b6fbe1b89df154e5026f782dcc1eabc90ec1056d5",
+        "bytes": 4943728,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-mer476cn/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_skill_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "matchmaking_coordinator",
+            "--test",
+            "gathering_owner",
+            "--test",
+            "team_assignment_original",
+            "--test",
+            "matchmaking_ratings_original",
+            "--test",
+            "session_candidates_original",
+            "--test",
+            "search_lifecycle_original"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-mer476cn/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "multiplayer/master_server/tests",
+            "-t",
+            "."
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 294,
+      "rust_ignored": 2,
+      "backend_tests": 577,
+      "backend_seconds": 136.436,
+      "backend_failures": 0
+    },
+    "production": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py"
+      ],
+      "report": "identity-production-report.json",
+      "manifest": "identity-production-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-ojd_7sq0/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "adc7ee43f67626729837a3cfd7104832f1bb3028c944aaea2f8d96074516c0fa",
+        "bytes": 4925416,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-ojd_7sq0/master-source/rust/online_protocol/Cargo.toml",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "gathering_owner"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-ojd_7sq0/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_room_wire_owner_native",
+            "multiplayer.master_server.tests.test_voice_blocks",
+            "multiplayer.master_server.tests.test_eos_room_identity",
+            "multiplayer.master_server.tests.test_room_lifecycle_owner_native",
+            "multiplayer.master_server.tests.test_continuity_owner_native",
+            "multiplayer.master_server.tests.test_match_continuity",
+            "multiplayer.master_server.tests.test_room_setup_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_readiness_native",
+            "multiplayer.master_server.tests.test_queue_api_owner_native",
+            "multiplayer.master_server.tests.test_countdown_owner_native",
+            "multiplayer.master_server.tests.test_party_countdown",
+            "multiplayer.master_server.tests.test_party_consent_owner_native",
+            "multiplayer.master_server.tests.test_party_activity",
+            "multiplayer.master_server.tests.test_party_privacy",
+            "multiplayer.master_server.tests.test_sessions_owner_native",
+            "multiplayer.master_server.tests.test_catalog_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_http",
+            "multiplayer.master_server.tests.test_couch_online",
+            "multiplayer.master_server.tests.test_matchmaking_appearance",
+            "multiplayer.master_server.tests.test_security_linked_admission",
+            "multiplayer.master_server.tests.test_parties_http",
+            "multiplayer.master_server.tests.test_online_population",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_ranked_results",
+            "multiplayer.master_server.tests.test_casual_results",
+            "multiplayer.master_server.tests.test_result_consent",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_results_owner_native",
+            "multiplayer.master_server.tests.test_gathering_owner_native",
+            "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+            "multiplayer.master_server.tests.test_direct_peer_http",
+            "multiplayer.master_server.tests.test_match_continuity_http",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_content_rejection_is_authenticated_and_publishes_original_party_failure",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_readiness_loss_resets_the_shared_start_clock",
+            "multiplayer.master_server.tests.test_room_packets_owner_native",
+            "multiplayer.master_server.tests.test_security_voice_origin",
+            "multiplayer.master_server.tests.test_match_packet_budget",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_admission_real_challenges_loading_and_authenticated_routes",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_data_mismatch_closes_everyone",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_audio_flood_is_bounded_on_the_authenticated_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_game_flood_is_bounded_on_the_authenticated_destination",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_voice_preferences_share_the_bounded_speaker_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_presence_follows_live_match_after_frontend_session_teardown",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_delta_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_anonymous_and_unmatched_transport_denied",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disagreed_report_cannot_enter_persistent_results",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disconnect_during_review_records_no_result",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_report_admission_signed_totals_and_tied_standings",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_finalize_or_forge_postgame",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_forged_postgame_identity_is_rejected",
+            "multiplayer.master_server.tests.test_room_control_owner_native",
+            "multiplayer.master_server.tests.test_search_qos_owner_native",
+            "multiplayer.master_server.tests.test_search_qos",
+            "multiplayer.master_server.tests.test_party_directory_owner_native",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_clan_directory_owner_native",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_clan_voice",
+            "multiplayer.master_server.tests.test_eos_identity",
+            "multiplayer.master_server.tests.test_history_owner_native",
+            "multiplayer.master_server.tests.test_carnage_history",
+            "multiplayer.master_server.tests.test_player_profile",
+            "multiplayer.master_server.tests.test_profile_owner_native",
+            "multiplayer.master_server.tests.test_presence_owner_native",
+            "multiplayer.master_server.tests.test_friend_owner_native",
+            "multiplayer.master_server.tests.test_friend_cloud",
+            "multiplayer.master_server.tests.test_voice_owner_native",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_identity_owner_native"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 272,
+      "rust_ignored": 2,
+      "backend_tests": 369,
+      "backend_seconds": 101.699,
+      "backend_failures": 0
+    },
+    "full-qualified": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "report": "identity-full-qualified-report.json",
+      "manifest": "identity-full-qualified-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-5iilgk3j/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "465fac4055d40d021cad6eab2d5c0e9280c64d26d4ad0a6bf640ec83a1395d9f",
+        "bytes": 4945648,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-5iilgk3j/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_skill_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "matchmaking_coordinator",
+            "--test",
+            "gathering_owner",
+            "--test",
+            "team_assignment_original",
+            "--test",
+            "matchmaking_ratings_original",
+            "--test",
+            "session_candidates_original",
+            "--test",
+            "search_lifecycle_original"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-5iilgk3j/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "multiplayer/master_server/tests",
+            "-t",
+            "."
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 294,
+      "rust_ignored": 2,
+      "backend_tests": 579,
+      "backend_seconds": 154.05,
+      "backend_failures": 0
+    },
+    "production-qualified": {
+      "passed": true,
+      "files": 296,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "report": "identity-production-qualified-report.json",
+      "manifest": "identity-production-qualified-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-pgd4xoj9/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "64422e8cebac42262ad580e24f4743d0b64d963aaccb722284f82f87eb243d53",
+        "bytes": 4940720,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-pgd4xoj9/master-source/rust/online_protocol/Cargo.toml",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "gathering_owner"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-pgd4xoj9/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_room_wire_owner_native",
+            "multiplayer.master_server.tests.test_voice_blocks",
+            "multiplayer.master_server.tests.test_eos_room_identity",
+            "multiplayer.master_server.tests.test_room_lifecycle_owner_native",
+            "multiplayer.master_server.tests.test_continuity_owner_native",
+            "multiplayer.master_server.tests.test_match_continuity",
+            "multiplayer.master_server.tests.test_room_setup_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_readiness_native",
+            "multiplayer.master_server.tests.test_queue_api_owner_native",
+            "multiplayer.master_server.tests.test_countdown_owner_native",
+            "multiplayer.master_server.tests.test_party_countdown",
+            "multiplayer.master_server.tests.test_party_consent_owner_native",
+            "multiplayer.master_server.tests.test_party_activity",
+            "multiplayer.master_server.tests.test_party_privacy",
+            "multiplayer.master_server.tests.test_sessions_owner_native",
+            "multiplayer.master_server.tests.test_catalog_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_http",
+            "multiplayer.master_server.tests.test_couch_online",
+            "multiplayer.master_server.tests.test_matchmaking_appearance",
+            "multiplayer.master_server.tests.test_security_linked_admission",
+            "multiplayer.master_server.tests.test_parties_http",
+            "multiplayer.master_server.tests.test_online_population",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_ranked_results",
+            "multiplayer.master_server.tests.test_casual_results",
+            "multiplayer.master_server.tests.test_result_consent",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_results_owner_native",
+            "multiplayer.master_server.tests.test_gathering_owner_native",
+            "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+            "multiplayer.master_server.tests.test_direct_peer_http",
+            "multiplayer.master_server.tests.test_match_continuity_http",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_content_rejection_is_authenticated_and_publishes_original_party_failure",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_readiness_loss_resets_the_shared_start_clock",
+            "multiplayer.master_server.tests.test_room_packets_owner_native",
+            "multiplayer.master_server.tests.test_security_voice_origin",
+            "multiplayer.master_server.tests.test_match_packet_budget",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_admission_real_challenges_loading_and_authenticated_routes",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_data_mismatch_closes_everyone",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_audio_flood_is_bounded_on_the_authenticated_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_game_flood_is_bounded_on_the_authenticated_destination",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_voice_preferences_share_the_bounded_speaker_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_presence_follows_live_match_after_frontend_session_teardown",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_delta_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_anonymous_and_unmatched_transport_denied",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disagreed_report_cannot_enter_persistent_results",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disconnect_during_review_records_no_result",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_report_admission_signed_totals_and_tied_standings",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_finalize_or_forge_postgame",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_forged_postgame_identity_is_rejected",
+            "multiplayer.master_server.tests.test_room_control_owner_native",
+            "multiplayer.master_server.tests.test_search_qos_owner_native",
+            "multiplayer.master_server.tests.test_search_qos",
+            "multiplayer.master_server.tests.test_party_directory_owner_native",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_clan_directory_owner_native",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_clan_voice",
+            "multiplayer.master_server.tests.test_eos_identity",
+            "multiplayer.master_server.tests.test_history_owner_native",
+            "multiplayer.master_server.tests.test_carnage_history",
+            "multiplayer.master_server.tests.test_player_profile",
+            "multiplayer.master_server.tests.test_profile_owner_native",
+            "multiplayer.master_server.tests.test_presence_owner_native",
+            "multiplayer.master_server.tests.test_friend_owner_native",
+            "multiplayer.master_server.tests.test_friend_cloud",
+            "multiplayer.master_server.tests.test_voice_owner_native",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_identity_owner_native"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 272,
+      "rust_ignored": 2,
+      "backend_tests": 371,
+      "backend_seconds": 115.299,
+      "backend_failures": 0
+    }
+  },
+  "native_cmake": {
+    "native-cmake": {
+      "passed": true,
+      "inputs": 4292,
+      "copied_source_bytes": 166503527,
+      "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qpr53ekj/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "multiplayer/master_server/matchmaking_http.py",
+        "multiplayer/master_server/native_identity.py",
+        "multiplayer/master_server/player_identity.py",
+        "multiplayer/master_server/tests/test_identity_owner_native.py",
+        "rust/online_protocol/src/matchmaking_identity_directory.rs",
+        "src/rendering/mcc_native_character_shared.cpp",
+        "src/rendering/mcc_native_character_shared_profiles.inc"
+      ],
+      "native_checks_passed": 4,
+      "reports": {
+        "build.log": "identity-native-cmake-build.log",
+        "configure.log": "identity-native-cmake-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "identity-native-cmake-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "identity-native-cmake-inputs.json",
+        "report.json": "identity-native-cmake-report.json",
+        "source-pins-0.json": "identity-native-cmake-source-pins-0.json",
+        "source-pins-1.json": "identity-native-cmake-source-pins-1.json",
+        "source-pins-10.json": "identity-native-cmake-source-pins-10.json",
+        "source-pins-2.json": "identity-native-cmake-source-pins-2.json",
+        "source-pins-3.json": "identity-native-cmake-source-pins-3.json",
+        "source-pins-4.json": "identity-native-cmake-source-pins-4.json",
+        "source-pins-5.json": "identity-native-cmake-source-pins-5.json",
+        "source-pins-6.json": "identity-native-cmake-source-pins-6.json",
+        "source-pins-7.json": "identity-native-cmake-source-pins-7.json",
+        "source-pins-8.json": "identity-native-cmake-source-pins-8.json",
+        "source-pins-9.json": "identity-native-cmake-source-pins-9.json",
+        "tests.log": "identity-native-cmake-tests.log"
+      },
+      "scope": "Native static/CXX/FFI/helper and real account/Steam HTTP with independent local providers. All production src/include and selected test/reference build support were copied. External original/assets/system SDK inputs remain borrowed read-only. No selected runtime, rendered/played-game, live provider or original parity acceptance."
+    },
+    "native-qualified-cmake": {
+      "passed": true,
+      "inputs": 4292,
+      "copied_source_bytes": 166506976,
+      "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-3ktlxruf/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "src/rendering/mcc_native_character_shared.cpp",
+        "src/rendering/mcc_native_character_shared_profiles.inc"
+      ],
+      "native_checks_passed": 4,
+      "reports": {
+        "build.log": "identity-native-qualified-cmake-build.log",
+        "configure.log": "identity-native-qualified-cmake-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "identity-native-qualified-cmake-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "identity-native-qualified-cmake-inputs.json",
+        "report.json": "identity-native-qualified-cmake-report.json",
+        "source-pins-0.json": "identity-native-qualified-cmake-source-pins-0.json",
+        "source-pins-1.json": "identity-native-qualified-cmake-source-pins-1.json",
+        "source-pins-10.json": "identity-native-qualified-cmake-source-pins-10.json",
+        "source-pins-2.json": "identity-native-qualified-cmake-source-pins-2.json",
+        "source-pins-3.json": "identity-native-qualified-cmake-source-pins-3.json",
+        "source-pins-4.json": "identity-native-qualified-cmake-source-pins-4.json",
+        "source-pins-5.json": "identity-native-qualified-cmake-source-pins-5.json",
+        "source-pins-6.json": "identity-native-qualified-cmake-source-pins-6.json",
+        "source-pins-7.json": "identity-native-qualified-cmake-source-pins-7.json",
+        "source-pins-8.json": "identity-native-qualified-cmake-source-pins-8.json",
+        "source-pins-9.json": "identity-native-qualified-cmake-source-pins-9.json",
+        "tests.log": "identity-native-qualified-cmake-tests.log"
+      },
+      "scope": "Native static/CXX/FFI/helper and real account/Steam HTTP with independent local providers. All production src/include and selected test/reference build support were copied. External original/assets/system SDK inputs remain borrowed read-only. No selected runtime, rendered/played-game, live provider or original parity acceptance.",
+      "shared_backend_cohort_pins": 281
+    }
+  },
+  "final_backend_cohorts_identical": true,
+  "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "full_gap_count": 12,
+  "algorithm_id_count": 53,
+  "full_acceptance_gate_count": 12,
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_identity_directory.rs": {
+      "sha256": "94b0cc033073243f19dfcda7092fdbeae046e8061f8c0ae59c1c01e50f09f7c5",
+      "bytes": 16239
+    },
+    "rust/online_protocol/src/matchmaking_party_directory.rs": {
+      "sha256": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+      "bytes": 72789
+    },
+    "rust/online_protocol/src/matchmaking_friend_directory.rs": {
+      "sha256": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+      "bytes": 22261
+    },
+    "rust/online_protocol/src/matchmaking_accounts.rs": {
+      "sha256": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+      "bytes": 18405
+    },
+    "rust/online_protocol/src/matchmaking_sessions.rs": {
+      "sha256": "0be682ce05e67711148df3b2d2d67aabd7805d5725a05acc1f30f6e6da354528",
+      "bytes": 34177
+    },
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": {
+      "sha256": "b9ed93c8733b5df4f9945f808ae090aed44ba28a003d28448be5ee84ad266efb",
+      "bytes": 32749
+    },
+    "multiplayer/master_server/player_identity.py": {
+      "sha256": "ae19bd8f9664276a2527ef086591d39fdbbb08ddc29dc666eb6bf67a1858b904",
+      "bytes": 1027
+    },
+    "multiplayer/master_server/native_identity.py": {
+      "sha256": "910edb1bc4cc605cab8bc8f37bb9252482f949c2d28ded7a6ae8a403ab99cd52",
+      "bytes": 1152
+    },
+    "multiplayer/master_server/native_party_directory.py": {
+      "sha256": "4a38dadcea02c9915c19f8a54324ee69ded87dc6b5054debf295592e32577377",
+      "bytes": 6100
+    },
+    "multiplayer/master_server/clans_http.py": {
+      "sha256": "6d511b721e5a734e25132c6c0d7c5789c4b9eb3535dd740d0c2552564ca7e80f",
+      "bytes": 3232
+    },
+    "multiplayer/master_server/matchmaking_http.py": {
+      "sha256": "4ba5038343d427dc1e90c4655f5da0665792697cac8b6da3b1975cdeba8818f9",
+      "bytes": 13236
+    },
+    "multiplayer/master_server/steam_login.py": {
+      "sha256": "b8832aea855ef9c72db352aa064b9ddc27f225e0783bf0e6138d7e8acdef6b23",
+      "bytes": 22647
+    },
+    "multiplayer/master_server/tests/test_identity_owner_native.py": {
+      "sha256": "f76401aa8259880c604466ab17cc772d4b962879c5c19b5ac908a408b39e1a84",
+      "bytes": 14250
+    },
+    "multiplayer/master_server/tests/test_steam_login.py": {
+      "sha256": "10f612635e64634fab2d94d5105b00a5f7a14b35e4b74618f68624cc8b4794cb",
+      "bytes": 23097
+    },
+    "tools/online_login_probe.cpp": {
+      "sha256": "a3a2ca32e3f600b638fe317c10ad9cc3a5a28147f64ec43337a77e84900f6ea6",
+      "bytes": 3374
+    },
+    "tests/steam_login_http_test.py": {
+      "sha256": "aad6ed0a56b5ad269a874f5ee81cb5ac86d6fcc7c8d4987bafae48d65d3bf1ca",
+      "bytes": 7982
+    },
+    "tests/online_account_tests.cpp": {
+      "sha256": "ec43c15878b78fbd29ea5e274d647d4964160e169cfb83193f57b09ceac3041a",
+      "bytes": 32819
+    },
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": {
+      "sha256": "a1a2a61337e40b608588c6afc551a03fc39a169ffaae340250961a3572275907",
+      "bytes": 129820
+    },
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": {
+      "sha256": "9329bc7fcac604cf78440652492c12414d4592a06608b0132633f196a62bb66c",
+      "bytes": 230982
+    },
+    "multiplayer/docs/friends.md": {
+      "sha256": "ab49219747071e5b4ce8824a9b6726ca005702285715b15c8ba58b6df217a7d2",
+      "bytes": 22368
+    },
+    "multiplayer/docs/online-security-threat-model.md": {
+      "sha256": "83c5495b54d6e5f19e5c7489d40091be2849a125df4f4d99bfc07e250503d499",
+      "bytes": 29717
+    },
+    "rust/online_protocol/Cargo.toml": {
+      "sha256": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+      "bytes": 760
+    },
+    "rust/online_protocol/Cargo.lock": {
+      "sha256": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+      "bytes": 10979
+    },
+    "rust/online_protocol/rust-toolchain.toml": {
+      "sha256": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "bytes": 87
+    },
+    "rust/online_protocol_bridge/Cargo.toml": {
+      "sha256": "acd2f6d60bb5b29ae5f08f99ce8d19d806c54176092eaca89edaef0aef168640",
+      "bytes": 584
+    },
+    "rust/online_protocol_bridge/Cargo.lock": {
+      "sha256": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+      "bytes": 46655
+    },
+    "rust/online_protocol_bridge/rust-toolchain.toml": {
+      "sha256": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "bytes": 87
+    },
+    "rust/online_security_ffi/Cargo.toml": {
+      "sha256": "f3e2c47b3e35130e92b878d165d7e70fe7906261e847ac4291ddc2c8269b8482",
+      "bytes": 421
+    },
+    "rust/online_security_ffi/Cargo.lock": {
+      "sha256": "7975ea9d98ec23f11a57c62822cff339d604ef287aec9d488b181a016bb05fa9",
+      "bytes": 11105
+    },
+    "rust/online_security_ffi/rust-toolchain.toml": {
+      "sha256": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+      "bytes": 51
+    }
+  },
+  "retained_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-red-report.json",
+      "bytes": 1491,
+      "sha256": "d019371df84d8a7350c6f521089de9c859a2076ecc668cd97cdd7dbfb4da6b29"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-red-source-manifest.json",
+      "bytes": 37517,
+      "sha256": "c7fcd37409d9c30705e428de67e0b9b1ac5d8ee1fa16e4ae1311ee1a9f07bafd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-red-step-0.log",
+      "bytes": 1595,
+      "sha256": "0f0ed2652cb8bdb84b10b61a98de00053eed1f05b4e7c5360a80ad018d3b2005"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-red-step-1.log",
+      "bytes": 3284,
+      "sha256": "56b831bf9ca9119cb9d421ff423d97996048badcb480f68d19b3331f6a3c15ff"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-first-report.json",
+      "bytes": 2163,
+      "sha256": "bb6222531d7b662acec17166f5d2b7788e8c8604f8d9cb987583e59f8aca5c6d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-first-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "d34ec06baa00d7f3bbec8e0f5505c28a45a468deba1d01d51161898ac1f4cbb8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-first-step-0.log",
+      "bytes": 21539,
+      "sha256": "6f6263bdfe94b04a6474d0e247cc3083114d6ce100481bc3f50422ea5efb6e97"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-first-step-1.log",
+      "bytes": 1595,
+      "sha256": "1ad36b45d9f69a1c42d8a8a363c3b19d077d49366e9d276eddedd93d4854390a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-owner-first-step-2.log",
+      "bytes": 552,
+      "sha256": "f6d2efeb8a865f0a424e41fa85f62ede1e4d284e2f23a047bf711777eab6b342"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-report.json",
+      "bytes": 2164,
+      "sha256": "b2a82e3e3584889835f85205e8d00b918a3a7efe234d19f9d3cd1ec588473538"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "3b496fb37e6d7694205dceec382444abded3283a6b30cebb72f2a30b24bdfcd1"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-step-0.log",
+      "bytes": 21539,
+      "sha256": "e18a122ab98d7a198fdd76e5b9e50b01b5fd47c1ce47325b2505acb038c15f65"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-step-1.log",
+      "bytes": 1595,
+      "sha256": "b5bfa661e7b40abc954411d6d78dcd2d28fc15c9cf6422cd1528aa586fd206a5"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-step-2.log",
+      "bytes": 4422,
+      "sha256": "1aa2f90495dee47aab47b9ee960d4e3f73234d1100893aab00ffb6dc13d0d01e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-fixed-report.json",
+      "bytes": 2163,
+      "sha256": "93305007ba5759598ecc6714355275eb296a76ec52e71c2dedbd5edc96c67008"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-fixed-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "fc0891ed8088a1e5c92754df44afab61ceb46e47d8721f9c564466252a520cbd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-fixed-step-0.log",
+      "bytes": 21539,
+      "sha256": "8119df68331e9a3f5369cf40d92703ebd595c15b540ef36d459719962e32795b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-fixed-step-1.log",
+      "bytes": 1595,
+      "sha256": "4d528c26c21efc1a6da42c4aa2374c26effa0bc966358059bf689b1ba7eabd8a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-boundaries-fixed-step-2.log",
+      "bytes": 2167,
+      "sha256": "4f512e967d8ae3388b10e15d3536a76230f044ebf094159f1173f493073f9ada"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-red-report.json",
+      "bytes": 1581,
+      "sha256": "75bdb2f900d19844241dc7a17d8f61fd35d2d0613ea1b650da78ed4e0b8e4e36"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-red-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "348d5c34f846bdffbcc1a48f93cad04228e7d80a1478e71fc46de8f4fa8d6eba"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-red-step-0.log",
+      "bytes": 1595,
+      "sha256": "07b02c31dbc0d5f1d5dafbdb9dee0d7b50e5b376b8da9b60977e0be427107b17"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-red-step-1.log",
+      "bytes": 1696,
+      "sha256": "1c8f01fee0fa164bdc406a0f86598f9301cb940669c75ae88b8434fe8d0a30cc"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-fixed-report.json",
+      "bytes": 2163,
+      "sha256": "f020734de244150dec21d57e23c892093ad1daf686d01e04091b3b321b9e83b5"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-fixed-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "2d693bca8824954b06d679862bd49f68f1bdd2f57ea57bbbe7c713e8c82650fa"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-fixed-step-0.log",
+      "bytes": 21539,
+      "sha256": "3875cd5972be4c67db78994c32d6b3b0894fb1c9c6e56bc0cac14e192da31c9a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-fixed-step-1.log",
+      "bytes": 1595,
+      "sha256": "0854d93b3b9f2fd7b7a321131891da76e096c23dcf7ec7b6438a6d22ad36595a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-seats-fixed-step-2.log",
+      "bytes": 3341,
+      "sha256": "cfaa13d527032128c03da79478f442530169a35c11e9d7ec26a3a74d3f328e31"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-report.json",
+      "bytes": 2780,
+      "sha256": "33465576c2e0131d5ef170f110d39cb4ebf52e0371b6b0b2cf15b61e887ce1b6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "3ca9d4d9842fcc7305f4ab97113213bef2f3df5556f3dc7ef21a04d2de63fa54"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-step-0.log",
+      "bytes": 33878,
+      "sha256": "22e15a97ece53393d9e3c6c6b6babb329c31a2a16d9c37efeb3e269594dd05f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-step-1.log",
+      "bytes": 1595,
+      "sha256": "2f83001a5d050fcdb90be2a059e783c047da36b4147e6c2eea1624f01378a71b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-step-2.log",
+      "bytes": 24262,
+      "sha256": "6944c69b7feae14c47646c99dde3bfaf5bfe4d7e1e96ad135a634b2b92471651"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-report.json",
+      "bytes": 8620,
+      "sha256": "3ee01a13614218ed6237a798eb490e0f428a9c0b0a3ae3ff041cf43ce8355604"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "f4479521375c52a490dcc0f6a7870f4110fe4f40eeee004caaa249638c017663"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-step-0.log",
+      "bytes": 30387,
+      "sha256": "79b9837fb28c9aa1d7d21688e8afbdfb8d68df21bd76327b7047039b92d37eb0"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-step-1.log",
+      "bytes": 1595,
+      "sha256": "d1a82cb7cf3c72732c7a2b0a20ffa0ae6f714707c4e9edcbd15f81af9ad0361a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-step-2.log",
+      "bytes": 18434,
+      "sha256": "9172edb6dd0ee558c8a299302f699ee5e0eb4df358864a032d810bfb9c4f2b42"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-qualified-report.json",
+      "bytes": 2780,
+      "sha256": "9fa7fa14ac6d1ad5e1457d4c741b51ffb68434e1776edb7c0e0f09773cfa8c17"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-qualified-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "711374f32dce066b834ce67dc6349eca917d9bda57afa031078b61b62fbdbf13"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-qualified-step-0.log",
+      "bytes": 33826,
+      "sha256": "7acfeda1b6a14d44916db1e5ac212d53f3bfee7df4a0af11828ffac0639afa7a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-qualified-step-1.log",
+      "bytes": 1595,
+      "sha256": "aec758ff4abdd6611025afc5b365f6f979ee00e9ba1b4411d2751b3dfb559a9a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-full-qualified-step-2.log",
+      "bytes": 28330,
+      "sha256": "43ffdc156a9ffd0e3b8fd46b2901efdcb01170076e55180e7259daa607f7a7db"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-qualified-report.json",
+      "bytes": 8620,
+      "sha256": "489425b05bcef80271b0ff42aa3154516dc9ec0e77aec15173edd47038d59f09"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-qualified-source-manifest.json",
+      "bytes": 37771,
+      "sha256": "e55c709e4093b746f69f460d20791a0c0aa7eae33c99235d7cd44d352cb178a5"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-qualified-step-0.log",
+      "bytes": 30335,
+      "sha256": "14d6ce345c649dc029b6e95782841e9010c7a5a89e4de8ba63311782ac9a893d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-qualified-step-1.log",
+      "bytes": 1595,
+      "sha256": "dfe892bd1741d87bd86918007d808a7c2f2b4f878c2ce399b8dc69b8a5742104"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-production-qualified-step-2.log",
+      "bytes": 22158,
+      "sha256": "4cbdd4d06e095cf3e759a4d5238fe487dab8f217d98a13511f406004bdd3731b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-build.log",
+      "bytes": 18603,
+      "sha256": "48fa679f03223fbf68395b280e28a7d126ae3f4ce957cb2cad2c09bd48385fa4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-configure.log",
+      "bytes": 4637,
+      "sha256": "ba98d76d1a62e594c109c950e4b9e1c0e604d581c1d9ea4cdd5ad58fcef7e1ec"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1865,
+      "sha256": "397413965d41dee617ea2630d24c940ea6c031b5fbef5dac48eebd3f12add7c5"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-inputs.json",
+      "bytes": 1260,
+      "sha256": "7edda1576a99141024d731a5f3335c98e97195c4b9d9c88ce99d8671e5639ad9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-report.json",
+      "bytes": 2890,
+      "sha256": "ced728bfcfdc2947be36b78b1cec00e7cdc2a527bf3691418ca51e75b10d2d80"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-0.json",
+      "bytes": 43880,
+      "sha256": "81e848957544da001d943e21626756129f27b01f728bab0864c95fce04cc6b84"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "0b99fcff9a30f48a294f6abafdaf4c2aa14224798e8731ea37dc4d30f6f9594e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-10.json",
+      "bytes": 32342,
+      "sha256": "09d323a45dc96d880c4b8428c9154e1baf0d4f7768f600401fdbe8ac91a19adf"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-2.json",
+      "bytes": 46475,
+      "sha256": "f78423a5195c174cf0de8ed702814033c1149936b27fd9318bbafb6752922bec"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-3.json",
+      "bytes": 47004,
+      "sha256": "677063a6c6fd9ba831740ff5e94593e3c13dd71c305b2b7020105bc1ecd88ed6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-4.json",
+      "bytes": 46473,
+      "sha256": "9022812077cb28ef2e3acb022610dff44f4220bc0f7465f49bca7fafe68c725a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-5.json",
+      "bytes": 48600,
+      "sha256": "0a9741b7785608dbb67a75630d96b93c2b5f642a43aa011c0d9407910e9a77bd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-6.json",
+      "bytes": 49700,
+      "sha256": "ac5a29d3faf2a9f0c556ddb9767a672bcdd0bb5deb2ad8fcc1601ed04a433f31"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-7.json",
+      "bytes": 49257,
+      "sha256": "2d681271dba4d0ffc28411f2d1b2f03931eed487bce090957bf9b7fc37af5733"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-8.json",
+      "bytes": 47301,
+      "sha256": "2d10771056506d06506174c96fd3579e0ffd1e14a8fec13ae668a3c7470c96bf"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-source-pins-9.json",
+      "bytes": 49268,
+      "sha256": "2b6c32500023902fa0c28e53b5c7af54fe432f86f1bc951de9f4a53f5b2e4425"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-cmake-tests.log",
+      "bytes": 634,
+      "sha256": "eb1e48f7f314d41afd78c50f637913c7615686a853f7a5d7edf44a4b5c283214"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-build.log",
+      "bytes": 18603,
+      "sha256": "899c91c0ddcca3cc8ba24c6b7fd73d369d216095cd537d62d26cffe5b8248f9a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-configure.log",
+      "bytes": 4637,
+      "sha256": "626e59726a9dd60ec8f4d727d1fa058255e142954a2f6954b3eef19e01110fad"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1865,
+      "sha256": "18d4982e15e6604a29fb3a0f80313c2a22f5b6cab008be145a4a5e868f66b51b"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-inputs.json",
+      "bytes": 1377,
+      "sha256": "d9c4bef324f20a98fe7d7266146d7c2c8bc7222b31fb243a8ad7fd7f7575e322"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-report.json",
+      "bytes": 2930,
+      "sha256": "4e222d32eb74bdf042f47896d38a9f59c7c406dc60ee9e8036b55b9afdba71e7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-0.json",
+      "bytes": 43880,
+      "sha256": "81e848957544da001d943e21626756129f27b01f728bab0864c95fce04cc6b84"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "0b99fcff9a30f48a294f6abafdaf4c2aa14224798e8731ea37dc4d30f6f9594e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-10.json",
+      "bytes": 32342,
+      "sha256": "09d323a45dc96d880c4b8428c9154e1baf0d4f7768f600401fdbe8ac91a19adf"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-2.json",
+      "bytes": 46475,
+      "sha256": "f78423a5195c174cf0de8ed702814033c1149936b27fd9318bbafb6752922bec"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-3.json",
+      "bytes": 47004,
+      "sha256": "677063a6c6fd9ba831740ff5e94593e3c13dd71c305b2b7020105bc1ecd88ed6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-4.json",
+      "bytes": 46473,
+      "sha256": "9022812077cb28ef2e3acb022610dff44f4220bc0f7465f49bca7fafe68c725a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-5.json",
+      "bytes": 48600,
+      "sha256": "0cb56b5a7f12741ccde2781d3f285ba0f8e484d451d672025182233b2e0106c0"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-6.json",
+      "bytes": 49700,
+      "sha256": "ac5a29d3faf2a9f0c556ddb9767a672bcdd0bb5deb2ad8fcc1601ed04a433f31"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-7.json",
+      "bytes": 49257,
+      "sha256": "2d681271dba4d0ffc28411f2d1b2f03931eed487bce090957bf9b7fc37af5733"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-8.json",
+      "bytes": 47301,
+      "sha256": "2d10771056506d06506174c96fd3579e0ffd1e14a8fec13ae668a3c7470c96bf"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-source-pins-9.json",
+      "bytes": 49268,
+      "sha256": "2b6c32500023902fa0c28e53b5c7af54fe432f86f1bc951de9f4a53f5b2e4425"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/identity-native-qualified-cmake-tests.log",
+      "bytes": 634,
+      "sha256": "a82ba57ab98382f0afd8fee315eff766ea7fac1f2308b913d8e3d318dfcdaa5c"
+    }
+  ],
+  "retained_report_bytes": 1825194,
+  "retained_large_artifacts": [],
+  "cleanup": {
+    "trees": [
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-1u2hlq_p",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-3ktlxruf",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-3ktlxruf/native-source",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-5iilgk3j",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-a1yg8ku5/build",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-cjk8taob",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-mer476cn",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-ojd_7sq0",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-pgd4xoj9",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-pp891xf5/build",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qmy_p5_s",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qpr53ekj",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-qpr53ekj/native-source",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-tjf8vvt0",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-wyqi7s9a",
+        "removed": true
+      }
+    ],
+    "test_scratch_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner",
+    "test_scratch_parent_empty": true,
+    "evidence_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-evidence/halo2-test-khc0uq9_",
+    "evidence_helper_managed_by": "tools/run_test.py; verify removal after return",
+    "evidence_helper_removed": true,
+    "evidence_helper_parent_empty": true
+  },
+  "runtime_replaced": false,
+  "service_activated": false,
+  "remaining": [
+    "Steam OpenID verification, pending/session/refresh issuance and sign-in persona authority",
+    "Discord provider verification and generic source-admission middleware",
+    "Full Rust service/API and remaining temporary endpoint/effect coordination",
+    "Cross-store/process recovery and distributed coordination",
+    "Original Live/service/config/order/arbitration recovery without guessed values",
+    "Full original/native played-world and delivered G01-G12 acceptance"
+  ]
+}

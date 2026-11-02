@@ -1,0 +1,52 @@
+[
+  {
+    "path": "CMakeLists.txt",
+    "frozen": "62a1a2781578c9aa79eaa77e4afe3dc48f252843bfd86399799fed9f0aa74980",
+    "current": "3522b0fa083a3ef9066f70733343dcd0a14ee268369b35f9c9a43ab99ca6afce"
+  },
+  {
+    "path": "include/halo2/native_tu15_wrapped_contact_agent.hpp",
+    "frozen": "5085931698a4dbbd53408144fe9e07589396ec613eec226de149a100a585fba6",
+    "current": "f6c8e224b276346de836fe370de1cbb67f19ac28b49a579c7e46dcd50fa40c80"
+  },
+  {
+    "path": "src/gameplay/units/source_damage_delivery_runtime_generated.cpp",
+    "frozen": "f9a5d939ee31ebee82540acb2f9bda03042d64f3f0d4c461ec48e4069f1d8901",
+    "current": "e3bd69e1b8570ab672c3caaf73907c4252b1b60585b7f6548a9bbbc615e7acd8"
+  },
+  {
+    "path": "src/physics/physics_live_support_tu15_generated.cpp",
+    "frozen": "f5ecf4a3ad9f6944dd30de54c0bf9efab2194d5774fea32e862b4be4518dab63",
+    "current": "76d29a6199e867658350ad0fe9735282e9d7c6ea57443b69677cd6558fe69310"
+  },
+  {
+    "path": "src/rendering/renderer/renderer.cpp",
+    "frozen": "7ae8015f892cce610f3a14a4c32e6c8c3f6e24bf65b8b33e7bc74b6a0342d74b",
+    "current": "e2e0f60fd8c9ba007d2a3e1fc8d06430273e2131b5cf07d7a2a3af730d02de2d"
+  },
+  {
+    "path": "tests/destruction_runtime_tu15_tests.cpp",
+    "frozen": "fd7d045b3cba39f82791d80fa97f6bdbdc9f50ad0d1cfd337af1a498786353a4",
+    "current": "ecf992414eb84fba7898f29d84d8f45e62efa8e5349b0249dc5123e2f97f93cc"
+  },
+  {
+    "path": "tools/fix_damage_delivery_observation_tu15.py",
+    "frozen": "ef26dc84b78c04602e1f83b82582908a8fbbdb7093cfca753f0e4f77a1d57203",
+    "current": "5a9c43b4ac3d10555426e78c552a1841351eaa319e4f143ed7cb64a9aee61149"
+  },
+  {
+    "path": "tools/generate_physics_live_support_tu15.py",
+    "frozen": "c28502c1bb480cd84dbeb29d90cd2ce3f631631464efbc1cda86cc28d8b0ce0a",
+    "current": "e6fec67d60ca95291fec7a8ff7a2bdb03d5102c3d7703f7dd34b7395e942aea7"
+  },
+  {
+    "path": "tools/generate_source_damage_delivery_runtime.py",
+    "frozen": "4788890f52184a8a91d8af84e46c60f3d9385c9ec0fc605648287cd69a28b217",
+    "current": "9047ed5fd4fb04a36768455f1396807b49fe50d0736dbd538ceaf95856a8cb9c"
+  },
+  {
+    "path": "tools/refresh_destruction_current_cohort.py",
+    "frozen": "d0eec32293d411b361228e764ea5977f0c5f4cb8bd1381f6dcd8b981ce7602d4",
+    "current": "ed0e9784d8def4f46cfcc67f193542246676621e47522c290cd58ee1386054c6"
+  }
+]

@@ -98,6 +98,7 @@ def cpu_functions(runtime, scratch, warmup, frames):
         raise RuntimeError('Runtime has no function symbols; use an unstripped development runtime')
     starts = [address for address, _ in symbols]
     leaf, inclusive, sampled_frames = Counter(), Counter(), Counter()
+    leaf_sites = Counter()
     skin_paths = Counter()
     data = (scratch / 'samples.bin').read_bytes()
     if len(data) % RECORD.size:
@@ -119,6 +120,12 @@ def cpu_functions(runtime, scratch, warmup, frames):
             external += 1
             continue
         leaf[names[0]] += 1
+        # Retain the interrupted executable PC, or the first executable return
+        # PC when external code owns the sample. Sixteen-byte buckets locate
+        # large renderer functions without retaining raw stack recordings.
+        first_pc=next(address for address in executable
+                      if bisect.bisect_right(starts,address)>0)
+        leaf_sites[(names[0],first_pc&~15,base<=addresses[0]<end)]+=1
         inclusive.update(set(names))
         skin = [i for i, name in enumerate(names) if any(token in name for token in
                 ('::skin_model(', '::finish_skin(', '::skin_model_world_nodes(',
@@ -158,6 +165,11 @@ def cpu_functions(runtime, scratch, warmup, frames):
             'outside_requested_frames': outside, 'external_only_samples': external,
             'executable_range': [hex(base), hex(end)], 'first_stack': first_stack,
             'leaf_executable_function_or_external_caller': top(leaf), 'inclusive': top(inclusive),
+            'leaf_or_external_caller_pc_buckets': [
+                {'function':name[:700], 'relative_pc_bucket':hex(pc),
+                 'interrupted_pc_in_executable':inside, 'samples':count,
+                 'percent':100*count/samples}
+                for (name,pc,inside),count in leaf_sites.most_common(64)],
             'skin_call_contexts': {'matched_samples': sum(skin_paths.values()),
                                    'distinct_paths': len(skin_paths), 'top': focused,
                                    'limits': 'CPU sample contexts, not invocation counts. Kernel means a '
@@ -182,6 +194,8 @@ def worker(args):
         command.extend(['--render-size', *(str(value) for value in args.render_size)])
     if args.starting_weapon is not None:
         command.extend(['--mp-starting-weapon', str(args.starting_weapon)])
+    if args.graphics_mode is not None:
+        command.extend(['--graphics-mode',args.graphics_mode])
     if not args.audio:
         command.append('--mute')
     environment = dict(os.environ)
@@ -206,6 +220,7 @@ def worker(args):
               'frames': args.frames, 'warmup': args.warmup, 'sample_hz': args.sample_hz,
               'requested_render_size': args.render_size,
               'requested_starting_weapon': args.starting_weapon,
+              'requested_graphics_mode': args.graphics_mode,
               'command': command, 'scratch': str(scratch),
               'reference_controls': {name: environment.get(name) for name in
                   ('HALO2_REFERENCE_REPEAT_VEHICLE_SKINS', 'HALO2_REFERENCE_INSTRUCTION_CALLBACKS',
@@ -363,6 +378,8 @@ def main():
                         help='Require this internal render size independently of the viewport (64..4096)')
     parser.add_argument('--starting-weapon', type=int, choices=(0, 5),
                         help='Pass the declared multiplayer starting weapon; omitted by default')
+    parser.add_argument('--graphics-mode',choices=('Original','pStencil','PathTracing'),
+                        help='Pin the actual rendering mode; omitted retains runtime defaults')
     parser.add_argument('--sample-hz', type=int, default=250)
     parser.add_argument('--video-driver', choices=('x11', 'wayland'), default='x11')
     parser.add_argument('--timeout', type=float, default=180)

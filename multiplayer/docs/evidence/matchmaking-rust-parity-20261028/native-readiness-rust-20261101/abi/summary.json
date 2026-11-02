@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "argv": [
+    "/usr/bin/python3",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/test_master_server.py",
+    "--freeze-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-readiness-abi-20261101",
+    "--production-abi",
+    "--rust-test",
+    "matchmaking_native_readiness",
+    "--rust-test",
+    "matchmaking_room_setup",
+    "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_unchanged_tu15_controls_through_native_abi",
+    "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_actual_transport_inputs_do_not_invent_original_live_policy",
+    "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_missing_native_kernel_fails_closed"
+  ],
+  "returncode": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-abi/halo2-test-47feiumu",
+  "retained_large_artifacts": [],
+  "source_files": 302,
+  "rust_checks": 27,
+  "backend_checks": 3,
+  "backend_seconds": 0.001,
+  "abi": {
+    "abi": 2,
+    "test_inputs": false
+  },
+  "source_manifest_sha256": "4266a458eeb048a6becc78b4f51bd4db461fe8c8cb2ebb79fff616a46e29a577",
+  "frozen_sources_intact": true
+}

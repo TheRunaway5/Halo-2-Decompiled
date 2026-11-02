@@ -1,6 +1,7 @@
 # Compose actual native owners with the retained controller component. Missing
 # motion, solver, animation and activation callees remain explicit services.
-add_library(halo2_physics_vehicle_update STATIC src/physics/vehicles/physics_vehicle_update_generated.cpp)
+add_library(halo2_physics_vehicle_update STATIC src/physics/vehicles/physics_vehicle_update_generated.cpp
+    src/physics/native_tu15_object_velocity_handoff.cpp)
 target_include_directories(halo2_physics_vehicle_update PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_physics_vehicle_update PUBLIC cxx_std_20)
 target_link_libraries(halo2_physics_vehicle_update PUBLIC halo2_physics_vehicle_runtime)

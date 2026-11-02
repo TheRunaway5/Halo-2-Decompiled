@@ -1,0 +1,25 @@
+{
+  "scope": "Native C++ ABI adapter link failure and exact verified container correction; Rust policy unchanged",
+  "initial_link_exit_code": 2,
+  "source": "src/network/peer_source_admissions.cpp",
+  "before_sha256": "b675375949097cbe704c88d5d7720a0a376b3d58e2ae90b78ac86c9d76455115",
+  "after_sha256": "659d28ed210e2f78380b5854bcb4975e11f7acc60b7b28c4dd248bb8b2875ef0",
+  "inverse_changes": [
+    {
+      "after": "std::vector<bridge::SourceAdmissionsSeat> seats",
+      "before": "rust::Vec<bridge::SourceAdmissionsSeat> seats"
+    },
+    {
+      "after": "    std::vector<bridge::SourceAdmissionsSeat> out;",
+      "before": "    rust::Vec<bridge::SourceAdmissionsSeat> out;"
+    },
+    {
+      "after": "template<class T>auto slice(const std::vector<T> &v){return rust::Slice<const T>{v.data(),v.size()};}\n",
+      "before": ""
+    }
+  ],
+  "failed_source_reconstructed_exactly": true,
+  "undefined_symbols": "CXX Vec<SourceAdmissionsSeat> methods are not generated for a slice-only shared input type",
+  "correction": "Use owned std::vector<SourceAdmissionsSeat> storage and pass a typed borrowed slice; Native CXX supports a null pointer only for an empty slice",
+  "rust_policy_sources_changed_after_full_rust_tests": false
+}

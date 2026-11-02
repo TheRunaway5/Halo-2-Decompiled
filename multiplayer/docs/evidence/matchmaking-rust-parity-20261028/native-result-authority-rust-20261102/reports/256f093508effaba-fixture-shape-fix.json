@@ -1,0 +1,6 @@
+{
+  "source": "tests/native_result_authority_tests.cpp",
+  "before_sha256": "7ec111c2648dd6dc4e09affccdbdf85397a9ac5c08513ea7a298815260e0dcb8",
+  "after_sha256": "290e182f1a80b450e87f838bb9334e630ac4a39dc2d6cfc51d0c3aa6fd6c0f4a",
+  "correction": "Match actual null datum constant and native byte-array profile return type; exact policy bodies unchanged"
+}

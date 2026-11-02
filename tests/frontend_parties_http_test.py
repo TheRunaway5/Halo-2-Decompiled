@@ -44,8 +44,17 @@ async def main():
         playlists["playlists"] = [playlists["playlists"][1] | dict(id="party-search", name="Party Search lab",
                                   minimum_players=4, maximum_players=4, maximum_party=2)]
         (Path(temp)/"playlists.json").write_text(json.dumps(playlists))
+        # Native account/queue workers and the peer share loopback during this
+        # accelerated fixture. Configure every aggregate fixture budget; real
+        # service and per-operation budget policies retain their own limits.
         app = create_app(Settings(state=Path(temp), public_url="http://127.0.0.1:8080", allow_http=True,
-                                  rate_per_minute=100000, matchmaking_catalog=str(Path(temp)/"playlists.json")), verify)
+                                  rate_per_minute=100000, prefix_rate_per_minute=100000,
+                                  global_rate_per_minute=100000, matchmaking_catalog=str(Path(temp)/"playlists.json")), verify)
+        http_429 = []
+        async def observe_budget(request, response):
+            if response.status == 429 and len(http_429) < 8:
+                http_429.append(dict(method=request.method, path=request.path))
+        app.on_response_prepare.append(observe_budget)
         async with TestClient(TestServer(app)) as client:
             async def sign_in(token, name):
                 response = await client.post("/v1/account/session", headers={"Authorization":"Bearer "+token}, json={"screen_name":name})
@@ -72,7 +81,9 @@ async def main():
                 joined = reinvited = stress_done = cancelled = False
                 queue = None
                 while True:
-                    friends=await (await client.get('/v1/friends',headers=peer)).json()
+                    response=await client.get('/v1/friends',headers=peer)
+                    assert response.status==200,await response.text()
+                    friends=await response.json()
                     for friend in friends['friends']:
                         if friend['state']=='incoming':
                             accepted=await client.post('/v1/friends/commands',headers=peer,json=dict(
@@ -130,6 +141,7 @@ async def main():
                 out, err = await asyncio.wait_for(process.communicate(), 600)
                 print(out.decode(), end="")
                 print(err.decode(), end="", file=sys.stderr)
+                assert not http_429, "Native party flow exceeded an HTTP fixture budget: " + json.dumps(http_429)
                 assert process.returncode in (0, 77), "Native party UI failed"
                 if process.returncode == 77:
                     return 77
@@ -138,6 +150,7 @@ async def main():
                 await command(peer, "leave", version=party["version"])
                 directory = next(iter(app.values()))
                 assert directory.store.db.execute("SELECT count(*) FROM parties").fetchone()[0] == 0
+                print("PASS native party HTTP fixture budgets: zero 429 responses")
                 print("PASS native party creation/invite/accept/leader transfer/leave, duplicate chosen names, private identity and " +
                       ("MCC-only imported UI inputs" if assets.mcc_cache else "Vista asset rendering"))
             finally:

@@ -1,0 +1,150 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "original_matchmaking_readiness_tests",
+        "rust_service_native_handoff_probe",
+        "online_matchmaking_tests",
+        "online_eos_bootstrap_tests",
+        "rust_service_account_probe",
+        "rust_service_matchmaking_probe",
+        "rust_service_qos_probe",
+        "rust_service_room_probe",
+        "online_login_probe",
+        "rust_service_social_probe",
+        "online_search_qos_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^(original_matchmaking_readiness|rust_native_handoff_failclosed_http|online_matchmaking_client|online_eos_release_bootstrap|online_protocol_rust_build_helper|rust_service_qos_ready_reader|rust_matchmaking_service_http|online_search_qos_client)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 30098,
+      "sha256": "aa1d525aaae0435873896e9c0d26b5e1ed8e021e71c9a7a18fdcecd73d7cc788",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-0.log",
+      "status": "retained",
+      "bytes": 6620,
+      "sha256": "463914c23c1db828732eda7841087b15e5da8c63b57f9e4c1371f0c4f623cc4f",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-native-handoff-failclosed/step-0.log"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-1.log",
+      "status": "retained",
+      "bytes": 339,
+      "sha256": "dbd349775aae05c155e1485c246f59ffa0a93e5ffb9ae90d16c33d201b2d9eb3",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-native-handoff-failclosed/step-1.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 2027,
+      "sha256": "903dc508dedfb8a4145801a279515027fcda027d2cdc66fa4cc72654bd2b7ad1",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/report.json",
+      "status": "retained",
+      "bytes": 7814,
+      "sha256": "f0e9b2e8c64e40803b04fb8af40a2db318d68b42b3de4ae93d700d83e7087cab",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-native-handoff-failclosed/report.json"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/source-manifest.json",
+      "status": "retained",
+      "bytes": 19496,
+      "sha256": "67d5730be87dfd20eca919cf1021d28b23387c2aea168719bada7e59e65bc8b9",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-native-handoff-failclosed/source-manifest.json"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "retained",
+      "bytes": 6620,
+      "sha256": "c1600e1e753857e07a1e6be429b5f6f55e6cbe6ccf8c9783da0916b8429d91fa",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-service/step-0.log"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "retained",
+      "bytes": 339,
+      "sha256": "76137ef6337a01f759faa962c546cf77e4c42e3a228ad2d5d8a11e4ac968691f",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-service/step-1.log"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "retained",
+      "bytes": 23211,
+      "sha256": "52159810ba66e72db6fa1c4106b9ac969728e2c6894592beb4c1ca24b64b58e8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-service/report.json"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "retained",
+      "bytes": 19496,
+      "sha256": "94618c6b15627bfbbf25d4f18d868707e7b19d8baaf48221e3039ca4294819ec",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-client-controller-native-qualified-owned-20261101/iteration-1/evidence/rust-service/source-manifest.json"
+    }
+  ]
+}

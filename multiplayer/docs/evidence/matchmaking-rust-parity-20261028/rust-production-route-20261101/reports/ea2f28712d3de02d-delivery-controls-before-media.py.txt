@@ -1,0 +1,360 @@
+"""Real Rust, legacy discovery, Caddy TLS and SQLite delivery controls.
+
+Only provider replies, credentials, certificates and installed map observations
+are private fixtures. The running service/proxy/persistence paths are real.
+"""
+import asyncio
+import datetime
+import hashlib
+import http.client
+import importlib.util
+import ipaddress
+import json
+import os
+from pathlib import Path
+import socket
+import sqlite3
+import ssl
+import subprocess
+import sys
+import time
+import uuid
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def port():
+    with socket.socket() as listener:
+        listener.bind(("127.0.0.1", 0))
+        return listener.getsockname()[1]
+
+
+class Process:
+    def __init__(self, command, log, *, env, cwd):
+        self.log = log
+        self.stream = log.open("ab")
+        self.process = subprocess.Popen(command, stdout=self.stream, stderr=subprocess.STDOUT, env=env, cwd=cwd)
+
+    def close(self):
+        if self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=8)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+        self.stream.close()
+
+
+def tls_files(scratch):
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    now = datetime.datetime.now(datetime.timezone.utc)
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, "Private Halo2 gateway fixture")])
+    certificate = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+                   .serial_number(x509.random_serial_number()).not_valid_before(now - datetime.timedelta(minutes=1))
+                   .not_valid_after(now + datetime.timedelta(hours=4))
+                   .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+                   .add_extension(x509.SubjectAlternativeName([x509.DNSName("localhost"),
+                                                              x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
+                   .sign(key, hashes.SHA256()))
+    cert, private = scratch / "test-ca.pem", scratch / "test-key.pem"
+    cert.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+    private.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                          serialization.NoEncryption()))
+    private.chmod(0o600)
+    return cert, private
+
+
+class Gateway:
+    def __init__(self, binary, source, scratch, backend, directory_port, endpoint, cert, key, *, old_limits=False):
+        self.port = endpoint
+        self.context = ssl.create_default_context(cafile=str(cert))
+        config = (source / "multiplayer/master_server/Caddyfile.rust").read_text()
+        assert config.count("admin off") == 1 and config.count("{$MASTER_DOMAIN} {") == 1
+        # The fixture adds only local certificate/listen settings. Routing,
+        # body limits and upstream transport remain the production file.
+        config = config.replace("admin off", "admin off\n\tauto_https off")
+        config = config.replace("{$MASTER_DOMAIN} {", "{$MASTER_DOMAIN} {\n\tbind 127.0.0.1\n\ttls " + str(cert) + " " + str(key))
+        if old_limits:
+            config = config.replace("response_header_timeout 100s", "response_header_timeout 10s").replace("max_size 49152", "max_size 16384")
+        path = scratch / ("gateway-before.caddy" if old_limits else "gateway.caddy")
+        path.write_text(config)
+        env = dict(os.environ, MASTER_DOMAIN=f"https://localhost:{endpoint}",
+                   H2_MATCHMAKING_UPSTREAM=f"127.0.0.1:{backend.port}", H2_DIRECTORY_UPSTREAM=f"127.0.0.1:{directory_port}",
+                   XDG_DATA_HOME=str(scratch / "caddy-data"), XDG_CONFIG_HOME=str(scratch / "caddy-config"))
+        adapted = subprocess.run([str(binary), "adapt", "--config", str(path), "--adapter", "caddyfile"],
+                                 env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        assert adapted.returncode == 0, adapted.stderr.decode()[-2000:]
+        self.adapted = json.loads(adapted.stdout)
+        self.owner = Process([str(binary), "run", "--config", str(path), "--adapter", "caddyfile"],
+                             scratch / "gateway.log", env=env, cwd=source)
+        try:
+            deadline = time.monotonic() + 15
+            while True:
+                try:
+                    if self.request("GET", "/v1/health")[0] == 200:
+                        break
+                except (OSError, http.client.HTTPException):
+                    pass
+                assert self.owner.process.poll() is None, self.owner.log.read_text()[-2000:]
+                assert time.monotonic() < deadline, "Gateway did not become available"
+                time.sleep(0.05)
+        except BaseException:
+            self.close()
+            raise
+
+    def request(self, method, path, *, body=None, token=None, raw=None, timeout=5):
+        connection = http.client.HTTPSConnection("localhost", self.port, context=self.context, timeout=timeout)
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = "Bearer " + token
+        data = raw if raw is not None else json.dumps(body).encode() if body is not None else None
+        try:
+            connection.request(method, path, data, headers)
+            response = connection.getresponse()
+            data = response.read(2 * 1024 * 1024 + 1)
+            assert len(data) <= 2 * 1024 * 1024
+            try:
+                value = json.loads(data)
+            except ValueError:
+                value = {"proxy_error": data.decode(errors="replace")[:200]}
+            return response.status, value
+        finally:
+            connection.close()
+
+    def close(self):
+        self.owner.close()
+
+
+def qualify(source, scratch, binary, library, caddy, shim, output):
+    scratch.mkdir()
+    state = scratch / "state"
+    state.mkdir(mode=0o700)
+    spec = importlib.util.spec_from_file_location("delivery_service", source / "tools/test_rust_matchmaking_service.py")
+    service = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(service)
+    checks, observations = [], {}
+    cert, key = tls_files(scratch)
+    endpoint, directory_port = port(), port()
+    issuer = f"https://localhost:{endpoint}"
+    catalog = source / "multiplayer/master_server/examples/matchmaking-online.json"
+    configured = scratch / "playlists.json"
+    configured.write_bytes(catalog.read_bytes())
+    provider, calls = scratch / "provider.json", scratch / "provider-calls.jsonl"
+    friends = [str(76561197960300000 + n) for n in range(1000)]
+    provider.write_text(json.dumps(dict(relationship_fixture=True, friend_ids=friends, friends_delay_ms=1100)))
+    env = {k: v for k, v in os.environ.items() if not k.startswith("H2_") and k not in ("STEAM_KEY", "LD_PRELOAD")}
+    env.update(H2_MASTER_STATE=str(state), H2_MASTER_BIND="127.0.0.1", H2_MASTER_PORT=str(directory_port),
+               H2_MASTER_PUBLIC_URL=issuer, H2_MASTER_BEHIND_TLS_PROXY="1", H2_DIRECTORY_ONLY="1",
+               H2_SECURITY_LIBRARY=str(library), HALO2_MATCHMAKING_TEST_INPUTS="0")
+    rust_env = dict(LD_PRELOAD=str(shim), H2_STEAM_KEY="1" * 32, H2_TEST_STEAM_PROVIDER_DATA=str(provider),
+                    H2_TEST_STEAM_PROVIDER_CALLS=str(calls), H2_PUBLIC_URL=issuer, H2_EOS_OPENID_AUDIENCE="private-delivery-fixture")
+    directory = Process([sys.executable, "-B", "-m", "multiplayer.master_server"], scratch / "directory.log", env=env, cwd=source)
+    backend = gateway = None
+    tokens = ["h2s_" + letter * 43 for letter in "PQ"]
+    subjects = ["76561197960287930", "76561197960287931"]
+
+    def sql(statement, params=()):
+        with sqlite3.connect(state / "registry.sqlite3") as db:
+            return db.execute(statement, params).fetchall()
+
+    def expect(method, path, status=200, **kw):
+        actual, value = gateway.request(method, path, **kw)
+        assert actual == status, (method, path, actual, status, value.get("error", value.get("proxy_error")))
+        return value
+
+    def start(old_limits=False):
+        nonlocal backend, gateway
+        backend = service.Server(binary, state, scratch, configured, environment=rust_env, tls=True)
+        gateway = Gateway(caddy, source, scratch, backend, directory_port, endpoint, cert, key, old_limits=old_limits)
+        if not old_limits:
+            (output / "caddy-adapted.json").write_text(json.dumps(gateway.adapted, indent=2) + "\n")
+
+    def stop():
+        nonlocal backend, gateway
+        if gateway:
+            gateway.close()
+            gateway = None
+        if backend:
+            backend.close()
+            backend = None
+
+    def login(index=0):
+        return expect("POST", "/v1/account/session", 201, token=tokens[index],
+                      body={"screen_name": "Delivery Pilot " + str(index)})["token"]
+
+    def queue(index=0, compatibility="v16"):
+        entries = json.loads(configured.read_text())["playlists"]
+        maps = sorted({game["map"] for entry in entries for game in entry["games"]})
+        return expect("POST", "/v1/matchmaking/session", 201, token=tokens[index], body=dict(
+            screen_name="Delivery Pilot " + str(index), maps=maps, compatibility="halo2-native-queue-" + compatibility,
+            language=0))["token"]
+
+    def party(grant):
+        return expect("GET", "/v1/party?privacy=1", token=grant)["party"]
+
+    def command(grant, action, status=200, **values):
+        if action not in ("create", "accept") and "version" not in values:
+            values["version"] = party(grant)["version"]
+        return expect("POST", "/v1/party/commands", status, token=grant,
+                      body=dict(action=action, request_id=str(uuid.uuid4())) | values)
+
+    try:
+        deadline = time.monotonic() + 15
+        while not (state / "master-key.json").exists():
+            assert directory.process.poll() is None, directory.log.read_text()[-2000:]
+            assert time.monotonic() < deadline
+            time.sleep(0.05)
+        start(old_limits=True)
+        sql("INSERT INTO steam_login_sessions VALUES(?,?,?,?)", (hashlib.sha256(tokens[0].encode()).hexdigest(), subjects[0], "Private provider", int(time.time()) + 3600))
+        sql("INSERT INTO steam_login_sessions VALUES(?,?,?,?)", (hashlib.sha256(tokens[1].encode()).hexdigest(), subjects[1], "Private provider", int(time.time()) + 3600))
+        grant = login()
+        began = time.monotonic()
+        status, _ = gateway.request("GET", "/v1/account/steam-friends", token=grant, timeout=20)
+        observations["old_proxy_timeout"] = dict(status=status, seconds=time.monotonic() - began)
+        assert status == 502 and 9.5 <= observations["old_proxy_timeout"]["seconds"] < 14
+        status, _ = gateway.request("PUT", "/v1/account/voice-blocks", token=grant,
+                                    body={"blocked": [str(900000000000000000 + n) for n in range(2000)]})
+        observations["old_proxy_voice_body_status"] = status
+        assert status == 413
+        stop()
+        checks.append("negative controls reproduce the old 10s gateway failure and 16KiB voice-preference refusal")
+        start()
+        grant = login()
+        began = time.monotonic()
+        result = expect("GET", "/v1/account/steam-friends", token=grant, timeout=95)
+        observations["candidate_steam_lookup_seconds"] = time.monotonic() - began
+        assert len(result["friends"]) == 1000 and 10 < observations["candidate_steam_lookup_seconds"] < 95
+        expect("PUT", "/v1/account/voice-blocks", token=grant,
+               body={"blocked": [str(900000000000000000 + n) for n in range(2000)]})
+        expect("POST", "/v1/account/session", 413, token=tokens[0], raw=b" " * 16385)
+        expect("PUT", "/v1/account/voice-blocks", 413, token=grant, raw=b" " * (48 * 1024 + 1))
+        checks.append("verified local TLS reaches the real Rust thousand-friend lookup and full2000-subject preference write; typed body limits still reject overflow")
+        health = expect("GET", "/v1/health")
+        assert health["ready"] is False and health["component_ready"] and health["catalog_sha256"] == digest(configured)
+        assert expect("GET", "/health")["capabilities"] == health["capabilities"]
+        expect("GET", "/v1/unsupported-rust-capability", 503)
+        listing = expect("GET", "/v1/masters")
+        assert listing["master"]["url"] == issuer
+        master_id = listing["master"]["id"]
+        expect("GET", "/v1/servers")
+        direct = http.client.HTTPConnection("127.0.0.1", directory_port, timeout=3)
+        direct.request("GET", "/v1/matchmaking/playlists")
+        assert direct.getresponse().status == 404
+        direct.close()
+        checks.append("health and unsupported routes belong to Rust; legacy discovery is isolated and has no matching fallback")
+        legacy = queue(compatibility="v12")
+        assert not any(row["eligible"] for row in expect("GET", "/v1/matchmaking/playlists", token=legacy)["playlists"])
+        queue_grant = queue()
+        rows = expect("GET", "/v1/matchmaking/playlists", token=queue_grant)["playlists"]
+        assert len(rows) == 14 and sum(row["eligible"] for row in rows) == 12
+        lab = next(row for row in rows if row["id"] == "lab-test")
+        expect("POST", "/v1/matchmaking/ticket", 201, token=queue_grant,
+               body=dict(playlist_id=lab["id"], revision=lab["revision"], request_id=str(uuid.uuid4())))
+        assert expect("GET", "/v1/matchmaking/ticket", token=queue_grant)["state"] == "searching"
+        assert expect("DELETE", "/v1/matchmaking/ticket?cancel=1", token=queue_grant)["state"] == "idle"
+        grants = [grant, login(1)]
+        queue(1)
+        sql("UPDATE player_profiles SET discord_username='delivery_peer' WHERE player=(SELECT player FROM player_identities WHERE provider='steam' AND subject=?)", (subjects[1],))
+        command(grants[0], "create")
+        command(grants[0], "invite", username="delivery_peer")
+        invite = expect("GET", "/v1/party", token=grants[1])["invitations"][0]
+        command(grants[1], "accept", target=invite["id"], version=invite["version"])
+        command(grants[0], "countdown_start", 409, playlist_id=lab["id"], revision=lab["revision"])
+        command(grants[1], "ready", playlist_id=lab["id"], revision=lab["revision"])
+        command(grants[0], "countdown_start", playlist_id=lab["id"], revision=lab["revision"])
+        initial = expect("GET", "/v1/party/countdown", token=grants[1])["countdown"]
+        assert initial["seconds"] == 10
+        time.sleep(1.1)
+        assert expect("GET", "/v1/party/countdown", token=grants[1])["countdown"]["seconds"] == 9
+        command(grants[0], "countdown_cancel")
+        assert expect("GET", "/v1/party/countdown", token=grants[1])["countdown"] is None
+        checks.append("all14 playlists, v12/v16 eligibility, ticket search/cancel and consent-gated shared countdown traverse Caddy TLS into Rust")
+
+        async def sockets():
+            import aiohttp
+            base = issuer
+            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=gateway.context)) as client:
+                async with client.ws_connect(base + "/v1/matchmaking/qos", headers={"Authorization": "Bearer " + queue_grant}, compress=0) as ws:
+                    message = await ws.receive_json(timeout=3)
+                    assert set(message) == {"ping"}
+                    await ws.send_json({"pong": message["ping"]})
+                async with client.ws_connect(base + "/v1/party/voice", headers={"Authorization": "Bearer " + grants[0]}, compress=0, autoping=False) as voice:
+                    began = time.monotonic()
+                    message = await voice.receive(timeout=13)
+                    assert message.type == aiohttp.WSMsgType.PING, message.type
+                    await voice.pong(message.data)
+                    assert time.monotonic() - began >= 9
+                    await voice.send_bytes(b"\x01\x00\x00\x00\x01\x78\x00")
+                    assert not voice.closed
+                    return time.monotonic() - began
+        observations["voice_idle_ping_seconds"] = asyncio.run(sockets())
+        checks.append("real WSS search heartbeat and party-voice idle Ping/Pong survive the production proxy transports")
+        player_ids = sql("SELECT provider,subject,player FROM player_identities ORDER BY provider,subject")
+        ranks = sql("SELECT * FROM playlist_ranks ORDER BY player,playlist")
+        identity_hashes = {name: digest(state / name) for name in ("master-key.json", "eos-openid-key.pem")}
+        jwks = expect("GET", "/v1/auth/eos/jwks")
+        old_revision = lab["revision"]
+        stop()
+        document = json.loads(configured.read_text())
+        entry = next(row for row in document["playlists"] if row["id"] == "lab-test")
+        entry["revision"] = "lab-test-delivery-v2"
+        configured.write_text(json.dumps(document))
+        start()
+        expect("GET", "/v1/party", 401, token=grant)
+        grant = login()
+        fresh = queue()
+        assert expect("GET", "/v1/health")["catalog_sha256"] == digest(configured) != digest(catalog)
+        assert expect("GET", "/v1/auth/eos/jwks") == jwks
+        assert expect("GET", "/v1/masters")["master"]["id"] == master_id
+        assert sql("SELECT provider,subject,player FROM player_identities ORDER BY provider,subject") == player_ids
+        assert sql("SELECT * FROM playlist_ranks ORDER BY player,playlist") == ranks
+        expect("POST", "/v1/matchmaking/ticket", 409, token=fresh,
+               body=dict(playlist_id="lab-test", revision=old_revision, request_id=str(uuid.uuid4())))
+        checks.append("service restart and catalog revision change retain canonical identities, ranks and signing keys; old grants/revisions are rejected")
+        stop()
+        configured.write_bytes(catalog.read_bytes())
+        start()
+        assert expect("GET", "/v1/health")["catalog_sha256"] == digest(catalog)
+        assert {name: digest(state / name) for name in identity_hashes} == identity_hashes
+        checks.append("catalog rollback reuses the original canonical database and signing identities")
+        backend.close()
+        backend = None
+        expect("GET", "/v1/matchmaking/playlists", 502)
+        expect("GET", "/v1/masters")
+        checks.append("stopped Rust produces a gateway error while discovery remains live; requests never fall through to Python")
+        stop()
+        refused = scratch / "must-not-open"
+        result = subprocess.run([str(binary), "--state", str(refused), "--listen", "0.0.0.0:0", "--behind-tls-proxy"],
+                                env={k: v for k, v in env.items() if not k.startswith("H2_")}, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        assert result.returncode != 0 and b"isolated TLS proxy" in result.stdout and not refused.exists()
+        checks.append("the production loopback-only trust boundary still rejects a wildcard backend before opening state")
+        compose_env = dict(env, MASTER_DOMAIN="qualification.invalid", MATCHMAKING_CATALOG=str(catalog))
+        compose = subprocess.run(["docker", "compose", "-f", str(source / "multiplayer/master_server/compose.production.yaml"),
+                                  "-f", str(source / "multiplayer/master_server/compose.production-rust.yaml"), "config", "--format", "json"],
+                                 env=compose_env, cwd=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        assert compose.returncode == 0, compose.stderr.decode()[-2000:]
+        merged = json.loads(compose.stdout)
+        services = merged["services"]
+        assert services["directory"]["environment"]["H2_DIRECTORY_ONLY"] == "1"
+        assert services["directory"]["environment"]["H2_MATCHMAKING_CATALOG"] == ""
+        assert services["matchmaking"]["network_mode"] == "service:caddy"
+        assert not services["matchmaking"].get("ports")
+        assert services["matchmaking"]["depends_on"]["caddy"]["restart"]
+        assert all("--allow-http" not in str(row.get("command", "")) for row in services.values())
+        (output / "compose-merged.json").write_text(json.dumps(merged, indent=2) + "\n")
+        daemon = subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        observations["docker_daemon"] = dict(available=daemon.returncode == 0, returncode=daemon.returncode,
+                                             diagnostic=daemon.stderr.decode(errors="replace")[:800])
+        checks.append("Docker Compose validates the opt-in namespace, mounts and restart dependencies without activating it")
+        return dict(passed=True, checks=checks, observations=observations, real_provider=False, original_live=False,
+                    played_world=False, installed_client_input=False, docker_image_executed=False,
+                    full_matchmaking_ready=False, legacy_binary_rollback_qualified=False)
+    finally:
+        stop()
+        directory.close()

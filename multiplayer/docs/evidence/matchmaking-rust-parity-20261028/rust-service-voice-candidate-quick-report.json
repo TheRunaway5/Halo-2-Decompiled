@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice-quick/halo2-test-0wlnef97",
+  "candidate_sha256": "0074f746539e4f8b8a6ec6be86b3ee9ebefe8691b343c6077a2e3137c214bdc5",
+  "candidate_borrowed_read_only": true,
+  "retained_large_artifacts": [],
+  "source_pins": {
+    "tools/test_rust_matchmaking_service.py": "604e25658bca4d5ecad052714076afa18da86e2ea0519cdc89e8826a0e2989a3",
+    "tools/rust_service_voice_controls.py": "c7900c5e9ed635844d9a1827b61732f4fab943e340c94fa6973f7ddb73ffa75d",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670"
+  },
+  "error": "AssertionError({'error': \"AssertionError(('membership retired', <WSCloseCode.ABNORMAL_CLOSURE: 1006>, (1001,), <WSMsgType.CLOSE: 8>, '1001'))\", 'completed_checks': ['actual Rust HTTP denies anonymous preference and clan/party voice requests before any media upgrade', 'private provider-bound replacement removes self blocks and rejects forged fields, duplicates, invalid IDs and oversized bodies; the full2000-subject record crosses the ordinary16KiB limit', 'actual deferred preference COMMIT failure retains the complete old snapshot; retry replaces only the verified canonical owner', 'Steam proof expiry after the actual SQLite write lock is re-read before preference mutation and cannot consume the current snapshot', 'real Rust process restart retains private preferences and canonical aliases while retiring old account grants', 'real party voice requires accepted membership and a current account grant; emitted audio carries the accepted opaque handle and never reaches another party', 'actual provider-bound Discord preference snapshots silence both directions while preserving third-party delivery; another participant cannot clear the blocker', 'clan and party channels use independent native registries, memberships, sequence streams and audiences', 'leader transfer preserves accepted streams; removal and same-identity SQL membership reincarnation retire only the old native channel incarnation', 'replacement, nonbinary frames, malformed version/size, replay, native burst budget and account revocation close the exact stream; fresh login reconnects', 'actual ten-second idle heartbeat accepts a pong and closes an unresponsive peer after the unshortened five-second transport deadline'], 'timings': {'heartbeat_seconds': 10.12229408499843, 'missing_pong_seconds': 5.062261926999781}})",
+  "donor_unchanged": true
+}

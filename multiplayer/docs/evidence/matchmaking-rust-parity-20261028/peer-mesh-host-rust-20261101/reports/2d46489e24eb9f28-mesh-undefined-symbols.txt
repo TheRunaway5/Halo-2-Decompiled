@@ -1,0 +1,42 @@
+                 U _GLOBAL_OFFSET_TABLE_
+                 U _Unwind_Resume
+                 U rust::cxxbridge1::Box<halo2::online_protocol_bridge::PeerMeshQuality>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::MeshQualityHost>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::HostAgreementPacket>::drop()
+                 U rust::cxxbridge1::sliceLen(void const*)
+                 U rust::cxxbridge1::slicePtr(void const*)
+                 U rust::cxxbridge1::sliceInit(void*, void const*, unsigned long)
+                 U halo2::online_protocol_bridge::new_peer_mesh_quality(unsigned int, halo2::online_protocol_bridge::MeshQualityContext const&)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_poll(halo2::online_protocol_bridge::PeerMeshQuality&, unsigned short, unsigned long, unsigned int)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_local(halo2::online_protocol_bridge::PeerMeshQuality const&, unsigned long)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_matrix(halo2::online_protocol_bridge::PeerMeshQuality const&, unsigned long)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_context(halo2::online_protocol_bridge::PeerMeshQuality const&)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_receive(halo2::online_protocol_bridge::PeerMeshQuality&, unsigned int, rust::cxxbridge1::Slice<unsigned char const>, unsigned long)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_is_packet(rust::cxxbridge1::Slice<unsigned char const>)
+                 U halo2::online_protocol_bridge::peer_mesh_quality_candidates(halo2::online_protocol_bridge::PeerMeshQuality const&, unsigned long, bool)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::MeshQualityHost>::data() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::MeshQualityHost>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::HostAgreementPacket>::data() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::HostAgreementPacket>::size() const
+                 U rust::cxxbridge1::Vec<unsigned char>::data() const
+                 U rust::cxxbridge1::Vec<unsigned char>::size() const
+                 U rust::cxxbridge1::Error::what() const
+                 U std::invalid_argument::invalid_argument(char const*)
+                 U std::invalid_argument::~invalid_argument()
+                 U std::__throw_length_error(char const*)
+                 U std::__throw_system_error(int)
+                 U typeinfo for rust::cxxbridge1::Error
+                 U typeinfo for std::invalid_argument
+                 U operator delete(void*, unsigned long)
+                 U operator new(unsigned long)
+                 U __cxa_allocate_exception
+                 U __cxa_begin_catch
+                 U __cxa_end_catch
+                 U __cxa_free_exception
+                 U __cxa_throw
+                 U __gxx_personality_v0
+                 U __stack_chk_fail
+                 U memcpy
+                 U memset
+                 U pthread_mutex_lock
+                 U pthread_mutex_unlock

@@ -1,0 +1,56 @@
+{
+  "binaries": [
+    {
+      "name": "online_login_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/online_login_probe",
+      "bytes": 24134024,
+      "sha256": "a2d93089227c3a904477152ac0668cc48de14e7986694bd30e25bb27633e84eb",
+      "retained": false
+    },
+    {
+      "name": "rust_service_account_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_account_probe",
+      "bytes": 24173896,
+      "sha256": "7a73031c12ccf593dbcfeaa488c1401677c3d50439e5441ec463622ddd93a2f4",
+      "retained": false
+    },
+    {
+      "name": "rust_service_matchmaking_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_matchmaking_probe",
+      "bytes": 27807320,
+      "sha256": "282652be6d6b6ea71a5aaafdffc6f3632c44e2e6c0df27a6a68ebf70c829c2a9",
+      "retained": false
+    },
+    {
+      "name": "rust_service_qos_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_qos_probe",
+      "bytes": 173032,
+      "sha256": "ecfc704ae9310d16687f5700af570df51daec95fac2b7ecc57ea760d6647a255",
+      "retained": false
+    },
+    {
+      "name": "rust_service_room_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_room_probe",
+      "bytes": 27596848,
+      "sha256": "822766e275c281e06272d63f7c9ffb017496a935b9d121097067fc3aea57e965",
+      "retained": false
+    },
+    {
+      "name": "rust_service_social_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_social_probe",
+      "bytes": 24179672,
+      "sha256": "7da4443f2375a02572013da1ac6d566727b91abafb5cb87aeae9481e9b999dab",
+      "retained": false
+    },
+    {
+      "name": "rust_service_steam_invite_probe",
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/rust_service_steam_invite_probe",
+      "bytes": 24176992,
+      "sha256": "c43378e63d63c2feeec9cba0178bad7705e780e5b465e2c00e5aac3f3c02c449",
+      "retained": false
+    }
+  ],
+  "owned_directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r",
+  "observed_owned_bytes": 1306007296,
+  "retained_large_artifacts": []
+}

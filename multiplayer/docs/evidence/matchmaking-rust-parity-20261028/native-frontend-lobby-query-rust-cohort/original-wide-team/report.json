@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "command": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-query-wide-team-original-20261102/halo2-test-_7n101ru/source/wide-team.py",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-query-wide-team-original-20261102/halo2-test-_7n101ru/source/analysis/frontend/lobby/oracle-ready-policy.py",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/frontend-lobby-query-rust-20261102/original-wide-team/observations.json"
+  ],
+  "exit_code": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-query-wide-team-original-20261102/halo2-test-_7n101ru",
+  "oracle_sha256": "120a917d8c6af72f6c96d1e728d93b0280d5ddad2f01e40d8d3b7a66c39573a5",
+  "probe_sha256": "80c68a3e5405dd913701fdee38037ed3fb1fdf192fd6f6c3a086f249e7bbafdd",
+  "version": "Pinned supplied retail Xbox, not a new TU1.5 claim",
+  "scope": "Nine signed-byte team inputs to unchanged19A2CE; established local host, team variant2, one present/ready player, supplied resolved maximum255. No C++ or Rust result supplied.",
+  "retained_large_artifacts": []
+}

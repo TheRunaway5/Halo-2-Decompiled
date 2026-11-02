@@ -29,6 +29,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <nlohmann/json.hpp>
 
 namespace halo2 {
 namespace {
@@ -83,7 +84,9 @@ std::vector<std::byte> read_range(const std::filesystem::path& path,std::uint64_
     if(!file || file.tellg()<0)throw FormatError("Cannot read MCC data: "+path.string());
     const auto size=std::uint64_t(file.tellg());
     if(whole)count=size;
-    if(count>maximum_cache || at>size || count>size-at)throw FormatError("MCC file extent is invalid or excessive");
+    if(count>maximum_cache || at>size || count>size-at)
+        throw FormatError("MCC file extent is invalid or excessive: "+path.string()+
+            " offset="+std::to_string(at)+" bytes="+std::to_string(count)+" file_bytes="+std::to_string(size));
     std::vector<std::byte> result(static_cast<std::size_t>(count));
     file.seekg(std::streamoff(at));
     if(count && !file.read(reinterpret_cast<char*>(result.data()),std::streamsize(count)))
@@ -267,7 +270,11 @@ std::uint32_t Cache::mcc_sound_class_tag(bool remastered) const {
     return data.u32(rows.offset+(remastered?4:12));
 }
 
-EncodedSound Cache::load_mcc_sound(std::uint32_t datum,unsigned pitch,unsigned permutation) const {
+EncodedSound Cache::load_sound(std::uint32_t datum,unsigned pitch,unsigned permutation,const MccSoundResourceReader& reader)const {
+    if(!mcc_||!reader)throw FormatError("Retained sound resources require an MCC Cache and an explicit reader");
+    return load_mcc_sound(datum,pitch,permutation,reader);
+}
+EncodedSound Cache::load_mcc_sound(std::uint32_t datum,unsigned pitch,unsigned permutation,const MccSoundResourceReader& reader) const {
     const Bytes data(cache_bytes());
     const auto& sound=required_tag(*this,datum,"snd!");
     const auto& gestalt=mcc_sound_gestalt(datum);
@@ -310,12 +317,17 @@ EncodedSound Cache::load_mcc_sound(std::uint32_t datum,unsigned pitch,unsigned p
     const auto cls=entry(metadata_offset(classes.address,8),0x78,out.sound_class);
     // Original MCC 6C9170 selects bank 5 for multilingual classes, otherwise
     // bank 6 for remastered-only sounds and bank 4 for Classic neutral audio.
-    const auto bank=(data.u16(cls+8)&0x80)?"sounds_en.dat":remastered?"sounds_remastered.dat":"sounds_neutral.dat";
+    const auto bank=(data.u16(cls+8)&0x80)?MccResourceBank::EnglishSounds:
+        remastered?MccResourceBank::RemasteredSounds:MccResourceBank::NeutralSounds;
     for(unsigned n=0;n<count;++n) {
         const auto c=chunks.offset+(std::size_t(first)+n)*16;
         const auto size=data.u32(c+4)&0x1fffffffu;
         if(!size || size>128*1024*1024-out.data.size())throw FormatError("Invalid MCC sound chunk size");
-        const auto bytes=read_range(shared_directory_/bank,data.u32(c),size);
+        const auto source=std::uint64_t(data.u32(language+4))+(std::uint64_t(first)+n)*16u;
+        if(source>0xffffffffull)throw FormatError("MCC sound source descriptor wraps");
+        const auto bytes=reader?reader({sound.handle(),gestalt.handle(),bank,std::uint32_t(source),data.u32(c),size}):
+            read_range(mcc_resource_bank_path(sound.handle(),bank),data.u32(c),size);
+        if(bytes.size()!=size)throw FormatError("MCC sound resource reader returned a partial encoded chunk");
         out.data.insert(out.data.end(),bytes.begin(),bytes.end());
         out.packet_chunks.push_back({size,data.u32(c+8),(data.u32(c+4)&0x20000000u)!=0});
     }
@@ -325,9 +337,25 @@ EncodedSound Cache::load_mcc_sound(std::uint32_t datum,unsigned pitch,unsigned p
 const Tag& Cache::mcc_sound_gestalt(std::uint32_t datum) const {
     (void)required_tag(*this,datum,"snd!");
     const auto index=datum&0xffffu;
-    if(index>=mcc_sound_gestalts_.size() || mcc_sound_gestalts_[index]==0xffffffffu)
+    if(index>=mcc_resource_owners_.size() || mcc_resource_owners_[index].sound_gestalt==0xffffffffu)
         throw FormatError("MCC sound has no exact directory-owner gestalt");
-    return required_tag(*this,mcc_sound_gestalts_[index],"ugh!");
+    return required_tag(*this,mcc_resource_owners_[index].sound_gestalt,"ugh!");
+}
+
+std::filesystem::path Cache::mcc_resource_bank_path(TagHandle handle,MccResourceBank bank) const {
+    if(!mcc_ || !find_tag(handle) || handle.index()>=mcc_resource_owners_.size())
+        throw FormatError("MCC resource bank requires its exact directory tag owner");
+    const char* name{};
+    switch(bank) {
+    case MccResourceBank::Textures:name="textures.dat";break;
+    case MccResourceBank::EnglishSounds:name="sounds_en.dat";break;
+    case MccResourceBank::NeutralSounds:name="sounds_neutral.dat";break;
+    case MccResourceBank::RemasteredSounds:name="sounds_remastered.dat";break;
+    default:throw FormatError("Invalid MCC resource bank");
+    }
+    const auto& owner=mcc_resource_owners_[handle.index()];
+    return owner.split_banks && owner.inherited?
+        shared_directory_/"inherited-resources"/name:shared_directory_/name;
 }
 
 void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
@@ -358,9 +386,23 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
         if(owner!=0xffffffffu)throw FormatError("Ambiguous MCC sound gestalt directory ownership");
         owner=tags_[i].datum;
     }
-    mcc_sound_gestalts_.resize(tags_.size(),0xffffffffu);
-    for(std::size_t i=0;i<tags_.size();++i)if(tags_[i].group=="snd!" && tags_[i].address)
-        mcc_sound_gestalts_[i]=sound_gestalt[shared_owner[i]?1:0];
+    bool split_banks=false;
+    if(preserve_mcc_authoring_ && owner && owner->indexed) {
+        const auto provenance=nlohmann::json::parse(owner->metadata.at("provenance.json"));
+        const auto workshop=provenance.find("workshop");
+        if(workshop!=provenance.end() && workshop->contains("resource_profile")) {
+            if(workshop->at("resource_profile")!="H2_WORKSHOP_RESOURCE_OWNERS_V1")
+                throw FormatError("Unsupported Workshop resource ownership profile");
+            split_banks=true;
+        }
+    }
+    mcc_resource_owners_.resize(tags_.size());
+    for(std::size_t i=0;i<tags_.size();++i) {
+        auto& resource=mcc_resource_owners_[i];
+        resource.inherited=shared_owner[i];resource.split_banks=split_banks;
+        if(tags_[i].group=="snd!" && tags_[i].address)
+            resource.sound_gestalt=sound_gestalt[shared_owner[i]?1:0];
+    }
     validate_tag_directory();
     std::vector<std::size_t> resident;
     for(std::size_t i=0;i<tags_.size();++i)if(tags_[i].datum!=0xffffffffu && tags_[i].address && tags_[i].size)resident.push_back(i);
@@ -445,96 +487,98 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
     // This private load phase owns an immutable directory and stable storage.
     // Qualify map-specific authoring before the generic converters below alter
     // its complete donor owners. Converted bytes enter the ordinary directory.
-    const MccMapGameplaySource map_source{
-        .scenario_path=scenario_,.scenario=scenario_tag_,.globals=globals_tag_,
-        .resolve=[&](TagHandle handle)->std::optional<MccMapGameplayIdentity> {
-            const auto* t=find_tag(handle);
-            if(!t || !t->address || !t->size)return {};
-            return MccMapGameplayIdentity{t->handle(),t->type(),t->name,t->address,t->size};
-        },
-        .find=[&](TagGroup group,std::string_view name)->std::optional<MccMapGameplayIdentity> {
-            const Tag* found=nullptr;
-            for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
-                t.type()==group && t.name==name) {
-                if(found)return {};
-                found=&t;
-            }
-            if(!found)return {};
-            return MccMapGameplayIdentity{found->handle(),found->type(),found->name,found->address,found->size};
-        },
-        .read=[&](std::uint32_t address,std::size_t bytes) {return read_tag_bytes(address,bytes);}
-    };
-    const auto* material_globals=query_tag({.group=tag_groups::globals});
-    const std::array map_authoring{plan_mcc_map_gameplay_vanilla(map_source),
-        plan_mcc_teleporter_gameplay_vanilla(map_source),
-        plan_mcc_material_gameplay_vanilla(map_source),
-        plan_mcc_foot_gameplay_vanilla(map_source,material_globals?material_globals->handle():TagHandle{})};
-    for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::InvalidMetadata)
-        throw FormatError("MCC map gameplay authoring has invalid metadata: "+plan.reason);
-    std::vector<std::pair<std::span<std::byte>,const MccMapGameplayWrite*>> destinations;
-    for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::Ready)
-        for(const auto& write:plan.writes)
-            destinations.emplace_back(std::span(storage_).subspan(
-                metadata_offset(write.source_token,write.after.size()),write.after.size()),&write);
-    preflight_mcc_map_gameplay_vanilla(map_authoring,map_source.read);
-    // Every component, destination and guard is checked before the first
-    // bounded nonthrowing copy. Directory and storage ownership stay stable.
-    for(const auto& [destination,write]:destinations)
-        std::copy(write->after.begin(),write->after.end(),destination.begin());
-    // Exact named retail scalar tuples enter the ordinary internal directory
-    // before gameplay or resource-only cache consumers. Unknown authored
-    // tuples remain untouched; the pure converter exposes their mismatch
-    // receipt for import/audit callers. This does not certify full parity.
-    for(const auto& t:tags_)if(t.address && t.size &&
-        (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile || t.type()==tag_groups::effect ||
-            t.type()==tag_groups::damage_effect)) {
-        const auto at=metadata_offset(t.address,t.size);
-        (void)convert_mcc_gameplay_scalar(t.type(),t.name,
-            std::span(storage_).subspan(at,t.size));
-    }
-    const MccGameplayReferenceAccess reference_access{
-        .bytes=[&](std::uint32_t address,std::size_t size) {
-            return std::span(storage_).subspan(metadata_offset(address,size),size);
-        },
-        .resolve=[&](TagHandle handle)->std::optional<MccGameplayReferenceIdentity> {
-            if(handle.is_null() || handle.index()>=tags_.size())return {};
-            const auto& t=tags_[handle.index()];
-            if(t.handle()!=handle || !t.address || !t.size)return {};
-            return MccGameplayReferenceIdentity{handle,t.type(),t.name};
-        },
-        .find=[&](TagGroup group,std::string_view name)->std::optional<MccGameplayReferenceIdentity> {
-            const Tag* found=nullptr;
-            for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
-                t.type()==group && t.name==name) {
-                if(found)return {}; // Ambiguous authored target is not a local identity proof.
-                found=&t;
-            }
-            if(!found)return {};
-            return MccGameplayReferenceIdentity{found->handle(),found->type(),found->name};
+    if(!preserve_mcc_authoring_) {
+        const MccMapGameplaySource map_source{
+            .scenario_path=scenario_,.scenario=scenario_tag_,.globals=globals_tag_,
+            .resolve=[&](TagHandle handle)->std::optional<MccMapGameplayIdentity> {
+                const auto* t=find_tag(handle);
+                if(!t || !t->address || !t->size)return {};
+                return MccMapGameplayIdentity{t->handle(),t->type(),t->name,t->address,t->size};
+            },
+            .find=[&](TagGroup group,std::string_view name)->std::optional<MccMapGameplayIdentity> {
+                const Tag* found=nullptr;
+                for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
+                    t.type()==group && t.name==name) {
+                    if(found)return {};
+                    found=&t;
+                }
+                if(!found)return {};
+                return MccMapGameplayIdentity{found->handle(),found->type(),found->name,found->address,found->size};
+            },
+            .read=[&](std::uint32_t address,std::size_t bytes) {return read_tag_bytes(address,bytes);}
+        };
+        const auto* material_globals=query_tag({.group=tag_groups::globals});
+        const std::array map_authoring{plan_mcc_map_gameplay_vanilla(map_source),
+            plan_mcc_teleporter_gameplay_vanilla(map_source),
+            plan_mcc_material_gameplay_vanilla(map_source),
+            plan_mcc_foot_gameplay_vanilla(map_source,material_globals?material_globals->handle():TagHandle{})};
+        for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::InvalidMetadata)
+            throw FormatError("MCC map gameplay authoring has invalid metadata: "+plan.reason);
+        std::vector<std::pair<std::span<std::byte>,const MccMapGameplayWrite*>> destinations;
+        for(const auto& plan:map_authoring)if(plan.status==MccMapGameplayStatus::Ready)
+            for(const auto& write:plan.writes)
+                destinations.emplace_back(std::span(storage_).subspan(
+                    metadata_offset(write.source_token,write.after.size()),write.after.size()),&write);
+        preflight_mcc_map_gameplay_vanilla(map_authoring,map_source.read);
+        // Every component, destination and guard is checked before the first
+        // bounded nonthrowing copy. Directory and storage ownership stay stable.
+        for(const auto& [destination,write]:destinations)
+            std::copy(write->after.begin(),write->after.end(),destination.begin());
+        // Exact named retail scalar tuples enter the ordinary internal directory
+        // before gameplay or resource-only cache consumers. Unknown authored
+        // tuples remain untouched; the pure converter exposes their mismatch
+        // receipt for import/audit callers. This does not certify full parity.
+        for(const auto& t:tags_)if(t.address && t.size &&
+            (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile || t.type()==tag_groups::effect ||
+                t.type()==tag_groups::damage_effect)) {
+            const auto at=metadata_offset(t.address,t.size);
+            (void)convert_mcc_gameplay_scalar(t.type(),t.name,
+                std::span(storage_).subspan(at,t.size));
         }
-    };
-    for(const auto& t:tags_)if(t.address && t.size &&
-        (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile))
-        // Missing local dependencies stay unchanged and produce an explicit
-        // requirement receipt for callers of the same pure profile converter.
-        (void)convert_mcc_gameplay_references(t.type(),t.name,t.address,reference_access);
-    for(const auto& t:tags_)if(t.address && t.size &&
-        (t.type()==tag_groups::biped || t.type()==tag_groups::vehicle))
-        (void)convert_mcc_gameplay_unit_scalars(t.type(),t.name,t.address,reference_access.bytes);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
-        (void)convert_mcc_destruction_model_scalars(t.type(),t.name,t.address,reference_access.bytes);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
-        (void)convert_mcc_destruction_model_contract(t.type(),t.name,t.address,reference_access.bytes);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
-        (void)convert_mcc_destruction_model_references(t.type(),t.name,t.address,reference_access);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
-        (void)convert_mcc_multiplayer_weapon_table(t.type(),t.name,t.address,reference_access);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
-        (void)convert_mcc_multiplayer_vehicle_table(t.type(),t.name,t.address,reference_access);
-    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::scenario_structure_bsp) {
-        (void)convert_mcc_bsp_instance_transform(t.type(),t.name,t.address,reference_access.bytes);
-        (void)convert_mcc_bsp_collision_reference(t.type(),t.name,t.address,reference_access.bytes);
-        (void)convert_mcc_bsp_instance_bounds(t,reference_access.bytes);
+        const MccGameplayReferenceAccess reference_access{
+            .bytes=[&](std::uint32_t address,std::size_t size) {
+                return std::span(storage_).subspan(metadata_offset(address,size),size);
+            },
+            .resolve=[&](TagHandle handle)->std::optional<MccGameplayReferenceIdentity> {
+                if(handle.is_null() || handle.index()>=tags_.size())return {};
+                const auto& t=tags_[handle.index()];
+                if(t.handle()!=handle || !t.address || !t.size)return {};
+                return MccGameplayReferenceIdentity{handle,t.type(),t.name};
+            },
+            .find=[&](TagGroup group,std::string_view name)->std::optional<MccGameplayReferenceIdentity> {
+                const Tag* found=nullptr;
+                for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
+                    t.type()==group && t.name==name) {
+                    if(found)return {}; // Ambiguous authored target is not a local identity proof.
+                    found=&t;
+                }
+                if(!found)return {};
+                return MccGameplayReferenceIdentity{found->handle(),found->type(),found->name};
+            }
+        };
+        for(const auto& t:tags_)if(t.address && t.size &&
+            (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile))
+            // Missing local dependencies stay unchanged and produce an explicit
+            // requirement receipt for callers of the same pure profile converter.
+            (void)convert_mcc_gameplay_references(t.type(),t.name,t.address,reference_access);
+        for(const auto& t:tags_)if(t.address && t.size &&
+            (t.type()==tag_groups::biped || t.type()==tag_groups::vehicle))
+            (void)convert_mcc_gameplay_unit_scalars(t.type(),t.name,t.address,reference_access.bytes);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+            (void)convert_mcc_destruction_model_scalars(t.type(),t.name,t.address,reference_access.bytes);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+            (void)convert_mcc_destruction_model_contract(t.type(),t.name,t.address,reference_access.bytes);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::model)
+            (void)convert_mcc_destruction_model_references(t.type(),t.name,t.address,reference_access);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
+            (void)convert_mcc_multiplayer_weapon_table(t.type(),t.name,t.address,reference_access);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
+            (void)convert_mcc_multiplayer_vehicle_table(t.type(),t.name,t.address,reference_access);
+        for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::scenario_structure_bsp) {
+            (void)convert_mcc_bsp_instance_transform(t.type(),t.name,t.address,reference_access.bytes);
+            (void)convert_mcc_bsp_collision_reference(t.type(),t.name,t.address,reference_access.bytes);
+            (void)convert_mcc_bsp_instance_bounds(t,reference_access.bytes);
+        }
     }
     const MccHudReferenceAccess hud_reference_access{
         .read=[&](std::uint32_t address,std::size_t size) {
@@ -604,6 +648,12 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
     }
     vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
     initialize_mcc_native_shaders(owner);
+    // Preserve the authenticated globals/class namespace established above.
+    // This late native dependency publication appends only its private owners.
+    admit_mcc_weapon_zoom_sounds();
+    // Native shader closure may append non-resource program tags. Existing
+    // directory owners retain their entries; new tags never inherit a DAT.
+    mcc_resource_owners_.resize(tags_.size());
     // New geometry owners append after the existing globals/shader producers.
     // Their names, full salted handles, complete source allocations and live
     // directory identities must still match the exact admitted beforeimage.
@@ -628,11 +678,11 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
     if(resources || scenario_tag_.is_null())return;
     const auto& scenario=tag(local.scenario,"scnr");
     const auto scnr=metadata_offset(scenario.address,0x218);
-    if(original_data_ && original_data_->multiplayer_netgame_postprocess_constants)
+    if(!preserve_mcc_authoring_ && original_data_ && original_data_->multiplayer_netgame_postprocess_constants)
         multiplayer_netgame_writes_=apply_multiplayer_netgame_postprocess(
             {storage_,metadata_magic_,scenario.address},*original_data_->multiplayer_netgame_postprocess_constants,
             original_data_->image==OriginalData::Image::TitleUpdate15?MultiplayerNetgamePostprocessImage::TitleUpdate15:MultiplayerNetgamePostprocessImage::MapPack11).stores;
-    if(original_data_ && original_data_->multiplayer_balance_constants && Bytes(storage_).u16(scnr+0x10)==1)
+    if(!preserve_mcc_authoring_ && original_data_ && original_data_->multiplayer_balance_constants && Bytes(storage_).u16(scnr+0x10)==1)
         multiplayer_balance_writes_=apply_multiplayer_balance(
             {storage_,metadata_magic_,table,tags_.size(),scenario.address,tag(local.globals,"matg").address},
             *original_data_->multiplayer_balance_constants,original_data_->image==OriginalData::Image::TitleUpdate15?0x13e0:0).stores;
@@ -695,6 +745,7 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
             std::copy(target.after.begin(),target.after.end(),
                 storage_.begin()+std::ptrdiff_t(target.offset));
     };
+    if(preserve_mcc_authoring_)return;
     const auto vanilla=plan_mcc_cairo_vanilla(*this);
     if(vanilla.matched)commit_authoring(vanilla.writes,[](const auto& write){return write.source_token;});
     const auto campaign=plan_mcc_campaign_vanilla({
@@ -708,6 +759,49 @@ void Cache::initialize_mcc(const MccPreparedMapOwner* owner) {
         .resolve_string_id=[&](std::uint32_t id){return string_id(id);}
     });
     if(campaign.matched)commit_authoring(campaign.writes,[](const auto& write){return write.address;});
+    // Original shader closure can name a bitmap omitted from a particular
+    // MCC scenario directory. Restore only these complete authenticated MCC
+    // owners; shader names never choose a substitute image or mip chain.
+    struct MissingBitmapOwner {const char* map;const char* donor;const char* name;std::uint64_t hash;};
+    static constexpr MissingBitmapOwner missing_bitmap_owners[]{
+        {"03a_oldmombasa","shared","scenarios\\bitmaps\\detail_maps\\metal\\scratches",0x73c1fd33956b443full},
+        {"06a_sentinelwalls","00a_introduction","objects\\characters\\prophet\\bitmaps\\holo_static_scanlines",0xbcc10a801d819a58ull},
+        {"06a_sentinelwalls","00a_introduction","objects\\characters\\prophet\\bitmaps\\holo_static_noise",0x5be3212c09b553ddull},
+        {"derelict","01a_tutorial","objects\\bitmaps\\default\\grid_256x256",0x5ed1cd74a933197bull},
+    };
+    for(const auto& policy:missing_bitmap_owners)if(!preserve_mcc_authoring_ && name_==policy.map) {
+        const auto* missing=query_tag({.group=tag_groups::bitmap,.name=policy.name});
+        if(!missing || missing->address || missing->size)continue;
+        const auto handle=missing->handle();
+        const Cache donor(shared_directory_/(std::string(policy.donor)+".map"));
+        const auto* source=donor.query_tag({.group=tag_groups::bitmap,.name=policy.name,.require_address=true});
+        if(!source || source->size!=248 || donor.shared_directory_!=shared_directory_)
+            throw FormatError("Missing shader bitmap has no complete owned MCC donor");
+        const auto bytes=donor.tag_payload(source->handle());const Bytes payload(bytes);
+        std::uint64_t hash=14695981039346656037ull;
+        for(const auto byte:bytes)hash=(hash^std::to_integer<unsigned char>(byte))*1099511628211ull;
+        if(hash!=policy.hash || payload.u32(60) || payload.u32(64) || payload.u32(68)!=1 ||
+           payload.u32(72)!=source->address+80 || payload.u32(108)!=source->datum)
+            throw FormatError("Missing shader bitmap MCC donor payload differs from its complete source pin");
+        // Decode every mip/face before publishing this owner. The existing
+        // decoder verifies the actual complete hardware texture partition.
+        (void)donor.load_bitmap(source->datum,0);
+        const auto address=(std::uint64_t(std::int64_t(storage_.size())+metadata_magic_)+15u)&~15ull;
+        if(address+bytes.size()>0x100000000ull)throw FormatError("Shader bitmap owner allocation overflow");
+        std::vector<std::byte> restored(bytes.begin(),bytes.end());
+        const auto patch=[&](unsigned at,std::uint32_t value){for(unsigned n=0;n<4;++n)restored.at(at+n)=std::byte(value>>(n*8));};
+        patch(72,std::uint32_t(address+80));patch(108,handle.value);
+        storage_.resize(std::size_t(std::int64_t(address)-metadata_magic_));
+        storage_.insert(storage_.end(),restored.begin(),restored.end());
+        auto& target=tags_.at(handle.value&65535u);target.address=std::uint32_t(address);target.size=restored.size();
+        word(storage_,table+(handle.value&65535u)*16u+8u,target.address);
+        word(storage_,table+(handle.value&65535u)*16u+12u,target.size);
+        mcc_resource_owners_.resize(tags_.size());
+        mcc_resource_owners_[handle.value&65535u]=donor.mcc_resource_owners_.at(source->datum&65535u);
+        std::vector<std::pair<std::uint32_t,std::uint32_t>> retained;
+        for(const auto& allocation:retained_tag_allocations_)retained.emplace_back(allocation.address,allocation.size);
+        vista_metadata_regions_=tag_metadata_regions(tags_,retained);
+    }
 }
 
 BitmapResource Cache::load_mcc_bitmap_resource(std::uint32_t datum,unsigned index) const {
@@ -722,7 +816,7 @@ BitmapResource Cache::load_mcc_bitmap_resource(std::uint32_t datum,unsigned inde
     BitmapResource out{data.u16(at+4),data.u16(at+6),std::to_integer<std::uint16_t>(data.slice(at+8,1)[0]),data.u16(at+10),data.u16(at+12),{}};
     for(unsigned i=0;i<3;++i) {
         const auto size=data.u32(at+80+i*4);
-        if(size)out.levels[i]=read_mcc_texture_partition(shared_directory_/"textures.dat",data.u32(at+56+i*4),size);
+        if(size)out.levels[i]=read_mcc_texture_partition(mcc_resource_bank_path(selected.handle(),MccResourceBank::Textures),data.u32(at+56+i*4),size);
     }
     return out;
 }

@@ -1,0 +1,17 @@
+{
+  "src/network/online_match_session.cpp": {
+    "path": "build/test-results/native-preparation-caller-rust-20261101/before-src_network_online_match_session.cpp.txt",
+    "sha256": "9f005d83d092edf878ab7734bf8649816dc857096a4b162dcc28a1c0c9e53647",
+    "bytes": 68852
+  },
+  "rust/online_protocol/src/matchmaking_native_session.rs": {
+    "path": "build/test-results/native-preparation-caller-rust-20261101/before-rust_online_protocol_src_matchmaking_native_session.rs.txt",
+    "sha256": "ca57912fd9b78630952035e52e23b81bd60e84426892699dd149b4bca4bd24d5",
+    "bytes": 60704
+  },
+  "rust/online_protocol_bridge/src/lib.rs": {
+    "path": "build/test-results/native-preparation-caller-rust-20261101/before-rust_online_protocol_bridge_src_lib.rs.txt",
+    "sha256": "9fe0f0b4caa59ab36530580d81cd27296418bd11bc34f5960ac1789d92055c0d",
+    "bytes": 82173
+  }
+}

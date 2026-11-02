@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-5fup_aix/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-5fup_aix",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-5fup_aix/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 101
+    }
+  ],
+  "retained_large_artifacts": []
+}

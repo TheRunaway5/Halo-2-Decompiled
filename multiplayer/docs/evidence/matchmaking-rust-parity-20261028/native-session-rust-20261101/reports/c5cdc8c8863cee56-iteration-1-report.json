@@ -1,0 +1,180 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--target",
+        "peer_host_session_tests",
+        "--target",
+        "peer_survivor_session_tests",
+        "--target",
+        "peer_mesh_quality_session_tests",
+        "--target",
+        "online_continuity_transport_tests",
+        "--target",
+        "online_search_qos_tests",
+        "--target",
+        "online_matchmaking_tests",
+        "--target",
+        "rust_service_room_probe",
+        "--target",
+        "online_voice_protocol_tests",
+        "--filter",
+        "^(peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|peer_mesh_quality_native_session|online_continuity_(native|legacy)_transport|online_search_qos_client|online_matchmaking_client|online_voice_protocol|online_protocol_rust_build_helper)$",
+        "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+        "--retain-report",
+        "Testing/Temporary/LastTest.log",
+        "--retain-report",
+        "online-protocol/Release/build-report.json"
+      ],
+      "returncode": 8
+    }
+  ],
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [],
+  "source_pin_sha256": "d116721983a532f150026a0d7d9b3b4af47a22eea3d1eb3e13fa2bbd3520bf75",
+  "runner_report": {
+    "passed": false,
+    "status": "failed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "peer_host_session_tests",
+          "peer_survivor_session_tests",
+          "peer_mesh_quality_session_tests",
+          "online_continuity_transport_tests",
+          "online_search_qos_tests",
+          "online_matchmaking_tests",
+          "rust_service_room_probe",
+          "online_voice_protocol_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|peer_mesh_quality_native_session|online_continuity_(native|legacy)_transport|online_search_qos_client|online_matchmaking_client|online_voice_protocol|online_protocol_rust_build_helper)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1/tests.log",
+        "exit_code": 8
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 29813,
+        "sha256": "db43828ed2fc30614f385a9c162078d34e42fdceed7006f6b37e03b55957b7e3",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 2213,
+        "sha256": "459caa8d5e5bb65b1fe3a37248659164b0cf3ca3ee80fd455825a1ee6458117d",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-session-qualified-20261101/iteration-1/evidence/online-protocol/Release/build-report.json"
+      }
+    ]
+  },
+  "actual_native_binaries": {
+    "peer_host_session_tests": {
+      "sha256": "8066c1ea5149be487f1a06a4386d457368542c9345fe96b77d2041bdb0048d0b",
+      "bytes": 28160640
+    },
+    "peer_survivor_session_tests": {
+      "sha256": "6357364d899d6bdd429e199aca60e168d2ce98ad35b2a34a9079ea924835914c",
+      "bytes": 28084536
+    },
+    "peer_mesh_quality_session_tests": {
+      "sha256": "c65e9c9df15c10b74817ee4c0ddecd69258e15bee267e35cbc69b3d07e70b5db",
+      "bytes": 28088888
+    },
+    "online_continuity_transport_tests": {
+      "sha256": "76f02459d9fccce92df7067d3538771643fef35db426cb59bbd3863a2bfb04e4",
+      "bytes": 28021032
+    },
+    "online_search_qos_tests": {
+      "sha256": "11d9542d7e5e54746bdffc8d702b83c6ab2f8cb00806afe636d70882f4697f1b",
+      "bytes": 24311728
+    },
+    "online_matchmaking_tests": {
+      "sha256": "cac31ea576485cdc3be337bd29ce7cf7f27a03ee0439b45a3946bef7efef251d",
+      "bytes": 28238448
+    },
+    "rust_service_room_probe": {
+      "sha256": "2fe56ad08fda1259f514d80ecef619a20eb6506d6d8a795077745ec4021a6b6d",
+      "bytes": 28068288
+    },
+    "online_voice_protocol_tests": {
+      "sha256": "c47044a5a787f966178ae51f8dcb8656afe71e72e13b73897a7c823eaaa9f68b",
+      "bytes": 24311656
+    }
+  },
+  "frozen_inputs_intact": true
+}

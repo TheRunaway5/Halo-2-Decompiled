@@ -597,6 +597,26 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
     weapon_effect_journal_.push_back(std::move(completed));
     if(weapon_effect_journal_.size()>64)weapon_effect_journal_.erase(weapon_effect_journal_.begin());
   });
+  if(simulation_.source_physics_movement_) {
+    const auto publish_zoom=[this](NativeWeaponZoomAudioEventTu15 event) {
+      if(event.player==null_datum)return;
+      const auto id=event.player&65535u;
+      if(id>=players_.size() || players_[id].source_datum!=event.player)
+        throw FormatError("Native zoom sound lost its full source player owner");
+      NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+      event.serial=++weapon_zoom_audio_serial_;
+      weapon_zoom_audio_journal_.push_back(std::move(event));
+      if(weapon_zoom_audio_journal_.size()>64)weapon_zoom_audio_journal_.erase(weapon_zoom_audio_journal_.begin());
+    };
+    source_object_world_->tu15_world().observe_weapon_zoom_sounds([publish_zoom](const auto &source) {
+      NativeWeaponZoomAudioEventTu15 event;event.tick=source.tick;event.unit=source.unit;event.player=source.player;
+      event.sound=source.sound;event.request=source.request;event.control_bits=Bytes(source.request).u32(0x10);publish_zoom(std::move(event));
+    });
+    source_object_world_->tu15_world().observe_weapon_zoom_resets([publish_zoom](const auto &source) {
+      NativeWeaponZoomAudioEventTu15 event;event.tick=source.tick;event.unit=source.reset.unit;event.player=source.reset.player;
+      event.sound=source.sound;event.control_bits=source.control_bits;event.forced_reset=true;publish_zoom(std::move(event));
+    });
+  }
   // Original191DF0 registers the new-map roster through13A920 before
   //15AFB0 chooses round roles. Native joins follow this constructor, so
   //the first ordinary step delivers that boundary with the actual roster.
@@ -614,7 +634,11 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
   // into its completed motion record.
   if(source_object_world_ && source_object_world_->owns_physics())
     source_object_world_->publish_body_impulses([this](const SourceBodyImpulseTu15 &impulse) {
-      NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+      // This read-only source observer only copies completed presentation
+      // inputs. The enclosing MatchStep commits them to the impulse journal
+      // after the source call returns. Do not mark this copy as a Match mutation:
+      // doing so invalidates an otherwise complete native execution phase.
+      NativeAuthorityBoundary::Call active(authority_calls_);
       if(impulse.body_index!=0)return; // Sub-body velocities do not describe the object root.
       const Bytes after(impulse.after);
       const auto vector=[&](std::size_t offset){return Vec3{after.f32(offset),after.f32(offset+4),after.f32(offset+8)};};
@@ -2770,6 +2794,16 @@ void MultiplayerMatch::step(
   if(lag_compensation_)lag_compensation_->record(std::uint32_t(simulation_.ticks()),
       lag_compensation_slots(players_,remote_views_));
 }
+void MultiplayerMatch::request_end_match() {
+  if(source_replica_)throw FormatError("Only the match authority can end a match.");
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(source_engine_owned_) {
+    // Original game-over request; finalization and the seven-second ending
+    // continue through the actual selected engine and session lifecycle.
+    source_object_world_->tu15_world().call_actual(0x13b4a0u);
+    synchronize_source_engine();
+  } else end_match(-1,-1);
+}
 void MultiplayerMatch::end_match(int player_winner,int team_winner) {
   if(finished_)return;
   finished_=true;winner_=player_winner;winner_team_=team_winner;
@@ -3142,6 +3176,7 @@ MultiplayerState MultiplayerMatch::state() const {
     result.corpses.push_back(std::move(corpse));
   }
   result.weapon_effects=weapon_effect_journal_;
+  result.weapon_zoom_audio=weapon_zoom_audio_journal_;
   result.source_engine_events=source_engine_events_;
   result.source_gameplay_fade=source_gameplay_fade_;
   result.physics_impulses=physics_impulses_;

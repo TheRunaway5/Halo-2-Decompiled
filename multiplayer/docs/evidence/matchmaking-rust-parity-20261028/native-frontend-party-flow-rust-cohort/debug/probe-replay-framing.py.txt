@@ -1,0 +1,14 @@
+import json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-flow-rust-20261102'
+binary=root/'.local/test-scratch/frontend-party-flow-native-20261102/halo2-test-0xaym5n8/build/native_frontend_party_flow_rust_tests'
+case={'initial':{},'operations':[{'op':'accept'}]}
+run=subprocess.run([str(binary)],input=json.dumps(case)+'\n',text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+lines=run.stdout.splitlines()
+assert run.returncode==0 and len(lines)==3
+assert lines[0]=='Shutdown handler: initialize.' and lines[-1]=='Shutdown handler: cleanup.'
+value=json.loads(lines[1]);assert value['before']==value['rust']
+result={'passed':True,'native_exit_code':run.returncode,'stdout_lines':len(lines),'first_line':lines[0],'last_line':lines[-1],
+ 'json_responses':1,'response_parses':True,'before_rust_identical':True,'stderr':run.stderr[-2000:],'retained_large_artifacts':[]}
+(work/'replay-framing-probe.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result))

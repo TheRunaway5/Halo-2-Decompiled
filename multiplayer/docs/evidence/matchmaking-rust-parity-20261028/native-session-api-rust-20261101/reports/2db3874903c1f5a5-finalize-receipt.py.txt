@@ -1,0 +1,317 @@
+import datetime, hashlib, json, re, shutil, subprocess
+from pathlib import Path
+
+root=Path.cwd()
+work=root/'build/test-results/native-session-api-rust-20261101'
+evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+receipt_path=evidence/'native-session-api-rust-validation.json'
+bucket=evidence/'native-session-api-rust-20261101/reports'
+read=lambda p:json.loads(p.read_text())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n')
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json'
+fields=('algorithm_index','scope','gaps','acceptance_gates')
+before=read(work/'criteria-before.json')
+ledger=read(ledger_path)
+assert before=={k:ledger[k] for k in fields}
+criteria_hash=hashlib.sha256(json.dumps(before,sort_keys=True).encode()).hexdigest()
+assert criteria_hash=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+assert len(before['gaps'])==12 and len(before['algorithm_index']['ids'])==53
+assert len(before['acceptance_gates']['gates'])==12
+assert all(g['status']=='open' and not g['certified'] for g in before['acceptance_gates']['gates'])
+original=read(evidence/'friend-goal-criteria-before.json')
+criteria={k:ledger[k] for k in original['criteria'] if k!='gap_criteria'}
+keys=list(original['criteria']['gap_criteria'][0])
+criteria['gap_criteria']=[{k:g[k] for k in keys} for g in ledger['gaps']]
+assert criteria==original['criteria']
+goal_hash=hashlib.sha256(json.dumps(criteria,sort_keys=True).encode()).hexdigest()
+assert goal_hash=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+checkpoint=read(work/'goal-checkpoint.json')
+assert checkpoint['goal']['status']=='active'
+objective_hash=hashlib.sha256(checkpoint['goal']['objective'].encode()).hexdigest()
+assert objective_hash=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+
+cleanup=read(work/'cleanup.json')
+assert cleanup['passed'] and cleanup['all_owned_source_build_sdk_cargo_scratch_removed']
+assert all(not Path(n).exists() for n in cleanup['owned_scratch_paths']+cleanup['source_paths'])
+assert all(not Path(n).exists() or not any(Path(n).iterdir()) for n in cleanup['empty_scratch_parents'])
+inputs=read(work/'native/inputs.json')
+assert inputs['iterations']==3 and inputs['frozen_files']==18949 and not inputs['drift_during_freeze']
+runs=[]
+for index in range(1,4):
+    r=read(work/f'native/iteration-{index}-report.json')
+    assert r['passed']==(index!=1) and r['frozen_inputs_intact']
+    steps=r['runner_report']['steps']
+    assert next(s['exit_code'] for s in steps if s['name']=='configure')==0
+    if index==1:
+        assert next(s['exit_code'] for s in steps if s['name']=='build')==2
+        assert not any(s['name']=='tests' for s in steps)
+        log=(work/'native/iteration-1/build.log').read_text()
+        assert 'explicit conversion function was not considered' in log
+        assert log.count('error: could not convert')==3
+        total=passed=0;seconds=None
+    else:
+        assert all(s['exit_code']==0 for s in steps)
+        log=(work/f'native/iteration-{index}/tests.log').read_text()
+        current=re.search(r'100% tests passed out of (\d+)',log)
+        classic=re.search(r'100% tests passed, 0 tests failed out of (\d+)',log)
+        assert current or classic
+        total=int((current or classic)[1]);assert total==22;passed=total
+        seconds=float(re.search(r'Total Test time \(real\) =\s*([\d.]+)',log)[1])
+    runs.append({'iteration':index,'role':{
+        1:'Initial C++ baseline fixture compile: three vector-to-Slice arguments require explicit construction',
+        2:'Corrected full C++ baseline and Rust API comparison with native exception negative control',
+        3:'Production Session routed through Rust APIs with explicit original-bank identity assertion',
+    }[index],'passed':index!=1,'tests':total,'successful_tests':passed,'seconds':seconds,
+        'source_pin_sha256':r['source_pin_sha256'],'declared_refreshes':r['refreshed'],
+        'report':str((work/f'native/iteration-{index}-report.json').relative_to(root))})
+assert sum(r['tests'] for r in runs)==44 and sum(r['successful_tests'] for r in runs)==44
+
+comparison=read(work/'native/iteration-3/evidence/test-artifacts/native-session-api.json')
+baseline_comparison=read(work/'native/iteration-2/evidence/test-artifacts/native-session-api.json')
+keys=('commands','steps','expected_state_or_io_refusals','native_exception_identity_checks','operations','sha256')
+assert comparison['passed'] and baseline_comparison['passed']
+assert all(comparison[k]==baseline_comparison[k] for k in keys)
+assert comparison['lost_native_exception_negative_control']==baseline_comparison['lost_native_exception_negative_control']
+assert (comparison['commands'],comparison['steps'],comparison['expected_state_or_io_refusals'],comparison['native_exception_identity_checks'])==(6902,8462,464,243)
+assert comparison['sha256']=='3091e8d9756af0c199448e6d0f05ce2542b9c7a27b59c2981864517f193db7ed'
+negative=comparison['lost_native_exception_negative_control'];assert negative['passed']
+old=negative['observation']['result']['steps'][0];new=negative['observation']['rust']['steps'][0]
+assert old['category']=='overflow' and old['native_exception_identity']
+assert new['category']=='other' and new['native_exception_identity'] is False
+assert old['exception']==new['exception']=='Voice delivery generation exhausted'
+
+fix=read(work/'fixture-explicit-slice-fix.json')
+text=(work/'fixture-before-explicit-slice.cpp.txt').read_text()
+assert hashlib.sha256(text.encode()).hexdigest()==fix['before_sha256']
+for pair in fix['changes']:
+    assert text.count(pair['before'])==1
+    text=text.replace(pair['before'],pair['after'])
+assert text==(root/fix['source']).read_text() and sha(root/fix['source'])==fix['after_sha256']
+strengthening=read(work/'comparison-bank-identity-assertion.json')
+text=(work/'comparison-before-bank-assertion.py.txt').read_text()
+assert hashlib.sha256(text.encode()).hexdigest()==strengthening['before_sha256']
+assert text.count(strengthening['before'])==1
+assert text.replace(strengthening['before'],strengthening['after'])==(root/strengthening['source']).read_text()
+assert not strengthening['corpus_commands_or_observations_changed']
+rust=read(work/'full-rust/report.json')
+assert rust['passed'] and rust['frozen_inputs_intact'] and all(c['exit_code']==0 for c in rust['commands'])
+counts={c:sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',(work/'full-rust'/(c+'-test.log')).read_text()))) for c in ('online_protocol','online_protocol_bridge','matchmaking_service')}
+assert counts=={'online_protocol':461,'online_protocol_bridge':65,'matchmaking_service':20}
+inventory=read(work/'rust-native-inventory.json')
+assert inventory['passed'] and inventory['all_broad_inventory_inputs_identical'] and inventory['all_rust_crate_inputs_identical']
+assert inventory['qualified_inventory_count']==3430 and not inventory['mismatches']
+stage=read(work/'staging.json');assert stage['passed'] and stage['tests']==7 and stage['scratch_removed']
+audit=read(work/'final-link-audit.json');baseline=read(work/'baseline-link-audit.json')
+assert audit['passed'] and baseline['passed'] and all(audit['rust_caller_references'].values())
+assert not any(baseline['rust_caller_references'].values())
+assert all(audit['native_exception_identity_io_references'].values()) and not any(baseline['native_exception_identity_io_references'].values())
+assert all(sha(root/n)==h for n,h in audit['source_pins'].items())
+assert audit['object_sha256']!=baseline['object_sha256']
+ownership=read(work/'production-api-ownership-audit.json')
+assert ownership['passed'] and ownership['public_session_header_unchanged'] and ownership['local_slot_getter_remains_mutex_free']
+reference=read(work/'before.json')
+assert sha(work/'before-online-match-session.cpp.txt')==reference['source_sha256']=='835049960581f4be8f5042c417ad371170a8d631eedc120dc9971b71a6e742b9'
+for v in reference['extractions'].values():assert sha(root/v['path'])==v['sha256']
+guard=read(work/'native-audio-generation-guard.json')
+assert guard['source_sha256']==audit['source_pins'][guard['source']]
+assert sha(work/'native-audio-generation-guard.cpp.txt')==guard['excerpt_sha256']
+
+regressions={}
+expected={
+ 'source-admissions-cpp-rust':(25054,'630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6'),
+ 'authority-transfer-cpp-rust':(37731,'4df76820f8203e922a6f5c832fce1cdc83256cfb6d3581cb7b149a9fa1636926'),
+ 'snapshot-candidate-cpp-rust':(57325,'da3493708394453f8851d6bf4e81f6ac77a8664a097e0ae3700832e29eb58d85'),
+ 'native-receive-dispatch':(110810,'9e15dedbf25621c24fb46a7677d97dec21c81066b6a5a9465c229297361fe7f2'),
+ 'native-session-access':(31360,'993b69af892595d026c3f5f99558be37f58c1fb821ac760fe027b5a481195cba'),
+ 'native-migration-callers':(18110,'a6357fdab53a98867f1d741e01ecbaf76fca7b5cc91d100b8bffb1a94dbc31e4'),
+}
+for name,(number,digest) in expected.items():
+    j=read(work/f'native/iteration-3/evidence/test-artifacts/{name}.json')
+    assert j['passed'] and j['commands']==number
+    assert j.get('sha256',j.get('corpus_and_observations_sha256'))==digest
+    regressions[name]={'passed':True,'commands':number,'sha256':digest}
+
+remaining=ownership['remaining'];relative=str(receipt_path.relative_to(root))
+entry={'receipt':relative,'implementation':'rust/online_protocol/src/matchmaking_native_api.rs',
+    'bridge':'rust/online_protocol_bridge/src/matchmaking_native_api.rs','native_io':'src/network/online_match_session.cpp',
+    'component_passed':True,'public_packet_voice_retain_and_close_callers_in_rust':True,
+    'standalone_audio_sync_and_fence_callers_in_rust':True,'actual_generation_mutex_device_worker_and_buffers_preserved':True,
+    'received_bank_container_moves_without_clone':True,'receive_false_preserves_outputs':True,
+    'receive_peer_write_before_byte_copy_preserved':True,'all_received_banks_retire_before_unlock':True,
+    'actual_native_audio_identity_comparison_preserved':True,'native_exception_object_type_message_and_identity_preserved':True,
+    'lost_exception_negative_control_detected':True,'no_rust_session_borrow_spans_callbacks':True,
+    'public_session_header_unchanged':True,'local_slot_getter_remains_lock_free':True,
+    'api_callers_cpp_policy_fallback':False,'new_unsafe_rust':False,'rust_entry_count':9,'new_rust_controls':8,
+    'rust_counts':counts,'rust_total':546,'staging_tests':7,'native_unique_tests':22,
+    'native_executions':44,'native_successful_executions':44,'native_build_failures':1,
+    'fixture_compile_failures_before_fix':1,'native_fixture_test_failures':0,'rust_check_test_failures':0,
+    'caller_comparison_commands':6902,'caller_comparison_steps':8462,'expected_state_or_io_refusals':464,
+    'native_exception_identity_checks':243,'caller_comparison_sha256':comparison['sha256'],
+    'all_qualified_rust_native_inventory_inputs_identical':True,'qualified_inventory_count':3430,
+    'new_original_executable_calls':0,'played_world':False,'genuine_provider':False,'physical_installed_input':False,
+    'selected_runtime_replaced':False,'production_service_activated':False,'all_cpp_matchmaking_policy_removed':False,
+    'full_native_flow_qualified':False,'full_matchmaking_ready':False,'full_goal_complete':False,'remaining':remaining}
+ledger['native_migration_callers_rust']['remaining_superseded_by']=relative
+ledger['native_session_api_rust']=entry
+ledger['last_implementation_update_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+write(ledger_path,ledger)
+assert before=={k:read(ledger_path)[k] for k in fields}
+
+section='''## Session packet, audio and close API callers in Rust (November 1)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-session-api-rust-validation.json).
+`matchmaking_native_api` now owns the complete public send/receive, voice,
+preferences, voice-packet collection, retained-audio and postgame-close callers,
+plus standalone audio sync/fence sequencing. Rust drives generation locking and
+fencing, readiness/resume order, first-packet selection, output mutation order,
+real audio-owner acceptance and presence/device/worker shutdown order. Native IO
+retains the actual mutex, device, worker, exception and byte-bank owners.
+
+The received packet container moves through the ABI without cloning its banks.
+An empty receive preserves both outputs. A nonempty receive writes peer before
+copying bytes, preserving the existing partial-output behavior on refusal. All
+returned banks, including unselected banks and failed-copy paths, retire before
+unlock. Rust core tests observe those lifetimes, and native comparisons require
+the original bank address. Partial native voice conversion stays local to its
+callback, with successful output retained for the caller. Close releases its
+audio pin before stopping or joining the actual worker, outside the generation
+mutex. Standalone audio helpers retain their caller-held lock contract. No Rust
+Session borrow spans callbacks.
+
+The native audio generation guard can throw `std::overflow_error`. Native IO
+retains the genuine exception object with `std::exception_ptr` and rethrows it
+after the Rust caller's cleanup, preserving type, text and identity. The fixture
+negative control deliberately omits that rethrow: CXX preserves the message but
+returns a different exception type/object, which the comparison detects. The
+discard switch exists only in test IO. Public Session headers and the existing
+mutex-free immutable local-seat getter remain intact.
+
+All 546 Rust tests pass (461 protocol, 65 bridge, 20 service), including eight new
+packet/bank/audio/owner/worker/refusal controls. Seven staging checks and all 22
+final native checks pass. Exact preserved modern C++ and Rust API callers match
+6,902 commands and 8,462 steps, including 464 expected State/IO refusals and 243
+native exception-identity checks. Full packet and signed-voice bytes, frame
+fields, real Rust Session effects, lock/owner order, repeated calls and raw
+targets/generations are compared. The baseline and final production run share
+digest `3091e8d9756af0c199448e6d0f05ce2542b9c7a27b59c2981864517f193db7ed`.
+Devices, workers and migration observations in this comparison are declared
+fixtures; they do not establish a played world, original XHV or genuine providers.
+
+The initial fixture build required explicit pointer/size slices in three CXX
+calls. Only those fixture arguments were corrected. Both subsequent full native
+cohorts pass all 44 test executions. The actual configured Session object calls
+all nine new Rust entries and both native exception-transport functions. All
+3,430 qualified Rust/native inventory inputs match. The cohort froze 18,949 owned
+source files and preserved 21 unrelated existing-input changes. Owned source,
+build, SDK, Cargo and audit scratch is removed; no large artifact is retained.
+
+Remaining production ownership/API route closure, lawful historical/service
+recovery, every required natural outcome/topology, genuine worlds/providers and
+complete delivered-artifact/restart/config-change/rollback acceptance remain
+open. Actual installed Linux playlist/Start validation remains open. All twelve
+gaps, 53 algorithm IDs and G01-G12 criteria are unchanged, and the full Rust goal
+remains active. This component does not certify original whole-system parity.
+
+'''
+doc=root/'multiplayer/docs/matchmaking-rust-parity-audit-20261028.md'
+s=doc.read_text();anchor='## Rust implementation boundary\n';assert s.count(anchor)==1
+if section.splitlines()[0] in s:assert section in s
+else:doc.write_text(s.replace(anchor,section+anchor))
+readme='''
+`matchmaking_native_api` owns complete Session packet/voice/preferences/collection,
+retained-audio and close callers, plus standalone audio sync/fence order. Rust
+chooses lock/fence/readiness/output/shutdown sequencing and actual owner
+acceptance. The received container moves without bank clones and retires before
+unlock; receive failure preserves the existing output order. Native IO keeps
+the genuine mutex/devices/workers and exception objects, with no Rust Session
+borrow across callbacks. Close releases its audio pin before stopping/joining
+outside the generation lock. [Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-session-api-rust-validation.json)
+records 546 Rust tests, seven staging checks, 22 final native checks and 6,902
+exact caller comparisons, including actual exception identity and a negative
+control for its loss. All 3,430 qualified input identities match. Original
+recovery, complete production route closure, genuine worlds/providers and
+installed Linux delivery remain open.
+'''
+bridge_readme='''
+`NativeSessionApiIo` supplies genuine mutex, buffer, audio, worker and exception
+IO for nine Rust API caller entries. The received `Vec<NativeSessionPacket>`
+moves into an opaque wrapper without cloning its banks; first-packet bytes
+borrow that independent returned value. No Rust Session reference spans native
+callbacks. Native exception pointers rethrow the actual exception object after
+Rust cleanup, preserving its type/message/identity, including audio generation
+overflow. The fixture's deliberate discard control detects the different CXX
+exception despite identical text; that switch is absent from production.
+[Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-session-api-rust-validation.json)
+pins the staged header, unchanged public Session header, all nine configured
+object references, 546 Rust tests, 22 final native checks and 6,902 complete
+caller comparisons. Original Live, played worlds, genuine providers and installed
+Linux delivery remain separate full-goal obligations.
+'''
+for name,text in [('rust/online_protocol/README.md',readme),('rust/online_protocol_bridge/README.md',bridge_readme)]:
+    if text not in (root/name).read_text():
+        with (root/name).open('a') as f:f.write(text)
+docs=['multiplayer/docs/matchmaking-rust-parity-gaps.json','multiplayer/docs/matchmaking-rust-parity-audit-20261028.md','rust/online_protocol/README.md','rust/online_protocol_bridge/README.md']
+critical=list(audit['source_pins'])
+check=subprocess.run(['git','diff','--check','--']+critical+docs,capture_output=True,text=True)
+assert check.returncode==0,check.stdout+check.stderr
+for name in [n for n in critical if 'matchmaking_native_api' in n or n in ('tests/native_session_api_tests.cpp','tests/test_native_session_api.py')]:
+    assert all(l==l.rstrip() for l in (root/name).read_text().splitlines()),name
+write(work/'whitespace-check.json',{'passed':True,'command':['git','diff','--check','--']+critical+docs,'new_source_trailing_whitespace_check':True})
+assert all(sha(root/n)==h for n,h in audit['source_pins'].items())
+
+files=sorted(p for p in work.rglob('*') if p.is_file());by_hash={};mapping={};total=0
+assert not bucket.exists() and not receipt_path.exists();bucket.mkdir(parents=True)
+for p in files:
+    assert not p.is_symlink() and p.stat().st_size<=1048576,(str(p),p.stat().st_size)
+    h=sha(p)
+    if h not in by_hash:
+        target=bucket/(h[:16]+'-'+p.name);assert not target.exists()
+        shutil.copyfile(p,target);by_hash[h]=target;total+=target.stat().st_size
+    mapping[str(p.relative_to(root))]={'path':str(by_hash[h].relative_to(root)),'sha256':h,'bytes':p.stat().st_size}
+assert total<=8*1024*1024,total
+for p in files:
+    v=mapping[str(p.relative_to(root))];assert sha(p)==sha(root/v['path'])==v['sha256']
+receipt={'schema':'halo2-native-session-api-rust-validation-v1','created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'component_passed':True,'scope':'Complete existing modern Session packet/audio/retain/close API caller policy and standalone sync/fence in Rust. Actual mutex, devices, workers, packet banks and native exceptions remain genuine typed IO. Not original Live, native-world/provider or installed Linux proof.',
+    'source_pins':audit['source_pins'],'reference':reference,
+    'rust_owns':['Full lock/fence/send/receive/voice/preferences/collection caller sequencing','First packet and original peer-before-bytes output mutation','Actual audio owner acceptance, sync/readiness/generation observation order','Presence close, separate audio pin/close/release and worker stop/join order'],
+    'cpp_retains':['Actual generation mutex and genuine device/worker/resource handles','Real received-bank/native-frame conversion and caller output storage','Actual native exception object capture/rethrow across the Rust Result boundary'],
+    'no_rust_session_borrow_across_callbacks':True,'new_unsafe_rust':False,'rust_entry_count':9,
+    'rust_manifest_report':mapping[str((work/'full-rust/report.json').relative_to(root))],
+    'rust_counts':counts,'rust_total':546,'new_rust_controls':8,'staging_tests':7,
+    'native_runs':runs,'native_unique_tests':22,'native_executions':44,'native_successful_executions':44,
+    'native_build_failures':1,'fixture_compile_failures_before_fix':1,'native_fixture_test_failures':0,'rust_check_test_failures':0,
+    'caller_comparison':comparison,'before_and_after_comparison_identical':True,
+    'lost_native_exception_negative_control':negative,'native_generation_overflow_guard':guard,
+    'fixture_explicit_slice_fix':fix,'comparison_bank_identity_assertion':strengthening,
+    'regression_replays':regressions,'baseline_link_audit':baseline,'link_audit':audit,
+    'production_api_ownership_audit':ownership,'frozen_native_files':inputs['frozen_files'],
+    'freeze_refreshes_before_build':inputs['freeze_refreshes_before_build'],
+    'unrelated_current_source_drift':read(work/'current-source-drift.json'),
+    'qualified_rust_native_input_audit':inventory,'all_qualified_rust_native_inventory_inputs_identical':True,
+    'qualified_inventory_count':3430,'borrowed_rust_input_pins':read(work/'borrowed-rust-inputs.json'),
+    'remaining':remaining,'new_original_executable_calls':0,'original_live_wire_recovered':False,
+    'historical_service_configuration_recovered':False,'played_world':False,
+    'positive_genuine_steam':False,'positive_genuine_eos':False,'physical_installed_input':False,
+    'selected_runtime_replaced':False,'production_service_activated':False,'full_native_flow_qualified':False,
+    'all_cpp_matchmaking_policy_removed':False,'original_whole_system_parity':False,
+    'full_matchmaking_ready':False,'full_goal_complete':False,'goal_criteria_sha256':goal_hash,
+    'goal_objective_sha256':objective_hash,'scope_inventory_snapshot_before_after_sha256':criteria_hash,
+    'all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved':True,'retained_reports':mapping,
+    'retained_unique_report_files':len(by_hash),'retained_unique_report_bytes':total,
+    'cleanup':cleanup,'post_qualification_documentation':{n:sha(root/n) for n in docs}}
+write(receipt_path,receipt);shutil.rmtree(work)
+cleanup.update(working_report_files_removed=len(files),working_report_directory_removed=True)
+receipt['final_verification']={'gap_count':12,'algorithm_id_count':53,'acceptance_gate_count':12,
+    'all_acceptance_gates_open':True,'scope_inventory_snapshot_before_after_sha256':criteria_hash,
+    'current_critical_source_pins_match':all(sha(root/n)==h for n,h in receipt['source_pins'].items()),
+    'working_reports_removed':not work.exists(),'all_owned_scratch_removed':all(not Path(n).exists() for n in cleanup['owned_scratch_paths']),
+    'selected_runtime_changed_by_this_work':False,'retained_large_artifacts':[],
+    'whitespace_check_passed':True,'observed_goal_still_active':True}
+assert all(receipt['final_verification'][k] for k in ('current_critical_source_pins_match','working_reports_removed','all_owned_scratch_removed'))
+write(receipt_path,receipt)
+print(json.dumps({'receipt':str(receipt_path.relative_to(root)),'rust_tests':546,'native_final':22,
+    'caller_commands':6902,'caller_steps':8462,'native_exception_identity_checks':243,'native_executions':44,
+    'unique_reports':len(by_hash),'retained_bytes':total,'scratch_removed':True,'full_goal_complete':False}))
+

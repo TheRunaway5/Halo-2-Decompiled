@@ -1,0 +1,14 @@
+{
+  "exit_code": 0,
+  "command": {
+    "flags": 0,
+    "capabilities": 0,
+    "packet": "48324e327c000d",
+    "epoch": 0
+  },
+  "binary_sha256": "59c3d3fa9f78a15c02907b0d5277307544f95dcf81316dd1ba4bd8f83661bb84",
+  "stdout": "Shutdown handler: initialize.\n{\"matched\":true,\"result\":{\"error\":false,\"held\":false,\"trace\":[{\"a\":0,\"b\":0,\"event\":\"lock\",\"locked\":true},{\"a\":0,\"b\":0,\"event\":\"unlock\",\"locked\":true}]}}\nShutdown handler: cleanup.\n",
+  "stderr": "",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-receive-dispatch-probe/halo2-test-3ut93k2n",
+  "scope": "One declared fixture command only; no credentials or real provider"
+}

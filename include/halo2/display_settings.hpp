@@ -8,6 +8,7 @@ inline constexpr unsigned minimum_field_of_view=70, maximum_field_of_view=120;
 inline constexpr unsigned default_field_of_view=78;
 inline constexpr unsigned default_vehicle_field_of_view=70;
 // Native contexts reuse the imported numeric-choice pane without adding retail IDs.
+inline constexpr unsigned video_graphics_mode_context=1;
 inline constexpr unsigned video_fov_context=2, video_vehicle_fov_context=3;
 inline constexpr unsigned video_path_tracing_context=3, video_path_tracing_samples_context=4,
     video_path_tracing_bounces_context=5;

@@ -91,6 +91,13 @@ struct SourceBspFrustumCullContext {
 // mask words; bands fall back to serial when spans overlap or a precondition
 // fails). automatic follows HALO2_NATIVE_BANDED_CULL.
 enum class SourceBspFrustumCullExecution{automatic,serial,banded};
+// Exactly one already-selected 44E80 entry, without retesting flag1/40.
+// Commits atomically on completion, so the caller can select a real residual
+// service on unsupported input. Shared masks must be published before the
+// next entry in the original 44710 walk.
+void source_bsp_frustum_cull_entry(SourceCullDrawUnit&,const SourceBspFrustumDrawBank&,
+    SourceBspRangeArena&,const SourceBspFrustumCullContext&,
+    const SourcePortalVisibilitySet&,unsigned entry);
 void source_bsp_frustum_cull(std::span<SourceCullDrawUnit>,
     std::span<const SourceBspFrustumDrawBank>,SourceBspRangeArena &,
     const SourceBspFrustumCullContext &,const SourcePortalVisibilitySet &,

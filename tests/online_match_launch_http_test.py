@@ -16,6 +16,8 @@ import tempfile
 import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tools"))
+from mcc_onboarding import selected as selected_mcc
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from multiplayer.master_server.service import Settings, create_app
@@ -146,6 +148,10 @@ async def main():
     ui_root=args.mcc_root
     if ui_root is None and os.environ.get("HALO2_ONLINE_FLOW_UI_ROOT"):
         ui_root=Path(os.environ["HALO2_ONLINE_FLOW_UI_ROOT"])
+    if ui_root is None and mode in ("core", "blocks", "render", "team-render", "render-departure", "team-render-departure"):
+        admitted=selected_mcc(asset_root)
+        assert admitted is not None,"Native ONLINE gameplay fixtures require an admitted prepared MCC cache"
+        ui_root=admitted[0]
     if ui_root is not None:
         ui_root=ui_root.resolve(strict=True)
         assert (ui_root/"halo2/h2_maps_win64_dx11/mainmenu.map").is_file(),"Explicit MCC root has no admitted frontend cache"

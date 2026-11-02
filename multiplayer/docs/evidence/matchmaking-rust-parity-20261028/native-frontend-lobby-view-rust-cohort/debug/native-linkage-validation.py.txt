@@ -1,0 +1,16 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-lobby-view-rust-20261102';info=json.loads((work/'native-restart/inputs.json').read_text());build=Path(info['scratch'])/'build'
+archive=build/'libhalo2_frontend_lobby_view.a';assert archive.is_file()
+p=subprocess.run(['nm','-C',str(archive)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+assert p.returncode==0
+required=['session','pane','protocol','presentation','variant_type','game_icon','quick_category','difficulty','help','player_count','player_count_string','default_value','quick_options']
+lines=p.stdout.decode(errors='replace').splitlines();selected=[line for line in lines if ' U halo2::online_protocol_bridge::lobby_view_'in line]
+missing=[name for name in required if not any('::lobby_view_'+name+'('in line for line in selected)]
+commands=json.loads((build/'compile_commands.json').read_text())
+units=[row for row in commands if Path(row['file']).name=='frontend_lobby.cpp']
+assert len(units)==1 and 'CMakeFiles/halo2_frontend_lobby_view.dir/'in units[0]['command']
+result=dict(passed=not missing,single_policy_translation_unit=True,compile_owner='halo2_frontend_lobby_view',command=['nm','-C',str(archive)],sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),bytes=archive.stat().st_size,required_rust_entries=required,missing=missing,undefined_rust_entry_observations=selected,scope='Actual CMake archive imports the thirteen Rust policy entries; this is component linkage proof, not installed client delivery',scratch=str(Path(os.environ['HALO2_TEST_SCRATCH'])),retained_large_artifacts=[])
+(work/'native-linkage.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({k:v for k,v in result.items() if k not in ['undefined_rust_entry_observations','command']}))
+raise SystemExit(0 if result['passed'] else 1)

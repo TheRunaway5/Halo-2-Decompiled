@@ -1,0 +1,346 @@
+{
+  "passed": true,
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "cache_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+  "selector": "0x256AF7",
+  "widget_stop": "0x195D21",
+  "selector_controls": [
+    {
+      "state": -2,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": -2,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": -1,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": -1,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 0,
+      "local_cancel": false,
+      "dialog": null
+    },
+    {
+      "state": 0,
+      "local_cancel": true,
+      "dialog": null
+    },
+    {
+      "state": 1,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 1,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 2,
+      "local_cancel": false,
+      "dialog": null
+    },
+    {
+      "state": 2,
+      "local_cancel": true,
+      "dialog": null
+    },
+    {
+      "state": 3,
+      "local_cancel": false,
+      "dialog": null
+    },
+    {
+      "state": 3,
+      "local_cancel": true,
+      "dialog": null
+    },
+    {
+      "state": 4,
+      "local_cancel": false,
+      "dialog": 173
+    },
+    {
+      "state": 4,
+      "local_cancel": true,
+      "dialog": null
+    },
+    {
+      "state": 5,
+      "local_cancel": false,
+      "dialog": 172
+    },
+    {
+      "state": 5,
+      "local_cancel": true,
+      "dialog": 172
+    },
+    {
+      "state": 6,
+      "local_cancel": false,
+      "dialog": 174
+    },
+    {
+      "state": 6,
+      "local_cancel": true,
+      "dialog": 174
+    },
+    {
+      "state": 7,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 7,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 8,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 8,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 9,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 9,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 10,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 10,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 11,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 11,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 12,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 12,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 13,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 13,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 14,
+      "local_cancel": false,
+      "dialog": 174
+    },
+    {
+      "state": 14,
+      "local_cancel": true,
+      "dialog": 174
+    },
+    {
+      "state": 15,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 15,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 16,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 16,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 17,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 17,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 18,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 18,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 19,
+      "local_cancel": false,
+      "dialog": 174
+    },
+    {
+      "state": 19,
+      "local_cancel": true,
+      "dialog": 174
+    },
+    {
+      "state": 20,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 20,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 21,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 21,
+      "local_cancel": true,
+      "dialog": 171
+    },
+    {
+      "state": 22,
+      "local_cancel": false,
+      "dialog": 171
+    },
+    {
+      "state": 22,
+      "local_cancel": true,
+      "dialog": 171
+    }
+  ],
+  "state_clear_controls": [
+    {
+      "shown": 100,
+      "now": 3099,
+      "local_host": true,
+      "input_state": 1,
+      "result_state": 1,
+      "shown_after": 100
+    },
+    {
+      "shown": 100,
+      "now": 3100,
+      "local_host": true,
+      "input_state": 1,
+      "result_state": 0,
+      "shown_after": 0
+    },
+    {
+      "shown": 100,
+      "now": 4000,
+      "local_host": false,
+      "input_state": 1,
+      "result_state": 1,
+      "shown_after": 100
+    },
+    {
+      "shown": 100,
+      "now": 4000,
+      "local_host": true,
+      "input_state": 0,
+      "result_state": 0,
+      "shown_after": 0
+    },
+    {
+      "shown": 4294967280,
+      "now": 3008,
+      "local_host": true,
+      "input_state": 1,
+      "result_state": 0,
+      "shown_after": 0
+    }
+  ],
+  "dialogs": [
+    {
+      "id": 172,
+      "file_offset": 59380284,
+      "strings": [
+        "MATCHMAKING FAILED",
+        "You or someone in your party is missing some content, possibly a dirty or damaged disc.",
+        "OK",
+        "Cancel"
+      ]
+    },
+    {
+      "id": 171,
+      "file_offset": 59380308,
+      "strings": [
+        "MATCHMAKING FAILED",
+        "We failed to find a match for your party. Sorry about that. Please wait a few moments and try again.",
+        "OK",
+        "Cancel"
+      ]
+    },
+    {
+      "id": 173,
+      "file_offset": 59380332,
+      "strings": [
+        "MATCHMAKING FAILED",
+        "A member of your party cancelled matchmaking. You and your party will be taken back to the Lobby.",
+        "OK",
+        "Cancel"
+      ]
+    },
+    {
+      "id": 174,
+      "file_offset": 59380356,
+      "strings": [
+        "MATCHMAKING FAILED",
+        "Matchmaking was cancelled because someone left your party. You and your remaining party will be taken back to the Lobby.",
+        "OK",
+        "Cancel"
+      ]
+    }
+  ],
+  "scope": "Execute the unchanged TU1.5 lobby error selector and state-clear owner.\n\nThe widget constructor is a stop boundary, not a substituted callee. Original\ngetters, local-host admission and the state-clear writer execute in full.\n",
+  "executed_distinct_instructions": 142,
+  "tool_sha256": "f4fa1842ca50b2e447d86fe0196c01c31a7ae3d0f8fe6f1fe882d2fb441cf95d"
+}

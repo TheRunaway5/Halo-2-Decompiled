@@ -1,0 +1,14 @@
+import hashlib,json,sys
+from pathlib import Path
+root=Path.cwd();sys.path.insert(0,str(root/'tools'))
+from oracle_tu15_team_balance import Xbe,NEW_DEFAULT,NEW_PIN
+from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+assert hashlib.sha256(NEW_DEFAULT.read_bytes()).hexdigest()==NEW_PIN
+x=Xbe(NEW_DEFAULT);d=Cs(CS_ARCH_X86,CS_MODE_32)
+ranges=[(0x5a340,0x5a3c0),(0x667c0,0x66b00)]
+lines=[]
+
+for start,end in ranges:
+ for i in d.disasm(x.read(start,end-start),start):lines.append(f'{i.address:08x} {i.bytes.hex()} {i.mnemonic} {i.op_str}')
+out=root/'build/test-results/frontend-progress-rust-20261102';(out/'original-sort-session-access.txt').write_text('\n'.join(lines)+'\n')
+print('\n'.join(lines))

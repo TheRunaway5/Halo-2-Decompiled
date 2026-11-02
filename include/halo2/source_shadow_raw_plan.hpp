@@ -1,7 +1,19 @@
 #pragma once
 #include "halo2/source_shadow_raw_draw.hpp"
+#include <map>
+#include <tuple>
 
 namespace halo2 {
+struct SourceShadowModelPart {
+    std::uint32_t shader=~0u;std::uint16_t type{};
+    std::vector<std::uint32_t> template_lod_layers;
+};
+using SourceShadowModelPartBank=std::map<std::tuple<std::uint32_t,unsigned,unsigned>,SourceShadowModelPart>;
+struct SourceShadowModelPartCommand {
+    std::uint32_t object=~0u,render_model=~0u;
+    unsigned section{},part{};std::uint32_t shader=~0u;
+    unsigned shader_lod{};std::uint32_t layers{};bool empty_ranges{};
+};
 // Independent raw residency. These slots are allocated in the scene Mesh
 // before Renderer creation; packed world-stream admission stays separate.
 struct SourceShadowRawPlanMaterial {
@@ -15,12 +27,14 @@ struct SourceShadowRawPlanRoot {
     // tests these masks before selection/submission, not sorted draw counts.
     std::array<std::uint32_t,2> command_masks{};
     std::span<const SourceShadowRawDraw> casters,receivers;
+    std::span<const SourceShadowModelPartCommand> model_commands;
 };
 struct SourceShadowRawPlan {
     // Actual submitting main c0..11 retained by BOTH phases. The fixed
     // generation target changes its surface/viewport, not this camera bank.
     std::array<ShaderVector,12> camera{};
     std::span<const SourceShadowRawPlanRoot> roots;
+    const SourceShadowModelPartBank* model_parts{};
 };
 struct SourceShadowRawPlanStats {
     std::size_t roots{},caster_draws{},receiver_draws{},indices{};

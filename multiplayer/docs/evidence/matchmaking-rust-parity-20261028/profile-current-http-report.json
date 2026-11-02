@@ -1,0 +1,49 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-zfy8cf83/master-source/rust/online_security_ffi/Cargo.toml",
+        "--features",
+        "matchmaking-test-inputs"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_profile_owner_native",
+        "multiplayer.master_server.tests.test_player_profile",
+        "multiplayer.master_server.tests.test_history_owner_native",
+        "multiplayer.master_server.tests.test_carnage_history",
+        "multiplayer.master_server.tests.test_accuracy_reporting",
+        "multiplayer.master_server.tests.test_eos_identity"
+      ],
+      "returncode": 0
+    }
+  ],
+  "passed": true,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-zfy8cf83/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-zfy8cf83",
+  "source_frozen": true,
+  "matchmaking_test_inputs": true,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/profile-owner-port/halo2-test-zfy8cf83/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "256a723e7148e2f7d46b441eab92c9b73832a49ef1af303f9726ff787793fe5d",
+    "bytes": 4024712,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

@@ -37,18 +37,42 @@ struct Cache::BitmapCache {
   using Key=std::tuple<std::uint32_t,std::uint32_t,std::vector<std::byte>>;
   std::mutex mutex;
   std::map<Key,Texture> entries;
+  std::map<std::uint32_t,std::shared_ptr<const Material>> material_metadata;
   std::size_t bytes{};
   bool mcc_published=false;
 };
 std::shared_ptr<Cache::BitmapCache> Cache::make_bitmap_cache(){return std::make_shared<BitmapCache>();}
 void Cache::invalidate_bitmap_cache(){
   std::lock_guard lock(bitmap_cache_->mutex);bitmap_cache_->entries.clear();bitmap_cache_->bytes=0;
+  bitmap_cache_->material_metadata.clear();
 }
 void Cache::publish_mcc_bitmap_cache(){
   std::lock_guard lock(bitmap_cache_->mutex);
   // Native-library import itself reads a detail bitmap while its tag owners
   // are still being published. Memoize only after all MCC postprocessing.
   bitmap_cache_->entries.clear();bitmap_cache_->bytes=0;bitmap_cache_->mcc_published=true;
+  bitmap_cache_->material_metadata.clear();
+  // Tag-owner indices use this control block as their publication token.
+  // Late bitmap/HUD owners must not inherit an index built during import.
+  // Preserve every authenticated LUT byte while retiring that earlier token.
+  if(function_tables_)function_tables_=std::make_shared<const ShaderFunctionTables>(*function_tables_);
+}
+std::shared_ptr<const Material> Cache::load_material_metadata(std::uint32_t datum) const {
+  // Import-time definitions and Vista donor ownership are still mutable.
+  // Published MCC/native metadata has the same lifetime as bitmap residency.
+  if(vista_ || (mcc_ && !bitmap_cache_->mcc_published))
+    return std::make_shared<const Material>(load_material(datum,false,false));
+  {
+    std::lock_guard lock(bitmap_cache_->mutex);
+    if(const auto at=bitmap_cache_->material_metadata.find(datum);at!=bitmap_cache_->material_metadata.end())
+      return at->second;
+  }
+  // Parsing can request other cache services; do not hold the residency lock.
+  auto parsed=std::make_shared<const Material>(load_material(datum,false,false));
+  std::lock_guard lock(bitmap_cache_->mutex);
+  // A bounded optimization: exceeding residency keeps the actual parsed result.
+  if(bitmap_cache_->material_metadata.size()>=8192)return parsed;
+  return bitmap_cache_->material_metadata.try_emplace(datum,std::move(parsed)).first->second;
 }
 std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
   const auto* tag = find_tag({datum}, tag_groups::bitmap);
@@ -61,7 +85,7 @@ std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
 std::uint64_t Cache::bitmap_decoded_bytes(std::uint32_t datum,std::uint32_t index) const {
   if(vista_){const auto [donor,original]=vista_texture_donor(datum);return donor->bitmap_decoded_bytes(original,index);}
   const auto* tag=find_tag({datum},tag_groups::bitmap);
-  if(!tag || tag->size<76)throw FormatError("missing/truncated bitmap tag");
+  if(!tag || tag->size<76)throw FormatError("missing/truncated bitmap tag "+std::to_string(datum));
   const Bytes data(cache_bytes());const auto base=metadata_offset(tag->address,tag->size);
   const auto stride=mcc_?168u:116u;const auto records=metadata_block(base+68,stride);
   if(index>=records.count)throw FormatError("bitmap index outside tag");

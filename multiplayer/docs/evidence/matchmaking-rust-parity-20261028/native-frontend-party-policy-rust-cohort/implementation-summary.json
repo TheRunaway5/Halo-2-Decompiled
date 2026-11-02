@@ -1,0 +1,409 @@
+{
+  "schema": "H2_NATIVE_FRONTEND_PARTY_POLICY_RUST_V1",
+  "goal_turn": "progress",
+  "component_passed": true,
+  "goal_status": "active",
+  "full_goal_complete": false,
+  "original_whole_system_parity": false,
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_frontend_party.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+  "native_abi_adapter": "src/ui/frontend_matchmaking_party_bridge.cpp",
+  "native_io": "src/ui/frontend_party.cpp",
+  "policy": {
+    "four_projection_rules_owned_by_rust": true,
+    "cpp_projection_policy_fallback": false,
+    "unsafe_core_rust": false,
+    "native_bytes_preserved": true,
+    "all_nine_appearance_bytes_preserved": true,
+    "native_exception_identity_preserved": true,
+    "native_read_order_preserved": true,
+    "callbacks_reentrant_without_rust_state_borrow": true,
+    "scope": "Modern accepted-party projection producers; other party routing/state and original Live recovery remain open"
+  },
+  "rust": {
+    "counts": {
+      "online_protocol": {
+        "passed": 541,
+        "failed": 0,
+        "ignored": 2
+      },
+      "online_protocol_bridge": {
+        "passed": 65,
+        "failed": 0,
+        "ignored": 2
+      },
+      "matchmaking_service": {
+        "passed": 20,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "total_passed": 626,
+    "new_controls": 6,
+    "existing_ignored": 4,
+    "suite_steps_passed": true,
+    "report": "rust/report.json",
+    "initial_combined_helper_failed_only_at_native_fixture_compile": true,
+    "shared_native_rust_input_count": 249,
+    "shared_native_rust_input_mismatches": []
+  },
+  "modern_comparison": {
+    "passed": true,
+    "cases": 3105,
+    "native_observations": 2688,
+    "comparisons": 5839,
+    "fault_controls": 14,
+    "preserved_native_exception_identity": 14,
+    "differences": [],
+    "native_sha256": "7f3a25008de32cceb70587cf234367341f46e2c26e3ebe631cacb52fa8f37609",
+    "scope": "Captured native party callers versus current native Rust/CXX callers.\n\nThe local profile/login/seat observations are declared synthetic IO. This\nqualifies projection/caller equivalence, not original Live identity production,\nphysical controller input or installed-runtime delivery. The enclosing owned\nrun_tests.py/run_test.py lifecycle removes every generated build product.\n"
+  },
+  "fresh_original": {
+    "execution": false,
+    "cases": 0,
+    "original_live_identity_seat_voice_producers_qualified": false
+  },
+  "native": {
+    "passing_checks": [
+      {
+        "name": "frontend_party_cpp_rust",
+        "seconds": 0.23
+      },
+      {
+        "name": "frontend_presentation_cpp_rust",
+        "seconds": 0.18
+      },
+      {
+        "name": "frontend_progress_cpp_rust",
+        "seconds": 0.18
+      },
+      {
+        "name": "frontend_search_cpp_rust",
+        "seconds": 0.73
+      },
+      {
+        "name": "frontend_lobby_cpp_rust",
+        "seconds": 0.23
+      },
+      {
+        "name": "rust_frontend_clans_http",
+        "seconds": 3.84
+      },
+      {
+        "name": "rust_frontend_lobby_blocked",
+        "seconds": 81.96
+      },
+      {
+        "name": "rust_frontend_lobby_complete",
+        "seconds": 102.47
+      },
+      {
+        "name": "rust_frontend_lobby_rendered",
+        "seconds": 138.0
+      },
+      {
+        "name": "frontend_online_identity",
+        "seconds": 2.96
+      },
+      {
+        "name": "frontend_online_lobby_buttons",
+        "seconds": 7.16
+      },
+      {
+        "name": "frontend_online_lobby_legacy_countdown",
+        "seconds": 1.45
+      },
+      {
+        "name": "frontend_online_lobby_blocked_playlist",
+        "seconds": 1.3
+      },
+      {
+        "name": "frontend_online_lobby_complete_playlist",
+        "seconds": 6.65
+      },
+      {
+        "name": "frontend_online_lobby_buttons_gpu",
+        "seconds": 32.96
+      },
+      {
+        "name": "frontend_matchmaking_http",
+        "seconds": 45.06
+      },
+      {
+        "name": "frontend_matchmaking_gathering_http",
+        "seconds": 45.08
+      },
+      {
+        "name": "frontend_clans_http",
+        "seconds": 3.49
+      },
+      {
+        "name": "frontend_parties_http",
+        "seconds": 30.79
+      },
+      {
+        "name": "mcc_frontend_parties_http",
+        "seconds": 33.57
+      },
+      {
+        "name": "retail_frontend_lobby_policy",
+        "seconds": 0.15
+      },
+      {
+        "name": "original_party_countdown_kernels",
+        "seconds": 0.08
+      }
+    ],
+    "passing_count": 22,
+    "failed_count": 0,
+    "skipped_count": 0,
+    "all_requested_checks_passed": true,
+    "baseline_shared_failures": [
+      "frontend_clans_http",
+      "frontend_parties_http"
+    ],
+    "legacy_clan_artwork_passed": true,
+    "selected_party_emblem_audit_passed": true,
+    "vulkan_party_pixel_controls": [
+      1,
+      2
+    ],
+    "vulkan_emblem_suppression_control_passed": true,
+    "actual_sdl_vulkan_buttons_passed": true,
+    "full_native_matchmaking_and_gathering_flows_passed": true,
+    "party_fixture_zero_429_checks": 2,
+    "frozen_inputs_intact": true,
+    "final_cohort_matches_focused_rendered_cohort": true,
+    "declared_changed_files": 20,
+    "declared_changes": [
+      {
+        "path": "cmake/OnlinePeers.cmake",
+        "before": "2e1838a334c81eb45d4caf2a1af8f6bd35201f9d7e43eb0f4895619468e86f73",
+        "after": "db93c8cba077214cd139d4af7fe388ee349956ad8b5358b1eb86265802f73b16"
+      },
+      {
+        "path": "cmake/OnlineProtocolRust.cmake",
+        "before": "2bd18b7e6004cdb510692be66b57f01b9a50aff925b734eb779e61984d8e4cd9",
+        "after": "8aafd53628a6efb3718607dab0b4d13835d6edabb8529ff4a58ee0fad8e3588a"
+      },
+      {
+        "path": "rust/online_protocol/src/lib.rs",
+        "before": "4a704bc7f71d9a0ba217a10c3051c1c23fdc20395ccb62f0fde3442c97c3fa3d",
+        "after": "1d1e470dbd10e2084258469273ad7c0695cbc2536297f97663f7bff4b4d8a259"
+      },
+      {
+        "path": "rust/online_protocol_bridge/build.rs",
+        "before": "8fdb1e8c7d0dc9dfaf0cf149768a18eec2972fa3c44b214f0434d1a0b5d143de",
+        "after": "9185c294d9143d098d67e3ff3fd721dc16459d50b72ed693e87d9cf85ddb30b6"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/lib.rs",
+        "before": "a37fde1cfb8bc91d3d8bba42e50ac570c2e36fc5e037522e74fd8822d0b8ab2c",
+        "after": "e180aa1e397b00c6064a71cc48a970b675c6a7a578e21e54b2fc21e74d9ec0ec"
+      },
+      {
+        "path": "src/ui/frontend_painter.cpp",
+        "before": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+        "after": "8f85457ec75346aea1655b64bb83865f10ac5c406fd20b473cef26bb8ce1eab6"
+      },
+      {
+        "path": "src/ui/frontend_party.cpp",
+        "before": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+        "after": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44"
+      },
+      {
+        "path": "tests/frontend_online_tests.cpp",
+        "before": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+        "after": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775"
+      },
+      {
+        "path": "tests/frontend_parties_http_test.py",
+        "before": "9ed5b9091cd6fbaab16a2466de24c72e746b796a4f15775c05843056a08766f8",
+        "after": "1df40b8c5614212d186bf5da4638e241ed25a66976011f5ef3099289819cb44d"
+      },
+      {
+        "path": "tests/test_build_online_protocol_rust.py",
+        "before": "22c37a854aa8944ea90142ace71bf4327b839b1ffddb83e006fff39a9e6c6681",
+        "after": "7581780ea7b5e45b3d36e8a77d9e741f10fc6593c990ead28aa1eac48cc714fd"
+      },
+      {
+        "path": "tools/build_online_protocol_rust.py",
+        "before": "bba465ce63e1df655fb19da0203de11b589438cc66687f12c2531a376a83dded",
+        "after": "785a79470c56ae6d54d5af1978ac84b6aa4636ca4cf84158ad797c704337f904"
+      },
+      {
+        "path": "rust/online_protocol/src/matchmaking_frontend_party.rs",
+        "before": null,
+        "after": "10eb7bd764ad18e8d54ba0fba0cb49ecf806c2b59102406345dd77b718ee1982"
+      },
+      {
+        "path": "rust/online_protocol/tests/matchmaking_frontend_party.rs",
+        "before": null,
+        "after": "5c22741a27c21f623712f64be12b06457ae05985f2acfaa80afef0ea64e9ede4"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+        "before": null,
+        "after": "f24041d1bdb73d348235c2365e28616bc4327b0bea5b1e0b62bb36919e4f9922"
+      },
+      {
+        "path": "rust/online_protocol_bridge/src/matchmaking_frontend_party.hpp",
+        "before": null,
+        "after": "b16ebfb203d27c19e0b3c5c21fbbb29f083a025d96cf6874506f1d5105ded639"
+      },
+      {
+        "path": "include/halo2/frontend_matchmaking_party.hpp",
+        "before": null,
+        "after": "e3d48708e3a54b8769b90e3cd4dd1238ec6bf423cf02ed937598ba05e442e6bc"
+      },
+      {
+        "path": "src/ui/frontend_matchmaking_party_bridge.cpp",
+        "before": null,
+        "after": "9f7c8c7ba86cfa3c140d4ebf8c25f9745f48dba88302b7413382630e13210a8a"
+      },
+      {
+        "path": "tests/native_frontend_party_rust_tests.cpp",
+        "before": null,
+        "after": "7d0d155d242f0d66abb17d86942b9526d77704dc42afa55434a33fc0d9002c3a"
+      },
+      {
+        "path": "tests/generate_frontend_party_reference.py",
+        "before": null,
+        "after": "e57d83105d930169a05ab21fb139c23f62be90625560fa5aa35c0403db24b0e3"
+      },
+      {
+        "path": "tests/test_native_frontend_party_rust.py",
+        "before": null,
+        "after": "d700a9880ef7e79500a58e8a2f6cae38775d5e7fa63ed57d9fd9cba62be0265f"
+      }
+    ],
+    "binaries": {
+      "frontend_online_tests": {
+        "sha256": "62f756c57aabef7763af4a71c18d9ff379394e4fbc4661726e3f91f43671c375",
+        "bytes": 259875640
+      },
+      "frontend_online_lobby_buttons_tests": {
+        "sha256": "6b5966ca3323dd85d6438bf1a7c0113ecd0059bd4af5a7f39778e23d877e9a24",
+        "bytes": 260808848
+      },
+      "native_frontend_party_rust_tests": {
+        "sha256": "7f3a25008de32cceb70587cf234367341f46e2c26e3ebe631cacb52fa8f37609",
+        "bytes": 25965432
+      },
+      "native_frontend_presentation_rust_tests": {
+        "sha256": "34b30e1e33acd1b740e41a311d7a02253c47d2a4deade1dbd06bd293c317be5b",
+        "bytes": 25913896
+      },
+      "native_frontend_progress_rust_tests": {
+        "sha256": "59d9ad8035d7b6b963fd48e58e87662a7c64f5848078f594899c7651d4d81891",
+        "bytes": 25924832
+      },
+      "native_frontend_search_rust_tests": {
+        "sha256": "a3fe5ea2430213ab7aa2cf36c65943260bbdae966a4cdefd531659d84cff973f",
+        "bytes": 26075144
+      },
+      "frontend_matchmaking_lobby_rust_tests": {
+        "sha256": "4d43cbf7d167f8d43e37f8789849147603eeddf685e7719f7deb3a31230b3c9a",
+        "bytes": 25905952
+      },
+      "frontend_lobby_policy_tests": {
+        "sha256": "f5cff1e4c3439817e758f6236d39d6e636eb36f2b349d3cc7f7e4c80aec9473a",
+        "bytes": 37848
+      },
+      "party_countdown_kernel_tests": {
+        "sha256": "d33120c8ea7a5605b054818602bce9bc14780837caf6708440b6a64ac6a13098",
+        "bytes": 25773448
+      }
+    },
+    "final_report": "native/iteration-10-report.json"
+  },
+  "ui_corrections": {
+    "legacy_news": "Exact screen186/bitmap1/frame7/tag decoration hidden only for admitted PC artwork; no PC counterpart or original Live payload recovered; no page alias",
+    "emblem_audit": "Validate the actual selected animated page and its admitted owner; immutable initial page0 is not the descriptor-selected frame",
+    "renderer_and_bitmap_animation_owners_unchanged": true,
+    "diagnostic_reports": [
+      "ui-diagnostics.json",
+      "ui-source-evidence-pins.json",
+      "route-diagnostics.json"
+    ]
+  },
+  "fixture_corrections": [
+    "Use actual MenuFrame.first_visible for browser pointer expectations",
+    "Select a playlist once; require original lobby and no countdown/search until explicit Start",
+    "Configure all aggregate accelerated-party fixture budgets, reject any429 and preserve production limits"
+  ],
+  "intermediate_failures": [
+    "Native fixture guessed busy, then pending, before correcting the actual accepting notice field",
+    "New native negative assertion initially used Rust Checking rather than native CheckingConnections",
+    "Original legacy news page7 and stale initial-page emblem audit",
+    "Stale browser first-visible calculation and extra Accept after direct lobby selection",
+    "Accelerated party fixture exhausted default aggregate budget, delayed countdown cues and cancellation; explicit429 evidence retained"
+  ],
+  "sources": {
+    "scoped_pins": {
+      "cmake/OnlinePeers.cmake": "db93c8cba077214cd139d4af7fe388ee349956ad8b5358b1eb86265802f73b16",
+      "cmake/OnlineProtocolRust.cmake": "8aafd53628a6efb3718607dab0b4d13835d6edabb8529ff4a58ee0fad8e3588a",
+      "include/halo2/frontend_matchmaking_party.hpp": "e3d48708e3a54b8769b90e3cd4dd1238ec6bf423cf02ed937598ba05e442e6bc",
+      "rust/online_protocol/src/lib.rs": "1d1e470dbd10e2084258469273ad7c0695cbc2536297f97663f7bff4b4d8a259",
+      "rust/online_protocol/src/matchmaking_frontend_party.rs": "10eb7bd764ad18e8d54ba0fba0cb49ecf806c2b59102406345dd77b718ee1982",
+      "rust/online_protocol/tests/matchmaking_frontend_party.rs": "5c22741a27c21f623712f64be12b06457ae05985f2acfaa80afef0ea64e9ede4",
+      "rust/online_protocol_bridge/build.rs": "9185c294d9143d098d67e3ff3fd721dc16459d50b72ed693e87d9cf85ddb30b6",
+      "rust/online_protocol_bridge/src/lib.rs": "e180aa1e397b00c6064a71cc48a970b675c6a7a578e21e54b2fc21e74d9ec0ec",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_party.hpp": "b16ebfb203d27c19e0b3c5c21fbbb29f083a025d96cf6874506f1d5105ded639",
+      "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs": "f24041d1bdb73d348235c2365e28616bc4327b0bea5b1e0b62bb36919e4f9922",
+      "src/ui/frontend_matchmaking_party_bridge.cpp": "9f7c8c7ba86cfa3c140d4ebf8c25f9745f48dba88302b7413382630e13210a8a",
+      "src/ui/frontend_painter.cpp": "8f85457ec75346aea1655b64bb83865f10ac5c406fd20b473cef26bb8ce1eab6",
+      "src/ui/frontend_party.cpp": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+      "tests/frontend_online_tests.cpp": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775",
+      "tests/frontend_parties_http_test.py": "1df40b8c5614212d186bf5da4638e241ed25a66976011f5ef3099289819cb44d",
+      "tests/generate_frontend_party_reference.py": "e57d83105d930169a05ab21fb139c23f62be90625560fa5aa35c0403db24b0e3",
+      "tests/native_frontend_party_rust_tests.cpp": "7d0d155d242f0d66abb17d86942b9526d77704dc42afa55434a33fc0d9002c3a",
+      "tests/reference/frontend_party_before_rust_20261102/frontend.hpp.reference": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+      "tests/reference/frontend_party_before_rust_20261102/frontend_emblem.cpp.reference": "eddc8fc5a8ad0da03c509a1963ee8e2b28dbcb9f3c2c8ada4bc53f5a353b4611",
+      "tests/reference/frontend_party_before_rust_20261102/frontend_emblem.hpp.reference": "732c311f2a72e7a2046789b73a82552609cf571cb4c2e7dc51fbedf10bd78d72",
+      "tests/reference/frontend_party_before_rust_20261102/frontend_online_tests.cpp.reference": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+      "tests/reference/frontend_party_before_rust_20261102/frontend_painter.cpp.reference": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+      "tests/reference/frontend_party_before_rust_20261102/frontend_party.cpp.reference": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+      "tests/reference/frontend_party_before_rust_20261102/online_account.hpp.reference": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b",
+      "tests/reference/frontend_party_before_rust_20261102/provenance.json": "5af242c31a3e10d3a3090a49c3d8ede229320d0557d4e5c71305600b6c7f936a",
+      "tests/test_build_online_protocol_rust.py": "7581780ea7b5e45b3d36e8a77d9e741f10fc6593c990ead28aa1eac48cc714fd",
+      "tests/test_native_frontend_party_rust.py": "d700a9880ef7e79500a58e8a2f6cae38775d5e7fa63ed57d9fd9cba62be0265f",
+      "tools/build_online_protocol_rust.py": "785a79470c56ae6d54d5af1978ac84b6aa4636ca4cf84158ad797c704337f904"
+    },
+    "source_pin_report": "implementation-source-pins.json",
+    "before_cpp_capture": "tests/reference/frontend_party_before_rust_20261102/provenance.json",
+    "lobby_policy_test_sha256": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae"
+  },
+  "storage": {
+    "owned_scratch_removed": true,
+    "cleanup_report": "cleanup.json",
+    "retained_large_artifacts": [],
+    "required_small_reference_inputs": "tests/reference/frontend_party_before_rust_20261102"
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "remaining": [
+    "Remaining native party action/privacy/invitation routing and state, plus all remaining matching-related C++ and Python policy, must move to Rust",
+    "Complete original callers, native identity/seat/voice/selectability producers, historical profiles/service ordering and arbitration for all 53 owners",
+    "Every required family/profile/topology/unshortened natural outcome, departure/host continuity, results/PCR/return/requeue route",
+    "Genuine providers, physical installed Linux input, delivered client/library/service/catalog/feature identities and restart/retry/configuration/rollback acceptance; all 12 GAP and G01-G12 criteria"
+  ],
+  "documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "157582cdbfb9d9832565bed9b6f2720ceb89cf287e28460f79f0b7f8fe6b1b59",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "c7173006181361867583902d4f157d1eccdbac159e382617524d369c3f8564d5",
+    "rust/online_protocol/README.md": "0eed2ebece7ff5489a8a0ee0e2d626bc316a6568bfe91c35b112281bcbeb382f"
+  }
+}

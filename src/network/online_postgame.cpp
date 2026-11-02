@@ -1,4 +1,7 @@
 #include "halo2/online_postgame.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
+#include <exception>
+#include <type_traits>
 #include "halo2/vista_pcr_owner_state.hpp"
 #include "halo2/frontend_session.hpp"
 #include "halo2/multiplayer.hpp"
@@ -46,108 +49,222 @@ FullScoreboardRanks ranks(const MultiplayerState& state,bool extended,unsigned c
   return full_scoreboard_ranks(players,options,state.team_mode?std::span<const FullScoreboardTeam>(teams):std::span<const FullScoreboardTeam>{});
 }
 
-}
-VistaPcrConsumedSnapshot online_postgame_publish(const MultiplayerMatch& match,
-    const UiVariant& variant,std::span<const OnlineAdmission> roster) {
-  const auto state=match.state();
-  if(!state.finished || !state.results_finalized || !state.game_over_complete() ||
-      !vista_pcr_ranking_available(match.source_round_lifecycle().flags) || roster.empty() || roster.size()>16)
-    throw FormatError("ONLINE postgame requires a completed admitted original match");
-  unsigned slots{};for(const auto& p:roster){if(p.slot>=16 || (slots&(1u<<p.slot)))throw FormatError("Invalid native network result roster");slots|=1u<<p.slot;}
-  VistaPcrPublicationInput input;input.variant=vista_pcr_multiplayer_variant(source_game_variant(variant));
-  input.statistics=match.recorded_statistics();input.recording=match.result_recording();
-  if(!input.statistics || !input.recording.enabled || !input.recording.frozen)
-    throw FormatError("ONLINE postgame requires actual frozen numeric statistics");
-  if(!state.result_accuracy)throw FormatError("ONLINE postgame lacks its original native accuracy observations");
-  input.current=input.finalized=1;input.engine_present=true;
-  const auto &statistics=match.source_match_statistics();
-  const auto standings=ranks(state,(std::to_integer<unsigned>(input.variant.bytes[0x48])&0x10)!=0,unsigned(roster.size()));
-  const bool changing=source_game_variant_get(source_game_variant(variant),22)!=0;
-  unsigned admitted_teams{};
-  if(state.team_mode)for(const auto &p:roster) {
-    if(p.team<0 || p.team>7)throw FormatError("Invalid admitted ONLINE team");
-    admitted_teams|=1u<<p.team;
-  }
-  if(state.team_mode && (changing?(admitted_teams&state.retained_team_mask)!=admitted_teams:admitted_teams!=state.retained_team_mask))
-    throw FormatError("ONLINE postgame team history differs from admission");
-  if(state.team_mode)admitted_teams=state.retained_team_mask;
-  for(unsigned i=0;i<8;++i)if(admitted_teams&(1u<<i)) {
-    input.teams[i].occupied=1;input.teams[i].score=statistics.teams[i].fields[1];
-    input.teams[i].placement=standings.teams[i]/2;
-  }
-  for(unsigned i=0;i<16;++i) {
-    const auto &p=match.player(i);
-    const auto admitted=std::ranges::find(roster,i,&OnlineAdmission::slot);
-    if(admitted==roster.end()){if(p.connected)throw FormatError("Unadmitted native network postgame participant");continue;}
-    if(!p.connected || admitted->slot!=i || p.source_datum==null_datum ||
-        (p.source_datum&0xffffu)!=i || !p.source_profile_request)
-      throw FormatError("ONLINE postgame participant lacks its actual selected profile");
-    auto &row=input.players[i];row.occupied=1;row.identity=admitted->identity;
-    row.configuration=native_vista_selected_profile_payload(*p.source_profile_request);
-    // The relay admission owns the chosen display name. Retain the selected
-    // PC-compatible appearance instead of copying Xbox sanitized species2/3.
-    std::array<std::uint8_t,9> appearance{};
-    const auto name=native_selected_player_configuration(admitted->name,appearance,-1);
-    for(unsigned j=0;j<64;++j)row.configuration[j]=std::byte(name[j]);
-    if(state.team_mode && (p.source_membership<0 || p.source_membership>=8 ||
-        !(state.retained_team_mask&(1u<<p.source_membership)) || (!changing && p.source_membership!=admitted->team)))
-      throw FormatError("ONLINE final team differs from its admitted rule and source history");
-    row.configuration[0x7c]=std::byte(state.team_mode?p.source_membership:0xff);
-    row.placement=standings.players[i]/2;
-    row.score=vista_pcr_accumulated_player_score(statistics,p.source_datum);
-  }
-  return vista_pcr_publish_consumed_snapshot(input);
-}
-void online_postgame_validate(const MultiplayerState& state,const UiVariant& variant,
-    std::span<const OnlineAdmission> roster,std::span<const std::byte> raw) {
-  auto check=[](bool ok){if(!ok)throw FormatError("ONLINE match results differ from the final admitted game state");};
-  check(raw.size()==vista_pcr_source_size && !roster.empty() && roster.size()<=16);
-  check(state.finished && state.results_finalized && state.game_over_complete());
-  check(state.result_accuracy.has_value());
-  check(raw[0]==std::byte{1} && raw[1]==std::byte{1} && raw[0x10]==std::byte{1} && raw[0x11]==std::byte{1} && raw[0x13]==std::byte(state.team_mode));
-  unsigned slots{};for(const auto& p:roster){check(p.slot<16);check(!(slots&(1u<<p.slot)));slots|=1u<<p.slot;}
-  const auto expected=vista_pcr_multiplayer_variant(source_game_variant(variant));
-  check(std::equal(expected.bytes.begin(),expected.bytes.end(),raw.begin()+0x20));
-  auto word=[&](std::size_t at){return std::uint16_t(std::to_integer<unsigned>(raw[at])|(std::to_integer<unsigned>(raw[at+1])<<8));};
-  const bool extended=(std::to_integer<unsigned>(expected.bytes[0x48])&0x10)!=0;
-  const auto standings=ranks(state,extended,unsigned(roster.size()));
-  const bool changing=source_game_variant_get(source_game_variant(variant),22)!=0;
-  unsigned admitted_teams{};
-  for(unsigned i=0;i<16;++i) {
-    const auto at=0x370+i*0x94;const auto &p=state.players[i];
-    const auto admitted=std::ranges::find(roster,i,&OnlineAdmission::slot);
-    if(admitted==roster.end()){check(!p.connected && raw[at]==std::byte{});continue;}
-    check(p.connected && admitted->slot==i && raw[at]==std::byte{1});
-    check(std::equal(admitted->identity.begin(),admitted->identity.end(),raw.begin()+at+2));
-    std::array<std::uint8_t,9> appearance{};const auto name=native_selected_player_configuration(admitted->name,appearance,-1);
-    for(unsigned j=0;j<64;++j)check(raw[at+12+j]==std::byte(name[j]));
-    if(state.team_mode) {
-      check(admitted->team>=0 && admitted->team<8 && p.source_membership>=0 && p.source_membership<8);
-      check(changing || p.source_membership==admitted->team);
-      admitted_teams|=1u<<admitted->team;
-      check(state.retained_team_mask&(1u<<p.source_membership));
+namespace bridge = online_protocol_bridge;
+// Native observation/profile/ranking/numeric-publication IO only. Rust owns
+// all report admission, roster/team checks and publication-plan decisions.
+struct NativeResultAdapter final : bridge::NativeResultIo {
+  const MultiplayerMatch *match{};
+  const UiVariant &variant;
+  std::span<const OnlineAdmission> roster;
+  std::optional<MultiplayerState> snapshot;
+  const MultiplayerState *state{};
+  mutable const SourceResultStatistics *statistics{};
+  mutable SourceResultRecording recording{};
+  mutable const SourceGameEndStats *game_end{};
+  mutable std::array<const MultiplayerPlayer *,16> live_players{};
+  mutable std::exception_ptr exception;
+  mutable VistaPcrConsumedSnapshot output;
+  NativeResultAdapter(const MultiplayerMatch &m, const UiVariant &v,
+                      std::span<const OnlineAdmission> r)
+      : match(&m), variant(v), roster(r), snapshot(m.state()),
+        state(&*snapshot) {}
+  NativeResultAdapter(const MultiplayerState &s, const UiVariant &v,
+                      std::span<const OnlineAdmission> r)
+      : variant(v), roster(r), state(&s) {}
+  template <class F> decltype(auto) capture(F &&f) const {
+    try {
+      return f();
+    } catch (...) {
+      exception = std::current_exception();
+      throw;
     }
-    check(raw[at+0x88]==std::byte(state.team_mode?p.source_membership:0xff));
-    check(std::bit_cast<std::int16_t>(word(at+0x92))==p.total_score);
-    check(std::to_integer<unsigned>(raw[at+0x90])==standings.players[i]/2);
-    const std::array<std::pair<unsigned,int>,4> stats{{{7,p.kills},{9,p.deaths},{8,p.assists},{11,p.suicides}}};
-    for(auto [index,value]:stats)check(value>=0 && value<=32767 && int(word(0xe30+2*(i*0x1b5+index))&0x7fff)==value);
-    for(unsigned weapon=0;weapon<SourceResultAccuracy::weapon_count;++weapon)
-      for(unsigned kind=0;kind<2;++kind) {
-        const auto at=0xecc+2*(i*437+(weapon+SourceResultAccuracy::first_weapon)*8+4+kind);
-        check((word(at)&0x7fffu)==state.result_accuracy->players[i][weapon][kind]);
+  }
+  template <class F> decltype(auto) invoke(F &&f) const {
+    try {
+      return f();
+    } catch (const std::exception &e) {
+      if (exception)
+        std::rethrow_exception(exception);
+      throw FormatError(e.what());
+    }
+  }
+  template <class Range> static rust::Vec<std::uint8_t> bytes(const Range &r) {
+    rust::Vec<std::uint8_t> out;
+    out.reserve(r.size());
+    for (auto b : r) {
+      if constexpr (std::is_same_v<decltype(b), std::byte>)
+        out.push_back(std::to_integer<std::uint8_t>(b));
+      else
+        out.push_back(std::uint8_t(b));
+    }
+    return out;
+  }
+  template <std::size_t N>
+  static void copy(const rust::Vec<std::uint8_t> &src,
+                   std::array<std::byte, N> &dst) {
+    if (src.size() != N)
+      throw std::logic_error("Invalid native result ABI");
+    for (std::size_t i = 0; i < N; ++i)
+      dst[i] = std::byte(src[i]);
+  }
+  const MultiplayerMatch &actual_match() const {
+    if (!match)
+      throw std::logic_error("Native result view has no live match");
+    return *match;
+  }
+  bridge::NativeResultState result_state() const override {
+    return capture([&] {
+      bridge::NativeResultState out{};
+      out.finished = state->finished;
+      out.results_finalized = state->results_finalized;
+      out.game_over_countdown = state->game_over_countdown;
+      out.team_mode = state->team_mode;
+      out.retained_teams = state->retained_team_mask;
+      for (const auto &p : state->players)
+        out.players.push_back(bridge::NativeResultPlayer{
+            p.connected, p.source_membership, p.total_score, p.kills, p.deaths,
+            p.assists, p.suicides});
+      for (const auto &team : state->team_statistics)
+        out.team_scores.push_back(team[1]);
+      out.accuracy_present = state->result_accuracy.has_value();
+      if (state->result_accuracy)
+        for (const auto &player : state->result_accuracy->players)
+          for (const auto &weapon : player)
+            for (auto value : weapon)
+              out.accuracy.push_back(value);
+      return out;
+    });
+  }
+  rust::Vec<bridge::NativeResultAdmission> result_roster() const override {
+    return capture([&] {
+      rust::Vec<bridge::NativeResultAdmission> out;
+      out.reserve(roster.size());
+      for (const auto &p : roster)
+        out.push_back(
+            bridge::NativeResultAdmission{p.slot, p.team, bytes(p.identity)});
+      return out;
+    });
+  }
+  std::uint32_t result_round_flags() const override {
+    return capture(
+        [&] { return actual_match().source_round_lifecycle().flags; });
+  }
+  rust::Vec<std::uint8_t> result_variant() const override {
+    return capture([&] {
+      return bytes(
+          vista_pcr_multiplayer_variant(source_game_variant(variant)).bytes);
+    });
+  }
+  bridge::NativeResultRecording result_recording() const override {
+    return capture([&] {
+      statistics = actual_match().recorded_statistics();
+      recording = actual_match().result_recording();
+      return bridge::NativeResultRecording{statistics != nullptr,
+                                           recording.enabled, recording.frozen};
+    });
+  }
+  bridge::NativeResultRanks result_ranks(bool extended,
+                                         std::uint32_t count) const override {
+    return capture([&] {
+      if (match)
+        game_end = &match->source_match_statistics();
+      const auto values = ranks(*state, extended, count);
+      return bridge::NativeResultRanks{bytes(values.players),
+                                       bytes(values.teams)};
+    });
+  }
+  bool result_changing_teams() const override {
+    return capture([&] {
+      return source_game_variant_get(source_game_variant(variant), 22) != 0;
+    });
+  }
+  bridge::NativeResultLivePlayer
+  result_live_player(std::uint32_t slot) const override {
+    return capture([&] {
+      const auto &p = actual_match().player(slot);
+      live_players.at(slot)=&p;
+      return bridge::NativeResultLivePlayer{
+          p.connected, p.source_datum, p.source_profile_request.has_value(),
+          p.source_membership};
+    });
+  }
+  rust::Vec<std::uint8_t>
+  result_configuration(std::uint32_t slot) const override {
+    return capture([&] {
+      const auto *p=live_players.at(slot);
+      if(!p)throw std::logic_error("Native result player was not observed");
+      return bytes(native_vista_selected_profile_payload(p->source_profile_request.value()));
+    });
+  }
+  rust::Vec<std::uint8_t> result_name(std::uint32_t index) const override {
+    return capture([&] {
+      std::array<std::uint8_t, 9> appearance{};
+      const auto value = native_selected_player_configuration(
+          roster[index].name, appearance, -1);
+      return bytes(std::span(value).first(64));
+    });
+  }
+  std::int32_t result_team_score(std::uint32_t team) const override {
+    return capture([&] {
+      if (!game_end)
+        throw std::logic_error(
+            "Native result game statistics were not observed");
+      return std::int32_t(game_end->teams.at(team).fields[1]);
+    });
+  }
+  std::int16_t result_accumulated_score(std::uint32_t datum) const override {
+    return capture([&] {
+      if (!game_end)
+        throw std::logic_error(
+            "Native result game statistics were not observed");
+      return vista_pcr_accumulated_player_score(*game_end, datum);
+    });
+  }
+  void
+  result_write(const bridge::NativeResultPublication &plan) const override {
+    capture([&] {
+      if (plan.players.size() != 16 || plan.teams.size() != 16)
+        throw std::logic_error("Invalid native result ABI");
+      VistaPcrPublicationInput input;
+      copy(plan.variant, input.variant.bytes);
+      input.statistics = statistics;
+      input.recording = recording;
+      input.current = plan.current;
+      input.finalized = plan.finalized;
+      input.engine_present = plan.engine_present;
+      for (unsigned i = 0; i < 16; ++i) {
+        const auto &p = plan.players[i];
+        auto &row = input.players[i];
+        row.occupied = p.occupied;
+        copy(p.identity, row.identity);
+        copy(p.configuration, row.configuration);
+        row.score = p.score;
+        row.placement = p.placement;
+        const auto &t = plan.teams[i];
+        input.teams[i] = {t.occupied, t.score, t.placement};
       }
+      output = vista_pcr_publish_consumed_snapshot(input);
+    });
   }
-  check(!state.team_mode || (changing?(admitted_teams&state.retained_team_mask)==admitted_teams:admitted_teams==state.retained_team_mask));
-  if(state.team_mode)admitted_teams=state.retained_team_mask;
-  for(unsigned i=0;i<16;++i) {
-    const auto at=0xcb0+i*0x18;const bool present=i<8 && (admitted_teams&(1u<<i));
-    check(raw[at]==std::byte(present));
-    if(present) {
-      check(std::to_integer<unsigned>(raw[at+1])==standings.teams[i]/2);
-      check(std::bit_cast<std::int16_t>(word(at+2))==state.team_statistics[i][1]);
-    }
-  }
+};
+
+} // namespace
+VistaPcrConsumedSnapshot
+online_postgame_publish(const MultiplayerMatch &match, const UiVariant &variant,
+                        std::span<const OnlineAdmission> roster) {
+  NativeResultAdapter io(match, variant, roster);
+  io.invoke([&] { bridge::native_result_publish(io); });
+  return std::move(io.output);
+}
+void online_postgame_validate(const MultiplayerState &state,
+                              const UiVariant &variant,
+                              std::span<const OnlineAdmission> roster,
+                              std::span<const std::byte> raw) {
+  NativeResultAdapter io(state, variant, roster);
+  io.invoke([&] {
+    bridge::native_result_validate(
+        io, {reinterpret_cast<const std::uint8_t *>(raw.data()), raw.size()});
+  });
 }
 std::shared_ptr<const VistaPcrScreenOwner> online_postgame_screen(
     FrontendSession& frontend,std::shared_ptr<OnlineMatchSession> session,std::function<void()> done) {

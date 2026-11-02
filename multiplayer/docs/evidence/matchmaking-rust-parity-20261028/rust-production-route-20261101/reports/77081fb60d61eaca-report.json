@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-voavm1nn/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-voavm1nn",
+  "commands": [],
+  "retained_large_artifacts": [],
+  "production_activated": false,
+  "docker_image_executed": false,
+  "error": "Pinned Caddy release checksum mismatch"
+}

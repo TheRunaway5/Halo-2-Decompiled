@@ -12,6 +12,7 @@ struct Session {
     player: String,
     expires: f64,
     seen: f64,
+    owner: Value,
 }
 struct Permit {
     owner: Value,
@@ -29,6 +30,7 @@ struct Budget {
 pub struct Accounts {
     now: f64,
     rate_now: f64,
+    presence_wall: i64,
     next: u64,
     sessions: BTreeMap<String, Session>,
     pending: BTreeMap<String, Permit>,
@@ -78,6 +80,28 @@ fn body(value: &Value) -> Result<&str> {
     m::text(&value["screen_name"], 64)
 }
 impl Accounts {
+    /// Presence reads never renew activity, bearer leases or SQL clock state.
+    /// Called only through the actual account owner by the native IO bridge.
+    pub fn presence(&mut self, now: f64, wall: i64) -> Result<(Vec<String>, i64)> {
+        m::check(
+            now >= 0. && (now + 900.).is_finite(),
+            "Invalid account clock",
+        )?;
+        m::check(
+            (0..=9007199254740991).contains(&wall),
+            "Invalid presence wall clock",
+        )?;
+        self.now = self.now.max(now);
+        self.presence_wall = self.presence_wall.max(wall);
+        Ok((
+            self.sessions
+                .values()
+                .filter(|s| crate::matchmaking_presence::recent(s.expires, s.seen, self.now))
+                .map(|s| s.player.clone())
+                .collect(),
+            self.presence_wall,
+        ))
+    }
     fn observe(&mut self, r: &Value) -> Result<()> {
         let now = m::real(&r["now"])?;
         let rate = m::real(&r["rate_now"])?;
@@ -131,6 +155,19 @@ impl Accounts {
             .sessions
             .get(key)
             .is_some_and(|s| s.player == player && s.expires > self.now))
+    }
+    /// A committed canonical adoption retires grants for the deleted player.
+    /// This is invoked by the sealed native directory commit, without IO.
+    pub fn revoke_canonical_player(&mut self, who: &str) {
+        let owners = self
+            .sessions
+            .values()
+            .filter(|s| s.player == who)
+            .map(|s| s.owner.clone())
+            .collect::<Vec<_>>();
+        self.sessions.retain(|_, s| s.player != who);
+        self.pending
+            .retain(|_, p| p.existing.as_deref() != Some(who) && !owners.contains(&p.owner));
     }
     pub fn execute(&mut self, r: &Value) -> Result<Value> {
         self.observe(r)?;
@@ -215,6 +252,14 @@ impl Accounts {
                     503,
                     "ONLINE session capacity reached",
                 )?;
+                require(
+                    !self
+                        .sessions
+                        .values()
+                        .any(|s| s.player == who && s.generation > pending.generation),
+                    409,
+                    "Account login permit superseded",
+                )?;
                 let pending = self.pending.remove(key).unwrap();
                 self.sessions.retain(|_, s| s.player != who);
                 self.sessions.insert(
@@ -224,6 +269,7 @@ impl Accounts {
                         player: who.to_owned(),
                         expires: self.now + 900.,
                         seen: self.now,
+                        owner: pending.owner,
                     },
                 );
                 Ok(json!({"token":pending.token,"expires_in":900}))
@@ -257,16 +303,15 @@ impl Accounts {
             "revoke" => {
                 let retired = self.sessions.remove(m::text(&r["key"], 64)?);
                 if let Some(s) = &retired {
-                    self.pending
-                        .retain(|_, p| p.existing.as_deref() != Some(&s.player));
+                    self.pending.retain(|_, p| {
+                        p.existing.as_deref() != Some(&s.player) && p.owner != s.owner
+                    });
                 }
                 Ok(json!(retired.is_some()))
             }
             "revoke_player" => {
                 let who = m::text(&r["player"], 64)?;
-                self.sessions.retain(|_, s| s.player != who);
-                self.pending
-                    .retain(|_, p| p.existing.as_deref() != Some(who));
+                self.revoke_canonical_player(who);
                 Ok(Value::Null)
             }
             "clear" => {
@@ -299,5 +344,159 @@ impl Accounts {
             }
             _ => Err(Error(400, "Unknown account owner operation")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn send(a: &mut Accounts, mut r: Value, now: f64, rate: f64) -> Result<Value> {
+        r["now"] = json!(now);
+        r["rate_now"] = json!(rate);
+        a.execute(&r)
+    }
+    fn prepare(a: &mut Accounts, owner: Value, existing: Value, now: f64) -> Value {
+        send(a,json!({"op":"prepare","body":{"screen_name":"Pilot"},"owner":owner,"existing":existing}),now,10.).unwrap()
+    }
+    fn commit(a: &mut Accounts, p: &Value, owner: Value, who: &str, now: f64) -> Result<Value> {
+        send(
+            a,
+            json!({"op":"commit","permit":p["permit"],"owner":owner,"player":who}),
+            now,
+            10.,
+        )
+    }
+    #[test]
+    fn rotation_and_revocation_fence_old_permits_and_exact_expiry_cannot_rewind() {
+        let mut a = Accounts::default();
+        let owner = json!(["discord", "verified-one"]);
+        let old = prepare(&mut a, owner.clone(), Value::Null, 10.);
+        let next = prepare(&mut a, owner.clone(), Value::Null, 10.);
+        let token = commit(&mut a, &next, owner.clone(), "one", 10.).unwrap()["token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert_eq!(
+            commit(&mut a, &old, owner.clone(), "one", 10.)
+                .unwrap_err()
+                .0,
+            409
+        );
+        assert_eq!(a.sessions.len(), 1);
+        let pending = prepare(&mut a, owner.clone(), Value::Null, 10.);
+        send(&mut a, json!({"op":"revoke","key":hash(&token)}), 10., 10.).unwrap();
+        assert!(
+            a.pending.is_empty(),
+            "Even a pre-identity alias permit retires with its verified owner"
+        );
+        assert_eq!(
+            commit(&mut a, &pending, owner.clone(), "one", 10.)
+                .unwrap_err()
+                .0,
+            409
+        );
+        let p = prepare(&mut a, owner.clone(), json!("one"), 10.);
+        let t = commit(&mut a, &p, owner, "one", 10.).unwrap()["token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(a.binding(&hash(&t), "one", 909.999).unwrap());
+        assert!(!a.binding(&hash(&t), "one", 910.).unwrap());
+        assert!(!a.binding(&hash(&t), "one", 10.).unwrap());
+        assert_eq!(
+            send(
+                &mut a,
+                json!({"op":"auth","header":format!("Bearer {t}"),"rate":false}),
+                10.,
+                10.
+            )
+            .unwrap_err()
+            .0,
+            401
+        );
+    }
+    #[test]
+    fn pending_login_capacity_identity_and_deadlines_cannot_publish_partial_sessions() {
+        let mut a = Accounts::default();
+        let owner = json!(["steam", "76561198000000000"]);
+        let first = prepare(&mut a, owner.clone(), json!("known"), 10.);
+        assert_eq!(
+            commit(&mut a, &first, json!(["discord", "wrong"]), "known", 10.)
+                .unwrap_err()
+                .0,
+            409
+        );
+        assert_eq!(
+            commit(&mut a, &first, owner.clone(), "other", 10.)
+                .unwrap_err()
+                .0,
+            409
+        );
+        assert!(a.sessions.is_empty());
+        for i in 1..64 {
+            prepare(
+                &mut a,
+                json!(["fixture", format!("p{i}")]),
+                Value::Null,
+                10.,
+            );
+        }
+        assert_eq!(a.pending.len(), 64);
+        assert_eq!(send(&mut a,json!({"op":"prepare","body":{"screen_name":"Pilot"},"owner":owner,"existing":"known"}),10.,10.).unwrap_err().0,503);
+        assert_eq!(
+            commit(
+                &mut a,
+                &first,
+                json!(["steam", "76561198000000000"]),
+                "known",
+                40.
+            )
+            .unwrap_err()
+            .0,
+            409
+        );
+        assert!(a.pending.is_empty());
+        assert!(a.sessions.is_empty());
+        for op in ["restore", "install", "session_set"] {
+            assert_eq!(send(&mut a, json!({"op":op}), 40., 10.).unwrap_err().0, 400);
+        }
+    }
+    #[test]
+    fn independent_social_and_countdown_budgets_do_not_refill_on_clock_regression() {
+        let mut a = Accounts::default();
+        let owner = json!(["fixture", "one"]);
+        let p = prepare(&mut a, owner.clone(), Value::Null, 10.);
+        let token = commit(&mut a, &p, owner, "one", 10.).unwrap()["token"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let request = json!({"op":"auth","header":format!("Bearer {token}"),"rate":true});
+        for _ in 0..120 {
+            send(&mut a, request.clone(), 10., 10.).unwrap();
+        }
+        assert_eq!(send(&mut a, request.clone(), 10., 10.).unwrap_err().0, 429);
+        for _ in 0..600 {
+            send(
+                &mut a,
+                json!({"op":"budget","player":"one","bucket":"countdown"}),
+                10.,
+                10.,
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            send(
+                &mut a,
+                json!({"op":"budget","player":"one","bucket":"countdown"}),
+                10.,
+                10.
+            )
+            .unwrap_err()
+            .0,
+            429
+        );
+        assert_eq!(send(&mut a, request.clone(), 10., 1.).unwrap_err().0, 429);
+        send(&mut a, request, 10., 10.5).unwrap();
+        assert_eq!(a.budgets.len(), 2);
     }
 }

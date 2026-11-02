@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "native_binary_sha256": "aed1734b1431042a207ca9013e98d65e07826ade33b876f5fc85e74485a57ade",
+  "reports": {
+    "blocked": {
+      "path": "build/test-results/frontend-search-rust-20261102/baseline/rust-frontend-blocked/report.json",
+      "sha256": "608f8478bcba4f42dd10da275911cbb688b32923d3a9fe49933be87e18b3095e",
+      "bytes": 6119
+    },
+    "complete": {
+      "path": "build/test-results/frontend-search-rust-20261102/baseline/rust-frontend-complete/report.json",
+      "sha256": "e7eb69eaf756830db09267eae4697efc7b9824f71f8e0977b738932644d6de74",
+      "bytes": 6108
+    },
+    "rendered": {
+      "path": "build/test-results/frontend-search-rust-20261102/baseline/rust-frontend-rendered/report.json",
+      "sha256": "b47daad6bdf6e4f87b7cb83f73989029927bdf218d1877766207c463814da5a8",
+      "bytes": 22096
+    }
+  },
+  "raw_frames_copied": false
+}

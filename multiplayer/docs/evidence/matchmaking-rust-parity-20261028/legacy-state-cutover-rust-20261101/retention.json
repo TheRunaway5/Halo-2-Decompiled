@@ -1,0 +1,148 @@
+{
+  "schema": "H2_LEGACY_STATE_CUTOVER_RUST_RETENTION_V1",
+  "source_files": 23,
+  "unique_files": 23,
+  "unique_report_bytes": 175846,
+  "records": [
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/driver-before-redaction.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/591a5a4317398fbe-driver-before-redaction.py.txt",
+      "sha256": "591a5a4317398fbe6f6d15dab6b0f9d91a270a0e3ed59eaa76e28c6f3aa48c50",
+      "bytes": 11069
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/postqualification-driver.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/e05613514d3c6fef-postqualification-driver.json",
+      "sha256": "e05613514d3c6fef0bb5a9175a49fb1f085efbb95a3a8e3762a28e86ca662e15",
+      "bytes": 586
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-01/failure.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/65b0b960132fbb03-failure.txt",
+      "sha256": "65b0b960132fbb03c60241bbf8568e8eb22239fd0e1a157177c6cff153e578e1",
+      "bytes": 2320
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-01/legacy-fixture__legacy.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/839d5add0de6b259-legacy-fixture__legacy.log",
+      "sha256": "839d5add0de6b259ebd679ad3804ea7b7ca0c207141c70459258e71e48393ab9",
+      "bytes": 3504
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-01/state-controls-before-producer.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/0ec88a96aa4e1a65-state-controls-before-producer.py.txt",
+      "sha256": "0ec88a96aa4e1a6573290bafc5688b5f0a0722a112bcb031081604077f0fc5cc",
+      "bytes": 15858
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-01/state-observations.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/7cc8024902c9cb1b-state-observations.json",
+      "sha256": "7cc8024902c9cb1b2576106fd8508f44851192663faa7cbeb6b0ba053bb01a22",
+      "bytes": 41
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-baseline__gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/58142503a92b177a-legacy-baseline__gateway.log",
+      "sha256": "58142503a92b177a34f72c45ea2616e54b0314f32e56ca06867ab9f83005b826",
+      "bytes": 2634
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-baseline__legacy.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/e3d4d7bf9c440557-legacy-baseline__legacy.log",
+      "sha256": "e3d4d7bf9c44055788b41b5a4b47978c2a7df189082edc7b0002c67d3c556fb6",
+      "bytes": 4712
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-before.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/31434d69f4243890-legacy-before.json",
+      "sha256": "31434d69f424389097d40d1f72c04f8021b8036e9ded68e5a12a743fbb4f8c13",
+      "bytes": 14805
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-fixture__legacy.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/4ff49b3988ec9bee-legacy-fixture__legacy.log",
+      "sha256": "4ff49b3988ec9beeec21704812269909c8e305668a1cdb141c113c27e89da7bd",
+      "bytes": 1660
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-rollback__gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/83f9cd0fe8201f70-legacy-rollback__gateway.log",
+      "sha256": "83f9cd0fe8201f702721f3c4f5a9605b04c0f7c2861dd01a41319659f4423825",
+      "bytes": 2632
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/legacy-rollback__legacy.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/4d8fb49fce660ae5-legacy-rollback__legacy.log",
+      "sha256": "4d8fb49fce660ae53ea33718c0cc69fc278c60a3f5cb33cd3be37c763844b806",
+      "bytes": 2842
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/rust-cutover__gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/dd22ffab784326e9-rust-cutover__gateway.log",
+      "sha256": "dd22ffab784326e99335011dea8daf188878a8ff282f8dfb9a00f77675403485",
+      "bytes": 2622
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/rust-cutover__server.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/e3b0c44298fc1c14-rust-cutover__server.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/attempt-02/state-observations.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/c656f0662e4e6c7b-state-observations.json",
+      "sha256": "c656f0662e4e6c7b77c70cce388eb37e7f937ab9831aff2b798e6529d5857e84",
+      "bytes": 2561
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/directory-production-abi.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/b99d3212116ff645-directory-production-abi.log",
+      "sha256": "b99d3212116ff64514d318a9b0930fc05b9d4d4a14832135ad14f585744d6e8d",
+      "bytes": 608
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/directory-regressions.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/ae6ada3b3c472adf-directory-regressions.log",
+      "sha256": "ae6ada3b3c472adf9942106aba6c42ba95cdb7056783ac10cc0f1205f7a0b17a",
+      "bytes": 1083
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/redaction-validation.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/f811039cbdd4aab3-redaction-validation.json",
+      "sha256": "f811039cbdd4aab33ae8bfacf37d2b1377bf5dfed6baf47b10db3901cef506b2",
+      "bytes": 737
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/report.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/542ede959895130d-report.json",
+      "sha256": "542ede959895130d90479cea1d404b6643c4b6f0b9a9d4159e28462017b50714",
+      "bytes": 7620
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/rust-service-build.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/c842beab59860582-rust-service-build.log",
+      "sha256": "c842beab598605824c7fe8d0187a4de14db6dee8f10d6fc30000e0bf42a2efe8",
+      "bytes": 280
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/rust-service-tests.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/883a0eb36303010a-rust-service-tests.log",
+      "sha256": "883a0eb36303010a5a96e4d0f439d8dfb0c479794f061e1ed0b283bd0297fa47",
+      "bytes": 6443
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/source-manifest-final.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/cbef25d0b8a4deb6-source-manifest-final.json",
+      "sha256": "cbef25d0b8a4deb6595087b440f1367279a1107ad106eb2dc439fa7e5d15b2f7",
+      "bytes": 46370
+    },
+    {
+      "source": "build/test-results/rust-state-cutover-20261101/run-01/source-manifest.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/0f835205b82d8f03-source-manifest.json",
+      "sha256": "0f835205b82d8f03a818f4514031d437538d05938f93ef84664662fc8aef995b",
+      "bytes": 44859
+    }
+  ],
+  "working_duplicates_removed": true,
+  "new_large_artifacts_retained": []
+}

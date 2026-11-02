@@ -106,25 +106,40 @@ void native_campaign_object_quaternion_basis_tu15(SourcePhysicsContactMemory &m,
     quaternion_basis(m,q,fp,publish);
 }
 namespace {
-template<class Right,class Store,class StoreVector> void transform_product(
-    const SourcePhysicsContactMemory &m,std::uint32_t left,Right &right,
+template<class Left,class LeftVector,class Right,class Store,class StoreVector>
+NativeCampaignObjectTransformProductContinuationTu15 transform_product_values(
+    Left &left,LeftVector &left_vector,Right &right,
     NativeTu15PhysicsFrameFp &fp,Store &store,StoreVector &store_vector) {
-    const auto left_scale=load(m,left),right_scale=scalar(right(0)),px=scalar(right(0x28u)),py=scalar(right(0x2cu)),pz=scalar(right(0x30u));
+    const auto left_scale=scalar(left(0)),right_scale=scalar(right(0)),px=scalar(right(0x28u)),py=scalar(right(0x2cu)),pz=scalar(right(0x30u));
     SimdEnvironment environment(fp);const auto scale=mul(right_scale,left_scale);
-    const auto forward=vector(m,left+4u),side=vector(m,left+0x10u),up=vector(m,left+0x1cu);
+    const auto forward=left_vector(4u),side=left_vector(0x10u),up=left_vector(0x1cu);
     auto position=packed_mul(broadcast(px),forward);const auto side_position=packed_mul(broadcast(py),side),up_position=packed_mul(broadcast(pz),up);
     position=packed_add(position,side_position);position=packed_add(position,up_position);position=packed_mul(position,broadcast(left_scale));
-    position=packed_add(position,vector(m,left+0x28u));
+    position=packed_add(position,left_vector(0x28u));
     // The right Z component is read before the preceding translation store.
     auto z=scalar(right(0x24u));store_vector(0x28u,position);
+    NativeCampaignObjectTransformProductContinuationTu15 continuation;
     for(const auto offset:{0x1cu,0x10u,4u}) {
         const auto y=scalar(right(offset+4u)),x=scalar(right(offset));
         const auto z_term=packed_mul(broadcast(z),up),y_term=packed_mul(broadcast(y),side),x_term=packed_mul(broadcast(x),forward);
-        const auto result=packed_add(x_term,packed_add(y_term,z_term));
+        const auto side_up=packed_add(y_term,z_term),result=packed_add(x_term,side_up);
+        if(offset==4u) {
+            std::array<std::uint32_t,4> lanes{};
+            _mm_storeu_si128(reinterpret_cast<__m128i*>(lanes.data()),_mm_castps_si128(side_up));
+            continuation.forward_side_up_pair={lanes[2],lanes[3]};
+        }
         if(offset!=4u)z=scalar(right(offset-4u));
         store_vector(offset,result);
     }
     store(0,bits(scale));
+    return continuation;
+}
+template<class Right,class Store,class StoreVector> void transform_product(
+    const SourcePhysicsContactMemory &m,std::uint32_t base,Right &right,
+    NativeTu15PhysicsFrameFp &fp,Store &store,StoreVector &store_vector) {
+    auto left=[&](unsigned offset){return read(m,base+offset);};
+    auto left_vector=[&](unsigned offset){return vector(m,base+offset);};
+    (void)transform_product_values(left,left_vector,right,fp,store,store_vector);
 }
 std::array<std::uint32_t,3> vector_bits(__m128 value) {
     std::array<std::uint32_t,4> lanes{};_mm_storeu_si128(reinterpret_cast<__m128i*>(lanes.data()),_mm_castps_si128(value));
@@ -137,6 +152,39 @@ void native_campaign_object_transform_product_tu15(SourcePhysicsContactMemory &m
     auto store=[&](unsigned offset,std::uint32_t value){write(m,destination+offset,value);};
     auto store_vector=[&](unsigned offset,__m128 value){publish_vector(m,destination+offset,value);};
     transform_product(m,left,source,fp,store,store_vector);
+}
+NativeCampaignObjectTransformRetainedTu15::NativeCampaignObjectTransformRetainedTu15(
+    const SourcePhysicsContactMemory &m,std::uint32_t base):memory_(m),base_(base){}
+std::uint32_t NativeCampaignObjectTransformRetainedTu15::scalar(unsigned field)const{return read(memory_,base_+field*4u);}
+std::array<std::uint32_t,3> NativeCampaignObjectTransformRetainedTu15::vector(unsigned first)const {
+    return vector_bits(halo2::vector(memory_,base_+first*4u));
+}
+NativeCampaignObjectTransformLocalTu15::NativeCampaignObjectTransformLocalTu15(
+    const std::array<std::uint32_t,13> &value):value_(value){}
+std::uint32_t NativeCampaignObjectTransformLocalTu15::scalar(unsigned field)const{return value_.at(field);}
+std::array<std::uint32_t,3> NativeCampaignObjectTransformLocalTu15::vector(unsigned first)const {
+    return {value_.at(first),value_.at(first+1u),value_.at(first+2u)};
+}
+NativeCampaignObjectTransformProductContinuationTu15 native_campaign_object_transform_product_tu15(
+    SourcePhysicsContactMemory &m,const NativeCampaignObjectTransformInputTu15 &left_input,
+    const NativeCampaignObjectTransformInputTu15 &right_input,std::uint32_t destination,
+    NativeTu15PhysicsFrameFp &fp,const SourcePhysicsContactRecordObserver &observe) {
+    auto left=[&](unsigned offset){return left_input.scalar(offset/4u);};
+    auto left_vector=[&](unsigned offset){const auto v=left_input.vector(offset/4u);
+        return _mm_castsi128_ps(_mm_set_epi32(std::bit_cast<std::int32_t>(v[2]),std::bit_cast<std::int32_t>(v[1]),0,std::bit_cast<std::int32_t>(v[0])));};
+    auto right=[&](unsigned offset){return right_input.scalar(offset/4u);};
+    auto publish=[&](std::uint32_t site,unsigned offset,std::span<const std::byte> value) {
+        SourcePhysicsContactRecordStore event{site,destination+offset,{},std::vector<std::byte>(value.begin(),value.end())};
+        if(observe){event.before.resize(value.size());m.read(event.address,event.before);}
+        m.write(event.address,value);if(observe)observe(event);
+    };
+    auto store=[&](unsigned offset,std::uint32_t value){std::array<std::byte,4> raw{};
+        for(unsigned n=0;n<4;++n)raw[n]=std::byte(value>>(8u*n));publish(0x14566au,offset,raw);};
+    auto store_vector=[&](unsigned offset,__m128 value){const auto v=vector_bits(value);std::array<std::byte,12> raw{};
+        for(unsigned n=0;n<12;++n)raw[n]=std::byte(v[n/4u]>>(8u*(n%4u)));
+        const auto site=offset==0x28u?0x1455cdu:offset==0x1cu?0x145600u:offset==0x10u?0x145633u:0x145661u;
+        publish(site,offset,std::span(raw).first(4));publish(site+5u,offset+4u,std::span(raw).subspan(4));};
+    return transform_product_values(left,left_vector,right,fp,store,store_vector);
 }
 std::uint32_t native_campaign_object_marker_transforms_tu15(const SourcePhysicsContactMemory &m,
     std::uint32_t model,std::uint32_t group,std::uint32_t variants,std::uint32_t node_indices,

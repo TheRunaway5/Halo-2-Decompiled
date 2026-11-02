@@ -1,0 +1,76 @@
+{
+  "host": 0,
+  "selected_host_score": [
+    0,
+    -5040000,
+    2,
+    0
+  ],
+  "native": [
+    {
+      "candidates": [
+        {
+          "loss_per_mille": 0,
+          "peer": 0,
+          "rtt_ms": 2,
+          "upload": 4725000
+        },
+        {
+          "loss_per_mille": 0,
+          "peer": 4,
+          "rtt_ms": 2,
+          "upload": 4200000
+        }
+      ],
+      "host": 0,
+      "protocol": 123,
+      "received": 198,
+      "self": 0,
+      "signed_voice_packets": 0
+    },
+    {
+      "candidates": [
+        {
+          "loss_per_mille": 0,
+          "peer": 0,
+          "rtt_ms": 2,
+          "upload": 4725000
+        },
+        {
+          "loss_per_mille": 0,
+          "peer": 4,
+          "rtt_ms": 2,
+          "upload": 4200000
+        }
+      ],
+      "host": 0,
+      "protocol": 123,
+      "received": 198,
+      "self": 4,
+      "signed_voice_packets": 0
+    }
+  ],
+  "admitted_direct_summaries": [
+    {
+      "4": {
+        "loss_per_mille": 0,
+        "peer": 4,
+        "rtt_ms": 2,
+        "upload_bytes_per_second": 5040000
+      }
+    },
+    {
+      "0": {
+        "loss_per_mille": 0,
+        "peer": 0,
+        "rtt_ms": 2,
+        "upload_bytes_per_second": 4725000
+      }
+    }
+  ],
+  "gameplay_master_relay": false,
+  "world_promotion": false,
+  "discord": "fixture",
+  "eos_sessions": false,
+  "eos_force_relay": false
+}

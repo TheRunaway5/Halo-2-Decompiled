@@ -18,7 +18,6 @@ struct NativeTu15ActivationAgentServices {
         NativeTu15ActivationContactManager,NativeTu15PhysicsFrameFp&)>create_agent;
     std::function<std::uint32_t(std::uint32_t motion,NativeTu15ContactVirtualOwner,
         NativeTu15PhysicsFrameFp&)>motion_kind;
-    std::function<std::uint32_t(NativeTu15PhysicsWorld,NativeTu15PhysicsFrameFp&)>discrete_dispatcher; //316200
     std::function<std::uint32_t(std::uint32_t dispatcher,NativeTu15ContactVirtualOwner,
         std::uint32_t result,NativeTu15ContactPayload,NativeTu15ContactPayload,
         NativeTu15PhysicsFrameFp&)>test_discrete_pair;
@@ -34,6 +33,10 @@ struct NativeTu15ActivationAgentStats {
         factory_calls{},retained_agents{},released_managers{},class_calls{},motion_queries{},
         discrete_queries{},zero_ranks{},disabled_ranks{},body_policy_queries{},bodies_marked{};
 };
+// Actual316200: the world's discrete collision dispatcher. This is a lazy
+// field read at the source call boundary and has no CPU/FP side effects.
+std::uint32_t native_tu15_island_discrete_dispatcher(const SourcePhysicsContactMemory&,
+    NativeTu15PhysicsWorld);
 // Actual282870. The source's listener receiver is unused; its island owns the
 // real contact entries/world. Scratch is caller-owned byte-result backing,
 // never an x86 control frame. Every callback owns genuine current work.

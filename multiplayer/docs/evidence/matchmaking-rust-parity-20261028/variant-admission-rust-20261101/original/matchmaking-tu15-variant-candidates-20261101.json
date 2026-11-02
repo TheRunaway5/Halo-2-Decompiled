@@ -1,0 +1,347 @@
+{
+  "schema": "H2_TU15_VARIANT_CANDIDATES_V1",
+  "scope": "Read-only executable prefix correspondence candidates; branch/image relocations masked only for discovery. Not function equivalence, original execution, caller validation, or Rust comparison.",
+  "retail_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "rows": [
+    {
+      "retail_entry": "0x19d620",
+      "instructions": 16,
+      "prefix_bytes": 40,
+      "unmasked_bytes": 36,
+      "candidate_addresses": [
+        "0x1a7140"
+      ],
+      "raw_exact_addresses": [
+        "0x1a7140"
+      ],
+      "paired_prefix": [
+        {
+          "retail": "0x19d620",
+          "tu15": "0x1a7140",
+          "retail_instruction": "push ebp",
+          "tu15_instruction": "push ebp"
+        },
+        {
+          "retail": "0x19d621",
+          "tu15": "0x1a7141",
+          "retail_instruction": "mov ebp, esp",
+          "tu15_instruction": "mov ebp, esp"
+        },
+        {
+          "retail": "0x19d623",
+          "tu15": "0x1a7143",
+          "retail_instruction": "and esp, 0xfffffff8",
+          "tu15_instruction": "and esp, 0xfffffff8"
+        },
+        {
+          "retail": "0x19d626",
+          "tu15": "0x1a7146",
+          "retail_instruction": "sub esp, 0x134",
+          "tu15_instruction": "sub esp, 0x134"
+        },
+        {
+          "retail": "0x19d62c",
+          "tu15": "0x1a714c",
+          "retail_instruction": "push ebx",
+          "tu15_instruction": "push ebx"
+        },
+        {
+          "retail": "0x19d62d",
+          "tu15": "0x1a714d",
+          "retail_instruction": "push esi",
+          "tu15_instruction": "push esi"
+        },
+        {
+          "retail": "0x19d62e",
+          "tu15": "0x1a714e",
+          "retail_instruction": "push edi",
+          "tu15_instruction": "push edi"
+        },
+        {
+          "retail": "0x19d62f",
+          "tu15": "0x1a714f",
+          "retail_instruction": "mov esi, eax",
+          "tu15_instruction": "mov esi, eax"
+        },
+        {
+          "retail": "0x19d631",
+          "tu15": "0x1a7151",
+          "retail_instruction": "mov ecx, 0x4c",
+          "tu15_instruction": "mov ecx, 0x4c"
+        },
+        {
+          "retail": "0x19d636",
+          "tu15": "0x1a7156",
+          "retail_instruction": "lea edi, [esp + 0x10]",
+          "tu15_instruction": "lea edi, [esp + 0x10]"
+        },
+        {
+          "retail": "0x19d63a",
+          "tu15": "0x1a715a",
+          "retail_instruction": "lea ebx, [esp + 0x10]",
+          "tu15_instruction": "lea ebx, [esp + 0x10]"
+        },
+        {
+          "retail": "0x19d63e",
+          "tu15": "0x1a715e",
+          "retail_instruction": "rep movsd dword ptr es:[edi], dword ptr [esi]",
+          "tu15_instruction": "rep movsd dword ptr es:[edi], dword ptr [esi]"
+        },
+        {
+          "retail": "0x19d640",
+          "tu15": "0x1a7160",
+          "retail_instruction": "call 0x19d650",
+          "tu15_instruction": "call 0x1a7170"
+        },
+        {
+          "retail": "0x19d645",
+          "tu15": "0x1a7165",
+          "retail_instruction": "pop edi",
+          "tu15_instruction": "pop edi"
+        },
+        {
+          "retail": "0x19d646",
+          "tu15": "0x1a7166",
+          "retail_instruction": "pop esi",
+          "tu15_instruction": "pop esi"
+        },
+        {
+          "retail": "0x19d647",
+          "tu15": "0x1a7167",
+          "retail_instruction": "pop ebx",
+          "tu15_instruction": "pop ebx"
+        }
+      ]
+    },
+    {
+      "retail_entry": "0x19d650",
+      "instructions": 16,
+      "prefix_bytes": 48,
+      "unmasked_bytes": 48,
+      "candidate_addresses": [
+        "0x1a7170"
+      ],
+      "raw_exact_addresses": [
+        "0x1a7170"
+      ],
+      "paired_prefix": [
+        {
+          "retail": "0x19d650",
+          "tu15": "0x1a7170",
+          "retail_instruction": "push ebp",
+          "tu15_instruction": "push ebp"
+        },
+        {
+          "retail": "0x19d651",
+          "tu15": "0x1a7171",
+          "retail_instruction": "mov ebp, esp",
+          "tu15_instruction": "mov ebp, esp"
+        },
+        {
+          "retail": "0x19d653",
+          "tu15": "0x1a7173",
+          "retail_instruction": "and esp, 0xfffffff8",
+          "tu15_instruction": "and esp, 0xfffffff8"
+        },
+        {
+          "retail": "0x19d656",
+          "tu15": "0x1a7176",
+          "retail_instruction": "sub esp, 0x330",
+          "tu15_instruction": "sub esp, 0x330"
+        },
+        {
+          "retail": "0x19d65c",
+          "tu15": "0x1a717c",
+          "retail_instruction": "push esi",
+          "tu15_instruction": "push esi"
+        },
+        {
+          "retail": "0x19d65d",
+          "tu15": "0x1a717d",
+          "retail_instruction": "push edi",
+          "tu15_instruction": "push edi"
+        },
+        {
+          "retail": "0x19d65e",
+          "tu15": "0x1a717e",
+          "retail_instruction": "mov ecx, 0x4c",
+          "tu15_instruction": "mov ecx, 0x4c"
+        },
+        {
+          "retail": "0x19d663",
+          "tu15": "0x1a7183",
+          "retail_instruction": "mov esi, ebx",
+          "tu15_instruction": "mov esi, ebx"
+        },
+        {
+          "retail": "0x19d665",
+          "tu15": "0x1a7185",
+          "retail_instruction": "lea edi, [esp + 8]",
+          "tu15_instruction": "lea edi, [esp + 8]"
+        },
+        {
+          "retail": "0x19d669",
+          "tu15": "0x1a7189",
+          "retail_instruction": "rep movsd dword ptr es:[edi], dword ptr [esi]",
+          "tu15_instruction": "rep movsd dword ptr es:[edi], dword ptr [esi]"
+        },
+        {
+          "retail": "0x19d66b",
+          "tu15": "0x1a718b",
+          "retail_instruction": "mov ecx, dword ptr [ebx + 0x48]",
+          "tu15_instruction": "mov ecx, dword ptr [ebx + 0x48]"
+        },
+        {
+          "retail": "0x19d66e",
+          "tu15": "0x1a718e",
+          "retail_instruction": "and word ptr [ebx], 1",
+          "tu15_instruction": "and word ptr [ebx], 1"
+        },
+        {
+          "retail": "0x19d672",
+          "tu15": "0x1a7192",
+          "retail_instruction": "and ecx, 0x7fff",
+          "tu15_instruction": "and ecx, 0x7fff"
+        },
+        {
+          "retail": "0x19d678",
+          "tu15": "0x1a7198",
+          "retail_instruction": "xor edx, edx",
+          "tu15_instruction": "xor edx, edx"
+        },
+        {
+          "retail": "0x19d67a",
+          "tu15": "0x1a719a",
+          "retail_instruction": "mov dword ptr [ebx + 0x48], ecx",
+          "tu15_instruction": "mov dword ptr [ebx + 0x48], ecx"
+        },
+        {
+          "retail": "0x19d67d",
+          "tu15": "0x1a719d",
+          "retail_instruction": "mov ecx, dword ptr [ebx + 0x4c]",
+          "tu15_instruction": "mov ecx, dword ptr [ebx + 0x4c]"
+        }
+      ]
+    },
+    {
+      "retail_entry": "0x19d220",
+      "instructions": 16,
+      "prefix_bytes": 43,
+      "unmasked_bytes": 43,
+      "candidate_addresses": [
+        "0x1a6d40"
+      ],
+      "raw_exact_addresses": [
+        "0x1a6d40"
+      ],
+      "paired_prefix": [
+        {
+          "retail": "0x19d220",
+          "tu15": "0x1a6d40",
+          "retail_instruction": "push ebp",
+          "tu15_instruction": "push ebp"
+        },
+        {
+          "retail": "0x19d221",
+          "tu15": "0x1a6d41",
+          "retail_instruction": "mov ebp, esp",
+          "tu15_instruction": "mov ebp, esp"
+        },
+        {
+          "retail": "0x19d223",
+          "tu15": "0x1a6d43",
+          "retail_instruction": "and esp, 0xfffffff8",
+          "tu15_instruction": "and esp, 0xfffffff8"
+        },
+        {
+          "retail": "0x19d226",
+          "tu15": "0x1a6d46",
+          "retail_instruction": "sub esp, 0x334",
+          "tu15_instruction": "sub esp, 0x334"
+        },
+        {
+          "retail": "0x19d22c",
+          "tu15": "0x1a6d4c",
+          "retail_instruction": "push ebx",
+          "tu15_instruction": "push ebx"
+        },
+        {
+          "retail": "0x19d22d",
+          "tu15": "0x1a6d4d",
+          "retail_instruction": "push esi",
+          "tu15_instruction": "push esi"
+        },
+        {
+          "retail": "0x19d22e",
+          "tu15": "0x1a6d4e",
+          "retail_instruction": "push edi",
+          "tu15_instruction": "push edi"
+        },
+        {
+          "retail": "0x19d22f",
+          "tu15": "0x1a6d4f",
+          "retail_instruction": "xor eax, eax",
+          "tu15_instruction": "xor eax, eax"
+        },
+        {
+          "retail": "0x19d231",
+          "tu15": "0x1a6d51",
+          "retail_instruction": "mov ecx, 0x4c",
+          "tu15_instruction": "mov ecx, 0x4c"
+        },
+        {
+          "retail": "0x19d236",
+          "tu15": "0x1a6d56",
+          "retail_instruction": "lea edi, [esp + 0x10]",
+          "tu15_instruction": "lea edi, [esp + 0x10]"
+        },
+        {
+          "retail": "0x19d23a",
+          "tu15": "0x1a6d5a",
+          "retail_instruction": "rep stosd dword ptr es:[edi], eax",
+          "tu15_instruction": "rep stosd dword ptr es:[edi], eax"
+        },
+        {
+          "retail": "0x19d23c",
+          "tu15": "0x1a6d5c",
+          "retail_instruction": "mov edi, dword ptr [ebp + 0xc]",
+          "tu15_instruction": "mov edi, dword ptr [ebp + 0xc]"
+        },
+        {
+          "retail": "0x19d23f",
+          "tu15": "0x1a6d5f",
+          "retail_instruction": "xor ebx, ebx",
+          "tu15_instruction": "xor ebx, ebx"
+        },
+        {
+          "retail": "0x19d241",
+          "tu15": "0x1a6d61",
+          "retail_instruction": "xor edx, edx",
+          "tu15_instruction": "xor edx, edx"
+        },
+        {
+          "retail": "0x19d243",
+          "tu15": "0x1a6d63",
+          "retail_instruction": "cmp edi, 6",
+          "tu15_instruction": "cmp edi, 6"
+        },
+        {
+          "retail": "0x19d246",
+          "tu15": "0x1a6d66",
+          "retail_instruction": "mov esi, 2",
+          "tu15_instruction": "mov esi, 2"
+        }
+      ]
+    }
+  ],
+  "original_execution_run": false,
+  "rust_comparison_run": false,
+  "full_goal_complete": false,
+  "retained_large_artifacts": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-tu15-candidates/halo2-test-lu4gu67r",
+  "source_sha256": {
+    "tools/research_mp_sandbox_update_functions.py": "f1a894a5506feb737bc431cee196466d40a1d9f9040170b9e1bb5f807e726da7",
+    "tools/reference/halo2-decompiled/tools/xbe.py": "3bc3717d8a78450690ad9efa9eabf9ffa45a68e1207dde554a820c4cd80413d4"
+  }
+}

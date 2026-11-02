@@ -1,0 +1,153 @@
+//! ABI conversions only. The safe core owns all migration caller sequencing.
+use crate::{ffi, matchmaking_native_session as session};
+use halo2_online_protocol::matchmaking_native_migration as core;
+
+fn io<T>(v: Result<T, cxx::Exception>) -> core::Result<T> {
+    v.map_err(|error| core::Error(error.to_string()))
+}
+fn context(v: ffi::NativePublicationContext) -> core::Result<ffi::HostAgreementContext> {
+    // New raw host operands remain wide until checked at the existing State
+    // boundary. Do not alias 256+n to a valid seat n.
+    Ok(ffi::HostAgreementContext {
+        session: v.session,
+        epoch: v.epoch,
+        membership_revision: v.membership_revision,
+        peers: v.peers,
+        host: v.host.try_into().map_err(|_| core::Error("Invalid native migration context".into()))?,
+    })
+}
+fn binding(v: ffi::NativeMigrationBinding) -> Option<ffi::NativePublicationContext> {
+    v.present.then_some(v.context)
+}
+struct Io<'a>(&'a ffi::NativeMigrationIo);
+impl core::Io for Io<'_> {
+    type Context = ffi::NativePublicationContext;
+    type Agreement = ffi::HostAgreementState;
+    fn binding(&self) -> core::Result<Option<Self::Context>> {
+        Ok(binding(io(self.0.migration_binding())?))
+    }
+    fn agreement_present(&self) -> bool {
+        self.0.migration_agreement_present()
+    }
+    fn now_ms(&self) -> u64 {
+        self.0.migration_now_ms()
+    }
+    fn agreement(&self, now: u64) -> core::Result<core::Learned<Self::Agreement>> {
+        let state = io(self.0.migration_agreement(now))?;
+        Ok(core::Learned {
+            fenced: state.fenced,
+            state,
+        })
+    }
+    fn handoff(&self) -> bool {
+        self.0.migration_handoff()
+    }
+    fn selection_started(&self) -> bool {
+        self.0.migration_selection_started()
+    }
+    fn quality(&self) -> core::Result<Option<Self::Context>> {
+        Ok(binding(io(self.0.migration_quality())?))
+    }
+    fn ranked(&self, now: u64) -> core::Result<Vec<u32>> {
+        io(self.0.migration_ranked(now))
+    }
+    fn selection_supported(&self) -> core::Result<bool> {
+        io(self.0.migration_selection_supported())
+    }
+    fn selection(&self) -> core::Result<Option<core::Selection>> {
+        let v = io(self.0.migration_selection())?;
+        Ok(v.present.then_some(core::Selection {
+            complete: v.complete,
+            failed: v.failed,
+        }))
+    }
+    fn apply_fence(&self, v: core::Fence<Self::Context, Self::Agreement>) -> core::Result<()> {
+        let decision = v
+            .agreement
+            .map(|a| a.decision)
+            .unwrap_or_else(|| crate::host_agreement::to_decision(None));
+        io(self.0.migration_apply_fence(&ffi::NativeSessionFence {
+            context: context(v.context)?,
+            fenced: v.fenced,
+            decision,
+            selection_started: v.selection_started,
+            selection_failed: v.selection_failed,
+        }))
+    }
+    fn begin(&self, c: Self::Context) -> core::Result<()> {
+        io(self.0.migration_begin(&context(c)?))
+    }
+    fn pick(&self, v: core::Candidate<Self::Context, Self::Agreement>) -> core::Result<u32> {
+        let (agreement_present, c, agreement) = match v.agreement {
+            Some((c, a)) => (true, context(c)?, a),
+            None => (false, session::to_context(None), empty_agreement()),
+        };
+        let quality_present = v.quality.is_some();
+        let quality = match v.quality {
+            Some(c) => context(c)?,
+            None => session::to_context(None),
+        };
+        io(self.0.migration_pick(&ffi::NativeSessionCandidate {
+            agreement_present,
+            context: c,
+            agreement,
+            quality_present,
+            quality,
+            ranked: v.ranked,
+            selection_supported: v.selection_supported,
+            selection_complete: v.selection.complete,
+            selection_failed: v.selection.failed,
+        }))
+    }
+}
+fn empty_agreement() -> ffi::HostAgreementState {
+    ffi::HostAgreementState {
+        suspected: false,
+        fenced: false,
+        electorate: 0,
+        silent: 0,
+        majority: 0,
+        ready: std::array::from_fn(|_| crate::matchmaking_native_publication::cut(None)),
+        decision: crate::host_agreement::to_decision(None),
+        rejected: 0,
+    }
+}
+fn protect<T>(f: impl FnOnce() -> core::Result<T>) -> Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+        .map_err(|_| "Native migration caller failed".to_owned())?
+        .map_err(|e| e.to_string())
+}
+pub fn native_migration_fence(v: &ffi::NativeMigrationIo, force: bool, failed: bool) -> Result<(), String> {
+    protect(|| core::fence(&Io(v), force, failed))
+}
+pub fn native_migration_begin(v: &ffi::NativeMigrationIo) -> Result<(), String> {
+    protect(|| core::begin_selection(&Io(v)))
+}
+pub fn native_migration_candidate(v: &ffi::NativeMigrationIo, now: u64) -> Result<ffi::NativeMigrationCandidate, String> {
+    protect(|| core::candidate(&Io(v), now).map(|p| ffi::NativeMigrationCandidate {
+        present: p.is_some(),
+        peer: p.map_or(16, u32::from),
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn raw(host: u32) -> ffi::NativePublicationContext {
+        ffi::NativePublicationContext { session:[0x9d;32],epoch:u32::MAX,membership_revision:u64::MAX,peers:u16::MAX,host }
+    }
+    #[test]
+    fn raw_context_conversion_checks_wide_host_before_admitted_boundary() {
+        for host in [0,15,16,255] {
+            let c=context(raw(host)).unwrap();assert_eq!(u32::from(c.host),host);
+            assert_eq!(c.session,[0x9d;32]);assert_eq!(c.epoch,u32::MAX);assert_eq!(c.membership_revision,u64::MAX);assert_eq!(c.peers,u16::MAX);
+        }
+        for host in [256,257,65536,u32::MAX] { assert!(context(raw(host)).is_err()); }
+    }
+    #[test]
+    fn absent_binding_does_not_validate_unobserved_raw_fields() {
+        assert!(binding(ffi::NativeMigrationBinding { present:false,context:raw(u32::MAX) }).is_none());
+        let c=binding(ffi::NativeMigrationBinding { present:true,context:raw(u32::MAX) }).unwrap();
+        assert_eq!(c.host,u32::MAX);assert!(context(c).is_err());
+    }
+}

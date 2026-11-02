@@ -1,0 +1,23 @@
+{
+  "engine": 0,
+  "ordinal": 1,
+  "parameter": 10,
+  "stored_value": 8,
+  "custom": 1,
+  "text": "Round Time Limit: ",
+  "lookups": [
+    [
+      "e6340414",
+      "160018ed",
+      "Round Time Limit"
+    ]
+  ],
+  "original_functions": [
+    "19d220",
+    "2373be",
+    "2374f0",
+    "25092c"
+  ],
+  "supplied_native_formatter": false,
+  "passed": true
+}

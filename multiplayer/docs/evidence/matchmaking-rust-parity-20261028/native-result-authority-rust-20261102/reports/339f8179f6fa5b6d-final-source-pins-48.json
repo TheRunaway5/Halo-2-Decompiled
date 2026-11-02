@@ -1,0 +1,6 @@
+{
+  "tests/native_result_authority_tests.cpp": "290e182f1a80b450e87f838bb9334e630ac4a39dc2d6cfc51d0c3aa6fd6c0f4a",
+  "tests/test_native_result_authority.py": "745797891c63f8487955c9905b4af853e5b8abe0b9518baf8a573c394d9c0291",
+  "tests/reference/native_results_before_rust_20261102/online_postgame_policy.cpp.inc": "391f7a49945b9ef5476f9fddc46a44139efa7ce890b3983fc793f4a6521dbffe",
+  "tests/reference/native_results_before_rust_20261102/provenance.json": "24b6e1c70585c0533f8f58706716193374d930e17cad817d48c4e7faf10a02d4"
+}

@@ -14,6 +14,8 @@
 #include "halo2/source_unit_interaction_target.hpp"
 #include "halo2/source_attached_effect.hpp"
 #include "halo2/source_hud_objectives.hpp"
+#include "halo2/source_vehicle_audio_listener_tu15.hpp"
+#include "halo2/source_object_audio_views_tu15.hpp"
 #include <map>
 
 namespace halo2 {
@@ -92,6 +94,10 @@ public:
   // Complete BA1D0/TU1.5 BC200 resolves the ultimate parent and actual
   // physics component, including its stationary and absent-body branches.
   Vec3 object_linear_velocity(std::uint32_t object);
+  //129F10 seat branch operands from this retained unit/parent/definition and
+  // complete CD440. No listener record, availability or voice is published.
+  std::optional<SourceVehicleAudioListenerInputTu15> vehicle_audio_listener_inputs(
+      std::uint32_t unit,unsigned camera_mode,const SourceObjectAudioViewTu15& observer);
   SourceVehicleSeatTarget vehicle_seat_target(std::uint32_t unit,std::uint32_t vehicle);
   // Native script builtin inputs enter complete original TU1.5 device/group
   // APIs on this same retained source bank; getters preserve source bits.
@@ -127,7 +133,7 @@ public:
     void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
   void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
   bool has_projectile_effect_observer() const;
-  void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15);
+  void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15,bool instruction_trace=true);
   void observe_effect_damage(SourceEffectDamageObserverTu15);
   MultiplayerSourceVitality object_vitality(std::uint32_t object) const;
   // Deliver the completed native D5DE0/D9110/BCC20 owner state before the
@@ -203,6 +209,9 @@ public:
   //133790 consumes the retained object+30/+3C sphere. Resolve the same full
   //salted owner as WORLD nodes; preview-model bounds are not this bank.
   ShadowCasterSphere object_sphere(std::uint32_t object) const;
+  // Actual native TU1.5 BCB70, over the current full salted lifetime. The
+  // output is copied before the call's stack/TLS owner is released.
+  float object_shader_input(std::uint32_t object,std::uint32_t function);
   SourceObjectClusterMemberships render_cluster_memberships()const;
   // Native presentation inputs over this same retained TU1.1 bank. Resources
   // finish through the original queue/read/fixup graph before their first draw.
@@ -265,6 +274,7 @@ public:
     SourcePhysicsWorldRuntimeAbi replacement_caller() const;
     void retain_live_multiplayer_render_history();
     void retain_live_multiplayer_render_history_from(const MultiplayerObjectRuntime &);
+    void retain_native_particle_history_from(const MultiplayerObjectRuntime &);
   private:
     friend class MultiplayerObjectRuntime;
     PreparedAuthority();

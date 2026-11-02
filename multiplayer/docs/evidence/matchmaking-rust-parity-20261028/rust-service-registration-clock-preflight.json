@@ -1,0 +1,149 @@
+{
+  "schema": "H2_RUST_SERVICE_REGISTRATION_CLOCK_PREFLIGHT_V1",
+  "updated_utc": "2026-11-01T05:04:13.404593+00:00",
+  "genuine_migration_mismatch": true,
+  "registration_floor_passed": false,
+  "provider_clock_domain_passed": true,
+  "legacy_contract_passed": true,
+  "original_parity": false,
+  "production_fixed": false,
+  "full_goal_complete": false,
+  "observed": {
+    "passed": false,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-preflight/halo2-test-njmg5f3w",
+    "retained_large_artifacts": [],
+    "candidate": {
+      "donor": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf/cargo/release/halo2-matchmaking-service",
+      "sha256": "d38897aac0acb4f19eafd0dcdf0fba63a7a288c63f583a1735d3679915d73c91",
+      "bytes": 11452552,
+      "borrowed_read_only": true,
+      "private_copy": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-preflight/halo2-test-njmg5f3w/halo2-matchmaking-service",
+      "retained": false
+    },
+    "donor_manifest_sha256": "fc1b6ffd9963b0f182a39e41371058041ba31a0992a4f5eff9b1f30f1dbb9656",
+    "probe_source_pins": {
+      "tools/test_rust_matchmaking_service.py": "604e25658bca4d5ecad052714076afa18da86e2ea0519cdc89e8826a0e2989a3",
+      "tools/rust_service_clock_controls.py": "3c741c8c8d351f98a161badaf0d32fa6421ef9cbe348897e735fcf4e72ca1c67",
+      "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670"
+    },
+    "clock": {
+      "passed": false,
+      "contract": "Steam expiry uses credential wall time; social account registration uses Store.now with the persisted floor.",
+      "statuses": [
+        201,
+        201,
+        401
+      ],
+      "expected_statuses": [
+        201,
+        201,
+        401
+      ],
+      "registration_dates": [
+        1793509331,
+        1793509331
+      ],
+      "expected_registration_dates": [
+        1793509931,
+        1793509931
+      ],
+      "expired_identity_allocations": 0,
+      "floor_retained": true,
+      "fixture": "Private provider grants and a later registration clock floor; no system-clock mutation.",
+      "real_provider": false,
+      "original_parity": false
+    }
+  },
+  "source_contract": {
+    "passed": true,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-legacy/halo2-test-nb8o_4ta",
+    "credential_accepted_by_actual_legacy_owner": true,
+    "registration_time_uses_floor": true,
+    "source_pins": {
+      "multiplayer/master_server/store.py": "f34675b7f173f7f30d2feb459069c47843be249aab9339fd181974e0bed81e97",
+      "multiplayer/master_server/steam_login.py": "b8832aea855ef9c72db352aa064b9ddc27f225e0783bf0e6138d7e8acdef6b23",
+      "multiplayer/master_server/clans_http.py": "6d511b721e5a734e25132c6c0d7c5789c4b9eb3535dd740d0c2552564ca7e80f"
+    },
+    "provider_fixture": true,
+    "original_parity": false,
+    "retained_large_artifacts": []
+  },
+  "rejected_expectation": {
+    "classification": "rejected_test_expectation",
+    "observed_behavior_confirmed": true,
+    "production_bug_proven": false,
+    "reason": "SteamLogin.owner uses its independent wall clock. clock_floor is used for registry expiration and canonical registration timestamps; it is not the Steam credential clock.",
+    "source_contracts": [
+      "multiplayer/master_server/steam_login.py:47",
+      "multiplayer/master_server/steam_login.py:348",
+      "multiplayer/master_server/clans_http.py:44",
+      "multiplayer/master_server/store.py:71"
+    ],
+    "production_change_made": false
+  },
+  "retained_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-rejected-expectation-classification.json",
+      "bytes": 572,
+      "sha256": "0a78dabdc745a0a82ab90d22c66c85038b9258a034dc462f0d7a7cef11652f1d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-rejected-expectation-donor-source-manifest.json",
+      "bytes": 18223,
+      "sha256": "fc1b6ffd9963b0f182a39e41371058041ba31a0992a4f5eff9b1f30f1dbb9656"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-rejected-expectation-preflight-source.txt",
+      "bytes": 2365,
+      "sha256": "85de96be58caf87c0f4967944304b570494cf254f9d3cbd853b3945c3195bfc6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-rejected-expectation-report.json",
+      "bytes": 1741,
+      "sha256": "786199933c20478b5a481a7d41e43d4741f76e483fdf6232d72f4b6350fa4694"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-preflight-donor-source-manifest.json",
+      "bytes": 18223,
+      "sha256": "fc1b6ffd9963b0f182a39e41371058041ba31a0992a4f5eff9b1f30f1dbb9656"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-preflight-legacy-contract.json",
+      "bytes": 690,
+      "sha256": "d9aebb876dedfd8a79c598849b776dad436529ec57b7560699557cd1aaab7e09"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-preflight-preflight-source.txt",
+      "bytes": 2660,
+      "sha256": "3c741c8c8d351f98a161badaf0d32fa6421ef9cbe348897e735fcf4e72ca1c67"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/registration-clock-preflight-report.json",
+      "bytes": 1896,
+      "sha256": "6ba5190bc1ee3a46b964b0cdda958d23447c9a3f332a71feba3853c6efde1744"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-preflight/halo2-test-6gf87eih",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-preflight/halo2-test-njmg5f3w",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-legacy/halo2-test-nb8o_4ta",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-evidence/halo2-test-t8g1vynw",
+      "removed": true
+    }
+  ],
+  "evidence_writer": {
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-evidence/halo2-test-t8g1vynw",
+    "cleanup_checked_after_exit": true
+  }
+}

@@ -1,0 +1,112 @@
+//! Complete native Session fence, selection-start and candidate callers.
+//! Native IO observes genuine owners under the caller's generation lock. The
+//! associated observation types stay opaque until the existing Session owner
+//! validates them; no Rust Session borrow may span an IO callback.
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Error(pub String);
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+impl std::error::Error for Error {}
+pub type Result<T> = std::result::Result<T, Error>;
+
+pub struct Learned<A> {
+    pub fenced: bool,
+    pub state: A,
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Selection {
+    pub complete: bool,
+    pub failed: bool,
+}
+pub struct Fence<C, A> {
+    pub context: C,
+    pub agreement: Option<A>,
+    pub fenced: bool,
+    pub selection_started: bool,
+    pub selection_failed: bool,
+}
+pub struct Candidate<C, A> {
+    pub agreement: Option<(C, A)>,
+    pub quality: Option<C>,
+    pub ranked: Vec<u32>,
+    pub selection_supported: bool,
+    pub selection: Selection,
+}
+pub trait Io {
+    type Context;
+    type Agreement;
+    fn binding(&self) -> Result<Option<Self::Context>>;
+    fn agreement_present(&self) -> bool;
+    fn now_ms(&self) -> u64;
+    fn agreement(&self, now: u64) -> Result<Learned<Self::Agreement>>;
+    fn handoff(&self) -> bool;
+    fn selection_started(&self) -> bool;
+    fn quality(&self) -> Result<Option<Self::Context>>;
+    fn ranked(&self, now: u64) -> Result<Vec<u32>>;
+    fn selection_supported(&self) -> Result<bool>;
+    fn selection(&self) -> Result<Option<Selection>>;
+    fn apply_fence(&self, value: Fence<Self::Context, Self::Agreement>) -> Result<()>;
+    fn begin(&self, context: Self::Context) -> Result<()>;
+    fn pick(&self, value: Candidate<Self::Context, Self::Agreement>) -> Result<u32>;
+}
+pub fn fence(io: &impl Io, force: bool, selection_failed: bool) -> Result<()> {
+    let Some(context) = io.binding()? else {
+        return Ok(());
+    };
+    // Force never suppresses the genuine agreement observation or its clock
+    // sample. Validation/application occurs only after all original samples.
+    let learned = if io.agreement_present() {
+        Some(io.agreement(io.now_ms())?)
+    } else {
+        None
+    };
+    let fenced = force || learned.as_ref().is_some_and(|a| a.fenced);
+    let selection_started = io.selection_started();
+    io.apply_fence(Fence {
+        context,
+        agreement: learned.map(|a| a.state),
+        fenced,
+        selection_started,
+        selection_failed,
+    })
+}
+pub fn begin_selection(io: &impl Io) -> Result<()> {
+    if let Some(context) = io.binding()? {
+        io.begin(context)?;
+    }
+    Ok(())
+}
+pub fn candidate(io: &impl Io, now: u64) -> Result<Option<u8>> {
+    if !io.handoff() {
+        return Ok(None);
+    }
+    let agreement = if io.agreement_present() {
+        if let Some(context) = io.binding()? {
+            Some((context, io.agreement(now)?.state))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let quality = io.quality()?;
+    let ranked = if quality.is_some() {
+        io.ranked(now)?
+    } else {
+        Vec::new()
+    };
+    let selection_supported = io.selection_supported()?;
+    let selection = io.selection()?.unwrap_or_default();
+    let selected = io.pick(Candidate {
+        agreement,
+        quality,
+        ranked,
+        selection_supported,
+        selection,
+    })?;
+    Ok((selected < 16).then_some(selected as u8))
+}

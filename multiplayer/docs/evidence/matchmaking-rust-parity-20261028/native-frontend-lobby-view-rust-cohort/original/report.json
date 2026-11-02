@@ -1,0 +1,53 @@
+{
+  "passed": false,
+  "steps": [
+    {
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-20261102/halo2-test-vppk82jv/source/analysis/frontend/lobby/oracle-game-panel.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-20261102/halo2-test-vppk82jv/source/analysis/frontend/lobby/oracle-header-policy.py"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "fixtures": {
+    "frontend-lobby-game-original.tsv": {
+      "unchanged": false,
+      "reference_sha256": "82c6f2d4827063e3b2ca7d1695973b9f79f55a324677b1e80ed6f824122a8577",
+      "fresh_sha256": "f42006a39bb4a97cd0ecb3bd838005b5a670d009e526b489e60155611ca039d9",
+      "rows": 1217
+    },
+    "frontend_lobby_header_original.tsv": {
+      "unchanged": true,
+      "reference_sha256": "074c5625c96e0f7534efdd572212c18cb02bcd425adaf3d6e6854dd21a6b8900",
+      "fresh_sha256": "074c5625c96e0f7534efdd572212c18cb02bcd425adaf3d6e6854dd21a6b8900",
+      "rows": 1172
+    }
+  },
+  "source_pins": {
+    "analysis/frontend/lobby/oracle-game-panel.py": "e0e85d989bfb837e40e93905aed4ac0af99ac10374c1906e908475e4750998b3",
+    "analysis/frontend/lobby/oracle-header-policy.py": "d2c71c6aab5fcf71910361ce277d351c3ec4ce89703e3d916eb529a144c82480",
+    "analysis/frontend/lobby/game-panel-original.json": "0cc741844dd4df49d13e278f2db3da1d3e14762d5d2a96b5f174aa2051a9f4bd"
+  },
+  "originals": {
+    "assets/disc/default.xbe": {
+      "sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+      "bytes": 4861952
+    },
+    "assets/disc/maps/mainmenu.map": {
+      "sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+      "bytes": 59670016
+    }
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-original-20261102/halo2-test-vppk82jv",
+  "version": "Pinned supplied retail Xbox executable; this receipt does not relabel it as TU1.5",
+  "retained_large_artifacts": []
+}

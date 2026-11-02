@@ -21,6 +21,35 @@ from custom_ui_test_support import custom_ui_fixture, empty_custom_map_fixture
 from test_controller_prompt_assets import controller_prompt_fixture
 
 
+class EosConfigurationSelectionTests(unittest.TestCase):
+    def setUp(self):
+        self.owner = tempfile.TemporaryDirectory()
+        self.addCleanup(self.owner.cleanup)
+        self.root = Path(self.owner.name)
+        self.local = self.root / '.local/eos-setup/client.env'
+        self.local.parent.mkdir(parents=True)
+        self.local.write_text('synthetic private build input')
+        self.runtime = self.root / 'bin/engine-builds/previous/halo2_native'
+        self.runtime.parent.mkdir(parents=True)
+        self.prior = {'runtime': self.runtime.relative_to(self.root).as_posix()}
+
+    def test_ordinary_rebuild_keeps_the_selected_online_configuration(self):
+        packaged = self.runtime.with_name('eos-client.env')
+        packaged.write_text('synthetic packaged game input')
+        self.assertEqual(engine.eos_client_configuration(self.root, None, self.prior), packaged)
+
+    def test_local_online_setup_is_used_when_a_previous_build_lost_configuration(self):
+        self.assertEqual(engine.eos_client_configuration(self.root, None, self.prior), self.local)
+        self.assertEqual(engine.eos_client_configuration(self.root, None, None), self.local)
+
+    def test_explicit_configuration_wins_and_unconfigured_development_stays_available(self):
+        explicit = self.root / 'explicit.env'
+        explicit.write_text('synthetic explicit game input')
+        self.assertEqual(engine.eos_client_configuration(self.root, explicit, self.prior), explicit)
+        self.local.unlink()
+        self.assertIsNone(engine.eos_client_configuration(self.root, None, self.prior))
+
+
 class EnginePromotionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -73,6 +102,29 @@ class EnginePromotionTests(unittest.TestCase):
         self.maps = self.cache / 'halo2/h2_maps_win64_dx11'
         self.maps.mkdir(parents=True)
         (self.maps / 'lockout.map').write_bytes(b'synthetic map')
+        (self.maps / 'coagulation.map').write_bytes(b'synthetic frag control map')
+        (self.maps / 'midship.map').write_bytes(b'synthetic plasma control map')
+        (self.maps / 'zanzibar.map').write_bytes(b'synthetic receiver control map')
+        for name in engine.SMG_WARTHOG_SHARED:
+            (self.maps / name).write_bytes(('Synthetic shared policy input: ' + name).encode())
+        self.smg_input = self.root / engine.SMG_WARTHOG_INPUT
+        self.smg_input.parent.mkdir(parents=True)
+        self.smg_input.write_text('# Synthetic promotion policy schedule; no gameplay claim\n' +
+            '\n'.join(f'{tick} 0 {int(100 <= tick < 400)} {int(tick == 410)} {int(tick == 80)} 0 0 move 0 0'
+                      for tick in range(1399)) + '\n')
+        self.smg_metadata = self.root / engine.SMG_WARTHOG_METADATA
+        self.smg_metadata.write_text(json.dumps(dict(capture_tick=1400,
+            map_sha256=engine.digest(self.maps / 'coagulation.map'),
+            input_script_sha256=engine.digest(self.smg_input),
+            scope='Synthetic promotion policy metadata; no native input or gameplay qualification')))
+        # The audio regression now requires mainmenu.map as a real shared input.
+        # Keep this synthetic promotion fixture independent of frontend captures;
+        # dedicated publication controls below replace this recorder explicitly.
+        frontend = patch('qualify_frontend_runtime.qualify', side_effect=lambda root, runtime, *_:
+            dict(runtime=runtime.relative_to(root).as_posix(), runtime_sha256=engine.digest(runtime),
+                 scope='Synthetic frontend policy recorder; no rendered qualification'))
+        frontend.start()
+        self.addCleanup(frontend.stop)
         self.scratch = Path(self.owner.name) / 'scratch'
         self.scratch.mkdir()
         self.runtime = self.scratch / 'recorder'
@@ -273,6 +325,14 @@ class EnginePromotionTests(unittest.TestCase):
         self.assertIn('--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=ON', command)
         self.assertIn('--cmake-arg=-DHALO2_CUSTOM_ASSET_ROOT=' + str(self.root), command)
         self.assertIn('--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=' + str(self.root), command)
+        self.assertIn('frontend_online_tests', command)
+        self.assertIn('loop_audio_locations_tu15_tests', command)
+        self.assertIn('mcc_resident_reflection_template_tests', command)
+        test_cache = Path(next(value.split('=', 2)[2] for value in command
+            if value.startswith('--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE=')))
+        test_map = Path(next(value.split('=', 2)[2] for value in command
+            if value.startswith('--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP=')))
+        self.assertEqual(test_map.parent, test_cache/'halo2/h2_maps_win64_dx11')
         if not getattr(self, 'omit_build_custom_assets', False):
             custom_assets.install(self.root, build / 'custom-assets')
         for name in ('halo2_native', 'Halo2-Launcher', 'Halo2-Title-Launcher', 'eos_sdk_worker'):
@@ -319,10 +379,107 @@ class EnginePromotionTests(unittest.TestCase):
             steps=[dict(name=name,exit_code=0) for name in
                    (('configure','build') if build_only else ('configure','build','tests'))])))
         if not build_only:
+            test_maps = Path(next(value.split('=', 2)[2] for value in command
+                if value.startswith('--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP='))).parent
             evidence=output/'evidence/multiplayer-menu-startup.json'
             evidence.parent.mkdir(exist_ok=True)
             evidence.write_text(json.dumps(dict(passed=True,frames=1,
+                runtime_sha256=engine.digest(build/'halo2_native'),
                 scope='Synthetic promotion-policy fixture; no gameplay claim')))
+            (evidence.parent/'friends-footer-anchor.json').write_text(json.dumps(dict(
+                passed=True,cases=[dict(passed=True,device=index//13,resize_case=index%13)
+                                   for index in range(39)],rendered_cases=0,
+                scope='Synthetic Friends footer promotion-policy fixture; no rendered or gameplay claim')))
+            (evidence.parent/'loop-audio-locations.json').write_text(json.dumps(dict(
+                passed=True,cases=22,comparisons=44,mode3_cases=6,mode2_cases=16,
+                original_xbe_sha256='21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd',
+                scope='Synthetic loop-location promotion-policy fixture; no original-call or gameplay claim')))
+            smg_log = evidence.parent/'smg-warthog-audio.log'
+            smg_log.write_text('Synthetic native SMG audio promotion-policy log; no gameplay claim\n')
+            source = self.scratch/'source'
+            reference = engine.smg_warthog_reference(source, test_maps)
+            tick = reference['capture_tick']
+            pins = [dict(path=str(item.resolve()), bytes=item.stat().st_size, sha256=engine.digest(item))
+                for item in [build/'halo2_native', source/engine.SMG_WARTHOG_INPUT,
+                    test_maps/'coagulation.map', *(test_maps/name for name in engine.SMG_WARTHOG_SHARED),
+                    source/engine.SMG_WARTHOG_METADATA]]
+            native = dict(schema='HALO2_NATIVE_LOOP_AUDIO_LOCATION_V1',
+                collector_schema='HALO2_SOURCE_LOOP_AUDIO_LOCATION_TU15_V1', passed=True, qualified=True,
+                run_result=0, map=str((test_maps/'coagulation.map').resolve()), graphics_mode='Original',
+                runtime_cache_source='MCC', mute=False, requested_capture_tick=tick, final_tick=tick,
+                captured_tick=True, input_samples=1399, submitted_frames=1399,
+                native_projectile_publications=180, shadow_generate_draws=20, shadow_apply_draws=25,
+                target=dict(owner=0xe7890009,definition=0xe89a000a,precondition_observed=True,precondition_tick=91,
+                    body_before_smg=.5,minimum_body_after_smg=.2,smg_damage_observed=True,
+                    first_smg_command_tick=401,first_smg_damage_tick=402,post_smg_vitality_samples=20),
+                precondition=dict(observed=True,grenade_commands=1,body_before=1.0,body_after=.5,
+                    grenade_projectiles=[dict(projectile=0xeabc0010,definition=0xebcd0011,type=0,
+                        player=0xe1230001,unit=0xe1230002,released=True)],
+                    grenade_detonations=[dict(projectile=0xeabc0010,definition=0xebcd0011,
+                        player=0xe1230001,unit=0xe1230002,serial=1,tick=90)]),
+                player=dict(source_player=0xe1230001,source_unit=0xe1230002,source_weapon=0xe1230003,
+                    weapon_definition=0xe2340004,expected_smg_definition=0xe2340004,
+                    rounds_consumed=180,shot_transitions=180,reload_commands=2,reload_transfers=2,
+                    reload_rounds=120,identity_changes=0,post_pin_non_smg_inputs=0,input_errors=0,input_read_failures=0),
+                audio=dict(packets=190,smg_packets=180,reload_packets=2,invalid_packets=0),
+                mode3=dict(observer_bound=True,baseline_recorded=True,baseline_frozen=True,
+                    entries=2,returns=2,validated_entries=2,successful_returns=2,post_fire_successful_returns=2,
+                    new_generation_successful_returns=2,target_owned_post_fire_successful_returns=2,
+                    preexisting_target_owned_successful_returns=0,precondition_target_owned_successful_returns=0,
+                    precondition_generation_seen=False,precondition_generation_count=0,
+                    post_fire_successful_ticks=2,invalid_calls=0,
+                    read_failures=0,unfinished_calls=0,late_baseline_inputs=0,first_success_source_tick=500,
+                    last_success_source_tick=501,first_shot_source_tick=400,first_shot_tick=401,
+                    samples=[dict(tick=at,caller_return=0x18fa4a,effect=0xe3450005,loop=0xe4560006,
+                        effect_definition=0xe5670007,loop_definition=0xe6780008,eax=0xe3450001,
+                        effect_object_owner=0xe7890009,effect_object_definition=0xe89a000a,
+                        new_generation=True,precondition_generation_seen=False,precondition_first_seen_source_tick=0xffffffff,
+                        output_bits=[0,0,0,0x3f800000,0,0,0x3f800000]) for at in (500,501)]))
+            (evidence.parent/'smg-warthog-audio.json').write_text(json.dumps(dict(
+                schema='HALO2_NATIVE_SMG_WARTHOG_AUDIO_REPLAY_V1',passed=True,expect='complete',
+                runtime=str((build/'halo2_native').resolve()),runtime_sha256=engine.digest(build/'halo2_native'),
+                map=str((test_maps/'coagulation.map').resolve()),map_sha256=reference['map_sha256'],
+                shared_maps=str(test_maps.resolve()),input_script=reference['input_script'],
+                input_script_sha256=reference['input_script_sha256'],reference_metadata=reference['reference_metadata'],
+                reference_metadata_path=reference['reference_metadata_path'],reference_metadata_sha256=reference['reference_metadata_sha256'],
+                capture_tick=tick,exit_code=0,frames=1399,ticks=tick,players=1,viewport=[640,480],graphics_mode='Original',
+                runtime_cache_source='MCC',mute=False,audio_driver='dummy',scratch_removed=True,inputs_unchanged=True,
+                exact_audio_owner_error=False,unknown_option_error=False,native_error_diagnostic=False,
+                capture_frame_count=1,retained_large_artifacts=[],input_pins_before=pins,input_pins_after=pins,
+                input_projection=dict(legacy_cli_projection_omits_accept=True),
+                input_schedule=dict(rows=1399,first_key=0,last_key=1398,contiguous=True,first_fire_key=100,
+                    fire_rows=300,reload_rows=1,grenade_rows=1,grenade_keys=[80]),native=native,
+                retained_log=dict(bytes=smg_log.stat().st_size,sha256=engine.digest(smg_log),tail_truncated=False),
+                shadow_draws={'world_native_shadow_generate_prepared_draws':20,
+                              'world_native_shadow_apply_prepared_draws':25},
+                capture=dict(width=640,height=480,bytes=640*480*3+len(b'P6\n640 480\n255\n'),sha256='a'*64),
+                scope='Synthetic native SMG promotion policy fixture; no runtime or gameplay claim')))
+            for kind, (map_name, grenade_type) in engine.GRENADE_SHADOW_CASES.items():
+                positive = grenade_type is not None
+                grenade_log = evidence.parent/f'grenade-shadow-{kind}.log'
+                grenade_log.write_text('Synthetic native grenade/shadow promotion-policy log; no gameplay claim\n')
+                (evidence.parent/f'grenade-shadow-{kind}.json').write_text(json.dumps(dict(
+                    passed=True, case=kind, runtime=str((build/'halo2_native').resolve()),
+                    runtime_sha256=engine.digest(build/'halo2_native'),
+                    map=str((test_maps/map_name).resolve()), map_sha256=engine.digest(test_maps/map_name),
+                    graphics_mode='Original', viewport=[1280,720], capture_tick=160,
+                    exit_code=0,frames=161,ticks=160,players=1,
+                    exact_missing_section_error=False,scratch_removed=True,runtime_and_map_unchanged=True,
+                    checks={name:True for name in ('exact_tick_and_complete_surface',
+                        'actual_shadow_gpu_submissions','native_grenade_lifecycle_or_neutral_control',
+                        'no_missing_shadow_section')},
+                    shadow_draws={'world_native_shadow_generate_prepared_draws':2,
+                                  'world_native_shadow_apply_prepared_draws':3},
+                    grenade_ticks=[23,24] if positive else [],
+                    grenade_owners=[0xe1230042] if positive else [],
+                    grenade_definitions=[0xe2340043] if positive else [],
+                    grenade_types=[grenade_type] if positive else [],
+                    native_grenade_observations=2 if positive else 0,
+                    native_grenade_admitted_observations=2 if positive else 0,
+                    detonation_serial=1 if positive else 0,
+                    retained_log=dict(bytes=grenade_log.stat().st_size,sha256=engine.digest(grenade_log)),
+                    capture=dict(bytes=1280*720*3+len(b'P6\n1280 720\n255\n'),sha256='a'*64),
+                    scope='Synthetic grenade promotion-policy fixture; no gameplay claim')))
         return subprocess.CompletedProcess(command, 0)
 
     def attempt(self, case, build=None, *, reader=None):
@@ -345,11 +502,35 @@ class EnginePromotionTests(unittest.TestCase):
             if '--build-only' in command:
                 self.assertFalse(directory.exists(),'Compilation must precede staging')
             else:
+                self.assertFalse((self.scratch/'build/multiplayer-menu-startup.json').exists(),
+                    'A previous menu receipt must be removed before the required CTest run')
+                for capture_directory in [self.scratch/'build',self.args.output/'validation/evidence']:
+                    for name in ('friends-footer-anchor.json','loop-audio-locations.json',
+                                 'smg-warthog-audio.json','smg-warthog-audio.log'):
+                        self.assertFalse((capture_directory/name).exists(),
+                            'A previous component receipt must be removed before the required CTest run')
+                for kind in engine.GRENADE_SHADOW_CASES:
+                    for capture_directory in [self.scratch/'build',self.args.output/'validation/evidence']:
+                        self.assertFalse((capture_directory/f'grenade-shadow-{kind}.json').exists(),
+                            'A previous grenade receipt must be removed before the required CTest run')
                 self.assertTrue((directory/'world.vert.spv').is_file(),
                     'Desktop loading tests need their compiled default shader bank before CTest')
                 proof=native_shaders.validate_native_package(directory,executable=self.scratch/'build/halo2_native')
                 staged_hashes.append(proof['package']['sha256'])
-            return self.build(command,**kwargs)
+            result=self.build(command,**kwargs)
+            if '--build-only' in command:
+                (self.scratch/'build/multiplayer-menu-startup.json').write_text(json.dumps(dict(
+                    passed=True,frames=99,runtime_sha256='0'*64,
+                    scope='Synthetic stale promotion-policy fixture; no gameplay claim')))
+                stale=self.args.output/'validation/evidence';stale.mkdir(parents=True,exist_ok=True)
+                for capture_directory in [self.scratch/'build',stale]:
+                    for name in ('friends-footer-anchor.json','loop-audio-locations.json',
+                                 'smg-warthog-audio.json','smg-warthog-audio.log'):
+                        (capture_directory/name).write_text('{}')
+                for kind in engine.GRENADE_SHADOW_CASES:
+                    for directory in [self.scratch/'build',stale]:
+                        (directory/f'grenade-shadow-{kind}.json').write_text('{}')
+            return result
         self.attempt(dict(passed=True),phases)
         self.assertEqual(len(commands),2)
         self.assertIn('--build-only',commands[0]);self.assertNotIn('--build-only',commands[1])
@@ -358,9 +539,32 @@ class EnginePromotionTests(unittest.TestCase):
         for name in ['original_loading_gpu','original_loading_gpu_4_3','h2ek_loading_onboarding',
                      'bundled_loading_ambience','native_vista_loading_adapter','original_vista_loading','original_vista_loading_thread',
                      'launcher_engine_promotion','native_frontend_launcher_routing',
-                     'native_mcc_split_screen_menu_startup']:
+                     'native_mcc_split_screen_menu_startup','native_mcc_grenade_shadow_neutral',
+                     'native_mcc_grenade_shadow_frag','native_mcc_grenade_shadow_plasma',
+                     'native_mcc_grenade_shadow_receiver',
+                     'native_mcc_friends_footer_anchor','original_tu15_loop_audio_locations',
+                     'native_mcc_smg_warthog_audio',
+                     'mcc_resident_reflection_template','mcc_shared_env_illum',
+                     'mcc_native_pc_world_programs','mcc_native_pc_world_programs_generator',
+                     'mcc_native_pc_world_programs_source_controls','mcc_native_vehicle_restoration',
+                     'mcc_native_vehicle_restoration_generator','mcc_native_character_shared',
+                     'mcc_native_character_shared_generator','mcc_native_character_shared_actual_source',
+                     'object_function_symbol_namespace','mcc_native_meter','mcc_native_meter_generator',
+                     'mcc_native_meter_actual_source','mcc_frontend_submenus','mcc_frontend_selection_stability',
+                     'workshop_navigation_content','original_workshop_camera_shared',
+                     'mcc_native_env_illum_three_channel','mcc_native_env_illum_three_channel_generator',
+                     'mcc_native_tiling_specular','mcc_native_tiling_specular_generator']:
             self.assertIn(name,filters[1])
         self.assertIn('multiplayer-menu-startup.json',commands[1])
+        self.assertIn('friends-footer-anchor.json',commands[1])
+        self.assertIn('loop-audio-locations.json',commands[1])
+        self.assertIn('mcc_native_tiling_specular_probe',commands[1])
+        self.assertIn('tiling.json',commands[1])
+        self.assertIn('smg-warthog-audio.json',commands[1])
+        self.assertIn('smg-warthog-audio.log',commands[1])
+        self.assertIn('workshop_navigation_content_tests',commands[1])
+        self.assertIn('workshop_camera_shared_tests',commands[1])
+        self.assertIn('workshop-navigation-content.json',commands[1])
         report=json.loads((self.args.output/'report.json').read_text())
         runtime=self.root/report['runtime']
         self.assertTrue(report['qualified_candidate'])
@@ -370,10 +574,41 @@ class EnginePromotionTests(unittest.TestCase):
         menu=report['split_screen_menu_startup']
         self.assertTrue(menu['passed']);self.assertEqual(menu['frames'],1)
         self.assertEqual(menu['report_sha256'],engine.digest(Path(menu['report'])))
+        self.assertEqual(menu['runtime_sha256'],engine.digest(runtime))
+        grenade=report['grenade_shadow_residency']
+        self.assertTrue(grenade['passed']);self.assertEqual(len(grenade['cases']),4)
+        self.assertEqual([case['case'] for case in grenade['cases']],['neutral','frag','plasma','receiver'])
+        for case in grenade['cases']:
+            self.assertEqual(case['report_sha256'],engine.digest(Path(case['report'])))
+            self.assertEqual(case['runtime_sha256'],engine.digest(runtime))
+            self.assertIn('grenade-shadow-'+case['case']+'.json',commands[1])
+        footer=report['friends_footer_anchor']
+        self.assertTrue(footer['passed']);self.assertEqual(footer['cases'],39)
+        self.assertEqual(footer['rendered_cases'],0)
+        self.assertEqual(footer['report_sha256'],engine.digest(Path(footer['report'])))
+        self.assertEqual(footer['source_inventory_sha256'],report['source_cohort']['inventory_sha256'])
+        self.assertNotIn('runtime_sha256',footer)
+        audio=report['loop_audio_locations']
+        self.assertTrue(audio['passed']);self.assertEqual(audio['cases'],22)
+        self.assertEqual(audio['comparisons'],44)
+        self.assertEqual(audio['report_sha256'],engine.digest(Path(audio['report'])))
+        self.assertEqual(audio['source_inventory_sha256'],report['source_cohort']['inventory_sha256'])
+        self.assertNotIn('runtime_sha256',audio)
+        smg=report['smg_warthog_audio']
+        self.assertTrue(smg['passed']);self.assertEqual(smg['capture_tick'],1400)
+        self.assertEqual(smg['runtime_sha256'],engine.digest(runtime))
+        self.assertEqual(smg['report_sha256'],engine.digest(Path(smg['report'])))
+        self.assertEqual(smg['log_sha256'],engine.digest(Path(smg['log'])))
+        self.assertEqual(smg['input_script_sha256'],engine.digest(self.smg_input))
+        self.assertEqual(smg['reference_metadata_sha256'],engine.digest(self.smg_metadata))
+        self.assertGreaterEqual(smg['post_fire_successful_ticks'],2)
+        self.assertGreater(smg['new_generation_successful_returns'],0)
+        self.assertGreater(smg['rounds_consumed'],60)
+        self.assertGreater(smg['reload_transfers'],0)
         self.assertEqual(self.selection.read_bytes(),self.original_selection)
 
     def test_missing_failed_or_zero_frame_menu_startup_cannot_promote(self):
-        for mode in ('missing','failed','zero_frames'):
+        for mode in ('missing','failed','zero_frames','missing_runtime_hash','wrong_runtime_hash'):
             with self.subTest(mode=mode):
                 def invalid_menu(command,**kwargs):
                     result=self.build(command,**kwargs)
@@ -382,9 +617,11 @@ class EnginePromotionTests(unittest.TestCase):
                         evidence=output/'evidence/multiplayer-menu-startup.json'
                         if mode=='missing': evidence.unlink()
                         else:
-                            evidence.write_text(json.dumps(dict(
-                                passed=mode!='failed',frames=0 if mode=='zero_frames' else 1,
-                                scope='Synthetic rejected promotion-policy fixture; no gameplay claim')))
+                            receipt=json.loads(evidence.read_text())
+                            receipt.update(passed=mode!='failed',frames=0 if mode=='zero_frames' else 1)
+                            if mode=='missing_runtime_hash':receipt.pop('runtime_sha256')
+                            elif mode=='wrong_runtime_hash':receipt['runtime_sha256']='0'*64
+                            evidence.write_text(json.dumps(receipt))
                     return result
                 expected=FileNotFoundError if mode=='missing' else RuntimeError
                 with self.assertRaises(expected):
@@ -398,6 +635,75 @@ class EnginePromotionTests(unittest.TestCase):
                 self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
                 self.assertEqual(report.get('smoke',[]),[])
                 self.assertNotIn('split_screen_menu_startup',report)
+                shutil.rmtree(self.scratch/'source')
+
+    def test_missing_failed_or_incomplete_friends_footer_cannot_promote(self):
+        for mode in ('missing', 'failed', 'partial_cases', 'failed_case', 'malformed_case',
+                     'oversized_report', 'invalid_rendered_count'):
+            with self.subTest(mode=mode):
+                def invalid_footer(command, **kwargs):
+                    result = self.build(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        evidence = output/'evidence/friends-footer-anchor.json'
+                        if mode == 'missing':
+                            evidence.unlink()
+                        elif mode == 'oversized_report':
+                            evidence.write_bytes(b'x'*(1024*1024+1))
+                        else:
+                            receipt = json.loads(evidence.read_text())
+                            if mode == 'failed': receipt['passed'] = False
+                            elif mode == 'partial_cases': receipt['cases'].pop()
+                            elif mode == 'failed_case': receipt['cases'][20]['passed'] = False
+                            elif mode == 'malformed_case': receipt['cases'][20] = 1
+                            elif mode == 'invalid_rendered_count': receipt['rendered_cases'] = -1
+                            evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'Friends footer qualification'):
+                    self.attempt(dict(passed=True), invalid_footer)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                for name, permissions in self.launcher_modes.items():
+                    self.assertEqual((self.root/name).read_text(), 'previous launcher')
+                    self.assertEqual((self.root/name).stat().st_mode&0o777, permissions)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                report = json.loads((self.args.output/'report.json').read_text())
+                self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
+                self.assertEqual(report.get('smoke', []), [])
+                self.assertNotIn('friends_footer_anchor', report)
+                shutil.rmtree(self.scratch/'source')
+
+    def test_missing_or_partial_loop_audio_owner_proof_cannot_promote(self):
+        for mode in ('missing','failed','partial_cases','observer_not_compared',
+                     'mode3_missing','wrong_original','malformed','oversized'):
+            with self.subTest(mode=mode):
+                def invalid_audio(command, **kwargs):
+                    result = self.build(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        evidence = output/'evidence/loop-audio-locations.json'
+                        if mode == 'missing': evidence.unlink()
+                        elif mode == 'oversized': evidence.write_bytes(b'x'*(1024*1024+1))
+                        elif mode == 'malformed': evidence.write_text('[]')
+                        else:
+                            receipt = json.loads(evidence.read_text())
+                            if mode == 'failed': receipt['passed'] = False
+                            elif mode == 'partial_cases': receipt['cases'] = 21
+                            elif mode == 'observer_not_compared': receipt['comparisons'] = 22
+                            elif mode == 'mode3_missing': receipt['mode3_cases'] = 0
+                            elif mode == 'wrong_original': receipt['original_xbe_sha256'] = '0'*64
+                            evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'Loop audio location qualification'):
+                    self.attempt(dict(passed=True), invalid_audio)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                for name, permissions in self.launcher_modes.items():
+                    self.assertEqual((self.root/name).read_text(), 'previous launcher')
+                    self.assertEqual((self.root/name).stat().st_mode&0o777, permissions)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                report = json.loads((self.args.output/'report.json').read_text())
+                self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
+                self.assertEqual(report.get('smoke', []), [])
+                self.assertNotIn('loop_audio_locations', report)
                 shutil.rmtree(self.scratch/'source')
 
     def test_build_only_receipt_cannot_replace_completed_qualification(self):
@@ -414,6 +720,258 @@ class EnginePromotionTests(unittest.TestCase):
         self.assertEqual(list((self.root/'bin/engine-builds').iterdir()),[])
         report=json.loads((self.args.output/'report.json').read_text())
         self.assertFalse(report['qualified_candidate']);self.assertEqual(report.get('smoke',[]),[])
+
+    def test_incomplete_or_foreign_smg_audio_proof_cannot_promote(self):
+        modes = ('missing', 'failed', 'wrong_runtime_hash', 'wrong_runtime_path', 'wrong_map_hash',
+            'wrong_map_path', 'wrong_input_hash', 'wrong_input_path', 'wrong_metadata_hash', 'wrong_metadata',
+            'wrong_capture_tick', 'red_expectation', 'missing_native', 'zero_mode3', 'one_source_tick',
+            'one_sample_tick', 'unbalanced_calls', 'unsalted_player', 'unsalted_effect', 'unsalted_loop', 'unsalted_definition',
+            'foreign_target_owner', 'foreign_target_definition', 'ownerless_sample', 'unclassified_generation',
+            'wrong_caller', 'false_al', 'nonfinite_output', 'wrong_output_extent', 'post_pin_non_smg',
+            'no_round_consumption', 'no_shot_transition', 'no_reload', 'no_reload_audio', 'no_smg_audio',
+            'no_projectiles', 'no_frames', 'no_shadow_generate', 'no_shadow_apply', 'incomplete_capture',
+            'retained_scratch', 'changed_inputs', 'missing_input_pin', 'wrong_input_pin',
+            'missing_smg_damage', 'false_smg_damage', 'no_smg_body_decrease', 'nonfinite_smg_body',
+            'one_smg_body_sample', 'missing_smg_command_tick', 'early_smg_damage', 'pre_shot_smg_damage', 'late_smg_damage',
+            'missing_precondition', 'unchanged_precondition', 'dead_precondition', 'no_grenade_command',
+            'unsalted_frag', 'foreign_frag_owner', 'unreleased_frag', 'multiple_frag_generations',
+            'missing_detonation', 'foreign_detonation', 'late_detonation', 'grenade_after_fire',
+            'missing_log', 'changed_log', 'malformed', 'oversized')
+        self.args.accept_smoke_failure = ['lockout.map:1', 'coagulation.map:4']
+        for mode in modes:
+            with self.subTest(mode=mode):
+                def invalid_smg(command, **kwargs):
+                    result = self.build(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        evidence = output/'evidence/smg-warthog-audio.json'
+                        if mode == 'missing': evidence.unlink()
+                        elif mode == 'oversized': evidence.write_bytes(b'x' * (524288 + 1))
+                        elif mode == 'malformed': evidence.write_text('[]')
+                        else:
+                            receipt = json.loads(evidence.read_text())
+                            native = receipt['native']; player = native['player']; audio = native['audio']; calls = native['mode3']
+                            if mode == 'failed': receipt['passed'] = False
+                            elif mode == 'wrong_runtime_hash': receipt['runtime_sha256'] = '0'*64
+                            elif mode == 'wrong_runtime_path': receipt['runtime'] = '/foreign/halo2_native'
+                            elif mode == 'wrong_map_hash': receipt['map_sha256'] = '0'*64
+                            elif mode == 'wrong_map_path': receipt['map'] = '/foreign/coagulation.map'
+                            elif mode == 'wrong_input_hash': receipt['input_script_sha256'] = '0'*64
+                            elif mode == 'wrong_input_path': receipt['input_script'] = '/foreign/input.tsv'
+                            elif mode == 'wrong_metadata_hash': receipt['reference_metadata_sha256'] = '0'*64
+                            elif mode == 'wrong_metadata': receipt['reference_metadata']['capture_tick'] = 1200
+                            elif mode == 'wrong_capture_tick': receipt['capture_tick'] = 1200
+                            elif mode == 'red_expectation': receipt['expect'] = 'missing-owner'
+                            elif mode == 'missing_native': receipt.pop('native')
+                            elif mode == 'zero_mode3': calls['new_generation_successful_returns'] = 0
+                            elif mode == 'one_source_tick': calls['post_fire_successful_ticks'] = 1
+                            elif mode == 'one_sample_tick': calls['samples'][1]['tick'] = calls['samples'][0]['tick']
+                            elif mode == 'unbalanced_calls': calls['returns'] = 1
+                            elif mode == 'unsalted_player': player['source_unit'] = 42
+                            elif mode == 'unsalted_effect': calls['samples'][0]['effect'] = 42
+                            elif mode == 'unsalted_loop': calls['samples'][0]['loop'] = 42
+                            elif mode == 'unsalted_definition': calls['samples'][0]['effect_definition'] = 42
+                            elif mode == 'foreign_target_owner': calls['samples'][0]['effect_object_owner'] = 0xe9990099
+                            elif mode == 'foreign_target_definition': calls['samples'][0]['effect_object_definition'] = 0xe9990099
+                            elif mode == 'ownerless_sample': calls['samples'][0]['effect_object_owner'] = 0xffffffff
+                            elif mode == 'unclassified_generation': calls['samples'][0]['new_generation'] = False
+                            elif mode == 'wrong_caller': calls['samples'][0]['caller_return'] = 0x18fa49
+                            elif mode == 'false_al': calls['samples'][0]['eax'] &= 0xffffff00
+                            elif mode == 'nonfinite_output': calls['samples'][0]['output_bits'][0] = 0x7fc00000
+                            elif mode == 'wrong_output_extent': calls['samples'][0]['output_bits'].pop()
+                            elif mode == 'post_pin_non_smg': player['post_pin_non_smg_inputs'] = 1
+                            elif mode == 'no_round_consumption': player['rounds_consumed'] = 60
+                            elif mode == 'no_shot_transition': player['shot_transitions'] = 0
+                            elif mode == 'no_reload': player['reload_transfers'] = 0
+                            elif mode == 'no_reload_audio': audio['reload_packets'] = 0
+                            elif mode == 'no_smg_audio': audio['smg_packets'] = 0
+                            elif mode == 'no_projectiles': native['native_projectile_publications'] = 0
+                            elif mode == 'no_frames': native['submitted_frames'] = 0
+                            elif mode == 'no_shadow_generate': native['shadow_generate_draws'] = 0
+                            elif mode == 'no_shadow_apply': receipt['shadow_draws']['world_native_shadow_apply_prepared_draws'] = 0
+                            elif mode == 'incomplete_capture': receipt['capture']['bytes'] -= 1
+                            elif mode == 'retained_scratch': receipt['scratch_removed'] = False
+                            elif mode == 'changed_inputs': receipt['input_pins_after'][0]['sha256'] = '0'*64
+                            elif mode == 'missing_input_pin': receipt['input_pins_before'].pop(); receipt['input_pins_after'].pop()
+                            elif mode == 'wrong_input_pin':
+                                receipt['input_pins_before'][0]['sha256'] = '0'*64
+                                receipt['input_pins_after'][0]['sha256'] = '0'*64
+                            elif mode == 'missing_smg_damage': native['target'].pop('smg_damage_observed')
+                            elif mode == 'false_smg_damage': native['target']['smg_damage_observed'] = False
+                            elif mode == 'no_smg_body_decrease': native['target']['minimum_body_after_smg'] = native['target']['body_before_smg']
+                            elif mode == 'nonfinite_smg_body': native['target']['body_before_smg'] = float('nan')
+                            elif mode == 'one_smg_body_sample': native['target']['post_smg_vitality_samples'] = 1
+                            elif mode == 'missing_smg_command_tick': native['target'].pop('first_smg_command_tick')
+                            elif mode == 'early_smg_damage': native['target']['first_smg_damage_tick'] = native['target']['first_smg_command_tick'] - 1
+                            elif mode == 'pre_shot_smg_damage': native['target'].update(first_smg_command_tick=1,first_smg_damage_tick=2)
+                            elif mode == 'late_smg_damage': native['target']['first_smg_damage_tick'] = native['requested_capture_tick']
+                            elif mode == 'missing_precondition': native.pop('precondition')
+                            elif mode == 'unchanged_precondition': native['precondition']['body_after'] = 1.0
+                            elif mode == 'dead_precondition': native['precondition']['body_after'] = 0.0
+                            elif mode == 'no_grenade_command': native['precondition']['grenade_commands'] = 0
+                            elif mode == 'unsalted_frag': native['precondition']['grenade_projectiles'][0]['projectile'] = 42
+                            elif mode == 'foreign_frag_owner': native['precondition']['grenade_projectiles'][0]['player'] = 0xe9990099
+                            elif mode == 'unreleased_frag': native['precondition']['grenade_projectiles'][0]['released'] = False
+                            elif mode == 'multiple_frag_generations':
+                                event = dict(native['precondition']['grenade_projectiles'][0]); event['projectile'] = 0xe9990099
+                                native['precondition']['grenade_projectiles'].append(event)
+                            elif mode == 'missing_detonation': native['precondition']['grenade_detonations'] = []
+                            elif mode == 'foreign_detonation': native['precondition']['grenade_detonations'][0]['projectile'] = 0xe9990099
+                            elif mode == 'late_detonation': native['precondition']['grenade_detonations'][0]['tick'] = calls['first_shot_tick']
+                            elif mode == 'grenade_after_fire': receipt['input_schedule']['grenade_keys'] = [receipt['input_schedule']['first_fire_key']]
+                            elif mode == 'missing_log': evidence.with_suffix('.log').unlink()
+                            elif mode == 'changed_log': evidence.with_suffix('.log').write_text('foreign log')
+                            evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'SMG Warthog audio qualification'):
+                    self.attempt(dict(passed=True), invalid_smg)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                for name, permissions in self.launcher_modes.items():
+                    self.assertEqual((self.root/name).read_text(), 'previous launcher')
+                    self.assertEqual((self.root/name).stat().st_mode&0o777, permissions)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                report = json.loads((self.args.output/'report.json').read_text())
+                self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
+                self.assertEqual(report.get('smoke', []), [])
+                self.assertNotIn('smg_warthog_audio', report)
+                shutil.rmtree(self.scratch/'source')
+
+    def existing_target_smg(self, command, **kwargs):
+        result = self.build(command, **kwargs)
+        if '--build-only' not in command:
+            output = Path(command[command.index('--output')+1])
+            evidence = output/'evidence/smg-warthog-audio.json'
+            receipt = json.loads(evidence.read_text()); calls = receipt['native']['mode3']
+            calls.update(entries=4,returns=4,validated_entries=4,successful_returns=4,
+                new_generation_successful_returns=0,preexisting_target_owned_successful_returns=2,
+                precondition_target_owned_successful_returns=2,precondition_generation_seen=True,
+                precondition_generation_count=1)
+            for sample in calls['samples']:
+                sample.update(new_generation=False,precondition_generation_seen=True,
+                    precondition_first_seen_source_tick=300)
+            evidence.write_text(json.dumps(receipt))
+        return result
+
+    def test_existing_target_loop_requires_genuine_earlier_source_owner_progress(self):
+        self.attempt(dict(passed=True), self.existing_target_smg)
+        report = json.loads((self.args.output/'report.json').read_text())['smg_warthog_audio']
+        self.assertTrue(report['passed'])
+        self.assertEqual(report['new_generation_successful_returns'], 0)
+        self.assertEqual(report['preexisting_target_owned_successful_returns'], 2)
+        self.assertEqual(report['target_owned_post_fire_successful_returns'], 2)
+
+    def test_existing_loop_without_matching_prior_source_observation_cannot_promote(self):
+        for mode in ('missing_precondition', 'no_prior_return', 'no_prior_generation', 'false_sample_seen',
+                     'same_shot_tick', 'future_seen_tick', 'wrong_owner', 'zero_target_returns'):
+            with self.subTest(mode=mode):
+                def invalid_existing(command, **kwargs):
+                    result = self.existing_target_smg(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        evidence = output/'evidence/smg-warthog-audio.json'
+                        receipt = json.loads(evidence.read_text()); native = receipt['native']; calls = native['mode3']
+                        if mode == 'missing_precondition': native['target']['precondition_observed'] = False
+                        elif mode == 'no_prior_return': calls['precondition_target_owned_successful_returns'] = 0
+                        elif mode == 'no_prior_generation': calls['precondition_generation_count'] = 0
+                        elif mode == 'false_sample_seen': calls['samples'][0]['precondition_generation_seen'] = False
+                        elif mode == 'same_shot_tick': calls['samples'][0]['precondition_first_seen_source_tick'] = calls['first_shot_source_tick']
+                        elif mode == 'future_seen_tick': calls['samples'][0]['precondition_first_seen_source_tick'] = calls['first_shot_source_tick'] + 1
+                        elif mode == 'wrong_owner': calls['samples'][0]['effect_object_owner'] = 0xe9990099
+                        elif mode == 'zero_target_returns': calls['target_owned_post_fire_successful_returns'] = 0
+                        evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'SMG Warthog audio qualification'):
+                    self.attempt(dict(passed=True), invalid_existing)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                shutil.rmtree(self.scratch/'source')
+
+    def test_borrowed_smg_reference_change_during_qualification_cannot_promote(self):
+        def changed_reference(command, **kwargs):
+            result = self.build(command, **kwargs)
+            if '--build-only' not in command:
+                self.smg_input.write_text(self.smg_input.read_text() + '# Changed after qualification\n')
+            return result
+        with self.assertRaisesRegex(RuntimeError, 'SMG Warthog audio reference'):
+            self.attempt(dict(passed=True), changed_reference)
+        self.assertEqual(self.selection.read_bytes(), self.original_selection)
+        self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+
+    def test_smg_reference_requires_qualified_tape_map_and_metadata_tick(self):
+        reference = engine.smg_warthog_reference(self.root, self.maps)
+        self.assertEqual(reference['capture_tick'], 1400)
+        original = self.smg_metadata.read_text()
+        for field, value in [('capture_tick', 599), ('capture_tick', True),
+                             ('map_sha256', '0'*64), ('input_script_sha256', '0'*64)]:
+            with self.subTest(field=field, value=value):
+                changed = json.loads(original); changed[field] = value
+                self.smg_metadata.write_text(json.dumps(changed))
+                with self.assertRaisesRegex(RuntimeError, 'SMG Warthog audio reference'):
+                    engine.smg_warthog_reference(self.root, self.maps)
+        self.smg_metadata.write_text(original)
+        self.smg_metadata.unlink()
+        with self.assertRaisesRegex(RuntimeError, 'SMG Warthog audio reference'):
+            engine.smg_warthog_reference(self.root, self.maps)
+
+    def test_incomplete_or_foreign_grenade_shadow_cases_cannot_promote(self):
+        modes = [(kind, mode) for kind in engine.GRENADE_SHADOW_CASES
+                 for mode in ('missing', 'failed', 'wrong_runtime_hash')]
+        modes.extend([('frag', mode) for mode in ('wrong_runtime_path', 'wrong_map',
+            'zero_frames', 'missing_native_grenade', 'unadmitted_grenade', 'unsalted_definition',
+            'missing_detonation', 'missing_shadow_draws', 'incomplete_capture',
+            'wrong_capture_tick', 'missing_log', 'changed_log', 'missing_check', 'retained_scratch')])
+        modes.append(('neutral', 'unexpected_grenade'))
+        modes.extend([('receiver', 'unexpected_grenade'), ('receiver', 'missing_shadow_draws')])
+        self.args.accept_smoke_failure = ['lockout.map:1', 'coagulation.map:4']
+        for kind, mode in modes:
+            with self.subTest(case=kind, mode=mode):
+                def invalid_grenade(command, **kwargs):
+                    result = self.build(command, **kwargs)
+                    if '--build-only' not in command:
+                        output = Path(command[command.index('--output')+1])
+                        evidence = output/'evidence'/f'grenade-shadow-{kind}.json'
+                        if mode == 'missing':
+                            evidence.unlink()
+                        else:
+                            receipt = json.loads(evidence.read_text())
+                            if mode == 'failed': receipt['passed'] = False
+                            elif mode == 'wrong_runtime_hash': receipt['runtime_sha256'] = '0'*64
+                            elif mode == 'wrong_runtime_path': receipt['runtime'] = '/foreign/halo2_native'
+                            elif mode == 'wrong_map': receipt['map_sha256'] = '0'*64
+                            elif mode == 'zero_frames': receipt['frames'] = 0
+                            elif mode == 'missing_native_grenade':
+                                receipt.update(native_grenade_observations=0,
+                                    native_grenade_admitted_observations=0,grenade_ticks=[],
+                                    grenade_owners=[],grenade_definitions=[],grenade_types=[])
+                            elif mode == 'unadmitted_grenade': receipt['native_grenade_admitted_observations'] = 0
+                            elif mode == 'unsalted_definition': receipt['grenade_definitions'] = [42]
+                            elif mode == 'missing_detonation': receipt['detonation_serial'] = 0
+                            elif mode == 'missing_shadow_draws': receipt['shadow_draws']['world_native_shadow_generate_prepared_draws'] = 0
+                            elif mode == 'incomplete_capture': receipt['capture']['bytes'] -= 1
+                            elif mode == 'wrong_capture_tick': receipt['capture_tick'] = 20
+                            elif mode == 'missing_log': evidence.with_suffix('.log').unlink()
+                            elif mode == 'changed_log': evidence.with_suffix('.log').write_text('foreign log')
+                            elif mode == 'missing_check': receipt['checks'].pop('native_grenade_lifecycle_or_neutral_control')
+                            elif mode == 'retained_scratch': receipt['scratch_removed'] = False
+                            elif mode == 'unexpected_grenade':
+                                receipt.update(native_grenade_observations=2,
+                                    native_grenade_admitted_observations=2,grenade_ticks=[23,24],
+                                    grenade_owners=[0xe1230042],grenade_definitions=[0xe2340043],
+                                    grenade_types=[0],detonation_serial=1)
+                            evidence.write_text(json.dumps(receipt))
+                    return result
+                with self.assertRaisesRegex(RuntimeError, 'Grenade shadow qualification'):
+                    self.attempt(dict(passed=True), invalid_grenade)
+                self.assertEqual(self.selection.read_bytes(), self.original_selection)
+                for name, permissions in self.launcher_modes.items():
+                    self.assertEqual((self.root/name).read_text(), 'previous launcher')
+                    self.assertEqual((self.root/name).stat().st_mode&0o777, permissions)
+                self.assertEqual(list((self.root/'bin/engine-builds').iterdir()), [])
+                report = json.loads((self.args.output/'report.json').read_text())
+                self.assertFalse(report['passed']);self.assertFalse(report['qualified_candidate'])
+                self.assertEqual(report.get('smoke', []), [])
+                self.assertNotIn('grenade_shadow_residency', report)
+                shutil.rmtree(self.scratch/'source')
 
     def test_failed_required_checks_remove_the_pre_staged_unqualified_bank(self):
         def failed(command,**kwargs):
@@ -774,8 +1332,13 @@ class EnginePromotionTests(unittest.TestCase):
         candidate = self.root / 'assets/imported/mcc-candidate'
         maps = candidate / 'halo2/h2_maps_win64_dx11'
         maps.mkdir(parents=True)
-        for name in ('lockout.map', 'coagulation.map', 'mainmenu.map'):
+        for name in ('lockout.map', 'coagulation.map', 'midship.map', 'zanzibar.map', 'mainmenu.map'):
             (maps / name).write_bytes(('qualified candidate ' + name).encode())
+        for name in ('shared.map', 'single_player_shared.map'):
+            shutil.copyfile(self.maps / name, maps / name)
+        metadata = json.loads(self.smg_metadata.read_text())
+        metadata['map_sha256'] = engine.digest(maps / 'coagulation.map')
+        self.smg_metadata.write_text(json.dumps(metadata))
         self.args.cache_candidate = candidate
         registry = self.root / mcc_onboarding.REGISTRY
         registry.write_text(mcc_onboarding.SCHEMA + '\ncache\t' + self.cache.relative_to(self.root).as_posix() + '\n')
@@ -834,8 +1397,13 @@ class EnginePromotionTests(unittest.TestCase):
         candidate = self.root / 'assets/imported/mcc-candidate'
         maps = candidate / 'halo2/h2_maps_win64_dx11'
         maps.mkdir(parents=True)
-        for name in ('lockout.map', 'mainmenu.map'):
+        for name in ('lockout.map', 'coagulation.map', 'midship.map', 'zanzibar.map', 'mainmenu.map'):
             (maps / name).write_bytes(('qualified candidate ' + name).encode())
+        for name in ('shared.map', 'single_player_shared.map'):
+            shutil.copyfile(self.maps / name, maps / name)
+        metadata = json.loads(self.smg_metadata.read_text())
+        metadata['map_sha256'] = engine.digest(maps / 'coagulation.map')
+        self.smg_metadata.write_text(json.dumps(metadata))
         self.args.cache_candidate = candidate
         registry = self.root / mcc_onboarding.REGISTRY
         registry.write_text(mcc_onboarding.SCHEMA + '\ncache\t' + self.cache.relative_to(self.root).as_posix() + '\n')
@@ -1112,6 +1680,24 @@ class EnginePromotionTests(unittest.TestCase):
                 self.assertNotIn('context', result['engine_targets'])
                 self.assertEqual(result['unexpected_unwired_sources'], ['src/context.cpp'])
 
+    def test_camera_reference_requires_the_linked_shared_runtime_owner(self):
+        reference='src/campaign/scripting/source_workshop_camera_start_tu15_generated.cpp'
+        production='src/campaign/scripting/source_workshop_script_builtins_tu15_generated.cpp'
+        for name in (reference,production):
+            path=self.root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('native camera source')
+        graph=self.scratch/'graph.txt'
+        rest=f'halo2_systems|||{production}\ncamera_reference_test|||{reference}\n'
+        graph.write_text('halo2_native|halo2_systems||src/app/main.cpp\n'+rest)
+        result=engine.wiring(graph,self.root)
+        self.assertTrue(result['passed'])
+        self.assertIn(reference,result['component_boundaries'])
+        self.assertIn(production,result['engine_sources'])
+        self.assertNotIn(production,result['component_boundaries'])
+        graph.write_text('halo2_native|||src/app/main.cpp\n'+rest)
+        result=engine.wiring(graph,self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(set(result['unexpected_unwired_sources']),{reference,production})
+
     def test_unadmitted_decorator_components_keep_an_explicit_boundary(self):
         components = (
             'src/rendering/world/source_decorator_decals_tu15.cpp',
@@ -1189,6 +1775,62 @@ class EnginePromotionTests(unittest.TestCase):
         unknown = 'src/physics/native_tu15_contact_candidates_live.cpp'
         (self.root/unknown).write_text('new source still requires its own admission')
         self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'], [unknown])
+
+    def test_unadmitted_title_and_physics_components_do_not_claim_runtime_delivery(self):
+        names = ('src/campaign/source_workshop_titles_tu15_generated.cpp',
+                 'src/physics/native_tu15_collision_component.cpp',
+                 'src/physics/native_tu15_collision_surface_shape.cpp',
+                 'src/physics/native_tu15_contact_point_removal.cpp',
+                 'src/physics/native_tu15_contact_query.cpp',
+                 'src/physics/native_tu15_convex_contact_query.cpp',
+                 'src/physics/native_tu15_island_partition_graph.cpp',
+                 'src/physics/native_tu15_pair_creation_queues.cpp',
+                 'src/physics/native_tu15_phantom_pair_create.cpp',
+                 'src/physics/native_tu15_simplex_face_selection.cpp')
+        for name in names:
+            path = self.root/name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('standalone component without an admitted production caller')
+        graph = self.scratch/'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertEqual(set(result['component_boundaries']), set(names))
+        self.assertTrue(set(names).isdisjoint(result['engine_sources']))
+        unknown = 'src/physics/native_tu15_contact_query_live.cpp'
+        (self.root/unknown).write_text('unregistered source still needs its own admission')
+        result = engine.wiring(graph, self.root)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['unexpected_unwired_sources'], [unknown])
+
+    def test_zoom_delivery_is_separate_only_in_an_explicit_selected_protocol_cohort(self):
+        name = 'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp'
+        path = self.root/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('production zoom delivery requires its state/wire cohort')
+        graph = self.scratch/'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp\n')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'], [name])
+        policy = self.root/'cmake/NativeWeaponEffectsTu15.cmake'
+        marker = '# This selected-protocol cohort retains the later zoom journal delivery as\n'
+        policy.write_text(marker)
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertIn(name, result['component_boundaries'])
+        policy.write_text(marker + 'target_sources(halo2_systems PRIVATE ' + name + ')\n')
+        self.assertEqual(engine.wiring(graph, self.root)['unexpected_unwired_sources'], [name])
+
+    def test_linked_zoom_delivery_never_becomes_a_separate_component(self):
+        name = 'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp'
+        path = self.root/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('ordinary production zoom delivery')
+        graph = self.scratch/'graph.txt'
+        graph.write_text('halo2_native|||src/app/main.cpp;' + name + '\n')
+        result = engine.wiring(graph, self.root)
+        self.assertTrue(result['passed'])
+        self.assertIn(name, result['engine_sources'])
+        self.assertNotIn(name, result['component_boundaries'])
 
     def test_unadmitted_broad_phase_and_solver_keep_explicit_residual_boundaries(self):
         components = (
@@ -1350,6 +1992,35 @@ class CachePublicationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'normal admission failed'):
             self.publish(reject)
         self.restored()
+
+
+class Tu15GameplayReferenceTests(unittest.TestCase):
+    def setUp(self):
+        self.owner=tempfile.TemporaryDirectory();self.addCleanup(self.owner.cleanup)
+        self.root=Path(self.owner.name)
+        self.image=self.root/'halo2-native/imports/halo2-dlc-fixture/Halo 2 DLC/content/u5English/default.xbe'
+        self.image.parent.mkdir(parents=True);self.image.write_bytes(b'explicit original-image identity fixture')
+        self.pin='21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd'
+
+    def test_explicit_owned_image_binds_exact_path_and_identity(self):
+        with patch.object(engine,'digest',return_value=self.pin):
+            result=engine.tu15_gameplay_reference(self.image)
+        self.assertEqual(result,dict(path=str(self.image.resolve()),bytes=self.image.stat().st_size,sha256=self.pin))
+
+    def test_explicit_other_image_is_rejected(self):
+        with patch.object(engine,'digest',return_value='0'*64):
+            with self.assertRaisesRegex(RuntimeError,'English TU1.5'):
+                engine.tu15_gameplay_reference(self.image)
+
+    def test_installed_import_is_discovered_without_empty_cmake_input(self):
+        with patch.dict(os.environ,{'XDG_DATA_HOME':str(self.root),'HALO2_TU15_GAMEPLAY_XBE':''}),patch.object(engine,'digest',return_value=self.pin):
+            result=engine.tu15_gameplay_reference()
+        self.assertEqual(result['path'],str(self.image.resolve()))
+        self.assertEqual(result['sha256'],self.pin)
+
+    def test_unqualified_import_is_not_used(self):
+        with patch.dict(os.environ,{'XDG_DATA_HOME':str(self.root),'HALO2_TU15_GAMEPLAY_XBE':''}),patch.object(engine,'digest',return_value='0'*64):
+            self.assertIsNone(engine.tu15_gameplay_reference())
 
 
 if __name__ == '__main__':

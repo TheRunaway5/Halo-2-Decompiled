@@ -2,8 +2,11 @@
 #include "halo2/content.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/source_frustum_camera.hpp"
+#include "halo2/source_tag_metadata.hpp"
+#include "halo2/model_selection.hpp"
 #include <algorithm>
 #include <iostream>
+#include <set>
 using namespace halo2;
 namespace {
 void check(bool condition,const char *message) {if(!condition)throw FormatError(message);}
@@ -24,6 +27,29 @@ int main(int argc,char **argv)try {
         definition("needler_shard\\needler_shard")};
     const auto content=cache.load_bsp_content(0);CollisionWorld collision(content.collision);Mesh mesh;
     NativeWeaponProjectileScene scene(cache,0,mesh,collision,definitions,2048);
+    std::set<std::uint32_t> expected_models;
+    const auto authored_model=[&](std::uint32_t definition) {
+        const auto projectile=cache.load_source_tag_metadata(definition);
+        check(projectile.group()=="proj","Projectile inventory lost its full authored definition");
+        const auto model_datum=Bytes(projectile.bytes_at(projectile.source_address(),0x3c)).u32(0x38);
+        if(model_datum==0xffffffffu)return model_datum;
+        const auto model=cache.load_source_tag_metadata(model_datum);
+        check(model.group()=="hlmt","Projectile inventory lost its authored model owner");
+        const auto datum=Bytes(model.bytes_at(model.source_address(),8)).u32(4);
+        const auto render=cache.load_source_tag_metadata(datum);
+        check(render.group()=="mode" && render.datum()==datum &&
+            cache.load_initial_model_definition(definition).render_model==datum,
+            "Projectile inventory changed the authored full render-model datum");
+        return datum;
+    };
+    for(const auto definition:definitions)if(const auto model=authored_model(definition);model!=0xffffffffu)
+        expected_models.insert(model);
+    const auto shadow_models=scene.source_render_models();
+    check(!expected_models.empty() &&
+        shadow_models==std::vector<std::uint32_t>(expected_models.begin(),expected_models.end()),
+        "Projectile shadow inventory differs from authored models or is not sorted and unique");
+    check(!std::binary_search(shadow_models.begin(),shadow_models.end(),0xffffffffu),
+        "Model-less projectile glow added a NONE shadow model");
     // Declared presentation inputs, not fabricated source births or contacts.
     const auto point=cache.spawns().front().position+Vec3{0,0,2};
     std::array<NativeWeaponProjectile,3> live{{
@@ -39,6 +65,9 @@ int main(int argc,char **argv)try {
     for(unsigned n=0;n<2;++n) {
         scene.synchronize(live);
         const auto &draws=scene.draw_view(n,view);
+        for(const auto &draw:draws)
+            check(std::binary_search(shadow_models.begin(),shadow_models.end(),authored_model(draw.definition)),
+                "Actual projectile model draw has no pre-birth shadow residency");
         const auto rocket=std::find_if(draws.begin(),draws.end(),[&](const auto &draw) {
             return draw.owner==live[0].datum && draw.definition==definitions[0];
         });

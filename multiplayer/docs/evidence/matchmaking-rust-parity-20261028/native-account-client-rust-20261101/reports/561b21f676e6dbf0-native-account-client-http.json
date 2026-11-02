@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "scope": "Native account controller, not external authentication or Xbox Live",
+  "cases": [
+    {
+      "owner": "before",
+      "http_calls": [
+        "POST"
+      ],
+      "binary_sha256": "91a95913e019908d1711c2209e4f109144dedeed4ba25c6e038f6643120abb16",
+      "stdout": "Shutdown handler: initialize.\n{\"cases\":[{\"authenticated\":false,\"transport\":\"real native Curl\",\"trigger\":\"signout after complete 201\"}],\"passed\":true,\"reference_before\":true}\nShutdown handler: cleanup.\n",
+      "exit_code": 0
+    },
+    {
+      "owner": "rust",
+      "http_calls": [
+        "POST",
+        "DELETE"
+      ],
+      "binary_sha256": "7bee69c91d58afe4bc2e9838e58571375eb14d5f29063202576df9d39c6912d7",
+      "stdout": "Shutdown handler: initialize.\n{\"cases\":[{\"authenticated\":false,\"transport\":\"real native Curl\",\"trigger\":\"signout after complete 201\"}],\"passed\":true,\"reference_before\":false}\nShutdown handler: cleanup.\n",
+      "exit_code": 0
+    }
+  ]
+}

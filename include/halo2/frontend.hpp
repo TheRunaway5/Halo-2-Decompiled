@@ -19,11 +19,16 @@
 #include "halo2/online_directory.hpp"
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/frontend_matchmaking_progress.hpp"
+#include "halo2/frontend_matchmaking_policy.hpp"
+#include "halo2/frontend_matchmaking_lobby.hpp"
+#include "halo2/frontend_matchmaking_search.hpp"
+#include "halo2/frontend_matchmaking_party_flow.hpp"
 #include "halo2/online_account.hpp"
 #include "halo2/native_tu15_online_services.hpp"
 #include "halo2/vista_pcr_screen.hpp"
 #include "halo2/vista_pcr_appearance.hpp"
 #include "halo2/vista_lobby_leave_task.hpp"
+#include "halo2/steam_workshop.hpp"
 #include <chrono>
 #include <map>
 #include <functional>
@@ -430,16 +435,20 @@ struct FrontendLaunch {
   bool match_voice{};
   std::shared_ptr<NativeTu15OnlineServices> online_services;
   std::filesystem::path shared_maps;
+  std::optional<WorkshopMission> workshop;
+  std::filesystem::path prepared_cache_root;
+  bool workshop_preview{};
 };
 enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt
 // targets come from the actual clipped text layout, including Vista scaling.
 enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding, InviteAccept, InviteDismiss, InviteTab, PcrTab, PriorStats };
 struct FrontendInviteNotice { std::string id,name; bool accepting{},can_accept{}; };
-enum class GamePauseAction { Resume, Revert, Restart, Quit };
+enum class GamePauseAction { Resume, Revert, Restart, Quit, EndMatch, ExitToDesktop };
 inline constexpr unsigned campaign_game_pause_context = 1;
 inline constexpr unsigned online_game_pause_context = 2;
 inline constexpr unsigned team_game_pause_context = 3;
+inline constexpr unsigned splitscreen_game_pause_context = 4;
 struct GamePauseTeams {
   std::int16_t current=-1;
   bool enabled{};
@@ -455,6 +464,17 @@ struct FrontendPointerTarget {
 // profiles/options and reports unavailable engine/network operations
 // explicitly.
 class MenuState {
+  friend struct FrontendSearchNativeIo;
+  friend struct FrontendPartyFlowNativeIo;
+  friend struct FrontendPartyViewNativeIo;
+  friend struct FrontendLobbyQueryNativeIo;
+  friend struct FrontendAccountFlowNativeIo;
+  friend struct FrontendFriendsNativeIo;
+  void account_flow_drive(bool);
+  FrontendFriendsResult friends_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,unsigned=0)const;
+  std::string lobby_query_campaign_file(unsigned) const;
+  void party_view_populate(MenuFrame&)const;
+  std::string party_view_text(const MenuFrame&,unsigned)const;
 public:
   explicit MenuState(const FrontendContent &,
                      const std::filesystem::path &preferences = {});
@@ -474,12 +494,18 @@ public:
   void initialize_mainmenu_map();
   std::optional<std::uint32_t> ui_map_intro_color() const;
   void open(unsigned screen, unsigned context = 0);
+  void set_workshop_scanner(std::function<WorkshopCatalog()> scan) {
+    workshop_scanner_ = std::move(scan);
+  }
+  void begin_workshop_preparation();
+  void finish_workshop_preparation(const std::string &error = {});
+  std::optional<std::pair<std::string,std::string>> workshop_details(const MenuFrame &) const;
   void game_pause_teams(std::optional<GamePauseTeams> teams,std::function<std::string(std::int16_t)> change) {
     game_pause_teams_=std::move(teams);game_pause_change_team_=std::move(change);
   }
   void game_pause_error(const std::string &error) {unavailable(error);}
   void open_game_pause(bool campaign);
-  void open_game_pause(bool campaign, bool online);
+  void open_game_pause(bool campaign, bool online, bool splitscreen = false);
   void set_game_pause_action(std::function<std::string(GamePauseAction)> action) {
     game_pause_action_=std::move(action);
   }
@@ -541,7 +567,7 @@ public:
   bool act_invite_notice(bool accept);
   bool switch_invite_tab(int direction);
   bool party_invite_picker() const;
-  unsigned party_invite_tab() const { return party_invite_tab_; }
+  unsigned party_invite_tab() const { return party_flow_.tab(); }
   void text(const std::string &);
   void erase_text();
   void commit_text();
@@ -615,16 +641,19 @@ public:
   // remains the PC/MCC authored pane that hosts the presentation.
   MatchmakingProgressUi online_matchmaking_ui() const;
   unsigned online_matchmaking_progress_pane() const;
-  std::int32_t online_matchmaking_countdown() const { return matchmaking_countdown_; }
+  std::int32_t online_matchmaking_countdown() const { return matchmaking_search_.countdown(); }
   bool online_matchmaking_team_colors() const;
   // 0x2514FD row order of the admitted match (sorted only on pane3).
   std::vector<unsigned> online_matchmaking_roster_order() const;
+  FrontendProgressFacts online_matchmaking_progress_facts() const;
+  std::optional<FrontendProgressRow> online_matchmaking_row(unsigned row) const;
+  std::string render_matchmaking_text(bool original,const MenuFrame *,unsigned pane,unsigned index) const;
   // A Back request refused by the screen (TU1.5 0x25217B) has already queued
   // its error cue; the caller must not also play the Back cue.
   bool take_back_refused() { return std::exchange(back_refused_, false); }
   // Matchmaking pregame lobby START GAME countdown (TU1.5 0x19A78E/0x6E360),
   // -1 while none runs.
-  std::int32_t online_lobby_countdown() const { return online_lobby_countdown_; }
+  std::int32_t online_lobby_countdown() const { return online_lobby_.seconds(); }
   std::string expand(const std::string &) const;
   std::string profile_name() const;
   const std::string &signed_in_profile() const { return signed_in_; }
@@ -683,6 +712,10 @@ private:
   std::function<std::string(std::int16_t)> game_pause_change_team_;
   std::string game_pause_objectives_;
   const FrontendContent &content_;
+  std::function<WorkshopCatalog()> workshop_scanner_;
+  WorkshopCatalog workshop_catalog_;
+  std::optional<WorkshopMission> workshop_mission_;
+  bool workshop_preparing_{};
   MenuFrame build_pc(unsigned, unsigned) const;
   void accept_pc();
   std::optional<unsigned> binding_action_;
@@ -713,7 +746,7 @@ private:
   std::array<std::string,4> local_discord_subjects_{};
   std::optional<unsigned> online_local_options_;
   bool joining_online_{};
-  std::uint64_t couch_revision_{},matchmaking_couch_revision_{};
+  std::uint64_t couch_revision_{};
   void populate_online_couch(MenuFrame &) const;
   bool accept_online_couch();
   void update_online_couch();
@@ -721,10 +754,7 @@ private:
   std::vector<OnlineLocalPlayer> online_local_players() const;
   std::shared_ptr<DiscordFriends> discord_social_;
   DiscordSocialSnapshot friends_;
-  std::string friend_target_;
-  std::uint64_t friend_join_serial_{};
   void update_online_friend_join();
-  std::string activity_target_;
   void populate_online_friends(MenuFrame &) const;
   bool accept_online_friends();
   void update_online_friends();
@@ -734,10 +764,9 @@ private:
   std::shared_ptr<OnlineAccount> online_account_;
   std::shared_ptr<OnlineVoice> online_voice_;
   OnlineVoiceSnapshot voice_;
-  bool voice_party_{}, party_voice_wanted_{};
   OnlineAccountSnapshot account_;
   std::vector<FrontendUiSound> pending_ui_sounds_;
-  std::string account_name_, clan_target_;
+  std::string clan_target_;
   unsigned clan_target_kind_{}, clan_message_page_{};
   std::optional<OnlineClanCommand> clan_confirmation_;
   void populate_online_clans(MenuFrame &) const;
@@ -747,11 +776,9 @@ private:
   void populate_online_party(MenuFrame &) const;
   bool accept_online_party();
   void party_command(OnlinePartyCommand);
-  std::string party_target_;
-  unsigned party_target_kind_{};
-  std::uint64_t party_target_version_{};
-  std::vector<std::string> dismissed_party_invites_;
-  unsigned party_invite_tab_{};
+  // Rust owns party targets, invitation tabs/dismissals and privacy acks.
+  FrontendMatchmakingPartyFlow party_flow_;
+  bool party_flow_drive(FrontendPartyFlowAction,int value=0);
 
   std::shared_ptr<OnlineDirectory> online_directory_;
   OnlineDirectorySnapshot online_servers_;
@@ -762,49 +789,30 @@ private:
   void populate_online_directory(MenuFrame &) const;
   std::shared_ptr<OnlineMatchmaking> online_matchmaking_;
   OnlineMatchmakingSnapshot matchmaking_;
-  bool matchmaking_active_{}, quickmatch_pending_{}, match_voice_{};
-  bool matchmaking_consent_pending_{};
-  std::string selected_playlist_, matchmaking_name_;
+  bool match_voice_{};
+  // Rust owns search intent, consent, retained profiles, B's published
+  // countdown and the c_matchmaking_screen pane/title/clock state.
+  FrontendMatchmakingSearch matchmaking_search_;
+  bool search_drive(FrontendSearchAction,unsigned index=0);
   void refresh_online_matchmaking();
   void populate_online_matchmaking(MenuFrame &) const;
   void reset_online_matchmaking_progress();
   // Hands the counted-down admitted match to gameplay; false after a refusal.
   bool launch_online_match();
-  // c_session_state_start_match (0x72700) clock and B's published seconds.
-  std::optional<std::uint32_t> matchmaking_start_clock_;
-  std::int32_t matchmaking_countdown_ = matchmaking_countdown_none;
-  bool matchmaking_have_fun_{};
-  // c_matchmaking_screen +0x618 current pane and +0x614 pane clock (0x251B39).
-  unsigned matchmaking_progress_pane_{};
-  int matchmaking_progress_title_state_{}; // Original c_matchmaking_screen+610, updated only on pane change.
-  std::uint32_t matchmaking_pane_clock_{};
   bool back_refused_{};
-  // Party A's member handles while a search it did not cancel locally runs;
-  // empty otherwise (0x250804 session-state notices).
-  std::vector<std::string> matchmaking_search_party_;
   // True when the screen changed: a member follows the leader's search into
   // screen210, or a party-wide end of the search returned to the lobby.
   bool update_online_party_search();
   // Party A's lobby after matchmaking keeps its hopper (TU1.5 value49a4=2,
   // +49C8): START GAME searches it again after the lobby countdown.
-  bool online_lobby_matchmaking_{};
-  bool online_lobby_playlist_pending_{};
-  bool online_lobby_create_submitted_{};
-  struct OnlinePrivacyPending {
-    std::uint64_t frame_instance{},command_serial{},revision{};
-    unsigned mode{};
-    std::string context;
-  };
-  std::optional<OnlinePrivacyPending> online_privacy_pending_;
+  FrontendMatchmakingLobby online_lobby_;
+
   void update_online_privacy();
   void prepare_online_matchmaking_lobby(bool quickmatch);
   std::string online_lobby_start_error() const;
   std::shared_ptr<const VistaPcrScreenOwner> online_prior_report_;
-  std::int32_t online_lobby_countdown_ = -1, online_lobby_countdown_stage_ = -1;
-  std::uint32_t online_lobby_countdown_clock_{};
-  std::uint64_t online_lobby_countdown_consumed_{};
-  std::vector<std::string> online_lobby_countdown_party_;
-  bool online_lobby_leave_pending_{};
+  online_protocol_bridge::FrontendLobbyFacts online_lobby_facts() const;
+  bool online_lobby_input(unsigned event, int destination=0);
   void update_online_lobby_leave();
   void enter_online_matchmaking_lobby();
   void cancel_online_lobby_countdown();
@@ -878,6 +886,8 @@ struct FrontendCaptureAction {
   int x{}, y{}; // Diagnostic SDL window coordinates, independent of DPI.
 };
 struct FrontendOptions {
+  std::function<WorkshopCatalog()> workshop_scan;
+  std::function<WorkshopPreparedMission(const WorkshopMission &)> workshop_prepare;
   std::shared_ptr<DesktopSession> desktop;
   // Retained configuration/content. A later invocation requires an explicit
   // source factory request; the old navigation stack cannot resume implicitly.
@@ -937,4 +947,5 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 std::optional<FrontendLaunch> run_frontend(const FrontendOptions &);
+std::optional<UiVariant> frontend_matchmaking_variant(const FrontendContent&,const OnlineMatch&);
 } // namespace halo2

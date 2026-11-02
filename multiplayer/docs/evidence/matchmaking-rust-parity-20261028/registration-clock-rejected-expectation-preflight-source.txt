@@ -1,0 +1,42 @@
+"""Persisted expiry-floor controls using private Rust HTTP/SQLite processes."""
+import hashlib
+import sqlite3
+import time
+
+
+def preflight(binary, scratch, catalog, Server):
+    scratch.mkdir()
+    state = scratch / 'state'
+    server = Server(binary, state, scratch, catalog)
+    try:
+        observed = int(time.time())
+        floor = observed + 600
+        tokens = ['h2s_' + letter * 43 for letter in 'KL']
+        subjects = ['76561197960287960', '76561197960287961']
+        with sqlite3.connect(state / 'registry.sqlite3') as db:
+            with db:
+                db.executemany('INSERT INTO steam_login_sessions VALUES(?,?,?,?)', [
+                    (hashlib.sha256(token.encode()).hexdigest(), subject,
+                     'Private clock fixture', observed + lifetime)
+                    for token, subject, lifetime in zip(tokens, subjects, (300, 900))
+                ])
+                db.execute('UPDATE clock_floor SET value=? WHERE id=1', (floor,))
+        # The later credential remains valid; clamping cannot reject all login.
+        valid, _ = server.request('POST', '/v1/account/session', token=tokens[1],
+                                  body={'screen_name': 'Clock valid'})
+        expired, _ = server.request('POST', '/v1/account/session', token=tokens[0],
+                                    body={'screen_name': 'Clock expired'})
+        with sqlite3.connect(state / 'registry.sqlite3') as db:
+            allocated = db.execute('SELECT count(*) FROM player_identities WHERE subject=?',
+                                   (subjects[0],)).fetchone()[0]
+            retained = db.execute('SELECT value FROM clock_floor WHERE id=1').fetchone()[0]
+        return dict(passed=valid == 201 and expired == 401 and allocated == 0,
+                    contract='An expiration already observed by the persisted wall-clock floor cannot be restored by clock rollback.',
+                    valid_status=valid, expected_valid_status=201,
+                    expired_status=expired, expected_expired_status=401,
+                    expired_identity_allocations=allocated,
+                    floor_retained=retained >= floor,
+                    fixture='Private provider grants and a later persisted SQL clock floor; no system-clock mutation.',
+                    real_provider=False, original_parity=False)
+    finally:
+        server.close()

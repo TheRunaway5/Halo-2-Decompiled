@@ -1,0 +1,51 @@
+--- captured/tests/frontend_online_tests.cpp
++++ current/tests/frontend_online_tests.cpp
+@@ -532,9 +532,16 @@
+               check(expected.width==actual.width && expected.height==actual.height && expected.format==actual.format && expected.pixels==actual.pixels,
+                   "Actual goal emblem lost an admitted MCC animation page");
+             }
+-            const Texture*selected[]{&material.diffuse,&material.detail};
+-            for(unsigned stage=0;stage<2;++stage)check(selected[stage]->pixels==owner.animated_textures[stage].at(material.texture_frames[stage]).pixels,
+-                "Actual goal emblem did not bind its admitted appearance-selected MCC page");
++            // The renderer uploads these banks and binds texture_frames;
++            // animate_material_bitmaps leaves the static base pages intact.
++            const Texture*selected[]{&material.animated_textures[0].at(material.texture_frames[0]),
++                                      &material.animated_textures[1].at(material.texture_frames[1])};
++            for(unsigned stage=0;stage<2;++stage) {
++              const auto &expected=owner.animated_textures[stage].at(material.texture_frames[stage]);
++              check(selected[stage]->width==expected.width && selected[stage]->height==expected.height &&
++                    selected[stage]->format==expected.format && selected[stage]->pixels==expected.pixels,
++                  "Actual goal emblem did not bind its admitted appearance-selected MCC page");
++            }
+           }
+           bitmap=true; // The verified emblem pass samples the imported bitmap banks.
+         } else if (name.starts_with("font/")) {
+@@ -1268,7 +1275,9 @@
+       check(has("ui\\screens\\game_shell\\network_squad_browser_screen\\list_frame") &&
+             has("ui\\list_skins\\game_browser\\item_background"),
+             "ONLINE discovery still paints the Optimatch layout");
+-      const auto first = menu.frame().selected >= list.visible ? menu.frame().selected - list.visible + 1 : 0;
++      // MenuState owns the visible window. Authored PC13 permits19 rows,
++      // while the active original navigation layout may retain only16.
++      const auto first = menu.frame().first_visible;
+       const auto row = menu.frame().selected - first;
+       // Source background height32 determines pitch; text6 spans the entire
+       // selection bar, including the map/player/status columns.
+@@ -1998,8 +2007,16 @@
+         menu.open(219);
+         pump([&]{return std::any_of(menu.frame().entries.begin(),menu.frame().entries.end(),
+                                     [](const auto &e){return e.label=="Party Search lab";});},"Party playlists did not load");
+-        choose("Party Search lab");menu.select(0);menu.accept();
++        choose("Party Search lab");
+         check(menu.frame().screen==14,"Party playlist skipped the original pregame lobby");
++        const auto before_start=queue->snapshot();
++        check(menu.online_lobby_countdown()<0 && !menu.launch &&
++              before_start.status!=OnlineMatchmakingStatus::Joining &&
++              before_start.status!=OnlineMatchmakingStatus::Searching &&
++              before_start.status!=OnlineMatchmakingStatus::CheckingConnections &&
++              before_start.status!=OnlineMatchmakingStatus::AwaitingTransport &&
++              before_start.status!=OnlineMatchmakingStatus::Loading,
++              "Playlist selection searched or started the countdown before START GAME");
+         pump([&]{const auto s=account->snapshot();return s.party && !s.busy &&
+           std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto &m){return m.ready_playlist=="party-search";});},
+              "Every party member must consent to the playlist before START GAME");

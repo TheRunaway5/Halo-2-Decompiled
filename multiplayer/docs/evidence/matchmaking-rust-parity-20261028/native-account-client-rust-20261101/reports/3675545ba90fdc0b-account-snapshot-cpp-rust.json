@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "scope": "Modern C++ accepted-state compatibility; not Xbox Live or original algorithm proof",
+  "comparison": "acceptance and sanitized values; parser-library error text excluded",
+  "build_exit_code": 0,
+  "cases": 7775,
+  "input_sha256": "c9e322f3285a1fd15a53e7bccfb48498f99cc53abd8322fac74d167f7fbe846b",
+  "kinds": {
+    "party": 2003,
+    "social": 2440,
+    "friends": 2678,
+    "countdown": 654
+  },
+  "mutations": {
+    "base-0": 1,
+    "type-or-boundary": 7037,
+    "missing-field": 260,
+    "extra-field": 74,
+    "duplicate-or-count-boundary": 374,
+    "base-1": 1,
+    "base-2": 1,
+    "base-4": 1,
+    "base-5": 1,
+    "base-6": 1,
+    "base-7": 1,
+    "base-8": 1,
+    "base-9": 1,
+    "base-10": 1,
+    "base-11": 1,
+    "base-12": 1,
+    "base-13": 1,
+    "base-14": 1,
+    "base-15": 1,
+    "base-16": 1,
+    "base-17": 1,
+    "base-18": 1,
+    "base-19": 1,
+    "base-20": 1,
+    "base-21": 1,
+    "base-22": 1,
+    "base-23": 1,
+    "base-24": 1,
+    "base-25": 1,
+    "base-26": 1,
+    "base-28": 1,
+    "base-29": 1,
+    "base-30": 1,
+    "base-31": 1
+  },
+  "cpp": {
+    "binary_sha256": "78efdb4bfb0c180685e2ed64008c3f8ed3cebc5a7ac7d8cdff5751ca8dbb955c",
+    "output_sha256": "a4b2ce582bcfee8279dd4f35ce28af76de0c55c0e0331214f04580389e3b067f",
+    "native_preamble": [
+      "Shutdown handler: initialize.",
+      "Shutdown handler: cleanup."
+    ],
+    "accepted": 374,
+    "rejected": 7401
+  },
+  "rust": {
+    "binary_sha256": "f23aecba2f029f7ef601bc68e26b3883a1cb9181db4c9791e182ffadffb66d57",
+    "output_sha256": "36714415efa21787de59a57901c912d4fd7a5a06d71f351f3004ffa6867a291d",
+    "native_preamble": [],
+    "accepted": 374,
+    "rejected": 7401
+  },
+  "mismatches": 0,
+  "first_mismatches": []
+}

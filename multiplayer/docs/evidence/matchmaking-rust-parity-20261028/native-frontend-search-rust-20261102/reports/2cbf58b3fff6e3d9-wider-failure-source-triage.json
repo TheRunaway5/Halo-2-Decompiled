@@ -1,0 +1,30 @@
+{
+  "scope": "Read-only failure triage; no behavior change or original-UI conclusion",
+  "clan_playlist_assertion": {
+    "diagnostic": "Nonmember clan details lost the membership requirement",
+    "finding": "The assertion requires frame219 and inline membership text after accepting an ineligible row. The existing C++ Select branch and new Rust Select policy both call unavailable(); the actual native unavailable() opens frame8. The compound assertion alone does not prove that clan metadata or inline membership text was lost.",
+    "clan_flag_chain": "Rust parser and bridge/native snapshot converter all preserve clan_match; this rules out a visibly missing conversion field, not every live metadata fault.",
+    "next": "Trace the pinned original ineligible/clan playlist activation path and distinguish frame/navigation from text before changing behavior or tests."
+  },
+  "source_pins": {
+    "tests/frontend_online_tests.cpp": "ef74c9183cee4bd8cbb27dacb08c76840d88d202d6ad00ca8253e55029b8da38",
+    "src/ui/frontend_state.cpp": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879",
+    "src/ui/frontend_matchmaking.cpp": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+    "src/network/online_matchmaking.cpp": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf",
+    "rust/online_protocol/src/matchmaking_client.rs": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+    "rust/online_protocol_bridge/src/matchmaking_client.rs": "858ff7c7a1b300f7f7a667db5a0637a5a33ea8301ddc6166013375b8ce04dc49"
+  },
+  "original_binary_execution": false,
+  "retained_large_artifacts": [],
+  "decompiled_activation_locator": {
+    "path": "tools/reference/halo2-decompiled/src/unknown_2b116a.cpp",
+    "sha256": "895de91dff3d2f252f665667565e835561f5edf85593973e6b97c0a6efc10a22",
+    "entries": [
+      "retail 0x2B1FF4 fill",
+      "retail 0x2B2149 handle_item",
+      "retail 0x2B2181 activation"
+    ],
+    "observation": "The listed handle_item calls activation only for a non-NONE datum with its variant bit. Activation reads the complete stored block and shows dialog0x7B on read failure. Upstream fill has separate availability and player-slot gates. These are decompiled locators, not a fresh original execution or an established mapping of replacement-service eligible to the original item flags.",
+    "next": "Recover and execute the complete upstream list-fill/activation caller before changing unavailable-row behavior."
+  }
+}

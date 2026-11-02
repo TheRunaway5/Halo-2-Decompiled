@@ -1,0 +1,9 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-lobby-view-rust-20261102';info=json.loads((work/'native/inputs.json').read_text());source=Path(info['source']);build=Path(info['scratch'])/'build'
+output=work/'variant-real-resource-route';output.mkdir()
+command=[str(build/'variant_write_order_tests'),str(source/'tests/fixtures/variant_write_order_original.tsv'),str((root/'assets/disc/maps').resolve())]
+p=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(output/'tests.log').write_bytes(p.stdout[-1048576:]);result=dict(passed=p.returncode==0,exit_code=p.returncode,command=command,binary_sha256=hashlib.sha256((build/'variant_write_order_tests').read_bytes()).hexdigest(),fixture_sha256=hashlib.sha256((source/'tests/fixtures/variant_write_order_original.tsv').read_bytes()).hexdigest(),scratch=os.environ['HALO2_TEST_SCRATCH'],resource_guard_changed=False,retained_large_artifacts=[])
+(output/'report.json').write_text(json.dumps(result,indent=2)+'\n')
+print(p.stdout.decode(errors='replace')[-4500:]);raise SystemExit(p.returncode)

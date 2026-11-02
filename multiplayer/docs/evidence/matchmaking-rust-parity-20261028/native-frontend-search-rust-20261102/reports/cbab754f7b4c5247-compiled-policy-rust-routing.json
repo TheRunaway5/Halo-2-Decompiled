@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "scope": "Compiled object routing only; full rebuilt native client and menu validation still pending",
+  "eight_policy_definitions_moved_from_old_cpp": [
+    "prepare_online_matchmaking_lobby",
+    "reset_online_matchmaking_progress",
+    "update_online_party_search",
+    "refresh_online_matchmaking",
+    "update_online_matchmaking",
+    "launch_online_match",
+    "online_matchmaking_ui",
+    "online_matchmaking_progress_pane"
+  ],
+  "production_rust_entries": [
+    "clone_frontend_search",
+    "frontend_search_left",
+    "frontend_search_pane",
+    "frontend_search_quick",
+    "frontend_search_reset",
+    "frontend_search_run",
+    "frontend_search_scalar",
+    "frontend_search_selected",
+    "frontend_search_stop",
+    "frontend_search_ui",
+    "frontend_search_variant",
+    "new_frontend_search"
+  ],
+  "native_client_qualified": false,
+  "selected_runtime_replaced": false,
+  "retained_large_artifacts": []
+}

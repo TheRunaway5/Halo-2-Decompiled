@@ -17,6 +17,24 @@ def audit(registry):
     _, world_admitted = world_audit(registry)
     if len({item['dag']['sha256'] for item in world_admitted.values()}) != 1:
         raise ValueError('World projection admissions no longer share an exact ordered position dependency')
+    # Model PRT color reads use indexed coefficients. They do not reach oPos;
+    # retain the two complete class0 identities only after the same ordered
+    # position proof. Ordinary BSP admission keeps its non-relative scope.
+    prt_world = {}
+    for row in registry['entries']:
+        declaration = row.get('declaration')
+        if not declaration or declaration['class_index'] != 0 or not row['relative_constants']:
+            continue
+        aliases = sorted({alias['vertex_shader'] for alias in row['aliases']
+                          if alias.get('vertex_shader', '').rsplit('\\', 1)[-1] in ('prt', 'prt_lightmap')})
+        if not aliases:
+            continue
+        code = bytes.fromhex(row['vertex_program_hex'])
+        dag = position_dag(code)
+        if dag['sha256'] != next(iter(world_admitted.values()))['dag']['sha256']:
+            raise ValueError('Model PRT indexed color reads reached or changed the original position dependency')
+        prt_world[sha(code)] = {'program_sha256': sha(code), 'ordered_position_dag': dag['sha256'],
+                              'aliases': aliases}
     by_family = {}
     for row in registry['cpu_vertex_programs']:
         code, words = _program(row)
@@ -70,6 +88,7 @@ def audit(registry):
                     'ordered_position_dag': original['sha256']}
             (entries if matches else rejected).append(item)
     return {'schema': 'HALO2_SOURCE_MODEL_DEPTH_POSITION_V1', 'admitted': entries, 'rejected': rejected,
+            'prt_world_programs': [prt_world[key] for key in sorted(prt_world)],
             'equivalent_world_programs': sorted(world_admitted),
             'apply_prefix_input_registers':{str(key):sorted(value) for key,value in sorted(apply_inputs.items())},
             'world_position_equivalence_class': next(iter(world_admitted.values()))['dag']['sha256'],
@@ -86,7 +105,8 @@ def header(registry, result):
                     'shadow_buffer_application_lightmap'):continue
         admitted.setdefault(item['program_sha256'],[]).append(item)
     codes = {sha(_program(row)[0]): _program(row)[0] for row in registry['cpu_vertex_programs']}
-    lines = ['#pragma once', '#include <algorithm>', '#include <array>', '#include <cstddef>',
+    lines = ['#pragma once', '#include "halo2/source_world_depth_position_contract.hpp"',
+             '#include <algorithm>', '#include <array>', '#include <cstddef>',
              '#include <span>', 'namespace halo2::source_model_depth_private {',
              'inline constexpr unsigned position_input_mask(unsigned classification) {',
              '    switch(classification) {case 0:return 1u;']
@@ -118,6 +138,19 @@ def header(registry, result):
                   '// Complete original program SHA256 '+key,
                   f'    static constexpr std::array<unsigned char,{len(code)}> p{n}{{'+','.join(map(str,code))+'};',
                   f'    if({condition} && code.size()==p{n}.size() && std::equal(code.begin(),code.end(),p{n}.begin(),[](std::byte a,unsigned char b){{return std::to_integer<unsigned char>(a)==b;}}))return true;']
+    lines += ['    return false;', '}',
+              '// PRT relative coefficient reads affect color only; exact complete',
+              '// program bytes and ordered oPos equality remain mandatory.',
+              'inline bool world_position_program_admitted(std::span<const std::byte> code) {',
+              '    if(source_world_depth_private::position_program_admitted(code))return true;']
+    world_codes = {sha(bytes.fromhex(row['vertex_program_hex'])): bytes.fromhex(row['vertex_program_hex'])
+                   for row in registry['entries']}
+    for n, item in enumerate(result['prt_world_programs']):
+        code = world_codes[item['program_sha256']]
+        lines += ['    // Complete original PRT program SHA256 ' + item['program_sha256'],
+                  '    // Exact ordered oPos SHA256 ' + item['ordered_position_dag'],
+                  f'    static constexpr std::array<unsigned char,{len(code)}> p{n}{{'+','.join(map(str,code))+'};',
+                  f'    if(code.size()==p{n}.size() && std::equal(code.begin(),code.end(),p{n}.begin(),[](std::byte a,unsigned char b){{return std::to_integer<unsigned char>(a)==b;}}))return true;']
     return '\n'.join([*lines, '    return false;', '}', '}', ''])
 
 

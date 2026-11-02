@@ -3,6 +3,7 @@
 #include "halo2/cache_file_snapshot.hpp"
 #include "halo2/mcc_cache.hpp"
 #include "halo2/mcc_prepared_map_owner.hpp"
+#include "halo2/prepared_original_sound_catalog_tu15.hpp"
 #include "halo2/mcc_resource_reader.hpp"
 #include "halo2/confined_file.hpp"
 #include "halo2/texture.hpp"
@@ -126,10 +127,18 @@ Cache::Cache(const std::filesystem::path& path, const std::filesystem::path& sha
         const auto owner=admit_mcc_prepared_map_owner(path_,shared_directory_,cache_bytes(),
             prepared_cache_root.empty()?std::nullopt:std::optional(prepared_cache_root));
         custom_mcc_=owner && owner->binding && owner->binding->custom_authoring;
+        preserve_mcc_authoring_=owner && owner->binding && owner->binding->preserve_mcc_authoring;
         storage_=decode_mcc_cache(cache_bytes());snapshot_.reset();
         source_file_size_=storage_.size();mcc_=true;
         if(!original_data_)original_data_=OriginalData::native_tu15();
-        initialize_mcc(owner?&*owner:nullptr);publish_mcc_bitmap_cache();return;
+        initialize_mcc(owner?&*owner:nullptr);
+        if(owner && owner->original_sound_catalog) {
+            const auto& admitted=*owner->original_sound_catalog;
+            original_sound_catalog_=PreparedOriginalSoundCatalogTu15::load(admitted.directory,admitted.sha256)->bind(*this);
+            if(original_sound_catalog_->original_context()!=admitted.original_map)
+                throw FormatError("Original sound context differs from the exact prepared map owner");
+        }
+        publish_mcc_bitmap_cache();return;
     }
     data.require(0, 2048);
     if (data.u32(0) != 0x68656164 || data.u32(2044) != 0x666f6f74 || data.u32(4) != 8)

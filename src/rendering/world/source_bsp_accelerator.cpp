@@ -10,6 +10,31 @@ namespace {
 float add(float a,float b) {const volatile float result=a+b;return result;}
 float sub(float a,float b) {const volatile float result=a-b;return result;}
 float mul(float a,float b) {const volatile float result=a*b;return result;}
+// TU1.5 2E79AC/2E7A12 and 2E6290's integer bounds use x87, independently
+// of the SSE plane/classification arithmetic. A double/SSE substitute can
+// produce the same bounds while publishing exceptions in the wrong FP bank.
+float inverse_scale(float scale) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    float out;asm volatile("fld1; fdivs %1; fstps %0":"=m"(out):"m"(scale):"st","memory");return out;
+#else
+    return float(1./double(scale));
+#endif
+}
+float x87_product(float a,float b) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    float out;asm volatile("flds %1; fmuls %2; fstps %0":"=m"(out):"m"(a),"m"(b):"st","memory");return out;
+#else
+    return float(double(a)*double(b));
+#endif
+}
+float integer_coordinate(std::uint32_t value,float inverse) {
+    const auto integer=std::bit_cast<std::int32_t>(value);
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    float out;asm volatile("fildl %1; fmuls %2; fstps %0":"=m"(out):"m"(integer),"m"(inverse):"st","memory");return out;
+#else
+    return float(double(integer)*double(inverse));
+#endif
+}
 bool negative(float value) {return (std::bit_cast<std::uint32_t>(value)>>31)!=0;}
 struct Code {
     std::span<const std::byte> bytes;
@@ -91,9 +116,7 @@ struct Visitor {
         if(++steps>1000000)throw FormatError("BSP accelerator traversal budget exceeded");
     }
     float coordinate(std::uint32_t value)const {
-        // OriginalFILD signed32; FMUL inverse(float); FSTP float. Keep the
-        // intermediate double rounding, independently of native SSE bounds.
-        return float(double(std::bit_cast<std::int32_t>(value))*double(inverse));
+        return integer_coordinate(value,inverse);
     }
     float bound(const State&s,unsigned axis,unsigned value)const {
         return coordinate((std::uint32_t(value)<<(s.shift&31u))+s.offset[axis]);
@@ -126,15 +149,23 @@ struct Visitor {
         std::array<float,3> center,radius;
         for(unsigned i=0;i<3;++i){center[i]=add(box.lower[i],box.upper[i]);radius[i]=sub(box.upper[i],box.lower[i]);}
         bool inside=true;
-        for(const auto&p:planes) {
+        for(std::size_t first=0;first<planes.size();first+=4) {
             // 2DC642..2DC69E /2DC7A0..2DC7FC /2DC9E0..2DCA3C.
             // MOVMSKPS observes the sign bit, including negative zero.
-            const float extent=add(add(mul(p.absolute[0],radius[0]),mul(p.absolute[1],radius[1])),
-                                   add(mul(p.absolute[2],radius[2]),0.f));
-            const float distance=add(add(mul(p.normal[0],center[0]),mul(p.normal[1],center[1])),
-                                     add(mul(p.normal[2],center[2]),p.distance));
-            if(!negative(sub(distance,extent)))return Classification::outside;
-            if(!negative(add(distance,extent)))inside=false;
+            // Every SSE lane executes before the group's rejection branch.
+            // The final packed group repeats its first plane in spare lanes.
+            std::array<float,4> extent,distance;
+            for(unsigned lane=0;lane<4;++lane) {
+                const auto& p=planes[first+lane<planes.size()?first+lane:first];
+                extent[lane]=add(add(mul(p.absolute[0],radius[0]),mul(p.absolute[1],radius[1])),
+                    add(mul(p.absolute[2],radius[2]),0.f));
+                distance[lane]=add(add(mul(p.normal[0],center[0]),mul(p.normal[1],center[1])),
+                    add(mul(p.normal[2],center[2]),p.distance));
+            }
+            bool outside=false;
+            for(unsigned lane=0;lane<4;++lane)outside|=!negative(sub(distance[lane],extent[lane]));
+            if(outside)return Classification::outside;
+            for(unsigned lane=0;lane<4;++lane)if(!negative(add(distance[lane],extent[lane])))inside=false;
         }
         return inside?Classification::inside:Classification::partial;
     }
@@ -207,14 +238,18 @@ struct Visitor {
                 const unsigned axis=op>=0x23?op-0x23:op>=0x20?op-0x20:op-0x10;
                 auto right=box;
                 if(op>=0x20&&op<=0x22) {
-                    box.upper[axis]=bound(s,axis,code.byte(pc+1)+1);
+                    // TU15 2E63A1..2E63BB evaluates the right lower bound
+                    // before the left upper bound. C1 belongs to the latter.
                     right.lower[axis]=bound(s,axis,code.byte(pc+1));
+                    box.upper[axis]=bound(s,axis,code.byte(pc+1)+1);
                 } else {
                     box.upper[axis]=bound(s,axis,code.byte(pc+1));
                     right.lower[axis]=bound(s,axis,code.byte(pc+2));
                 }
                 auto next=children(code,pc,op);
-                bounds(next[1],s,right);bounds(next[0],s,box);
+                // 2E643E..2E661D consumes the left child's bound prefix,
+                // then the right child's. Their rounded stores update C1.
+                bounds(next[0],s,box);bounds(next[1],s,right);
                 const auto right_result=classify(right);
                 if(right_result==Classification::inside)accept(next[1],s);
                 const auto left_result=classify(box);
@@ -252,7 +287,7 @@ SourceBspAcceleratorResult source_bsp_accelerator_query0(
         for(unsigned i=0;i<4;++i){info[i]=raw.f32(i*4);if(!std::isfinite(info[i]))throw FormatError("nonfinite BSP accelerator header");}
         if(!(info[3]>0))throw FormatError("BSP accelerator scale is not positive");
         const Code code{tree.subspan(0x30)};validate(code);
-        Visitor visitor{code};visitor.inverse=float(1./double(info[3]));
+        Visitor visitor{code};visitor.inverse=inverse_scale(info[3]);
         if(!std::isfinite(visitor.inverse))throw FormatError("BSP accelerator inverse scale overflows");
         visitor.direct=direct;visitor.ranges=ranges;
         visitor.direct_capacity=direct_capacity;visitor.range_capacity=range_capacity;
@@ -263,7 +298,7 @@ SourceBspAcceleratorResult source_bsp_accelerator_query0(
             plane.distance=add(add(add(mul(p[0],info[0]),mul(p[1],info[1])),mul(p[2],info[2])),p[3]);
             plane.distance=add(plane.distance,plane.distance);visitor.planes.push_back(plane);
         }
-        Box box;box.upper.fill(float(double(visitor.inverse)*16777216.));
+        Box box;box.upper.fill(x87_product(visitor.inverse,16777216.f));
         visitor.walk(0,{},box);
         if(visitor.ranges.size()%2)throw FormatError("BSP accelerator produced incomplete range endpoint pair");
         direct=std::move(visitor.direct);ranges=std::move(visitor.ranges);return {true,{}};
@@ -281,7 +316,7 @@ SourceBspAcceleratorResult source_bsp_accelerator_sphere(
         for(unsigned i=0;i<4;++i){info[i]=raw.f32(i*4);if(!std::isfinite(info[i]))throw FormatError("nonfinite BSP sphere accelerator header");}
         if(!(info[3]>0))throw FormatError("BSP sphere accelerator scale is not positive");
         const Code code{tree.subspan(0x30)};validate(code);
-        Visitor visitor{code};visitor.inverse=float(1./double(info[3]));
+        Visitor visitor{code};visitor.inverse=inverse_scale(info[3]);
         if(!std::isfinite(visitor.inverse))throw FormatError("BSP sphere accelerator inverse scale overflows");
         ShaderVector sphere{center.x,center.y,center.z,radius};
         for(unsigned i=0;i<4;++i) {
@@ -290,7 +325,7 @@ SourceBspAcceleratorResult source_bsp_accelerator_sphere(
         }
         visitor.sphere=sphere;visitor.direct=direct;visitor.ranges=ranges;
         visitor.direct_capacity=direct_capacity;visitor.range_capacity=range_capacity;
-        Box box;box.upper.fill(float(double(visitor.inverse)*16777216.));
+        Box box;box.upper.fill(x87_product(visitor.inverse,16777216.f));
         visitor.walk(0,{},box);
         if(visitor.ranges.size()%2)throw FormatError("BSP sphere accelerator produced incomplete endpoint pair");
         direct=std::move(visitor.direct);ranges=std::move(visitor.ranges);return {true,{}};

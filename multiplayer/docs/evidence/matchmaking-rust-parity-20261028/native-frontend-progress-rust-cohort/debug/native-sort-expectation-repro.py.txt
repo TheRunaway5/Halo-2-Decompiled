@@ -1,0 +1,10 @@
+import hashlib,json,os,socket,subprocess
+from pathlib import Path
+root=Path.cwd();native=root/'.local/test-scratch/frontend-progress-native-20261102/halo2-test-1zjtqo3f/build/frontend_online_tests'
+with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
+cmd=[str(native),str(root/'assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11'),'--callback-port',str(port)]
+r=subprocess.run(cmd,env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=20)
+report=dict(passed=r.returncode==0,exit_code=r.returncode,command=cmd,native_sha256=hashlib.sha256(native.read_bytes()).hexdigest(),stdout=r.stdout.decode(errors='replace')[-4000:],stderr=r.stderr.decode(errors='replace')[-4000:],scope='No-service actual native menu/asset sampling repro; no HTTP account or match flow')
+(root/'build/test-results/frontend-progress-rust-20261102/native-sort-expectation-red.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps(report))
+raise SystemExit(r.returncode)

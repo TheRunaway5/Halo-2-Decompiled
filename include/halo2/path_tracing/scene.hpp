@@ -24,7 +24,7 @@ struct alignas(16) GpuMaterial {
     // offset,width,height,flags: alpha test/clamp U/clamp V/alpha kill/excluded.
     std::array<std::uint32_t,4> texture{};
     ShaderVector transform{1,1,0,0};
-    std::array<std::uint32_t,4> color_guide{}; // Source owner kind, sampler, border, reserved.
+    std::array<std::uint32_t,4> color_guide{}; // Source kind, sampler, border, qualified diffuse-energy decode.
 };
 struct alignas(16) GpuLight {
     ShaderVector position_radius{},color_intensity{};
@@ -57,7 +57,8 @@ struct Scene {
     // only with the optional active scene and never own source asset bytes.
     std::vector<std::array<std::uint64_t,2>> material_image_keys;
     std::vector<std::uint32_t> material_texel_capacities;
-    // Optional source baked COLOR data. Its magnitude never enters transport.
+    // Source baked color guides; qualified secondary diffuse fields can also
+    // retain their authored irradiance magnitude. Never primary baked lighting.
     // This bounded atlas exists only with the active optional RT Scene.
     std::vector<std::uint32_t> color_guide_pixels{0,0,0,0};
     std::vector<std::array<std::uint64_t,2>> color_guide_image_keys;

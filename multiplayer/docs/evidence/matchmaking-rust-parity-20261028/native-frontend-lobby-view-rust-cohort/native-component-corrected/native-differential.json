@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": 5927,
+  "native_io_observations": 1176,
+  "production_adapter_comparisons": 387,
+  "fault_controls": 14,
+  "preserved_native_exception_identity": 14,
+  "differences": [],
+  "native_sha256": "83df268adf576245d025c7f27f05a6f0fe97cd836ce28612b8c63f779d8051a5",
+  "scope": "Captured modern C++ lobby kernels versus actual Rust/CXX policy and IO.\n\nNative cache/query facts are controlled. Original executable cases have their\nown unchanged fixture comparators. This does not certify the installed client,\nhistorical Live producers or full OG framebuffer parity.\n"
+}

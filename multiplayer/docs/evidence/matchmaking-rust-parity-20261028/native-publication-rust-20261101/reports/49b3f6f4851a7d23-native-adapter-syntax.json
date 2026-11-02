@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/c++",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-native/halo2-test-yvyss7yk/native-source/src",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-native/halo2-test-yvyss7yk/build/online-protocol/Release/include",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-native/halo2-test-yvyss7yk/native-source/include",
+    "-O3",
+    "-DNDEBUG",
+    "-std=c++20",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-DWITH_GZFILEOP",
+    "-fsyntax-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-syntax/halo2-test-wx106k46/online_match_session.cpp"
+  ],
+  "exit_code": 0,
+  "source_sha256": "9f005d83d092edf878ab7734bf8649816dc857096a4b162dcc28a1c0c9e53647",
+  "native_build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-native/halo2-test-yvyss7yk/build",
+  "probe_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-syntax/halo2-test-wx106k46",
+  "scope": "New C++ adapter syntax against actual frozen generated Rust/native compile flags, no link/runtime acceptance",
+  "retained_large_artifacts": []
+}

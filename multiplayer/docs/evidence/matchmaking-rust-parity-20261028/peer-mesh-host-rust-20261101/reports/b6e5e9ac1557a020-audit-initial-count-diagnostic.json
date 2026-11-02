@@ -1,0 +1,6 @@
+{
+  "scope": "Audit expectation error, no production test failure.",
+  "expected_count_before_inspection": 9,
+  "actual_declared_and_linked_entries": 8,
+  "corrective_action": "Require the exact eight constructor/context/predicate/poll/receive/matrix/local/candidate symbols from the CXX schema."
+}

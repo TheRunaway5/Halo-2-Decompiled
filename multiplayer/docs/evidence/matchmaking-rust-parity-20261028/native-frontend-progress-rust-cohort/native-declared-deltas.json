@@ -1,0 +1,137 @@
+[
+  {
+    "path": "cmake/OnlinePeers.cmake",
+    "before": "30a6f9f89be533e64352869c96438ca3613525e101138c27b70a688787ef99f3",
+    "after": "d8a43aff28884485931b0094b9da8e7271d0873cf87474815ff918d5017780d9"
+  },
+  {
+    "path": "cmake/RustMatchmakingFrontend.cmake",
+    "before": "b486980e8ef50adbc662a0bc9ac81974c4eee76b1e630a3d7cedd580b75bc82a",
+    "after": "451a0f459dd7ad1fc98a6f2ebb4e94618d55ac0693c82d191ffb2e738f9b2f0e"
+  },
+  {
+    "path": "include/halo2/frontend.hpp",
+    "before": "439b7612f4fee4f000f494571a638611f8ea67841f0931c4f4854be31a109594",
+    "after": "52b40885fe4d48d6bfc7768bbdfcb2541fa93a0b2482f2848912db70298d82ae"
+  },
+  {
+    "path": "include/halo2/frontend_matchmaking_progress.hpp",
+    "before": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e",
+    "after": "d8a234a4aaca03830f1ab5ffcf98a3bba7d1821c12b0b8f08aebea7554e22d53"
+  },
+  {
+    "path": "include/halo2/original_matchmaking_widgets.hpp",
+    "before": "c3548666536cb9e7c999940b7b20ca25e7b16a2fcb715db950ecdd9a7fa00d9b",
+    "after": "3042a2a66e0267701047665777028fbeb44236a01b8e2140f2737d4a05f7d489"
+  },
+  {
+    "path": "rust/online_protocol/src/lib.rs",
+    "before": "fdf15e25368028586d63b10176ca3b515417aec4632bddced1571c2972231fd5",
+    "after": "553dcf880793ff8b768136413fc3d3830b15a257a59d6cf3474173879ec22809"
+  },
+  {
+    "path": "rust/online_protocol/src/matchmaking_frontend_search.rs",
+    "before": "5a88b7a6dbdf2002641a5cb6867496158d063a373ae78295944017b5e6c3f920",
+    "after": "7b68b98e96912860d62e431de33ee4a3faabda7977a84c38f2e3037059d771a5"
+  },
+  {
+    "path": "rust/online_protocol_bridge/src/lib.rs",
+    "before": "2449b5d762bac936c191c8c90e0c3aea7905d81268622407a96613a6e09c564c",
+    "after": "2c54532ff891afaa5470c30e8362e17d5e1c9894357fe3cd17362f4628639cde"
+  },
+  {
+    "path": "src/ui/frontend_matchmaking.cpp",
+    "before": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+    "after": "f38820e36f4b947b9abbdd316b8bcf887ec2869b7db508f3c406c89f0d942861"
+  },
+  {
+    "path": "src/ui/frontend_state.cpp",
+    "before": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879",
+    "after": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75"
+  },
+  {
+    "path": "tests/frontend_online_tests.cpp",
+    "before": "ef74c9183cee4bd8cbb27dacb08c76840d88d202d6ad00ca8253e55029b8da38",
+    "after": "6943aa0492901a43c8ccfce8149c7b36af1c9b7ecdda0cbae875630d75e4e401"
+  },
+  {
+    "path": "tools/oracle_tu15_matchmaking_roster.py",
+    "before": "25bc874177031372c7db781e11e44a7e19adc8fc8514b0c6994ce3ad1deb9478",
+    "after": "53e058536c55ed242569defcbf36c6dc80d15c7df2c4423df457612cf0c05f6d"
+  },
+  {
+    "path": "tools/oracle_tu15_matchmaking_widgets.py",
+    "before": "3e5cf70c65fcb204af9fa2b833950000f5b1800db4675597f3d38df5d51dd16c",
+    "after": "723ea9e4f79ab4ae58127c15c7255686c88cee68fb10f89ad1e90900949d383d"
+  },
+  {
+    "path": "rust/online_protocol/src/matchmaking_frontend_progress.rs",
+    "before": null,
+    "after": "f813e005033fa092aafdc323c9e5c88c2e320e0cb09d46f16683800f7fb70a34"
+  },
+  {
+    "path": "rust/online_protocol/tests/matchmaking_frontend_progress.rs",
+    "before": null,
+    "after": "0601684d59d04b3c25b830b72f30bbc15e19321c757693c8e8a6f47aea10348c"
+  },
+  {
+    "path": "rust/online_protocol_bridge/src/matchmaking_frontend_progress.rs",
+    "before": null,
+    "after": "aee28e2120947dde9796b99b85f9939570f6a98d806d05a6768fa8cad20803f6"
+  },
+  {
+    "path": "include/halo2/frontend_matchmaking_policy.hpp",
+    "before": null,
+    "after": "a1c2193d83cb10722c92c80c6972f97dcb67b024d5b1a31662d734ba9c22a40e"
+  },
+  {
+    "path": "src/ui/frontend_matchmaking_policy_bridge.cpp",
+    "before": null,
+    "after": "369b2892e8af369319b9759bb3aa62746b5a9b01ccf8bf8f10b78bcd467ef3fe"
+  },
+  {
+    "path": "tests/native_frontend_progress_rust_tests.cpp",
+    "before": null,
+    "after": "78fea2cd4d7419860f003b3e7046e460a5f0ae29af3777c9aecdcedce5d0fc0f"
+  },
+  {
+    "path": "tests/test_native_frontend_progress_rust.py",
+    "before": null,
+    "after": "255b02698ab4bf58daa575b64a512f567bc66d2f034efdf59c6eac5962024e3b"
+  },
+  {
+    "path": "tests/generate_frontend_progress_reference.py",
+    "before": null,
+    "after": "7c838238222216dc5553d920683698ced55961de41422f9545f88dc7b91c3597"
+  },
+  {
+    "path": "tests/fixtures/matchmaking_progress_sort_tu15_original.json",
+    "before": null,
+    "after": "2861bbd49ae4abaf3f4d9a447c985744554e662e73c718ddf9b4c01886066203"
+  },
+  {
+    "path": "tests/fixtures/matchmaking_progress_input_tu15_original.json",
+    "before": null,
+    "after": "33a98e57351edd57af915c72d33069c9aba730c9e5d5839feec5c28e33a2f9bc"
+  },
+  {
+    "path": "tools/oracle_tu15_matchmaking_progress_sort.py",
+    "before": null,
+    "after": "5321c1488c51feb76a8ae76d392171ebc13ca0d6d64bf75e7d052825c7f7c265"
+  },
+  {
+    "path": "tools/oracle_tu15_matchmaking_progress_input.py",
+    "before": null,
+    "after": "c0da42d7072603b2a39a3736766c748a6e0e464f45ce662cfa48ae8ce86e4f54"
+  },
+  {
+    "path": "tests/reference/frontend_progress_before_rust_20261102/frontend_online_tests.cpp.reference",
+    "before": null,
+    "after": "ef74c9183cee4bd8cbb27dacb08c76840d88d202d6ad00ca8253e55029b8da38"
+  },
+  {
+    "path": "tests/reference/frontend_progress_before_rust_20261102/test-provenance.json",
+    "before": null,
+    "after": "006340fc908e1e26b8897955705c84d6d398577bb609e4f39aecb6fd6814b342"
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "scope": "Existing owned frozen-file inventory versus current root; preserves concurrent changes",
+  "count": 21,
+  "paths": [
+    "cmake/NativeWeaponEffectsTu15.cmake",
+    "cmake/PhysicsLiveWorldTu15.cmake",
+    "include/halo2/native_tu15_contact_agent_factory.hpp",
+    "src/campaign/ai/source_ai_frame_tu15_generated.cpp",
+    "src/campaign/scripting/mcc_script_layout.inc",
+    "src/campaign/source_campaign_runtime_tu15_generated.cpp",
+    "src/gameplay/simulation.cpp",
+    "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "src/physics/native_tu15_contact_agent_factory.cpp",
+    "src/physics/native_tu15_world_integration_residuals.cpp",
+    "src/physics/physics_live_world_tu15.cpp",
+    "tests/destruction_runtime_tu15_tests.cpp",
+    "tests/vehicle_destruction_audio_playback_tu15_tests.cpp",
+    "tools/build_launcher_engine.py",
+    "tools/mcc-script-layout.json",
+    "tools/mcc_script_builtin_hooks.py",
+    "tools/observe_native_contact_agent_factory_tu15.cpp",
+    "tools/refresh_destruction_current_cohort.py",
+    "tools/validate_native_contact_agent_factory_tu15.py",
+    "tools/validate_native_weapon_effects_tu15.py",
+    "tools/validate_weapon_material_snapshot_tu15.py"
+  ],
+  "preserved": true
+}

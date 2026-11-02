@@ -1,9 +1,11 @@
 # Path Tracing renderer
 
-The optional **Path Tracing** choice is in the ordinary and pause Video Settings
-Graphics Mode row. Original remains the default. This is a native presentation
-extension over current source-admitted geometry and assets; Xbox TU1.5 remains
-the reference for Original rendering.
+The ordinary and pause Video Settings **Graphics Mode** row opens a submenu
+listing **Original**, **pStencil**, and **Path Tracing**. It focuses the active
+mode and shows its name; choosing a mode applies and saves it, then returns to
+Video Settings. Back cancels without applying a change. Original remains the
+default. This is a native presentation extension over current source-admitted
+geometry and assets; Xbox TU1.5 remains the reference for Original rendering.
 
 The setting applies to game-world surfaces. The source main-menu backdrop and
 its model widgets retain their authored renderer, independently of the saved
@@ -25,13 +27,17 @@ game-world graphics choice.
   proposals and the primary diffuse BSDF/cone mixture. The small proposal
   table follows the emissive triangle index list; it never changes radiance.
 - `color_guide.cpp` and `shaders/path_tracing/color_guide.glsl`: cached authored
-  lighting hue from source lightmap UVs or qualified static vertex radiance.
+  lighting hue from source lightmap UVs or qualified static vertex radiance;
+  exact source-program admission also tags the supported secondary diffuse
+  irradiance decode in the existing material record.
+- `shaders/path_tracing/source_indirect.glsl`: the source-qualified secondary
+  static irradiance boundary, reached through the existing closest-hit ray.
 - `include/halo2/path_tracing/surface_ray.hpp` and
   `shaders/path_tracing/surface_ray.glsl`: starting-surface exclusion for
   smooth diffuse receivers, with a matching CPU intersection check.
 - `include/halo2/path_tracing/surface.hpp`, `material_surface.hpp`,
   `unlit_uv.hpp` and `shaders/path_tracing/surface.glsl`: source-qualified
-  terrain texture blends, foliage coverage, native chained UV transforms and
+  opaque detail, three/four-stage terrain texture blends, foliage coverage, native chained UV transforms and
   shared primary/secondary material evaluation.
 - `geometry.cpp`: exact existing model skin arithmetic for current WORLD poses.
 - `source_lights.cpp`: actual native light-pool/effect inputs and projected-light
@@ -75,6 +81,10 @@ alternating bright sunlight, blue sky and dark emitter samples at one sample
 per pixel. The primary diffuse continuation mixes its cosine hemisphere with
 a cone enclosing a nearby authored emitter group. Both analytic PDFs determine
 the transport weight, so all sources remain reachable without adding a ray.
+The source-cone probability caps at two thirds. Existing group power and
+qualified static/sky irradiance provide sampling hints: weak emitters do not
+add cone variance to a bright background. The same probability enters both
+sampling and its complete mixture PDF; no hint multiplies lighting energy.
 At most eight groups are considered, and views inside the chosen source sphere
 retain cosine sampling. Secondary surfaces share one next-event query between source lights,
 emissive triangles and sky. Cosine-sampled sky illumination at the last hit lets
@@ -130,18 +140,46 @@ object/vertex identities, rotational sky motion and the applied viewport jitter.
 Unknown moving geometry rejects correspondence instead of inheriting another
 object's motion merely because it shares a material and section.
 
-Lightmap intensity and baked shadow darkness are excluded from traced shading.
-`color_guide.cpp` and `color_guide.glsl` retain only the authored lighting RGB
-chromaticity: actual cluster/instance lightmap palettes and UVs, or proven
-static per-vertex radiance. Static sky/sun diffuse events take that hue at their
-traced brightness (`.299 R + .587 G + .114 B`), with visibility supplied by RT.
-Scaling a positive baked sample does not change the result; zero or missing
-samples leave RT color unchanged. An actual gray sample deliberately gives a
-gray lighting hue. Local and emissive colored sources, material albedo, and
-specular/visor reflections retain their independent RGB. Primary and secondary
-hits share this policy, so colored source surfaces can light subsequent hits.
-The cached base-level source guide atlas is bounded to64MiB, exists only with
-the active optional Scene/Render, and requires no additional ray queries.
+Primary lightmap intensity and baked shadow darkness are excluded from traced
+shading. `color_guide.cpp` and `color_guide.glsl` retain authored lighting RGB
+chromaticity from actual cluster/instance lightmap palettes and UVs, or proven
+static per-vertex radiance. Primary static sky/sun diffuse events take that hue
+at their traced brightness (`.299 R + .587 G + .114 B`), with current RT
+visibility. Scaling a positive primary baked sample does not change expected
+lighting brightness; its qualified magnitude can guide sampling, whose PDF
+compensates that probability. Zero or missing samples leave its color unchanged. An actual gray
+sample deliberately gives a gray hue.
+
+Interiors also need static lighting energy that exists in the original bake
+and is absent from the retained dynamic light pool. This mode therefore uses
+a hybrid secondary irradiance cache. At the first compatible secondary diffuse
+hit, the existing closest-hit segment reads that surface's original lightmap
+RGB, decodes its source-authored `2 * RGB` diffuse transfer, and applies its
+current albedo. Admission checks the exact static diffuse pass, vertex program
+identity and complete combiner controls independently of animated constants;
+an ordinary hue guide alone cannot enable this energy path. The proven
+`lightmap_tex_detail` family does not use lightmap alpha as HDR diffuse energy.
+This preserves the precomputed secondary field's magnitude and static lighting
+distribution; it is not a fully dynamic recomputation of every baked bounce.
+No primary baked brightness or baked primary shadow is added. A current opaque
+object between the receiver and that secondary surface blocks the transport.
+
+The authenticated lightmap field is independent of sky availability: indoor
+maps with no sky or outdoor ambient retain their static secondary irradiance.
+Missing/zero or unqualified guides retain physical sky/light transport.
+Emission-only component views explicitly clear the secondary energy tag to
+isolate their physical source contribution. The cached diffuse lobe terminates at its first compatible
+hit at either bounce budget, avoiding another albedo absorption or repeated
+static energy. Static distant/sky next-event estimates at that hit are
+suppressed; current local lights, emissive sources and directly hit emission
+remain active. A selected GGX lobe still continues through the normal bounce
+budget, preserving reflections, including the visor. Material albedo, authored
+reflection strengths and reflection tint are unchanged.
+
+The existing source guide atlas is bounded to64MiB and exists only with the
+active optional Scene/Render. Qualification occupies the previously reserved
+material word; this policy adds no buffers, descriptors or ray queries and can
+terminate diffuse paths earlier.
 The selected source sky's D1A30 incident direction and radiosity supply its
 directional emitter. The source query casts toward that incident vector;
 Path Tracing uses the same orientation with BVH shadow rays and retains outdoor
@@ -174,7 +212,20 @@ optional adapter maps reflection strength to a bounded roughness, making weak
 reflections broader. This is explicit presentation policy, not an original
 material parameter or a claim of original-pixel equivalence.
 
-Qualified terrain programs retain their four-stage grass/dirt/detail blend.
+Qualified terrain programs retain their three-stage or four-stage texture blend.
+Lockout's `main_cell_exterior` uses the exact three-stage
+`detail_blend_texture_zwrite` graph: T0 alpha blends T1/T2, then the source
+two-times modulation, display clamp, gain and bias run in their original order.
+Its c18/c19/c20 vertex transforms, source alpha and each used texture's raw
+alpha kill remain independent of the removed lighting overlay.
+The exact opaque per-pixel `lightmap_tex_detail` family retains its authored
+`clamp(2 * T0 * T1)` RGB, ordered c18/c19 UV transforms and samplers for primary
+and secondary surfaces. Both complete alpha-control variants are qualified;
+this includes the visible `frozen_panels` source program. The shared qualifier
+also admits their proven secondary diffuse irradiance transfer. Its separate baked specular term is excluded from
+albedo. Qualification requires no output alpha test or blend, retains the
+existing T0 representative alpha and raw T0/T1 texture kills, and rejects
+unsupported raw T2/T3 kills. This adds no ray queries or surface-record schema.
 Foliage uses the native output-alpha expression before the original raster
 comparison; shadow rays and the depth prepass use the same coverage. Bump
 foliage is admitted only when its exact program, constants and LESS255 state
@@ -249,8 +300,8 @@ images and compact sky alias allocations.
 ## Evidence and remaining boundaries
 
 Focused CPU checks exercise BVH partitioning, finite ray lengths, all source
-alpha comparisons, current poses, animated material refresh, removal of baked
-radiance, and distinct matte/visor responses. Offscreen Vulkan checks render
+alpha comparisons, current poses, animated material refresh, removal of primary
+baked radiance, and distinct matte/visor responses. Offscreen Vulkan checks render
 actual shadows, emissive lighting and visor reflections, and compare BSP
 radiance variants. These component results do not establish launcher delivery,
 all-map visual acceptance, original Xbox framebuffer equivalence, or a frame-rate
@@ -270,6 +321,32 @@ separate checks.
 normal-orientation boundary for a primary receiver and a deterministic mirror
 continuation. Both compare the authored sun cosine with a geometric-normal
 control and retain a real opaque blocker.
+
+`path_tracing_source_indirect` isolates the secondary static boundary with an
+enabled black native sky bank. It checks the authored RGB decode, primary guide
+brightness independence, actual secondary intersections and opaque blockers,
+current hit albedo, equal energy at one/two bounces, equal irradiance without a
+sky, explicitly cache-disabled physical emission,
+current local lights, distant-source double counting and GGX continuation.
+An occluded weak emitter behind a constant cached wall also checks that the
+proposal hint reduces background noise while preserving its mean. Clearing
+only the primary hint tag leaves the physical secondary field unchanged.
+The CPU color-guide test separately qualifies actual prepared Lockout source
+programs and rejects modified or unsupported programs. These are component
+controls; native Original/PT interior captures remain a separate acceptance
+gate.
+
+`path_tracing_source_opaque_surface` compares actual original/prepared Lockout
+source programs against the retained unlit RGB; it does not establish complete
+baked output-alpha or native-frame parity. `path_tracing_opaque_detail` checks
+the ordered primary detail transform, source samplers/raw texture kills,
+prepass/filtered agreement and secondary albedo on the GPU.
+`path_tracing_source_panel_surface` additionally isolates the exact visible
+Lockout `frozen_panels` and `main_cell_exterior` programs against their original
+and prepared images. `path_tracing_panel_detail` checks their real texture/UV
+bindings on the GPU, including the three-stage blend, source alpha kills and
+animated gain/bias. These albedo controls do not reconstruct the source bump or
+separate specular response.
 
 For native-resolution denoising checks, configure
 `HALO2_PATH_TRACING_NATIVE_DENOISE_TESTS=ON` and run

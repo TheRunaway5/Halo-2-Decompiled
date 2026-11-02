@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compile authenticated TU1.5 model resource/render callbacks to native C++."""
 import argparse,json,struct
+from renderer_native_replacements import replace_model_view_slot_reset
 from pathlib import Path
 from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
@@ -96,7 +97,7 @@ def main():
     assert source.count(boundary)==1
     source=source.replace(boundary,boundary+
         'presented.publish(presented_owner,presented_model,s.gp[0],r(s.memory,s.gp[3]+0x48u,4),presented_first_person); ')
-    a.output.write_text(source)
+    a.output.write_text(replace_model_view_slot_reset(source))
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

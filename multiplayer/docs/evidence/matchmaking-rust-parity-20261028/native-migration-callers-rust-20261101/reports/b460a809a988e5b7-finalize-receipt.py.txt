@@ -1,0 +1,326 @@
+import datetime, hashlib, json, re, shutil, subprocess
+from pathlib import Path
+
+root=Path.cwd()
+work=root/'build/test-results/native-migration-callers-rust-20261101'
+evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+receipt_path=evidence/'native-migration-callers-rust-validation.json'
+bucket=evidence/'native-migration-callers-rust-20261101/reports'
+read=lambda p:json.loads(p.read_text())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n')
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json'
+fields=('algorithm_index','scope','gaps','acceptance_gates')
+before=read(work/'criteria-before.json')
+ledger=read(ledger_path)
+assert before=={k:ledger[k] for k in fields}
+criteria_hash=hashlib.sha256(json.dumps(before,sort_keys=True).encode()).hexdigest()
+assert criteria_hash=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+assert len(before['gaps'])==12 and len(before['algorithm_index']['ids'])==53
+assert len(before['acceptance_gates']['gates'])==12
+assert all(g['status']=='open' and not g['certified'] for g in before['acceptance_gates']['gates'])
+original=read(evidence/'friend-goal-criteria-before.json')
+criteria={k:ledger[k] for k in original['criteria'] if k!='gap_criteria'}
+keys=list(original['criteria']['gap_criteria'][0])
+criteria['gap_criteria']=[{k:g[k] for k in keys} for g in ledger['gaps']]
+assert criteria==original['criteria']
+goal_hash=hashlib.sha256(json.dumps(criteria,sort_keys=True).encode()).hexdigest()
+assert goal_hash=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+checkpoint=read(work/'goal-checkpoint.json')
+assert checkpoint['goal']['status']=='active'
+objective_hash=hashlib.sha256(checkpoint['goal']['objective'].encode()).hexdigest()
+assert objective_hash=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+
+cleanup=read(work/'cleanup.json')
+assert cleanup['passed'] and cleanup['all_owned_source_build_sdk_cargo_scratch_removed']
+assert all(not Path(p).exists() for p in cleanup['owned_scratch_paths']+cleanup['source_paths'])
+assert all(not Path(p).exists() or not any(Path(p).iterdir()) for p in cleanup['empty_scratch_parents'])
+inputs=read(work/'native/inputs.json')
+assert inputs['iterations']==4 and not inputs['drift_during_freeze']
+runs=[]
+for index in range(1,5):
+    r=read(work/f'native/iteration-{index}-report.json')
+    expected=index!=2
+    assert r['passed']==expected and r['frozen_inputs_intact']
+    rr=r['runner_report']
+    assert all(s['exit_code']==0 for s in rr['steps'] if s['name'] in ('configure','build'))
+    log=(work/f'native/iteration-{index}/tests.log').read_text()
+    classic=re.search(r'(\d+) tests failed out of (\d+)',log)
+    if classic:
+        failed,total=map(int,classic.groups())
+    else:
+        current=re.search(r'100% tests passed out of (\d+)',log)
+        assert current and expected
+        failed,total=0,int(current[1])
+    assert total==(1 if index==2 else 21) and failed==(1 if index==2 else 0)
+    runs.append({'iteration':index,'role':{
+        1:'Initial C++ baseline and comparison without exception text',
+        2:'Focused red comparison exposes generic refusal text introduced by the new bridge',
+        3:'Corrected full comparison including exact refusal text on original C++ Session caller',
+        4:'Production Session routed through Rust migration callers with full native cohort',
+    }[index],'passed':expected,'tests':total,'successful_tests':total-failed,
+        'seconds':float(re.search(r'Total Test time \(real\) =\s*([\d.]+)',log)[1]),
+        'source_pin_sha256':r['source_pin_sha256'],'declared_refreshes':r['refreshed'],
+        'report':str((work/f'native/iteration-{index}-report.json').relative_to(root))})
+assert sum(r['tests'] for r in runs)==64 and sum(r['successful_tests'] for r in runs)==63
+comparison=read(work/'native/iteration-4/evidence/test-artifacts/native-migration-callers.json')
+baseline_comparison=read(work/'native/iteration-3/evidence/test-artifacts/native-migration-callers.json')
+comparison_keys=('commands','steps','expected_state_or_io_refusals','operations','sha256')
+assert comparison['passed'] and baseline_comparison['passed']
+assert all(comparison[k]==baseline_comparison[k] for k in comparison_keys)
+assert (comparison['commands'],comparison['steps'],comparison['expected_state_or_io_refusals'])==(18110,18430,3142)
+assert comparison['sha256']=='a6357fdab53a98867f1d741e01ecbaf76fca7b5cc91d100b8bffb1a94dbc31e4'
+red=read(work/'native/iteration-2/evidence/test-artifacts/native-migration-callers.json')
+assert not red['passed'] and red['commands']==384
+assert 'ONLINE match connection failed or ended. Search again.' in red['error']
+assert 'Native migration caller failed' in red['error']
+fix=read(work/'refusal-propagation-fix.json')
+for n,v in read(work/'before-refusal-propagation.json').items():
+    assert sha(root/v['path'])==v['sha256']
+for v in fix['changes']:
+    assert sha(root/v['source'])==v['after_sha256']
+strict_fixture=read(work/'fixture-exception-text-change.json')
+text=(work/'fixture-before-exception-text.cpp.txt').read_text()
+assert hashlib.sha256(text.encode()).hexdigest()==strict_fixture['before_sha256']
+for pair in strict_fixture['changes']:
+    assert text.count(pair['before'])==1
+    text=text.replace(pair['before'],pair['after'])
+assert text==(root/strict_fixture['source']).read_text()
+
+rust_runs=[]
+for name in ('full-rust','full-rust-final'):
+    r=read(work/name/'report.json')
+    assert r['passed'] and r['frozen_inputs_intact'] and all(c['exit_code']==0 for c in r['commands'])
+    counts={c:sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',
+        (work/name/(c+'-test.log')).read_text()))) for c in ('online_protocol','online_protocol_bridge','matchmaking_service')}
+    assert counts=={'online_protocol':453,'online_protocol_bridge':65,'matchmaking_service':20}
+    rust_runs.append({'report':str((work/name/'report.json').relative_to(root)),'passed':True,'counts':counts,'total':538})
+counts=rust_runs[-1]['counts']
+inventory=read(work/'rust-native-final-inventory.json')
+foreign=read(work/'foreign-fixture-source-usage-audit.json')
+assert inventory['passed'] and inventory['all_rust_crate_inputs_identical']
+assert not inventory['all_broad_inventory_inputs_identical'] and len(inventory['mismatches'])==1
+assert foreign['passed'] and not foreign['selected_native_consumer_present']
+assert not foreign['compiled_dependency_files_audited']
+stage=read(work/'staging.json')
+assert stage['passed'] and stage['tests']==7 and stage['scratch_removed']
+audit=read(work/'final-link-audit.json')
+baseline=read(work/'baseline-link-audit.json')
+assert audit['passed'] and baseline['passed']
+assert all(audit['rust_caller_references'].values()) and not any(baseline['rust_caller_references'].values())
+assert all(sha(root/n)==h for n,h in audit['source_pins'].items())
+assert audit['object_sha256']!=baseline['object_sha256']
+ownership=read(work/'production-caller-ownership-audit.json')
+assert ownership['passed'] and ownership['public_session_header_unchanged'] and ownership['local_slot_getter_remains_mutex_free']
+reference=read(work/'before.json')
+assert sha(work/'before-online-match-session.cpp.txt')==reference['source_sha256']=='32d4d6057eb8bb03f3e6b2ecfdcfbaac09c51e6a309ce562fd1819f3283923b5'
+assert sha(root/reference['extraction'])==reference['extraction_sha256']=='031f585c93bd9e7c2f513bda5bccf51846593804acaec080565b940dfe5c977a'
+regressions={}
+expected={
+ 'source-admissions-cpp-rust':(25054,'630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6'),
+ 'authority-transfer-cpp-rust':(37731,'4df76820f8203e922a6f5c832fce1cdc83256cfb6d3581cb7b149a9fa1636926'),
+ 'snapshot-candidate-cpp-rust':(57325,'da3493708394453f8851d6bf4e81f6ac77a8664a097e0ae3700832e29eb58d85'),
+ 'native-receive-dispatch':(110810,'9e15dedbf25621c24fb46a7677d97dec21c81066b6a5a9465c229297361fe7f2'),
+ 'native-session-access':(31360,'993b69af892595d026c3f5f99558be37f58c1fb821ac760fe027b5a481195cba'),
+}
+for name,(number,digest) in expected.items():
+    j=read(work/f'native/iteration-4/evidence/test-artifacts/{name}.json')
+    assert j['passed'] and j['commands']==number
+    assert j.get('sha256',j.get('corpus_and_observations_sha256'))==digest
+    regressions[name]={'passed':True,'commands':number,'sha256':digest}
+
+remaining=ownership['remaining']
+relative=str(receipt_path.relative_to(root))
+entry={'receipt':relative,'implementation':'rust/online_protocol/src/matchmaking_native_migration.rs',
+    'bridge':'rust/online_protocol_bridge/src/matchmaking_native_migration.rs','native_io':'src/network/online_match_session.cpp',
+    'component_passed':True,'complete_fence_selection_start_and_candidate_callers_in_rust':True,
+    'generation_mutex_and_genuine_resource_observations_preserved':True,
+    'force_does_not_suppress_agreement_sampling':True,'exact_state_and_io_refusal_text_preserved':True,
+    'new_raw_context_hosts_checked_without_narrowing_alias':True,
+    'candidate_threshold_and_presence_in_rust':True,'no_rust_session_borrow_across_callbacks':True,
+    'public_session_header_unchanged':True,'local_slot_getter_remains_lock_free':True,
+    'migration_callers_cpp_policy_fallback':False,'new_rust_controls':9,
+    'rust_counts':counts,'rust_total':538,'staging_tests':7,'native_unique_tests':21,
+    'native_executions':64,'native_successful_executions':63,'native_build_failures':0,
+    'new_bridge_refusal_text_regression_red_runs':1,'native_fixture_failures':0,
+    'caller_comparison_commands':18110,'caller_comparison_steps':18430,'expected_state_or_io_refusals':3142,
+    'caller_comparison_sha256':comparison['sha256'],'all_rust_crate_inputs_identical':True,
+    'all_broad_rust_native_inventory_inputs_identical':False,'unrelated_fixture_additions_between_freezes':1,
+    'foreign_fixture_usage_source_audit_only':True,'new_original_executable_calls':0,
+    'played_world':False,'genuine_provider':False,'physical_installed_input':False,
+    'selected_runtime_replaced':False,'production_service_activated':False,
+    'all_cpp_matchmaking_policy_removed':False,'full_native_flow_qualified':False,
+    'full_matchmaking_ready':False,'full_goal_complete':False,'remaining':remaining}
+ledger['native_session_views_postgame_rust']['remaining_superseded_by']=relative
+ledger['native_migration_callers_rust']=entry
+ledger['last_implementation_update_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+write(ledger_path,ledger)
+assert before=={k:read(ledger_path)[k] for k in fields}
+
+section='''## Session migration fence, selection and candidate callers in Rust (November 1)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-migration-callers-rust-validation.json).
+`matchmaking_native_migration` now owns the complete Session callers for fencing,
+starting survivor selection and choosing a migration candidate. Rust controls
+the context/owner/phase short circuits, actual observation order, force/learned
+fence combination, selection-state sampling and candidate result bounds. A
+forced fence still reads the genuine agreement at the sampled time. Candidate
+queries retain the exact agreement, QoS ranking and selection observation order.
+
+The native adapter observes actual resources under the caller-held generation
+mutex and applies existing Rust Session operations. No Rust Session borrow spans
+callbacks that can reenter that owner. New raw context hosts stay wide until
+checked at the admitted boundary. The public Session header is unchanged, and
+the local-seat getter retains its mutex-free immutable projection. The actual
+compiled Session object references all three new Rust caller entries. No C++
+caller fallback was added.
+
+All 538 Rust tests pass (453 protocol, 65 bridge, 20 service), including nine new
+caller and ABI controls. Seven staging checks and all 21 final native checks
+pass. The exact preserved modern C++ callers and new Rust orchestration match
+18,110 commands and 18,430 steps, including 3,142 expected State/IO refusals.
+The comparison covers complete observations, ordering, effects, repeated
+transitions, results and exact exception text. The corrected baseline and final
+production run share digest
+`a6357fdab53a98867f1d741e01ecbaf76fca7b5cc91d100b8bffb1a94dbc31e4`.
+
+Adding exact refusal text exposed a regression in the new bridge: it replaced
+the existing ONLINE refusal detail with a generic error. A focused native red
+run reproduced that difference; Rust now carries the actual IO exception text.
+The full Rust suites and full native baseline/production cohorts pass after the
+fix. Across four native runs, 63 of 64 test executions pass; the one failure is
+that retained regression control. No admission or State guard was weakened.
+
+All Rust crate inputs match across the qualified snapshots. A separate weapons
+fixture was added between freezes; a source/current-registration audit found no
+Rust or selected native-test consumer. The broad inventories therefore differ,
+and no compiled dependency-file identity claim is made for that fixture. Its
+concurrent source and reference work remains intact. The cohort froze 18,929
+owned source files and preserved five unrelated existing-input changes. Owned
+source/build/SDK/Cargo/audit scratch is removed, with no large artifact retained.
+
+Remaining Session public API sequencing and complete production ownership still
+need auditing. Historical/service recovery, every required natural outcome and
+topology, genuine worlds/providers, actual installed Linux playlist/Start flow
+and complete delivered-artifact/restart/config/rollback acceptance remain open.
+All twelve gaps, 53 algorithm IDs and G01-G12 criteria are unchanged. The full
+Rust matchmaking goal remains active; this component does not establish original
+Live, original whole-system parity or installed delivery.
+
+'''
+doc=root/'multiplayer/docs/matchmaking-rust-parity-audit-20261028.md'
+s=doc.read_text();anchor='## Rust implementation boundary\n';assert s.count(anchor)==1
+if section.splitlines()[0] in s:
+    assert section in s
+else:
+    doc.write_text(s.replace(anchor,section+anchor))
+readme='''
+`matchmaking_native_migration` owns complete Session fence, selection-start and
+candidate caller sequencing, including phase/context short circuits, actual
+agreement/QoS/selection sampling order, forced-fence behavior and result bounds.
+Native callbacks retain real resources and the generation lock. No Rust Session
+borrow spans reentrant callbacks, raw context hosts are checked before narrowing,
+and actual refusal details survive the ABI. The configured Session object calls
+all three new Rust entries; its public header and mutex-free local-seat getter
+remain intact. [Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-migration-callers-rust-validation.json)
+records 538 Rust tests, seven staging checks, 21 final native checks and 18,110
+matching caller commands with exact error text. It includes the red/green control
+for refusal text lost by the initial bridge. Qualified Rust crate inputs match;
+one unrelated weapons fixture added between freezes is separately source-audited,
+without a whole-inventory identity claim. Remaining API/production owner closure,
+original recovery, genuine worlds/providers and installed Linux delivery remain
+open.
+'''
+bridge_readme='''
+`NativeMigrationIo` supplies actual agreement/QoS/selection observations under
+the caller-held Session generation mutex and invokes existing Rust State
+operations. Core Rust owns complete fence/start/candidate sequencing; the ABI
+keeps new raw host operands wide until checked, preserves actual refusal text
+and carries explicit candidate presence. It holds no Rust Session reference
+across callbacks. The staged header, unchanged public Session header and actual
+compiled object's three caller references are pinned in the
+[qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-migration-callers-rust-validation.json).
+All 538 Rust tests, seven staging checks, 21 final native checks and 18,110 exact
+caller comparisons pass. A retained red/green control covers the initial
+bridge's lost refusal detail. An unrelated new weapons fixture is separately
+source-audited; no broad inventory identity, original Live, genuine-world/provider
+or installed Linux delivery claim is made.
+'''
+for name,text in [('rust/online_protocol/README.md',readme),('rust/online_protocol_bridge/README.md',bridge_readme)]:
+    if text not in (root/name).read_text():
+        with (root/name).open('a') as f:f.write(text)
+docs=['multiplayer/docs/matchmaking-rust-parity-gaps.json','multiplayer/docs/matchmaking-rust-parity-audit-20261028.md','rust/online_protocol/README.md','rust/online_protocol_bridge/README.md']
+critical=list(audit['source_pins'])
+check=subprocess.run(['git','diff','--check','--']+critical+docs,capture_output=True,text=True)
+assert check.returncode==0,check.stdout+check.stderr
+for name in [n for n in critical if 'matchmaking_native_migration' in n or n in ('tests/native_migration_callers_tests.cpp','tests/test_native_migration_callers.py')]:
+    text=(root/name).read_text()
+    assert all(line==line.rstrip() for line in text.splitlines()),name
+write(work/'whitespace-check.json',{'passed':True,'command':['git','diff','--check','--']+critical+docs,'new_source_trailing_whitespace_check':True})
+assert all(sha(root/n)==h for n,h in audit['source_pins'].items())
+
+files=sorted(p for p in work.rglob('*') if p.is_file())
+by_hash={};mapping={};total=0
+assert not bucket.exists() and not receipt_path.exists()
+bucket.mkdir(parents=True)
+for p in files:
+    assert not p.is_symlink() and p.stat().st_size<=1048576,(str(p),p.stat().st_size)
+    h=sha(p)
+    if h not in by_hash:
+        target=bucket/(h[:16]+'-'+p.name)
+        assert not target.exists()
+        shutil.copyfile(p,target);by_hash[h]=target;total+=target.stat().st_size
+    mapping[str(p.relative_to(root))]={'path':str(by_hash[h].relative_to(root)),'sha256':h,'bytes':p.stat().st_size}
+assert total<=8*1024*1024,total
+for p in files:
+    v=mapping[str(p.relative_to(root))]
+    assert sha(p)==sha(root/v['path'])==v['sha256']
+
+receipt={'schema':'halo2-native-migration-callers-rust-validation-v1',
+    'created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'component_passed':True,
+    'scope':'Complete existing modern Session migration fence, survivor-selection start and candidate caller policy in Rust. Preserves actual native resource/mutex observations and reentrant existing Rust State operations. Not original Live, native-world/provider or installed Linux proof.',
+    'source_pins':audit['source_pins'],'reference':reference,
+    'rust_owns':['Complete context/phase/owner short circuits and original observation order','Forced/learned fence combination and selection-start sampling','QoS/selection candidate caller, full-width ranking and bounded optional result'],
+    'cpp_retains':['Actual resource/mutex/time IO and typed value conversion','Application of existing Rust State effects after its borrow ends','Genuine native generation/device/lease/world owners'],
+    'no_rust_session_borrow_across_callbacks':True,'new_unsafe_rust':False,
+    'rust_validation_runs':rust_runs,'rust_counts':counts,'rust_total':538,'new_rust_controls':9,'staging_tests':7,
+    'native_runs':runs,'native_unique_tests':21,'native_executions':64,'native_successful_executions':63,
+    'native_build_failures':0,'native_fixture_failures':0,'new_bridge_refusal_text_regression_red_runs':1,
+    'rust_check_test_failures':0,'caller_comparison':comparison,
+    'strict_before_and_after_comparison_identical':True,
+    'refusal_text_regression_and_fix':fix,'refusal_fixture_strengthening':strict_fixture,
+    'pre_fix_reference_name_correction':read(work/'reference-name-correction.json'),
+    'regression_replays':regressions,'baseline_link_audit':baseline,'link_audit':audit,
+    'production_caller_ownership_audit':ownership,'frozen_native_files':inputs['frozen_files'],
+    'freeze_refreshes_before_build':inputs['freeze_refreshes_before_build'],
+    'unrelated_current_source_drift':read(work/'current-source-drift.json'),
+    'qualified_rust_native_input_audit':inventory,'all_rust_crate_inputs_identical':True,
+    'all_broad_rust_native_inventory_inputs_identical':False,
+    'foreign_fixture_source_usage_audit':foreign,'borrowed_rust_input_pins':read(work/'borrowed-rust-final-inputs.json'),
+    'remaining':remaining,'new_original_executable_calls':0,'original_live_wire_recovered':False,
+    'historical_service_configuration_recovered':False,'played_world':False,
+    'positive_genuine_steam':False,'positive_genuine_eos':False,'physical_installed_input':False,
+    'selected_runtime_replaced':False,'production_service_activated':False,
+    'full_native_flow_qualified':False,'all_cpp_matchmaking_policy_removed':False,
+    'original_whole_system_parity':False,'full_matchmaking_ready':False,'full_goal_complete':False,
+    'goal_criteria_sha256':goal_hash,'goal_objective_sha256':objective_hash,
+    'scope_inventory_snapshot_before_after_sha256':criteria_hash,
+    'all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved':True,
+    'retained_reports':mapping,'retained_unique_report_files':len(by_hash),'retained_unique_report_bytes':total,
+    'cleanup':cleanup,'post_qualification_documentation':{n:sha(root/n) for n in docs}}
+write(receipt_path,receipt)
+shutil.rmtree(work)
+cleanup.update(working_report_files_removed=len(files),working_report_directory_removed=True)
+receipt['final_verification']={'gap_count':12,'algorithm_id_count':53,'acceptance_gate_count':12,
+    'all_acceptance_gates_open':True,'scope_inventory_snapshot_before_after_sha256':criteria_hash,
+    'current_critical_source_pins_match':all(sha(root/n)==h for n,h in receipt['source_pins'].items()),
+    'working_reports_removed':not work.exists(),
+    'all_owned_scratch_removed':all(not Path(p).exists() for p in cleanup['owned_scratch_paths']),
+    'selected_runtime_changed_by_this_work':False,'retained_large_artifacts':[],
+    'whitespace_check_passed':True,'observed_goal_still_active':True}
+assert all(receipt['final_verification'][k] for k in ('current_critical_source_pins_match','working_reports_removed','all_owned_scratch_removed'))
+write(receipt_path,receipt)
+print(json.dumps({'receipt':str(receipt_path.relative_to(root)),'rust_tests':538,'native_final':21,
+    'caller_commands':18110,'caller_steps':18430,'native_successful_executions':63,'native_executions':64,
+    'unique_reports':len(by_hash),'retained_bytes':total,'scratch_removed':True,'full_goal_complete':False}))

@@ -1,0 +1,40 @@
+--- tests/reference/frontend_search_before_rust_20261102/frontend_matchmaking_lobby.cpp.reference
++++ src/ui/frontend_matchmaking_lobby.cpp
+@@ -9,7 +9,7 @@
+   for(const auto &frame:stack_)f.screens.push_back(frame.screen);
+   f.account_client=bool(online_account_);f.authenticated=account_.authenticated;
+   f.busy=account_.busy;f.party_message_present=!account_.party_message.empty();
+-  f.queue_client=bool(online_matchmaking_);f.selected_playlist=selected_playlist_;
++  f.queue_client=bool(online_matchmaking_);f.selected_playlist=matchmaking_search_.selected();
+   for(const auto &p:matchmaking_.playlists)
+     f.playlists.push_back({p.id,p.revision,p.eligible});
+   f.party_present=account_.party.has_value();
+@@ -32,7 +32,7 @@
+ bool MenuState::update_online_lobby_countdown() {
+   const auto effect=online_lobby_.observe(online_lobby_facts());
+   if(effect.departure) {
+-    quickmatch_pending_=false;
++    matchmaking_search_.quick(false);
+     if(online_matchmaking_)online_matchmaking_->cancel_queue();
+     reset_online_matchmaking_progress();
+     while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
+@@ -67,7 +67,7 @@
+   if(effect.friends)open(216);
+   if(effect.begin_leave) {
+     if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-    quickmatch_pending_=false;update_online_account();update_online_lobby_leave();
++    matchmaking_search_.quick(false);update_online_account();update_online_lobby_leave();
+   }
+   return true;
+ }
+@@ -75,8 +75,8 @@
+   if(!online_lobby_.observe_leave(online_lobby_facts()))return;
+   if(online_matchmaking_)online_matchmaking_->sign_out();
+   online_lobby_.left();
+-  matchmaking_active_=quickmatch_pending_=false;matchmaking_={};
+-  selected_playlist_.clear();online_lobby_playlist_pending_=false;
++  matchmaking_search_.stop();matchmaking_={};
++  matchmaking_search_.left();
+   reset_online_matchmaking_progress();launch.reset();
+   while(stack_.size()>1 && frame().screen!=6)stack_.pop_back();
+   ++revision;

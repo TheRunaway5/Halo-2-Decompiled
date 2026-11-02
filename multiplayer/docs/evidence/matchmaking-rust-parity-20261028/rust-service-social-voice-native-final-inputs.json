@@ -1,0 +1,40 @@
+{
+  "schema": "H2_RUST_SERVICE_SOCIAL_VOICE_NATIVE_INPUTS_V1",
+  "before_sha256": "1f268efc968bbf5d5c4922909c1ccc9087e496088270b6319295735e939539ba",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json"
+  ],
+  "input_count": 4427,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final/halo2-test-2u0a4tgx/native-source",
+  "copied_source_bytes": 167742626,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final/halo2-test-2u0a4tgx",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "1f268efc968bbf5d5c4922909c1ccc9087e496088270b6319295735e939539ba",
+  "changed": [],
+  "current_source_drift": [
+    "cmake/PhysicsLiveWorldTu15.cmake",
+    "include/halo2/native_tu15_constraint_step_residuals.hpp",
+    "include/halo2/native_tu15_physics_frame_residuals.hpp",
+    "include/halo2/native_tu15_world_integration.hpp",
+    "src/physics/native_tu15_constraint_step_residuals.cpp",
+    "src/physics/native_tu15_object_activation_residuals.cpp",
+    "src/physics/native_tu15_world_integration_residuals.cpp",
+    "src/physics/physics_live_world_tu15.cpp",
+    "src/physics/vehicles/physics_vehicle_update_generated.cpp",
+    "src/rendering/shadows/source_presented_model_pose_tu15.cpp"
+  ]
+}

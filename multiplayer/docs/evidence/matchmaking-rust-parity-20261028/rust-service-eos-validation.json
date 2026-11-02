@@ -1,0 +1,1284 @@
+{
+  "schema": "H2_RUST_SERVICE_EOS_VALIDATION_V1",
+  "updated_utc": "2026-10-30T19:42:58.792384+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "rust_service_eos_identity_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "full_matchmaking_service_ready": false,
+  "real_eos_sdk_acceptance": false,
+  "real_epic_authorization_acceptance": false,
+  "native_eos_peer_world_acceptance": false,
+  "native_played_game_acceptance": false,
+  "rendered_linux_menu_acceptance": false,
+  "runtime_replaced": false,
+  "service_activated": false,
+  "rust_authorities": [
+    "Configured public JWKS and account/room EOS-purpose token issuance; persistent private RS256 key, canonical subject/name, issuer/audience and120-second lifetime.",
+    "Private official-SDK worker verification IO; unverified JWT subjects are bounded routing hints only.",
+    "Shared unique immutable PUID SQL links and idempotent profile outbox revisions; the legacy adapter now uses the same Rust policy.",
+    "Account/room revalidation after body, SDK and SQL ownership; complete queue/SQL rollback of room-local proof publication.",
+    "Bounded verifier admission, private stream/child lifetimes, cancellation, timeout, malformed response and SIGTERM recovery."
+  ],
+  "api_routes": [
+    "GET /v1/auth/eos/jwks",
+    "POST /v1/account/eos-token",
+    "POST /v1/account/eos-proof",
+    "POST /v1/matches/{id}/eos-token",
+    "POST /v1/matches/{id}/eos-proof"
+  ],
+  "modern_service_bounds": {
+    "principals": 32,
+    "per_principal_inflight": 1,
+    "queue_wait_seconds": 2,
+    "owned_operation_seconds": 20,
+    "response_total_bytes": 262144,
+    "response_lines": 64,
+    "room_owner_requests_per_minute": 120,
+    "request_body_bytes": 16384,
+    "token_max_bytes": 8192
+  },
+  "signing": {
+    "algorithm": "RS256",
+    "key_bits_generated": 2048,
+    "persistent_path": "<private service state>/eos-openid-key.pem",
+    "unix_mode": "0600",
+    "lifetime_seconds": 120,
+    "not_before_allowance_seconds": 5,
+    "development_http_issuer_allowed": false,
+    "dependency": "openssl=0.10.81",
+    "source_docs": [
+      "https://docs.rs/openssl/0.10.81/openssl/pkey/struct.PKey.html",
+      "https://docs.rs/openssl/0.10.81/openssl/sign/struct.Signer.html"
+    ]
+  },
+  "genuine_regressions": [
+    {
+      "red_iteration": 1,
+      "red": "Configured GET /v1/auth/eos/jwks returned503 Required service capability unavailable.",
+      "green": "Actual public JWK verifies the newly issued Rust RS256 token; key identity survives process restart."
+    },
+    {
+      "red_iteration": 4,
+      "red": "A revoked account body upload still reached the SDK verifier, although the later check prevented persistence.",
+      "green": "The same actual paused body/upload/sign-out control rejects401 and leaves the worker call count unchanged."
+    }
+  ],
+  "compile_only_repairs": [
+    "An async MutexGuard was passed without binding/dereferencing it for retirement; E0308 corrected before qualification.",
+    "A watch receiver was immutably borrowed by the exchange future and mutably borrowed by changed(); E0502 corrected with an owned initial-state observation."
+  ],
+  "fixture_corrections": [
+    "An invalid unverified EOS signal correctly triggers native rejection and room teardown. The failed-COMMIT test now retries a different PUID before injecting invalid traffic; this directly detects leaked provisional native proof state.",
+    "Cancelling matchmaking before gameplay retains its native proposal-cancellation semantics. The independent-room-authority control logs out the social account grant; it does not weaken pregame search cancellation."
+  ],
+  "sdk_verifier_contract": {
+    "source_pins": {
+      "/home/eric/Developer/Halo-2-PC-Website/backend/eos-worker/src/main.rs": {
+        "sha256": "6e966728fdf2cd7b5e1ad9745117d2e8b9c5b34b27fd9454bc01134bca060c17",
+        "bytes": 23257
+      },
+      "/home/eric/Developer/Halo-2-PC-Website/backend/eos-worker/src/sdk.cpp": {
+        "sha256": "107bcde3cd774d0853fbdc383fea391f0b4b876144926afeea68d8d2c176cc05",
+        "bytes": 13146
+      },
+      "/home/eric/Developer/Halo-2-PC-Website/backend/eos-worker/src/sdk.hpp": {
+        "sha256": "71cac034d4a77be7cd193b25bac2255b61648cb5ae607bd555ba3efd1db8da5f",
+        "bytes": 837
+      },
+      "/home/eric/Developer/Halo-2-PC-Website/backend/eos-worker/Cargo.toml": {
+        "sha256": "430713395d3ff86aca3681b87275d2d21547c4977451460aadd5da298d4d1d34",
+        "bytes": 288
+      },
+      "/home/eric/Developer/Halo-2-PC-Website/backend/eos-worker/Cargo.lock": {
+        "sha256": "3ec7ef8a89b047a86b45f6409a0bc3cfd0ce404a8b00d7fb0c5dbf6a208d4599",
+        "bytes": 8331
+      }
+    },
+    "scope": "Read-only inspection of the existing Rust official-SDK verifier and thin C++ callback IO. It validates account/provider/PUID and configured client/product/sandbox/deployment. This increment did not execute the official SDK or use real Epic authorization; subprocess replies in tests are explicit private fixtures."
+  },
+  "owned_runtime": {
+    "passed": true,
+    "iterations": 9,
+    "report": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-9-report.json",
+    "eos": {
+      "checks": [
+        "actual Rust JWKS route, configured signing identity and private persistent key",
+        "actual RS256 signature verifies against the public JWK; canonical account/name, issuer/audience and full120-second lifetime are bound without caller identity",
+        "SDK-receipt account check, immutable unique PUID binding, actual failed COMMIT rollback and exactly-once outbox revision/retry",
+        "revocation during actual body upload is rechecked before SDK IO and cannot persist a link",
+        "actual three-second SDK IO survives a distinct two-second queue timeout; duplicate in-flight principal is rejected without consuming another reply",
+        "account revocation while the actual worker owns a proof is rechecked after SDK IO and persists no identity",
+        "duplicate JSON from the actual worker retires/reaps that exact stream and a fresh process verifies the next account",
+        "real twenty-second verifier deadline kills/reaps its owned child; no stale reply reaches the following request",
+        "source-v16 full-options room grants issue real signed EOS tokens independent of account sessions; malformed hints never reach the verifier",
+        "failed room-proof COMMIT rolls back canonical and native proof publication; retry binds only SDK-verified PUIDs to real signal sockets and rejects forged identities",
+        "a forged peer identity is rejected and closes the actual room; SDK IO cannot publish a late proof after that teardown",
+        "actual SIGTERM during owned SDK IO cancels and reaps the exact verifier child before process exit, without linking the pending identity",
+        "real Rust process restart retains the signing key, canonical PUID and revision while retiring old capabilities; full readiness remains false"
+      ],
+      "provider": {
+        "queue_timeout_seconds": 2,
+        "owned_timeout_seconds": 20.00219094302156,
+        "retired_worker_pids": [
+          3576681,
+          3577429
+        ],
+        "real_sdk": false
+      },
+      "rooms": {
+        "compatibility": "halo2-native-queue-v16",
+        "physical_owners": 2,
+        "logical_seats": 3,
+        "real_signed_tokens": true,
+        "real_signal_sockets": true,
+        "real_sdk": false,
+        "played_world": false
+      },
+      "shutdown": {
+        "elapsed_seconds": 0.0033704089873936027,
+        "worker_pid": 3578444,
+        "child_reaped": true,
+        "service_exit_code": 0
+      },
+      "public_key_kid": "8f065ab474e62617bacf3e3599608052",
+      "scope": "Real Rust EOS HTTP, RSA cryptography, SQL and owned worker IO; private SDK receipt/provider fixtures only. No real Epic authorization, native peer world, original or delivered acceptance."
+    },
+    "native_product_matches_native_cohort": true
+  },
+  "native": {
+    "passed": true,
+    "ctests": 2,
+    "ctest_seconds": 169.23,
+    "service_unit_tests": 8,
+    "general_controls": 12,
+    "matchmaking_controls": 13,
+    "search_controls": 7,
+    "eos_controls": 13,
+    "eos": {
+      "checks": [
+        "actual Rust JWKS route, configured signing identity and private persistent key",
+        "actual RS256 signature verifies against the public JWK; canonical account/name, issuer/audience and full120-second lifetime are bound without caller identity",
+        "SDK-receipt account check, immutable unique PUID binding, actual failed COMMIT rollback and exactly-once outbox revision/retry",
+        "revocation during actual body upload is rechecked before SDK IO and cannot persist a link",
+        "actual three-second SDK IO survives a distinct two-second queue timeout; duplicate in-flight principal is rejected without consuming another reply",
+        "account revocation while the actual worker owns a proof is rechecked after SDK IO and persists no identity",
+        "duplicate JSON from the actual worker retires/reaps that exact stream and a fresh process verifies the next account",
+        "real twenty-second verifier deadline kills/reaps its owned child; no stale reply reaches the following request",
+        "source-v16 full-options room grants issue real signed EOS tokens independent of account sessions; malformed hints never reach the verifier",
+        "failed room-proof COMMIT rolls back canonical and native proof publication; retry binds only SDK-verified PUIDs to real signal sockets and rejects forged identities",
+        "a forged peer identity is rejected and closes the actual room; SDK IO cannot publish a late proof after that teardown",
+        "actual SIGTERM during owned SDK IO cancels and reaps the exact verifier child before process exit, without linking the pending identity",
+        "real Rust process restart retains the signing key, canonical PUID and revision while retiring old capabilities; full readiness remains false"
+      ],
+      "provider": {
+        "queue_timeout_seconds": 2,
+        "owned_timeout_seconds": 20.002631053997902,
+        "retired_worker_pids": [
+          3587637,
+          3587673
+        ],
+        "real_sdk": false
+      },
+      "rooms": {
+        "compatibility": "halo2-native-queue-v16",
+        "physical_owners": 2,
+        "logical_seats": 3,
+        "real_signed_tokens": true,
+        "real_signal_sockets": true,
+        "real_sdk": false,
+        "played_world": false
+      },
+      "shutdown": {
+        "elapsed_seconds": 0.003393293998669833,
+        "worker_pid": 3589244,
+        "child_reaped": true,
+        "service_exit_code": 0
+      },
+      "public_key_kid": "402388e466099d1c375149a59f53c94b",
+      "scope": "Real Rust EOS HTTP, RSA cryptography, SQL and owned worker IO; private SDK receipt/provider fixtures only. No real Epic authorization, native peer world, original or delivered acceptance."
+    },
+    "qos": {
+      "checks": [
+        "real search upgrade requires a matchmaking grant and rejects duplicate live physical connections",
+        "actual WebSocket parser/native controls reject duplicate JSON, invented controls, oversized messages, binary and unmasked frames",
+        "real session replacement closes the old socket and its late detach cannot retire the replacement",
+        "native application heartbeat expires a silent socket while an answering upgraded connection survives beyond the HTTP30s deadline",
+        "actual physical socket echoes produce native relay measurements and a real authored Lab proposal with two owners and a transient guest",
+        "socket-backed search cancellation/revocation retains grant fencing and never advertises full room/gameplay readiness",
+        "real Rust restart cannot revive an old search WebSocket grant"
+      ],
+      "observed": {
+        "pings": 10,
+        "probes": 6
+      },
+      "scope": "Real modern relay-cycle socket IO on the authored Lab profile; no original XNet, rendered/played-world, real provider grant or delivery acceptance.",
+      "native": {
+        "passed": true,
+        "proposal_players": 2,
+        "scope": "Actual native OnlineSearchQos clients against Rust WebSockets and queue decisions; fixture provider grants only; no room/gameplay acceptance."
+      }
+    },
+    "rooms": {
+      "checks": [
+        "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+      ],
+      "relay": {
+        "checks": [
+          "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+          "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+          "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+          "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+          "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+        ],
+        "observed": {
+          "start_countdown_ms": 9999,
+          "real_start_elapsed_seconds": 9.998088866006583,
+          "physical_connections": 2,
+          "logical_seats": 3,
+          "persistent_xp_total": 100
+        },
+        "fixture": {
+          "compatibility": "halo2-native-queue-v10",
+          "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+          "declared": true,
+          "original_profile": false,
+          "real_gameplay": false
+        },
+        "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+      },
+      "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate.",
+      "direct": {
+        "checks": [
+          "actual signal route drains a buffered candidate, validates physical peer reports and reaches running through the real ten-second gate; test RTT claims come from real local UDP exchanges",
+          "live direct socket replacement closes the old generation with its native reason; its late detach cannot remove the replacement, and frontend logout leaves the transferred bearer valid",
+          "explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room"
+        ],
+        "observed": {
+          "physical_connections": 2,
+          "udp_probe_exchanges": 6,
+          "client_reported_rtt_ms": [
+            1,
+            1
+          ],
+          "replaced_close_code": 1001
+        },
+        "scope": "Actual Rust direct signaling/clock/generation/departure IO on a declared v12 legacy fixture, private grants and real local UDP client RTT probes. No native peer/gameplay/world promotion, original XNet or delivered acceptance."
+      },
+      "content_failure": {
+        "checks": [
+          "actual loading-content rejection requires the current grant/room, closes the real streams, preserves actor/other-party failure codes after teardown and fences stale receipts after requeue"
+        ],
+        "scope": "Real Rust HTTP/room-close/failure IO on a declared legacy fixture; no rendered map-load or played-world acceptance."
+      },
+      "native": {
+        "passed": true,
+        "observed": {
+          "input_bytes": 27,
+          "players": 2,
+          "protocol": 123,
+          "real_start_timer": true,
+          "result_recorded": true,
+          "snapshot_bytes": 1400
+        },
+        "scope": "Actual native OnlineMatchSession clients, real Rust loading/start, datagram relay and unanimous PCR/XP commit; declared legacy profile, synthetic datagrams/PCR/fingerprint and fixture provider grants. No native world/rendered game or delivered acceptance."
+      }
+    },
+    "binary": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build/Testing/Temporary/scratch/halo2-test-d054bdka/cargo/release/halo2-matchmaking-service",
+      "bytes": 10509400,
+      "sha256": "411fc49a0256b345958c8e78418aaecd93ed1d1e9e00c1b7b523f420956a40fa",
+      "retained": false
+    },
+    "client_binaries": {
+      "native_client": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build/rust_service_account_probe",
+        "sha256": "e47c9a460f667d52fb41bcd4eaee3bf36ef4023561aef267125f87f1e7d57763",
+        "borrowed_read_only": true
+      },
+      "native_matchmaking_client": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build/rust_service_matchmaking_probe",
+        "sha256": "e7fc67a519824b149727db1af8002f0c3200c757bf1a60e96e59917b1476f2b1",
+        "borrowed_read_only": true
+      },
+      "native_qos_probe": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build/rust_service_qos_probe",
+        "sha256": "ecfc704ae9310d16687f5700af570df51daec95fac2b7ecc57ea760d6647a255",
+        "borrowed_read_only": true
+      },
+      "native_room_probe": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build/rust_service_room_probe",
+        "sha256": "bba16971205f77167feb48c3ed57e5981832175111ae8eea39d5f73a19e47562",
+        "borrowed_read_only": true
+      }
+    },
+    "inputs": {
+      "schema": "H2_RUST_SERVICE_EOS_NATIVE_INPUTS_V1",
+      "before_sha256": "e129a1e5688ca955ca9de215ede406f0b413bfa6ffa533d85bfc094964ac5fd6",
+      "source_pin_parts": [
+        "source-pins-0.json",
+        "source-pins-1.json",
+        "source-pins-2.json",
+        "source-pins-3.json",
+        "source-pins-4.json",
+        "source-pins-5.json",
+        "source-pins-6.json",
+        "source-pins-7.json",
+        "source-pins-8.json",
+        "source-pins-9.json",
+        "source-pins-10.json"
+      ],
+      "input_count": 4386,
+      "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-native/halo2-test-lt01fma0/native-source",
+      "copied_files": 4386,
+      "copied_source_bytes": 167270835,
+      "borrowed_cpp_headers": 0,
+      "drift_during_freeze": [],
+      "source_control": "Owned CMake/Rust/backend/C++/headers and selected tooling/tests; unbuilt tests/tools and external/original references borrowed read-only.",
+      "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-native/halo2-test-lt01fma0",
+      "retained_large_artifacts": [],
+      "returncode": 0,
+      "after_sha256": "e129a1e5688ca955ca9de215ede406f0b413bfa6ffa533d85bfc094964ac5fd6",
+      "changed": [],
+      "current_source_drift": [
+        "rust/matchmaking_service/README.md",
+        "src/app/main.cpp"
+      ]
+    },
+    "rust_code_inputs": 107,
+    "critical_product_current_drift": [],
+    "all_current_frozen_input_drift": [
+      {
+        "path": "rust/matchmaking_service/README.md",
+        "tested_sha256": "166ee6b0fae558910e8f718b335eaaf29d0c2a8fb56c7f83853d663c72f51136",
+        "current_sha256": "b4f913dd522cf3154d67bad8755cae6f1700e52e7b7720efad28e3b3ca39c93a"
+      },
+      {
+        "path": "src/app/main.cpp",
+        "tested_sha256": "c6d1311c575a45296cac5ce13e70e4ddefb69acb405f343a7fca8a5251644bc2",
+        "current_sha256": "f3facf51746095ec8311e8d34115ec7ac7258ce4c7ff24fb67c0ce5cecb5024f"
+      }
+    ],
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-native/halo2-test-lt01fma0/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "rust_service_account_probe",
+          "rust_service_matchmaking_probe",
+          "rust_service_qos_probe",
+          "rust_service_room_probe"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(online_protocol_rust_build_helper|rust_matchmaking_service_http)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "scope": "Fresh compiled Linux account/matchmaking/party/search/room transport clients plus Python EOS clients against real Rust HTTP/SQLite/crypto/worker IO. Legacy native room datagrams/PCR/fingerprint and provider grants are fixtures; source-v16 EOS signals use fixture SDK receipts. No real Epic/SDK, native EOS peer world, rendered menu, original or delivered acceptance."
+  },
+  "fresh_backend_evidence": {
+    "full": {
+      "passed": true,
+      "rust_checks": 296,
+      "backend_checks": 579,
+      "backend_seconds": 123.776,
+      "source_files": 298,
+      "test_inputs": true,
+      "source_current_drift": [],
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-xxb05dt_/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_skill_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "matchmaking_coordinator",
+            "--test",
+            "gathering_owner",
+            "--test",
+            "team_assignment_original",
+            "--test",
+            "matchmaking_ratings_original",
+            "--test",
+            "session_candidates_original",
+            "--test",
+            "search_lifecycle_original"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-xxb05dt_/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "multiplayer/master_server/tests",
+            "-t",
+            "."
+          ],
+          "returncode": 0
+        }
+      ],
+      "compiler": {
+        "returncode": 0,
+        "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+      },
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-xxb05dt_/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "f28918ff4504aad421d96d8820ddb1b8754eec088507a03769c1ba687044d84d",
+        "bytes": 4967968,
+        "retained": false,
+        "borrowed_external": false
+      }
+    },
+    "production": {
+      "passed": true,
+      "rust_checks": 274,
+      "backend_checks": 371,
+      "backend_seconds": 91.652,
+      "source_files": 298,
+      "test_inputs": false,
+      "source_current_drift": [],
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-yr8hgv6f/master-source/rust/online_protocol/Cargo.toml",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "gathering_owner"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-yr8hgv6f/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_room_wire_owner_native",
+            "multiplayer.master_server.tests.test_voice_blocks",
+            "multiplayer.master_server.tests.test_eos_room_identity",
+            "multiplayer.master_server.tests.test_room_lifecycle_owner_native",
+            "multiplayer.master_server.tests.test_continuity_owner_native",
+            "multiplayer.master_server.tests.test_match_continuity",
+            "multiplayer.master_server.tests.test_room_setup_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_readiness_native",
+            "multiplayer.master_server.tests.test_queue_api_owner_native",
+            "multiplayer.master_server.tests.test_countdown_owner_native",
+            "multiplayer.master_server.tests.test_party_countdown",
+            "multiplayer.master_server.tests.test_party_consent_owner_native",
+            "multiplayer.master_server.tests.test_party_activity",
+            "multiplayer.master_server.tests.test_party_privacy",
+            "multiplayer.master_server.tests.test_sessions_owner_native",
+            "multiplayer.master_server.tests.test_catalog_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_http",
+            "multiplayer.master_server.tests.test_couch_online",
+            "multiplayer.master_server.tests.test_matchmaking_appearance",
+            "multiplayer.master_server.tests.test_security_linked_admission",
+            "multiplayer.master_server.tests.test_parties_http",
+            "multiplayer.master_server.tests.test_online_population",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_ranked_results",
+            "multiplayer.master_server.tests.test_casual_results",
+            "multiplayer.master_server.tests.test_result_consent",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_results_owner_native",
+            "multiplayer.master_server.tests.test_gathering_owner_native",
+            "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+            "multiplayer.master_server.tests.test_direct_peer_http",
+            "multiplayer.master_server.tests.test_match_continuity_http",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_content_rejection_is_authenticated_and_publishes_original_party_failure",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_readiness_loss_resets_the_shared_start_clock",
+            "multiplayer.master_server.tests.test_room_packets_owner_native",
+            "multiplayer.master_server.tests.test_security_voice_origin",
+            "multiplayer.master_server.tests.test_match_packet_budget",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_admission_real_challenges_loading_and_authenticated_routes",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_data_mismatch_closes_everyone",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_audio_flood_is_bounded_on_the_authenticated_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_game_flood_is_bounded_on_the_authenticated_destination",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_voice_preferences_share_the_bounded_speaker_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_presence_follows_live_match_after_frontend_session_teardown",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_delta_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_anonymous_and_unmatched_transport_denied",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disagreed_report_cannot_enter_persistent_results",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disconnect_during_review_records_no_result",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_report_admission_signed_totals_and_tied_standings",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_finalize_or_forge_postgame",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_forged_postgame_identity_is_rejected",
+            "multiplayer.master_server.tests.test_room_control_owner_native",
+            "multiplayer.master_server.tests.test_search_qos_owner_native",
+            "multiplayer.master_server.tests.test_search_qos",
+            "multiplayer.master_server.tests.test_party_directory_owner_native",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_clan_directory_owner_native",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_clan_voice",
+            "multiplayer.master_server.tests.test_eos_identity",
+            "multiplayer.master_server.tests.test_history_owner_native",
+            "multiplayer.master_server.tests.test_carnage_history",
+            "multiplayer.master_server.tests.test_player_profile",
+            "multiplayer.master_server.tests.test_profile_owner_native",
+            "multiplayer.master_server.tests.test_presence_owner_native",
+            "multiplayer.master_server.tests.test_friend_owner_native",
+            "multiplayer.master_server.tests.test_friend_cloud",
+            "multiplayer.master_server.tests.test_voice_owner_native",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_identity_owner_native"
+          ],
+          "returncode": 0
+        }
+      ],
+      "compiler": {
+        "returncode": 0,
+        "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+      },
+      "library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-yr8hgv6f/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "012180a7f3a38f28900e3dade88778ee031950cbb56fc96907bf616dc8e7979d",
+        "bytes": 4974768,
+        "retained": false,
+        "borrowed_external": false
+      }
+    }
+  },
+  "backend_source_cohorts_identical": true,
+  "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "full_gap_count": 12,
+  "algorithm_id_count": 53,
+  "full_acceptance_gate_count": 12,
+  "reference_pdf": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "source_pins": {
+    "AGENTS.md": "195c6e82e0808a2d22f9a06413265191337b520744a71e79b1d387e1cda19f74",
+    "CMakeLists.txt": "8975fddd8298bd7c9b8e31b8d6b2bf5b9e9d6a3ef71dd9702e29fbb4a837103d",
+    "docs/TEST_STORAGE.md": "95d16f103a95d0331008661de1ee6c48f8f4800c2789ea7bf0616fe613b58aeb",
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "b4ed3f6fa9083c65b4de8367d815fae3758d34fa16074bc5c8e53351a2297630",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "05a00e334694ba5242b2a48fa9d51db19d1e2afcd9d78c5e0c3274e3454d796c",
+    "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "multiplayer/master_server/eos_identity.py": "fab9feb4a0e19e15e61f1243ec4e6740e6d4c78df52c66fd30991403566dfc80",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "multiplayer/master_server/native_profiles.py": "ba4a69a762dd10193db06f71d7ba7eb73aceef16cc65784ce09abb3763fdba05",
+    "rust/matchmaking_service/Cargo.lock": "f5f815237b2f8edef2f455bda20ccfcab0041c6d5d5bcc5ffd026f7f4d691ac6",
+    "rust/matchmaking_service/Cargo.toml": "0f0fb0dcb76f066d041fad60328cd1a6edad78c54fbed92062de9e2c1ddf16f6",
+    "rust/matchmaking_service/README.md": "b4f913dd522cf3154d67bad8755cae6f1700e52e7b7720efad28e3b3ca39c93a",
+    "rust/matchmaking_service/rust-toolchain.toml": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+    "rust/matchmaking_service/src/admission.rs": "6c027384b0c6a451793270edc104bfac82c518331b0e207f5c127e16fc815c63",
+    "rust/matchmaking_service/src/authentication.rs": "ac5f0ff080e3165bddfa214b7f206784984abf692ca446d33e202ec87b9d637d",
+    "rust/matchmaking_service/src/database.rs": "18ac324c19a8fd39079199361c5fffb21028743216026e89b23ca632650641a1",
+    "rust/matchmaking_service/src/eos_binding.rs": "274f73171fb1587631f641113dec47782c9358513a65c2593f72697b2adcc247",
+    "rust/matchmaking_service/src/eos_http.rs": "be807583142bb90b1e2a46c5765c0b6b3bec2521767bcfc125b492d196e9dab0",
+    "rust/matchmaking_service/src/eos_identity.rs": "1bc0942ec37d5981257e28077827663f517fca2df51f2686f64215ec1ce04e89",
+    "rust/matchmaking_service/src/eos_verifier.rs": "ad47c4708083da980085cf1ccf64be623ce96fbde439262d39c85959acfcb8e3",
+    "rust/matchmaking_service/src/http.rs": "32c293205d58fa872a4c933a86cab04139a8605222ade0c57e45ba9fe6287afc",
+    "rust/matchmaking_service/src/main.rs": "1523c4547a99e8da1d93883bbc655f476c4263cd3d7b6bdef53b0df7d7fb1caa",
+    "rust/matchmaking_service/src/matchmaking.rs": "a7369ad87c7e9f97d098f73c3a1dd866ee5d2646a14745ea06b7706cdb3adcc3",
+    "rust/matchmaking_service/src/room_io.rs": "62dc806f1e7890c9798bb906429502c531935cc9e1badcafd9a9d7e2dbb95f31",
+    "rust/matchmaking_service/src/room_websocket.rs": "f07b961b02b67e70304f0ddf64c7c4ffcd1f6c772ce609e02b98e3806fda9ff8",
+    "rust/matchmaking_service/src/rooms.rs": "05a1b84701e4d3b61ca9e62bf1c8fd64d6de61f78c9a56620461e6d3231102dc",
+    "rust/matchmaking_service/src/runtime.rs": "a37ac40f8012ee0514d8a358785e1301b505e73135ea9f3368dfbd63edbe27c6",
+    "rust/matchmaking_service/src/search_qos.rs": "70dbf7d160965e11556523a142def77028afb09fecfdbfba34681ac16efa4563",
+    "rust/matchmaking_service/src/websocket.rs": "077ecb09d4966fce8b2f8a35e65e0b296d843435fe225f81ea6e1a5c8b02ac06",
+    "rust/online_protocol/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+    "rust/online_protocol/Cargo.lock": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+    "rust/online_protocol/Cargo.toml": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+    "rust/online_protocol/README.md": "38850ba143016c94ab0b84116dff1df830699f7fa26c5ad1e7b2ea52f9c078c7",
+    "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+    "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+    "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+    "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+    "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+    "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+    "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+    "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "rust/online_protocol/data/unicode16/CaseFolding.txt": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+    "rust/online_protocol/data/unicode16/LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+    "rust/online_protocol/data/unicode16/provenance.json": "68995ccbb6629c3d789dec9f4ea9b30976db42f4d12b92a570ab98bb0cda3f3e",
+    "rust/online_protocol/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+    "rust/online_protocol/src/authority_archive.rs": "691b4bf8fe5a7f5715efdc91d1a912931a9da99f9ac6eda7bffe10698029d59a",
+    "rust/online_protocol/src/common_cut.rs": "eeae0747328e32d6aa8312dee2c04e4f4a23b2e72d2590d3e1abc66fd2dd6035",
+    "rust/online_protocol/src/eos_account_auth.rs": "11586f175fa16b8d6c39f97e0177676759a1bec028681606e4734fdbd44b5b91",
+    "rust/online_protocol/src/eos_outgoing.rs": "292c42cba1767905a1e2c96a5866ec6abcf846a4fedd22294da87962f0daa873",
+    "rust/online_protocol/src/eos_wire.rs": "5154a76798a1e83c16aafbc03509004ae6ce125bf81cca746980524d55da8bc8",
+    "rust/online_protocol/src/hopper_selection.rs": "dfc47195ced2500f0a928eee3bddbb72f255a87e55beee8ee34351aca90183e9",
+    "rust/online_protocol/src/host_agreement.rs": "3856a8d008bb24e51b6f4f4116ccf5e6e7c1057670bf80b80e94ad3ab9af4261",
+    "rust/online_protocol/src/lan_auth.rs": "883cf24371221d496fb07c9b53dc8872029a658550baa0a52f21451827373fa8",
+    "rust/online_protocol/src/lib.rs": "a0edd773e653c944711b8bbdd1ed5b417e6280636caaf17c32996de1ab3bf3b2",
+    "rust/online_protocol/src/matchmaking_accounts.rs": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+    "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "rust/online_protocol/src/matchmaking_clan_directory.rs": "9f4638f0cb7638df1cacb74476d9fe52a4365e4a68138bd0e5226b8c3db42f51",
+    "rust/online_protocol/src/matchmaking_continuity.rs": "bd444109d876b1ceb3e982fc609c26152f88cd0d8efc7f1a8dd915ff920b2758",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+    "rust/online_protocol/src/matchmaking_friend_cache.rs": "de20a771ea36803ac96eb666a677cf8e55a623cf06e52b26dd5dd8f07212109a",
+    "rust/online_protocol/src/matchmaking_friend_cloud.rs": "1b6144e6e68c30dfeb245324428c80c04cb9d6a7e929a79036f2f8123c4ce32f",
+    "rust/online_protocol/src/matchmaking_friend_directory.rs": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "96093a2c7e2f1d99d2d64862d11b1a5726a950d4d5ce6d8e6fa31c6f9326bc00",
+    "rust/online_protocol/src/matchmaking_identity_directory.rs": "0a70f8b96da2a35deec81bf4e1246f7c6b638820626e3d5f6222ed68665b1b0b",
+    "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+    "rust/online_protocol/src/matchmaking_model.rs": "1f7748b4ac71dfe8b6d7c3bb201fcb7569c4697cc2d513feff3607aee316e752",
+    "rust/online_protocol/src/matchmaking_owners.rs": "3e659557279f44a339bdb61035cdf333472ab7b07fa342021a37ed83ed30e677",
+    "rust/online_protocol/src/matchmaking_packet_budget.rs": "96646f99f08e997ce0c6823b68ed2dfd29c83dee282fe75574fe8098adc52ad2",
+    "rust/online_protocol/src/matchmaking_parties.rs": "74df6958e49eb5900a01888f39acf5d0f7fe21a52c7e1c4b3012cd2324e40ef4",
+    "rust/online_protocol/src/matchmaking_party_countdowns.rs": "9d899eb34296fa30a00aea749f89ff32af93f2321bed36800d6177393d95b91c",
+    "rust/online_protocol/src/matchmaking_party_directory.rs": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "56217497815fed7f80fe945a75e1aa6ca8b62c744a2d53cccca3856206612c38",
+    "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+    "rust/online_protocol/src/matchmaking_profile_directory.rs": "f61a14ca95a1bc3e5d4b560ab047332010aef60dbdff434875679c2f272f4be2",
+    "rust/online_protocol/src/matchmaking_profiles.rs": "325f7e71df4c6a7d1ed99dc68cd6809b4755d6c385e3dfc32075e2d762c7c2e1",
+    "rust/online_protocol/src/matchmaking_public_history.rs": "8e60a14e8728d911523aadbe84a92ca985f69ed9834975673a6974be44279e94",
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+    "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+    "rust/online_protocol/src/matchmaking_readiness.rs": "8bea8734addadd6928c8f7bbe7fb5d537ea3d66b01e443f7d8a733d37322e830",
+    "rust/online_protocol/src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+    "rust/online_protocol/src/matchmaking_room_control.rs": "45184c06e788162c541356d51b176f5e9a039e29f4fd49fc4890bd21aac90eb8",
+    "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "d9a9bbc75a2261d05b579194d897d3fb245b58eaaa0a9c4c820b792bc33b597c",
+    "rust/online_protocol/src/matchmaking_room_packets.rs": "34f885da19331846424b7f99c7121ff28e5744f624c58f240a1ab6df66e440cf",
+    "rust/online_protocol/src/matchmaking_room_service.rs": "6fa1c1d0330b3049646c9924f4278c2c63b193b207235f53286363836c4ceff3",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "2044f332e43d0701d6d8f54090e6cc73cbdb1203c3b68dca6e93432a2a4e4671",
+    "rust/online_protocol/src/matchmaking_room_wire.rs": "51ab682a1b6d8f0e3e8dc8b115e9b63816f4a4f1f9b47e33e393924db59cd5ab",
+    "rust/online_protocol/src/matchmaking_search_qos.rs": "f2d222201f29d3a77b0666e6ab8dee64f65a19d655ba7979dc0190b058568a5e",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+    "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+    "rust/online_protocol/src/matchmaking_social_voice.rs": "f42501c569ecb7fa717e1905a6d38309468ff63e2d571ba735001032676c652d",
+    "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+    "rust/online_protocol/src/matchmaking_steam_cache.rs": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+    "rust/online_protocol/src/matchmaking_steam_request.rs": "f5928d70575fd6e4a7cdea05006f6ce7aac53244d46fbe3f02359d4c946eac7b",
+    "rust/online_protocol/src/matchmaking_unicode.rs": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+    "rust/online_protocol/src/matchmaking_unicode_fold_table.rs": "ea8126a271bdf120ce1cddae5a64a421ecf7c7c499ff89a6213b562055c62537",
+    "rust/online_protocol/src/matchmaking_voice_directory.rs": "b9ea5a1dd8f00beb9bb45ae80885195922c417e7153c062d02800426e39a982c",
+    "rust/online_protocol/src/migration_driver.rs": "5ba6ef71f097e776ab728a528e9da50a13208ecde815bed43af4bb21d664c340",
+    "rust/online_protocol/src/migration_preparation.rs": "1a5ad045c7cc48231f0f1a3180b56f750dca74831e7d83a7fa6392f14e982abe",
+    "rust/online_protocol/src/native_requests.rs": "8ddc00433afb4ece7e8bf3e2ba2904339ae25330a110ed236e5c367e0d2f8cfa",
+    "rust/online_protocol/src/netcode/bandwidth.rs": "efff209143ca9e8bd9484c0daff7bdaa108cf5b81c5ae73d954ae24f5dd4a1f5",
+    "rust/online_protocol/src/netcode/generic.rs": "06c961f78e717dd49dab8d0a9a853909d16cecdbabb9f2280b9a4fdaba577fd4",
+    "rust/online_protocol/src/netcode/mod.rs": "65791ed28c6fb25a0efc42d3c74f9f8b190ecc3d6550de0dc21b200f7c58705c",
+    "rust/online_protocol/src/netcode/pose.rs": "4b91e33bc013b305e25b92b56ff36d8f4d739af38bcc2cdfd7b5b2ed7d913ed1",
+    "rust/online_protocol/src/netcode/range.rs": "490b50be09203a24750edbdb470d94d3728fc0c49e820bad53bf3b08fc7044a9",
+    "rust/online_protocol/src/netcode/stream.rs": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c",
+    "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+    "rust/online_protocol/src/party_privacy.rs": "56315211b71cbac524f61a47978b9d6476cc9b825c6b27326817887a538f5e92",
+    "rust/online_protocol/src/peer_pacing.rs": "01e9173cd4204273cd47b195864fea9b3f7d8246e235824d4daf6c24b73f5d39",
+    "rust/online_protocol/src/prospective_role.rs": "4cb7efdd20d8f075c76c6d0b7d7257004471088b807d46ca92cccc2e1dd8e685",
+    "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+    "rust/online_protocol/src/security_policy.rs": "3e95d883dffd98c903006d3081740ddf0d6e74944332ae21a51aa143f85ae8eb",
+    "rust/online_protocol/src/session_candidates.rs": "522251ae3f0e6cd449f678ceccb527efae2b85e0e432037e340b4673d053243f",
+    "rust/online_protocol/src/survivor_selection.rs": "aa8cdf1218694fd5039f1f69569692b1c53aa43feb98e0663fdc4a50a8c15e97",
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+    "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+    "rust/online_protocol/tests/matchmaking_continuity.rs": "da577d56b818f02fc926c9082ad89a0bd19eda413cb4a33ea75c687a0740fac7",
+    "rust/online_protocol/tests/matchmaking_coordinator.rs": "82ae3a3cf740f5b9824504d2afb645767e16dd4cb8e1a9b2be002e58a546bab7",
+    "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+    "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+    "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+    "rust/online_protocol/tests/matchmaking_results.rs": "166e932749344d6525975aca83bb0d4c1a9712768be7f910a7ee2b7db09bebf0",
+    "rust/online_protocol/tests/matchmaking_room_setup.rs": "bfad18614680a2007d5eae6a6c330770c079e2d1fc00f592c1bdbc245edf4c55",
+    "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+    "rust/online_protocol/tests/matchmaking_skill_original.rs": "a7e0fcdfe55ff4b298612a227692ddc74cbf51a05be9fdea626e66c2ae84cc1c",
+    "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+    "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+    "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+    "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+    "tools/run_test.py": "89e58c88dbba78b191ff5cd961343352f439ea5824a347c546c9fea4837406d6",
+    "tools/run_tests.py": "052d9bdfd3c8884ad98a102e417e7e64daef1f37c0de023183628c75ffb31239",
+    "tools/rust_service_eos_controls.py": "399167b0e730fae7943806a7193a3aba64d4ca0432b90104a235e6cfcc6a34c5",
+    "tools/rust_service_qos_controls.py": "a9d716e559d4c5d706851b42115e171aa5f78c17a79dfd603530d3160ba3a6ff",
+    "tools/rust_service_room_controls.py": "d38a7e54050d7bc3a450cf3e82bdd93fad3f098bb18a208bc97ae8b88cc00241",
+    "tools/test_master_server.py": "747a1f0ad264f0b541f985844c8c4ddeb2fab9f9429857ed1775f7deaf317ffa",
+    "tools/test_rust_matchmaking_service.py": "b40e8f1f0060b791d27b2d9a6f7f599e32fa63f07d2c55901def35c9f3d0d0d3"
+  },
+  "retained_reports": [
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-report.json",
+      "bytes": 2830,
+      "sha256": "88a207ddb0cf6020e74495eb12b3821d302f1896669c0594925562596e170051"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/runner.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-runner.log",
+      "bytes": 54595,
+      "sha256": "d44dd893b6ef63fb7247d91fa6efadff19a34cf8b8e84e2630d14783571c5714"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-source-manifest.json",
+      "bytes": 38041,
+      "sha256": "a260e3b73390c35bea07db2ced1223c1bf01805954c2eeda9466ee985c433fb1"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/step-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-step-0.log",
+      "bytes": 34094,
+      "sha256": "c95a4025f6f635391265262deab2f44e63ff8f965e40c9f940e777d7dca0c388"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/step-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-step-1.log",
+      "bytes": 1615,
+      "sha256": "39ef7a43308e4a2931fed0715915fc61913fdcbe225e94e007de40f3a79de7c4"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-full-20261030/step-2.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-full-step-2.log",
+      "bytes": 17863,
+      "sha256": "edc1a1f6b4c0f32baee73befdc2062bc91bf02fd5e375505b655964a7217fbba"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-report.json",
+      "bytes": 8670,
+      "sha256": "d45c9628a3ed15ea6ab725480b0209f6573f80702e239878fc540d73764c4cf8"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/runner.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-runner.log",
+      "bytes": 52273,
+      "sha256": "656b2a0817831773f0a4b9b406aeb8f238fe3ceb2c802d54f8cb9e61709b1fb4"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-source-manifest.json",
+      "bytes": 38041,
+      "sha256": "417604e90d52cb692912b0caf09ae645f0a95761f3751567bacbb7b8214ec408"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/step-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-step-0.log",
+      "bytes": 30543,
+      "sha256": "21d1a0ad5d15b8e5948a894c013963ae9b099e712f283e1b6dfad189553179ed"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/step-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-step-1.log",
+      "bytes": 1615,
+      "sha256": "3e78b75c09508f0826a284b015eec6522e335e632221ab3ff3cf6cd4d8509975"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-production-20261030/step-2.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-production-step-2.log",
+      "bytes": 13836,
+      "sha256": "8cbfd16c623f5740b010eee094d0df2fa3ab775e9ed52ab0cef0ca8ea1f125b6"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/build.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-build.log",
+      "bytes": 42746,
+      "sha256": "5fd425e350043fe22e33eb3ebe4a18aa6808f1492734436c156bf269343aade2"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/configure.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-configure.log",
+      "bytes": 4639,
+      "sha256": "b59f2dc22207ff3657d365b457f37fb26119f958f9da118e091106cb82033688"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/evidence/online-protocol/Release/build-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1871,
+      "sha256": "37012c67572d0f03e3779f3c7d903bcca0ea8a6e2c13204893c1c18f1710c9e7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/evidence/rust-service/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-evidence-rust-service-report.json",
+      "bytes": 13587,
+      "sha256": "79af1541f369d8607701b2b2af772eab48fed32bab4786a6df8233d36a4e6346"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/evidence/rust-service/source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-evidence-rust-service-source-manifest.json",
+      "bytes": 15796,
+      "sha256": "de6d6360430c93dfcaebb146c59d37b1bacfccbaa535da49f238d6f82496b496"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/evidence/rust-service/step-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-evidence-rust-service-step-0.log",
+      "bytes": 5012,
+      "sha256": "bd3d86458c3662f2b79ef45c671dae25fdb5fc4c9ba928d05559c9c3e9dd6800"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/evidence/rust-service/step-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-evidence-rust-service-step-1.log",
+      "bytes": 290,
+      "sha256": "a6404618d2a3c93dc18770d1e3c6347ffddb7579d3cf818f95691d63149bb5bc"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/inputs.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-inputs.json",
+      "bytes": 1287,
+      "sha256": "3a8807929d9cb5891f429ecba73319f03ead87b0431a91f4ced9cd7c8262f10b"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-report.json",
+      "bytes": 4532,
+      "sha256": "b13dad8d6b8556ebb7066a76d42c1bfb774dd8fcf5ced8eea42d4ffefcce1f78"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/runner.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-runner.log",
+      "bytes": 48788,
+      "sha256": "fcafc1518ee953eb50187f69641dd64084e967f7d07daf065b5b9f0ba29b4bf9"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-0.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-0.json",
+      "bytes": 43900,
+      "sha256": "39de27332eb6cc8af4e0eb0df3b5ebfb79cd0d2582c022b073135e650a249dcb"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-1.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-1.json",
+      "bytes": 46876,
+      "sha256": "338d6f067b2faec10973f38fd7fa69d34d7b03acc7cf4b1f78c52564bc4d35e3"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-10.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-10.json",
+      "bytes": 43649,
+      "sha256": "829e5526e90f9b842c6c40d9271278b22f13833e986a062c7ff08d845945ee7f"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-2.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-2.json",
+      "bytes": 46803,
+      "sha256": "d3351b17d713ea57a9ae6b655174fab43d6d8e0baaa1be0f9fbbf7bf2d3b4d57"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-3.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-3.json",
+      "bytes": 46538,
+      "sha256": "77325c48b1e69a4130161420fb1ebf1d9cd2b0fe59d1032e1c37af29e9ef7538"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-4.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-4.json",
+      "bytes": 46669,
+      "sha256": "177f4362b066196852a4c88c81a1193f27803faf5f4fefbffdbfbebbf5b84755"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-5.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-5.json",
+      "bytes": 48702,
+      "sha256": "ead4a479013d697fbea28908e8cde8b96934eda78bda0c395d110f87152adc6f"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-6.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-6.json",
+      "bytes": 48836,
+      "sha256": "37b9bbb950f9e33eddf8a65bb58d450d049cd5583044ec6aca9db5b50a85ea61"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-7.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-7.json",
+      "bytes": 49695,
+      "sha256": "995ebb36c10884416baad09c420cf65f2a7136900562d94bf9cc7b01b7b55c62"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-8.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-8.json",
+      "bytes": 48032,
+      "sha256": "bcbfe40f96394fd3bb9863ae68ea52816646f13a3ac7ba20dc7eca49b7ce74c6"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/source-pins-9.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-source-pins-9.json",
+      "bytes": 48609,
+      "sha256": "f6733f1d5a1ae397142adbcb2c7106bdb05f0739b869d1667ff2db7f2935fa13"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-native-cmake-20261030/tests.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-native-cmake-tests.log",
+      "bytes": 422,
+      "sha256": "fa15cd735480bcf97a79a55ef6611818f31a905ea0f0f0a1a2b5041b19b9623b"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/dependencies.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-dependencies.log",
+      "bytes": 302,
+      "sha256": "db3e93d041a10a3150a729e6b849ebc22d088feb035306a97618f7dadc431b43"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/dependency-fetch.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-dependency-fetch.log",
+      "bytes": 164,
+      "sha256": "0bc2ed3729971fcd51d3bbb6839a057d92acbefbb107b62ad033415f193c2db0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-1-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-1-compile-0.log",
+      "bytes": 4384,
+      "sha256": "feca4c05bf205bce200bc72b9a6c4987b8a6c1525b3ffc920ed275c966a1d33a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-1-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-1-compile-1.log",
+      "bytes": 238,
+      "sha256": "00cab1efc0680f9fdfd959210e6bdbaf318e233a6c24d9c1b08e655608db6bf3"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-1-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-1-report.json",
+      "bytes": 8312,
+      "sha256": "fa7706399e7de9bde77ccd1819b579102ceef5d44a7e80476cae6a66c17bcd88"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-1-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-1-source-manifest.json",
+      "bytes": 15352,
+      "sha256": "464cce4d4ef42f514438754afbca676e7d17b88c6472b4fcb6043d38b84d0312"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-2-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-2-compile-0.log",
+      "bytes": 1553,
+      "sha256": "c93f092884707b7f675e599ef272b9d64c35b52dc9f1c6ff20a833ebb2a579a9"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-2-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-2-report.json",
+      "bytes": 1481,
+      "sha256": "e3c559a191ce32d8f40d9d0e77a75212a2c1888a69f0dafe80f39f1b32eaa1d0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-2-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-2-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "972abbca8264090c79455a1208074ab02eda9e970821658fe58398eccd6b25a7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-3-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-3-compile-0.log",
+      "bytes": 1099,
+      "sha256": "cc34fd067e10bf834347c93b5e437c9bbd3af2ca5a8f34149c4ce037b67fe087"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-3-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-3-compile-1.log",
+      "bytes": 238,
+      "sha256": "e2cfd7d6cc9a5b562bad6e8aaca0b3230ed9b5e710442a99c13830ccb38d0a65"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-3-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-3-report.json",
+      "bytes": 1879,
+      "sha256": "23a9eea0b384b9ac3a57d0b23d0de9fdb1b54ae6c52fc81d739325bf3f321162"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-3-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-3-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "366ee70089ca59d3db9fb7e1591a75320ce8f226f9d621b5ee809c5d96d94982"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-4-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-4-report.json",
+      "bytes": 895,
+      "sha256": "6e87ae3e0a9d75e9608e20b36f7406ea0843fa01a14928b01ca5d985af3210c6"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-4-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-4-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "b38c752641041ed9e8bcc7accd6d6f95349fc815a28c540000f4058b3d041932"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-5-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-5-compile-0.log",
+      "bytes": 1115,
+      "sha256": "0c33f1893e0011410521f8a6e65e8cfd36a33666f074797c99785e91f3afc3bf"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-5-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-5-report.json",
+      "bytes": 1093,
+      "sha256": "7f594dbd61be34f6ed49fb98a8e587529aeff98f4c4cc9e44c952a62493c55aa"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-5-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-5-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "1c469e2c78deb12ff5305a57fe0125e122a69c91ca47a385eb8375aa2696b50f"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-6-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-6-compile-0.log",
+      "bytes": 1099,
+      "sha256": "63aeee9300b4615bdfce85e6db33d72c975b9895a75618d877a9b773c39aa6c0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-6-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-6-compile-1.log",
+      "bytes": 238,
+      "sha256": "ad429a430c0402282efc013f20b16371ec8e427ffa1ead3609cd75a3d19c86ec"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-6-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-6-report.json",
+      "bytes": 1687,
+      "sha256": "e465805e595e4633b87816fa649b80d2eda00b748ca3fa67eb754a2272fa156c"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-6-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-6-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "a9a6918ff7df0e831758c92a3cd99a237ea5aeb456a10c63995528a696e163a0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-7-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-7-compile-0.log",
+      "bytes": 1268,
+      "sha256": "0db6cb3eba8328c54843b4a5bd337d37ed350f1cafb648119b282066e7165dc0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-7-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-7-compile-1.log",
+      "bytes": 238,
+      "sha256": "d4cdc224d6584692ea490d1bf5e77c99f2f8281fee4d838e1506f79eefc1b7a0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-7-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-7-report.json",
+      "bytes": 1830,
+      "sha256": "f529d37adbe09be0c2b61fcb6ee411e1e465fee79afdadc4389ade85a23b9111"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-7-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-7-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "01621677b1aa7b2c1427a658e7ff5055e8cc91b4c35a2f7f8fab5c2473b7fafc"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-8-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-8-compile-0.log",
+      "bytes": 1305,
+      "sha256": "32d43f70768d2bf27823afabee61f128af8052ed2263b6bb98a7779130b9143e"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-8-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-8-compile-1.log",
+      "bytes": 238,
+      "sha256": "9295b2921ce32bb060797e3af59d767a783459798623390cda634b7c1ecf87a9"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-8-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-8-report.json",
+      "bytes": 4016,
+      "sha256": "70ec809321d2d90675d7e06a86d74001807696a05f0c9093a8b106e4f75edfec"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-8-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-8-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "38e43220ffdb8396a91e42e617a28487a68dfcd3e6eb407385c47ed8a0cc645d"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-9-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-9-report.json",
+      "bytes": 10598,
+      "sha256": "3ed19201d9e1af87ccf25a2919abb1fad0967450e20c8a4314eada791526b652"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/iteration-9-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-iteration-9-source-manifest.json",
+      "bytes": 15827,
+      "sha256": "6ccfef39d8648a9678ae8cdfd2c27918b582f1e4854daf70190821ba6fb65f7a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-eos-owned-worker-20261030/owner.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-owned-worker-owner.json",
+      "bytes": 286,
+      "sha256": "8882d30852ff379f698460cf85c44a1a95af1f3ee237ad5ec3587e6347411dcc"
+    }
+  ],
+  "retained_report_bytes": 1138819,
+  "retained_large_artifacts": [],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-xxb05dt_",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend/halo2-test-yr8hgv6f",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-native/halo2-test-lt01fma0",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-18rdo12t/build",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-native",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-backend",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-dependencies",
+      "empty_or_absent": true
+    }
+  ],
+  "evidence_writer": {
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos-evidence/halo2-test-qpd70o9q",
+    "outer_cleanup_verification_pending": false,
+    "scratch_removed": true
+  },
+  "reproduce_commands": [
+    "python3 tools/run_test.py -- python3 tools/test_rust_matchmaking_service.py",
+    "python3 tools/run_tests.py --jobs 2 --test-jobs 1 --target rust_service_account_probe --target rust_service_matchmaking_probe --target rust_service_qos_probe --target rust_service_room_probe --filter '^(online_protocol_rust_build_helper|rust_matchmaking_service_http)$' --retain-report online-protocol/Release/build-report.json --retain-report rust-service/report.json --retain-report rust-service/source-manifest.json --retain-report rust-service/step-0.log --retain-report rust-service/step-1.log",
+    "python3 tools/run_test.py -- python3 tools/test_master_server.py --freeze-source --rust-lib --rust-test matchmaking_continuity --rust-test matchmaking_room_setup --rust-test matchmaking_queue_api --rust-test matchmaking_catalog --rust-test matchmaking_sessions --rust-test matchmaking_parties --rust-test party_countdown_original --rust-test matchmaking_skill_original --rust-test matchmaking_results --rust-test matchmaking_coordinator --rust-test gathering_owner --rust-test team_assignment_original --rust-test matchmaking_ratings_original --rust-test session_candidates_original --rust-test search_lifecycle_original",
+    "python3 tools/run_test.py -- python3 tools/test_master_server.py --freeze-source --production-abi --rust-lib --rust-test matchmaking_continuity --rust-test matchmaking_room_setup --rust-test matchmaking_queue_api --rust-test matchmaking_catalog --rust-test matchmaking_sessions --rust-test matchmaking_parties --rust-test party_countdown_original --rust-test matchmaking_results --rust-test gathering_owner"
+  ],
+  "remaining": [
+    "Real official EOS SDK/provider authorization, native EOS peer transport, full-settings played admission/results and genuine world continuity.",
+    "Steam OpenID/pending/session/refresh issuance and remaining friends/presence/social/voice effect IO, complete production Rust endpoint/service replacement and delivery.",
+    "Original raw/effective/persistent/public skill producers, original QoS/quality/server ordering, complete caller proof, lawful historical configuration/service and result arbitration recovery.",
+    "All required seven families,39 built-ins,historical profiles,ranked/hidden casual,solo/party/signed-local/guest/clan and original-valid FFA/team/multi-team/large topologies through natural outcomes, departures/migration, results/PCR/party return/requeue and offline XP isolation.",
+    "Clock/epoch/cross-process crash recovery, full-capacity/performance, delivered client/library/service/catalog/feature correspondence with restart/config-change/retry/rollback and full original G01-G12 acceptance.",
+    "Actual rendered/physical Linux playlist and Start Game acceptance on a qualified delivered build."
+  ]
+}

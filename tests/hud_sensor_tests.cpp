@@ -195,10 +195,12 @@ void original_viewports(const std::filesystem::path &maps,const std::filesystem:
     std::vector<Vertex> sensor;
     for(const auto &v:vertices)if(v.material==*hud.motion_sensor_material(view))sensor.push_back(v);
     check(sensor.size()==6,"Original radar fixture did not produce one quad");
-    // Radar keeps the captured quad's shape at the new lower-left anchor.
-    // Each cell uses the same eight-pixel inset, including exterior edges.
-    auto x=[&](float value){return cell.left*width/640+(8+value-reference.safe.left)*scale;};
-    auto y=[&](float value){return cell.bottom*height/480+(-8+value-reference.safe.bottom)*scale;};
+    // Full-view radar retains its captured floating anchor; split-screen
+    // radar alone moves to the eight-pixel lower-left cell inset.
+    const float left_inset=players==1?reference.safe.left-cell.left:8,
+        bottom_inset=players==1?reference.safe.bottom-cell.bottom:-8;
+    auto x=[&](float value){return cell.left*width/640+(left_inset+value-reference.safe.left)*scale;};
+    auto y=[&](float value){return cell.bottom*height/480+(bottom_inset+value-reference.safe.bottom)*scale;};
     const std::array<Vec2,6> expected{{{x(left),y(top)},{x(right),y(top)},
       {x(left),y(bottom)},{x(right),y(top)},{x(right),y(bottom)},{x(left),y(bottom)}}};
     for(unsigned n=0;n<6;++n) {
@@ -214,7 +216,7 @@ void original_viewports(const std::filesystem::path &maps,const std::filesystem:
     ++cases;
   }
   check(cases==40 && additional_video_cases==40,"Original radar fixture lost a video/species/local-view case");
-  std::cout<<cases<<" original Xbox radar quad shapes matched at desktop corner anchors across every local cell and aspect; "
+  std::cout<<cases<<" original Xbox radar quad shapes matched at preserved single-view and split corner anchors across every local cell and aspect; "
            <<additional_video_cases<<" additional overscan-profile cases retained as reference\n";
 }
 }

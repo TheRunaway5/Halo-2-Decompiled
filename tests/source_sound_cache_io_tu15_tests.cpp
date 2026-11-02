@@ -62,7 +62,7 @@ int main(int argc,char **argv) {
             if(kind=="encoded")state.gp[1]^=1u;
             if(kind=="write_failure")memory.rejected_write=destination;
             SourceSoundCacheIoTu15Services services;
-            services.read=[&](auto encoded,auto n){++reads;if(kind=="read_failure")throw std::runtime_error("Declared native read failure");return std::vector<std::byte>(kind=="short_read"?n-1:n);};
+            services.read=[&](const SourceSoundCacheReadTu15& read){++reads;require(read.descriptor==original.gp[3]&&read.encoded_offset==initial.word(original.gp[3])&&read.size_flags==initial.word(original.gp[3]+4u)&&read.bytes==size,"Actual descriptor inputs were lost at I/O");if(kind=="read_failure")throw std::runtime_error("Declared native read failure");return std::vector<std::byte>(kind=="short_read"?read.bytes-1:read.bytes);};
             services.retain_completed_read=[&](auto,auto,auto){++receipts;if(kind=="receipt_failure")throw std::runtime_error("Declared receipt failure");return 0xf8000001u;};
             if(kind=="missing")services.read={};
             bool threw=false,handled=false;try{handled=source_try_sound_cache_io_tu15(memory,selected,state,services);}catch(const std::exception&){threw=true;}
@@ -77,8 +77,11 @@ int main(int argc,char **argv) {
         Memory memory=initial;auto state=original;std::map<std::uint32_t,std::array<std::uint32_t,3>> receipts;
         std::uint64_t next=0xf8000001u;unsigned reads=0;
         SourceSoundCacheIoTu15Services services;
-        services.read=[&](auto encoded,auto n){
-            ++reads;require(encoded>>30==2u,"Reference procedure requires its actual shared-file input");
+        std::optional<SourceSoundCacheReadTu15> actual_read;
+        services.read=[&](const SourceSoundCacheReadTu15& read){
+            ++reads;actual_read=read;const auto encoded=read.encoded_offset,n=read.bytes;
+            require(read.descriptor==original.gp[3]&&read.encoded_offset==initial.word(original.gp[3])&&read.size_flags==initial.word(original.gp[3]+4u)&&read.bytes==size,"Actual descriptor inputs were lost at I/O");
+            require(encoded>>30==2u,"Reference procedure requires its actual shared-file input");
             std::ifstream file(input["owned_file"].get<std::string>(),std::ios::binary);require(bool(file),"Bound original shared file unavailable");
             file.seekg(encoded&0x3fffffffu);std::vector<std::byte> bytes(n);
             file.read(reinterpret_cast<char *>(bytes.data()),n);require(file.gcount()==n,"Bound file read incomplete");return bytes;
@@ -93,6 +96,7 @@ int main(int argc,char **argv) {
         const auto retained=receipts.at(state.gp[0]);require(retained==std::array{original.gp[3],destination,size},"Receipt lost actual descriptor/buffer/extent");
         J result={{"passed",true},{"negative_controls",controls},{"bytes",size},{"destination",destination},{"done",done},
             {"actual_reads",reads},{"retained_receipt",state.gp[0]},{"receipt",retained},{"post_GP",state.gp},
+            {"descriptor_read",{{"descriptor",actual_read->descriptor},{"encoded_offset",actual_read->encoded_offset},{"size_flags",actual_read->size_flags},{"bytes",actual_read->bytes}}},
             {"expected_bytes_or_original_kernel_result_supplied",false},{"native_synchronous_IO_policy",true}};
         std::ofstream(argv[3])<<result.dump()<<'\n';
         std::ofstream out(argv[4],std::ios::binary);out.write(reinterpret_cast<const char*>(memory.data.data()),memory.data.size());require(bool(out),"Native RAM observation failed");

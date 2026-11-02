@@ -8,7 +8,7 @@ namespace halo2 {
 // families have not been admitted by this ordinary-world context.
 enum class MenuWorldRasterLayer : std::uint32_t {
   base_1=1,base_3=3,emissive_7=7,shadow_10=10,shadow_apply_11=11,
-  sphere_diffuse_12=12,planar_fog_16=16
+  sphere_diffuse_12=12,planar_fog_16=16,hologram_21=21
 };
 enum class MenuWorldRasterPrimitive { unspecified,ordinary_triangles,other };
 enum class MenuWorldRasterPolygon { unspecified,point,line,fill };

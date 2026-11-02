@@ -202,6 +202,9 @@ unsigned x87_room(std::uint32_t entry,const Case &c) {
 } // namespace
 
 int main() try {
+    if(!native_tu15_sound_manager_owns_entry(0x2216d0u) || native_tu15_sound_manager_calls_out(0x2216d0u) ||
+        !native_tu15_sound_manager_owns_entry(0x2b9450u) || native_tu15_sound_manager_calls_out(0x2b9450u))
+        throw std::runtime_error("Combined-loop gain publisher is missing its closed native world entry");
     Random r(0x6a1e5eedu);unsigned compared=0,faults=0,refused=0;
     for(const auto entry:{0x127cf0u,0x129b20u,0x21f780u,0x21f7f0u,0x220000u,0x220200u}) {
         std::vector<unsigned> paths(path_count),clamps(3),levels(3),flags(2);

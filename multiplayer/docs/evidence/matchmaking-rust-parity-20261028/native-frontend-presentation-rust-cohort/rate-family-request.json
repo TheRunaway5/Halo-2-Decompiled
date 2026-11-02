@@ -1,0 +1,11 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/frontend_matchmaking_http_test.py"
+  ],
+  "targets": [
+    "frontend_online_tests"
+  ],
+  "filter": "^frontend_matchmaking_http$"
+}

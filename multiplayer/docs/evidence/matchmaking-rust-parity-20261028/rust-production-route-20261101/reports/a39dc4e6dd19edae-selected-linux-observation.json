@@ -1,0 +1,39 @@
+{
+  "selection": {
+    "capability_sha256": "fe84485cd38847b5e92eecf924c5bc08bcf918916c4183cb74dd22398caac7ca",
+    "runtime": "bin/engine-builds/32273e370f0c4df4b12ca5077874de1b/halo2_native",
+    "runtime_sha256": "bef2d14fb52ce3d2a7527f9cba628fd37ba15250150f95e1c2dc07ecf21a973a",
+    "schema": "H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1"
+  },
+  "runtime_bytes": 267179256,
+  "runtime_actual_sha256": "bef2d14fb52ce3d2a7527f9cba628fd37ba15250150f95e1c2dc07ecf21a973a",
+  "changed_by_this_milestone": false,
+  "installed_input_qualified": false,
+  "adjacent_eos_settings": {
+    "present": true,
+    "bytes": 378,
+    "sha256": "b02a15cc5c7dee8fc05077f98ee18e8843641e22f31fa7de03c44c0d32b460f0",
+    "public_flags": {
+      "H2_EOS_ENABLED": "1",
+      "H2_EOS_PROFILES": "1"
+    }
+  },
+  "selected_source_pins": {
+    "src/network/online_matchmaking.cpp": {
+      "selected": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf",
+      "current": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf"
+    },
+    "src/network/online_match_session.cpp": {
+      "selected": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e",
+      "current": "c80031f522c8ed7b0fb4dc12b1aa95b3f6a9fd0c16f3f6aa3fdb10e3f7d06fd8"
+    },
+    "rust/online_protocol/src/matchmaking_client.rs": {
+      "selected": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+      "current": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280"
+    },
+    "rust/online_protocol/src/matchmaking_native_api.rs": {
+      "selected": null,
+      "current": "d86666b317f4a25f660aecf8b7b327c093b879063250b25be6662ab00487183d"
+    }
+  }
+}

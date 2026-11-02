@@ -1,0 +1,92 @@
+{
+  "schema": "halo2-probe-pins-lossless-delta-v1",
+  "passed": true,
+  "base": "native-candidate/inputs.json initial_source_pin_parts",
+  "filter_prefixes": [
+    "include/",
+    "src/ui/",
+    "rust/online_protocol/",
+    "rust/online_protocol_bridge/",
+    "tests/reference/frontend_search_before_rust_20261102/",
+    "tests/reference/frontend_lobby_before_rust_20261102/",
+    "tests/native_frontend_search_rust_tests.cpp",
+    "tests/test_native_frontend_search_rust.py"
+  ],
+  "reconstruction": "Filter the base map by the listed prefixes, remove remove_from_base_subset, apply changed_values, then serialize json.dumps(sort_keys=True,indent=2) plus newline. All original file bytes were reconstructed and verified before retirement.",
+  "records": [
+    {
+      "original": "probe-linked/pins-09aa6188d5a6a04e.json",
+      "sha256": "09aa6188d5a6a04ed68f44c743c6d6a3144b86816e4ecc4a5f86c2920276c14b",
+      "bytes": 274681,
+      "changed_values": {
+        "include/halo2/frontend.hpp": "364ad1d2299f6103dbb9e86b30914673662e3b755e9058f8c19fa4e6dec928df",
+        "include/halo2/native_tu15_normalize_vector.hpp": "deb751e996a84755bf68373009c8ca2499c7729d0a761c12980611e59b1b498e",
+        "include/halo2/native_tu15_physics_frame_residuals.hpp": "277c615f21a5e7075a09670e44e5971ca4061ec9e1faf4a06ee25e05a7ff28e3",
+        "include/halo2/native_tu15_world_integration.hpp": "69546b1948eae14591e4954ef393c57100c87189f3fc75b0139512274b6e2790",
+        "include/halo2/physics_contact_record.hpp": "b28d8fb6799a6cea15de76e580a7b427fb913d283e12949ffbee82eb0695f025",
+        "include/halo2/source_runtime_memory.hpp": "d52c6ca6673052f0ea5899d47eb2b047d2caaceef128c59b7da9c6b74b61ce46",
+        "include/halo2/source_runtime_write_protection.hpp": "696955c734972bdab4a5956c0d5f1e6832c8e978aafd6159776fef52d7c36360",
+        "src/ui/frontend_matchmaking_search.cpp": "1a094ca08b90f8e8727437083e25d7e506a78851b1eebd3831160c1eb536b884",
+        "tests/reference/frontend_search_before_rust_20261102/provenance.json": "b14c3adb18eeaa4b13ca9b46e13cd25799d93262bd2ffffe8117730da3004780",
+        "tests/test_native_frontend_search_rust.py": "8c6916ac997a803d64875010c83989a5b7e9c8571657dce4fa9363139cac1e6a"
+      },
+      "remove_from_base_subset": [
+        "include/halo2/native_tu15_pair_island_wake_binding.hpp",
+        "include/halo2/native_tu15_wrapped_factory_binding.hpp",
+        "include/halo2/source_object_name_lookup_tu15.hpp"
+      ],
+      "original_bytes_exactly_reconstructed": true
+    },
+    {
+      "original": "probe-linked/pins-a92404fab3df51fc.json",
+      "sha256": "a92404fab3df51fcd7cbde7ce2f97d3559e460e54fe672832c3945faf96e4fc4",
+      "bytes": 274681,
+      "changed_values": {
+        "include/halo2/frontend.hpp": "364ad1d2299f6103dbb9e86b30914673662e3b755e9058f8c19fa4e6dec928df",
+        "include/halo2/native_tu15_normalize_vector.hpp": "deb751e996a84755bf68373009c8ca2499c7729d0a761c12980611e59b1b498e",
+        "include/halo2/native_tu15_physics_frame_residuals.hpp": "277c615f21a5e7075a09670e44e5971ca4061ec9e1faf4a06ee25e05a7ff28e3",
+        "include/halo2/native_tu15_world_integration.hpp": "69546b1948eae14591e4954ef393c57100c87189f3fc75b0139512274b6e2790",
+        "include/halo2/physics_contact_record.hpp": "b28d8fb6799a6cea15de76e580a7b427fb913d283e12949ffbee82eb0695f025",
+        "include/halo2/source_runtime_memory.hpp": "d52c6ca6673052f0ea5899d47eb2b047d2caaceef128c59b7da9c6b74b61ce46",
+        "include/halo2/source_runtime_write_protection.hpp": "696955c734972bdab4a5956c0d5f1e6832c8e978aafd6159776fef52d7c36360",
+        "src/ui/frontend_matchmaking_search.cpp": "17fa73c8c78f9b8fbfc4cd6b8b3d74cac1834ab0e5e390eb875ad87aae650182",
+        "tests/native_frontend_search_rust_tests.cpp": "106d8642caa5fa5d687185309966ed0cbfc569e5357ef164cc7ddb03c22673eb",
+        "tests/reference/frontend_search_before_rust_20261102/provenance.json": "b14c3adb18eeaa4b13ca9b46e13cd25799d93262bd2ffffe8117730da3004780",
+        "tests/test_native_frontend_search_rust.py": "8c6916ac997a803d64875010c83989a5b7e9c8571657dce4fa9363139cac1e6a"
+      },
+      "remove_from_base_subset": [
+        "include/halo2/native_tu15_pair_island_wake_binding.hpp",
+        "include/halo2/native_tu15_wrapped_factory_binding.hpp",
+        "include/halo2/source_object_name_lookup_tu15.hpp"
+      ],
+      "original_bytes_exactly_reconstructed": true
+    },
+    {
+      "original": "probe-linked/pins-aa2c304180df8a1d.json",
+      "sha256": "aa2c304180df8a1dc1d1da02ddf3ee76ef3f2ef14096d5427c56900f6edce34e",
+      "bytes": 274531,
+      "changed_values": {
+        "include/halo2/frontend.hpp": "364ad1d2299f6103dbb9e86b30914673662e3b755e9058f8c19fa4e6dec928df",
+        "include/halo2/native_tu15_normalize_vector.hpp": "deb751e996a84755bf68373009c8ca2499c7729d0a761c12980611e59b1b498e",
+        "include/halo2/native_tu15_physics_frame_residuals.hpp": "277c615f21a5e7075a09670e44e5971ca4061ec9e1faf4a06ee25e05a7ff28e3",
+        "include/halo2/native_tu15_world_integration.hpp": "69546b1948eae14591e4954ef393c57100c87189f3fc75b0139512274b6e2790",
+        "include/halo2/physics_contact_record.hpp": "b28d8fb6799a6cea15de76e580a7b427fb913d283e12949ffbee82eb0695f025",
+        "include/halo2/source_runtime_memory.hpp": "d52c6ca6673052f0ea5899d47eb2b047d2caaceef128c59b7da9c6b74b61ce46",
+        "include/halo2/source_runtime_write_protection.hpp": "696955c734972bdab4a5956c0d5f1e6832c8e978aafd6159776fef52d7c36360",
+        "src/ui/frontend_matchmaking_search.cpp": "17fa73c8c78f9b8fbfc4cd6b8b3d74cac1834ab0e5e390eb875ad87aae650182",
+        "tests/native_frontend_search_rust_tests.cpp": "18cb0ca238ecf80992fea8eb756da280914cd885811b41c32011456c38d7f0af",
+        "tests/reference/frontend_search_before_rust_20261102/provenance.json": "b14c3adb18eeaa4b13ca9b46e13cd25799d93262bd2ffffe8117730da3004780",
+        "tests/test_native_frontend_search_rust.py": "fafe6db50c6c0a314963d77cfbbc4729fd09290d17e7b4c45ec0b9209a5f710a"
+      },
+      "remove_from_base_subset": [
+        "include/halo2/native_tu15_pair_island_wake_binding.hpp",
+        "include/halo2/native_tu15_wrapped_factory_binding.hpp",
+        "include/halo2/source_object_name_lookup_tu15.hpp",
+        "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc"
+      ],
+      "original_bytes_exactly_reconstructed": true
+    }
+  ],
+  "scratch": "/tmp/halo2-test-9zcem5xb",
+  "retained_large_artifacts": []
+}

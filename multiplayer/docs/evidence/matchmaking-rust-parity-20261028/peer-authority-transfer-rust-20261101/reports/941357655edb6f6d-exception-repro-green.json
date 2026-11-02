@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "mode": "green",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-exception-probe/halo2-test-c5afi5m3",
+  "cases": [
+    {
+      "case": "empty_targets",
+      "commands": [
+        {
+          "op": "new",
+          "id": 0,
+          "self": 0,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "limits": {}
+        },
+        {
+          "op": "publish",
+          "id": 0,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "tick": 0,
+          "bytes": "aa",
+          "targets": [],
+          "now": 0
+        }
+      ],
+      "observations": [
+        {
+          "ok": true
+        },
+        {
+          "category": "invalid_argument",
+          "error": true
+        }
+      ],
+      "difference": null,
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "case": "bad_constructor",
+      "commands": [
+        {
+          "op": "new",
+          "id": 0,
+          "self": 256,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "limits": {}
+        }
+      ],
+      "observations": [
+        {
+          "category": "invalid_argument",
+          "error": true
+        }
+      ],
+      "difference": null,
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ],
+  "scope": "Minimal paired public C++/Rust ABI exception-category control, not the installed playlist symptom or a native world/provider test",
+  "production_source_sha256": "d7fc2298dff21437e309d3ee5b96a8a6b318f5b59af4a90e67bfcd39f234ee72",
+  "retained_large_artifacts": []
+}

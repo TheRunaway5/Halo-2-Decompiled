@@ -452,7 +452,7 @@ fn ready(core: &Coordinator, r: &Value) -> Result<Value> {
             json!([who,p["id"],version,handle,pid,revision,core.policy_pins[pid],actor["key"],m::integer(&actor["generation"],1,i64::MAX)?,roster]),Some(1))]);
     Ok(plan)
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     permits: HashMap<String, Value>,
     countdowns: countdowns::Registry,
@@ -536,6 +536,27 @@ impl Registry {
         self.permits
             .retain(|_, p| p["expires"].as_f64().unwrap() > core.clock);
         match m::text(&r["op"], 64)? {
+            "party_clan_membership_check" => {
+                let who = m::text(&r["player"], 64)?;
+                reject(
+                    !rooms(&r["rooms"])?.iter().any(|room| {
+                        active(room, who)
+                            && !array(room, "clans").is_empty()
+                            && room["phase"] != "postgame"
+                    }),
+                    409,
+                    "Finish your clan match first",
+                )?;
+                let parties = core
+                    .tickets
+                    .iter()
+                    .filter(|t| {
+                        !t["clan"].is_null() && array(t, "players").iter().any(|p| p["id"] == who)
+                    })
+                    .map(|t| t["party_id"].clone())
+                    .collect::<Vec<_>>();
+                Ok(json!(parties))
+            }
             "party_directory_context" => {
                 let players = r["players"]
                     .as_array()

@@ -98,7 +98,7 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
         if(vertices.empty())return std::nullopt;
         if(gpu || source_ordinals)shaders.select_indexed(vertices,ordinals,SourceModelShaderCollector{0,draw.coverage},view);
         else shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
-        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16));
         for(auto& vertex:vertices)vertex.source_stipple_level=stipple;
         if(gpu)for(const auto ordinal:ordinals) {
             gpu->source_vertices.push_back(ordinal);gpu->bindings.push_back(model.skin.at(ordinal));
@@ -271,6 +271,17 @@ std::vector<SourceLiveModelBaseDrawTu15> SourceLiveModelBaseSelectionTu15::copy(
         for(unsigned i=0;i<out.color_count;++i)out.packed_colors[i]=r.word(context+0x64u+i*4u);
         out.geometry=source_live_model_command_geometry_tu15(world,unit);
         out.palette_rows=source_live_model_palette_rows_tu15(world,unit,out.geometry);
+        if(out.geometry.geometry.resident) {
+            const auto model=r.model(unit),count=r.word(model+0x74u);
+            if(count==1u) {
+                const auto header=r.word(model+0x78u);
+                SourcePrtDefinition definition;definition.render_model=unit.words[1];
+                definition.order=r.get<std::uint16_t>(header);
+                definition.clusters=r.get<std::uint16_t>(header+2u);
+                definition.pca_vectors=r.get<std::uint16_t>(header+4u);
+                out.prt_bank=source_live_model_prt_bank_tu15(world,unit,definition);
+            } else if(count)throw FormatError("live model has ambiguous PRT coefficient definitions");
+        }
         result.push_back(std::move(out));
     }
     return result;

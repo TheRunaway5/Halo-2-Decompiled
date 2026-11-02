@@ -53,4 +53,12 @@ ObjectColors source_player_appearance_colors(const SourcePlayerConfiguration &pr
   }
   return colors;
 }
+ObjectColors source_multiplayer_player_colors(const SourcePlayerConfiguration &profile,
+    bool team_mode,std::int16_t membership,std::span<const std::array<std::uint32_t,3>> palette,
+    std::span<const std::array<std::uint32_t,3>> teams) {
+  // NONE is ordinary membership in FFA. Only a neutral participant in a team
+  // match requests 830C0's white override; FFA retains both personal colors.
+  return source_player_appearance_colors(profile,team_mode?membership:-1,
+      team_mode && membership==-1,palette,teams);
+}
 }

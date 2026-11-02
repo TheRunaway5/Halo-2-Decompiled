@@ -1,0 +1,22 @@
+from pathlib import Path
+import json,struct,sys
+root=Path.cwd();sys.path.insert(0,str(root/'tools'))
+from oracle_game_variants import Source
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+s=Source(dict(path=str(NEW_DEFAULT.resolve()),pin=NEW_PIN,globals=0x4ecc1c));d=Cs(CS_ARCH_X86,CS_MODE_32)
+# xrefs to the immutable list-name string locate the original constructor.
+targets=[0x4676a8]
+refs=[]
+for sec in s.image.sections:
+ data=s.image.section_bytes(sec)
+ for target in targets:
+  start=0
+  while True:
+   at=data.find(struct.pack('<I',target),start)
+   if at<0:break
+   address=sec.va+at;refs.append(hex(address))
+   print('xref',hex(address),'to',hex(target))
+   for i in d.disasm(s.image.read(address-24,140),address-24):print(f'{i.address:08x} {i.bytes.hex()} {i.mnemonic} {i.op_str}')
+   start=at+1
+(root/'build/test-results/frontend-presentation-rust-20261102/original-chooser-xrefs.json').write_text(json.dumps({'original_sha256':NEW_PIN,'list_name':'0x4676a8','references':refs},indent=2)+'\n')

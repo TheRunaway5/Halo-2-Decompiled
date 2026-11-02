@@ -185,7 +185,7 @@ int main(int argc,char **argv)try {
         charge_damage_active=false;++charge_damage_returns;
       }
     });
-    objects.observe_physics_stores([&](auto,const SourcePhysicsContactRecordStore &store) {
+    objects.observe_physics_stores_read_only([&](auto,const SourcePhysicsContactRecordStore &store) {
       // Whole157D70's actual final player-response flag publication, reached
       // inside the real charge jpt! call. This is observation, never admission.
       if(charge_damage_active && store.instruction==0x157dfdu && store.written.size()==1 &&

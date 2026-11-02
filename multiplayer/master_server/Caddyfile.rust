@@ -1,0 +1,32 @@
+{
+	admin off
+}
+
+{$MASTER_DOMAIN} {
+	request_body {
+		# Voice preferences accept 2000 subjects. Rust retains its separate
+		# 16KiB ordinary-body and 48KiB preference-body bounds.
+		max_size 49152
+	}
+	# Only signed listing/enrollment/federation routes reach the directory.
+	# Every other route belongs to Rust, including unsupported capabilities.
+	@directory path /v1/masters /v1/servers /v1/servers/* /v1/credentials /v1/credentials/* /v1/admin/credentials /v1/admin/credentials/* /v1/federation/sync
+	handle @directory {
+		reverse_proxy {$H2_DIRECTORY_UPSTREAM:directory:8080} {
+			transport http {
+				response_header_timeout 10s
+				write_timeout 10s
+			}
+		}
+	}
+	handle {
+		reverse_proxy {$H2_MATCHMAKING_UPSTREAM:127.0.0.1:8081} {
+			transport http {
+				# Keep the native/Rust 95-second relationship request budget.
+				# Upgraded room/voice sockets have no idle read deadline.
+				response_header_timeout 100s
+				write_timeout 10s
+			}
+		}
+	}
+}

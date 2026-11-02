@@ -1,0 +1,7 @@
+{
+  "action": "validate",
+  "targets": [
+    "online_account_tests"
+  ],
+  "filter": "^online_account_client$"
+}

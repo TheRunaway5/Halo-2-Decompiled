@@ -1,0 +1,684 @@
+{
+  "schema": "H2_NATIVE_READINESS_RUST_VALIDATION_V1",
+  "recorded_at_utc": "2026-11-01T06:58:56.786684+00:00",
+  "component_passed": true,
+  "production_policy_owner": "rust/online_protocol/src/matchmaking_readiness.rs",
+  "typed_bridge": "rust/online_protocol_bridge/src/matchmaking_readiness.rs",
+  "native_io_adapter": "src/network/original_matchmaking_readiness.cpp",
+  "cpp_header_policy_bodies_removed": true,
+  "native_final_launch_decision_moved_to_rust": true,
+  "source_pins": {
+    "cmake/OnlineProtocolRust.cmake": "44a62e98d95637584cb31df2c3deb2b0e007f88f99097e531fe462b6969dc56d",
+    "include/halo2/original_matchmaking_readiness.hpp": "d9fcaf2332bfc192a633f72e21ffde5f7268b1cfadb7a272bbf4b7a84c0fd5e9",
+    "src/network/original_matchmaking_readiness.cpp": "9ba6c0f1e06471c3de1a5654ac804d3b04759f405f124e2bea32682d7617fffc",
+    "src/network/online_matchmaking.cpp": "45382751d2e8498732de6d99edddb60e3f97b3bea4471161af0a564963f2d719",
+    "src/ui/frontend_matchmaking.cpp": "faaeb5ae03a510be5b97ad370888b9cda910e5f86752bace6930721a6de870c6",
+    "tests/original_matchmaking_readiness_tests.cpp": "1b393d75f68f1b300ed061956e850b6b41abc6751b3eda3425927d3d92ed4999",
+    "rust/online_protocol/src/matchmaking_readiness.rs": "b8b2ccb062d8eb7956b1714f177a8dc09045fd4e0944d667aefd5569cebd4bf3",
+    "rust/online_protocol_bridge/src/matchmaking_readiness.rs": "12348c59f21c2052b1b00da2854062713fa7d3a4f75e34a2649507d14c0d271b",
+    "rust/online_protocol_bridge/src/lib.rs": "437d2d19f42713284f97486f0ce2b372c81b46a835813452dca969f350274ca8",
+    "tools/test_master_server.py": "835ba8f915178c041f8f7cb6acceeb5657094cc3fe64fa6a3357ffea6ff6dfd5",
+    "tools/oracle_matchmaking_errors_tu15.py": "4d2ac56248afd3af8346db6e7b4711e2b9da2ff8c44be772581ccf05263534cc",
+    "rust/online_protocol/tests/matchmaking_native_readiness.rs": "33d98ddcad387d01c54cecb0303764ff61a175bdb781ff29080145ca6bb0e9a9",
+    "tests/fixtures/tu15_matchmaking_errors_original.json": "900c42c87f7427983360a9e68db0eee2c2efc41879062948018773b28c34bb7b",
+    "tests/fixtures/tu15_matchmaking_readiness_original.json": "99141226b35e3349530a7491ad9bf425006c0a05b05b8db21f0b21d41d28ea85"
+  },
+  "tested_cmake_sha256": "3db84d6c369063f3e6db362850978703439b0712da99984671e068ecb0b59098",
+  "current_cmake_sha256": "3db84d6c369063f3e6db362850978703439b0712da99984671e068ecb0b59098",
+  "frozen_native_source_files": 4482,
+  "native_frozen_inputs_intact": true,
+  "current_native_source_drift": [
+    "cmake/PhysicsLiveWorldTu15.cmake",
+    "include/halo2/native_tu15_object_activation_residuals.hpp",
+    "include/halo2/native_tu15_physics_frame_residuals.hpp",
+    "multiplayer/master_server/README.md",
+    "src/physics/native_tu15_object_activation_residuals.cpp",
+    "src/physics/native_tu15_world_integration_residuals.cpp",
+    "src/physics/physics_live_world_tu15.cpp"
+  ],
+  "frozen_abi_source_files": 302,
+  "abi_current_doc_drift": [
+    "multiplayer/master_server/README.md"
+  ],
+  "original_readiness": {
+    "controls": 12,
+    "policy": 4,
+    "producer_consumer": 4,
+    "caller_routes": 10,
+    "original_instructions": 498,
+    "all_executed_instruction_bytes_verified": true
+  },
+  "original_errors": {
+    "selector_controls": 50,
+    "state_clear_controls": 5,
+    "original_instructions": 142,
+    "all_executed_instruction_bytes_verified": true
+  },
+  "reference_fixture": {
+    "path": "tests/fixtures/tu15_matchmaking_errors_original.json",
+    "sha256": "900c42c87f7427983360a9e68db0eee2c2efc41879062948018773b28c34bb7b",
+    "bytes": 6572
+  },
+  "production_abi": {
+    "passed": true,
+    "argv": [
+      "/usr/bin/python3",
+      "-B",
+      "/home/eric/Developer/Halo-2-Decompiled/tools/test_master_server.py",
+      "--freeze-source",
+      "--output",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-readiness-abi-20261101",
+      "--production-abi",
+      "--rust-test",
+      "matchmaking_native_readiness",
+      "--rust-test",
+      "matchmaking_room_setup",
+      "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_unchanged_tu15_controls_through_native_abi",
+      "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_actual_transport_inputs_do_not_invent_original_live_policy",
+      "multiplayer.master_server.tests.test_matchmaking_readiness_native.OriginalMatchmakingReadinessNativeTests.test_missing_native_kernel_fails_closed"
+    ],
+    "returncode": 0,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-abi/halo2-test-47feiumu",
+    "retained_large_artifacts": [],
+    "source_files": 302,
+    "rust_checks": 27,
+    "backend_checks": 3,
+    "backend_seconds": 0.001,
+    "abi": {
+      "abi": 2,
+      "test_inputs": false
+    },
+    "source_manifest_sha256": "4266a458eeb048a6becc78b4f51bd4db461fe8c8cb2ebb79fff616a46e29a577",
+    "frozen_sources_intact": true
+  },
+  "ctest_count": 5,
+  "ctest_seconds": 80.03,
+  "service_unit_tests": 19,
+  "native_original_control_counts": {
+    "readiness": 12,
+    "selectors": 50,
+    "state_clear": 5
+  },
+  "native_link_boundary": {
+    "passed": true,
+    "argv": [
+      "nm",
+      "-C",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx/build/libhalo2_online_protocol.a"
+    ],
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx",
+    "library": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx/build/libhalo2_online_protocol.a",
+      "sha256": "59487f104d54b8441769267104b76fd31d1e47302f52b098741a3297568e63cd",
+      "bytes": 96834,
+      "retained": false
+    },
+    "symbols": [
+      "                 U halo2::online_protocol_bridge::matchmaking_eligibility(bool, bool, bool, bool, bool, bool, bool)",
+      "                 U halo2::online_protocol_bridge::matchmaking_error_clear(bool, int, unsigned int, unsigned int)",
+      "                 U halo2::online_protocol_bridge::matchmaking_error_dialog(int, bool)",
+      "                 U halo2::online_protocol_bridge::matchmaking_connected_teams(rust::cxxbridge1::Slice<unsigned int const>, unsigned int, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::MatchmakingSeat const>)",
+      "                 U halo2::online_protocol_bridge::matchmaking_native_launch_ready(halo2::online_protocol_bridge::MatchmakingLaunchObservation const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::MatchmakingSeat const>)",
+      "0000000000000580 T halo2::native_matchmaking_launch_ready(halo2::NativeMatchmakingLaunchObservation const&, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>)",
+      "00000000000004f0 T halo2::original_matchmaking_eligibility(bool, bool, bool, bool, bool, bool, bool)",
+      "0000000000000570 T halo2::original_matchmaking_error_clear(bool, int, unsigned int, unsigned int)",
+      "0000000000000520 T halo2::original_matchmaking_error_dialog(int, bool)",
+      "0000000000000210 T halo2::original_matchmaking_connected_teams(std::span<halo2::OriginalMatchmakingPeer const, 18446744073709551615ul>, unsigned int, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>)",
+      "0000000000000039 t halo2::original_matchmaking_connected_teams(std::span<halo2::OriginalMatchmakingPeer const, 18446744073709551615ul>, unsigned int, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>) [clone .cold]"
+    ],
+    "retained_large_artifacts": []
+  },
+  "negative_handoff": {
+    "qualified": false,
+    "positive_handoff_qualified": false,
+    "negative_control_passed": true,
+    "attempts": [
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-031",
+            "map": "highplains",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team SWAT"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-031",
+            "map": "highplains",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team SWAT"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      },
+      {
+        "negative_control_passed": true,
+        "native_clients": [
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-030",
+            "map": "derelict",
+            "native_error": "Missing H2_EOS_PRODUCT_ID",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team SWAT"
+          },
+          {
+            "returncode": 1,
+            "timed_out": false,
+            "error": "Native queue/handoff failed",
+            "full_settings_validated": true,
+            "game_id": "lab-test-030",
+            "map": "derelict",
+            "native_error": "Matchmaking failed. Try again.",
+            "native_loading_reached": false,
+            "native_session_taken": false,
+            "played_world": false,
+            "queue_status": 9,
+            "real_provider": false,
+            "sdk_available": true,
+            "settings_bytes": 304,
+            "stage": "native search/QoS/descriptor",
+            "variant": "Team SWAT"
+          }
+        ],
+        "full_settings_validated": true,
+        "same_admitted_match": true,
+        "expected_refusal": "Missing H2_EOS_PRODUCT_ID",
+        "publication": {
+          "result_rows": {
+            "match_results": 0,
+            "match_result_players": 0,
+            "match_result_teams": 0,
+            "match_result_memberships": 0,
+            "match_result_skill": 0,
+            "match_result_clan_skill": 0,
+            "carnage_reports": 0,
+            "carnage_players": 0,
+            "carnage_weapon_stats": 0,
+            "carnage_player_accuracy": 0,
+            "carnage_weapon_accuracy": 0
+          },
+          "skill": {
+            "playlist_skill": {
+              "rows": 10,
+              "xp": 0
+            },
+            "clan_playlist_skill": {
+              "rows": 0,
+              "xp": 0
+            }
+          }
+        },
+        "no_result_publication": true,
+        "no_xp_awarded": true,
+        "no_sdk_cache_created": true
+      }
+    ],
+    "configured_client": false,
+    "negative_control": "Missing EOS client configuration must refuse v16 without changing its transport.",
+    "native_clients_restarted_between_attempts": true,
+    "same_process_native_retry_verified": false,
+    "same_service_and_provider_grants": true,
+    "source_catalog_edited": false,
+    "source_catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "installed_map_admission_verified": false,
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  },
+  "scope": "Shared Rust owns native connected-team/eligibility, original lobby error/expiry and final loading gate. Native C++ marshals facts and retains IO/presentation/connection ownership. Loading-to-complete-link projection is declared native policy, not original XNet/provider recovery.",
+  "native_controller_fully_migrated": false,
+  "original_live_policy_invented": false,
+  "frontend_menu_render_input_qualified": false,
+  "positive_eos_handoff_qualified": false,
+  "played_world": false,
+  "full_original_caller_qualified": false,
+  "production_service_activated": false,
+  "selected_runtime_replaced": false,
+  "original_whole_system_parity": false,
+  "full_goal_complete": false,
+  "receipts": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-0.json",
+      "sha256": "99218b98369497467aba2a69da018a7640afedadfd0d9e935be037097eb83b3b",
+      "bytes": 43874
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-1.json",
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951",
+      "bytes": 46804
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-10.json",
+      "sha256": "681761333a6985c44e77d70cc57adc2cc8a2f431c55f6774a6118785c5aa3340",
+      "bytes": 45579
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-11.json",
+      "sha256": "85df30ba1a776377094b996137918ec57943aa129406e520dff8792dce14d728",
+      "bytes": 9396
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-2.json",
+      "sha256": "a3fc92f4502e037735f72db18630f11722d6d356285449a3667965c6bcb9cf66",
+      "bytes": 47006
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-3.json",
+      "sha256": "c12ac83d44201b81aa3a484049e8799b95c45b279f0db72d50948ed48a404edd",
+      "bytes": 46516
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-4.json",
+      "sha256": "0061fc7f87fe62d76471f1e0210241d97ccc0ad19c784fce2b271995bd821c58",
+      "bytes": 46903
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-5.json",
+      "sha256": "b7bb195fd074872030910927840f876c6c6f4cfed6b5c07fbce216a9b88fa36d",
+      "bytes": 48416
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-6.json",
+      "sha256": "f83afb9614c74d7d089c359a3c3de3c06174ea49e5f7909649a6c30e8f6fb196",
+      "bytes": 48731
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-7.json",
+      "sha256": "6c3bb556c8957057faa944a12aaf67a3cc827144ba35a1082281b0a49e9a3473",
+      "bytes": 49960
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-8.json",
+      "sha256": "5e06d124ea373d235ef00ed4a2ece7b31221941a4f1e622ad98f0a3571989acb",
+      "bytes": 47864
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/final-source-pins-9.json",
+      "sha256": "713d015502ec36d9189e104452933630c782af851978a6e6d885970c110c9d48",
+      "bytes": 48846
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/frozen-cmake.txt",
+      "sha256": "3db84d6c369063f3e6db362850978703439b0712da99984671e068ecb0b59098",
+      "bytes": 968576
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/inputs.json",
+      "sha256": "7b9a161ba6fc4eb836570485d89a03d8e2d69d2b87fc434970d89f9931074d1b",
+      "bytes": 2073
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/build.log",
+      "sha256": "98499409a29d72b4d5fa804f9e5bb0d7fe87dcd13b8ec0730e63d8f46a3671da",
+      "bytes": 41116
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/configure.log",
+      "sha256": "155cfd0da48daaa50d4cc77bebe73de50e33293f01ee61a3ad010f7e1aebef76",
+      "bytes": 4644
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/Testing/Temporary/LastTest.log",
+      "sha256": "e22a999f186c9bf83b82e2ab73bd72d93500180c90949451058596362a91fded",
+      "bytes": 7350
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/online-protocol/Release/build-report.json",
+      "sha256": "0e4218718d1cea67adec10d6079463e9bd02e92833dd83424e0e1155683f0af6",
+      "bytes": 1886
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/rust-native-handoff-failclosed/report.json",
+      "sha256": "8fb91c4f66ab8348d723f50614a046138e83f373b855cc66f677aaead2202687",
+      "bytes": 7729
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/rust-native-handoff-failclosed/source-manifest.json",
+      "sha256": "f506ee8fed5b819c07ac2634d5dac25e99f20aad9d466e6aa722c3997c1d1960",
+      "bytes": 18839
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/rust-native-handoff-failclosed/step-0.log",
+      "sha256": "f88be44581245a721056f7dd7235d18b2b4e1c94114ccdff8079c849112c2b4f",
+      "bytes": 6482
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/evidence/rust-native-handoff-failclosed/step-1.log",
+      "sha256": "aa9d75a72a70b5b4633fbc1f7660e8bde35322a7cf7c53583b0d99987ceeb3a0",
+      "bytes": 326
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/report.json",
+      "sha256": "0811d7d9fb9f4091978637bbab0a8d1ce8fdc3f3f4f73b778fd7d79c52d1a651",
+      "bytes": 5370
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1/tests.log",
+      "sha256": "3bef82644949e888be1baf85aa5e6629405a2699c0d494a7ce208ab969fc39f2",
+      "bytes": 796
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-report.json",
+      "sha256": "de393cc300fb75a933bae0d9a47ac0800ff7100d88295a87759914633f05d6cf",
+      "bytes": 7931
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-runner.log",
+      "sha256": "2e761ca4cc7dc24b6bbde995500a6a2467821e72d89cabb55379ae623c6006a6",
+      "bytes": 47762
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-0.json",
+      "sha256": "99218b98369497467aba2a69da018a7640afedadfd0d9e935be037097eb83b3b",
+      "bytes": 43874
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-1.json",
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951",
+      "bytes": 46804
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-10.json",
+      "sha256": "681761333a6985c44e77d70cc57adc2cc8a2f431c55f6774a6118785c5aa3340",
+      "bytes": 45579
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-11.json",
+      "sha256": "85df30ba1a776377094b996137918ec57943aa129406e520dff8792dce14d728",
+      "bytes": 9396
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-2.json",
+      "sha256": "a3fc92f4502e037735f72db18630f11722d6d356285449a3667965c6bcb9cf66",
+      "bytes": 47006
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-3.json",
+      "sha256": "c12ac83d44201b81aa3a484049e8799b95c45b279f0db72d50948ed48a404edd",
+      "bytes": 46516
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-4.json",
+      "sha256": "0061fc7f87fe62d76471f1e0210241d97ccc0ad19c784fce2b271995bd821c58",
+      "bytes": 46903
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-5.json",
+      "sha256": "b7bb195fd074872030910927840f876c6c6f4cfed6b5c07fbce216a9b88fa36d",
+      "bytes": 48416
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-6.json",
+      "sha256": "f83afb9614c74d7d089c359a3c3de3c06174ea49e5f7909649a6c30e8f6fb196",
+      "bytes": 48731
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-7.json",
+      "sha256": "6c3bb556c8957057faa944a12aaf67a3cc827144ba35a1082281b0a49e9a3473",
+      "bytes": 49960
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-8.json",
+      "sha256": "5e06d124ea373d235ef00ed4a2ece7b31221941a4f1e622ad98f0a3571989acb",
+      "bytes": 47864
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/iteration-1-source-pins-9.json",
+      "sha256": "713d015502ec36d9189e104452933630c782af851978a6e6d885970c110c9d48",
+      "bytes": 48846
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/native-link-boundary.json",
+      "sha256": "eb305aa4c215fd1f924c06e0e1cadc2a595930e7cbc88373deb9790cc4786bb0",
+      "bytes": 2409
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-0.json",
+      "sha256": "99218b98369497467aba2a69da018a7640afedadfd0d9e935be037097eb83b3b",
+      "bytes": 43874
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-1.json",
+      "sha256": "ca0ceb420bd598cd13db9401038bfbf792895a02c69172ae03d4e33730d69951",
+      "bytes": 46804
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-10.json",
+      "sha256": "681761333a6985c44e77d70cc57adc2cc8a2f431c55f6774a6118785c5aa3340",
+      "bytes": 45579
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-11.json",
+      "sha256": "85df30ba1a776377094b996137918ec57943aa129406e520dff8792dce14d728",
+      "bytes": 9396
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-2.json",
+      "sha256": "a3fc92f4502e037735f72db18630f11722d6d356285449a3667965c6bcb9cf66",
+      "bytes": 47006
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-3.json",
+      "sha256": "c12ac83d44201b81aa3a484049e8799b95c45b279f0db72d50948ed48a404edd",
+      "bytes": 46516
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-4.json",
+      "sha256": "0061fc7f87fe62d76471f1e0210241d97ccc0ad19c784fce2b271995bd821c58",
+      "bytes": 46903
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-5.json",
+      "sha256": "b7bb195fd074872030910927840f876c6c6f4cfed6b5c07fbce216a9b88fa36d",
+      "bytes": 48416
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-6.json",
+      "sha256": "f83afb9614c74d7d089c359a3c3de3c06174ea49e5f7909649a6c30e8f6fb196",
+      "bytes": 48731
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-7.json",
+      "sha256": "6c3bb556c8957057faa944a12aaf67a3cc827144ba35a1082281b0a49e9a3473",
+      "bytes": 49960
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-8.json",
+      "sha256": "5e06d124ea373d235ef00ed4a2ece7b31221941a4f1e622ad98f0a3571989acb",
+      "bytes": 47864
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/native/source-pins-9.json",
+      "sha256": "713d015502ec36d9189e104452933630c782af851978a6e6d885970c110c9d48",
+      "bytes": 48846
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/report.json",
+      "sha256": "20f22646a094a814100bacb72d179986d529f96152c34df349062e40cd1263ea",
+      "bytes": 2405
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/runner.log",
+      "sha256": "c4730e50696959d8086a3cfa14332309c20050e31cc04d7e069d905ee6cf96c3",
+      "bytes": 6967
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/source-manifest.json",
+      "sha256": "4266a458eeb048a6becc78b4f51bd4db461fe8c8cb2ebb79fff616a46e29a577",
+      "bytes": 38560
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/step-0.log",
+      "sha256": "46fc91c5524be41f4e16e097edf5e0574ad8962bbebfe613c01e2fb96340d78a",
+      "bytes": 4287
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/step-1.log",
+      "sha256": "dd02c1ea580696f6043dc03c3b9eb8e064cd0a6ebcf1f5ebab6571f1aa3ba793",
+      "bytes": 1607
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/step-2.log",
+      "sha256": "921b60a7fd52e978fbb551cacd29df2d6708879400278e1fcc70fceeb0c6f8e0",
+      "bytes": 101
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/abi/summary.json",
+      "sha256": "bba9cc8c112a10a39217d398723c97c61a8a7c8da83a0e446cd0e7363f790f45",
+      "bytes": 1358
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/errors-runner.log",
+      "sha256": "47e8e1a7508db45247a7800512366318010e5c4055bd2f868ed30f0e94743556",
+      "bytes": 184
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/errors-verification-invocation.json",
+      "sha256": "c24d21d7a01bd6a947f58db5df1a2e8a9201607f43aee15f09f6f955a6c0bc46",
+      "bytes": 778
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/errors-verified-runner.log",
+      "sha256": "07e2afe4e6687223031fa41ef35643279f33168fd9e9d89bd75d405b76dec386",
+      "bytes": 193
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/errors-verified.json",
+      "sha256": "900c42c87f7427983360a9e68db0eee2c2efc41879062948018773b28c34bb7b",
+      "bytes": 6572
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/errors.json",
+      "sha256": "59a7e9067c778d6d2c895301194771a141c88cf187d2482e4a47e793037fee4c",
+      "bytes": 6521
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/invocation.json",
+      "sha256": "4f6da5a5be826b7c7450af9a5ddc60011a6668087eae8a00dae3d1a55321b4d2",
+      "bytes": 1148
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/readiness-runner.log",
+      "sha256": "aa64a3d6dfa01ce39e96b3da82ecc5ee78a4647665400fa2675d0603d3eefa47",
+      "bytes": 210
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-readiness-rust-20261101/original/readiness.json",
+      "sha256": "3df0cd2e5663c4cc22938271fa385beefe11b3273b7952621b2c9aff196a9709",
+      "bytes": 21516
+    }
+  ],
+  "cleanup": {
+    "owned_scratch_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-abi/halo2-test-47feiumu",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-errors-verified/halo2-test-jlxh5n1o",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-original/halo2-test-8znoi9a4",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx"
+    ],
+    "all_recorded_test_scratch_removed": true,
+    "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-evidence-corrected/halo2-test-gq_7uv22",
+    "report_writer_cleanup_pending": false,
+    "retained_large_artifacts": [],
+    "report_writer_removed": true,
+    "owned_scratch_parent_paths": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-original",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-errors-verified",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-abi",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-evidence",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-evidence-corrected"
+    ],
+    "duplicate_report_sources_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-native-readiness-owned-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-native-readiness-abi-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-readiness-rust-source-20261101"
+    ]
+  },
+  "final_verification": {
+    "relevant_source_pins_match": true,
+    "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "master_pdf_hash_matches": true,
+    "all_recorded_scratch_removed": true,
+    "retained_large_artifacts": []
+  }
+}

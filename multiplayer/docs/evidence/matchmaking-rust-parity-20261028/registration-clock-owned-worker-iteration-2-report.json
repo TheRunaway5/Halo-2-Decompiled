@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "compile",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/online_protocol/src/matchmaking_identity_directory.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/registration_clock_tests.rs"
+  ],
+  "source_files": 149,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/cargo/release/halo2-matchmaking-service",
+    "sha256": "95949e97c43a7adc3946ca31a10bb42e4e66eba08e02b5e0bb0dbff9ba9ca0d9",
+    "bytes": 11451264,
+    "retained": false
+  },
+  "compile_only": true
+}

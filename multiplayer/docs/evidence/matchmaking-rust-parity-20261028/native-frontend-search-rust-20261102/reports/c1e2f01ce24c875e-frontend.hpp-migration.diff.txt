@@ -1,0 +1,80 @@
+--- tests/reference/frontend_search_before_rust_20261102/frontend.hpp.reference
++++ include/halo2/frontend.hpp
+@@ -20,6 +20,7 @@
+ #include "halo2/online_matchmaking.hpp"
+ #include "halo2/frontend_matchmaking_progress.hpp"
+ #include "halo2/frontend_matchmaking_lobby.hpp"
++#include "halo2/frontend_matchmaking_search.hpp"
+ #include "halo2/online_account.hpp"
+ #include "halo2/native_tu15_online_services.hpp"
+ #include "halo2/vista_pcr_screen.hpp"
+@@ -461,6 +462,7 @@
+ // profiles/options and reports unavailable engine/network operations
+ // explicitly.
+ class MenuState {
++  friend struct FrontendSearchNativeIo;
+ public:
+   explicit MenuState(const FrontendContent &,
+                      const std::filesystem::path &preferences = {});
+@@ -627,7 +629,7 @@
+   // remains the PC/MCC authored pane that hosts the presentation.
+   MatchmakingProgressUi online_matchmaking_ui() const;
+   unsigned online_matchmaking_progress_pane() const;
+-  std::int32_t online_matchmaking_countdown() const { return matchmaking_countdown_; }
++  std::int32_t online_matchmaking_countdown() const { return matchmaking_search_.countdown(); }
+   bool online_matchmaking_team_colors() const;
+   // 0x2514FD row order of the admitted match (sorted only on pane3).
+   std::vector<unsigned> online_matchmaking_roster_order() const;
+@@ -729,7 +731,7 @@
+   std::array<std::string,4> local_discord_subjects_{};
+   std::optional<unsigned> online_local_options_;
+   bool joining_online_{};
+-  std::uint64_t couch_revision_{},matchmaking_couch_revision_{};
++  std::uint64_t couch_revision_{};
+   void populate_online_couch(MenuFrame &) const;
+   bool accept_online_couch();
+   void update_online_couch();
+@@ -778,34 +780,25 @@
+   void populate_online_directory(MenuFrame &) const;
+   std::shared_ptr<OnlineMatchmaking> online_matchmaking_;
+   OnlineMatchmakingSnapshot matchmaking_;
+-  bool matchmaking_active_{}, quickmatch_pending_{}, match_voice_{};
+-  bool matchmaking_consent_pending_{};
+-  std::string selected_playlist_, matchmaking_name_;
++  bool match_voice_{};
++  FrontendMatchmakingSearch matchmaking_search_;
++  bool search_drive(FrontendSearchAction,unsigned index=0);
+   void refresh_online_matchmaking();
+   void populate_online_matchmaking(MenuFrame &) const;
+   void reset_online_matchmaking_progress();
+   // Hands the counted-down admitted match to gameplay; false after a refusal.
+   bool launch_online_match();
+   // c_session_state_start_match (0x72700) clock and B's published seconds.
+-  std::optional<std::uint32_t> matchmaking_start_clock_;
+-  std::int32_t matchmaking_countdown_ = matchmaking_countdown_none;
+-  bool matchmaking_have_fun_{};
+   // c_matchmaking_screen +0x618 current pane and +0x614 pane clock (0x251B39).
+-  unsigned matchmaking_progress_pane_{};
+-  int matchmaking_progress_title_state_{}; // Original c_matchmaking_screen+610, updated only on pane change.
+-  std::uint32_t matchmaking_pane_clock_{};
+   bool back_refused_{};
+   // Party A's member handles while a search it did not cancel locally runs;
+   // empty otherwise (0x250804 session-state notices).
+-  std::vector<std::string> matchmaking_search_party_;
+   // True when the screen changed: a member follows the leader's search into
+   // screen210, or a party-wide end of the search returned to the lobby.
+   bool update_online_party_search();
+   // Party A's lobby after matchmaking keeps its hopper (TU1.5 value49a4=2,
+   // +49C8): START GAME searches it again after the lobby countdown.
+   FrontendMatchmakingLobby online_lobby_;
+-  bool online_lobby_playlist_pending_{};
+-  bool online_lobby_create_submitted_{};
+   struct OnlinePrivacyPending {
+     std::uint64_t frame_instance{},command_serial{},revision{};
+     unsigned mode{};
+@@ -952,4 +945,5 @@
+   std::unique_ptr<Impl> impl_;
+ };
+ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &);
++std::optional<UiVariant> frontend_matchmaking_variant(const FrontendContent&,const OnlineMatch&);
+ } // namespace halo2

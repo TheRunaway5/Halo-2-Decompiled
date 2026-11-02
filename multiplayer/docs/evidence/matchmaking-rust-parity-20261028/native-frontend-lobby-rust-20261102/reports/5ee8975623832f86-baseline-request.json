@@ -1,0 +1,9 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "targets": [
+    "frontend_online_lobby_buttons_tests",
+    "party_countdown_kernel_tests"
+  ],
+  "filter": "^(frontend_online_lobby_(buttons|legacy_countdown|blocked_playlist|complete_playlist)|rust_frontend_lobby_(blocked|complete|rendered)|original_party_countdown_kernels)$"
+}

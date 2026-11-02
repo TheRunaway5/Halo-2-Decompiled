@@ -122,15 +122,17 @@ int main(int argc,char **argv)try {
       bounds[2]=std::max(bounds[2],p.x);bounds[3]=std::max(bounds[3],p.y);
     }
     // Keep the original bitmap geometry relative to its bottom-right anchor;
-    // desktop presentation relocates that anchor to the player cell's edge.
+    // only split-screen presentation relocates it to the player's cell edge.
     const auto reference=hud_viewport(players,view,bool(wide));
-    const auto layout=hud_presentation_layout(reference,width,height);
+    const float scale=std::min(width/640.f,height/480.f),
+        right=reference.outer.right*width/640+
+            (players==1?reference.safe.right-reference.outer.right:-8)*scale,
+        bottom=reference.outer.bottom*height/480+
+            (players==1?reference.safe.bottom-reference.outer.bottom:-8)*scale;
     for(unsigned k:{0u,2u})
-      expected[k]=((expected[k]-reference.safe.right+layout.viewport.safe.right)*
-          layout.scale+layout.offset.x)*640/width;
+      expected[k]=((expected[k]-reference.safe.right)*scale+right)*640/width;
     for(unsigned k:{1u,3u})
-      expected[k]=((expected[k]-reference.safe.bottom+layout.viewport.safe.bottom)*
-          layout.scale+layout.offset.y)*480/height;
+      expected[k]=((expected[k]-reference.safe.bottom)*scale+bottom)*480/height;
     for(unsigned k=0;k<4;++k)check(std::abs(bounds[k]-expected[k])<.001f,
         "Score icon position differs from presented original22AFF1 geometry");
     ++geometry_cases;

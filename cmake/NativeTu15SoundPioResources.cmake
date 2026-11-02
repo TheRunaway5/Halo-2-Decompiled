@@ -1,8 +1,22 @@
 # Real bounded payload queue/notifier/input page prerequisite. No cold
 # configuration bypass, tracking/voice/DSP implementation or source return.
+add_library(halo2_native_tu15_sound_pio STATIC src/audio/source_sound_pio_native_tu15.cpp)
+target_include_directories(halo2_native_tu15_sound_pio PUBLIC include)
+target_compile_features(halo2_native_tu15_sound_pio PUBLIC cxx_std_20)
+target_link_libraries(halo2_systems PUBLIC halo2_native_tu15_sound_pio)
 target_sources(halo2_systems PRIVATE src/audio/runtime/source_runtime_sound_pio_resources.cpp
     src/audio/source_sound_pio_storage_tu15_generated.cpp)
 if(BUILD_TESTING)
+    add_executable(native_tu15_sound_pio_native_tests tests/native_tu15_sound_pio_native_tests.cpp
+        src/audio/source_sound_pio_storage_tu15_generated.cpp)
+    target_include_directories(native_tu15_sound_pio_native_tests PRIVATE src)
+    target_link_libraries(native_tu15_sound_pio_native_tests PRIVATE halo2_native_tu15_sound_pio
+        nlohmann_json::nlohmann_json)
+    target_compile_options(native_tu15_sound_pio_native_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-fno-fast-math;-ffp-contract=off;-frounding-math>)
+    add_test(NAME native_tu15_sound_pio_native_reference COMMAND native_tu15_sound_pio_native_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_pio_native_tu15.json")
+    set_tests_properties(native_tu15_sound_pio_native_reference PROPERTIES TIMEOUT 60)
     add_executable(native_tu15_sound_pio_resources_tests
         tests/native_tu15_sound_pio_resources_tests.cpp
         src/audio/runtime/source_runtime_sound_pio_resources.cpp src/audio/source_sound_pio_storage_tu15_generated.cpp
@@ -12,11 +26,12 @@ if(BUILD_TESTING)
         src/audio/runtime/source_runtime_sound_dma_resources.cpp src/runtime/source_runtime_host_physical_memory.cpp
         src/audio/runtime/source_runtime_sound_reset_resources.cpp src/audio/source_sound_reset_tu15_generated.cpp
         src/audio/source_sound_hardware_storage_tu15_generated.cpp src/audio/source_sound_dma_storage_tu15_generated.cpp
+        src/audio/source_sound_sdk_tu15_generated.cpp src/platform/source_tu15_settings.cpp
         src/runtime/source_runtime_memory.cpp)
     target_include_directories(native_tu15_sound_pio_resources_tests PRIVATE src)
     target_link_libraries(native_tu15_sound_pio_resources_tests PRIVATE halo2_sound_platform
-        halo2_physics_world_runtime halo2_snapshot_storage halo2_source_tu15_settings
-        nlohmann_json::nlohmann_json)
+        Threads::Threads halo2_snapshot_storage
+        nlohmann_json::nlohmann_json halo2_native_tu15_sound_pio)
     target_compile_options(native_tu15_sound_pio_resources_tests PRIVATE
         $<$<CXX_COMPILER_ID:GNU,Clang>:-fno-fast-math;-ffp-contract=off;-frounding-math>)
     add_test(NAME original_tu15_native_sound_pio_resources

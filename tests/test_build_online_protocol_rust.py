@@ -38,6 +38,29 @@ class WorkerBuildTests(unittest.TestCase):
             manifest.write_text('[package]\nname="fixture"\n')
             (module/'Cargo.lock').write_text('locked fixture\n')
             (module/'src/eos_sdk.hpp').write_text('// fixture header\n')
+            (module/'src/matchmaking_client.hpp').write_text('// native IO interface fixture\n')
+            (module/'src/matchmaking_native_qos.hpp').write_text('// native QoS IO interface fixture\n')
+            (module/'src/matchmaking_native_session.hpp').write_text('// native session IO interface fixture\n')
+            (module/'src/matchmaking_native_peers.hpp').write_text('// native peer IO interface fixture\n')
+            (module/'src/matchmaking_native_publication.hpp').write_text('// native publication IO interface fixture\n')
+            (module/'src/matchmaking_native_preparation.hpp').write_text('// native preparation IO interface fixture\n')
+            (module/'src/matchmaking_native_exchange.hpp').write_text('// native exchange IO interface fixture\n')
+            (module/'src/peer_snapshot_candidate.hpp').write_text('// native snapshot storage/lease IO fixture\n')
+            (module/'src/matchmaking_native_receive.hpp').write_text('// native snapshot storage/lease IO fixture\n')
+            (module/'src/matchmaking_native_access.hpp').write_text('// native Session view/device IO fixture\n')
+            (module/'src/matchmaking_native_migration.hpp').write_text('// native migration observation/application IO fixture\n')
+            (module/'src/matchmaking_native_api.hpp').write_text('// native Session packet/audio/worker IO fixture\n')
+            (module/'src/matchmaking_account_client.hpp').write_text('// native account login/HTTP/mutex IO fixture\n')
+            (module/'src/matchmaking_native_results.hpp').write_text('// native game result observation IO fixture\n')
+            (module/'src/matchmaking_frontend_search.hpp').write_text('// native frontend search IO fixture\n')
+            (module/'src/matchmaking_frontend_presentation.hpp').write_text('// native frontend locale/asset IO fixture\n')
+            (module/'src/matchmaking_frontend_party.hpp').write_text('// native profile/login/seat IO fixture\n')
+            (module/'src/matchmaking_frontend_party_flow.hpp').write_text('// native party action/privacy IO fixture\n')
+            (module/'src/matchmaking_frontend_party_view.hpp').write_text('// native party view IO fixture\n')
+            (module/'src/matchmaking_frontend_lobby_query.hpp').write_text('// native lobby query IO fixture\n')
+            (module/'src/matchmaking_frontend_account_flow.hpp').write_text('// native account flow IO fixture\n')
+            (module/'src/matchmaking_frontend_friends.hpp').write_text('// native friends flow IO fixture\n')
+            (module/'src/matchmaking_frontend_lobby_view.hpp').write_text('// native lobby view IO fixture\n')
             output = root/'build'
             calls = []
             sdk_root = root/'vendor/SDK'
@@ -82,6 +105,52 @@ class WorkerBuildTests(unittest.TestCase):
                 result = BUILD.main()
             self.assertEqual(result, 0)
             report = json.loads((output/'build-report.json').read_text())
+            self.assertEqual((output/'include/src/matchmaking_client.hpp').read_bytes(),
+                             (module/'src/matchmaking_client.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_qos.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_qos.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_session.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_session.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_peers.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_peers.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_publication.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_publication.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_preparation.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_preparation.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_exchange.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_exchange.hpp').read_bytes())
+            self.assertEqual((output/'include/src/peer_snapshot_candidate.hpp').read_bytes(),
+                             (module/'src/peer_snapshot_candidate.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_receive.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_receive.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_access.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_access.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_migration.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_migration.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_api.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_api.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_account_client.hpp').read_bytes(),
+                             (module/'src/matchmaking_account_client.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_native_results.hpp').read_bytes(),
+                             (module/'src/matchmaking_native_results.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_search.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_search.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_presentation.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_presentation.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_party.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_party.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_party_flow.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_party_flow.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_party_view.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_party_view.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_lobby_query.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_lobby_query.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_account_flow.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_account_flow.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_friends.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_friends.hpp').read_bytes())
+            self.assertEqual((output/'include/src/matchmaking_frontend_lobby_view.hpp').read_bytes(),
+                             (module/'src/matchmaking_frontend_lobby_view.hpp').read_bytes())
             worker = output/'eos_sdk_worker'
             self.assertEqual(Path(report['worker']), worker)
             self.assertEqual(report['worker_sha256'], BUILD.digest(worker))

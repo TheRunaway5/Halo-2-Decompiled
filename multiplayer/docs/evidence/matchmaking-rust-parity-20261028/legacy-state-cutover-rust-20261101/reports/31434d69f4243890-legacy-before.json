@@ -1,0 +1,686 @@
+{
+  "carnage_general_stats": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "stat",
+      "value"
+    ]
+  },
+  "carnage_medals": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "medal",
+      "count"
+    ]
+  },
+  "carnage_opponents": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "opponent",
+      "field0",
+      "field1"
+    ]
+  },
+  "carnage_player_accuracy": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "shots",
+      "hits"
+    ]
+  },
+  "carnage_player_summaries": {
+    "rows": 2,
+    "sha256": "f188dbd439e2a81f13bf07e1a1ab9cc5d840e2f912d894dcca1ffb4c06eed9ca",
+    "columns": [
+      "match",
+      "player",
+      "slot",
+      "screen_name",
+      "discord_username_at_match"
+    ]
+  },
+  "carnage_players": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "slot",
+      "screen_name",
+      "discord_username_at_match",
+      "appearance"
+    ]
+  },
+  "carnage_reports": {
+    "rows": 1,
+    "sha256": "1b04d2f54b882090659b6ec10d373c708aa6b84abf57b537706c4f478e90a839",
+    "columns": [
+      "match",
+      "public_id",
+      "format",
+      "admitted_at",
+      "admitted_players",
+      "published_players",
+      "variant_bytes"
+    ]
+  },
+  "carnage_team_stats": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "team",
+      "stat",
+      "value"
+    ]
+  },
+  "carnage_weapon_accuracy": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "weapon",
+      "shots",
+      "hits"
+    ]
+  },
+  "carnage_weapon_stats": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "weapon",
+      "field",
+      "value"
+    ]
+  },
+  "clan_blocks": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "clan"
+    ]
+  },
+  "clan_invites": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "clan",
+      "target",
+      "inviter",
+      "expires"
+    ]
+  },
+  "clan_members": {
+    "rows": 3,
+    "sha256": "2ffb571263013facaee96c85a8a2d9a49521e8379ef988635336f28550604370",
+    "columns": [
+      "player",
+      "clan",
+      "role",
+      "joined"
+    ]
+  },
+  "clan_messages": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "clan",
+      "author",
+      "name",
+      "body",
+      "created"
+    ]
+  },
+  "clan_playlist_skill": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "clan",
+      "playlist",
+      "configuration",
+      "raw_rank",
+      "xp"
+    ]
+  },
+  "clan_requests": {
+    "rows": 4,
+    "sha256": "35b233a658a212eef0fdc69818c45bc4c903af62b8b4396f2fdae2374deef30a",
+    "columns": [
+      "player",
+      "request",
+      "payload",
+      "expires"
+    ]
+  },
+  "clans": {
+    "rows": 2,
+    "sha256": "32b67bb1790a7835cb59ccd7c5c15bcab54b046e63d570ab050fabf960bb42b2",
+    "columns": [
+      "id",
+      "name",
+      "folded_name"
+    ]
+  },
+  "clock_floor": {
+    "rows": 1,
+    "sha256": "6ad76c3b417dcb816970f60c6138bc6061b6b6096a80b2885afbb082f691be90",
+    "columns": [
+      "id",
+      "value"
+    ]
+  },
+  "credentials": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "server",
+      "owner",
+      "public_key",
+      "expires",
+      "revoked",
+      "sequence"
+    ]
+  },
+  "directory_revision": {
+    "rows": 1,
+    "sha256": "763bfb0ef868b093dafeecad5ed00151c126de19646a2c37fa722af5958573a3",
+    "columns": [
+      "id",
+      "value"
+    ]
+  },
+  "enrollment_challenges": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "provider",
+      "subject",
+      "payload",
+      "expires"
+    ]
+  },
+  "eos_players": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "puid"
+    ]
+  },
+  "eos_profile_outbox": {
+    "rows": 2,
+    "sha256": "b5bb68ac833ea55b70d0524cfa9ab3aa05068bc8989ae1b99d45a9e286d22f6c",
+    "columns": [
+      "player",
+      "revision"
+    ]
+  },
+  "friend_cloud_outbox": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "revision",
+      "fingerprint",
+      "payload",
+      "digest",
+      "uploaded_revision",
+      "next_attempt",
+      "failures",
+      "last_error"
+    ]
+  },
+  "history_players": {
+    "rows": 4,
+    "sha256": "ac234d3b6a2841b804dc0d2e2f00ad19215fb89809d2ca53b8002677cdba0986",
+    "columns": [
+      "player",
+      "public_id"
+    ]
+  },
+  "local_listing_revisions": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "server",
+      "revision"
+    ]
+  },
+  "master_identity": {
+    "rows": 1,
+    "sha256": "2e3b41f235a7468d48a3908de1873121033b4828394210a3731c4a20d98f425f",
+    "columns": [
+      "id",
+      "value"
+    ]
+  },
+  "match_result_admission": {
+    "rows": 1,
+    "sha256": "ea70315118e6c6022fd9519146413927c54cc2d07ba4367fa690b8733bc17230",
+    "columns": [
+      "match",
+      "namespace",
+      "admission_sha256",
+      "envelope_sha256",
+      "metadata"
+    ]
+  },
+  "match_result_clan_skill": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "team",
+      "clan",
+      "configuration",
+      "table_digest",
+      "effective_rank",
+      "previous_rank",
+      "previous_xp",
+      "delta",
+      "raw_rank",
+      "xp"
+    ]
+  },
+  "match_result_consensus": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "policy",
+      "admitted_connections",
+      "confirming_connections",
+      "departed_slots",
+      "authority_epoch"
+    ]
+  },
+  "match_result_memberships": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "player",
+      "team",
+      "individual_placement"
+    ]
+  },
+  "match_result_options": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "game_id",
+      "settings",
+      "sha256"
+    ]
+  },
+  "match_result_players": {
+    "rows": 2,
+    "sha256": "c1c0bae051da3da392f81717419bc1ba1769c13507acee18044e38070ccdf77d",
+    "columns": [
+      "match",
+      "player",
+      "placement",
+      "score",
+      "kills",
+      "deaths",
+      "assists",
+      "suicides"
+    ]
+  },
+  "match_result_skill": {
+    "rows": 2,
+    "sha256": "f350a502dac7ee39c7e7d29c8abe469f8ce511405b222d6b027bfafeacdb72fe",
+    "columns": [
+      "match",
+      "player",
+      "configuration",
+      "table_digest",
+      "effective_rank",
+      "previous_rank",
+      "previous_xp",
+      "delta",
+      "raw_rank",
+      "xp"
+    ]
+  },
+  "match_result_teams": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "match",
+      "team",
+      "placement",
+      "score"
+    ]
+  },
+  "match_results": {
+    "rows": 1,
+    "sha256": "929e50f7474904edbba60a8858024e08ae81dcaabf66a775ff4d3c7f0405d0c5",
+    "columns": [
+      "id",
+      "playlist",
+      "revision",
+      "map",
+      "variant",
+      "ranked",
+      "completed",
+      "digest",
+      "validation"
+    ]
+  },
+  "matchmaking_ledger_lock": {
+    "rows": 1,
+    "sha256": "763bfb0ef868b093dafeecad5ed00151c126de19646a2c37fa722af5958573a3",
+    "columns": [
+      "id",
+      "token"
+    ]
+  },
+  "matchmaking_party_consents": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "party",
+      "version",
+      "handle",
+      "playlist",
+      "revision",
+      "profile",
+      "session_key",
+      "generation",
+      "roster"
+    ]
+  },
+  "nonces": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "peer",
+      "nonce",
+      "expires"
+    ]
+  },
+  "origin_quarantine": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "origin",
+      "until"
+    ]
+  },
+  "owners": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "provider",
+      "subject"
+    ]
+  },
+  "parties": {
+    "rows": 1,
+    "sha256": "a74e7aff5be64500de81f17cf0e24204f87d0265049873c0d18f6de703a5d0ab",
+    "columns": [
+      "id",
+      "leader",
+      "version"
+    ]
+  },
+  "party_activity_links": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "party",
+      "version",
+      "alias",
+      "secret",
+      "expires"
+    ]
+  },
+  "party_blocks": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "inviter"
+    ]
+  },
+  "party_invites": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "id",
+      "party",
+      "target",
+      "inviter",
+      "expires"
+    ]
+  },
+  "party_members": {
+    "rows": 2,
+    "sha256": "5f2863b3e582be01591117d420214ce179bf1fcefbd9188290df65de9ed81235",
+    "columns": [
+      "player",
+      "party",
+      "handle",
+      "ready_playlist",
+      "ready_revision",
+      "ready_version"
+    ]
+  },
+  "party_privacy": {
+    "rows": 1,
+    "sha256": "8389822ee4fb636757f188e3701eccef8256ea8c03ba5e78ac693aba95f60b74",
+    "columns": [
+      "party",
+      "mode",
+      "revision"
+    ]
+  },
+  "party_requests": {
+    "rows": 3,
+    "sha256": "d96c730de1918934a8063685fdc18925f255f2502f6015a5d691ee32261eda5d",
+    "columns": [
+      "player",
+      "request",
+      "payload",
+      "expires"
+    ]
+  },
+  "player_customization": {
+    "rows": 1,
+    "sha256": "b917dfb57ad12d393b3702ec6712b5f54e9da4f8d9d56ed636640153d49c8ccf",
+    "columns": [
+      "player",
+      "appearance",
+      "service_tag",
+      "updated_at",
+      "revision"
+    ]
+  },
+  "player_friend_block_epoch": {
+    "rows": 1,
+    "sha256": "763bfb0ef868b093dafeecad5ed00151c126de19646a2c37fa722af5958573a3",
+    "columns": [
+      "id",
+      "revision"
+    ]
+  },
+  "player_friend_blocks": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "player",
+      "target"
+    ]
+  },
+  "player_friend_commands": {
+    "rows": 2,
+    "sha256": "a385752ada3a012673cb27ac3d0673c01bddf5294441b7f8d6c234fd1a024ea9",
+    "columns": [
+      "player",
+      "request",
+      "payload",
+      "expires"
+    ]
+  },
+  "player_friend_tags": {
+    "rows": 4,
+    "sha256": "30e1a45e7de047500f6971ca4357aef19bfbb3bfb5d985c851d66bec24a380dd",
+    "columns": [
+      "player",
+      "discriminator"
+    ]
+  },
+  "player_friendships": {
+    "rows": 1,
+    "sha256": "3fa118748e619a623ae5d3dd50915e721d943f1e14e07c2d62d4633077aae574",
+    "columns": [
+      "low",
+      "high",
+      "requester",
+      "accepted"
+    ]
+  },
+  "player_identities": {
+    "rows": 8,
+    "sha256": "e178d65e554abc7755cf357eb25ae2d5543d7747458756949eae8360b91555b8",
+    "columns": [
+      "provider",
+      "subject",
+      "player"
+    ]
+  },
+  "player_profiles": {
+    "rows": 4,
+    "sha256": "1cc3a4b9e1807b6b667fb555245461f06c745082d1fe470a2d6a8900af23c0fa",
+    "columns": [
+      "player",
+      "screen_name",
+      "discord_username",
+      "steam_name",
+      "joined_at"
+    ]
+  },
+  "players": {
+    "rows": 4,
+    "sha256": "1eb54d4cde68833135d95004cd1b755172c94b7fe92abb9b0318b2be8650d8d8",
+    "columns": [
+      "id",
+      "provider",
+      "subject"
+    ]
+  },
+  "playlist_ranks": {
+    "rows": 2,
+    "sha256": "1dafaecf407e57e677d865b90b723fff8f48973a470c89d6426fa66a4b5f198b",
+    "columns": [
+      "player",
+      "playlist",
+      "rank"
+    ]
+  },
+  "playlist_skill": {
+    "rows": 2,
+    "sha256": "02ef69b332ce1522a8a57e5a23382d45340937e3694e0008f339aa132ed34a33",
+    "columns": [
+      "player",
+      "playlist",
+      "configuration",
+      "raw_rank",
+      "xp"
+    ]
+  },
+  "records": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "origin",
+      "server",
+      "revision",
+      "expires",
+      "envelope"
+    ]
+  },
+  "report_schema": {
+    "rows": 1,
+    "sha256": "4029f7a68f0b162800fd7cd5356ebaa2f4baf18c9080d0983f8a791f7848cc3f",
+    "columns": [
+      "version"
+    ]
+  },
+  "social_voice_membership_epoch": {
+    "rows": 5,
+    "sha256": "65978b863f184f52551a6eba6e262f93d274544c8c59df4557f1676a6a5f7fe8",
+    "columns": [
+      "kind",
+      "player",
+      "revision"
+    ]
+  },
+  "steam_login_nonces": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "nonce",
+      "expires"
+    ]
+  },
+  "steam_login_refresh": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "token_hash",
+      "subject",
+      "name",
+      "expires"
+    ]
+  },
+  "steam_login_refresh_sessions": {
+    "rows": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "columns": [
+      "session_hash",
+      "refresh_hash"
+    ]
+  },
+  "steam_login_sessions": {
+    "rows": 4,
+    "sha256": "04010659f12af56a9511970aec7143ee0d308ffaa35778726358cef188f15deb",
+    "columns": [
+      "token_hash",
+      "subject",
+      "name",
+      "expires"
+    ]
+  },
+  "voice_blocks": {
+    "rows": 1,
+    "sha256": "e9f712a5d2f7537cabd06fd624f3442c42528bd8b2d92c34c202a7938fe7486e",
+    "columns": [
+      "player",
+      "subject"
+    ]
+  }
+}

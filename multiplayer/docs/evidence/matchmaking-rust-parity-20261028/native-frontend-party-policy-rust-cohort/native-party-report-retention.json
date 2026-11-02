@@ -1,0 +1,7 @@
+{
+  "source": ".local/test-scratch/frontend-party-policy-native-20261102/halo2-test-a98qrel4/build/test-artifacts/frontend-party-policy.json",
+  "retained_path": "build/test-results/frontend-party-policy-rust-20261102/native/iteration-7/evidence/test-artifacts/frontend-party-policy.json",
+  "bytes": 666,
+  "sha256": "85e5bb67d17ae44a56d2ed2c0c214365c5ae093882c3451407a33355a057e399",
+  "passed": true
+}

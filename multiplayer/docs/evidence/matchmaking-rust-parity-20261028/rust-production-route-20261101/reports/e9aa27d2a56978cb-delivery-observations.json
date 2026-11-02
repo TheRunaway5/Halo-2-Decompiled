@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "negative controls reproduce the old 10s gateway failure and 16KiB voice-preference refusal",
+    "verified local TLS reaches the real Rust thousand-friend lookup and full2000-subject preference write; typed body limits still reject overflow",
+    "health and unsupported routes belong to Rust; legacy discovery is isolated and has no matching fallback",
+    "all14 playlists, v12/v16 eligibility, ticket search/cancel and consent-gated shared countdown traverse Caddy TLS into Rust",
+    "real WSS search heartbeat and party-voice idle Ping/Pong plus subsequent peer media delivery survive the production proxy transports",
+    "service restart and catalog revision change retain canonical identities, ranks and signing keys; old grants/revisions are rejected",
+    "catalog rollback reuses the original canonical database and signing identities",
+    "stopped Rust produces a gateway error while discovery remains live; requests never fall through to Python",
+    "the production loopback-only trust boundary still rejects a wildcard backend before opening state",
+    "Docker Compose validates the opt-in namespace, mounts and restart dependencies without activating it"
+  ],
+  "observations": {
+    "old_proxy_timeout": {
+      "status": 504,
+      "seconds": 10.005562479025684
+    },
+    "old_proxy_voice_body_status": 413,
+    "candidate_steam_lookup_seconds": 12.171133889991324,
+    "voice_idle_ping_seconds": 10.116055006015813,
+    "docker_daemon": {
+      "available": false,
+      "returncode": 1,
+      "diagnostic": "failed to connect to the docker API at unix:///home/eric/.docker/desktop/docker.sock; check if the path is correct and if the daemon is running: dial unix /home/eric/.docker/desktop/docker.sock: connect: no such file or directory\n"
+    }
+  }
+}

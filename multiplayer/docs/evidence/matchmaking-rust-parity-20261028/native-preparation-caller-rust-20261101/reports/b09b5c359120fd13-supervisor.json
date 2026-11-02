@@ -1,0 +1,26 @@
+{
+  "unit": "halo2-native-preparation-caller-rust-20261101-retry1",
+  "command": [
+    "systemd-run",
+    "--user",
+    "--unit=halo2-native-preparation-caller-rust-20261101-retry1",
+    "--property=RuntimeMaxSec=14400",
+    "--property=TimeoutStopSec=30",
+    "--property=KillMode=mixed",
+    "--property=StandardOutput=append:/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-preparation-caller-rust-20261101/native/coordinator.log",
+    "--property=StandardError=inherit",
+    "--working-directory=/home/eric/Developer/Halo-2-Decompiled",
+    "--setenv=CARGO_BUILD_JOBS=2",
+    "--setenv=PYTHONDONTWRITEBYTECODE=1",
+    "--setenv=PATH=/home/eric/.codex/tmp/arg0-linux/codex-arg01w619j:/home/eric/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/home/eric/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/cuda/bin:/home/eric/.local/share/flatpak/exports/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin:/var/lib/snapd/snap/bin:/home/eric/.lmstudio/bin:/home/eric/.lmstudio/bin:/home/eric/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/usr/lib/chatgpt/resources:/home/eric/.lmstudio/bin",
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-preparation-caller-native",
+    "--",
+    "python3",
+    "-u",
+    "build/test-results/native-preparation-caller-rust-20261101/native-coordinator.py.txt"
+  ],
+  "retained_large_artifacts": []
+}

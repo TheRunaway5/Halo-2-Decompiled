@@ -1,0 +1,65 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/iteration-8",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "all",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "tools/rust_service_room_controls.py"
+  ],
+  "source_files": 123,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/cargo/release/halo2-matchmaking-service",
+    "sha256": "37d9cb1f9591dd200b02b0f05ab7db3f6e74d3e63394a3e696ea22f79a007d5e",
+    "bytes": 10111768,
+    "retained": false
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ],
+  "error": "('GET', '/v1/matchmaking/transport', 401, {'error': 'Matchmaking session expired; reconnect', 'fields': ['error']})"
+}

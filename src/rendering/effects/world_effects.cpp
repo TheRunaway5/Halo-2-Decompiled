@@ -15,14 +15,17 @@
 #include "halo2/simulation.hpp"
 #include "halo2/effect_light_lifetime.hpp"
 #include "halo2/effect_part_control.hpp"
+#include "halo2/source_effect_part_admission_tu15.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/source_decal_pass.hpp"
 #include "halo2/source_native_light_snapshot_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cmath>
 #include <cstdlib>
+#include <cstdio>
 #include <deque>
 #include <map>
 #include <set>
@@ -104,7 +107,7 @@ struct NativeWorldEffects::Impl {
   ParticleCollisionQuery collision_service;
   std::uint32_t seed;
   SourceEffectRandom random_streams;
-  std::uint64_t tick{}, identity{};
+  std::uint64_t tick{}, identity{}, receipt_order{};
   std::vector<std::int16_t> parents;
   std::map<std::uint32_t, std::uint32_t> projectiles;
   std::map<std::uint32_t,NativeWorldEffects::ObjectMarkers> object_markers;
@@ -212,6 +215,7 @@ struct NativeWorldEffects::Impl {
     std::uint32_t sound = none;
     std::uint32_t light = none;
     std::uint32_t light_scale_a{},light_scale_b{};
+    std::uint16_t sound_selector{};
   };
   struct LensPart {
     std::uint32_t definition{};
@@ -278,8 +282,19 @@ struct NativeWorldEffects::Impl {
     std::optional<SourceEffectReplicaRenderTu15> replica_render;
     std::optional<SourceEffectEventState> replica_clock;
     bool source_restart{};
+    std::uint64_t receipt_order{};
   };
   std::deque<Effect> effects;
+  struct WeaponRequest {
+    std::uint32_t definition{}, weapon{}, source_instance{};
+    std::uint64_t tick{}, receipt_order{};
+    SourceEffectColors colors;
+    Vec3 velocity;
+    float a{}, b{};
+    bool sounds{};
+    std::optional<NativeWorldEffects::ObjectMarkers> locations;
+  };
+  std::deque<WeaponRequest> weapon_requests;
   std::vector<WorldEffectFrame> frames(const Effect &e,const std::string &name) const {
     if(e.source_locations) {
       const auto found=e.source_locations->find(name);
@@ -403,7 +418,7 @@ struct NativeWorldEffects::Impl {
   }
   Impl(const Impl &o,SourceEffectRandom streams,ParticleCollisionQuery query)
       :cache(o.cache),collision(o.collision),collision_service(std::move(query)),seed{},random_streams(streams),
-       tick(o.tick),identity(o.identity),parents(o.parents),projectiles(o.projectiles),object_markers(o.object_markers),
+       tick(o.tick),identity(o.identity),receipt_order(o.receipt_order),parents(o.parents),projectiles(o.projectiles),object_markers(o.object_markers),
        unavailable(o.unavailable),source_particle_effects(o.source_particle_effects),sounds(o.sounds),
        light_definitions(o.light_definitions),light_world(o.light_world?std::make_unique<LightWorld>(*o.light_world):nullptr),
        native_light_resources(o.native_light_resources),native_light_definitions(o.native_light_definitions),
@@ -413,7 +428,7 @@ struct NativeWorldEffects::Impl {
        source_decal_cache(o.source_decal_cache),decal_definitions(o.decal_definitions),
        decal_boundaries(o.decal_boundaries),decal_bank(o.decal_bank),definitions(o.definitions),
        rejected_definitions(o.rejected_definitions),rejected_attached_definitions(o.rejected_attached_definitions),resource_diagnostics(o.resource_diagnostics),
-       resource_diagnostic_limit(o.resource_diagnostic_limit),effects(o.effects) {
+       resource_diagnostic_limit(o.resource_diagnostic_limit),effects(o.effects),weapon_requests(o.weapon_requests) {
     // Every raw link points into this owner's copied definition graph. A
     // checkpoint must survive destruction of its intermediate restored owner.
     for(auto &effect:effects) {
@@ -475,10 +490,33 @@ struct NativeWorldEffects::Impl {
     try{return &definition(datum);}
     catch(const ParticleResourceError& error){reject_definition(datum,error.what());return nullptr;}
   }
-  Effect* spawn(std::uint32_t datum,std::uint32_t owner,std::uint64_t at,const WorldEffectFrame& frame) {
+  Effect* spawn(std::uint32_t datum,std::uint32_t owner,std::uint64_t at,const WorldEffectFrame& frame,
+      std::uint64_t order=0) {
     auto* admitted=try_definition(datum);if(!admitted)return nullptr;
     if(effects.size()>=256)throw FormatError("World effect pool exhausted");
-    effects.push_back(Effect{0,at,owner,frame,admitted,false,{}});return &effects.back();
+    effects.push_back(Effect{0,at,owner,frame,admitted,false,{}});
+    effects.back().receipt_order=order?order:++receipt_order;
+    return &effects.back();
+  }
+  void apply_weapon_request(const WeaponRequest &request) {
+    if(request.source_instance!=none)for(auto &e:effects)
+      if(e.source_instance==request.source_instance && e.target==request.weapon &&
+          e.definition->datum==request.definition) {
+        //17DFF0 retains controls/colors/linked systems and reselects zero.
+        // Execute at the request's tick, after earlier starts have run.
+        e.finished=false;e.clock.flags&=~0x44u;e.tick=request.tick;
+        source_effect_event_select(e.clock,e.definition->clocks,0,
+            random_streams.event(e.definition->flags),{[] {}});
+        e.initial_attached_step=true;e.refresh_step=true;e.sounds=request.sounds;
+        if(request.locations)e.source_locations=request.locations;
+        return;
+      }
+    auto* created=spawn(request.definition,request.weapon,request.tick,{},request.receipt_order);
+    if(!created)return;
+    auto &e=*created;e.target=request.weapon;e.colors=request.colors;e.initial_attached_step=true;
+    e.frame.scale_a=request.a;e.frame.scale_b=request.b;
+    e.velocity=request.velocity;e.source_instance=request.source_instance;e.sounds=request.sounds;
+    e.source_locations=request.locations;
   }
   Definition &definition(std::uint32_t datum) try {
     if (auto i = definitions.find(datum); i != definitions.end())
@@ -539,13 +577,14 @@ struct NativeWorldEffects::Impl {
                 {parts.u32(a+0x30),parts.u32(a+0x34),metadata.u16(0x3c)}});
           }
         }
-        if (parts.u32(a + 8) == 0x736e6421u && parts.u32(a + 0x10) != none &&
-            parts.u16(a) != 2 && !(parts.u16(a + 6) & 8)) {
+        if (const auto sound=source_effect_sound_part_tu15(parts.slice(a,0x38),p.root.u32(0xc));
+            sound && parts.u16(a)!=2 && !(parts.u16(a+6)&8)) {
           Part part;
           part.decal = none;
-          part.sound = parts.u32(a + 0x10);
-          part.light_scale_a=parts.u32(a+0x30);part.light_scale_b=parts.u32(a+0x34);
-          part.location = marker(std::int16_t(parts.u16(a + 4)));
+          part.sound=sound->sound;
+          part.light_scale_a=sound->scale_a;part.light_scale_b=sound->scale_b;
+          part.sound_selector=sound->selector;
+          part.location=marker(sound->location);
           event.parts.push_back(std::move(part));
         }
         if (parts.u32(a + 8) == 0x6c696768u && parts.u32(a + 0x10) != none &&
@@ -832,6 +871,13 @@ struct NativeWorldEffects::Impl {
   void begin_parts(Effect &e, Event &event, std::uint64_t t) {
       for (const auto &part : event.definition->parts) {
         if(source_decal_cache && part.decal!=none)continue;
+        // Completed source/transport records retain the actual selector bit.
+        // Host-only presentation keeps its existing path; its missing source
+        // flag production is not replaced by a guessed default here.
+        const auto source_flags=e.source_attachment?std::optional{e.source_attachment->flags}:
+            e.replica_render?std::optional{e.replica_render->flags}:std::nullopt;
+        if(part.sound!=none && source_flags &&
+            !source_effect_part_selector_admitted_tu15(part.sound_selector,*source_flags))continue;
         const auto markers=frames(e,part.location);
         for(const auto &marker:markers) {
         if(part.light!=none){
@@ -1045,6 +1091,7 @@ void NativeWorldEffects::remove_object(std::uint32_t handle) {
   //1794E0's missing-parent branch calls1774F0, which frees locations and
   //all linked systems through177460/174180. It does not drain their particles.
   std::erase_if(impl_->effects,[&](const auto &e){return e.target==handle;});
+  std::erase_if(impl_->weapon_requests,[&](const auto &request){return request.weapon==handle;});
 }
 void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target,
     std::uint32_t owner,std::uint64_t tick,SourceEffectColors colors,SourceEffectControls controls) {
@@ -1059,22 +1106,11 @@ void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon
     SourceEffectColors colors,Vec3 velocity,float a,float b,std::uint32_t source_instance,bool sounds,const ObjectMarkers *locations) {
   if(datum==none || (!locations && !impl_->object_markers.contains(weapon)))return;
   if(!try_preload_attached(datum))return;
-  if(source_instance!=none)for(auto &e:impl_->effects)
-    if(e.source_instance==source_instance && e.target==weapon && e.definition->datum==datum) {
-      // Complete17DFF0 refresh: retain controls/colors/linked systems and
-      // reselect0. Creation's one-second initial update is not repeated.
-      e.finished=false;e.clock.flags&=~0x44u;e.tick=tick;
-      source_effect_event_select(e.clock,e.definition->clocks,0,
-          impl_->random_streams.event(e.definition->flags),{[] {}});
-      e.initial_attached_step=true;e.refresh_step=true;e.sounds=sounds;
-      if(locations)e.source_locations=*locations;
-      return;
-    }
-  auto* created=impl_->spawn(datum,weapon,tick,{});if(!created)return;
-  auto &e=*created;e.target=weapon;e.colors=colors;e.initial_attached_step=true;
-  e.frame.scale_a=a;e.frame.scale_b=b;
-  e.velocity=velocity;e.source_instance=source_instance;e.sounds=sounds;
-  if(locations)e.source_locations=*locations;
+  Impl::WeaponRequest request{datum,weapon,source_instance,tick,++impl_->receipt_order,
+      colors,velocity,a,b,sounds,locations?std::optional{*locations}:std::nullopt};
+  const auto at=std::upper_bound(impl_->weapon_requests.begin(),impl_->weapon_requests.end(),request,
+      [](const auto &a,const auto &b){return std::pair{a.tick,a.receipt_order}<std::pair{b.tick,b.receipt_order};});
+  impl_->weapon_requests.insert(at,std::move(request));
 }
 void NativeWorldEffects::update_weapon_locations(std::uint32_t weapon,std::uint32_t instance,const ObjectMarkers &locations) {
   if(instance==none)return;
@@ -1298,16 +1334,27 @@ void NativeWorldEffects::melee_impact(const MeleeImpact &hit) {
         hit.attacker_position,1,WorldEffectSoundKind::Material});
   }
 }
+std::optional<std::uint64_t> NativeWorldEffects::completed_tick()const noexcept {
+  return impl_->tick?std::optional<std::uint64_t>(impl_->tick-1):std::nullopt;
+}
 void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
   auto &i = *impl_;
   if (tick + 1 < i.tick)
     throw FormatError("World visual clock reversed");
   // A render frame can deliver several simulation ticks at once. Preserve
   // event chronology and consume visual RNG only at its owning game tick.
-  std::stable_sort(
-      i.effects.begin(), i.effects.end(),
-      [](const auto &a, const auto &b) { return a.tick < b.tick; });
   for (auto t = i.tick; t <= tick; ++t) {
+    while(!i.weapon_requests.empty() && i.weapon_requests.front().tick<=t) {
+      i.apply_weapon_request(i.weapon_requests.front());
+      i.weapon_requests.pop_front();
+    }
+    // Retained effects keep their stable traversal order. New births use
+    // receipt order, including contacts already queued for this same tick.
+    std::stable_sort(i.effects.begin(),i.effects.end(),[](const auto &a,const auto &b) {
+      if(a.tick!=b.tick)return a.tick<b.tick;
+      if(a.scheduled!=b.scheduled)return a.scheduled;
+      return !a.scheduled && a.receipt_order<b.receipt_order;
+    });
     for (std::size_t effect_index = 0; effect_index < i.effects.size(); ++effect_index) {
       auto &e = i.effects[effect_index];
       if (t >= e.tick) {
@@ -1492,6 +1539,15 @@ std::vector<WorldEffectLight> NativeWorldEffects::lights() const {
 std::vector<std::uint32_t> NativeWorldEffects::light_definitions() const {
   std::vector<std::uint32_t> result;
   for(const auto& [identity,definition]:impl_->light_definitions)result.push_back(identity);
+  // Native effects may first create a light through damage, a projectile or
+  // an attachment after Renderer has frozen material resources. Enumerate
+  // the immutable cache catalog with the SAME admission as native_definition;
+  // this prepares resources without creating or selecting runtime lights.
+  for(const auto& tag:impl_->cache.tags())if(tag.group=="ligh") {
+    try {(void)load_effect_light(impl_->cache,tag.datum);result.push_back(tag.datum);}
+    catch(const FormatError&) {} // Unsupported GPU owners remain native query candidates.
+  }
+  std::sort(result.begin(),result.end());result.erase(std::unique(result.begin(),result.end()),result.end());
   return result;
 }
 SourceEffectLightView NativeWorldEffects::light_view(Vec3 camera_position,
@@ -1522,8 +1578,7 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
   const auto word=[&](auto address){return Bytes(source.memory().view(address,4)).u32(0);};
   const auto priority=[&](std::uint32_t owner) {
     if(owner!=none)(void)source.source_object_body(owner);
-    auto call=source.prepare_source_call();call.gp[6]=owner;
-    source.run_actual(0x3e9b0u,call);return std::uint8_t(call.gp[0]);
+    return std::uint8_t(source.render_object_has_view_priority(owner));
   };
   auto collection=input;collection.owners=candidates.admission;
   collection.owners.local_priority=priority;
@@ -1555,9 +1610,9 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
     SourceShadowCandidate candidate;candidate.identity=identity;candidate.owner=-1;
     if(runtime.owner!=none) {
       (void)source.source_object_body(runtime.owner);
-      auto root=source.prepare_source_call();root.gp[1]=runtime.owner;source.run_actual(0xbcfb0u,root);
-      candidate.owner=std::bit_cast<std::int32_t>(root.gp[0]);
-      if(root.gp[0]!=none)(void)source.source_object_body(root.gp[0]);
+      const auto root=source.render_object_root(runtime.owner);
+      candidate.owner=std::bit_cast<std::int32_t>(root);
+      if(root!=none)(void)source.source_object_body(root);
     }
     candidate.requested_fade=runtime.overall_fade;
     candidate.coverage=source_shadow_coverage(runtime.spatial_center,runtime.spatial_radius,
@@ -1588,9 +1643,9 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
     // Literal31D3B..31D9C. BAC70 maps the actual attached node;1692E0
     // writes the original first-person position/forward/up from the current
     // animation owner. Its failure branch deliberately preserves prior data.
-    auto node=source.prepare_source_call();node.gp[0]=std::uint16_t(at->runtime.attached_node);node.gp[1]=owner;
-    source.run_actual(0xbac70u,node);
-    auto pose=source.prepare_source_call(std::array{node.gp[0],record+0x84u,record+0xacu,record+0xb8u});
+    const auto node=source.render_attachment_marker(owner,
+        std::bit_cast<std::int16_t>(std::uint16_t(at->runtime.attached_node)));
+    auto pose=source.prepare_source_call(std::array{node,record+0x84u,record+0xacu,record+0xb8u});
     pose.gp[1]=owner;source.run_actual(0x1692e0u,pose);
     for(unsigned axis=0;axis<3;++axis) {
       const auto position=std::bit_cast<float>(word(record+0x84u+axis*4u));
@@ -1598,11 +1653,22 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
       const float endpoint=position+forward; // Original three ordered ADDSS stores.
       source.write_source_call_input(record+0x90u+axis*4u,std::as_bytes(std::span(&endpoint,1)));
     }
-    auto up=source.prepare_source_call();up.gp[0]=record+0xb8u;up.gp[1]=record+0xacu;
-    source.run_actual(0x31b30u,up);
+    const auto up=source.render_light_up_vector(record+0xb8u,record+0xacu);
+    static const bool reference=[](){const auto value=std::getenv("HALO2_REFERENCE_FP_LIGHT_UP");return value && value[0] && value[0]!='0';}();
+    if(reference) {
+      auto original=source.prepare_source_call();original.gp[0]=record+0xb8u;original.gp[1]=record+0xacu;
+      source.run_actual(0x31b30u,original);
+      for(unsigned axis=0;axis<3;++axis)if(word(record+0xb8u+axis*4u)!=up[axis])
+        throw FormatError("Native FP light up differs from its complete TU1.5 reference");
+      static std::atomic_flag reported=ATOMIC_FLAG_INIT;
+      if(!reported.test_and_set(std::memory_order_relaxed))
+        std::fprintf(stderr,"Native TU1.5 FP light-up reference: first exact match\n");
+    }
+    source.write_source_call_input(record+0xb8u,std::as_bytes(std::span(up)));
     const auto vector=[&](unsigned offset){return Vec3{std::bit_cast<float>(word(record+offset)),
         std::bit_cast<float>(word(record+offset+4u)),std::bit_cast<float>(word(record+offset+8u))};};
-    at->runtime.position=vector(0x84u);at->runtime.forward=vector(0xacu);at->runtime.up=vector(0xb8u);
+    at->runtime.position=vector(0x84u);at->runtime.forward=vector(0xacu);
+    at->runtime.up={std::bit_cast<float>(up[0]),std::bit_cast<float>(up[1]),std::bit_cast<float>(up[2])};
   }
   return out;
 }
@@ -1626,7 +1692,7 @@ std::vector<WorldEffectLightReceiver> NativeWorldEffects::source_light_receivers
     try {
       const auto shape=source_effect_light_sphere(*at->definition,r.position,r.forward,r.up,r.state.size);
       auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,
-          shape,containing_fog,main_view);
+          shape,containing_fog,main_view,at->definition->flags);
       const auto frustums=receiver.visibility.sphere_bank();
       SourceEffectLightCollectionContext collection{};collection.visibility.frustums=&frustums;
       collection.visibility.query_mode=receiver.query_mode;collection.visibility.sphere_center=r.spatial_center;
@@ -1662,7 +1728,7 @@ std::vector<WorldEffectLightReceiver> NativeWorldEffects::light_receivers(
     try {
       const auto shape=source_effect_light_sphere(*found->definition,r.position,r.forward,r.up,r.state.size);
       auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,
-          r.spatial_radius,shape,containing_fog,main_view);
+          r.spatial_radius,shape,containing_fog,main_view,found->definition->flags);
       const auto frustums=receiver.visibility.sphere_bank();
       SourceEffectLightCollectionContext collection{};
       collection.visibility.frustums=&frustums;collection.visibility.query_mode=receiver.query_mode;

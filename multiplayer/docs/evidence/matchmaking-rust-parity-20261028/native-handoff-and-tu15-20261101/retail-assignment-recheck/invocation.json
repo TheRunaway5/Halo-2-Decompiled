@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "argv": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_matchmaking_assignment.py",
+    "--fixture",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-retail/halo2-test-14yaxjmz/assignment-retail.json",
+    "--report",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-retail-assignment-recheck-20261101/report.json"
+  ],
+  "returncode": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-retail/halo2-test-14yaxjmz",
+  "retained_large_artifacts": [],
+  "retained_retail_cases_unchanged": true,
+  "original_fixture_sha256": "fd439e0ac0baa1a6663f814cd749180e534d823462a7503a247b355b6e3bd1ee",
+  "fresh_report": {
+    "passed": true,
+    "scope": "Replay unchanged retail/TU1.5 assignment decisions and hopper getters.\n\nRetail starts at 71B1E, TU1.5 at7578E, with declared synthetic ready-summary,\nregister and stack inputs. Stops precede launch publication (71CAD/7591D) or\nfailure/session transition (71C73/758E3).\nAll called getters, count/weighted kernels and their callees run unchanged.\nThis does NOT execute upstream session/readiness/7E210 producers or downstream\n71FF0 launch, does not replay Live, and does not certify the whole 71730 owner.\nRun through tools/run_test.py. All compiler outputs stay in its owned scratch.\n",
+    "cases": 336,
+    "original_assignment_decisions": 336,
+    "original_getter_calls": 2688,
+    "original_instructions": 1248,
+    "instruction_patches": [],
+    "replaced_callees": [],
+    "epoch": "retail",
+    "original_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "tool_sha256": "b19d793d2ddcc4e72dae23e767452491b330cbd6ba8bdcc3dfddb46e0dabf3b4",
+    "native_source_sha256": {
+      "team_assignment": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+      "team_balance": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7"
+    },
+    "native_sources_frozen": true,
+    "fixture_sha256": "c8fd13ee58b2f23693f5be7a7afce0e880511a9d8b80618272d6cd2211728ded",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-retail/halo2-test-14yaxjmz",
+    "scratch_retained": false,
+    "whole_71730_or_session_flow_qualified": false
+  }
+}

@@ -27,6 +27,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <set>
 #include <stdexcept>
 #include <thread>
@@ -64,11 +65,18 @@ void matchmaking_progress_kernels() {
         matchmaking_progress_cancel_allowed(3,60000) && matchmaking_progress_consumes_y(2) && !matchmaking_progress_consumes_y(1),
         "Cancel lock differs");
   // 0x2514FD pane3 order and 0x2517E2 team coloring.
-  const std::vector<MatchmakingProgressPlayer> players{{1,10},{0,5},{1,30},{0,20}};
-  check(matchmaking_progress_order(players,true,true)==std::vector<unsigned>{3,1,2,0},"Ranked team order differs");
-  check(matchmaking_progress_order(players,true,false)==std::vector<unsigned>{2,3,0,1},"Ranked order differs");
-  check(matchmaking_progress_order(players,false,true)==std::vector<unsigned>{1,3,0,2},"Team order differs");
-  check(matchmaking_progress_order(players,false,false)==std::vector<unsigned>{0,1,2,3},"Unsorted order changed");
+  std::ifstream sort_file(std::filesystem::path(__FILE__).parent_path()/"fixtures/matchmaking_progress_sort_tu15_original.json");
+  check(bool(sort_file),"Missing original TU1.5 sort caller fixture");
+  nlohmann::json sort_fixture;sort_file>>sort_fixture;
+  check(sort_fixture.at("schema")=="H2_TU15_MATCHMAKING_PROGRESS_SORT_ORIGINAL_V1" &&
+        sort_fixture.at("original_tu15_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
+        sort_fixture.at("cases").size()==856,"Unexpected original TU1.5 sort caller provenance");
+  for(const auto &c:sort_fixture.at("cases")) {
+    std::vector<MatchmakingProgressPlayer> players;
+    for(const auto &p:c.at("players"))players.push_back({p.at(0).get<int>(),p.at(1).get<int>()});
+    check(matchmaking_progress_order(players,c.at("ranked"),c.at("teams"))==c.at("original").get<std::vector<unsigned>>(),
+          "Native roster order differs from unchanged TU1.5 sort caller");
+  }
   check(matchmaking_progress_team_colors(3,true) && !matchmaking_progress_team_colors(-1,true) &&
         !matchmaking_progress_team_colors(3,false),"Team color gate differs");
   // 0x2514FD: ranked names remain in party A until pane3; filled game B
@@ -204,10 +212,10 @@ int main(int argc, char **argv) {
     party_notifications();
     matchmaking_progress_kernels();
     if (argc < 2) return 77;
-    std::filesystem::path maps(argv[1]), sampled, selected_menu_assets, captures;
+    std::filesystem::path maps(argv[1]), sampled, selected_menu_assets, captures, friends_footer_report;
     std::string matchmaking_url, account_url, capture_prefix;
     unsigned callback_port=42103;
-    bool party_run{}, gathering_run{}, party_render{}, rank_run{}, return_lobby_run{}, capture_validation=true;
+    bool party_run{}, gathering_run{}, party_render{}, rank_run{}, return_lobby_run{}, friends_footer_only{}, capture_validation=true;
     if(const auto validation=std::getenv("H2_TEST_VK_VALIDATION")) {
       check(std::string_view(validation)=="0" || std::string_view(validation)=="1",
             "H2_TEST_VK_VALIDATION must be 0 or 1");
@@ -223,6 +231,11 @@ int main(int argc, char **argv) {
       else if(option=="--gathering-ui")gathering_run=value=="1";
       else if(option=="--rank-ui")rank_run=value=="1";
       else if(option=="--return-lobby-ui")return_lobby_run=value=="1";
+      else if(option=="--friends-footer-only") {
+        check(value=="0" || value=="1","Invalid Friends footer regression option");
+        friends_footer_only=value=="1";
+      }
+      else if(option=="--friends-footer-report")friends_footer_report=value;
       else if(option=="--party-render")party_render=value=="1";
       else if(option=="--validation") {
         check(value=="0" || value=="1","Invalid Vulkan validation option");
@@ -300,7 +313,7 @@ int main(int argc, char **argv) {
     std::optional<AnimationClip> ring_idle;
     Transform ring_root;
     unsigned ring_material_base{};
-    if(!captures.empty()) {
+    if(!captures.empty() && !friends_footer_only) {
       const auto level=cache.load_content(0);
       for(const auto &object:level.objects) {
         if(object.name<0 || level.object_names.at(object.name).name!="halo_ring2")continue;
@@ -388,6 +401,35 @@ int main(int argc, char **argv) {
             material.name.ends_with("#tu15-logical-mcc"))original_bitmaps[i]=std::any_of(bank->second.begin(),bank->second.end(),same);
       }
     }
+    // Surface-anchored copies must retain the exact admitted source atlas.
+    // Their names carry the resident source index; accepting a similarly
+    // named raster without comparing its bytes would bypass the owner audit.
+    std::set<unsigned> audited_footer_materials;
+    const auto admit_footer_materials=[&] {
+      for(unsigned i=0;i<mesh.materials.size();++i) {
+        const auto &material=mesh.materials[i];
+        const auto marker=material.name.rfind("/friends-footer/");
+        if(marker==std::string::npos || audited_footer_materials.contains(i))continue;
+        const auto suffix=material.name.substr(marker+16);
+        check(!suffix.empty() && std::all_of(suffix.begin(),suffix.end(),[](char c){return c>='0' && c<='9';}),
+              "Friends footer material has no exact resident source index");
+        const auto source_index=std::stoul(suffix);
+        check(source_index<mesh.materials.size() && source_index!=i,
+              "Friends footer material references a different resident bank");
+        const auto &source=mesh.materials.at(source_index);
+        const auto &a=source.diffuse,&b=material.diffuse;
+        check(source.name==material.name.substr(0,marker) && material.ui_full_surface &&
+              a.width==b.width && a.height==b.height &&
+              a.format==b.format && a.pixels==b.pixels,
+              "Friends footer material changed its admitted raster or presentation owner");
+        vista_fonts.at(i)=vista_fonts.at(source_index);
+        vista_bitmaps.at(i)=vista_bitmaps.at(source_index);
+        original_fonts.at(i)=original_fonts.at(source_index);
+        original_bitmaps.at(i)=original_bitmaps.at(source_index);
+        audited_footer_materials.insert(i);
+      }
+    };
+    admit_footer_materials();
     std::set<std::pair<unsigned,unsigned>> audited_panels;
     constexpr std::pair<unsigned,unsigned> viewports[]{
         {640,480},{1280,720},{1280,800},{1920,1080},{2560,1080},
@@ -412,6 +454,7 @@ int main(int argc, char **argv) {
           }
         }
       }
+      admit_footer_materials();
       const auto surface=frontend_canvas(viewport[0],viewport[1]);
       const float surface_left=draw.full_surface_bounds?-surface.left/surface.scale:0;
       const float surface_top=draw.full_surface_bounds?-surface.top/surface.scale:0;
@@ -419,6 +462,29 @@ int main(int argc, char **argv) {
       const float surface_bottom=draw.full_surface_bounds?surface_top+surface.surface_height/surface.scale:480;
       bool font = false, bitmap = false;
       const bool original_goal=cache.is_mcc() && detail::og_matchmaking_layout::goal_frame(state.frame(),&state);
+      // A modal can retain an original lobby on its lower visible channel.
+      // Follow the painter's effective definitions and lower-channel gates;
+      // a hidden navigation ancestor does not admit any additional rasters.
+      bool original_lower_goal=false;
+      const auto definition=[&](const MenuFrame &f)->const UiScreen& {
+        const auto id=state.screen_layout(f);
+        if(logical_layout && native_layout.original_matchmaking_layout &&
+            detail::og_matchmaking_layout::goal_frame(f,&state) &&
+            detail::og_matchmaking_layout::data().at("original").at("screens").contains(std::to_string(id)))
+          return native_layout.screen(id);
+        return content.screen(id);
+      };
+      if(cache.is_mcc() && !draw.full_surface_bounds && !state.party_invite_picker() &&
+          state.stack().size()>1 && (definition(state.frame()).flags&(1|8|16))) {
+        auto lower=state.stack().rbegin()+1;
+        while(lower+1!=state.stack().rend() && (definition(*lower).flags&(1|8|16)))++lower;
+        const auto &top=state.frame();
+        const bool hidden=(state.online_party_screen(top) && top.screen!=14) ||
+            (state.online_friends_screen(top) && top.screen!=26) ||
+            ((top.screen==237 || top.screen==210) &&
+              (lower->screen==219 || lower->screen==237 || lower->screen==186));
+        original_lower_goal=!hidden && detail::og_matchmaking_layout::goal_frame(*lower,&state);
+      }
       // Source5 is a separate background submission. A non-goal dialog can
       // occupy the foreground while this retained goal channel still owns
       // the chrome; match the painter's ancestor walk and background gates.
@@ -466,9 +532,16 @@ int main(int argc, char **argv) {
               check(expected.width==actual.width && expected.height==actual.height && expected.format==actual.format && expected.pixels==actual.pixels,
                   "Actual goal emblem lost an admitted MCC animation page");
             }
-            const Texture*selected[]{&material.diffuse,&material.detail};
-            for(unsigned stage=0;stage<2;++stage)check(selected[stage]->pixels==owner.animated_textures[stage].at(material.texture_frames[stage]).pixels,
-                "Actual goal emblem did not bind its admitted appearance-selected MCC page");
+            // The renderer uploads these banks and binds texture_frames;
+            // animate_material_bitmaps leaves the static base pages intact.
+            const Texture*selected[]{&material.animated_textures[0].at(material.texture_frames[0]),
+                                      &material.animated_textures[1].at(material.texture_frames[1])};
+            for(unsigned stage=0;stage<2;++stage) {
+              const auto &expected=owner.animated_textures[stage].at(material.texture_frames[stage]);
+              check(selected[stage]->width==expected.width && selected[stage]->height==expected.height &&
+                    selected[stage]->format==expected.format && selected[stage]->pixels==expected.pixels,
+                  "Actual goal emblem did not bind its admitted appearance-selected MCC page");
+            }
           }
           bitmap=true; // The verified emblem pass samples the imported bitmap banks.
         } else if (name.starts_with("font/")) {
@@ -484,7 +557,7 @@ int main(int argc, char **argv) {
           ++bounded_glyphs;
           font = true;
         } else if (name.starts_with("ui\\") && name.find("/native-") == std::string::npos) {
-          const bool original_owner=original_goal || original_background_images.contains(name);
+          const bool original_owner=original_goal || original_lower_goal || original_background_images.contains(name);
           if (!vista_bitmaps.at(v.material) && !(original_owner && original_bitmaps.at(v.material))) missing.insert(name);
           bitmap = true;
         }
@@ -499,7 +572,10 @@ int main(int argc, char **argv) {
         const bool expected=original_goal && state.online_friends_available() &&
             ui!=MatchmakingProgressUi::starting && ui!=MatchmakingProgressUi::start_match;
         const auto name=detail::og_matchmaking_layout::embedded_image_name("ui\\screens\\game_shell\\online_y_menu\\y_menu_compact");
-        const bool visible=std::any_of(draw.vertices.begin(),draw.vertices.end(),[&](const auto&vertex){return mesh.materials.at(vertex.material).name==name;});
+        const bool visible=std::any_of(draw.vertices.begin(),draw.vertices.end(),[&](const auto&vertex){
+          const auto &actual=mesh.materials.at(vertex.material).name;
+          return actual==name || actual.starts_with(name+"/friends-footer/");
+        });
         check(visible==expected,"Actual collapsed Friends widget differs from its admitted capability/context/source-phase gates");
       }
       if(!font || (!bitmap && !state.party_invite_picker()))throw FormatError("ONLINE panel "+std::to_string(state.frame().screen)+
@@ -697,6 +773,152 @@ int main(int argc, char **argv) {
     check(menu.expand("\xee\x90\x8f") == "Pilot", "ONLINE name token uses the Discord username");
     check(!has_logo(menu), "Title logo overlaps ONLINE service information");
     private_identity(menu);
+    if(friends_footer_only) {
+      check(cache.is_mcc() && logical_layout && account_url.empty() && matchmaking_url.empty(),
+            "Friends footer regression requires the explicit MCC cache and isolated login fixture");
+      const auto friends=std::make_shared<FriendsFixture>();
+      friends->state.enabled=friends->state.ready=true;
+      menu.set_discord_social(friends);
+      // This is the ordinary authenticated ONLINE Custom Game route. Its
+      // honest Create Party state supplies the real session6 lobby owner;
+      // no service party, leader permission or native player is fabricated.
+      menu.return_online();menu.select(2);menu.accept();
+      check(menu.frame().screen==14 && menu.online_party_screen(menu.frame()) &&
+            menu.online_friends_available() && detail::og_matchmaking_layout::goal_frame(menu.frame(),&menu) &&
+            menu.lobby_view() && menu.lobby_view()->protocol==2 && menu.lobby_view()->input.session_enum==6,
+            "Friends footer fixture did not reach an authenticated original ONLINE lobby");
+      const auto compact=detail::og_matchmaking_layout::embedded_image_name(
+          "ui\\screens\\game_shell\\online_y_menu\\y_menu_compact");
+      const auto is_compact=[&](const Material &material) {
+        return material.name==compact || material.name.starts_with(compact+"/friends-footer/");
+      };
+      const auto is_footer=[&](const Material &material) {
+        return is_compact(material) || material.name.find("/friends-footer/")!=std::string::npos;
+      };
+      constexpr std::array<std::array<unsigned,2>,13> sizes{{
+        {{640,480}},{{1280,720}},{{1280,800}},{{1920,1080}},{{2560,1080}},{{3440,1440}},
+        {{3840,1080}},{{2560,1437}},{{1001,601}},{{2554,1401}},{{1280,1024}},{{720,1280}},{{640,480}}
+      }};
+      nlohmann::json cases=nlohmann::json::array();
+      std::unique_ptr<Renderer> footer_renderer;
+      if(!captures.empty()) {
+        const auto owned=std::getenv("HALO2_TEST_SCRATCH");
+        check(owned,"Friends footer captures require owned temporary storage");
+        const auto relative=std::filesystem::weakly_canonical(captures).lexically_relative(std::filesystem::weakly_canonical(owned));
+        check(!relative.empty() && !relative.is_absolute() && *relative.begin()!="..",
+              "Friends footer captures must remain under HALO2_TEST_SCRATCH");
+        std::filesystem::create_directories(captures);
+      }
+      for(const auto device:{PromptDevice::Xbox,PromptDevice::PlayStation,PromptDevice::KeyboardMouse}) {
+        painter.prompt_device(device);
+        std::vector<Vertex> ordinary_reference;
+        for(unsigned index=0;index<sizes.size();++index) {
+          const auto size=sizes[index];const auto canvas=frontend_canvas(size[0],size[1]);
+          const auto draw=painter.draw(menu,5,-1,10000,size);
+          audit_vista(menu,draw,size);
+          check(!draw.full_surface_bounds,"Anchoring Friends changed the entire lobby's foreground canvas");
+          const auto physical=[&](const Vertex &vertex) {
+            const auto &material=mesh.materials.at(vertex.material);
+            if(material.ui_full_surface && !draw.full_surface_bounds)
+              return Vec2{vertex.position.x*float(size[0])/640.f,vertex.position.y*float(size[1])/480.f};
+            return Vec2{canvas.left+vertex.position.x*canvas.scale,canvas.top+vertex.position.y*canvas.scale};
+          };
+          float left=std::numeric_limits<float>::max(),top=left,right=-left,bottom=-left;
+          unsigned compact_vertices{};
+          std::vector<Vertex> ordinary;
+          for(const auto &vertex:draw.vertices) {
+            const auto &material=mesh.materials.at(vertex.material);
+            if(is_compact(material)) {
+              const auto point=physical(vertex);left=std::min(left,point.x);right=std::max(right,point.x);
+              top=std::min(top,point.y);bottom=std::max(bottom,point.y);++compact_vertices;
+            } else if(!is_footer(material) && !material.ui_full_surface && !material.ui_widescreen_background &&
+                      material.ui_frame_extension==UiFrameExtension::None)ordinary.push_back(vertex);
+          }
+          check(compact_vertices==6,"Actual collapsed Friends bitmap lost its authored single quad");
+          const auto close=[](float a,float b){return std::abs(a-b)<.02f;};
+          // Source27's bitmap begins at(0,421) and is529x60. It ends one
+          // logical pixel below the retail480 crop; preserve that registration.
+          if(!close(left,0))throw FormatError("Collapsed Friends panel is not anchored to the drawable left edge: "+
+              std::to_string(size[0])+"x"+std::to_string(size[1])+" left="+std::to_string(left));
+          check(close(bottom,float(size[1])+canvas.scale) &&
+                close(top,float(size[1])-59.f*canvas.scale),
+                "Collapsed Friends panel is not anchored to the drawable bottom edge");
+          check(close(right-left,529.f*canvas.scale) && close(bottom-top,60.f*canvas.scale),
+                "Collapsed Friends panel stretched or lost its authored aspect ratio");
+          check(!ordinary.empty(),"Friends anchor regression has no underlying lobby widgets");
+          if(index==0)ordinary_reference=ordinary;
+          else {
+            check(ordinary.size()==ordinary_reference.size(),"Friends anchor changed unrelated lobby widget inventory");
+            for(unsigned i=0;i<ordinary.size();++i) {
+              const auto &a=ordinary[i],&b=ordinary_reference[i];
+              check(a.material==b.material && close(a.position.x,b.position.x) && close(a.position.y,b.position.y) &&
+                    close(a.position.z,b.position.z),"Friends anchor moved an unrelated lobby foreground widget");
+            }
+          }
+          const Vec2 offset{-canvas.left/canvas.scale,canvas.top/canvas.scale};
+          const float label_left=48.f+offset.x,label_top=429.f+offset.y;
+          const float label_right=175.f+offset.x,label_bottom=453.f+offset.y;
+          std::optional<FrontendPointerTarget> target;
+          Vec2 click{};
+          // Derive a click from actual visible glyph geometry, then apply the
+          // game's inverse SDL canvas transform. A synthetic target rectangle
+          // alone cannot prove that the rendered caption moved with its hitbox.
+          for(unsigned first=0;first+5<draw.vertices.size() && !target;first+=6) {
+            const auto &vertex=draw.vertices[first];const auto &material=mesh.materials.at(vertex.material);
+            if(!(material.name.starts_with("font/") || material.name.starts_with("controller-prompts/")) ||
+                vertex.color.x+vertex.color.y+vertex.color.z<.1f)continue;
+            const auto a=physical(draw.vertices[first]),b=physical(draw.vertices[first+4]);
+            const float px=std::floor((a.x+b.x)*.5f)+.5f,py=std::floor((a.y+b.y)*.5f)+.5f;
+            if(px<0 || px>=size[0] || py<0 || py>=size[1])continue;
+            const Vec2 logical{(px-canvas.left)/canvas.scale,(py-canvas.top)/canvas.scale};
+            if(logical.x<label_left || logical.x>=label_right || logical.y<label_top || logical.y>=label_bottom)continue;
+            const auto hit=painter.pointer_hit(logical.x,logical.y);
+            if(hit && hit->action==FrontendPointerAction::Players){target=hit;click=logical;}
+          }
+          check(target.has_value(),"Visible bottom-left Friends caption does not have its actual Players target");
+          std::filesystem::path frame;
+          if(!captures.empty() && device==PromptDevice::Xbox) {
+            auto *window=capture_desktop->window(size[0],size[1],true);
+            check(capture_desktop->apply_video(size[0],size[1],false).empty(),"Friends footer capture resize failed");
+            SDL_PumpEvents();
+            if(!footer_renderer)footer_renderer=std::make_unique<Renderer>(window,mesh,capture_validation);
+            else footer_renderer->resized();
+            frame=captures/("friends-footer-"+std::to_string(index)+"-"+std::to_string(size[0])+"x"+
+                std::to_string(size[1])+".ppm");
+            bool captured{};
+            for(unsigned attempt=0;attempt<3 && !captured;++attempt)
+              captured=footer_renderer->draw(Camera{},frame,{},false,{},{},draw.vertices,{}, {},draw.backdrops,
+                  nullptr,nullptr,draw.full_surface_bounds);
+            check(captured,"Actual Vulkan Friends footer capture failed");
+          }
+          const Vec2 previous{click.x-offset.x,click.y-offset.y};
+          const bool disjoint=previous.x<label_left || previous.x>=label_right || previous.y<label_top || previous.y>=label_bottom;
+          if(disjoint) {
+            const auto old=painter.pointer_hit(previous.x,previous.y);
+            check(!old || old->action!=FrontendPointerAction::Players,
+                  "Friends retains an invisible Players target at its former centered-canvas location");
+          }
+          check(menu.activate_pointer(*target) && menu.frame().screen==26 && menu.online_identity().has_value(),
+                "Actual edge-anchored Friends pointer target did not open authenticated social navigation");
+          menu.back();check(menu.frame().screen==14,"Friends Back did not restore the original lobby owner");
+          cases.push_back({{"device",unsigned(device)},{"viewport",size},{"bitmap_pixels",{left,top,right,bottom}},
+              {"players_click_logical",{click.x,click.y}},{"old_location_disjoint",disjoint},
+              {"ordinary_vertices",ordinary.size()},{"resized_back_to_4_3",index+1==sizes.size()},
+              {"frame",frame.string()},{"passed",true}});
+        }
+      }
+      check(cases.size()==39,"Friends anchor regression did not cover every aspect/device/resize case");
+      const nlohmann::json report{{"passed",true},{"scope","Actual authenticated original collapsed Friends footer: drawable edges, source registration, visible glyph clicks and unchanged lobby canvas"},
+          {"cases",cases},{"admitted_surface_material_copies",audited_footer_materials.size()},
+          {"rendered_cases",captures.empty()?0:13},{"retained_large_artifacts",nlohmann::json::array()}};
+      if(!friends_footer_report.empty()) {
+        if(friends_footer_report.has_parent_path())std::filesystem::create_directories(friends_footer_report.parent_path());
+        std::ofstream output(friends_footer_report);check(bool(output),"Friends footer report cannot be opened");
+        output<<report.dump(2)<<'\n';check(bool(output),"Friends footer report was not completely written");
+      }
+      std::cout<<report.dump()<<'\n';
+      return 0;
+    }
     // Audit direct authenticated routes as well as the scripted service flow.
     // A legacy pane can introduce a bitmap that the ordinary path never uses.
     for (const auto id : {20u,21u,26u,27u,31u,34u,35u,36u,182u,186u,
@@ -1053,7 +1275,9 @@ int main(int argc, char **argv) {
       check(has("ui\\screens\\game_shell\\network_squad_browser_screen\\list_frame") &&
             has("ui\\list_skins\\game_browser\\item_background"),
             "ONLINE discovery still paints the Optimatch layout");
-      const auto first = menu.frame().selected >= list.visible ? menu.frame().selected - list.visible + 1 : 0;
+      // MenuState owns the visible window. Authored PC13 permits19 rows,
+      // while the active original navigation layout may retain only16.
+      const auto first = menu.frame().first_visible;
       const auto row = menu.frame().selected - first;
       // Source background height32 determines pitch; text6 spans the entire
       // selection bar, including the map/player/status columns.
@@ -1341,15 +1565,20 @@ int main(int argc, char **argv) {
           if(material.name!=placeholder_bank)continue;
           placeholder_top.push_back(placeholder_draw.vertices[first].position.y);
           bool matched=false;
-          const auto inspect=[&](const FrontendContent &owner) {
-            for(const auto &[id,bank]:owner.images)if(bank.name==material.name)
-              for(unsigned page=0;page<bank.images.size();++page) {
-                const auto &image=bank.images[page];
+          const auto inspect_pages=[&](const auto &pages) {
+              for(unsigned page=0;page<pages.size();++page) {
+                const auto &image=pages[page];
                 if(!matched && image.width==material.diffuse.width && image.height==material.diffuse.height &&
                     image.format==material.diffuse.format && image.pixels==material.diffuse.pixels) {
                   placeholder_pages.push_back(page);matched=true;
                 }
               }
+          };
+          // Logical image records hold source geometry; their admitted MCC
+          // pixel pages live in the separate, exact-name raster registry.
+          if(logical_layout)if(const auto bank=logical_layout->rasters.find(material.name);bank!=logical_layout->rasters.end())inspect_pages(bank->second);
+          const auto inspect=[&](const FrontendContent &owner) {
+            for(const auto &[id,bank]:owner.images)if(bank.name==material.name)inspect_pages(bank.images);
           };
           inspect(native_layout);if(!matched)inspect(content);if(!matched && content.vista)inspect(*content.vista);
           check(matched,"Matched/empty slot artwork is not an admitted source page");
@@ -1383,11 +1612,24 @@ int main(int argc, char **argv) {
       check(menu.frame().title == "CHOOSE MATCHMAKING PLAYLIST" && menu.frame().entries.size() == 4, "Optimatch did not load authenticated playlists");
       capture("playlists");
       for(unsigned row=2;row<4;++row) {
-        menu.select(row);menu.accept();
+        menu.select(row);
         check(menu.frame().screen==219 && menu.online_matchmaking_text(menu.frame(),2).find("Clan membership required")!=std::string::npos,
           "Nonmember clan details lost the membership requirement");
         check(!has_logo(menu),"Title logo overlaps clan playlist details");private_identity(menu);
         capture(row==2?"minor-clan-playlist":"major-clan-playlist");
+        // The replacement provider marks these rows unavailable. Inspect the
+        // hovered details before Select opens its explicit rejection dialog.
+        // Original hopper activation and its producers remain separate proof.
+        const auto description=menu.online_matchmaking_text(menu.frame(),2);
+        menu.accept();
+        check(menu.frame().screen==8 && menu.frame().title=="UNAVAILABLE" &&
+              matchmaking->snapshot().status==OnlineMatchmakingStatus::Ready &&
+              menu.online_matchmaking_countdown()==matchmaking_countdown_none && !menu.launch,
+              "Unavailable clan playlist did not reject selection before countdown/search");
+        menu.back();
+        check(menu.frame().screen==219 && menu.frame().selected==row &&
+              menu.online_matchmaking_text(menu.frame(),2)==description,
+              "Unavailable clan playlist rejection lost its chooser selection or requirements");
       }
       menu.select(1);
       const auto casual_catalog=matchmaking->snapshot().playlists;
@@ -1431,15 +1673,22 @@ int main(int argc, char **argv) {
         check(map!=content.multiplayer_maps.end() && menu.online_matchmaking_map_bitmap()==map->bitmap,
             "Matched Lockout preview lost its actual scenario-owned bitmap datum");
         const auto settled=painter.draw(menu,5,-1,menu.frame().pane_created_clock+2000);
-        const auto alias="ui\\native_og_matchmaking\\map_previews\\"+map->scenario_path+"#og-matchmaking";
+        const auto &binding=detail::og_matchmaking_layout::data().at("dynamic_map_images").at(map->scenario_path);
+        const auto alias=detail::og_matchmaking_layout::embedded_image_name(binding.at("raster_alias").get<std::string>());
+        check(logical_layout.has_value(),"Matched map preview lost its admitted logical/raster owner");
+        const auto &logical=native_layout.images.at(detail::mcc_logical_layout::Codec::named(native_layout.images,alias));
+        check(logical.images.size()==1 && logical.images.front().width==220 && logical.images.front().height==207,
+            "Actual matched map draw lost its authenticated original logical dimensions");
+        const auto &pixels=logical_layout->rasters.at(alias).at(0);
         bool rendered=false;
         for(const auto &vertex:settled.vertices) {
           const auto &material=mesh.materials.at(vertex.material);
-          check(material.name!="ui\\global_bitmaps\\map_shots\\map_mp_zanzibar#og-matchmaking",
+          check(!material.name.starts_with("ui\\global_bitmaps\\map_shots\\map_mp_zanzibar"),
               "Matched pane3 still submitted its unbound authored Zanzibar preview");
           if(material.name==alias) {
-            check(material.diffuse.width==220 && material.diffuse.height==207,
-                "Actual matched map draw lost its authenticated original raster dimensions");rendered=true;
+            check(material.diffuse.width==pixels.width && material.diffuse.height==pixels.height &&
+                  material.diffuse.format==pixels.format && material.diffuse.pixels==pixels.pixels,
+                "Actual matched map draw lost its exact admitted scenario-owned raster page");rendered=true;
           }
         }
         check(rendered,"Actual matched pane3 draw did not submit its exact Lockout source raster alias");
@@ -1758,8 +2007,16 @@ int main(int argc, char **argv) {
         menu.open(219);
         pump([&]{return std::any_of(menu.frame().entries.begin(),menu.frame().entries.end(),
                                     [](const auto &e){return e.label=="Party Search lab";});},"Party playlists did not load");
-        choose("Party Search lab");menu.select(0);menu.accept();
+        choose("Party Search lab");
         check(menu.frame().screen==14,"Party playlist skipped the original pregame lobby");
+        const auto before_start=queue->snapshot();
+        check(menu.online_lobby_countdown()<0 && !menu.launch &&
+              before_start.status!=OnlineMatchmakingStatus::Joining &&
+              before_start.status!=OnlineMatchmakingStatus::Searching &&
+              before_start.status!=OnlineMatchmakingStatus::CheckingConnections &&
+              before_start.status!=OnlineMatchmakingStatus::AwaitingTransport &&
+              before_start.status!=OnlineMatchmakingStatus::Loading,
+              "Playlist selection searched or started the countdown before START GAME");
         pump([&]{const auto s=account->snapshot();return s.party && !s.busy &&
           std::all_of(s.party->members.begin(),s.party->members.end(),[](const auto &m){return m.ready_playlist=="party-search";});},
              "Every party member must consent to the playlist before START GAME");

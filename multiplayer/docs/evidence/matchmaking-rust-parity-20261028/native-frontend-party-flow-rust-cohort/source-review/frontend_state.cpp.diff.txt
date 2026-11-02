@@ -1,0 +1,61 @@
+--- captured/src/ui/frontend_state.cpp
++++ current/src/ui/frontend_state.cpp
+@@ -286,7 +286,7 @@
+   matchmaking_search_.stop();
+   if(online_voice_)online_voice_->leave();
+   if(discord_social_)discord_social_->disconnect();
+-  dismissed_party_invites_.clear();
++  party_flow_.clear_dismissed();
+ }
+ void MenuState::return_online(std::string message) {
+   // Allocate fresh ONLINE navigation after world teardown or local PCR Done.
+@@ -1033,10 +1033,7 @@
+   if (appearance_child)
+     appearance_snapshots_.emplace_back(stack_.size(), appearance());
+   stack_.push_back(build(screen, context));
+-  if(screen==25 && mode_==3 && account_.party && account_.party->privacy) {
+-    const auto &privacy=*account_.party->privacy;
+-    online_privacy_pending_=OnlinePrivacyPending{frame().instance,0,privacy.revision,privacy.mode,privacy.context};
+-  }
++  party_flow_drive(FrontendPartyFlowAction::OpenedPrivacy);
+   if(screen==14 && mode_==3) {
+     // Custom Game/Create Party from the ONLINE menu forms a lobby with no
+     // matchmaking hopper; matchmaking returns re-mark it afterwards.
+@@ -1905,27 +1902,7 @@
+         open(14);
+     }
+   } else if (entry.destination == -2) {
+-    if(f.screen==25 && mode_==3) {
+-      if(!online_account_ || !account_.party || !account_.party->privacy) {
+-        unavailable("This ONLINE service does not support party privacy settings.");return;
+-      }
+-      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
+-      if(account_.busy || (online_privacy_pending_ && online_privacy_pending_->command_serial)){
+-        unavailable("Wait for the current ONLINE operation to finish.");return;
+-      }
+-      if(entry.value<0 || entry.value>2)throw FormatError("Original party privacy selection is outside its authored range");
+-      const auto before=*account_.party->privacy;
+-      if(!online_privacy_pending_ || online_privacy_pending_->frame_instance!=f.instance ||
+-          online_privacy_pending_->context!=before.context) {
+-        unavailable("The party changed before its privacy selection was accepted.");return;
+-      }
+-      OnlinePartyCommand command;command.action="privacy";command.version=account_.party->version;
+-      command.privacy=unsigned(entry.value);command.privacy_revision=before.revision;command.privacy_context=before.context;
+-      if(!online_account_->party_command(std::move(command))){unavailable("Wait for the current ONLINE operation to finish.");return;}
+-      online_privacy_pending_=OnlinePrivacyPending{f.instance,online_account_->snapshot().party_command_serial,
+-          before.revision,unsigned(entry.value),before.context};
+-      update_online_account();return;
+-    }
++    if(party_flow_drive(FrontendPartyFlowAction::SelectPrivacy,entry.value))return;
+     if (f.screen == 11 || f.screen == 2) {
+       level_ = unsigned(entry.value);
+       if (f.screen == 11 && f.context != 1)
+@@ -2220,7 +2197,7 @@
+   case Action::InviteDismiss: return act_invite_notice(false);
+   case Action::InviteTab:
+     if(!party_invite_picker() || target.index>1)return false;
+-    return switch_invite_tab(target.index==party_invite_tab_?0:1);
++    return switch_invite_tab(target.index==party_invite_tab()?0:1);
+   case Action::PcrTab:
+     if(target.index>1)return false;
+     return switch_pcr_tab(target.index?1:-1);

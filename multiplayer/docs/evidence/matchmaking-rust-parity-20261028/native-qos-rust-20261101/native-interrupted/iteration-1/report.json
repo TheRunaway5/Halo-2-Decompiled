@@ -1,0 +1,143 @@
+{
+  "passed": false,
+  "status": "interrupted",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_MCC_PARTY_UI_TEST_CACHE=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-owned-20261101/iteration-1/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "original_matchmaking_readiness_tests",
+        "rust_service_native_handoff_probe",
+        "online_matchmaking_tests",
+        "online_eos_bootstrap_tests",
+        "rust_service_account_probe",
+        "rust_service_matchmaking_probe",
+        "rust_service_qos_probe",
+        "rust_service_room_probe",
+        "online_login_probe",
+        "rust_service_social_probe",
+        "online_search_qos_tests",
+        "frontend_online_lobby_buttons_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-owned-20261101/iteration-1/build.log",
+      "exit_code": null
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": true,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-0.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-1.log",
+      "status": "not produced"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 2103,
+      "sha256": "367926722cdca3c2ce970e2e79d54828b306b2f69395b8fcf660145d8ad79340",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-owned-20261101/iteration-1/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/report.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/source-manifest.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-blocked/report.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-blocked/source-manifest.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-blocked/step-0.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-complete/report.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-complete/source-manifest.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-complete/step-0.log",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-rendered/report.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-rendered/source-manifest.json",
+      "status": "not produced"
+    },
+    {
+      "path": "rust-frontend-rendered/step-0.log",
+      "status": "not produced"
+    }
+  ]
+}

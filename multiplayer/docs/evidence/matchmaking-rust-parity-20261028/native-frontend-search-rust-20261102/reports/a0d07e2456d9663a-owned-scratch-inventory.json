@@ -1,0 +1,22 @@
+{
+  "paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-bridge-20261102/halo2-test-kegh51i5",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-core-20261102/halo2-test-20zs2etq",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-core-20261102/halo2-test-r62pscto",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-full-rust-20261102/halo2-test-8d3a0gbv",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-5t79cfvk",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-probe-20261102/halo2-test-ue1wj9h8",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-rust-20261102/halo2-test-sn5hjzd1",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-syntax-20261102/halo2-test-3edciffa"
+  ],
+  "parents": [
+    "frontend-search-rust-20261102",
+    "frontend-search-syntax-20261102",
+    "frontend-search-core-20261102",
+    "frontend-search-probe-20261102",
+    "frontend-search-full-rust-20261102",
+    "frontend-search-staging-20261102",
+    "frontend-search-link-audit-20261102"
+  ],
+  "retained_large_artifacts": []
+}

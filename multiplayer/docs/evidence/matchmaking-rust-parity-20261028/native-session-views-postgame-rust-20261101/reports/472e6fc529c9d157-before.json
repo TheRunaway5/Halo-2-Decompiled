@@ -1,0 +1,25 @@
+{
+  "captured_at_utc": "2026-11-01T20:19:42.000331+00:00",
+  "scope": "Existing modern Session feature limits, views/local ownership and postgame device orchestration; not original Live/XNet",
+  "production_use": false,
+  "source": "src/network/online_match_session.cpp",
+  "sha256": "b1d9767cbbf6a6038f2d4a454e8da84a46a72bda452a1ac6a1310c5ff7356a35",
+  "bytes": 75862,
+  "extractions": {
+    "limits": {
+      "path": "tests/reference/native_session_limits_before_rust_20261101.inc",
+      "sha256": "73b788f6ecf82af7d62dfc39b28873fdd53d75817fb01ae0bdbd358bc2de4e9b",
+      "bytes": 929
+    },
+    "postgame": {
+      "path": "tests/reference/native_session_postgame_before_rust_20261101.inc",
+      "sha256": "75a658116195dff9ae8d1c10327f1aac5f2a00931415e813d5db9ed14634f97b",
+      "bytes": 920
+    },
+    "views": {
+      "path": "tests/reference/native_session_views_before_rust_20261101.inc",
+      "sha256": "a43435a86a951ab0f72830c488e4f0175334f14d510788f4c5310d097cb69229",
+      "bytes": 967
+    }
+  }
+}

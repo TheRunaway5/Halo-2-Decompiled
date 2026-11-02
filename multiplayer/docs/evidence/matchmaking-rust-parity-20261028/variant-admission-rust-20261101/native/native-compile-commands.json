@@ -1,0 +1,30 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi",
+  "commands": [
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/rust/online_protocol_bridge -O3 -DNDEBUG -std=c++20 -o CMakeFiles/halo2_online_protocol.dir/src/network/matchmaking_variant.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/network/matchmaking_variant.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/network/matchmaking_variant.cpp",
+      "output": "CMakeFiles/halo2_online_protocol.dir/src/network/matchmaking_variant.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -DWITH_GZFILEOP -o CMakeFiles/halo2_online_matchmaking.dir/src/network/online_matchmaking.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/network/online_matchmaking.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/network/online_matchmaking.cpp",
+      "output": "CMakeFiles/halo2_online_matchmaking.dir/src/network/online_matchmaking.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/cmake/../include -isystem /usr/include/SDL2 -isystem /usr/include/libnm -isystem /usr/include/glib-2.0 -isystem /usr/lib/glib-2.0/include -isystem /usr/include/libmount -isystem /usr/include/blkid -isystem /usr/include/sysprof-6 -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -Wno-missing-field-initializers -ffp-contract=off -DWITH_GZFILEOP -pthread -o CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/ui/frontend_matchmaking.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src/ui/frontend_matchmaking.cpp",
+      "output": "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/cmake/../include -isystem /usr/include/SDL2 -O3 -DNDEBUG -std=c++20 -o CMakeFiles/game_variant_normalization_tests.dir/tests/game_variant_normalization_tests.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/tests/game_variant_normalization_tests.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/tests/game_variant_normalization_tests.cpp",
+      "output": "CMakeFiles/game_variant_normalization_tests.dir/tests/game_variant_normalization_tests.cpp.o"
+    }
+  ],
+  "retained_large_artifacts": []
+}

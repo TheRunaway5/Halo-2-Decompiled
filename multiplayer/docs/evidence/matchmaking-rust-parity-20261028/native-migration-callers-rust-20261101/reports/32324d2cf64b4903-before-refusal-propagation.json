@@ -1,0 +1,15 @@
+{
+  "rust/online_protocol/src/matchmaking_native_migration.rs": {
+    "path": "build/test-results/native-migration-callers-rust-20261101/before-refusal-core-matchmaking_native_migration.rs.txt",
+    "sha256": "ab0c0a1aef7aabd8d9ebe760b1ec83ef08f6e079b76a8e8e4724bb2dbe7ee722",
+    "reconstruction": "Exact inverse of the two declared core error-propagation edits; verified against both original Rust manifest and native red-run source pins"
+  },
+  "rust/online_protocol_bridge/src/matchmaking_native_migration.rs": {
+    "path": "build/test-results/native-migration-callers-rust-20261101/before-refusal-bridge-matchmaking_native_migration.rs.txt",
+    "sha256": "bab61cbf89632ffc3ea5aee46fe1925487f54d7b95745faf2986f0a1618a2f93"
+  },
+  "rust/online_protocol/tests/matchmaking_native_migration.rs": {
+    "path": "build/test-results/native-migration-callers-rust-20261101/before-refusal-tests-matchmaking_native_migration.rs.txt",
+    "sha256": "ab6ba163991fef513a42d02b6fc59248c4e36acce02196e1aa210affb72d76b5"
+  }
+}

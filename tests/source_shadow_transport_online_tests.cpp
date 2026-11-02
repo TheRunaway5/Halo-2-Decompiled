@@ -56,6 +56,12 @@ void gpu(const std::shared_ptr<OnlineMatchSession>& session,const std::filesyste
     MultiplayerOptions options;options.map=map;options.shared_maps=options.map.parent_path();options.online_match=session;
     options.width=640;options.height=480;options.local_players=1;options.hidden=true;options.mute=true;options.validation=true;
     options.variant={"Slayer",0,{{2,0},{10,0},{89,5}}};options.starting_weapon=5;options.session_random_seed=0x12345678u;
+    const auto defaults=source_default_player_configuration();std::array<std::uint8_t,9> appearance;
+    std::copy_n(defaults.begin()+0x40,appearance.size(),appearance.begin());
+    for(auto slot:session->local_slots()) {
+        const auto& admitted=session->roster().at(slot);
+        options.selected_profiles.push_back(native_selected_player_configuration(admitted.name,appearance,-1));
+    }
     options.source_object_savegame_directory=own/"world";
     options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
     shadow_test::Capture capture;capture.mode=mode;capture.picture=own/"player-shadow.ppm";

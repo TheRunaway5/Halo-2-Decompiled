@@ -27,10 +27,48 @@ if(BUILD_TESTING)
         target_compile_definitions(first_person_body_runtime_tu15_tests PRIVATE
             HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
         add_dependencies(first_person_body_runtime_tu15_tests halo2_shaders)
+        add_executable(first_person_body_falling_runtime_tu15_tests EXCLUDE_FROM_ALL
+            tests/first_person_body_falling_runtime_tu15_tests.cpp
+            src/gameplay/multiplayer/multiplayer_runtime.cpp)
+        target_link_libraries(first_person_body_falling_runtime_tu15_tests PRIVATE
+            halo2_renderer SDL2::SDL2 Vulkan::Vulkan halo2_glm nlohmann_json::nlohmann_json)
+        target_compile_definitions(first_person_body_falling_runtime_tu15_tests PRIVATE
+            HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
+        add_dependencies(first_person_body_falling_runtime_tu15_tests halo2_shaders)
+        add_test(NAME native_tu15_first_person_body_sweep_guards
+            COMMAND first_person_body_falling_runtime_tu15_tests --sweep-guards)
+        set_tests_properties(native_tu15_first_person_body_sweep_guards PROPERTIES TIMEOUT 30
+            LABELS "first-person;falling;component;controlled-reference")
         find_program(HALO2_FIRST_PERSON_BODY_XVFB_RUN xvfb-run)
     endif()
     if(HALO2_FIRST_PERSON_BODY_MAP)
         get_filename_component(first_person_body_maps "${HALO2_FIRST_PERSON_BODY_MAP}" DIRECTORY)
+        if(TARGET first_person_body_falling_runtime_tu15_tests)
+            set(name native_tu15_first_person_body_render_human_falling)
+            set(falling_body_command "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_first_person_body_falling.py"
+                "$<TARGET_FILE:first_person_body_falling_runtime_tu15_tests>")
+            if(HALO2_FIRST_PERSON_BODY_XVFB_RUN)
+                list(PREPEND falling_body_command "${HALO2_FIRST_PERSON_BODY_XVFB_RUN}" -a -s "-screen 0 800x600x24")
+            endif()
+            add_test(NAME ${name} COMMAND ${falling_body_command} "${HALO2_FIRST_PERSON_BODY_MAP}" "${first_person_body_maps}"
+                "${CMAKE_CURRENT_BINARY_DIR}/${name}.json")
+            set_tests_properties(${name} PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE
+                LABELS "mcc;first-person;native-component;gpu;original;falling"
+                ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=x11;HALO2_SOUND_ENTRY_CENSUS=1;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache;MESA_SHADER_CACHE_DIR=@HALO2_TEST_SCRATCH@/mesa-cache;__GL_SHADER_DISK_CACHE_PATH=@HALO2_TEST_SCRATCH@/nvidia-cache")
+            get_test_property(${name} ENVIRONMENT falling_body_environment)
+            set(sweep_name native_tu15_first_person_body_render_human_falling_sweep)
+            add_test(NAME ${sweep_name} COMMAND ${falling_body_command} "${HALO2_FIRST_PERSON_BODY_MAP}" "${first_person_body_maps}"
+                "${CMAKE_CURRENT_BINARY_DIR}/${sweep_name}.json" --controlled-sweep)
+            set_tests_properties(${sweep_name} PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE
+                LABELS "mcc;first-person;native-component;gpu;original;falling;controlled-reference"
+                ENVIRONMENT "${falling_body_environment}")
+            set(exposure_name native_tu15_first_person_body_render_human_falling_no_validation)
+            add_test(NAME ${exposure_name} COMMAND ${falling_body_command} "${HALO2_FIRST_PERSON_BODY_MAP}" "${first_person_body_maps}"
+                "${CMAKE_CURRENT_BINARY_DIR}/${exposure_name}.json" --without-validation)
+            set_tests_properties(${exposure_name} PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240 RUN_SERIAL TRUE
+                LABELS "mcc;first-person;native-component;gpu;original;falling;no-validation;exposure"
+                ENVIRONMENT "${falling_body_environment}")
+        endif()
         foreach(species human elite)
             if("${species}" STREQUAL "elite")
                 set(representation 3)

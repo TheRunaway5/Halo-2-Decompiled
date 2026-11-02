@@ -229,50 +229,49 @@ class PartiesHttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.get("/v1/party?appearance=1")).status, 401)
 
     async def test_postgame_presence_is_opt_in_and_follows_report_peers(self):
-        await self.command(self.a, "create")
-        await self.join(self.a, self.b, "pilot_two")
-        leader = self.directory.store.db.execute("SELECT leader FROM parties").fetchone()[0]
-
-        class Socket:
-            closed = False
-
-        class Peer:
-            def __init__(self):
-                self.socket = Socket()
-
-        class Room:
-            closed, phase, deadline, guests = False, "postgame", float("inf"), ()
-
-            def __init__(self, peers):
-                self.peers, self.owners = peers, {who: who for who in peers}
-
-            def connected_seats(self, who, peer):
-                # A declared native presence projection; challenge/lease
-                # admission is qualified by the real Rust/HTTP room tests.
-                return [dict(player=who, guest=False)]
-
-        class Transport:
-            rooms = {}
-
-        transport = Transport()
-        transport.rooms = {"room": Room({leader: Peer()})}
-        self.directory.match_transport = transport
+        import asyncio
+        from types import SimpleNamespace
+        from . import test_matchmaking_http as matchmaking
+        from . import test_match_transport as transport
+        probe = SimpleNamespace(api=self.queue,client=self.client,assertEqual=self.assertEqual,assertNotEqual=self.assertNotEqual,
+                                addAsyncCleanup=self.addAsyncCleanup)
+        async def session(owner,name):
+            return await self.queue_session(owner,screen_name=name)
+        async def enqueue(headers):
+            return await matchmaking.MatchmakingHttpTests.enqueue(probe,headers)
+        probe.session,probe.enqueue = session,enqueue
+        _,descriptors,sockets,queues,host = await transport.MatchTransportTests.pair(probe)
+        for socket in sockets:
+            await socket.send_json({'loaded':'1234567890abcdef:000001b'})
+        for queue in queues:
+            self.assertEqual((await asyncio.wait_for(queue.get(),2))['phase'],'running')
+        raw = transport.MatchTransportTests.report(probe,descriptors)
+        h = next(i for i,row in enumerate(descriptors) if row['slot']==host)
+        await sockets[h].send_json({'postgame':raw.hex()})
+        for queue in queues:
+            self.assertEqual(await asyncio.wait_for(queue.get(),2),{'postgame':raw.hex()})
+        for socket in sockets:
+            await socket.send_json({'confirm_result':hashlib.sha256(raw).hexdigest()})
+        for queue in queues:
+            self.assertIn('completed',await asyncio.wait_for(queue.get(),2))
+            await asyncio.wait_for(queue.get(),2)
+        await sockets[1].close()
+        self.assertIsNone(await asyncio.wait_for(queues[1].get(),2))
+        self.assertEqual(await asyncio.wait_for(queues[0].get(),2),
+                         {'voice_host':descriptors[0]['slot'],'voice_members':1<<descriptors[0]['slot']})
+        await self.command(self.a,'create')
+        await self.join(self.a,self.b,'pilot_two')
 
         async def flags():
-            response = await self.client.get("/v1/party?postgame=1", headers=self.b)
-            self.assertEqual(response.status, 200, await response.text())
-            return {m["leader"]: m["postgame"] for m in (await response.json())["party"]["members"]}
+            response = await self.client.get('/v1/party?postgame=1',headers=self.b)
+            self.assertEqual(response.status,200,await response.text())
+            return {m['leader']:m['postgame'] for m in (await response.json())['party']['members']}
 
-        # The leader is still on the carnage report; the member is not.
-        self.assertEqual(await flags(), {True: True, False: False})
-        # Older clients and command responses keep the exact legacy fields.
-        self.assertTrue(all("postgame" not in m for m in (await self.view(self.b))["party"]["members"]))
-        # Leaving the report (Done closes the room connection) clears it.
-        transport.rooms["room"].peers[leader].socket.closed = True
-        self.assertEqual(await flags(), {True: False, False: False})
-        transport.rooms["room"].peers[leader].socket.closed = False
-        transport.rooms["room"].phase = "running"
-        self.assertEqual(await flags(), {True: False, False: False})
+        self.assertEqual(await flags(),{True:True,False:False})
+        self.assertTrue(all('postgame' not in m for m in (await self.view(self.b))['party']['members']))
+        await sockets[0].close()
+        self.assertIsNone(await asyncio.wait_for(queues[0].get(),2))
+        self.assertEqual(await flags(),{True:False,False:False})
 
     async def test_sdk_subject_invite_survives_recycled_username_and_preserves_privacy(self):
         db=self.directory.store.db

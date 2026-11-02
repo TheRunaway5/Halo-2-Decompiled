@@ -26,7 +26,26 @@ expose public history aliases, names and tags, without private provider IDs.
 Presence is shared only with accepted friends. Lists are bounded to250 entries
 per account, pending requests to32 incoming and32 outgoing, mutations to256 per
 day, and relationship/block storage to100,000 rows each. Incoming requests cannot
-consume the complete roster. The roster uses one indexed SQL projection.
+consume the complete roster. Basic rosters use at most two indexed 128-row SQL
+pages. Optional party-context reads run through the native party owner.
+
+Current Rust ownership update, 2026-10-29: accepted friend commands, quotas,
+replay, bilateral blocks, tag assignment/lookup and public projections execute
+in `matchmaking_friend_directory.rs`. Every protected continuation binds the
+actual native account capability. SQL triggers advance a block epoch, including
+changes made through another connection. The bounded native block cache checks
+that epoch, publishes derived entries after owned commit and bypasses shared
+caching in an outer transaction. Python supplies temporary HTTP/SQLite/clock
+and existing native party/presence IO.
+
+Public-name comparison is pinned to Unicode 16 NFC followed by full default
+case folding. The retained
+[Unicode mapping source](https://www.unicode.org/Public/16.0.0/ucd/CaseFolding.txt)
+and the normalizer's
+[versioned tables](https://github.com/unicode-rs/unicode-normalization/blob/v0.1.24/src/tables.rs)
+give the Rust implementation a fixed version independent of the Python host.
+This is modern PC public-tag policy. It does not recover original Live name
+collation, and it does not authenticate accounts or select matchmaking skill.
 
 Blocking removes friendship and pending friend/party/clan invitations in both
 directions, suppresses bilateral voice, and gates new invitations. Unblocking
@@ -60,7 +79,8 @@ require a signed-in user; they are disabled on the existing server-only profile
 publisher policy. The SDK also takes a local authenticated Product User ID for
 each operation.
 
-The approved hybrid uses `friend_cloud.py` and the Rust/SDK worker's dedicated
+The approved hybrid uses `matchmaking_friend_cloud.rs` for outbox policy,
+`friend_cloud.py` for typed process/SDK IO, and the Rust/SDK worker's dedicated
 `friends` mode. Master transactions keep the consent ledger and a durable,
 coalescing outbox. EOS holds the encrypted private `h2friends-v1.json` file for
 each player: format, public player alias, current friend tag, monotonic revision
@@ -90,6 +110,18 @@ again. Only exact read-back acknowledges the current outbox revision. Lost
 replies retry safely; superseded revisions remain pending. Errors back off from
 30seconds to15minutes and expose only generic sync status to the owner.
 
+The native publisher prepares a bounded opaque claim for the exact player,
+revision, digest and existing PUID. The selection transaction commits before
+network IO begins. Uncommitted outer transactions cannot publish snapshots.
+Native completion checks the immutable claim and current SQL revision/PUID;
+superseded writes remain pending. Failed SQL completion releases the claim for
+retry, and cancellation leaves the outbox intact. Worker read-back parsing and
+record equality checks also run in Rust. The
+[friend ownership receipt](evidence/matchmaking-rust-parity-20261028/friend-validation.json)
+records local source qualification separately from activation and live SDK
+acceptance. Full service replacement, provider identity authority,
+disaster recovery and native played/delivered parity remain open.
+
 The master rejects unreadable, oversized, non-regular, final-symlink or
 group/world-readable storage configs on POSIX before starting a worker. The
 worker also bounds and validates its dedicated config, ignores inline identity
@@ -115,6 +147,55 @@ repository's `backend/eos-worker/README.md`. Local tests use fake transport and
 the official SDK headers/library; they are not evidence of a live EOS upload.
 
 Reference: [Player Data Storage overview](https://dev.epicgames.com/docs/epic-online-services/player-and-game-data/player-data-storage-interface/player-data-storage-overview).
+
+Canonical player allocation, aliases, profile identity updates and Steam–Discord
+adoption now execute in Rust. The actual link transaction rechecks the current
+Steam credential after Discord verification, refuses active primary/signed-local
+seats or persistent player references, and retires the deleted player's native
+account grants only after SQL COMMIT. Caller-owned identity composition retains
+its transaction; failure rolls back its own savepoint. See the
+[canonical identity audit](matchmaking-rust-parity-audit-20261028.md#rust-canonical-identity-and-dual-provider-adoption-ownership).
+Provider verification and the full Rust service remain separate open boundaries.
+
+## Steam friend lookup and party invitation evidence
+
+Current source ownership, 2026-10-29: Rust owns the complete
+`GET /v1/account/steam-friends` request and its upstream-only cache. The server
+uses the currently verified Steam alias of the authenticated ONLINE account;
+each asynchronous completion revalidates the actual native account and current
+link. Names are display data. Public rows reflect current Halo registration,
+presence and bilateral game/party blocks even when upstream data is cached.
+The response remains private with `Cache-Control: no-store`.
+
+Rust chooses fixed upstream URLs and100-ID summary batches, validates response
+bytes/schema, filters online names and sorts public rows. It also owns source
+budgets, FIFO work leases, cancellation, credential epochs, expiry and capacities.
+Python retains typed clock/HTTP/SQL/presence execution. A provider await never
+holds a SQL transaction. Failed final commit or an uncommitted outer transaction
+cannot publish cache data.
+
+`invite_steam` now requires an opaque native proof, bound to the authenticated
+actor/bearer, current Steam subject, exact command/target and expiry. Returned
+Python rows cannot authorize it. Rollback leaves a proof retryable; successful
+commit consumes it, while durable same-request replay stays idempotent. The
+normal party role/version/block/capacity checks remain in force.
+
+Modern limits are a1MiB upstream body,10,000 friend IDs, the ordered first1,000
+selected friends,100 summaries per call,60-second snapshots,75-second work
+deadlines,30-second invitation proofs and1,000 cache entries/64MiB canonical JSON.
+These replace the insufficient generic16KiB provider body limit. Rust also owns
+the native response budget:1MiB for this exact GET endpoint and256KiB for other
+account operations. Both native HTTP reception and JSON parsing use this bound,
+so a full escaped thousand-row response remains readable. Valve's
+[API reference](https://partner.steamgames.com/doc/webapi/ISteamUser) documents
+the summary batch maximum and private-list401 behavior; the existing403
+compatibility behavior is retained. The service does not expose its API key.
+
+See the [ownership audit](matchmaking-rust-parity-audit-20261028.md#rust-steam-friend-provider-and-invitation-authority)
+and [component receipt](evidence/matchmaking-rust-parity-20261028/steam-friends-validation.json).
+Steam OpenID/shared identity/sign-in persona verification and complete Rust
+service replacement remain open, along with original/native/delivered acceptance.
+The implementation is a modern Steam integration, not original Live recovery.
 
 ## Legacy optional Discord integration
 
@@ -195,6 +276,16 @@ client-provided preference bridge, not independent server verification of
 Discord's relationship graph. A failed network update retains the previous
 successful list until its retry succeeds. The native queue compatibility is
 v7 because older native hosts cannot apply the private playback mask.
+
+Current source ownership, 2026-10-29: Rust owns preference validation, verified
+provider account lookup, self-exclusion, capacity and transactional replacement.
+Both directions use current SQL identity and game/preference blocks; Python
+block/subject aliases cannot override persisted state. Existing outer transactions
+remain open and can roll back. Rust also owns private party/clan relay admission,
+membership/socket generations, frame budgets, bounded queues and delivery. The
+provider proof and socket/storage execution remain typed IO. See the
+[voice ownership receipt](evidence/matchmaking-rust-parity-20261028/voice-validation.json)
+for component evidence; it does not activate a service or establish OG parity.
 
 ## Building and checking
 

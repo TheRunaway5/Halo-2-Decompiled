@@ -10,10 +10,16 @@
 #include "halo2/source_damage_model_native_tu15.hpp"
 #include "halo2/source_damage_material_native_tu15.hpp"
 #include "halo2/source_difficulty_parameter_native_tu15.hpp"
+#include "halo2/source_pending_response_observation_tu15.hpp"
+#include "halo2/source_damage_region_eligibility_observation_tu15.hpp"
+#include "halo2/native_tu15_contact_manager_input_observer.hpp"
+#include "halo2/native_tu15_phantom_creation_activity.hpp"
 #include "halo2/posed_collision.hpp"
 #include "helpers/gameplay_fixture.hpp"
 #include "helpers/campaign_vehicle_observer_inputs_tu15.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "helpers/native_contact_manager_input_capture_tu15.hpp"
+#include "helpers/native_contact_agent_factory_input_capture_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include "halo2/source_match_authority.hpp"
 #include "halo2/source_authority_codec.hpp"
@@ -69,7 +75,9 @@ struct Report {
     const auto material=source_damage_material_native_activity();
     recorded["native_damage_material_activity"]={{"calls",material.calls-native_material_before.calls},
         {"groups_found",material.groups_found-native_material_before.groups_found},
-        {"modifiers_found",material.modifiers_found-native_material_before.modifiers_found}};
+        {"modifiers_found",material.modifiers_found-native_material_before.modifiers_found},
+        {"search_calls",material.search_calls-native_material_before.search_calls},
+        {"comparator_calls",material.comparator_calls-native_material_before.comparator_calls}};
     const auto difficulty=source_difficulty_parameter_native_activity();
     recorded["native_difficulty_parameter_activity"]={
         {"parameter_calls",difficulty.parameter_calls-native_difficulty_before.parameter_calls},
@@ -81,6 +89,84 @@ struct Report {
 struct StoreObservation {
   MultiplayerObjectRuntime &source;
   ~StoreObservation(){source.observe_physics_stores({});}
+};
+struct SoundRequestObservation {
+  MultiplayerObjectRuntime &source;
+  ~SoundRequestObservation(){source.observe_sound_requests({});}
+};
+void observe_original_sound_requests(MultiplayerObjectRuntime &source,const Cache &cache,
+    Report &report,const bool *enabled=nullptr) {
+  report.data["original_sound_requests"]=Json::array();
+  report.data["original_sound_request_scope"]="Completed original 18CEFC->223B20 caller intent during ordinary firing/destruction; no admission, device playback, loop completion or Xbox waveform equivalence is inferred";
+  source.observe_sound_requests([&source,&cache,&report,enabled](std::uint32_t sound,std::span<const std::byte,160> request) {
+    if(enabled && !*enabled)return; // Exclude the explicit verification replays.
+    auto &rows=report.data["original_sound_requests"];
+    check(rows.size()<512,"Original sound request evidence exceeds its declared bounded journal");
+    constexpr char digits[]="0123456789abcdef";
+    std::string raw;raw.reserve(request.size()*2u);
+    for(const auto byte:request) {const auto value=std::to_integer<unsigned>(byte);
+      raw.push_back(digits[value>>4u]);raw.push_back(digits[value&15u]);}
+    const auto *tag=sound==null_datum?nullptr:cache.query_tag({.handle=TagHandle{sound}});
+    check(sound==null_datum || (tag && tag->group=="snd!"),"Original sound request lost its actual authored tag owner");
+    const auto &memory=source.memory();
+    const auto clock=Bytes(memory.view(0x51df54u,4)).u32(0);
+    rows.push_back({{"tick",Bytes(memory.view(clock+8u,4)).u32(0)},
+        {"sound",sound},{"name",tag?tag->name:std::string{}},{"request_hex",std::move(raw)}});
+  });
+}
+void initial_pose_read_only(MultiplayerPreparedWorld &world,unsigned slot,Report &report) {
+  if(!std::getenv("HALO2_DESTRUCTION_INITIAL_POSE_READ_ONLY"))return;
+  auto &native=world.source_objects->tu15_world();
+  const auto object=world.match.player(slot).source_current_object;
+  check(object!=null_datum,"Initial body-pose regression requires the genuinely born local unit");
+  report.data["initial_pose_read_only"]={{"passed",false},{"object",object},{"raw_snapshots_retained",false}};
+  const auto before=native.authority_checkpoint();
+  std::vector<Transform> previous;
+  for(unsigned repeat=0;repeat<2;++repeat) {
+    const auto nodes=native.completed_body_world_nodes(object);
+    check(!nodes.empty(),"Cold completed body pose returned no actual WORLD nodes");
+    if(repeat)check(nodes.size()==previous.size() &&
+        std::ranges::equal(std::as_bytes(std::span(nodes)),std::as_bytes(std::span(previous))),
+        "Repeated cold body-pose publication changed its actual node bank");
+    previous=nodes;
+    const auto after=native.authority_checkpoint();
+    check(before.bank==after.bank,"Cold body-pose publication changed retained source bytes or topology");
+    check(before.resources==after.resources && before.arena==after.arena &&
+        before.virtual_memory==after.virtual_memory && before.pool_storage==after.pool_storage &&
+        before.locks==after.locks && before.events==after.events && before.lock_events==after.lock_events &&
+        before.main_thread_token==after.main_thread_token && before.next_thread_token==after.next_thread_token,
+        "Cold body-pose publication changed resource, allocation or synchronization ownership");
+    check(before.next_resource_read==after.next_resource_read && before.resource_reads.size()==after.resource_reads.size(),
+        "Cold body-pose publication retained a temporary resource job or advanced its identity namespace");
+    for(const auto &[job,read]:before.resource_reads) {
+      const auto found=after.resource_reads.find(job);
+      check(found!=after.resource_reads.end() && found->second.descriptor==read.descriptor &&
+          found->second.destination==read.destination && found->second.bytes==read.bytes,
+          "Cold body-pose publication changed a pre-existing native resource job");
+    }
+    check(before.allocations.size()==after.allocations.size() && std::ranges::equal(before.allocations,after.allocations,
+        [](const auto &a,const auto &b){return a.payload==b.payload && a.bytes==b.bytes && a.flags==b.flags;}),
+        "Cold body-pose publication changed native allocation records");
+  }
+  report.data["initial_pose_read_only"].update({{"passed",true},{"repeated_reads",2},
+      {"complete_bank_and_owner_comparisons",2},{"world_nodes",previous.size()},
+      {"retained_resource_jobs",before.resource_reads.size()},{"next_resource_read",before.next_resource_read}});
+}
+struct PhantomCreationObservation {
+  Report &report;
+  NativeTu15PhantomCreationActivity before=native_tu15_phantom_creation_activity();
+  ~PhantomCreationObservation(){
+    const auto after=native_tu15_phantom_creation_activity();
+    report.data["native_phantom_creation_activity"]={
+        {"pair_calls",after.pair_calls-before.pair_calls},
+        {"pair_notifications",after.pair_notifications-before.pair_notifications},
+        {"pair_completions",after.pair_completions-before.pair_completions},
+        {"complex_calls",after.complex_calls-before.complex_calls},
+        {"simple_calls",after.simple_calls-before.simple_calls},
+        {"notification_calls",after.notification_calls-before.notification_calls},
+        {"appends",after.appends-before.appends},{"growths",after.growths-before.growths},
+        {"scope","Actual native calls during firing and verification replays; executor-local diagnostics never used as gameplay inputs"}};
+  }
 };
 std::optional<Spawn> interaction_firing_lane(const LevelContent &content,const CollisionWorld &terrain,
     Vec3 center,Vec3 away,std::span<const float> distances){
@@ -131,7 +217,11 @@ void destruction_continuation(MultiplayerPreparedWorld &world,
           if(report.clock)report.clock->advance();
           world.match.step(commands);world.source_objects->advance_effect_frame(tick_seconds);
         }))));
-    expected.push_back(digest(encode_source_authority(authority.checkpoint(binding))));
+    const auto completed=authority.checkpoint(binding);
+    report.data["continuation_impulse_publication"]={{"initial_serial",before.match.physics_impulse_serial},
+        {"completed_serial",completed.match.physics_impulse_serial},
+        {"retained_events",completed.match.physics_impulses.size()}};
+    expected.push_back(digest(encode_source_authority(completed)));
   }
   unsigned compared=0;
   for(unsigned repetition=0;repetition<2;++repetition){
@@ -182,7 +272,7 @@ void explicit_cleanup_receipt(MultiplayerPreparedWorld &world,std::uint32_t targ
   auto &source=*world.source_objects;unsigned calls{};
   check(std::ranges::any_of(source.live_objects(),[&](const auto &object){return object.object==target;}),
       "Explicit original teardown requires the actual remaining target generation");
-  source.observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+  source.observe_physics_stores_read_only([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
     // Complete1186D0's CALL pushes this literal return address before
     // the actual16E8A0 pool deletion. No callee result is supplied here.
     if(store.instruction==0x1186dau && store.written.size()==4 &&
@@ -326,7 +416,7 @@ void reciprocal_damage(MultiplayerPreparedWorld &world,const Cache &cache,const 
   const auto witness_body=source.source_object_body(witness);unsigned observed_tick=0;
   struct BlastPosition {std::array<std::uint32_t,3> words{};unsigned mask{};};
   std::map<std::uint32_t,BlastPosition> blast_positions;
-  source.observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+  source.observe_physics_stores_read_only([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
     const auto component=store.instruction==0xdc47bu?0:store.instruction==0xdc486u?1:
         store.instruction==0xdc464u?2:-1;
     if(component>=0){
@@ -400,6 +490,7 @@ void reciprocal_damage(MultiplayerPreparedWorld &world,const Cache &cache,const 
   check(control_after.body==control_before.body && control_after.shield==control_before.shield,
       "Distant reciprocal negative control changed vitality");
   report.data["far_control_unchanged"]=true;
+  source.observe_sound_requests({}); // End ordinary firing before verification replays.
   destruction_continuation(world,commands,report);report.data["passed"]=true;
   std::cout<<"PASS MCC "<<(coil_first?"coil-to-object":"vehicle-to-coil")<<" damage through ordinary weapon stimulus\n";
 }
@@ -456,7 +547,7 @@ void terrain_breakage(MultiplayerPreparedWorld &world,const Cache &cache,
   const auto word=[&](auto address){return Bytes(memory.view(address,4)).u32(0);};
   const auto bitmap=word(0x4f9b50u),selected_byte=bitmap+1u+(breakable>>5u)*4u+((breakable&31u)>>3u);
   const auto selected_bit=std::byte(1u<<(breakable&7u));
-  source.observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+  source.observe_physics_stores_read_only([&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
     if(selected_byte<store.address || selected_byte-store.address>=store.written.size())return;
     const auto index=selected_byte-store.address;
     if((store.before.at(index)&selected_bit)!=std::byte{} &&
@@ -502,6 +593,7 @@ void terrain_breakage(MultiplayerPreparedWorld &world,const Cache &cache,
   check(shots && detonations,"Terrain destruction produced no ordinary source rocket/explosion");
   check(broken && !report.data["original_breakable_stores"].empty(),"Actual explosion did not clear its source-owned terrain breakable bit");
   check(old_contact_removed,"Original collision query retained the destroyed terrain surface");
+  source.observe_sound_requests({}); // End ordinary firing before verification replays.
   destruction_continuation(world,commands,report);report.data["passed"]=true;
   std::cout<<"PASS MCC terrain breakage, original bitmap writes and subsequent collision removal; shots="<<shots<<'\n';
 }
@@ -651,33 +743,56 @@ int main(int argc,char **argv){Report report;try {
   MultiplayerPreparedWorld world(options,campaign?std::optional<ScriptProgram>{ScriptProgram{}}:std::nullopt,report.clock);world.bind_source_local_views(world.local_slots);
   auto &source=*world.source_objects;auto &native=source.tu15_world();
   const auto slot=world.local_slots.at(0);
+  initial_pose_read_only(world,slot,report);
   std::optional<test::LivePhysicsEntryCaptureTu15> campaign_query_capture;
   SourcePhysicsEntryObserver campaign_area_observer;
+  SourcePhysicsEntryObserver model_region_observer;
   std::optional<SourcePhysicsEntryObserverBinding> campaign_query_observation;
   std::filesystem::path campaign_query_directory;
   std::uint32_t model_capture_target=null_datum;
   bool model_capture_active=false;
   const bool capture_record=name=="wraith_minigun" && std::getenv("HALO2_DESTRUCTION_CAPTURE_RECORD");
   const bool capture_model=std::getenv("HALO2_DESTRUCTION_CAPTURE_MODEL");
-  const auto campaign_capture_entry=capture_model?0xd80a0u:capture_record?0x105460u:std::getenv("HALO2_DESTRUCTION_CAPTURE_AREA")?0xd91d0u:
+  const bool capture_region=std::getenv("HALO2_DESTRUCTION_CAPTURE_REGION_TRANSITION");
+  const bool require_native_model_region=std::getenv("HALO2_DESTRUCTION_MODEL_REGION_STATE_NATIVE");
+  std::uint32_t region_capture_state=4u;
+  if(const auto value=std::getenv("HALO2_DESTRUCTION_CAPTURE_REGION_TRANSITION_STATE")){
+    char* end{};const auto parsed=std::strtoul(value,&end,0);
+    check(*value && end && !*end && parsed<=0xfffffffful,"Invalid declared region capture state");
+    region_capture_state=std::uint32_t(parsed);
+  }
+  std::optional<std::uint32_t> region_capture_sp;
+  bool region_capture_completed=false;
+  const auto campaign_capture_entry=capture_region?0xbc720u:capture_model?0xd80a0u:capture_record?0x105460u:std::getenv("HALO2_DESTRUCTION_CAPTURE_AREA")?0xd91d0u:
       std::getenv("HALO2_DESTRUCTION_CAPTURE_DAMAGE")?0xe89b0u:0x304c90u;
-  if(capture_model || capture_record || (campaign_scenery && (std::getenv("HALO2_DESTRUCTION_CAPTURE_COLLISION") ||
+  if(capture_region || capture_model || capture_record || (campaign_scenery && (std::getenv("HALO2_DESTRUCTION_CAPTURE_COLLISION") ||
       std::getenv("HALO2_DESTRUCTION_CAPTURE_DAMAGE") || std::getenv("HALO2_DESTRUCTION_CAPTURE_AREA")))) {
     const auto scratch=std::getenv("HALO2_TEST_SCRATCH");check(scratch,"Campaign query capture needs its owned scratch");
     campaign_query_directory=std::filesystem::path(scratch)/
-        (capture_model?"model-lookup-capture":capture_record?"minigun-record-capture":campaign_capture_entry==0xd91d0u?"flood-area-capture":
+        (capture_region?"region-transition-capture":capture_model?"model-lookup-capture":capture_record?"minigun-record-capture":campaign_capture_entry==0xd91d0u?"flood-area-capture":
         campaign_capture_entry==0xe89b0u?"flood-damage-capture":"flood-query-capture");
     campaign_query_capture.emplace(campaign_query_directory,true);
     report.data["original_entry_capture"]={{"entry",campaign_capture_entry},{"directory",campaign_query_directory.string()}};
   }
-  if(capture_model || campaign_scenery || campaign_no_damage || name=="wraith_minigun")campaign_query_observation.emplace(source.memory(),[&](bool before,std::uint32_t entry,const auto &abi){
+  if(require_native_model_region || capture_region || capture_model || campaign_scenery || campaign_no_damage || name=="wraith_minigun")campaign_query_observation.emplace(source.memory(),[&](bool before,std::uint32_t entry,const auto &abi){
     if(campaign_query_capture && entry==campaign_capture_entry) {
-      if(capture_model && before)model_capture_active=model_capture_target!=null_datum && abi.gp[1]==model_capture_target &&
+      if(capture_region){
+        if(before && !region_capture_sp && !region_capture_completed && model_capture_target!=null_datum &&
+          Bytes(source.memory().view(abi.gp[4]+4u,4)).u32(0)==model_capture_target &&
+          Bytes(source.memory().view(abi.gp[4]+12u,4)).u32(0)==region_capture_state){
+          check(!abi.active_mmx,"Region transition input has an unrecorded MMX register file");
+          region_capture_sp=abi.gp[4];campaign_query_capture->observe(true,abi,source.memory(),entry);
+        }else if(!before && region_capture_sp && abi.gp[4]==*region_capture_sp+20u){
+          campaign_query_capture->observe(false,abi,source.memory(),entry);
+          region_capture_sp.reset();region_capture_completed=true;
+        }
+      }else if(capture_model && before)model_capture_active=model_capture_target!=null_datum && abi.gp[1]==model_capture_target &&
           (!campaign_no_damage || Bytes(source.memory().view(abi.gp[4],4)).u32(0)==0xda180u);
-      if(!capture_model || model_capture_active)campaign_query_capture->observe(before,abi,source.memory(),entry);
+      if(!capture_region && (!capture_model || model_capture_active))campaign_query_capture->observe(before,abi,source.memory(),entry);
       if(capture_model && !before)model_capture_active=false;
     }
     if(campaign_area_observer)campaign_area_observer(before,entry,abi);
+    if(model_region_observer)model_region_observer(before,entry,abi);
   });
   if(campaign) {
     const auto game=Bytes(source.memory().view(0x4f3218u,4)).u32(0);
@@ -705,6 +820,13 @@ int main(int argc,char **argv){Report report;try {
       report.data["capture_scope"]="Actual original entry input/output only; no destruction acceptance";
       report.save();return 0;
     }
+  }
+  std::optional<SoundRequestObservation> early_sound_request_observation;
+  if(std::getenv("HALO2_DESTRUCTION_SOUND_REQUESTS") &&
+      (name=="coil_to_warthog" || name=="warthog_to_coil" || name=="coil_to_scenery" ||
+       name=="coil_to_crate" || name=="terrain_glass")) {
+    observe_original_sound_requests(source,cache,report);
+    early_sound_request_observation.emplace(source);
   }
   if(name=="coil_to_warthog" || name=="warthog_to_coil"){
     reciprocal_damage(world,cache,content,slot,commands,name=="coil_to_warthog",report);return 0;
@@ -933,6 +1055,34 @@ int main(int argc,char **argv){Report report;try {
   report.data["declared_player_position"]={spawn.position.x,spawn.position.y,spawn.position.z};
   const auto &memory=source.memory();
   const auto word=[&](auto address){return Bytes(memory.view(address,4)).u32(0);};
+  std::optional<test::NativeContactAgentFactoryInputCaptureTu15> agent_factory_capture;
+  std::optional<NativeTu15ContactAgentFactoryInputObserverBinding> agent_factory_observation;
+  if(std::getenv("HALO2_DESTRUCTION_AGENT_FACTORY_CAPTURE")) {
+    const auto scratch=std::getenv("HALO2_TEST_SCRATCH");check(scratch&&*scratch,"Factory capture requires owned scratch");
+    agent_factory_capture.emplace(std::filesystem::path(scratch)/"destruction-agent-factory");
+    agent_factory_observation.emplace(memory,[&](const SourcePhysicsContactMemory&,const NativeTu15ContactAgentFactoryInput &input){
+      agent_factory_capture->observe(input,memory);
+    });
+  }
+  std::optional<test::NativeContactManagerInputCaptureTu15> cleanup_capture;
+  if(std::getenv("HALO2_DESTRUCTION_CONTACT_CLEANUP_CAPTURE")) {
+    const auto scratch=std::getenv("HALO2_TEST_SCRATCH");
+    check(scratch && *scratch,"Contact cleanup capture requires owned scratch");
+    cleanup_capture.emplace(std::filesystem::path(scratch)/"destruction-contact-cleanup");
+  }
+  NativeTu15ContactManagerCleanupInputObserverBinding cleanup_observation(memory,
+      [&](const SourcePhysicsContactMemory&,const NativeTu15ContactManagerCleanupInput &input){
+        auto &rows=report.data["native_contact_manager_cleanup_inputs"];
+        if(rows.is_null())rows=Json::array();
+        if(rows.size()==32)rows.erase(rows.begin());
+        const auto collector=input.manager+0x10u;
+        rows.push_back({{"manager",input.manager},{"disposing",input.disposing},
+            {"current_world_profile",word(input.manager+0xa4u)},
+            {"capacity_98",word(collector+0x98u)},{"capacity_3c",word(collector+0x3cu)},
+            {"capacity_28",word(collector+0x28u)},{"flags",word(collector+4u)&0xffffu},
+            {"source_memory_mutated",false},{"physics_result_supplied",false}});
+        if(cleanup_capture && (word(collector+4u)&0x8000u))cleanup_capture->observe(input,memory);
+      });
   Vec3 current_eye{},current_target{};
   const auto aim=[&]{
     constexpr std::uint32_t eye=0x6005b800u,velocity=eye+0x20u;
@@ -1113,7 +1263,26 @@ int main(int argc,char **argv){Report report;try {
     report.data["legacy_direct_damage_target_request_count"]=0;
     report.data["legacy_direct_damage_requests"]=Json::array();
   }
+  const bool require_native_pending=chain && std::getenv("HALO2_DESTRUCTION_PENDING_NATIVE");
+  const bool require_native_region_eligibility=std::getenv("HALO2_DESTRUCTION_REGION_ELIGIBILITY_NATIVE");
+  bool observe_native_pending=true;
+  std::optional<SoundRequestObservation> sound_request_observation;
+  if(std::getenv("HALO2_DESTRUCTION_SOUND_REQUESTS")) {
+    observe_original_sound_requests(source,cache,report,&observe_native_pending);
+    sound_request_observation.emplace(source);
+  }
+  std::uint64_t pending_observation_order=0,pending_input_tick=0;
+  std::optional<SourcePhysicsContactRecordStore> last_pending_store;
+  std::array<unsigned,3> native_pending_counts{};
+  std::optional<std::uint64_t> native_pending_due_order,target_blast_order;
+  std::optional<std::uint64_t> native_due_eligibility_order;
+  std::vector<std::pair<std::uint32_t,Json>> active_model_region_calls;
+  if(require_native_pending)report.data["native_target_pending_steps"]=Json::array();
+  if(require_native_region_eligibility)report.data["native_target_region_eligibility"]=Json::array();
   const auto observe_destruction=[&](std::uint32_t,const SourcePhysicsContactRecordStore &store){
+    if(require_native_pending && observe_native_pending &&
+        (store.instruction==0xd8423u || store.instruction==0xd74d3u))
+      last_pending_store=store;
     if(campaign_no_damage && store.instruction==0xda0eeu) {
       check(store.written.size()==1 && store.address>=0xbu,"Original damage request prologue differs");
       // Authenticated DA0D0 frame, also used by the legacy direct-hit observer:
@@ -1193,6 +1362,10 @@ int main(int argc,char **argv){Report report;try {
     if(store.instruction!=0xdc4a0u)return;
     check(store.written.size()==4,"Original destruction-emitter store width differs");
     const auto emitter=Bytes(store.written).u32(0);
+    if(require_native_pending && observe_native_pending && emitter==target) {
+      target_blast_order=++pending_observation_order;
+      report.data["native_pending_target_blast_order"]=*target_blast_order;
+    }
     ++destruction_requests[emitter];
     if(chain){
       const auto fraction=std::bit_cast<float>(word(witness_body+0xecu));
@@ -1200,13 +1373,121 @@ int main(int argc,char **argv){Report report;try {
       if(emitter==target){witness_body_at_target_blast=fraction;witness_pristine_at_target_blast=fraction==1.f;}
     }
   };
-  source.observe_physics_stores(observe_destruction);
+  source.observe_physics_stores_read_only(observe_destruction);
   StoreObservation observation{source};
+  std::unique_ptr<SourcePendingResponseObservationScopeTu15> pending_observation;
+  if(require_native_pending)pending_observation=std::make_unique<SourcePendingResponseObservationScopeTu15>(
+      &memory,[&](const SourcePendingResponseNativeObservationTu15 &step){
+        if(!observe_native_pending)return;
+        const SourceRawDatumPoolServices readback{.read=[&](auto address,auto size){return memory.view(address,size);}};
+        const auto header=source_raw_datum_lookup(target_pool,target,readback);
+        if(!header || word(header+8u)!=target_body || word(target_body)!=target_definition)return;
+        const Bytes descriptor(memory.view(target_body+0x120u,4));
+        const auto size=std::bit_cast<std::int16_t>(descriptor.u16(0)),offset=std::bit_cast<std::int16_t>(descriptor.u16(2));
+        check(size>=0 && size%8==0 && offset>=0,"Native pending observer lost the actual section descriptor");
+        const auto start=std::uint64_t(target_body)+unsigned(offset);
+        if(step.address<start+4u || step.address>=start+unsigned(size) || (step.address-start-4u)%8u)return;
+        check(Bytes(memory.view(step.address,2)).u16(0)==step.after,
+            "Native target pending observation preceded its actual committed word");
+        const auto status=unsigned(step.status);check(status<native_pending_counts.size(),"Unknown native pending status");
+        ++native_pending_counts[status];
+        if(step.status==NativeTu15PendingResponseStatus::Idle)return;
+        check(last_pending_store && last_pending_store->address==step.address &&
+            last_pending_store->before.size()==2 && last_pending_store->written.size()==2 &&
+            Bytes(last_pending_store->before).u16(0)==step.before && Bytes(last_pending_store->written).u16(0)==step.after,
+            "Native pending step does not match the actual original-word store");
+        const auto order=++pending_observation_order;
+        auto &rows=report.data["native_target_pending_steps"];
+        check(rows.size()<128,"Native pending journal exceeded its bounded target profile");
+        rows.push_back({{"order",order},{"input_match_tick",pending_input_tick},{"target",target},
+            {"definition",target_definition},{"section",(step.address-start-4u)/8u},{"address",step.address},
+            {"before",step.before},{"after",step.after},{"response",step.response},{"status",status},
+            {"store_instruction",last_pending_store->instruction},{"full_generation_live",true},{"post_store_readback",true}});
+        if(step.status==NativeTu15PendingResponseStatus::Due)native_pending_due_order=order;
+      });
+  std::unique_ptr<SourceDamageRegionEligibilityObservationScopeTu15> eligibility_observation;
+  if(require_native_region_eligibility)eligibility_observation=std::make_unique<SourceDamageRegionEligibilityObservationScopeTu15>(
+      &memory,[&](const SourceDamageRegionEligibilityObservationTu15& step){
+        if(!observe_native_pending||step.object!=target)return;
+        const SourceRawDatumPoolServices readback{.read=[&](auto address,auto size){return memory.view(address,size);}};
+        const auto header=source_raw_datum_lookup(target_pool,target,readback);
+        check(header && word(header+8u)==target_body && word(target_body)==target_definition,
+            "Native eligibility lost its actual target generation/body/definition");
+        const auto sections=word(step.damage_info+0xc0u);
+        check(step.section<word(step.damage_info+0xbcu),"Native eligibility section escaped its actual authored block");
+        const auto section=sections+step.section*0x38u;
+        check(step.response<word(section+12u) && word(section+16u)+step.response*0x50u==step.response_address,
+            "Native eligibility response escaped its actual authored block");
+        const Bytes response(memory.view(step.response_address,0x50u));
+        check(std::bit_cast<std::int16_t>(response.u16(34u))==step.runtime_region,
+            "Native eligibility runtime index differs from its actual response field");
+        const Bytes descriptor(memory.view(target_body+0x118u,4));
+        const auto extent=std::bit_cast<std::int16_t>(descriptor.u16(0)),offset=std::bit_cast<std::int16_t>(descriptor.u16(2));
+        Json current=nullptr;
+        if(step.runtime_region>=0 && step.runtime_region<step.region_count){
+          const auto address=step.active_base+std::uint32_t(step.region_count)*2u+std::uint32_t(step.runtime_region)*8u+1u;
+          current=std::int32_t(std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(memory.view(address,1)[0])));
+        }
+        const auto order=++pending_observation_order;
+        auto& rows=report.data["native_target_region_eligibility"];check(rows.size()<256,"Native eligibility journal exceeded its bounded profile");
+        rows.push_back({{"order",order},{"input_match_tick",pending_input_tick},{"target",target},{"definition",target_definition},
+          {"section",step.section},{"response",step.response},{"damage_info",step.damage_info},{"response_address",step.response_address},
+          {"runtime_region",step.runtime_region},{"requested_state",std::bit_cast<std::int16_t>(response.u16(32u))},
+          {"current_state",current},{"descriptor_extent",extent},{"descriptor_offset",offset},
+          {"region_count",step.region_count},{"active_base",step.active_base},{"body",target_body},
+          {"allowed",step.allowed},{"reason",unsigned(step.reason)},{"full_generation_live",true},{"authored_fields_readback",true}});
+        if(native_pending_due_order && !native_due_eligibility_order && !target_blast_order && step.allowed && !report.data["native_target_pending_steps"].empty()){
+          const auto& due=report.data["native_target_pending_steps"].back();
+          if(due["status"]==unsigned(NativeTu15PendingResponseStatus::Due) && due["section"]==step.section && due["response"]==step.response)
+            native_due_eligibility_order=order;
+        }
+      });
+  if(require_native_model_region){
+    report.data["native_target_model_region_calls"]=Json::array();
+    model_region_observer=[&](bool before,std::uint32_t entry,const SourcePhysicsWorldRuntimeAbi& abi){
+      if(!observe_native_pending || entry!=0x1704c0u)return;
+      if(before){
+        if(word(abi.gp[4]+4u)!=target)return;
+        const SourceRawDatumPoolServices readback{.read=[&](auto address,auto size){return memory.view(address,size);}};
+        const auto header=source_raw_datum_lookup(target_pool,target,readback);
+        check(header && word(header+8u)==target_body && word(target_body)==target_definition,
+            "Native model state lost its actual target generation/body/definition");
+        const auto tags=word(0x4f0414u),model=word(abi.gp[4]+8u),model_row=tags+(model&65535u)*16u;
+        check(word(model_row)==0x686c6d74u && word(model_row+4u)==model,"Native model state lost its actual model tag identity");
+        const auto object_definition=word(tags+(target_definition&65535u)*16u+8u);
+        check(word(object_definition+0x38u)==model,"Native model state received another target model");
+        const auto model_data=word(model_row+8u);const auto count=std::bit_cast<std::int32_t>(word(model_data+0x70u));
+        check(count>0 && count<=16,"Native model state journal exceeds its authored region profile");
+        const Bytes descriptor(memory.view(target_body+0x118u,4));
+        const auto extent=std::bit_cast<std::int16_t>(descriptor.u16(0)),offset=std::bit_cast<std::int16_t>(descriptor.u16(2));
+        const auto active=word(abi.gp[4]+36u),states=word(abi.gp[4]+40u);
+        check(extent/10==count && active==target_body+std::uint32_t(std::int32_t(offset)) && states==active+unsigned(count)*2u,
+            "Native model state arguments differ from the actual target region descriptor");
+        Json arguments=Json::array();for(unsigned n=0;n<10;++n)arguments.push_back(word(abi.gp[4]+4u+n*4u));
+        Json event{{"target",target},{"definition",target_definition},{"body",target_body},{"model",model},
+          {"model_data",model_data},{"region_count",count},{"active_base",active},{"states_base",states},
+          {"arguments",arguments},{"input_match_tick",pending_input_tick},{"full_generation_live",true},
+          {"authored_fields_readback",true},{"active_before",raw_bytes(active,unsigned(count))},
+          {"states_before",raw_bytes(states,unsigned(count)*8u)},{"entry_x87_depth",abi.x87_depth}};
+        active_model_region_calls.emplace_back(abi.gp[4],std::move(event));
+      }else if(!active_model_region_calls.empty() && abi.gp[4]==active_model_region_calls.back().first+44u){
+        auto event=std::move(active_model_region_calls.back().second);active_model_region_calls.pop_back();
+        const auto active=event.at("active_base").get<std::uint32_t>(),states=event.at("states_base").get<std::uint32_t>();
+        const auto count=event.at("region_count").get<unsigned>();
+        event["active_after"]=raw_bytes(active,count);event["states_after"]=raw_bytes(states,count*8u);
+        event["returned_al"]=abi.gp[0]&255u;event["return_x87_depth"]=abi.x87_depth;event["returned"]=true;
+        auto& rows=report.data["native_target_model_region_calls"];check(rows.size()<256,"Native model state journal exceeded its bounded profile");
+        rows.push_back(std::move(event));
+      }
+    };
+  }
   report.data["initial_body"]=initial_vitality.body;
   bool pending_qualified=false;
+  PhantomCreationObservation phantom_creation_observation{report};
   const auto native_difficulty_firing_before=source_difficulty_parameter_native_activity();
   for(unsigned tick=0;tick<900;++tick){
     auto state=world.match.state();
+    pending_input_tick=state.tick;
     check(!state.players[slot].dead && state.players[slot].source_unit==unit,
         "Destruction stimulus lost its actual live shooter");
     const auto live=source.live_objects();
@@ -1270,8 +1551,10 @@ int main(int argc,char **argv){Report report;try {
         if(!pending.empty()) {
           check(std::getenv("HALO2_DESTRUCTION_CONTINUATION"),"Pending cut requires complete-world continuation qualification");
           report.data["actual_pending_response_cut"]={{"tick",state.tick},{"target",target},{"sections",pending}};
+          observe_native_pending=false;
           destruction_continuation(world,commands,report,"pending_response_continuation",true);
-          source.observe_physics_stores(observe_destruction);pending_qualified=true;
+          observe_native_pending=true;
+          source.observe_physics_stores_read_only(observe_destruction);pending_qualified=true;
         }
       }
     }
@@ -1296,7 +1579,33 @@ int main(int argc,char **argv){Report report;try {
     }
     if(prop && death_tick && tick>=*death_tick+90)break;
   }
+  sound_request_observation.reset();
+  pending_observation.reset();
+  eligibility_observation.reset();
   source.observe_physics_stores({});
+  if(require_native_pending) {
+    report.data["native_target_pending_counts"]={{"idle",native_pending_counts[0]},
+        {"waiting",native_pending_counts[1]},{"due",native_pending_counts[2]}};
+    report.data["pending_restore_comparison_steps_excluded_from_journal"]=true;
+    check(native_pending_counts[1]>0 && native_pending_counts[2]>0 && native_pending_due_order &&
+        target_blast_order && *native_pending_due_order<*target_blast_order,
+        "Actual target did not reach its native pending countdown and subsequent original blast");
+  }
+  if(require_native_region_eligibility){
+    report.data["eligibility_restore_comparison_steps_excluded_from_journal"]=true;
+    if(require_native_pending){
+      check(native_pending_due_order && native_due_eligibility_order && target_blast_order &&
+          *native_pending_due_order<*native_due_eligibility_order && *native_due_eligibility_order<*target_blast_order,
+          "Native pending due/eligibility/original blast order differs");
+      report.data["native_pending_due_eligibility_order"]=*native_due_eligibility_order;
+      report.data["native_due_eligibility_before_original_blast"]=true;
+    }
+  }
+  if(require_native_model_region){
+    check(active_model_region_calls.empty(),"Native model state call did not return through its source ABI");
+    check(!report.data["native_target_model_region_calls"].empty(),"No actual target-native model state call observed");
+    model_region_observer={};report.data["model_region_restore_comparison_steps_excluded_from_journal"]=true;
+  }
   if(campaign_scenery) {
     check(active_area_calls.empty(),"Original area-damage dispatch has not returned");
     campaign_area_observer={};
@@ -1420,6 +1729,12 @@ int main(int argc,char **argv){Report report;try {
   if(std::getenv("HALO2_DESTRUCTION_REQUIRE_NATIVE_MATERIAL") && name!="campaign_guntower_no_damage")
     check(source_damage_material_native_activity().calls>report.native_material_before.calls,
         "Actual source composition executed no native material-damage lookup");
+  if(std::getenv("HALO2_DESTRUCTION_REQUIRE_NATIVE_MATERIAL_SEARCH") && name!="campaign_guntower_no_damage") {
+    const auto material=source_damage_material_native_activity();
+    check(material.search_calls>report.native_material_before.search_calls &&
+          material.comparator_calls>report.native_material_before.comparator_calls,
+        "Actual source composition executed no native material search/comparator");
+  }
   if(std::getenv("HALO2_DESTRUCTION_REQUIRE_NATIVE_DIFFICULTY") && name!="campaign_guntower_no_damage")
     check(source_difficulty_parameter_native_activity().parameter_calls>native_difficulty_firing_before.parameter_calls,
         "Actual source composition executed no native difficulty parameter kernel");

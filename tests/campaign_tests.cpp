@@ -436,6 +436,8 @@ void campaign_create_containing() {
   auto other=c.objects[0];other.name=1;other.placement=1;other.definition=43;
   c.objects.push_back(other);c.object_names.push_back({"E1_crate",6,1});
   c.object_names.push_back({"e1_unused",6,-1});
+  auto empty=other;empty.name=3;empty.placement=2;empty.definition=null_datum;
+  c.objects.push_back(empty);c.object_names.push_back({"e1_empty",6,2});
   Program p;
   p.script("destroy_first",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,0})}));
   p.script("destroy_second",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,1})}));
@@ -448,6 +450,8 @@ void campaign_create_containing() {
   sim.run_script("create");sim.step({});
   check(sim.scripts().diagnostics().empty() && sim.scene().resolve(0)!=null_datum,
         "Campaign containing creation must recreate matching placements and skip unbound names");
+  check(sim.scene().resolve(3)==null_datum,
+        "Containing creation must preserve an authored empty-palette placement without a script fault");
   const auto handle=sim.scene().resolve(0);
   check(sim.scene().resolve(1)==other_handle && sim.scene().resolve(2)==null_datum,
         "Containing creation preserves case-sensitive selection and unbound names");
@@ -458,6 +462,8 @@ void campaign_create_containing() {
             sim.scene().resolve(0)!=null_datum && sim.scene().resolve(1)==other_handle &&
             sim.scene().resolve(2)==null_datum,
         "Containing replacement recreates matching generations in the ordinary named factory");
+  check(sim.scene().resolve(3)==null_datum,
+        "Containing replacement must preserve an authored empty-palette placement");
   sim.run_script("destroy_second");sim.step({});sim.run_script("all");sim.step({});
   check(sim.scripts().diagnostics().empty() && sim.scene().resolve(1)!=null_datum,
         "Empty containing search creates every bound scenario name");

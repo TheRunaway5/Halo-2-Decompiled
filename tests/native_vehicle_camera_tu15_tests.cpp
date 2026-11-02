@@ -128,7 +128,9 @@ int main(int argc,char **argv)try {
     options.native_spawn_inputs={approach.spawn,selected.boarding?driver_approach.spawn:cache.spawns().back()};
     std::shared_ptr<PhysicsLiveClockSource> continuation_clock;
     if(std::getenv("HALO2_VEHICLE_CAMERA_CONTINUATION"))continuation_clock=std::make_shared<test::CameraContinuationClock>();
-    MultiplayerPreparedWorld world(options,std::nullopt,continuation_clock);world.bind_source_local_views(world.local_slots);
+    // The native constructor binds local/input identities before its genuine
+    // birth tick. Rebinding immediately afterward has no completed FP packet.
+    MultiplayerPreparedWorld world(options,std::nullopt,continuation_clock);
     auto &objects=*world.source_objects;const auto &original=*world.cache->original_data();
     NativeVehicleCamera camera(objects,original);
     std::array<Controls,multiplayer_capacity> controls{};const auto slot=world.local_slots[0];
@@ -333,6 +335,7 @@ int main(int argc,char **argv)try {
     const float baseline=original.death_camera_constants->default_fov;
     check(std::bit_cast<std::uint32_t>(baseline)==0x3f9c61aau,"TU1.5 static camera default changed");
     nlohmann::json samples=nlohmann::json::array();
+    nlohmann::json audio_samples=nlohmann::json::array();
     const auto initial_yaw=controls[slot].yaw;
     for(unsigned sample=0;sample<9;++sample) {
       const auto yaw=initial_yaw+float(sample)*.35f;
@@ -365,6 +368,29 @@ int main(int argc,char **argv)try {
       if(!view)continue;
       const auto &v=*view;
       check(v.camera_mode==1,"Stable seated perspective differs from original158290");
+      if(std::getenv("HALO2_TU15_TEST_AUDIO_LISTENER")) {
+        SourceObjectAudioViewTu15 observer_view{v.position,-1,
+            SourceObjectAudioViewTu15::Orientation{v.forward,v.up},-1};
+        unsigned point_calls{};std::array<std::uint32_t,3> original_point{};
+        SourcePhysicsEntryObserverBinding point_observer(objects.memory(),[&](bool entering,std::uint32_t entry,const auto& abi){
+          if(entry!=0xcd440u)return;
+          if(entering){check(abi.gp[0]==player.source_unit,"Audio point lost its full unit identity");++point_calls;}
+          else for(unsigned i=0;i<3;++i)original_point[i]=Bytes(objects.memory().view(abi.gp[6]+i*4u,4)).u32(0);
+        });
+        check(!objects.vehicle_audio_listener_inputs(player.source_unit,0,observer_view),"Mode0 entered the seat blend");
+        check(!objects.vehicle_audio_listener_inputs(null_datum,1,observer_view),"Absent unit entered the seat blend");
+        check(point_calls==0,"Excluded audio query invoked its point producer");
+        const auto input=objects.vehicle_audio_listener_inputs(player.source_unit,v.camera_mode,observer_view);
+        check(input.has_value() && point_calls==1 && input->unit_point==original_point,
+            "Vehicle audio did not consume exactly one actual CD440 result");
+        const auto result=source_vehicle_audio_listener_tu15(*input,{0x27f,0x1f80});
+        check(std::ranges::all_of(result.position,[](auto word){return std::isfinite(std::bit_cast<float>(word));}),
+            "Actual vehicle listener produced a nonfinite position");
+        audio_samples.push_back({{"rounding",0},{"position",input->position},{"forward",input->forward},{"up",input->up},
+            {"unit_point",input->unit_point},{"unit_aim",input->unit_aim},{"factor",input->factor},
+            {"native_position",result.position},{"native_forward",result.forward},{"native_up",result.up},
+            {"native_rotation",result.rotation},{"unit",player.source_unit},{"parent",player.source_parent},{"seat",player.source_seat}});
+      }
       check(std::isfinite(v.position.x) && std::isfinite(v.position.y) && std::isfinite(v.position.z) &&
           std::isfinite(v.horizontal_fov) && std::isfinite(v.aim_displacement) && v.horizontal_fov>0 &&
           std::abs(length(v.forward)-1)<.0001f && std::abs(length(v.up)-1)<.0001f &&
@@ -377,6 +403,13 @@ int main(int argc,char **argv)try {
         {"source_look",{look.f32(0x10),look.f32(0x14)}},{"source_pitch_limits",{look.f32(0x80),look.f32(0x84)}},
         {"forward",{v.forward.x,v.forward.y,v.forward.z}},{"horizontal_fov",v.horizontal_fov},
         {"projection_angle",lens.projection_angle},{"hud_aim_displacement",v.aim_displacement}});
+    }
+    if(std::getenv("HALO2_TU15_TEST_AUDIO_LISTENER")) {
+      check(audio_samples.size()==9,"Vehicle listener fixture did not exercise nine actual seated frames");
+      const auto path=std::getenv("HALO2_TEST_VEHICLE_AUDIO_LISTENER_REPORT");check(path&&*path,"Supply the bounded vehicle listener report path");
+      std::ofstream output(path);output<<nlohmann::json{{"case",selected.label},{"samples",audio_samples},
+          {"actual_cd440_producer_executed",true},{"supplied_unit_points",false},{"voice_or_device_verified",false}}.dump(2)<<'\n';
+      std::cout<<"PASS "<<selected.label<<" nine actual retained unit/seat/CD440 listener inputs; no voice/device admission\n";return 0;
     }
     nlohmann::json moving;
     controls[slot].pitch=2.f;world.match.step(controls);

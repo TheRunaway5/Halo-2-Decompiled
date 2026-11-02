@@ -140,6 +140,49 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
     const auto scope_unchanged=[&]{return test::scope_continuity_words(std::as_const(poses).state())==later_scope;};
     check(poses.owns_snapshot(snapshot)&&std::as_const(poses).state().source_render_interpolation.at(key).paired(),
         "A later real native tick expired the historical owner or failed to populate paired pose storage");
+    // The two real accepted palette endpoints above also exercise the FP
+    // container's presentation clock. These are declared local command-tail
+    // coordinates, not synthetic native ticks or a claimed native FP producer.
+    // Restore the clock with its exact receipt and owning interpolation pair,
+    // independently of the run-local physical input-delivery counter.
+    {
+        auto &active=poses.state();
+        for(unsigned view=0;view<later.local_slots().size();++view) {
+            check(active.source_fp_interpolation[view].at(fp_key).paired(),
+                "Clock continuation omitted its two genuine accepted palette endpoints");
+            check(active.source_fp_pair_clocks[view][fp_key].sample(*later.tick(),true,
+                active.source_fp_command_serial,.375f)==.375f,
+                "New completed FP pair did not retain the actual local sampling phase");
+        }
+        const auto captured_command_serial=active.source_fp_command_serial;
+        const auto clock_snapshot=poses.capture(later);
+        ++poses.state().source_fp_command_serial;
+        for(unsigned view=0;view<later.local_slots().size();++view) {
+            auto &live=poses.state();
+            const auto fraction=live.source_fp_pair_clocks[view].at(fp_key).sample(*later.tick(),true,
+                live.source_fp_command_serial,.125f);
+            check(fraction==1&&same_nodes(live.source_fp_interpolation[view].at(fp_key).sample(*model,fraction),later_pose->nodes),
+                "A local command wrap replayed an old completed FP palette instead of holding its native endpoint");
+        }
+        auto clock_prepared=poses.prepare_restore(clock_snapshot,later_proof);
+        check(poses.ready(clock_prepared,later_proof)&&poses.commit(clock_prepared),
+            "Exact native receipt could not restore its paired FP clock and palette together");
+        auto &resumed=poses.state();
+        check(resumed.source_fp_command_serial==captured_command_serial,
+            "FP continuation retained a later physical/presentation command coordinate");
+        for(unsigned view=0;view<later.local_slots().size();++view) {
+            const auto fraction=resumed.source_fp_pair_clocks[view].at(fp_key).sample(*later.tick(),true,
+                resumed.source_fp_command_serial,.125f);
+            check(fraction==.375f&&same_nodes(resumed.source_fp_interpolation[view].at(fp_key).sample(*model,fraction),
+                interpolate_model_nodes(*model,early_pose->nodes,later_pose->nodes,.375f)),
+                "Restored FP clock rewound its captured phase or lost its exact accepted endpoint pair");
+        }
+        ++resumed.source_fp_command_serial;
+        for(unsigned view=0;view<later.local_slots().size();++view)
+            check(resumed.source_fp_pair_clocks[view].at(fp_key).sample(*later.tick(),true,
+                resumed.source_fp_command_serial,.125f)==1,
+                "Restored FP pair replayed when its next actual local command completed");
+    }
     {auto cancelled=poses.prepare_restore(snapshot,early_proof);check(poses.ready(cancelled,early_proof),"Valid pose preparation refused");}
     check(std::as_const(poses).state().source_render_interpolation.at(key).paired()&&scope_unchanged(),
         "Cancelling a pose preparation changed live history");
@@ -161,6 +204,11 @@ void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> ear
     const auto old_live_nodes=retired->sample(*model,1);
     check(poses.ready(prepared,early_proof)&&poses.commit(prepared),"Exact pose restoration failed after controls");
     const auto &restored=std::as_const(poses).state();
+    check(restored.source_fp_command_serial==initial.source_fp_command_serial,
+        "Historical pose restore omitted its owned completed-command coordinate");
+    for(unsigned view=0;view<4;++view)
+        check(restored.source_fp_pair_clocks[view].empty(),
+            "Cold historical pose retained a later completed FP pair clock");
     check(test::scope_continuity_words(restored)==test::scope_continuity_words(initial),
         "Pose restoration lost local scope derivatives, polynomial, zoom selectors or full unit lifetimes");
     check(&aliased_render==&restored.source_render_interpolation&&!restored.source_render_interpolation.at(key).paired()&&

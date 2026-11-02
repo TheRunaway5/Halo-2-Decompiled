@@ -3,6 +3,8 @@
 #include "halo2/source_model_shader.hpp"
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_campaign_completed_view_tu15.hpp"
+#include "halo2/source_campaign_machine_view.hpp"
+#include "halo2/source_campaign_machine_view_adapter.hpp"
 #include "halo2/source_shader_lod.hpp"
 #include "halo2/source_decal_frame_tu15.hpp"
 #include "halo2/source_water_reflection_tu15.hpp"
@@ -69,6 +71,29 @@ std::unique_ptr<SourceCampaignSecondaryPacketsTu15> SourceCampaignSecondaryViewT
     }
     out->lens_phases_source_gated=true;
     std::set<unsigned> specialized;
+    if(materials_.machine_view) {
+        out->machines=materials_.machine_view(*out->source,out->shaders);
+        if(!out->machines)throw FormatError("Secondary machine view lost its actual packet owner");
+        specialized=source_campaign_machine_view_ordinals(*out->machines,out->source->base_draws);
+        out->objects.insert(out->objects.end(),out->machines->objects.begin(),out->machines->objects.end());
+        if(lighting_) {
+            std::map<std::uint32_t,std::vector<Vertex>> shadows;
+            for(const auto &draw:out->machines->objects) {
+                if(!draw.source_model_selection)
+                    throw FormatError("Secondary machine packet lost its actual depth selection");
+                auto &vertices=shadows[draw.source_model_selection->object];
+                vertices.insert(vertices.end(),draw.vertices.begin(),draw.vertices.end());
+            }
+            for(const auto &[owner,vertices]:shadows) {
+                const auto source=std::ranges::find_if(out->source->base_draws,
+                    [&](const auto &unit){return unit.object==owner && specialized.contains(unit.ordinal);});
+                if(source==out->source->base_draws.end())
+                    throw FormatError("Secondary machine shadow lost its completed source owner");
+                out->shadows.add(world,owner,source_geometry_lod_distance(source->sphere.center,eye,
+                    input.distance_scale),vertices);
+            }
+        }
+    }
     if(materials_.append_specialized)for(const auto ordinal:materials_.append_specialized(*out->source,
         out->shaders,out->poses,out->objects)) {
         if(!specialized.insert(ordinal).second || std::ranges::none_of(out->source->base_draws,
@@ -95,6 +120,11 @@ std::unique_ptr<SourceCampaignSecondaryPacketsTu15> SourceCampaignSecondaryViewT
         out->poses.push_back(std::move(geometry));
         out->objects.push_back({out->poses.back(),draw.lighting,std::move(presentation.colors),
             std::move(presentation.shader_input)});
+        if(model.section_materials()) {
+            out->prt_banks.push_back(model.prt_banks(draw.object,std::span{&draw,1}));
+            out->objects.back().prt_banks=out->prt_banks.back();
+        }
+        out->objects.back().source_object=draw.object;
     }
     if(lighting_) {
         pstencil::CampaignLightingInput lighting_input{out->collection_rendering,out->shaders,out->fog,eye,

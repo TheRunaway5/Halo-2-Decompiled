@@ -1,0 +1,13 @@
+{
+  "previous_goal_turn": "progress",
+  "source_pins": {
+    "include/halo2/frontend_matchmaking_progress.hpp": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e",
+    "include/halo2/original_matchmaking_widgets.hpp": "c3548666536cb9e7c999940b7b20ca25e7b16a2fcb715db950ecdd9a7fa00d9b",
+    "include/halo2/frontend.hpp": "439b7612f4fee4f000f494571a638611f8ea67841f0931c4f4854be31a109594",
+    "src/ui/frontend_matchmaking.cpp": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+    "src/ui/frontend_state.cpp": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879"
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_goal_complete": false,
+  "retained_large_artifacts": []
+}

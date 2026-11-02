@@ -1,0 +1,4324 @@
+{
+  "schema": "H2_MCC_TU15_WEAPON_EFFECT_FLAGS_V1",
+  "scope": "Exact named authored weapon, projectile and child-effect event RNG selectors; no particle or waveform equality claim",
+  "authority": "Unchanged TU1.5 17AAB0 selects the primary RNG for effe bit2 and auxiliary RNG otherwise",
+  "source_scope_sha256": "6855b4f33585b332ca82e4b688b9e29c6a7a04eca5757c1bc8fe9b20640c6a1b",
+  "audit_sha256": "453359b580a118aa4a00a7ffad7205bd41eeb838eb71aca442eef4b09a358b7f",
+  "effect_paths_audited": 70,
+  "inputs": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/00a_introduction.map",
+      "sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+      "role": "original",
+      "effects": 8
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/01a_tutorial.map",
+      "sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+      "role": "original",
+      "effects": 10
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/01b_spacestation.map",
+      "sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+      "role": "original",
+      "effects": 32
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/03a_oldmombasa.map",
+      "sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+      "role": "original",
+      "effects": 48
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/03b_newmombasa.map",
+      "sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+      "role": "original",
+      "effects": 54
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/04a_gasgiant.map",
+      "sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+      "role": "original",
+      "effects": 33
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/04b_floodlab.map",
+      "sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+      "role": "original",
+      "effects": 27
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/05a_deltaapproach.map",
+      "sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/05b_deltatowers.map",
+      "sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+      "role": "original",
+      "effects": 50
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/06a_sentinelwalls.map",
+      "sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+      "role": "original",
+      "effects": 41
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/06b_floodzone.map",
+      "sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+      "role": "original",
+      "effects": 51
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/07a_highcharity.map",
+      "sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+      "role": "original",
+      "effects": 39
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/07b_forerunnership.map",
+      "sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+      "role": "original",
+      "effects": 42
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/08a_deltacliffs.map",
+      "sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+      "role": "original",
+      "effects": 51
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/08b_deltacontrol.map",
+      "sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+      "role": "original",
+      "effects": 49
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/ascension.map",
+      "sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/beavercreek.map",
+      "sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/burial_mounds.map",
+      "sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/coagulation.map",
+      "sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/colossus.map",
+      "sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/cyclotron.map",
+      "sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/foundation.map",
+      "sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/headlong.map",
+      "sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/lockout.map",
+      "sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/midship.map",
+      "sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/waterworks.map",
+      "sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps/zanzibar.map",
+      "sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000001/containment.map",
+      "sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000001/warlock.map",
+      "sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000002/deltatap.map",
+      "sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000002/turf.map",
+      "sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+      "role": "original",
+      "effects": 60
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/backwash.map",
+      "sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/dune.map",
+      "sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/elongation.map",
+      "sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/gemini.map",
+      "sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000003/triplicate.map",
+      "sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000004/derelict.map",
+      "sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000004/highplains2.map",
+      "sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+      "role": "original",
+      "effects": 52
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/00a_introduction.map",
+      "sha256": "e9bd27f0699e03d81740aea898a0bb295cea785dd3884a8a660227e1d4bf3421",
+      "role": "MCC",
+      "effects": 12
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/01a_tutorial.map",
+      "sha256": "cb13d40bc55d503ba311984a38f91938e72b4daa7a0bbc927be38506a8104073",
+      "role": "MCC",
+      "effects": 14
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/01b_spacestation.map",
+      "sha256": "5714f6a2231ad1359d0796ef35720a6cccc421527b3adb071e3f6de24ffeb6d0",
+      "role": "MCC",
+      "effects": 36
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/03a_oldmombasa.map",
+      "sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "role": "MCC",
+      "effects": 48
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/03b_newmombasa.map",
+      "sha256": "f9c2f526ca8b5213c11a4be0fb4886ea64d741b3938ee01d1b98540c3e82d073",
+      "role": "MCC",
+      "effects": 54
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/04a_gasgiant.map",
+      "sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e",
+      "role": "MCC",
+      "effects": 37
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/04b_floodlab.map",
+      "sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "role": "MCC",
+      "effects": 31
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/05a_deltaapproach.map",
+      "sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44",
+      "role": "MCC",
+      "effects": 55
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/05b_deltatowers.map",
+      "sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb",
+      "role": "MCC",
+      "effects": 53
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/06a_sentinelwalls.map",
+      "sha256": "4da909055cbf4774fdd94014a4c055c8057fa2c9190ce4633e6b9e12f494665c",
+      "role": "MCC",
+      "effects": 46
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/06b_floodzone.map",
+      "sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509",
+      "role": "MCC",
+      "effects": 55
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/07a_highcharity.map",
+      "sha256": "daa9120115881e82c5464d698f09f6446cfddf0023ea7357329d03aa2bf6d7c7",
+      "role": "MCC",
+      "effects": 42
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/07b_forerunnership.map",
+      "sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "role": "MCC",
+      "effects": 45
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/08a_deltacliffs.map",
+      "sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "role": "MCC",
+      "effects": 51
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/08b_deltacontrol.map",
+      "sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "role": "MCC",
+      "effects": 49
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/ascension.map",
+      "sha256": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/backwash.map",
+      "sha256": "3cacc08e60f9004846123841cdfffcf520d9dff5f81dd36fe17f3476b1659cb4",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/beavercreek.map",
+      "sha256": "977c957e952ce279a8d61d9706ac475fd564081c316bdd7420bfcab3aa2a9a45",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/burial_mounds.map",
+      "sha256": "0c44c9b1a5e65767efdf7cd54a77b6363365efe2f289878bc21fd21715763003",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/coagulation.map",
+      "sha256": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/colossus.map",
+      "sha256": "83b2e909752c7487c636b2cd17b7673b70bcdac8b5013dcea311a56658dafc35",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/containment.map",
+      "sha256": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/cyclotron.map",
+      "sha256": "869f551e653d0cd9203391b582662a610cd4821972f7f11e09e2e64644f984ff",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/deltatap.map",
+      "sha256": "917165194b13758a247b0dcec6609226c5f6fb1ab99c8481bf315ddc7784eb38",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/derelict.map",
+      "sha256": "45efa1376a59c19b49945b12235e3d8fa33811582151452098affd0609aae6cc",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/dune.map",
+      "sha256": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/elongation.map",
+      "sha256": "6e57a17c7519420d6f4821fd71f60fd283609132a8bd55648e224a0bc7f7f8ae",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/foundation.map",
+      "sha256": "ef7c048ea6584e91fe911899a81743c0fef69befea813c7e91a2ba5ff063fd96",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/gemini.map",
+      "sha256": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/headlong.map",
+      "sha256": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/highplains.map",
+      "sha256": "d6ea847433ba564e20100194c027cacc69f1f1ef85697fffe8463c58c6a0f02f",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/lockout.map",
+      "sha256": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/mainmenu.map",
+      "sha256": "58e1a4b087e6897aff2ebd52604d5b28fb9aed8a68249062ae6b0607746ffcfd",
+      "role": "MCC",
+      "effects": 8
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/midship.map",
+      "sha256": "9176a6149d4953255d33a4430f79b50883bc36cddcdccb907e89b0ffa52257d6",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/needle.map",
+      "sha256": "bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/shared.map",
+      "sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "role": "MCC",
+      "effects": 62
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/single_player_shared.map",
+      "sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "role": "MCC",
+      "effects": 62
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/street_sweeper.map",
+      "sha256": "a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/triplicate.map",
+      "sha256": "8b12d40ac18e2977662a93204604660f77f30e0112672887c8e0b84543a608cc",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/turf.map",
+      "sha256": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6",
+      "role": "MCC",
+      "effects": 2
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/warlock.map",
+      "sha256": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/waterworks.map",
+      "sha256": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044",
+      "role": "MCC",
+      "effects": 0
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-sky-water-tu15-20261025-v7/halo2/h2_maps_win64_dx11/zanzibar.map",
+      "sha256": "2751a31d21e01ff516f4a4300602e101579a7df59364716e884f8f7c28bfa080",
+      "role": "MCC",
+      "effects": 0
+    }
+  ],
+  "profiles": [
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_large\\banshee_bomb\\detonation",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000010",
+      "target_bits": "00000014",
+      "original": [
+        {
+          "map": "00a_introduction.map",
+          "flags": 20,
+          "datum": "e95607e1",
+          "offset": 112437964
+        },
+        {
+          "map": "01b_spacestation.map",
+          "flags": 20,
+          "datum": "fdc21b8a",
+          "offset": 246321100
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 20,
+          "datum": "fc0f1a4e",
+          "offset": 232581820
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 20,
+          "datum": "efc70d94",
+          "offset": 192803564
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 20,
+          "datum": "e56203ed",
+          "offset": 193517204
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 20,
+          "datum": "f8e616b3",
+          "offset": 193006344
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 20,
+          "datum": "f5981421",
+          "offset": 211521472
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 20,
+          "datum": "f8d7171b",
+          "offset": 271077124
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 20,
+          "datum": "f46d123a",
+          "offset": 179206240
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 20,
+          "datum": "f5ca1397",
+          "offset": 142111740
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 20,
+          "datum": "f7d91663",
+          "offset": 260661824
+        },
+        {
+          "map": "ascension.map",
+          "flags": 20,
+          "datum": "e75105dc",
+          "offset": 26937548
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 20,
+          "datum": "f03d0ec8",
+          "offset": 28440596
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 20,
+          "datum": "f01b0e96",
+          "offset": 31648836
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 20,
+          "datum": "e981080c",
+          "offset": 39214356
+        },
+        {
+          "map": "colossus.map",
+          "flags": 20,
+          "datum": "f0420ecd",
+          "offset": 30659108
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 20,
+          "datum": "f0ce0f49",
+          "offset": 45665284
+        },
+        {
+          "map": "foundation.map",
+          "flags": 20,
+          "datum": "f0200eab",
+          "offset": 37107652
+        },
+        {
+          "map": "headlong.map",
+          "flags": 20,
+          "datum": "ea5a08e5",
+          "offset": 53792420
+        },
+        {
+          "map": "lockout.map",
+          "flags": 20,
+          "datum": "f0230e9e",
+          "offset": 34037540
+        },
+        {
+          "map": "midship.map",
+          "flags": 20,
+          "datum": "f0590ed4",
+          "offset": 30019236
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 20,
+          "datum": "e81f06aa",
+          "offset": 38528384
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 20,
+          "datum": "f203107d",
+          "offset": 53033700
+        },
+        {
+          "map": "containment.map",
+          "flags": 20,
+          "datum": "e9d90864",
+          "offset": 47599688
+        },
+        {
+          "map": "warlock.map",
+          "flags": 20,
+          "datum": "f04b0ec6",
+          "offset": 43727636
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 20,
+          "datum": "f03b0eb6",
+          "offset": 44578288
+        },
+        {
+          "map": "turf.map",
+          "flags": 20,
+          "datum": "f22c10a7",
+          "offset": 57362784
+        },
+        {
+          "map": "backwash.map",
+          "flags": 20,
+          "datum": "f0180e91",
+          "offset": 38638692
+        },
+        {
+          "map": "dune.map",
+          "flags": 20,
+          "datum": "f0d00f49",
+          "offset": 42814868
+        },
+        {
+          "map": "elongation.map",
+          "flags": 20,
+          "datum": "f0c90f44",
+          "offset": 41724228
+        },
+        {
+          "map": "gemini.map",
+          "flags": 20,
+          "datum": "f0dd0f58",
+          "offset": 49236244
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 20,
+          "datum": "f0b30f2e",
+          "offset": 57126148
+        },
+        {
+          "map": "derelict.map",
+          "flags": 20,
+          "datum": "f0c50f4f",
+          "offset": 70760020
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 20,
+          "datum": "f0ce0f59",
+          "offset": 76878436
+        }
+      ],
+      "mcc": [
+        {
+          "map": "00a_introduction.map",
+          "flags": 16,
+          "datum": "eb7109fb",
+          "offset": 32699900
+        },
+        {
+          "map": "01b_spacestation.map",
+          "flags": 16,
+          "datum": "fa2b17f6",
+          "offset": 74181256
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 16,
+          "datum": "fa4a1888",
+          "offset": 83390824
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 16,
+          "datum": "ef970d63",
+          "offset": 55480432
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 16,
+          "datum": "f0380e04",
+          "offset": 73009000
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 16,
+          "datum": "f68c1458",
+          "offset": 69894128
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 16,
+          "datum": "f30a1192",
+          "offset": 56142268
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 16,
+          "datum": "f8af16f2",
+          "offset": 99528272
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 16,
+          "datum": "f71214df",
+          "offset": 64632516
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 16,
+          "datum": "f8491615",
+          "offset": 64857172
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 16,
+          "datum": "f59d1426",
+          "offset": 81361944
+        },
+        {
+          "map": "shared.map",
+          "flags": 16,
+          "datum": "e868495b",
+          "offset": 36203960
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 16,
+          "datum": "fa91185c",
+          "offset": 57010416
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_large\\rocket_launcher\\rocket_detonation",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "01a_tutorial.map",
+          "flags": 4,
+          "datum": "e86606f1",
+          "offset": 68323932
+        },
+        {
+          "map": "01b_spacestation.map",
+          "flags": 4,
+          "datum": "f9711739",
+          "offset": 245319504
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "f88d1659",
+          "offset": 201230456
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "fa5c189b",
+          "offset": 231986312
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "e32001ab",
+          "offset": 189422652
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 4,
+          "datum": "e9cd0858",
+          "offset": 210491996
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 4,
+          "datum": "e61904a4",
+          "offset": 208864704
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f65614df",
+          "offset": 218313960
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 4,
+          "datum": "f1f30fc0",
+          "offset": 178799008
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "f5361303",
+          "offset": 142014972
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "e4ad0338",
+          "offset": 26395740
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "e58d0418",
+          "offset": 25740236
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "e53f03ca",
+          "offset": 28880652
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "e3a50230",
+          "offset": 37924748
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "ecae0b39",
+          "offset": 29468284
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "e5eb0476",
+          "offset": 42919532
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "e43a02c5",
+          "offset": 34233836
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "e6790504",
+          "offset": 52796828
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "ebf30a6e",
+          "offset": 32677036
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "ec5c0ad7",
+          "offset": 28700780
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "e5a50430",
+          "offset": 38011116
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "e46a02f5",
+          "offset": 49587180
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "e5f90484",
+          "offset": 46550140
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "eb3d09b8",
+          "offset": 42222572
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "ec300aab",
+          "offset": 43256428
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "eef80d73",
+          "offset": 56360476
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "e72a05b5",
+          "offset": 36351404
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "e91e07a9",
+          "offset": 40833804
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "ec1a0a95",
+          "offset": 40286764
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "e7b2063d",
+          "offset": 46860780
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "e63a04c5",
+          "offset": 54344140
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "e2f1017c",
+          "offset": 67522956
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "e5ab0436",
+          "offset": 74127004
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01a_tutorial.map",
+          "flags": 0,
+          "datum": "e95a07e4",
+          "offset": 28964876
+        },
+        {
+          "map": "01b_spacestation.map",
+          "flags": 0,
+          "datum": "e55403de",
+          "offset": 61026628
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "f5eb13b6",
+          "offset": 86748868
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "f8061644",
+          "offset": 82740648
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "f4571223",
+          "offset": 69277664
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 0,
+          "datum": "f4c2134a",
+          "offset": 56573452
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 0,
+          "datum": "f82b15f6",
+          "offset": 80101524
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f63614be",
+          "offset": 79781540
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 0,
+          "datum": "f0740e41",
+          "offset": 62448644
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f48e125a",
+          "offset": 63619660
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "ecb24da5",
+          "offset": 37572156
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "fd231aee",
+          "offset": 57778692
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_large\\scorpion_shell\\shell_explosion",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 6,
+          "datum": "f9181757",
+          "offset": 231568472
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "f7e415b1",
+          "offset": 192683424
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 6,
+          "datum": "f6ec1575",
+          "offset": 218528640
+        },
+        {
+          "map": "ascension.map",
+          "flags": 6,
+          "datum": "ef500dcb",
+          "offset": 28923984
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 6,
+          "datum": "ef030d8e",
+          "offset": 27965968
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 6,
+          "datum": "eee10d5c",
+          "offset": 31174592
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 6,
+          "datum": "ef6f0dfa",
+          "offset": 40570096
+        },
+        {
+          "map": "colossus.map",
+          "flags": 6,
+          "datum": "ef070d92",
+          "offset": 30184112
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 6,
+          "datum": "ef920e0d",
+          "offset": 45189984
+        },
+        {
+          "map": "foundation.map",
+          "flags": 6,
+          "datum": "eee60d71",
+          "offset": 36632912
+        },
+        {
+          "map": "headlong.map",
+          "flags": 6,
+          "datum": "f06f0efa",
+          "offset": 55248512
+        },
+        {
+          "map": "lockout.map",
+          "flags": 6,
+          "datum": "eee80d63",
+          "offset": 33562880
+        },
+        {
+          "map": "midship.map",
+          "flags": 6,
+          "datum": "ef250da0",
+          "offset": 29546512
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 6,
+          "datum": "f0b50f2f",
+          "offset": 40844736
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 6,
+          "datum": "f0ca0f44",
+          "offset": 52559936
+        },
+        {
+          "map": "containment.map",
+          "flags": 6,
+          "datum": "e8ed0778",
+          "offset": 47322720
+        },
+        {
+          "map": "warlock.map",
+          "flags": 6,
+          "datum": "ef110d8c",
+          "offset": 43252640
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 6,
+          "datum": "eeff0d7a",
+          "offset": 44102752
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "f1010f7c",
+          "offset": 56913504
+        },
+        {
+          "map": "backwash.map",
+          "flags": 6,
+          "datum": "eedb0d54",
+          "offset": 38162720
+        },
+        {
+          "map": "dune.map",
+          "flags": 6,
+          "datum": "ef970e10",
+          "offset": 42342176
+        },
+        {
+          "map": "elongation.map",
+          "flags": 6,
+          "datum": "ef8d0e08",
+          "offset": 41248896
+        },
+        {
+          "map": "gemini.map",
+          "flags": 6,
+          "datum": "efa60e21",
+          "offset": 48762256
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 6,
+          "datum": "f0170e92",
+          "offset": 56946512
+        },
+        {
+          "map": "derelict.map",
+          "flags": 6,
+          "datum": "ef880e12",
+          "offset": 70284080
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 6,
+          "datum": "ef930e1e",
+          "offset": 76402928
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 2,
+          "datum": "f5e41422",
+          "offset": 82187492
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "f52c12f8",
+          "offset": 69542884
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 2,
+          "datum": "f6e4156c",
+          "offset": 80020176
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "e9bc4aaf",
+          "offset": 36650256
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "fbe219ad",
+          "offset": 57452796
+        }
+      ],
+      "existing_profile": true
+    },
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_small\\brute_shot\\detonation",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 6,
+          "datum": "eb0e0999",
+          "offset": 199924664
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 6,
+          "datum": "ec6c0af7",
+          "offset": 230509752
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "eb7d0a08",
+          "offset": 191048644
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 6,
+          "datum": "eaf80983",
+          "offset": 210689700
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 6,
+          "datum": "eaaf093a",
+          "offset": 209753020
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 6,
+          "datum": "ea2908b4",
+          "offset": 269502184
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 6,
+          "datum": "e9960820",
+          "offset": 177701812
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 6,
+          "datum": "e8890714",
+          "offset": 140259888
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 6,
+          "datum": "ec240aaf",
+          "offset": 259410140
+        },
+        {
+          "map": "ascension.map",
+          "flags": 6,
+          "datum": "ece10b5c",
+          "offset": 28135996
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 6,
+          "datum": "ec5e0ae9",
+          "offset": 27141192
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 6,
+          "datum": "ee370cb2",
+          "offset": 30926620
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 6,
+          "datum": "e64b04d6",
+          "offset": 38346688
+        },
+        {
+          "map": "colossus.map",
+          "flags": 6,
+          "datum": "ed4b0bd6",
+          "offset": 29588712
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 6,
+          "datum": "ed2e0ba9",
+          "offset": 44416776
+        },
+        {
+          "map": "foundation.map",
+          "flags": 6,
+          "datum": "ec8f0b1a",
+          "offset": 35864088
+        },
+        {
+          "map": "headlong.map",
+          "flags": 6,
+          "datum": "e43902c4",
+          "offset": 52434020
+        },
+        {
+          "map": "lockout.map",
+          "flags": 6,
+          "datum": "ec910b0c",
+          "offset": 32795560
+        },
+        {
+          "map": "midship.map",
+          "flags": 6,
+          "datum": "ecc20b3d",
+          "offset": 28769896
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 6,
+          "datum": "e33d01c8",
+          "offset": 37615000
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 6,
+          "datum": "efe90e63",
+          "offset": 52274828
+        },
+        {
+          "map": "containment.map",
+          "flags": 6,
+          "datum": "e38c0217",
+          "offset": 46151104
+        },
+        {
+          "map": "warlock.map",
+          "flags": 6,
+          "datum": "ec6e0ae9",
+          "offset": 42428536
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 6,
+          "datum": "ec960b11",
+          "offset": 43325656
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "e42b02b6",
+          "offset": 53434144
+        },
+        {
+          "map": "backwash.map",
+          "flags": 6,
+          "datum": "e5bc0447",
+          "offset": 36087572
+        },
+        {
+          "map": "dune.map",
+          "flags": 6,
+          "datum": "eeee0d67",
+          "offset": 42094332
+        },
+        {
+          "map": "elongation.map",
+          "flags": 6,
+          "datum": "e33301be",
+          "offset": 38663328
+        },
+        {
+          "map": "gemini.map",
+          "flags": 6,
+          "datum": "e25a00e5",
+          "offset": 45884924
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 6,
+          "datum": "ef3a0db5",
+          "offset": 56666300
+        },
+        {
+          "map": "derelict.map",
+          "flags": 6,
+          "datum": "e64404cf",
+          "offset": 68052316
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 6,
+          "datum": "e3d2025d",
+          "offset": 73821824
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 2,
+          "datum": "fec31c8e",
+          "offset": 90143300
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 2,
+          "datum": "818e1fcb",
+          "offset": 88548484
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "fe6b1c37",
+          "offset": 77575268
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 2,
+          "datum": "fc2b1ab3",
+          "offset": 61499556
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 2,
+          "datum": "ff781d43",
+          "offset": 82481204
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 2,
+          "datum": "f8f7173a",
+          "offset": 99632684
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 2,
+          "datum": "f40911d6",
+          "offset": 63341532
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 2,
+          "datum": "f60213ce",
+          "offset": 63974352
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 2,
+          "datum": "fa1e18a7",
+          "offset": 82720204
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "f1425235",
+          "offset": 40275408
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "81ce1f98",
+          "offset": 60059940
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\impact\\explosion_small\\needler\\standard_detonation",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 4,
+          "datum": "ff6b1d33",
+          "offset": 246736336
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "ea4008cb",
+          "offset": 199801896
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "eb12099d",
+          "offset": 230315144
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 4,
+          "datum": "f1140ee1",
+          "offset": 193090836
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 4,
+          "datum": "e514039f",
+          "offset": 193454420
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "eab80943",
+          "offset": 190911056
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 4,
+          "datum": "ea760901",
+          "offset": 210592972
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 4,
+          "datum": "ea5d08e8",
+          "offset": 209705332
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f8781701",
+          "offset": 218979424
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 4,
+          "datum": "e27b0106",
+          "offset": 268020436
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 4,
+          "datum": "e8d1075b",
+          "offset": 177584528
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "e74e05d9",
+          "offset": 140059216
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "eaeb0976",
+          "offset": 259208140
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "e36c01f7",
+          "offset": 26208536
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "e401028c",
+          "offset": 25499992
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "e67404ff",
+          "offset": 29082764
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "e6090494",
+          "offset": 38301564
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "e56503f0",
+          "offset": 28034028
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "e46902f4",
+          "offset": 42686072
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "e3a4022f",
+          "offset": 34133720
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "e4d2035d",
+          "offset": 52528420
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "e3a50230",
+          "offset": 31064420
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "e3b2023d",
+          "offset": 26953692
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "e3e50270",
+          "offset": 37721040
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "e36e01f9",
+          "offset": 49431856
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "e4760301",
+          "offset": 46312028
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "e33b01c6",
+          "offset": 40600856
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "e57303fe",
+          "offset": 41889440
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "ef640ddf",
+          "offset": 56421060
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "ec800af9",
+          "offset": 37397704
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "e82d06b8",
+          "offset": 40670324
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "ecad0b28",
+          "offset": 40372356
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "e42b02b6",
+          "offset": 46173644
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "ef050d80",
+          "offset": 56626296
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "e5bf044a",
+          "offset": 67966892
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "e4b4033f",
+          "offset": 73971096
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 0,
+          "datum": "fe1a1be5",
+          "offset": 75426036
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "fbce1999",
+          "offset": 88679980
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "fe991cd7",
+          "offset": 84803788
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 0,
+          "datum": "f1b90f85",
+          "offset": 56002096
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 0,
+          "datum": "f1e40fb0",
+          "offset": 73394688
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "fa781844",
+          "offset": 71231580
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 0,
+          "datum": "f5f2147a",
+          "offset": 56757056
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 0,
+          "datum": "fbad1978",
+          "offset": 80950856
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f9a6182e",
+          "offset": 80897912
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 0,
+          "datum": "fa3c187f",
+          "offset": 100174620
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 0,
+          "datum": "f2310ffe",
+          "offset": 62725580
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f7a61572",
+          "offset": 64611496
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "fa8c1915",
+          "offset": 83006312
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "edb24ea5",
+          "offset": 37950420
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "fe981c63",
+          "offset": 58308064
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\vehicles\\spectre\\turrets\\plasma_turret\\plasma_turret_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f43e12c7",
+          "offset": 217744088
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "f4bb1288",
+          "offset": 141949184
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "f982180c",
+          "offset": 261340464
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "f0720eed",
+          "offset": 29400336
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "f09b0f26",
+          "offset": 28601872
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "f0790ef4",
+          "offset": 31810024
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "f0910f1c",
+          "offset": 41046464
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "f0a00f2b",
+          "offset": 30820416
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "f12c0fa7",
+          "offset": 45826608
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "f07e0f09",
+          "offset": 37268824
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "f18c1017",
+          "offset": 55723224
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "f0810efc",
+          "offset": 34198584
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "f0b70f32",
+          "offset": 30180432
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "f1360fb0",
+          "offset": 41025144
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "f26110db",
+          "offset": 53195080
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "f1390fb2",
+          "offset": 49572680
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "f0a90f24",
+          "offset": 43890224
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "f0990f14",
+          "offset": 44740776
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "f28a1105",
+          "offset": 57525240
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "f0760eef",
+          "offset": 38801328
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "f12e0fa7",
+          "offset": 42976936
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "f1270fa2",
+          "offset": 41886864
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "f13b0fb6",
+          "offset": 49398704
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "f1110f8c",
+          "offset": 57288632
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "f1230fad",
+          "offset": 70922656
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "f12c0fb7",
+          "offset": 77041056
+        }
+      ],
+      "mcc": [
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f3801208",
+          "offset": 79105084
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f3ef11bb",
+          "offset": 63545032
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "f82916b2",
+          "offset": 82207936
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "eba84c9b",
+          "offset": 37313664
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "87c92592",
+          "offset": 62273840
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\vehicles\\warthog\\gauss\\gauss_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 4,
+          "datum": "fe881c50",
+          "offset": 246619972
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "f83315ff",
+          "offset": 201147608
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "fa121851",
+          "offset": 231910648
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "f6e614b3",
+          "offset": 192369572
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f56813f1",
+          "offset": 218091816
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "ee550cd0",
+          "offset": 28564444
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "ede00c6b",
+          "offset": 27577048
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "e85206dd",
+          "offset": 29559360
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "e84f06da",
+          "offset": 38836112
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "ee750d00",
+          "offset": 29968172
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "ee750cf0",
+          "offset": 44808488
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "edc50c50",
+          "offset": 36244848
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "e90f079a",
+          "offset": 53384888
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "edcb0c46",
+          "offset": 33178592
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "ee130c8e",
+          "offset": 29164888
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "e9760801",
+          "offset": 38992332
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "e73e05c9",
+          "offset": 50219624
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "e85506e0",
+          "offset": 47104280
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "edf00c6b",
+          "offset": 42864296
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "eddc0c57",
+          "offset": 43713904
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "e75d05e8",
+          "offset": 54126796
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "edba0c33",
+          "offset": 37774288
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "e41d02a8",
+          "offset": 39929636
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "ee6a0ce5",
+          "offset": 40860008
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "ee910d0c",
+          "offset": 48379060
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "e92f07ba",
+          "offset": 55261524
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "ee650cef",
+          "offset": 69895168
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "ee720cfd",
+          "offset": 76014688
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 0,
+          "datum": "fafe18c9",
+          "offset": 74509456
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "f564132f",
+          "offset": 86643568
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "f78815c6",
+          "offset": 82637660
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "f3be118a",
+          "offset": 69163440
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f4ef1377",
+          "offset": 79510820
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "e73c482f",
+          "offset": 35967368
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "f96a1735",
+          "offset": 56776092
+        }
+      ],
+      "existing_profile": true
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\vehicles\\wraith\\turrets\\mortar\\wraith_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000004",
+      "target_bits": "00000000",
+      "original": [
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "fb7119b0",
+          "offset": 232398952
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "f54c1319",
+          "offset": 191850824
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f32a11b3",
+          "offset": 217413244
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f40511d2",
+          "offset": 141690920
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "f8d0175a",
+          "offset": 261084744
+        },
+        {
+          "map": "ascension.map",
+          "flags": 0,
+          "datum": "efdd0e58",
+          "offset": 29189644
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 0,
+          "datum": "ef910e1c",
+          "offset": 28232160
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 0,
+          "datum": "ef6d0de8",
+          "offset": 31440208
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 0,
+          "datum": "effc0e87",
+          "offset": 40835756
+        },
+        {
+          "map": "colossus.map",
+          "flags": 0,
+          "datum": "ef940e1f",
+          "offset": 30449760
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 0,
+          "datum": "f0200e9b",
+          "offset": 45456112
+        },
+        {
+          "map": "foundation.map",
+          "flags": 0,
+          "datum": "ef720dfd",
+          "offset": 36898480
+        },
+        {
+          "map": "headlong.map",
+          "flags": 0,
+          "datum": "f0f70f82",
+          "offset": 55512768
+        },
+        {
+          "map": "lockout.map",
+          "flags": 0,
+          "datum": "ef750df0",
+          "offset": 33828368
+        },
+        {
+          "map": "midship.map",
+          "flags": 0,
+          "datum": "efaf0e2a",
+          "offset": 29811540
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 0,
+          "datum": "e9fa0885",
+          "offset": 39250256
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 0,
+          "datum": "f1570fd1",
+          "offset": 52825692
+        },
+        {
+          "map": "containment.map",
+          "flags": 0,
+          "datum": "f0a40f1d",
+          "offset": 49361052
+        },
+        {
+          "map": "warlock.map",
+          "flags": 0,
+          "datum": "ef9e0e19",
+          "offset": 43518624
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 0,
+          "datum": "ef8c0e07",
+          "offset": 44368560
+        },
+        {
+          "map": "turf.map",
+          "flags": 0,
+          "datum": "f18b1006",
+          "offset": 57177764
+        },
+        {
+          "map": "backwash.map",
+          "flags": 0,
+          "datum": "ef690de2",
+          "offset": 38428960
+        },
+        {
+          "map": "dune.map",
+          "flags": 0,
+          "datum": "f0230e9c",
+          "offset": 42605984
+        },
+        {
+          "map": "elongation.map",
+          "flags": 0,
+          "datum": "f01a0e95",
+          "offset": 41514528
+        },
+        {
+          "map": "gemini.map",
+          "flags": 0,
+          "datum": "f0300eab",
+          "offset": 49027268
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 0,
+          "datum": "e81f06aa",
+          "offset": 54906236
+        },
+        {
+          "map": "derelict.map",
+          "flags": 0,
+          "datum": "f0160ea0",
+          "offset": 70550272
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 0,
+          "datum": "f01f0eaa",
+          "offset": 76668736
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "f97417b2",
+          "offset": 83194088
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "f11b0ee7",
+          "offset": 68464492
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f18d1015",
+          "offset": 78631316
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "f2bb1087",
+          "offset": 63212556
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "f6fb1584",
+          "offset": 81879756
+        },
+        {
+          "map": "shared.map",
+          "flags": 4,
+          "datum": "eab64ba9",
+          "offset": 37053224
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 4,
+          "datum": "873124fa",
+          "offset": 62082328
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\fixed\\plasma_cannon\\plasma_cannon_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 4,
+          "datum": "fd311af9",
+          "offset": 246147988
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "fa1d17e9",
+          "offset": 201779280
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "fc581a97",
+          "offset": 232671260
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 4,
+          "datum": "f25c1029",
+          "offset": 193307180
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 4,
+          "datum": "f1cb0f97",
+          "offset": 195486772
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "f98e175b",
+          "offset": 193113184
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 4,
+          "datum": "f74b15d4",
+          "offset": 211930732
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f7f91682",
+          "offset": 218912080
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 4,
+          "datum": "f858169c",
+          "offset": 271002924
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 0,
+          "datum": "f9671732",
+          "offset": 73998028
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "f82c15f7",
+          "offset": 87390936
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "fae1191f",
+          "offset": 83526256
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 0,
+          "datum": "f4651231",
+          "offset": 56833372
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 0,
+          "datum": "f1010ecd",
+          "offset": 73184804
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "fb81194d",
+          "offset": 71732632
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 0,
+          "datum": "f97417fc",
+          "offset": 58286108
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "f85316db",
+          "offset": 80543432
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 0,
+          "datum": "f7e9162c",
+          "offset": 99426508
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "ec004cf3",
+          "offset": 37461352
+        }
+      ],
+      "existing_profile": true
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\pistol\\plasma_pistol\\charging_bolt",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 4,
+          "datum": "eadc08a9",
+          "offset": 243197880
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "e3ff028a",
+          "offset": 197788044
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "eb5109dc",
+          "offset": 230351560
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 4,
+          "datum": "e35b01e6",
+          "offset": 190956264
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 4,
+          "datum": "e35701e2",
+          "offset": 193193512
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "e3cf025a",
+          "offset": 189540084
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 4,
+          "datum": "e3e50270",
+          "offset": 209140028
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 4,
+          "datum": "e37001fb",
+          "offset": 208138616
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "e3e90274",
+          "offset": 215041928
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 4,
+          "datum": "e3ab0236",
+          "offset": 268199192
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 4,
+          "datum": "e36b01f6",
+          "offset": 176411768
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "e30c0197",
+          "offset": 138479144
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "e34101cc",
+          "offset": 256845944
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "e3ff028a",
+          "offset": 26289240
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "e491031c",
+          "offset": 25579556
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "e390021b",
+          "offset": 28596848
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "e44c02d7",
+          "offset": 38024140
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "e62b04b6",
+          "offset": 28158536
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "e4f4037f",
+          "offset": 42761708
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "eb5d09e8",
+          "offset": 35649412
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "e55903e4",
+          "offset": 52601292
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "e43802c3",
+          "offset": 31144728
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "e43e02c9",
+          "offset": 27032056
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "e4760301",
+          "offset": 37801168
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "ef130d8d",
+          "offset": 52128712
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "e502038d",
+          "offset": 46388204
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "eb8a0a05",
+          "offset": 42273288
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "e5b80443",
+          "offset": 41933224
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "e4a1032c",
+          "offset": 53519416
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "e4f3037e",
+          "offset": 35960248
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "e7750600",
+          "offset": 40570156
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "e4db0366",
+          "offset": 38945032
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "e480030b",
+          "offset": 46231160
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "e480030b",
+          "offset": 54057896
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "ec820b0c",
+          "offset": 69404568
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "ec730afe",
+          "offset": 75496328
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 0,
+          "datum": "fd3c1b07",
+          "offset": 75200444
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "f8f716c2",
+          "offset": 87497656
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "fbbf19fd",
+          "offset": 83663480
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 0,
+          "datum": "f2160fe2",
+          "offset": 56116648
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 0,
+          "datum": "ee8d0c59",
+          "offset": 72573640
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "f9b3177f",
+          "offset": 71037544
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 0,
+          "datum": "f16d0ff5",
+          "offset": 55702748
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 0,
+          "datum": "faf818c3",
+          "offset": 80780560
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "fcc71b4f",
+          "offset": 82432016
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 0,
+          "datum": "fa9718da",
+          "offset": 100333964
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 0,
+          "datum": "f2cd109a",
+          "offset": 62934540
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f5561322",
+          "offset": 63815000
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "f8ee1777",
+          "offset": 82407144
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "ee164f09",
+          "offset": 38207904
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "ff2f1cfa",
+          "offset": 58584336
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\rifle\\beam_rifle\\beam_rifle_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 4,
+          "datum": "eabc0947",
+          "offset": 199869716
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 4,
+          "datum": "ec1a0aa5",
+          "offset": 230457460
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 4,
+          "datum": "f1800f4d",
+          "offset": 193154184
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 4,
+          "datum": "e4b3033e",
+          "offset": 193405352
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 4,
+          "datum": "eb2f09ba",
+          "offset": 190993248
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 4,
+          "datum": "e2dc0167",
+          "offset": 208959956
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 4,
+          "datum": "f992181b",
+          "offset": 219149420
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 4,
+          "datum": "e9e50870",
+          "offset": 269459644
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 4,
+          "datum": "e94b07d5",
+          "offset": 177654628
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 4,
+          "datum": "e84206cd",
+          "offset": 140213936
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "ebd00a5b",
+          "offset": 259354832
+        },
+        {
+          "map": "ascension.map",
+          "flags": 4,
+          "datum": "ed160b91",
+          "offset": 28172812
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 4,
+          "datum": "ec950b20",
+          "offset": 27178572
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 4,
+          "datum": "e61a04a5",
+          "offset": 29032136
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 4,
+          "datum": "ee990d24",
+          "offset": 40285860
+        },
+        {
+          "map": "colossus.map",
+          "flags": 4,
+          "datum": "e4c70352",
+          "offset": 27926712
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 4,
+          "datum": "ed650be0",
+          "offset": 44454156
+        },
+        {
+          "map": "foundation.map",
+          "flags": 4,
+          "datum": "ecc60b51",
+          "offset": 35901412
+        },
+        {
+          "map": "headlong.map",
+          "flags": 4,
+          "datum": "e3fd0288",
+          "offset": 52395452
+        },
+        {
+          "map": "lockout.map",
+          "flags": 4,
+          "datum": "ecc80b43",
+          "offset": 32832884
+        },
+        {
+          "map": "midship.map",
+          "flags": 4,
+          "datum": "ecf90b74",
+          "offset": 28807276
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 4,
+          "datum": "f00a0e84",
+          "offset": 40596948
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 4,
+          "datum": "f01e0e98",
+          "offset": 52311560
+        },
+        {
+          "map": "containment.map",
+          "flags": 4,
+          "datum": "efe30e5c",
+          "offset": 49055244
+        },
+        {
+          "map": "warlock.map",
+          "flags": 4,
+          "datum": "eca50b20",
+          "offset": 42465916
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 4,
+          "datum": "eccd0b48",
+          "offset": 43362980
+        },
+        {
+          "map": "turf.map",
+          "flags": 4,
+          "datum": "efdd0e58",
+          "offset": 56516272
+        },
+        {
+          "map": "backwash.map",
+          "flags": 4,
+          "datum": "ecc30b3c",
+          "offset": 37443052
+        },
+        {
+          "map": "dune.map",
+          "flags": 4,
+          "datum": "e8e4076f",
+          "offset": 40789060
+        },
+        {
+          "map": "elongation.map",
+          "flags": 4,
+          "datum": "ed280ba3",
+          "offset": 40468496
+        },
+        {
+          "map": "gemini.map",
+          "flags": 4,
+          "datum": "e5cd0458",
+          "offset": 46450772
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 4,
+          "datum": "ef6f0dea",
+          "offset": 56702912
+        },
+        {
+          "map": "derelict.map",
+          "flags": 4,
+          "datum": "ed6f0bf9",
+          "offset": 69563852
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 4,
+          "datum": "ed600beb",
+          "offset": 75659052
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 0,
+          "datum": "fc3119fc",
+          "offset": 88843224
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 0,
+          "datum": "fefa1d38",
+          "offset": 84965760
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 0,
+          "datum": "f35b1127",
+          "offset": 56427688
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 0,
+          "datum": "f51112dd",
+          "offset": 76589540
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 0,
+          "datum": "f970173c",
+          "offset": 70899724
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 0,
+          "datum": "f6e2156a",
+          "offset": 57083444
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 0,
+          "datum": "fb3219ba",
+          "offset": 81409156
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 0,
+          "datum": "fb8219c5",
+          "offset": 100555700
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 0,
+          "datum": "f69f146c",
+          "offset": 64435808
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 0,
+          "datum": "f74b1517",
+          "offset": 64512908
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "fbe91a72",
+          "offset": 83375572
+        },
+        {
+          "map": "shared.map",
+          "flags": 0,
+          "datum": "f20552f8",
+          "offset": 41115708
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 0,
+          "datum": "828f2059",
+          "offset": 60899572
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\rifle\\beam_rifle\\beam_rifle_noplayer_fire",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000000",
+      "target_bits": "00000004",
+      "original": [
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 4,
+          "datum": "fa2418ae",
+          "offset": 261431480
+        }
+      ],
+      "mcc": [
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 0,
+          "datum": "fc151a9e",
+          "offset": 83497400
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\rifle\\covenant_carbine\\firing",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 6,
+          "datum": "f1ec0fb9",
+          "offset": 193223064
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 6,
+          "datum": "e44002cb",
+          "offset": 193340900
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "eb04098f",
+          "offset": 190967108
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 6,
+          "datum": "eaae0939",
+          "offset": 210641520
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 6,
+          "datum": "e2e0016b",
+          "offset": 208029228
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 6,
+          "datum": "e2cd0158",
+          "offset": 214836740
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 6,
+          "datum": "e490031b",
+          "offset": 268344552
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 6,
+          "datum": "e2db0166",
+          "offset": 176303240
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 6,
+          "datum": "e7d80663",
+          "offset": 140152648
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 6,
+          "datum": "eb7209fd",
+          "offset": 259300796
+        },
+        {
+          "map": "ascension.map",
+          "flags": 6,
+          "datum": "e82006ab",
+          "offset": 27167768
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 6,
+          "datum": "ec340abf",
+          "offset": 27111132
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 6,
+          "datum": "e31501a0",
+          "offset": 28527184
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 6,
+          "datum": "ee660cf1",
+          "offset": 40251716
+        },
+        {
+          "map": "colossus.map",
+          "flags": 6,
+          "datum": "ed210bac",
+          "offset": 29558660
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 6,
+          "datum": "e394021f",
+          "offset": 42551652
+        },
+        {
+          "map": "foundation.map",
+          "flags": 6,
+          "datum": "ec670af2",
+          "offset": 35834380
+        },
+        {
+          "map": "headlong.map",
+          "flags": 6,
+          "datum": "e37f020a",
+          "offset": 52315496
+        },
+        {
+          "map": "lockout.map",
+          "flags": 6,
+          "datum": "ec690ae4",
+          "offset": 32765852
+        },
+        {
+          "map": "midship.map",
+          "flags": 6,
+          "datum": "e311019c",
+          "offset": 26856120
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 6,
+          "datum": "e56a03f5",
+          "offset": 37969244
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 6,
+          "datum": "efc30e3d",
+          "offset": 52245780
+        },
+        {
+          "map": "containment.map",
+          "flags": 6,
+          "datum": "e3e1026c",
+          "offset": 46220624
+        },
+        {
+          "map": "warlock.map",
+          "flags": 6,
+          "datum": "ec440abf",
+          "offset": 42398488
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 6,
+          "datum": "e44202cd",
+          "offset": 41709916
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "efa90e24",
+          "offset": 56482104
+        },
+        {
+          "map": "backwash.map",
+          "flags": 6,
+          "datum": "e3c50250",
+          "offset": 35727488
+        },
+        {
+          "map": "dune.map",
+          "flags": 6,
+          "datum": "e7090594",
+          "offset": 40512208
+        },
+        {
+          "map": "elongation.map",
+          "flags": 6,
+          "datum": "ecf40b6f",
+          "offset": 40434124
+        },
+        {
+          "map": "gemini.map",
+          "flags": 6,
+          "datum": "e56103ec",
+          "offset": 46384340
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 6,
+          "datum": "e38b0216",
+          "offset": 53907376
+        },
+        {
+          "map": "derelict.map",
+          "flags": 6,
+          "datum": "ed3b0bc5",
+          "offset": 69529452
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 6,
+          "datum": "ed2c0bb7",
+          "offset": 75623876
+        }
+      ],
+      "mcc": [
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 2,
+          "datum": "f3d711a3",
+          "offset": 56555276
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 2,
+          "datum": "f2e110ad",
+          "offset": 73683700
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "f92216ee",
+          "offset": 70788732
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 2,
+          "datum": "f72d15b5",
+          "offset": 57245012
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 2,
+          "datum": "fab71882",
+          "offset": 80688132
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 2,
+          "datum": "f96517ed",
+          "offset": 80800660
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 2,
+          "datum": "f97517b8",
+          "offset": 99826892
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 2,
+          "datum": "f760152d",
+          "offset": 64758788
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 2,
+          "datum": "f69a1466",
+          "offset": 64311956
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 2,
+          "datum": "f9e1186a",
+          "offset": 82628284
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "ef17500a",
+          "offset": 38713276
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "80171de1",
+          "offset": 58879708
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "effects\\objects\\weapons\\support_low\\brute_shot\\firing",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 6,
+          "datum": "eb12099d",
+          "offset": 199927232
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 6,
+          "datum": "ec700afb",
+          "offset": 230512340
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "eb860a11",
+          "offset": 191052536
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 6,
+          "datum": "eb02098d",
+          "offset": 210693908
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 6,
+          "datum": "eab70942",
+          "offset": 209756816
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 6,
+          "datum": "ea2f08ba",
+          "offset": 269505164
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 6,
+          "datum": "e99e0828",
+          "offset": 177705448
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 6,
+          "datum": "e893071e",
+          "offset": 140264116
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 6,
+          "datum": "ec2a0ab5",
+          "offset": 259413044
+        },
+        {
+          "map": "ascension.map",
+          "flags": 6,
+          "datum": "ece50b60",
+          "offset": 28138404
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 6,
+          "datum": "ec620aed",
+          "offset": 27143600
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 6,
+          "datum": "ee3b0cb6",
+          "offset": 30929028
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 6,
+          "datum": "e65704e2",
+          "offset": 38351828
+        },
+        {
+          "map": "colossus.map",
+          "flags": 6,
+          "datum": "ed4f0bda",
+          "offset": 29591120
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 6,
+          "datum": "ed320bad",
+          "offset": 44419184
+        },
+        {
+          "map": "foundation.map",
+          "flags": 6,
+          "datum": "ec930b1e",
+          "offset": 35866496
+        },
+        {
+          "map": "headlong.map",
+          "flags": 6,
+          "datum": "e44302ce",
+          "offset": 52438276
+        },
+        {
+          "map": "lockout.map",
+          "flags": 6,
+          "datum": "ec950b10",
+          "offset": 32797968
+        },
+        {
+          "map": "midship.map",
+          "flags": 6,
+          "datum": "ecc60b41",
+          "offset": 28772304
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 6,
+          "datum": "e34a01d5",
+          "offset": 37620676
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 6,
+          "datum": "efed0e67",
+          "offset": 52277236
+        },
+        {
+          "map": "containment.map",
+          "flags": 6,
+          "datum": "e3990224",
+          "offset": 46156480
+        },
+        {
+          "map": "warlock.map",
+          "flags": 6,
+          "datum": "ec720aed",
+          "offset": 42430944
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 6,
+          "datum": "ec9a0b15",
+          "offset": 43328064
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "e43702c2",
+          "offset": 53439416
+        },
+        {
+          "map": "backwash.map",
+          "flags": 6,
+          "datum": "e5c60451",
+          "offset": 36091880
+        },
+        {
+          "map": "dune.map",
+          "flags": 6,
+          "datum": "eef20d6b",
+          "offset": 42096740
+        },
+        {
+          "map": "elongation.map",
+          "flags": 6,
+          "datum": "e34001cb",
+          "offset": 38668892
+        },
+        {
+          "map": "gemini.map",
+          "flags": 6,
+          "datum": "e26700f2",
+          "offset": 45890772
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 6,
+          "datum": "ef3e0db9",
+          "offset": 56668708
+        },
+        {
+          "map": "derelict.map",
+          "flags": 6,
+          "datum": "e65004db",
+          "offset": 68057456
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 6,
+          "datum": "e3df026a",
+          "offset": 73827388
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 2,
+          "datum": "fec81c93",
+          "offset": 90145744
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 2,
+          "datum": "81931fd0",
+          "offset": 88550928
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "fe701c3c",
+          "offset": 77577712
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 2,
+          "datum": "fc301ab8",
+          "offset": 61502000
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 2,
+          "datum": "ff7d1d48",
+          "offset": 82483580
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 2,
+          "datum": "f9041747",
+          "offset": 99635352
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 2,
+          "datum": "f40e11db",
+          "offset": 63343908
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 2,
+          "datum": "f60f13db",
+          "offset": 63977020
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 2,
+          "datum": "fa2d18b6",
+          "offset": 82723216
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "f147523a",
+          "offset": 40277852
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "81d31f9d",
+          "offset": 60062316
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "objects\\characters\\sentinel_aggressor\\weapons\\charged_bolt\\damage_effects\\sentinel_charging",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 6,
+          "datum": "eaec08b9",
+          "offset": 243209636
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 6,
+          "datum": "e410029b",
+          "offset": 197800544
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 6,
+          "datum": "eb5609e1",
+          "offset": 230355136
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 6,
+          "datum": "e36501f0",
+          "offset": 190963892
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 6,
+          "datum": "e36101ec",
+          "offset": 193201144
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "e3df026a",
+          "offset": 189551796
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 6,
+          "datum": "e3f0027b",
+          "offset": 209148760
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 6,
+          "datum": "e381020c",
+          "offset": 208151152
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 6,
+          "datum": "e3f3027e",
+          "offset": 215049540
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 6,
+          "datum": "e3b3023e",
+          "offset": 268206036
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 6,
+          "datum": "e37b0206",
+          "offset": 176423328
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 6,
+          "datum": "e31601a1",
+          "offset": 138486720
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 6,
+          "datum": "e34b01d6",
+          "offset": 256853520
+        },
+        {
+          "map": "ascension.map",
+          "flags": 6,
+          "datum": "e40c0297",
+          "offset": 26299844
+        },
+        {
+          "map": "beavercreek.map",
+          "flags": 6,
+          "datum": "e49e0329",
+          "offset": 25590168
+        },
+        {
+          "map": "burial_mounds.map",
+          "flags": 6,
+          "datum": "e3a1022c",
+          "offset": 28609384
+        },
+        {
+          "map": "coagulation.map",
+          "flags": 6,
+          "datum": "e45b02e6",
+          "offset": 38035600
+        },
+        {
+          "map": "colossus.map",
+          "flags": 6,
+          "datum": "e63204bd",
+          "offset": 28165140
+        },
+        {
+          "map": "cyclotron.map",
+          "flags": 6,
+          "datum": "e501038c",
+          "offset": 42772312
+        },
+        {
+          "map": "foundation.map",
+          "flags": 6,
+          "datum": "eb6a09f5",
+          "offset": 35660084
+        },
+        {
+          "map": "headlong.map",
+          "flags": 6,
+          "datum": "e56103ec",
+          "offset": 52608512
+        },
+        {
+          "map": "lockout.map",
+          "flags": 6,
+          "datum": "e44502d0",
+          "offset": 31155332
+        },
+        {
+          "map": "midship.map",
+          "flags": 6,
+          "datum": "e44b02d6",
+          "offset": 27042716
+        },
+        {
+          "map": "waterworks.map",
+          "flags": 6,
+          "datum": "e483030e",
+          "offset": 37811772
+        },
+        {
+          "map": "zanzibar.map",
+          "flags": 6,
+          "datum": "ef1b0d95",
+          "offset": 52135480
+        },
+        {
+          "map": "containment.map",
+          "flags": 6,
+          "datum": "e50f039a",
+          "offset": 46398808
+        },
+        {
+          "map": "warlock.map",
+          "flags": 6,
+          "datum": "eb920a0d",
+          "offset": 42280076
+        },
+        {
+          "map": "deltatap.map",
+          "flags": 6,
+          "datum": "e5c0044b",
+          "offset": 41940048
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "e4ab0336",
+          "offset": 53526948
+        },
+        {
+          "map": "backwash.map",
+          "flags": 6,
+          "datum": "e4fd0388",
+          "offset": 35967768
+        },
+        {
+          "map": "dune.map",
+          "flags": 6,
+          "datum": "e783060e",
+          "offset": 40581404
+        },
+        {
+          "map": "elongation.map",
+          "flags": 6,
+          "datum": "e4e50370",
+          "offset": 38952604
+        },
+        {
+          "map": "gemini.map",
+          "flags": 6,
+          "datum": "e4880313",
+          "offset": 46238004
+        },
+        {
+          "map": "triplicate.map",
+          "flags": 6,
+          "datum": "e491031c",
+          "offset": 54070376
+        },
+        {
+          "map": "derelict.map",
+          "flags": 6,
+          "datum": "ec8a0b14",
+          "offset": 69411356
+        },
+        {
+          "map": "highplains2.map",
+          "flags": 6,
+          "datum": "ec7b0b06",
+          "offset": 75503116
+        }
+      ],
+      "mcc": [
+        {
+          "map": "01b_spacestation.map",
+          "flags": 2,
+          "datum": "fd491b14",
+          "offset": 75213312
+        },
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 2,
+          "datum": "f90316ce",
+          "offset": 87512092
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 2,
+          "datum": "fbcb1a09",
+          "offset": 83677916
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 2,
+          "datum": "f21e0fea",
+          "offset": 56123836
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 2,
+          "datum": "eea10c6d",
+          "offset": 72612292
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "f9bc1788",
+          "offset": 71045604
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 2,
+          "datum": "f184100c",
+          "offset": 55742140
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 2,
+          "datum": "fb0218cd",
+          "offset": 80788804
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 2,
+          "datum": "fcce1b56",
+          "offset": 82439040
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 2,
+          "datum": "fa9e18e1",
+          "offset": 100341044
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 2,
+          "datum": "f2da10a7",
+          "offset": 62946792
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 2,
+          "datum": "f55d1329",
+          "offset": 63820032
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 2,
+          "datum": "f8f5177e",
+          "offset": 82412176
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "ee214f14",
+          "offset": 38219800
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "ff3b1d06",
+          "offset": 58596296
+        }
+      ],
+      "existing_profile": false
+    },
+    {
+      "group": "effe",
+      "name": "objects\\vehicles\\phantom\\plasma_turret\\weapons\\effects\\phantom_turret_impact",
+      "offset": 0,
+      "bytes": 4,
+      "donor_bits": "00000002",
+      "target_bits": "00000006",
+      "original": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 6,
+          "datum": "e7a70632",
+          "offset": 199230476
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 6,
+          "datum": "e782060d",
+          "offset": 229589868
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 6,
+          "datum": "efff0dcc",
+          "offset": 192893696
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 6,
+          "datum": "f15c0f28",
+          "offset": 195422684
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 6,
+          "datum": "f8331600",
+          "offset": 192778412
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 6,
+          "datum": "f5d5145e",
+          "offset": 211620540
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 6,
+          "datum": "f93b1707",
+          "offset": 211020044
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 6,
+          "datum": "f5d5145e",
+          "offset": 218205760
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 6,
+          "datum": "f79a15de",
+          "offset": 270829604
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 6,
+          "datum": "e7d0065a",
+          "offset": 177421036
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 6,
+          "datum": "e5df046a",
+          "offset": 139771652
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 6,
+          "datum": "e8890714",
+          "offset": 258512816
+        },
+        {
+          "map": "turf.map",
+          "flags": 6,
+          "datum": "eb5d09e8",
+          "offset": 55722704
+        }
+      ],
+      "mcc": [
+        {
+          "map": "03a_oldmombasa.map",
+          "flags": 2,
+          "datum": "e3f2027c",
+          "offset": 75843856
+        },
+        {
+          "map": "03b_newmombasa.map",
+          "flags": 2,
+          "datum": "e395021f",
+          "offset": 71432176
+        },
+        {
+          "map": "04a_gasgiant.map",
+          "flags": 2,
+          "datum": "efdd0da9",
+          "offset": 55606700
+        },
+        {
+          "map": "04b_floodlab.map",
+          "flags": 2,
+          "datum": "f0740e40",
+          "offset": 73100396
+        },
+        {
+          "map": "05a_deltaapproach.map",
+          "flags": 2,
+          "datum": "f59c1368",
+          "offset": 69645272
+        },
+        {
+          "map": "05b_deltatowers.map",
+          "flags": 2,
+          "datum": "f35211da",
+          "offset": 56263024
+        },
+        {
+          "map": "06a_sentinelwalls.map",
+          "flags": 2,
+          "datum": "f73414ff",
+          "offset": 79806316
+        },
+        {
+          "map": "06b_floodzone.map",
+          "flags": 2,
+          "datum": "f58d1415",
+          "offset": 79654796
+        },
+        {
+          "map": "07a_highcharity.map",
+          "flags": 2,
+          "datum": "f6a014e3",
+          "offset": 99183080
+        },
+        {
+          "map": "07b_forerunnership.map",
+          "flags": 2,
+          "datum": "e3d5025f",
+          "offset": 49771100
+        },
+        {
+          "map": "08a_deltacliffs.map",
+          "flags": 2,
+          "datum": "e32501af",
+          "offset": 50469648
+        },
+        {
+          "map": "08b_deltacontrol.map",
+          "flags": 2,
+          "datum": "e34601d0",
+          "offset": 67419296
+        },
+        {
+          "map": "shared.map",
+          "flags": 2,
+          "datum": "f7245816",
+          "offset": 43090924
+        },
+        {
+          "map": "single_player_shared.map",
+          "flags": 2,
+          "datum": "fc5b1a26",
+          "offset": 57581504
+        }
+      ],
+      "existing_profile": true
+    }
+  ]
+}

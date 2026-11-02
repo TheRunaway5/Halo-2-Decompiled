@@ -1,8 +1,27 @@
 # Campaign AI, navigation, mission scripting and co-op
 
-Updated: October 20, 2026. Goal status: **active; incomplete**.
+Updated: October 30, 2026. Goal status: **active; incomplete**.
 
-Latest verified engine increment: descriptor27's whole1BD1E0 callback and
+The user's October30 clarification also requires cutscene audio, sound effects
+and dialogue to be 1:1 native TU1.5 kernels. The
+[audio completion contract](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md) retains this
+full scope and its remaining original/native/composed playback gates.
+
+Current native-engine work is tracked in the
+[engine checklist](CAMPAIGN_NATIVE_ENGINE_GOAL_CHECKLIST.md). The last frozen
+natural Armory run reaches tick10 with both native authored-area callbacks
+executed, zero script/content faults, then stops at `1B0AD9 ->1BBEE0`.
+The current increment qualifies four native action-identity owners against354
+physical original cases and whole remaining-path-distance200C00 against309
+physical original cases. Compiler/sanitizer,21 combined semantic mutations,
+independent exact repeats and scratch cleanup pass; commands and source/input
+hashes are in the [identity proof](../analysis/campaign-native-ai-actions-20261030/identity-proof.json)
+and [distance proof](../analysis/campaign-native-ai-actions-20261030/path-distance-proof.json).
+These are data components. Numeric routing, whole action selection/publication,
+natural Armory training, full missions, native-only closure and co-op remain
+open. Launcher selections are unchanged.
+
+October20 checkpoint: descriptor27's whole1BD1E0 callback and
 1ED100 character-data owner now join the actor module (93 bodies /7,112
 original instruction sites), preserving all91 earlier bodies and212 immutable
 bytes. All16,319 combined component cases pass normally and with ASan/UBSan

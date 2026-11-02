@@ -1,0 +1,7 @@
+{
+  "action": "validate",
+  "targets": [
+    "frontend_lobby_policy_tests"
+  ],
+  "filter": "^retail_frontend_lobby_policy$"
+}

@@ -1,0 +1,42 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz/master-source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_identity_owner_native.IdentityLinkOwnerTests.test_couch_identity_allocation_at_capacity_is_one_atomic_operation"
+      ],
+      "returncode": 1
+    }
+  ],
+  "passed": false,
+  "retained_large_artifacts": [],
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz/master-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz",
+  "source_frozen": true,
+  "matchmaking_test_inputs": false,
+  "compiler": {
+    "returncode": 0,
+    "identity": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2"
+  },
+  "rust_library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/identity-owner/halo2-test-b3eoc3qz/cargo/release/libhalo2_online_security_ffi.so",
+    "sha256": "04643b0b435253b03cc44cf63fa6c7b4b149272a2241ed7220e0624f67ce0a1f",
+    "bytes": 4940256,
+    "retained": false,
+    "borrowed_external": false
+  }
+}

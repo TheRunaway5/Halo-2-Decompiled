@@ -1,7 +1,12 @@
 #pragma once
 #include "audio/native_tu15_sound_campaign_audio.hpp"
 #include "halo2/native_campaign_audio_listeners.hpp"
+#include <algorithm>
 namespace halo2::native_tu15_sound::campaign_listeners_adapter {
+struct ClusterQueryObservation {
+    std::uint32_t count{},scale_count{},table_base{},cell{};
+    bool byte_read{};
+};
 struct Source {
     CampaignContext& context;std::uint32_t address;
     std::uint8_t mode()const{return u8(context.m,address+3u)&15u;}
@@ -26,18 +31,35 @@ struct Listeners {
     bool active(unsigned index)const{return u8(context.m,address+0x8eu+index*0x48u)!=0;}
 };
 struct Players {CampaignContext& context;std::uint32_t address;bool present(unsigned index)const{return u32(context.m,address+0xcu+index*4u)!=0xffffffffu;}};
-struct Bytes {CampaignContext& context;std::uint32_t address;std::uint8_t at(std::uint32_t index)const{return u8(context.m,address+index);}};
+struct Bytes {
+    CampaignContext& context;std::uint32_t address;ClusterQueryObservation* observation{};
+    std::uint8_t at(std::uint32_t index)const {
+        const auto value=u8(context.m,address+index);
+        if(observation){observation->cell=value;observation->byte_read=true;}return value;
+    }
+};
 struct Scale {
-    CampaignContext& context;std::uint32_t address;
-    Bytes bytes()const{return {context,u32(context.m,address+0x28u)};}
+    CampaignContext& context;std::uint32_t address;ClusterQueryObservation* observation{};
+    Bytes bytes()const {
+        const auto table=u32(context.m,address+0x28u);if(observation)observation->table_base=table;
+        return {context,table,observation};
+    }
     std::uint32_t lower()const{return u32(context.m,address+4u);}std::uint32_t upper()const{return u32(context.m,address+8u);}
 };
 struct Structure {
-    CampaignContext& context;std::uint32_t address;
-    std::uint32_t cluster_count()const{return u32(context.m,address+0x9cu);}
-    std::int32_t scale_count()const{return std::bit_cast<std::int32_t>(u32(context.m,address+0x224u));}
-    Bytes cluster_bytes()const{return {context,u32(context.m,address+0xe8u)};}
-    Scale scale_table()const{return {context,u32(context.m,address+0x228u)};}
+    CampaignContext& context;std::uint32_t address;ClusterQueryObservation* observation{};
+    std::uint32_t cluster_count()const {
+        const auto value=u32(context.m,address+0x9cu);if(observation)observation->count=value;return value;
+    }
+    std::int32_t scale_count()const {
+        const auto value=u32(context.m,address+0x224u);if(observation)observation->scale_count=value;
+        return std::bit_cast<std::int32_t>(value);
+    }
+    Bytes cluster_bytes()const {
+        const auto table=u32(context.m,address+0xe8u);if(observation)observation->table_base=table;
+        return {context,table,observation};
+    }
+    Scale scale_table()const{return {context,u32(context.m,address+0x228u),observation};}
 };
 struct State {
     CampaignContext& context;unsigned extended_occupied;
@@ -70,7 +92,30 @@ inline void cut_off(CampaignContext& context,Abi& abi) {
 }
 inline void scale(CampaignContext& context,Abi& abi) {
     auto fp=floating_point(context,abi);
-    const auto result=native_campaign_cluster_scale(Structure{context,abi.gp[2]},std::bit_cast<std::int32_t>(abi.gp[0]),std::bit_cast<std::int32_t>(abi.gp[1]),fp);
+    const auto first=std::bit_cast<std::int32_t>(abi.gp[0]),second=std::bit_cast<std::int32_t>(abi.gp[1]);
+    ClusterQueryObservation observation;
+    NativeCampaignClusterScaleSimd simd;
+    const auto result=native_campaign_cluster_scale(Structure{context,abi.gp[2],&observation},first,second,fp,&simd);
+    abi.xmm[1]={simd.lower,0u,0u,0u};
+    if(simd.span_written)abi.xmm[2]={simd.span,0u,0u,0u};
+    // The register-level object-loop parents retain these volatile outputs.
+    // Reuse values from the actual evaluation; never reread a mutable table.
+    if(first!=second) {
+        const bool scaled=std::bit_cast<std::int32_t>(observation.scale_count)>0;
+        abi.gp[2]=observation.scale_count;
+        if(observation.byte_read) {
+            const auto a=scaled?first:std::int32_t(std::int16_t(first));
+            const auto b=scaled?second:std::int32_t(std::int16_t(second));
+            const auto low=std::uint32_t(std::min(a,b)),high=std::uint32_t(std::max(a,b));
+            const auto triangle=std::uint32_t(std::bit_cast<std::int32_t>((low+1u)*low)/2);
+            abi.gp[2]=observation.table_base+(observation.count-1u)*low-triangle;
+            abi.gp[0]=((scaled?triangle:high)&0xffffff00u)|observation.cell;
+            if(scaled && observation.cell!=0 && observation.cell!=255)abi.gp[0]=observation.cell-1u;
+            abi.gp[1]=scaled?high:observation.cell&0x7fu;
+        }else {
+            abi.gp[0]&=0xffffff00u;abi.gp[1]=0u;
+        }
+    }
     abi.xmm[0]={result,0u,0u,0u};publish(abi,fp);pop_return(context.m,abi);
 }
 inline void byte(CampaignContext& context,Abi& abi) {

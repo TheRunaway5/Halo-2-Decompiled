@@ -96,9 +96,11 @@ def main():
         "          std::shared_ptr<const OriginalData> gameplay_data,\n"
         "          const std::filesystem::path& prepared_cache_root);\n", "", 1).replace(
         "void initialize_mcc(const MccPreparedMapOwner*);", "void initialize_mcc();", 1).replace(
-        "void initialize_mcc_native_shaders(const MccPreparedMapOwner*);", "void initialize_mcc_native_shaders();", 1)
+        "void initialize_mcc_native_shaders(const MccPreparedMapOwner*);", "void initialize_mcc_native_shaders();", 1).replace(
+        "    bool preserves_mcc_authoring() const { return mcc_ && preserve_mcc_authoring_; }\n", "", 1).replace(
+        "    bool preserve_mcc_authoring_{};\n", "", 1)
     if hashlib.sha256(baseline.encode()).hexdigest() != "821d66c77a9316ccbc0691459aea102f026291d8016914c03763170385e029cd":
-        raise RuntimeError("Cache header contains an undeclared change beyond the reviewed method declarations")
+        raise RuntimeError("Cache header contains an undeclared change beyond the reviewed ownership declarations/policy")
     baseline_directory = scratch / "baseline/halo2"
     baseline_directory.mkdir(parents=True)
     (baseline_directory / "cache.hpp").write_text(baseline)

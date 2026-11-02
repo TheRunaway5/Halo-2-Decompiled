@@ -1,6 +1,7 @@
 #include "halo2/source_live_model_draws_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_draw_resources.hpp"
+#include "halo2/native_tu15_render_lighting.hpp"
 #include "halo2/source_object_render_queue.hpp"
 #include "halo2/source_execution_calls.hpp"
 #include "halo2/source_execution_model_inputs.hpp"
@@ -36,11 +37,9 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
         const auto p=cursor;cursor+=0x200u;return p;
     };
     SourceDrawResourceWorld resources{word(0x4f0414u),word(0x4ecc18u),word(0x4ecc14u),word(0x4ecbd0u),
-        [&](auto p,auto n){return memory.view(p,n);},
-        [&](auto flags,auto p) {
-            // Actual130980 source request; no published pointer is inferred.
-            return world.request_render_geometry(flags,p);
-        }};
+        [&](auto p,auto n){return memory.view(p,n);},{}};
+    // Presentation field readers retain their namespace; every draw resource
+    // service below uses live TU1.5 owner cells and the explicit FP state.
     std::vector<SourceObjectRenderQueueOwner> owners;
     std::vector<SourceObjectRenderQueueDefinition> definitions;
     std::vector<SourceObjectRenderQueueModel> models;
@@ -62,6 +61,9 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
     }
     source_object_render_queue_order(admission.objects,owners,definitions,models,geometry);
     auto draw_services=source_object_draw_resource_services(resources);
+    const auto abi=world.prepare_source_call();
+    NativeTu15PhysicsFrameFp arithmetic{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+    draw_services.draw=source_draw_resource_services_tu15(world,arithmetic);
     draw_services.draw.context=[&](auto p){return memory.mutable_view(p,0x78);};
     auto presentation=source_object_presentation_resource_services(resources);
     const auto counter_token=allocate();

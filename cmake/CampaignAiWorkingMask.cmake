@@ -7,7 +7,8 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         src/campaign/scripting/native_mcc_script_builtin.cpp)
     target_include_directories(campaign_ai_working_mask_tu15_tests PRIVATE include src)
     target_link_libraries(campaign_ai_working_mask_tu15_tests PRIVATE
-        halo2_snapshot_storage Threads::Threads nlohmann_json::nlohmann_json)
+        halo2_snapshot_storage halo2_native_weapon_effect_dispatch_tu15
+        Threads::Threads nlohmann_json::nlohmann_json)
     # Reuse the production data mounter and actual complete AI frame. Discard
     # unused startup execution adapters; no replacement initializer is linked.
     target_compile_options(campaign_ai_working_mask_tu15_tests PRIVATE

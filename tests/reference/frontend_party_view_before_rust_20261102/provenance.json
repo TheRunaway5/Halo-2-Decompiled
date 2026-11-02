@@ -1,0 +1,9 @@
+{
+  "purpose": "Captured native party menu/text caller before Rust ownership; cached native facts, original-resource IO and historical Live producers remain distinct",
+  "source_pins": {
+    "src/ui/frontend_party.cpp": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+    "include/halo2/frontend.hpp": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "a954eec5f17e4aef26f67b5c5555390d3e5aa8206aa0758cf2694cba7a9e7dea"
+  },
+  "prior_validation": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-lobby-view-rust-validation.json"
+}

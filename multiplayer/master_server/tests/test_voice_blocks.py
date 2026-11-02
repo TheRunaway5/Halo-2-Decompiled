@@ -16,7 +16,6 @@ def numeric_owners(directory):
         require(token in owners, "Invalid Discord authorization", 401)
         return "discord", owners[token]
     directory.verify_owner = verify
-    directory.voice_blocks.subjects.clear() # Fixture subjects changed; real ones are immutable.
     return owners
 
 
@@ -47,7 +46,7 @@ class VoiceBlockTests(unittest.IsolatedAsyncioTestCase):
         from multiplayer.master_server.voice_blocks import VoiceBlocks
         restored = VoiceBlocks(directory)
         self.assertFalse(restored.allowed(who[owners["one"]], who[owners["two"]]))
-        self.assertNotIn(owners["one"], restored.blocks[who[owners["one"]]])
+        self.assertIsNone(directory.store.db.execute('SELECT 1 FROM voice_blocks WHERE player=? AND subject=?',(who[owners['one']],owners['one'])).fetchone())
         # Another account can replace only its own preferences, never A's.
         await self.client.put(path, headers={"Authorization": "Bearer two"}, json={"blocked": []})
         self.assertFalse(directory.voice_blocks.allowed(who[owners["one"]], who[owners["two"]]))

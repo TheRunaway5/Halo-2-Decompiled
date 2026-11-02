@@ -1,0 +1,27 @@
+[
+  {
+    "path": ".local/test-scratch/frontend-party-view-core-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-party-view-component-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-party-view-component-corrected-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-party-view-rust-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-party-view-stager-20261102",
+    "children": [],
+    "empty": true
+  }
+]

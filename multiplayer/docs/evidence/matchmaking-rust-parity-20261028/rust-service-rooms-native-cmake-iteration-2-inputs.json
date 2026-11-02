@@ -1,0 +1,35 @@
+{
+  "schema": "H2_RUST_SERVICE_ROOMS_NATIVE_INPUTS_V1",
+  "before_sha256": "28aad5a8d1f0a5c6d6ecf1c5057327c99609a87ba1cee9094aec16f549f8c754",
+  "after_sha256": "28aad5a8d1f0a5c6d6ecf1c5057327c99609a87ba1cee9094aec16f549f8c754",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4379,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms-native/halo2-test-nfl_f7nl/native-source",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms-native/halo2-test-nfl_f7nl",
+  "refreshed": [
+    {
+      "path": "tools/rust_service_room_probe.cpp",
+      "sha256": "e4ad16be51751f16f28633f1c459528bc38e5043a80a26b6982273820262f04e"
+    }
+  ],
+  "changed": [],
+  "drift_during_freeze": [],
+  "current_source_drift": [
+    "rust/matchmaking_service/README.md",
+    "src/pstencil/projected_lights.cpp"
+  ],
+  "returncode": 0,
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_matchmaking_assignment.py",
+    "--epoch",
+    "tu15",
+    "--fixture",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-original/halo2-test-hnne5hvk/assignment-tu15.json",
+    "--report",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-original-20261101/report.json"
+  ],
+  "returncode": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-original/halo2-test-hnne5hvk",
+  "tool_sha256": "b19d793d2ddcc4e72dae23e767452491b330cbd6ba8bdcc3dfddb46e0dabf3b4",
+  "retained_large_artifacts": [],
+  "retained_original_reference": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/tests/fixtures/matchmaking_assignment_tu15_original.json",
+    "bytes": 242090,
+    "sha256": "c22ab4203b11b7c4d101e7dd1b1844e87bc7ecce1c52b97492ae38f81385c02e"
+  }
+}

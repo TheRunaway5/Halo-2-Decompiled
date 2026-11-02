@@ -1,0 +1,12 @@
+{
+  "scope": "Existing owned frozen-file inventory versus current root; unrelated additions are recorded separately in the foreign-fixture audit",
+  "paths": [
+    "cmake/NativeWeaponEffectsTu15.cmake",
+    "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "tests/steam_workshop_runtime_tests.py",
+    "tools/validate_native_weapon_effects_tu15.py",
+    "tools/validate_weapon_material_snapshot_tu15.py"
+  ],
+  "count": 5,
+  "preserved": true
+}

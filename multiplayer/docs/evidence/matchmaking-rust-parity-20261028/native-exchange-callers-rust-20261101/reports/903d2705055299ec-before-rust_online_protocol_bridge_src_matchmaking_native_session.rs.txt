@@ -1,0 +1,659 @@
+//! Typed ABI only. The safe protocol crate owns native session policy.
+use crate::ffi;
+use halo2_online_protocol::{
+    host_agreement as host, matchmaking_native_control as control, matchmaking_native_qos as qos,
+    matchmaking_native_session as core, matchmaking_native_socket as socket,
+    matchmaking_origin::UrlParts,
+};
+
+pub struct NativeSession(pub(super) core::State);
+pub struct NativeSessionWorker(control::Worker);
+fn checked<T>(result: core::Result<T>) -> Result<T, String> {
+    result.map_err(|e| e.to_string())
+}
+pub(super) fn context(v: &ffi::HostAgreementContext) -> host::Context {
+    host::Context {
+        session: v.session,
+        epoch: v.epoch,
+        membership_revision: v.membership_revision,
+        peers: v.peers,
+        host: v.host,
+    }
+}
+pub(super) fn to_context(v: Option<host::Context>) -> ffi::HostAgreementContext {
+    let v = v.unwrap_or(host::Context {
+        session: [0; 32],
+        epoch: 0,
+        membership_revision: 0,
+        peers: 0,
+        host: 16,
+    });
+    ffi::HostAgreementContext {
+        session: v.session,
+        epoch: v.epoch,
+        membership_revision: v.membership_revision,
+        peers: v.peers,
+        host: v.host,
+    }
+}
+pub(super) fn decision(v: &ffi::HostAgreementDecision) -> Option<host::Decision> {
+    v.present
+        .then(|| {
+            Some(host::Decision {
+                previous: context(&v.previous),
+                next: context(&v.next),
+                ballot: host::Ballot {
+                    round: v.ballot.round,
+                    proposer: v.ballot.proposer,
+                },
+                value: host::Value {
+                    host: v.value.host,
+                    cut: crate::preparation_cut(&v.value.cut)?,
+                },
+                voters: v.voters,
+            })
+        })
+        .flatten()
+}
+fn seal(v: Option<core::Seal>) -> ffi::NativeSessionSeal {
+    let present = v.is_some();
+    let v = v.unwrap_or(core::Seal {
+        epoch: 0,
+        tick: 0,
+        digest: String::new(),
+    });
+    ffi::NativeSessionSeal {
+        present,
+        epoch: v.epoch,
+        tick: v.tick,
+        digest: v.digest,
+    }
+}
+fn effects(v: core::Effects) -> ffi::NativeSessionEffects {
+    let signal_present = v.signal.is_some();
+    let signal = v.signal.unwrap_or(core::Signal {
+        peer: 16,
+        kind: String::new(),
+        payload: String::new(),
+        mid: String::new(),
+    });
+    ffi::NativeSessionEffects {
+        initialize: v.initialize.is_some(),
+        context: to_context(v.initialize.map(|v| v.context)),
+        common: v.initialize.is_some_and(|v| v.common),
+        snapshot: v.initialize.is_some_and(|v| v.snapshot),
+        agreement: v.initialize.is_some_and(|v| v.agreement),
+        selection: v.initialize.is_some_and(|v| v.selection),
+        quality_present: v.quality.is_some(),
+        quality: to_context(v.quality),
+        observe_host: v.observe_host,
+        audio_fence: v.audio_fence,
+        audio_stop: v.audio_stop,
+        signal_present,
+        signal: ffi::NativeSessionSignal {
+            peer: signal.peer as u32,
+            kind: signal.kind,
+            payload: signal.payload,
+            mid: signal.mid,
+        },
+        reply: v.reply.unwrap_or_default(),
+    }
+}
+pub(super) fn packet(v: core::Packet) -> ffi::NativeSessionPacket {
+    ffi::NativeSessionPacket {
+        peer: v.peer as u32,
+        bytes: v.bytes,
+        epoch: v.epoch,
+        generation: v.audio_generation,
+    }
+}
+fn audio(v: &ffi::NativeSessionAudio) -> Option<core::Audio> {
+    Some(core::Audio {
+        source: v.source.try_into().ok()?,
+        sequence: v.sequence,
+        radio: v.radio,
+        left: v.left,
+        right: v.right,
+        opus: v.opus.clone(),
+        signature: if v.signature.is_empty() {
+            None
+        } else {
+            Some(v.signature.as_slice().try_into().ok()?)
+        },
+        generation: v.generation,
+    })
+}
+fn to_audio(v: core::Audio) -> ffi::NativeSessionAudio {
+    ffi::NativeSessionAudio {
+        source: v.source as u32,
+        sequence: v.sequence,
+        radio: v.radio,
+        left: v.left,
+        right: v.right,
+        opus: v.opus,
+        signature: v.signature.map(|s| s.to_vec()).unwrap_or_default(),
+        generation: v.generation,
+    }
+}
+fn flush(v: control::Flush) -> ffi::NativeSessionFlush {
+    ffi::NativeSessionFlush {
+        loaded_present: v.loaded.is_some(),
+        loaded: v.loaded.unwrap_or_default(),
+        completion_present: v.completion.is_some(),
+        completion: v.completion.unwrap_or_default(),
+        confirmation_present: v.confirmation.is_some(),
+        confirmation: v.confirmation.unwrap_or_default(),
+        commands: v.commands,
+        packets: v.packets.into_iter().map(packet).collect(),
+    }
+}
+pub fn new_native_session(c: &ffi::NativeSessionConfig) -> Result<Box<NativeSession>, String> {
+    let url = &c.origin;
+    let seats = c
+        .seats
+        .iter()
+        .map(|v| {
+            Ok(core::Seat {
+                slot: u8::try_from(v.slot).map_err(|_| core::Error)?,
+                owner: u8::try_from(v.peer).map_err(|_| core::Error)?,
+                guest: v.guest,
+                team: v.team,
+                name: v.name.clone(),
+                identity: v.identity,
+            })
+        })
+        .collect::<core::Result<Vec<_>>>();
+    checked((|| {
+        Ok(Box::new(NativeSession(core::State::new(
+            core::Config {
+                input_valid: url.input_valid,
+                origin: url.origin.clone(),
+                url: UrlParts {
+                    parsed: url.url_parsed,
+                    normalized: url.url_normalized.clone(),
+                    scheme: url.url_scheme.clone(),
+                    host: url.url_host.clone(),
+                    user: url.url_user.clone(),
+                    password: url.url_password.clone(),
+                    options: url.url_options.clone(),
+                    path: url.url_path.clone(),
+                },
+                room: c.room.clone(),
+                bearer: url.bearer.clone(),
+                loopback: url.loopback,
+                self_peer: c.self_peer.try_into().map_err(|_| core::Error)?,
+                seats: seats?,
+                team_mode: c.team_present.then_some(c.team_mode),
+                protocol: c.protocol,
+                native_extension_floor: c.extension_floor,
+                options: core::Options {
+                    direct: c.direct,
+                    continuity: c.continuity,
+                    peer_migration: c.peer_migration,
+                    snapshot_candidates: c.snapshot_candidates,
+                    survivor_selection: c.survivor_selection,
+                    terminal_recovery: c.terminal_recovery,
+                    eos: c.eos,
+                },
+                eos_peers: c
+                    .eos_peers
+                    .iter()
+                    .map(|v| u8::try_from(*v).map_err(|_| core::Error))
+                    .collect::<core::Result<_>>()?,
+            },
+            c.now,
+        )?)))
+    })())
+}
+pub fn native_session_view(s: &NativeSession) -> ffi::NativeSessionView {
+    let v = s.0.view();
+    let quality = s.0.initial_quality();
+    ffi::NativeSessionView {
+        session: v.session,
+        phase: v.phase as u8,
+        host: v.host,
+        error: v.error,
+        epoch: v.continuity.epoch,
+        members: v.continuity.members,
+        continuity_host: v.continuity.host,
+        selected: seal(v.continuity.selected),
+        voice_members: v.voice_members,
+        voice_blocked: v.voice_blocked,
+        departed: v.departed,
+        recorded_present: v.result_recorded.is_some(),
+        recorded: v.result_recorded.unwrap_or(false),
+        presence_present: v.presence.is_some(),
+        presence: v.presence.unwrap_or(0),
+        fingerprint_present: v.native_fingerprint.is_some(),
+        fingerprint: v.native_fingerprint.unwrap_or(0),
+        audio_generation: v.audio_generation,
+        peer_started: v.peer_started,
+        peer_fenced: v.peer_fenced,
+        selection_started: v.selection_started,
+        common_phase: v.common_phase,
+        native_control_phase: v.native_control_phase,
+        peer_handoff_phase: v.peer_handoff_phase,
+        sync_audio: v.sync_audio,
+        quality_present: quality.is_some(),
+        quality: to_context(quality),
+    }
+}
+pub fn native_session_worker(s: &NativeSession) -> Box<NativeSessionWorker> {
+    Box::new(NativeSessionWorker(control::Worker::new(
+        s.0.control_config(),
+    )))
+}
+pub fn native_session_room_api(s: &NativeSession) -> String {
+    s.0.room_api()
+}
+pub fn native_session_text(
+    s: &mut NativeSession,
+    data: &[u8],
+    r: &ffi::NativeSessionResources,
+) -> Result<ffi::NativeSessionEffects, String> {
+    checked(s.0.text(
+        data,
+        core::Resources {
+            authority: r.authority_present.then(|| context(&r.authority)),
+            quality: r.quality_present.then(|| context(&r.quality)),
+            agreement: r.agreement_present.then(|| context(&r.agreement)),
+        },
+    ))
+    .map(effects)
+}
+pub fn native_session_failure(
+    s: &mut NativeSession,
+    terminal: bool,
+    message: &str,
+) -> ffi::NativeSessionDirectEffects {
+    let (retry, e) = s.0.connection_failure(terminal, message);
+    ffi::NativeSessionDirectEffects {
+        terminal_present: false,
+        terminal: to_context(None),
+        failed: !retry,
+        effects: effects(e),
+    }
+}
+pub fn native_session_fail(s: &mut NativeSession, message: &str) -> ffi::NativeSessionEffects {
+    effects(s.0.fail(message))
+}
+pub fn native_session_fence_audio(s: &mut NativeSession, generation: u64) {
+    s.0.fence_audio(generation);
+}
+pub fn native_session_bind_audio(s: &mut NativeSession) {
+    s.0.bind_audio();
+}
+pub fn native_session_loaded(
+    s: &mut NativeSession,
+    fingerprint: u64,
+    settings: &[u8],
+    parameters: &[ffi::NativeSessionParameter],
+) -> Result<(), String> {
+    checked(
+        s.0.loaded(
+            fingerprint,
+            settings,
+            &parameters
+                .iter()
+                .map(|p| (p.id, p.value))
+                .collect::<Vec<_>>(),
+        ),
+    )
+}
+pub fn native_session_send(s: &mut NativeSession, peer: u32, data: &[u8]) {
+    if let Ok(peer) = u8::try_from(peer) {
+        s.0.send(peer, data);
+    }
+}
+pub fn native_session_receive(s: &mut NativeSession) -> Vec<ffi::NativeSessionPacket> {
+    s.0.receive().into_iter().map(packet).collect()
+}
+pub fn native_session_datagram(
+    s: &mut NativeSession,
+    peer: u32,
+    epoch: u32,
+    data: &[u8],
+) -> Result<bool, String> {
+    checked(s.0.datagram(
+        peer.try_into().map_err(|_| core::Error.to_string())?,
+        data,
+        epoch,
+    ))
+}
+pub fn native_session_outgoing(s: &mut NativeSession) -> Vec<ffi::NativeSessionPacket> {
+    s.0.take_outgoing().into_iter().map(packet).collect()
+}
+pub fn native_session_packet_current(s: &NativeSession, p: &ffi::NativeSessionPacket) -> bool {
+    u8::try_from(p.peer).is_ok_and(|peer| {
+        s.0.packet_current(&core::Packet {
+            peer,
+            bytes: p.bytes.clone(),
+            epoch: p.epoch,
+            audio_generation: p.generation,
+        })
+    })
+}
+pub fn native_session_flush(s: &mut NativeSession) -> ffi::NativeSessionFlush {
+    flush(s.0.control_flush())
+}
+pub fn native_session_voice(
+    s: &mut NativeSession,
+    target: u32,
+    frame: &ffi::NativeSessionAudio,
+    ready: bool,
+) {
+    if let (Ok(target), Some(frame)) = (u8::try_from(target), audio(frame)) {
+        s.0.voice(target, &frame, ready);
+    }
+}
+pub fn native_session_preferences(s: &mut NativeSession, target: u32, enabled: bool, muted: u16) {
+    if let Ok(target) = u8::try_from(target) {
+        s.0.voice_preferences(target, enabled, muted);
+    }
+}
+pub fn native_session_voices(s: &mut NativeSession) -> Vec<ffi::NativeSessionVoice> {
+    s.0.take_voices()
+        .into_iter()
+        .map(|v| ffi::NativeSessionVoice {
+            peer: v.peer as u32,
+            preferences: v.preferences,
+            enabled: v.enabled,
+            muted: v.muted,
+            audio: to_audio(v.audio),
+        })
+        .collect()
+}
+pub fn native_session_voice_enabled(s: &NativeSession, slot: u32) -> bool {
+    u8::try_from(slot).is_ok_and(|slot| s.0.postgame_voice_enabled(slot))
+}
+pub fn native_session_postgame_voice(
+    s: &mut NativeSession,
+    now: u64,
+    enabled: bool,
+    muted: u16,
+    blocked: u16,
+    frames: Vec<ffi::NativeSessionAudio>,
+    ready: bool,
+) -> Result<Vec<ffi::NativeSessionAudio>, String> {
+    let frames = frames
+        .iter()
+        .map(|v| audio(v).ok_or(core::Error))
+        .collect::<core::Result<Vec<_>>>();
+    checked(frames.and_then(|frames| {
+        s.0.postgame_voice(now, enabled, muted, blocked, frames, ready)
+    }))
+    .map(|v| v.into_iter().map(to_audio).collect())
+}
+pub fn native_session_complete(s: &mut NativeSession, report: &[u8]) -> Result<(), String> {
+    checked(s.0.complete(report))
+}
+pub fn native_session_confirm(s: &mut NativeSession) -> Result<(), String> {
+    checked(s.0.confirm())
+}
+pub fn native_session_postgame(s: &NativeSession) -> Vec<u8> {
+    s.0.postgame().to_vec()
+}
+pub fn native_session_close_postgame(s: &mut NativeSession) {
+    s.0.close_postgame();
+}
+pub fn native_session_world(
+    s: &mut NativeSession,
+    kind: u8,
+    v: &ffi::NativeSessionSeal,
+) -> Result<(), String> {
+    checked(s.0.queue_world(
+        kind,
+        core::Seal {
+            epoch: v.epoch,
+            tick: v.tick,
+            digest: v.digest.clone(),
+        },
+    ))
+}
+pub fn native_session_seals(s: &mut NativeSession) -> Vec<ffi::NativeSessionSeal> {
+    s.0.take_seals()
+        .into_iter()
+        .map(|v| seal(Some(v)))
+        .collect()
+}
+pub fn native_session_signal(
+    s: &mut NativeSession,
+    v: &ffi::NativeSessionSignal,
+) -> Result<(), String> {
+    checked(v.peer.try_into().map_err(|_| core::Error).and_then(|peer| {
+        s.0.signal(core::Signal {
+            peer,
+            kind: v.kind.clone(),
+            payload: v.payload.clone(),
+            mid: v.mid.clone(),
+        })
+    }))
+}
+pub fn native_session_direct(
+    s: &mut NativeSession,
+    v: &ffi::NativeSessionDirect,
+) -> Result<ffi::NativeSessionDirectEffects, String> {
+    let links = v
+        .links
+        .iter()
+        .map(|v| {
+            Ok(core::Link {
+                peer: v.peer.try_into().map_err(|_| core::Error)?,
+                measured: v.measured,
+                rtt: v.rtt,
+                upload: v.upload,
+                loss: v.loss,
+            })
+        })
+        .collect::<core::Result<_>>();
+    checked(links.and_then(|links| {
+        s.0.direct_observation(core::DirectObservation {
+            now: v.now,
+            authenticated: v.authenticated,
+            ready: v.ready,
+            failed: v.failed,
+            links,
+            authority: v.authority_present.then(|| context(&v.authority)),
+            admitted: v.admitted_present.then(|| context(&v.admitted)),
+        })
+    }))
+    .map(|v| ffi::NativeSessionDirectEffects {
+        terminal_present: v.terminal.is_some(),
+        terminal: to_context(v.terminal),
+        failed: v.failed,
+        effects: effects(v.effects),
+    })
+}
+pub fn native_session_fence(
+    s: &mut NativeSession,
+    v: &ffi::NativeSessionFence,
+) -> Result<ffi::NativeSessionEffects, String> {
+    if v.decision.present && decision(&v.decision).is_none() {
+        return Err(core::Error.to_string());
+    }
+    checked(s.0.native_fence(
+        context(&v.context),
+        v.fenced,
+        decision(&v.decision),
+        v.selection_started,
+        v.selection_failed,
+    ))
+    .map(effects)
+}
+pub fn native_session_candidate(
+    s: &NativeSession,
+    o: &ffi::NativeSessionCandidate,
+) -> Result<u32, String> {
+    let a = &o.agreement;
+    if a.decision.present && decision(&a.decision).is_none() {
+        return Err(core::Error.to_string());
+    }
+    let ranked = o
+        .ranked
+        .iter()
+        .map(|p| u8::try_from(*p).map_err(|_| core::Error))
+        .collect::<core::Result<Vec<_>>>();
+    checked(ranked).map(|ranked| {
+        s.0.migration_candidate(core::CandidateObservation {
+            agreement: o.agreement_present.then(|| {
+                (
+                    context(&o.context),
+                    host::State {
+                        suspected: a.suspected,
+                        fenced: a.fenced,
+                        electorate: a.electorate,
+                        silent: a.silent,
+                        majority: a.majority,
+                        ready: a.ready.each_ref().map(crate::preparation_cut),
+                        decision: decision(&a.decision),
+                        rejected: a.rejected,
+                    },
+                )
+            }),
+            quality: o.quality_present.then(|| context(&o.quality)),
+            ranked,
+            selection_supported: o.selection_supported,
+            selection_complete: o.selection_complete,
+            selection_failed: o.selection_failed,
+        })
+        .map(u32::from)
+        .unwrap_or(16)
+    })
+}
+pub fn native_session_selection(
+    s: &mut NativeSession,
+    c: &ffi::HostAgreementContext,
+) -> Result<(), String> {
+    checked(s.0.selection_started(context(c)))
+}
+pub fn native_session_commit_allowed(s: &NativeSession, v: &ffi::HostAgreementDecision) -> bool {
+    decision(v).is_some_and(|d| s.0.commit_allowed(d))
+}
+pub fn native_session_committed(
+    s: &mut NativeSession,
+    v: &ffi::HostAgreementDecision,
+) -> Result<(), String> {
+    checked(
+        decision(v)
+            .ok_or(core::Error)
+            .and_then(|v| s.0.committed(v)),
+    )
+}
+
+struct Io<'a>(&'a ffi::NativeMatchSessionIo);
+impl control::Io for Io<'_> {
+    fn now_ms(&self) -> u64 {
+        self.0.session_now_ms()
+    }
+    fn cancelled(&self) -> bool {
+        self.0.session_cancelled()
+    }
+    fn wait(&self, ms: u32) {
+        self.0.session_wait(ms);
+    }
+    fn open(&self, o: qos::Open<'_>) -> socket::Result<()> {
+        self.0
+            .session_open(&ffi::MatchmakingQosOpen {
+                url: o.url.into(),
+                bearer: o.bearer.into(),
+                connect_ms: o.connect_ms,
+                timeout_ms: o.timeout_ms,
+            })
+            .map_err(|_| socket::Error::Io)
+    }
+    fn receive(&self) -> socket::Result<qos::Receive> {
+        let f = self.0.session_receive().map_err(|_| socket::Error::Io)?;
+        if f.again {
+            if !f.data.is_empty()
+                || f.text
+                || f.binary
+                || f.ping
+                || f.pong
+                || f.close
+                || f.continued
+                || f.bytes_left != 0
+            {
+                return Err(socket::Error::Io);
+            }
+            return Ok(qos::Receive::Again);
+        }
+        Ok(qos::Receive::Frame(qos::Frame {
+            text: f.text,
+            binary: f.binary,
+            ping: f.ping,
+            pong: f.pong,
+            close: f.close,
+            continued: f.continued,
+            bytes_left: f.bytes_left,
+            data: f.data,
+        }))
+    }
+    fn send(&self, kind: control::SendKind, bytes: &[u8]) -> socket::Result<socket::Sent> {
+        let kind = match kind {
+            control::SendKind::Text => ffi::NativeSessionSendKind::Text,
+            control::SendKind::Binary => ffi::NativeSessionSendKind::Binary,
+            control::SendKind::Pong => ffi::NativeSessionSendKind::Pong,
+            control::SendKind::Close => ffi::NativeSessionSendKind::Close,
+        };
+        let v = self
+            .0
+            .session_send(kind, bytes)
+            .map_err(|_| socket::Error::Io)?;
+        Ok(socket::Sent {
+            again: v.again,
+            count: v.count,
+        })
+    }
+    fn close(&self) {
+        self.0.session_close();
+    }
+    fn text(&self, bytes: &[u8]) -> socket::Result<Option<String>> {
+        self.0
+            .session_text(bytes)
+            .map(|v| (!v.is_empty()).then_some(v))
+            .map_err(|_| socket::Error::Invalid)
+    }
+    fn datagram(&self, peer: u8, epoch: u32, bytes: &[u8]) -> socket::Result<()> {
+        self.0
+            .session_datagram(peer, epoch, bytes)
+            .map_err(|_| socket::Error::Invalid)
+    }
+    fn pump(&self) {
+        self.0.session_pump();
+    }
+    fn flush(&self) -> socket::Result<control::Flush> {
+        self.0
+            .session_flush()
+            .map(|v| control::Flush {
+                loaded: v.loaded_present.then_some(v.loaded),
+                completion: v.completion_present.then_some(v.completion),
+                confirmation: v.confirmation_present.then_some(v.confirmation),
+                commands: v.commands,
+                packets: v
+                    .packets
+                    .into_iter()
+                    .map(|p| core::Packet {
+                        peer: p.peer as u8,
+                        bytes: p.bytes,
+                        epoch: p.epoch,
+                        audio_generation: p.generation,
+                    })
+                    .collect(),
+            })
+            .map_err(|_| socket::Error::Io)
+    }
+    fn packet_current(&self, p: &core::Packet) -> bool {
+        self.0.session_packet_current(&ffi::NativeSessionPacket {
+            peer: p.peer as u32,
+            bytes: p.bytes.clone(),
+            epoch: p.epoch,
+            generation: p.audio_generation,
+        })
+    }
+    fn failure(&self, terminal: bool, message: &str) -> bool {
+        self.0.session_failure(terminal, message)
+    }
+}
+pub fn native_session_run(worker: &NativeSessionWorker, io: &ffi::NativeMatchSessionIo) {
+    worker.0.run(&Io(io));
+}

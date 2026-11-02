@@ -1,0 +1,18 @@
+{
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/frontend-presentation-helper-20261102",
+    "--",
+    "python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "exit_code": 0,
+  "passed": 7,
+  "failed": 0,
+  "scratch_root_empty": true,
+  "test_source_sha256": "22c37a854aa8944ea90142ace71bf4327b839b1ffddb83e006fff39a9e6c6681",
+  "build_helper_sha256": "bba465ce63e1df655fb19da0203de11b589438cc66687f12c2531a376a83dded"
+}

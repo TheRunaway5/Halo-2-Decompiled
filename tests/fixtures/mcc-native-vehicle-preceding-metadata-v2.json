@@ -1,0 +1,465 @@
+{
+  "schema": "HALO2_MCC_NATIVE_VEHICLE_PRECEDING_METADATA_V2",
+  "original_fixture_owner_sha256": "0254c192ae538845a350c16f101403330ceac531fe1d3e5ebf48fa5d17e3a5d2",
+  "pc_program_policy_sha256": "8e7785b414fe53a061f85e7e26fbe09567e088b2464c35fc5681e54e870ed921",
+  "scope": "Fixture prefix only:1Needle/2Street authenticated STEM metadata insertions; no prior record/source region/payload/StringID/bitmap changes. Originalv1owner and compressed literal fixture retained untouched.",
+  "maps": [
+    {
+      "map": "needle",
+      "original_canonical_sha256": "8698adc13e378c5220b18699471a47758b96ff68d04ffe1dc66cfddc8030a7de",
+      "updated_canonical_sha256": "e6d29d7ea2bfaa3ffb71e3bea099d662d9903b8a7a2c771b5b83f8c5ac17afc5",
+      "original_records": 99,
+      "updated_records": 100,
+      "insertions": [
+        {
+          "index": 82,
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum",
+            "bytes": 1878,
+            "payload": "9977d3432b7b9a28a5de532a6e33d343a86e77d07a7011c89f05c42e5e54f76b.bin",
+            "fnv64": "537b9ade6659fa8b",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1728
+              ],
+              [
+                116,
+                168
+              ],
+              [
+                124,
+                348
+              ],
+              [
+                132,
+                708
+              ]
+            ],
+            "references": [
+              [
+                172,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite"
+                ]
+              ],
+              [
+                182,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                192,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                202,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                212,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                222,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                232,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                242,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                252,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                262,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                272,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                282,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                292,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+                ]
+              ],
+              [
+                302,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                312,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                322,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                332,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                342,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        }
+      ]
+    },
+    {
+      "map": "street_sweeper",
+      "original_canonical_sha256": "7f9222998d0752232147a2c20278140a3d622c3d09d7ea2004e4c99b98537b10",
+      "updated_canonical_sha256": "cfd2c9726730513d27498ea9933afd20098d18955d5499abec8769eb6ea06305",
+      "original_records": 98,
+      "updated_records": 100,
+      "insertions": [
+        {
+          "index": 85,
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test",
+            "bytes": 1172,
+            "payload": "fd934672b0819dd316a46d9eb26d61def8fb87e7ba5ea2f2cff2d5673a861ea3.bin",
+            "fnv64": "65116dd60eb156b3",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1072
+              ],
+              [
+                116,
+                156
+              ],
+              [
+                124,
+                256
+              ],
+              [
+                132,
+                460
+              ]
+            ],
+            "references": [
+              [
+                160,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+                ]
+              ],
+              [
+                170,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                180,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                190,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                200,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                210,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                220,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                230,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+                ]
+              ],
+              [
+                240,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                250,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        },
+        {
+          "index": 89,
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum",
+            "bytes": 1878,
+            "payload": "9977d3432b7b9a28a5de532a6e33d343a86e77d07a7011c89f05c42e5e54f76b.bin",
+            "fnv64": "537b9ade6659fa8b",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1728
+              ],
+              [
+                116,
+                168
+              ],
+              [
+                124,
+                348
+              ],
+              [
+                132,
+                708
+              ]
+            ],
+            "references": [
+              [
+                172,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite"
+                ]
+              ],
+              [
+                182,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                192,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                202,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                212,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                222,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                232,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                242,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                252,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                262,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                272,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                282,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                292,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+                ]
+              ],
+              [
+                302,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                312,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                322,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                332,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                342,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        }
+      ]
+    }
+  ]
+}

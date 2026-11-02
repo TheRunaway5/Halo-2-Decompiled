@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-native/halo2-test-yvyss7yk",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-full-rust/halo2-test-2om4xwxw",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-publication-syntax/halo2-test-wx106k46"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "native-publication-native": [],
+    "native-publication-full-rust": [],
+    "native-publication-syntax": [],
+    "native-publication-staging": [],
+    "native-publication-audit": []
+  },
+  "native_unit_state": "LoadState=not-found\nActiveState=inactive\nSubState=dead\n",
+  "retained_large_artifacts": [],
+  "preserved": "Original/reference inputs, SDK archive, preexisting snapshots/evidence, selected runtimes and unrelated active work"
+}

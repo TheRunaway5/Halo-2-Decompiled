@@ -153,6 +153,8 @@ def physical(image,m,rows,scratch):
   args=c['arguments'];struct.pack_into('<'+'I'*(len(args)+1),stack,SP-STACK,STOP,*args);(owned/'stack.bin').write_bytes(stack);assembly.append(f'.section .stack,"aw"\n.incbin "{owned/"stack.bin"}"');sections.append(f'.stack 0x{STACK:x} : {{ *(.stack) }}')
   assembly.append(f'.section .tls,"aw"\n.space 4096');sections.append(f'.tls 0x{FS:x} : {{ *(.tls) }}')
   cw,sw,mxcsr=c['before_fp'];env=bytearray(28);struct.pack_into('<H',env,0,cw);struct.pack_into('<H',env,4,sw);struct.pack_into('<H',env,8,0xffff);(owned/'environment.bin').write_bytes(env)
+  entry_registers=c.get('entry_registers',{});assert set(entry_registers)<=set(('eax','ecx','edx','ebx','ebp','esi','edi'))
+  entry_setup='\n'.join(' mov $'+str(int(value)&0xffffffff)+',%'+name for name,value in entry_registers.items())
   assembly.append(f'''.code32
 .section .bridge,"ax"
 .globl _start
@@ -171,6 +173,7 @@ _start:
  ldmxcsr sse_control
  mov ${c['receiver']},%ecx
  mov ${c.get('minimum_input',0)},%eax
+{entry_setup}
  mov ${SP},%esp
  int3
  jmp *entry

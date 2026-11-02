@@ -459,9 +459,11 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
             vertices[i].uv={expand_normalized(vertices[i].uv.x,3),
                 expand_normalized(vertices[i].uv.y,4)};
         }
+        // MCC's physical FLOAT3 basis is N/T/B, paired to the original
+        // packed model inputs. Vista retains its existing N/B/T layout.
         vertices[i].normal=point(b,basis.offset+i*36);
-        vertices[i].binormal=point(b,basis.offset+i*36+12);
-        vertices[i].tangent=point(b,basis.offset+i*36+24);
+        vertices[i].binormal=point(b,basis.offset+i*36+(mcc_?24:12));
+        vertices[i].tangent=point(b,basis.offset+i*36+(mcc_?12:24));
       } else {
         vertices[i].position=xbox_float_positions?point(b,p):
             Vec3{decompress(i16(b,p),0),decompress(i16(b,p+2),1),decompress(i16(b,p+4),2)};

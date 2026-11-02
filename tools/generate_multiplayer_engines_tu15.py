@@ -24,6 +24,14 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 from generate_physics_live_support_tu15 import generate
 from objective_native_tu15_injection import inject_native_objective_owners
 
+# Typed semantic ownership must not depend on switch-only legacy discovery.
+# Every dependency traversal below subtracts existing before tracing bodies.
+RETIRED_NATIVE_ENTRIES = frozenset((0x777e0,))
+NATIVE_TIMER_CALLS = ((0x77ad3,0x77ad8,'e808fdffff'),
+                      (0x77bd3,0x77bd8,'e808fcffff'),
+                      (0x77c1a,0x77c1f,'e8c1fbffff'),
+                      (0x78204,0x78209,'e8d7f5ffff'))
+
 REGISTRATION = ((1, 'CTF', 0x47d174), (2, 'Slayer', 0x4822a0),
                 (3, 'Oddball', 0x4822a4), (4, 'King', 0x4822a8),
                 (7, 'Juggernaut', 0x47a2f8), (8, 'Territories', 0x4822ac),
@@ -199,6 +207,11 @@ def main():
     code = _Code(image, '.text')
     engines = registered_engines(image)
     existing, reused = existing_owners()
+    existing.update(RETIRED_NATIVE_ENTRIES)
+    for site,continuation,raw in NATIVE_TIMER_CALLS:
+        instruction=code.at(site)
+        assert instruction.mnemonic=='call' and instruction.operands[0].imm==0x777e0
+        assert bytes(instruction.bytes).hex()==raw and site+instruction.size==continuation
     aliases, alias_inputs = existing_aliases()
     roots = {p for engine in engines for p in engine['methods']}
     starts = {int(row['address'], 16) for row in csv.DictReader(
@@ -231,7 +244,7 @@ def main():
         dependency_pending.update((body.calls | body.tail_jumps) - existing - aliases.keys() - dependency_bodies.keys())
     if args.test_services:
         assert set(TEST_SERVICES) <= existing, 'Test services must already have production owners'
-        pending = (roots & existing) | set(TEST_SERVICES)
+        pending = ((roots & existing) | set(TEST_SERVICES)) - RETIRED_NATIVE_ENTRIES
     else:
         pending = (roots | set(SHARED_ENTRIES) | dependency_bodies.keys()) - existing
     bodies = {}
@@ -313,6 +326,8 @@ def main():
         dependency_bodies[entry] = body
         fresh_player_dependency_entries.add(entry)
         pending.update((body.calls | body.tail_jumps) - existing - aliases.keys() - bodies.keys() - sdk_targets)
+    assert not RETIRED_NATIVE_ENTRIES.intersection(bodies)
+    assert not RETIRED_NATIVE_ENTRIES.intersection(dependency_bodies)
     args.directory.mkdir(parents=True, exist_ok=True)
     sites, instructions, addresses, routines, listings = {}, {}, {}, [], []
     for entry, body in sorted(bodies.items()):
@@ -360,6 +375,13 @@ def main():
         f'source_{prefix}_owns_entry').replace(
         'source_run_physics_live_support_tu15',
         f'source_run_{prefix}'))
+    source=args.output.read_text()
+    for site,_,_ in NATIVE_TIMER_CALLS:
+        source=source.replace(f'dispatch(s,target,0x{site:x}u,false);',f's.required(0x{site:x}u,target,false);')
+    for entry in RETIRED_NATIVE_ENTRIES:
+        assert f'run_{entry:x}(' not in source
+        assert f'case 0x{entry:x}u:run_' not in source
+    args.output.write_text(source)
     if not args.test_services:
         args.output.write_text(inject_player_status_phase_observer(inject_native_objective_owners(inject_native_objective_kernels(args.output.read_text()))))
     report = json.loads(manifest.read_text())
@@ -367,6 +389,7 @@ def main():
                           for entry in sorted(bodies.keys() & aliases.keys())} if not args.test_services else {}
     alias_callbacks = sum(row['callback'] for row in alias_replacements.values())
     report.update(generator_source_sha256=sha(__file__),
+        retired_native_timer_entries=[f'{p:08x}' for p in sorted(RETIRED_NATIVE_ENTRIES)],
         generated_cpp_sha256=sha(args.output), engines=engines,
         callback_roots=len(roots), new_callbacks=0 if args.test_services else len(roots & bodies.keys())-alias_callbacks,
         compiled_callback_targets=len(roots & bodies.keys()),

@@ -1,0 +1,211 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-search-candidate-20261102/halo2-test-pifwlqo9/build/Testing/Temporary/scratch/halo2-test-mg43glhr/cargo/release/halo2-matchmaking-service",
+    "bytes": 11489104,
+    "sha256": "a126f0eda3a53d9f0da42fce04e79eebfc9593bbfaf50fa57b948b41613a4a02",
+    "retained": false
+  },
+  "mode": "frontend-buttons-only",
+  "frontend": {
+    "passed": true,
+    "case": "blocked",
+    "catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "source_catalog_unchanged": true,
+    "catalog": {
+      "compatibility": "halo2-native-queue-v12",
+      "maps": [
+        "00a_introduction",
+        "01a_tutorial",
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "mainmenu",
+        "midship",
+        "needle",
+        "shared",
+        "single_player_shared",
+        "street_sweeper",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ],
+      "playlists": [
+        {
+          "eligible": false,
+          "id": "rumble-pit"
+        },
+        {
+          "eligible": false,
+          "id": "double-team"
+        },
+        {
+          "eligible": false,
+          "id": "team-slayer"
+        },
+        {
+          "eligible": false,
+          "id": "team-skirmish"
+        },
+        {
+          "eligible": false,
+          "id": "team-training"
+        },
+        {
+          "eligible": false,
+          "id": "team-snipers"
+        },
+        {
+          "eligible": false,
+          "id": "team-hardcore"
+        },
+        {
+          "eligible": false,
+          "id": "team-swat"
+        },
+        {
+          "eligible": false,
+          "id": "big-team-battle"
+        },
+        {
+          "eligible": false,
+          "id": "minor-clan-match"
+        },
+        {
+          "eligible": false,
+          "id": "major-clan-match"
+        },
+        {
+          "eligible": false,
+          "id": "multi-team"
+        },
+        {
+          "eligible": false,
+          "id": "action-sack"
+        },
+        {
+          "eligible": false,
+          "id": "lab-test"
+        }
+      ],
+      "steam_handoff_fixture": true
+    },
+    "native_binary_sha256": "33d589b45fb0c0fe6d04babf808c061741275c3d6a9347e6dbe322e00c9af917",
+    "native_log_bytes": 1448,
+    "native_log_sha256": "034aab408b8f0c4c20e8ddbc07f24dab53b502479956222be78cc6005b91a814",
+    "seconds": 1.792,
+    "publications_before": {
+      "results": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_teams": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "match_result_clan_skill": 0,
+        "carnage_reports": 0,
+        "carnage_players": 0,
+        "carnage_weapon_stats": 0,
+        "carnage_player_accuracy": 0,
+        "carnage_weapon_accuracy": 0
+      },
+      "xp": {
+        "playlist_skill": 0,
+        "clan_playlist_skill": 0
+      }
+    },
+    "publications_after": {
+      "results": {
+        "match_results": 0,
+        "match_result_players": 0,
+        "match_result_teams": 0,
+        "match_result_memberships": 0,
+        "match_result_skill": 0,
+        "match_result_clan_skill": 0,
+        "carnage_reports": 0,
+        "carnage_players": 0,
+        "carnage_weapon_stats": 0,
+        "carnage_player_accuracy": 0,
+        "carnage_weapon_accuracy": 0
+      },
+      "xp": {
+        "playlist_skill": 0,
+        "clan_playlist_skill": 0
+      }
+    },
+    "actual_native_menu": true,
+    "rust_http_policy": true,
+    "python_api_or_coordinator": false,
+    "steam_provider_fixture": true,
+    "native_party_reply_io_delay_ms": 150,
+    "io_delay_source_sha256": "6ffed556b372df15c1fbb2c2149d40a1eedac7942a02a68a40c6687bfb68aaaa",
+    "genuine_steam": false,
+    "genuine_eos": false,
+    "gameplay_played": false,
+    "installed_input_verified": false,
+    "raw_outputs_owned": true,
+    "retained_large_artifacts": [],
+    "scope": "Unchanged full source catalog, actual native menu handlers and Rust service; private external Steam handoff. No played world, positive EOS, original Live or installed delivery claim."
+  }
+}

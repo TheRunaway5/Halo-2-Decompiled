@@ -1,9 +1,10 @@
 #pragma once
 #include "halo2/physics_world_runtime.hpp"
+#include "halo2/source_sound_cache_read_tu15.hpp"
 
 namespace halo2 {
 struct SourceSoundCacheIoTu15Services {
-    std::function<std::vector<std::byte>(std::uint32_t encoded_offset,std::uint32_t bytes)> read;
+    std::function<std::vector<std::byte>(const SourceSoundCacheReadTu15&)> read;
     std::function<std::uint32_t(std::uint32_t descriptor,std::uint32_t destination,std::uint32_t bytes)> retain_completed_read;
 };
 // Exact21F4BD ->1A3B70 sound-cache request, after original allocation/binding.

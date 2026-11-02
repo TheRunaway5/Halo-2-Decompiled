@@ -1,0 +1,968 @@
+{
+  "schema": "H2_MCC_NATIVE_SKY_COOKED_PROFILES_V1",
+  "source_map_sha256": {
+    "03a_oldmombasa": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+    "zanzibar": "2751a31d21e01ff516f4a4300602e101579a7df59364716e884f8f7c28bfa080",
+    "alphamoon": "2e17998908d0b71a725f3f3388cb9a1e4530cfa7708fb963e0c39cace434e0eb"
+  },
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\transparent\\sky_two_alpha_clouds",
+      "native_source_map": "03b_newmombasa",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\sky_two_alpha_clouds",
+        "bytes": 244,
+        "payload": "23902019b2a97af100e570f8b40f00c6f84c2653128541c74a76ba9f8ee1660c.bin",
+        "fnv64": "f805e12fa61ad39d",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\sky_clouds_simple_transparent"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000600000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\sky_clouds_simple_transparent"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000402000208",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 6,
+                "raw_hex": "0000000101000000d4050000f5050001d2010002f3010003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "998205382c06d7df2afb3c12ca467aaaaa2d9b3f10489088f4ee6194b0facb0f",
+      "source_counts": {
+        "4": 2,
+        "12": 0,
+        "20": 4,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 0,
+        "68": 0,
+        "76": 0,
+        "84": 0,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": -1,
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 6
+      },
+      "clock_overlays": [],
+      "native_role_banks": {
+        "28": "000000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "00000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "ffffffffffffffffffffffffffffffffffffffff"
+      },
+      "mapping": "copy",
+      "paired_proof": {
+        "original_map": "03a_oldmombasa",
+        "original_shader": "scenarios\\skies\\solo\\earthcity\\shaders\\ec_sky_dome2",
+        "material_payload": "b92614123573822edc6b21296dd066a84035d8904c1c54c0e93f715895183a59.bin",
+        "complete_main_banks": true,
+        "complete_roles_and_curves": true,
+        "native_template_pair": {
+          "original_payload": "2221ee88df01dd840b9f4e09a4e3578a95cccf32228b41dba7b55546ae2be9fa.bin",
+          "admitted_payload": "23902019b2a97af100e570f8b40f00c6f84c2653128541c74a76ba9f8ee1660c.bin",
+          "complete_postprocess_equal": true,
+          "semantic_sha256": "9a0c30f9bf9f9ff81282c2ef047a7c79413062e571604c214674813a443bdaa1"
+        }
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\sky_two_alpha_clouds",
+      "native_source_map": "03b_newmombasa",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\sky_two_alpha_clouds",
+        "bytes": 244,
+        "payload": "23902019b2a97af100e570f8b40f00c6f84c2653128541c74a76ba9f8ee1660c.bin",
+        "fnv64": "f805e12fa61ad39d",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\sky_clouds_simple_transparent"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000600000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\sky_clouds_simple_transparent"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000402000208",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 6,
+                "raw_hex": "0000000101000000d4050000f5050001d2010002f3010003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "998205382c06d7df2afb3c12ca467aaaaa2d9b3f10489088f4ee6194b0facb0f",
+      "source_counts": {
+        "4": 2,
+        "12": 0,
+        "20": 4,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 10,
+        "68": 10,
+        "76": 1,
+        "84": 3,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": -1,
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 6
+      },
+      "clock_overlays": [
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216,
+            1112014848
+          ],
+          "curve_hex": "00000600000000000000803f0000000000000000",
+          "curve_hex_variants": [
+            "00000600000000000000803f0000000000000000",
+            "03000600000000000000803f00000000000000006f12033a00000000000000000000803f0000803f00000000000000000000803f"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1097859072,
+            1117126656
+          ],
+          "curve_hex": "00000000000000000000803f0000000000000000",
+          "curve_hex_variants": [
+            "00000000000000000000803f0000000000000000",
+            "00000100000000000000803f0000000000000000"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000a0400000803f00000000000000000000803f0000803f",
+          "curve_hex_variants": [
+            "010000000000a0400000803f00000000000000000000803f0000803f",
+            "010000000000c0400000803f00000000000000000000803f0000803f"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000a0400000803f00000000000000000000803f0000803f",
+          "curve_hex_variants": [
+            "010000000000a0400000803f00000000000000000000803f0000803f",
+            "010000000000c0400000803f00000000000000000000803f0000803f"
+          ]
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "010000000000803f0000803f00000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        },
+        {
+          "input": 0,
+          "range": 0,
+          "period_words": [
+            1065353216
+          ],
+          "curve_hex": "01000000000000000000000000000000000000000000803f0000803f"
+        }
+      ],
+      "native_role_banks": {
+        "28": "008000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "02020200020000000004",
+        "68": "00000400010005000200010003000200040000000500030006000600070007000800080009000900",
+        "76": "0014",
+        "84": "d4050000f505000001000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff"
+      },
+      "mapping": "copy",
+      "paired_proof": {
+        "original_map": "03a_oldmombasa",
+        "original_shader": "scenarios\\skies\\solo\\earthcity\\shaders\\clouds_low2",
+        "material_payload": "a76036a8b0068823c176c2492aabade6c3e5fe1ad4f018d70eded2e048351c42.bin",
+        "complete_main_banks": true,
+        "complete_roles_and_curves": true,
+        "native_template_pair": {
+          "original_payload": "2221ee88df01dd840b9f4e09a4e3578a95cccf32228b41dba7b55546ae2be9fa.bin",
+          "admitted_payload": "23902019b2a97af100e570f8b40f00c6f84c2653128541c74a76ba9f8ee1660c.bin",
+          "complete_postprocess_equal": true,
+          "semantic_sha256": "9a0c30f9bf9f9ff81282c2ef047a7c79413062e571604c214674813a443bdaa1"
+        }
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\sky_one_alpha_env",
+      "native_source_map": "03b_newmombasa",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\sky_one_alpha_env",
+        "bytes": 282,
+        "payload": "cb5f8eea52c18c5b67cf8301dfd1381294086dc9b456db5ab1e3352d87bd038a.bin",
+        "fnv64": "d77612e31a5f59d3",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            272
+          ],
+          [
+            108,
+            136
+          ],
+          [
+            116,
+            188
+          ],
+          [
+            124,
+            200
+          ],
+          [
+            132,
+            208
+          ]
+        ],
+        "references": [
+          [
+            192,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\sky_default_transparent_one_sided"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000e00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\sky_default_transparent_one_sided"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "00080408080c",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 14,
+                "raw_hex": "0000000001000001020000030300000281000000820000016200000283000003d2050000f3050001d4090002f5090003d60d0004f70d0005",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "7180c9919c9c129d14822edd6e89ac488f2dc957e11e6ff89be501148f6da0c5",
+      "source_counts": {
+        "4": 4,
+        "12": 4,
+        "20": 6,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 0,
+        "68": 0,
+        "76": 0,
+        "84": 0,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": -1,
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 14
+      },
+      "clock_overlays": [],
+      "native_role_banks": {
+        "28": "000000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "00000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "ffffffffffffffffffffffffffffffffffffffff"
+      },
+      "mapping": "swap_environment_pixels",
+      "paired_proof": {
+        "original_map": "03a_oldmombasa",
+        "original_shader": "scenarios\\skies\\solo\\earthcity\\shaders\\ec_sky_tether_faded",
+        "material_payload": "a13caff070fb2513ce674f7448ca3220c095a2988cedc8c88c19b6c5ad9c4c7f.bin",
+        "complete_main_banks": true,
+        "complete_roles_and_curves": true,
+        "native_template_pair": {
+          "original_payload": "6e36b3fa6fdbd59e855b1a3a8fba31d5d725a14c81624c32595595becb43615d.bin",
+          "admitted_payload": "cb5f8eea52c18c5b67cf8301dfd1381294086dc9b456db5ab1e3352d87bd038a.bin",
+          "complete_postprocess_equal": true,
+          "semantic_sha256": "679cee27baf27c5f9b43020911e0073611b65e313002df0ac56b3d068a143484"
+        }
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\sky_one_alpha_env_illum",
+      "native_source_map": "06a_sentinelwalls",
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\sky_one_alpha_env_illum",
+        "bytes": 296,
+        "payload": "1b33a662e7079a10e3d0455ca8e4efb6f18051474af3a6bc9111b01e43ab9bc6.bin",
+        "fnv64": "90b4e442f7dea70c",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            208
+          ],
+          [
+            108,
+            136
+          ],
+          [
+            116,
+            224
+          ],
+          [
+            124,
+            188
+          ],
+          [
+            132,
+            240
+          ]
+        ],
+        "references": [
+          [
+            228,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\sky_default_transparent_one_sided"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000e00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\sky_default_transparent_one_sided"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "00080408080c",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 14,
+                "raw_hex": "0000000001000001020000030300000281000000820000016200000283000003d2050000f3050001d4090002f5090003d60d0004f70d0005",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "7180c9919c9c129d14822edd6e89ac488f2dc957e11e6ff89be501148f6da0c5",
+      "source_counts": {
+        "4": 4,
+        "12": 4,
+        "20": 6,
+        "28": 1,
+        "36": 25,
+        "44": 1,
+        "52": 1,
+        "60": 0,
+        "68": 0,
+        "76": 0,
+        "84": 0,
+        "92": 5,
+        "100": 2,
+        "108": 6
+      },
+      "shader_type_flags": 5,
+      "runtime_diffuse_slot": -1,
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 14
+      },
+      "clock_overlays": [],
+      "native_role_banks": {
+        "28": "000000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "00000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "ffffffff0300ffffffffffffffffffffffffffff"
+      },
+      "mapping": "swap_environment_pixels",
+      "paired_proof": {
+        "original_map": "zanzibar",
+        "original_shader": "scenarios\\skies\\multi\\zanzibar\\shaders\\moon",
+        "material_payload": "c1f5a157e9676a0b8b0993d5b7cb3c414b5e9678362e81d1b638425d0b1ac699.bin",
+        "complete_main_banks": true,
+        "complete_roles_and_curves": true,
+        "native_template_pair": {
+          "original_payload": "1867b31b37cb10a900fcb1549de5d6a6297d933ff0446307877b2d42f1b83c92.bin",
+          "admitted_payload": "1b33a662e7079a10e3d0455ca8e4efb6f18051474af3a6bc9111b01e43ab9bc6.bin",
+          "complete_postprocess_equal": true,
+          "semantic_sha256": "679cee27baf27c5f9b43020911e0073611b65e313002df0ac56b3d068a143484"
+        }
+      }
+    }
+  ],
+  "curve_reference": {
+    "report_sha256": "581d046ecbca5cd4d7905fc40a79fa4bfa2f13597b507591cb5e40dc1f4ea5db",
+    "fixture_sha256": "9aca0f98fbcb7eac97496e37788e21414c7b002c6a5e1f9fd8bd2c1f540bfd4c",
+    "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+    "entry": 1302128,
+    "cases": 432
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "native_exit_code": 0,
+  "stdout_lines": 3,
+  "first_line": "Shutdown handler: initialize.",
+  "last_line": "Shutdown handler: cleanup.",
+  "json_responses": 1,
+  "response_parses": true,
+  "before_rust_identical": true,
+  "stderr": "",
+  "retained_large_artifacts": []
+}

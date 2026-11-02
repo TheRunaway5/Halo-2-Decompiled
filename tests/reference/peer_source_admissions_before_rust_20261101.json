@@ -1,0 +1,14 @@
+{
+  "scope": "Exact prior modern source-player admission exchange, not original Xbox XNet/Live wire",
+  "source": "src/network/peer_source_admissions.cpp",
+  "sha256": "afd234af56b8aa24ab0d5503b63b162bcb095b07e108ab11c8e74921e359522f",
+  "bytes": 10219,
+  "captured_at_utc": "2026-11-01T15:40:49.056800+00:00",
+  "production_use": false,
+  "header": {
+    "source": "include/halo2/peer_source_admissions.hpp",
+    "reference": "tests/reference/peer_source_admissions_before_rust_20261101/halo2/peer_source_admissions.hpp",
+    "sha256": "906f2adc5202af559620a52aa4953ec895dee110f75d681aa7fc767a809f4a44",
+    "bytes": 2394
+  }
+}

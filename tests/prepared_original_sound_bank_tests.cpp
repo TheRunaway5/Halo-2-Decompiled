@@ -18,8 +18,8 @@ int main(int argc,char** argv) {
         const auto expected=cases.at("expected_refusals").get<unsigned>();
         if(rejected!=expected||(expected!=10&&expected!=12))throw std::runtime_error("Incomplete prepared-bank refusal cohort");
         const auto bank=halo2::PreparedOriginalSoundBank::load(cases.at("directory").get<std::string>(),cases.at("sha256").get<std::string>());
-        if(bank->metadata().permutations.size()!=6)throw std::runtime_error("Actual AP bank lost its six permutations");
-        if(cases.at("has_initial_flags").get<bool>()&&bank->metadata().used!=std::vector<std::byte>{std::byte{0}})
+        if(bank->metadata().pitch_ranges.size()!=1||bank->metadata().pitch_ranges[0].permutations.size()!=6)throw std::runtime_error("Actual AP bank lost its six permutations");
+        if(cases.at("has_initial_flags").get<bool>()&&bank->metadata().pitch_ranges[0].used!=std::optional(std::vector<std::byte>{std::byte{0}}))
             throw std::runtime_error("Actual AP bank lost its authenticated initial permutation state");
         for(const auto index:{std::pair{1u,0u},std::pair{0u,6u}}) {
             bool failed=false;try{(void)bank->encoded(index.first,index.second);}catch(const halo2::FormatError&){failed=true;}

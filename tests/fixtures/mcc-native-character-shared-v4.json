@@ -1,0 +1,10 @@
+{
+  "schema": "H2_MCC_NATIVE_CHARACTER_SHARED_REGRESSION_V1",
+  "compressed_file": "mcc-native-character-shared-v4.json.zlib",
+  "compressed_bytes": 16329,
+  "compressed_sha256": "cebd13831af8bf8734f1e01e3ddf208d538458d14b5ab5f95f48478a568624bc",
+  "decoded_bytes": 246544,
+  "decoded_sha256": "89e3f4b1fdbfb8c9d423f649849ac3ab89f72bd71fa56d83b28e05c0a8b0cd02",
+  "source_policy_sha256": "166cb635167b9b0521772ea9de0b835d65a34082c22c531a95bf7ce4c99406e7",
+  "source": "Twelve exact MCC source tuples; originalv1/v2/v3fixtures retained. Plasma current fourcolors/eightvectors literal, thirteen complete curves/namedinputs identical to paired reference; binding metadata selects existing faithfulVulkan kernel,0newexecutionbanks."
+}

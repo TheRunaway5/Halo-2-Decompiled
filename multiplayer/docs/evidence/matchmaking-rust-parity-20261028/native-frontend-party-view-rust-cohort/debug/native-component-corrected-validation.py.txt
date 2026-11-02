@@ -1,0 +1,35 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+output=root/'build/test-results/frontend-party-view-rust-20261102/native-component-corrected';output.mkdir(parents=True)
+ignore=shutil.ignore_patterns('target','__pycache__','*.so','*.dll','*.dylib')
+for name in ('online_protocol','online_protocol_bridge','online_security_ffi','matchmaking_service'):
+ shutil.copytree(root/'rust'/name,source/'rust'/name,ignore=ignore)
+shutil.copytree(root/'include',source/'include',ignore=ignore)
+shutil.copytree(root/'tests/fixtures',source/'tests/fixtures',ignore=ignore)
+for name in ('data','examples','tests/fixtures'):
+ shutil.copytree(root/'multiplayer/master_server'/name,source/'multiplayer/master_server'/name,ignore=ignore)
+shutil.copytree(root/'src/ui',source/'src/ui',ignore=ignore)
+shutil.copytree(root/'tests/reference/frontend_party_view_before_rust_20261102',source/'tests/reference/frontend_party_view_before_rust_20261102')
+for name in ('tests/native_frontend_party_view_rust_tests.cpp','tests/generate_frontend_party_view_reference.py','tests/test_native_frontend_party_view_rust.py','src/gameplay/multiplayer/source_game_variant.cpp','src/gameplay/multiplayer/source_game_variant_descriptors.inc'):
+ path=source/name;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,path)
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.rglob('*')if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'target'),CARGO_BUILD_JOBS='2',CARGO_INCREMENTAL='0',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+report=dict(passed=False,scratch=str(scratch),source_pins=pins,steps=[],retained_large_artifacts=[])
+def save():(output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,command):
+ p=subprocess.run(command,cwd=source,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ (output/(name+'.log')).write_bytes(p.stdout[-1048576:]);report['steps'].append(dict(name=name,command=command,exit_code=p.returncode,log=name+'.log'));save()
+ print(json.dumps(dict(step=name,exit_code=p.returncode,tail='\n'.join(line[:250]for line in p.stdout[-5000:].decode(errors='replace').splitlines()))),flush=True)
+ if p.returncode:raise RuntimeError(name+' failed')
+try:
+ run('bridge-static',['cargo','build','--locked','--offline','--manifest-path','rust/online_protocol_bridge/Cargo.toml','--lib'])
+ generated=list((scratch/'target/debug/build').glob('halo2-online-protocol-bridge-*/out/cxxbridge/include'));assert len(generated)==1
+ flags=['c++','-std=c++20','-O1','-Iinclude','-Isrc','-Itests','-Irust/online_protocol_bridge','-I'+str(scratch),'-I'+str(generated[0])]
+ run('production-adapter-syntax',flags+['-fsyntax-only','src/ui/frontend_matchmaking_party_view.cpp'])
+ run('reference-extraction',[sys.executable,'-B','tests/generate_frontend_party_view_reference.py','--reference','tests/reference/frontend_party_view_before_rust_20261102','--root',str(source),'--before',str(scratch/'frontend_party_view_before.inc'),'--after',str(scratch/'frontend_party_view_after.inc'),'--adapter',str(scratch/'frontend_party_view_adapter.inc')])
+ binary=scratch/'native-party-view'
+ run('native-compile',flags+['tests/native_frontend_party_view_rust_tests.cpp','src/ui/frontend_matchmaking_party_flow_bridge.cpp','src/ui/frontend_lobby.cpp','src/ui/frontend_lobby_game_bridge.cpp','src/gameplay/multiplayer/source_game_variant.cpp',str(scratch/'target/debug/libhalo2_online_protocol_bridge.a'),'-lcurl','-lssl','-lcrypto','-ldl','-lpthread','-lm','-lrt','-o',str(binary)])
+ run('native-differential',[sys.executable,'-B','tests/test_native_frontend_party_view_rust.py',str(binary),'--report',str(output/'native-differential.json')])
+ report['frozen_inputs_intact']=all(hashlib.sha256((source/n).read_bytes()).hexdigest()==h for n,h in pins.items());assert report['frozen_inputs_intact'];report['passed']=True
+finally:save()

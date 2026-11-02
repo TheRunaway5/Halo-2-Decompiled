@@ -1,0 +1,8 @@
+{
+  "scratch_removed": true,
+  "unit_state": "LoadState=loaded\nActiveState=failed\nSubState=failed\nResult=exit-code\n",
+  "reason": "Unrelated workspace source changed while freezing; no build/CTest started",
+  "drift": [
+    "tools/test_workshop_candidate_sweep.py"
+  ]
+}

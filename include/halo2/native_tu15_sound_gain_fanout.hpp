@@ -26,6 +26,7 @@ struct Controls {
 };
 using Input=std::span<const Word24,32>;
 using Output=std::span<Word24,32>;
+void validate_controls(const Controls&);
 // Eight ordered routes. Output spans may repeat exactly (the authored last four
 // do); partial output overlap and any input/output overlap are unsupported.
 void process(const Controls&,const Parameters&,State&,Input,const std::array<Output,8>&);

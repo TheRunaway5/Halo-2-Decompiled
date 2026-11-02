@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "scope": "Pinned existing modern packet/audio Session API callers and actual compiled object; not complete C++ ownership/original Live/world/provider/installed delivery proof",
+  "source_pins": {
+    "src/network/online_match_session.cpp": "c80031f522c8ed7b0fb4dc12b1aa95b3f6a9fd0c16f3f6aa3fdb10e3f7d06fd8",
+    "rust/online_protocol/src/matchmaking_native_api.rs": "d86666b317f4a25f660aecf8b7b327c093b879063250b25be6662ab00487183d",
+    "rust/online_protocol/tests/matchmaking_native_api.rs": "58f182f9f24117e1f60f3c024636dd2feaf255181d13cc2ec30d6df8ee3db389",
+    "rust/online_protocol/src/lib.rs": "82b2c8a35a2a89423fce558527f5e8765596a20e68771b3abe3c81c3ca89da43",
+    "rust/online_protocol_bridge/src/matchmaking_native_api.rs": "f5c3bbbe9bb2d41130e21a03dfeb8f8a4d86c8522b1f6e19ee4525f1f6ac89b0",
+    "rust/online_protocol_bridge/src/matchmaking_native_api.hpp": "b1c1cb774a25b65cf74d7a04234d1181d810b271442e375fd5bc35099db15593",
+    "rust/online_protocol_bridge/src/lib.rs": "bc28ec4c490fb2621985ff9ea71b597b77f6196d01105456e35defa765dc3d88",
+    "rust/online_protocol_bridge/build.rs": "f1dd47ccb7cdee050a6d83834c17e1de40fc2120b3aa91da4f6e4ce164e25f69",
+    "cmake/OnlinePeers.cmake": "a6a2a1d2b1309aaea9a7a1dfecdcf51aeaaf0c9d053624028bdadba2c092f312",
+    "cmake/OnlineProtocolRust.cmake": "596dfa31707bbe7420503591b521dab10c769134e0d956db64c645d7d4be208e",
+    "tools/build_online_protocol_rust.py": "e3dd3159220301a3e4c75975bb101d0ac8b6499ac1c486f3c27c998c3ae86868",
+    "tests/test_build_online_protocol_rust.py": "aaa9477cb0b876df957cfa87aff539fe7c9642152a3ff1f29361eb7c0e0a35da",
+    "tests/native_session_api_tests.cpp": "821e7ea24266103485fd735f38015e957ea5b4ae8a77699bc8f025cfa29792cf",
+    "tests/test_native_session_api.py": "866ca38dba9b9f9c030d4656372cfab20b96ed36441063532e97e892b28926a3",
+    "tests/reference/native_session_api_private_before_rust_20261101.inc": "fd20254393e0860c95c776fda79c4e26ea8e67171ba10b8d101495d4e3c13055",
+    "tests/reference/native_session_api_stream_before_rust_20261101.inc": "b0ebcc7eb5fbdc442d7b1c1601edb80d5930d43254ed054591d06342dffc82b2",
+    "tests/reference/native_session_api_close_before_rust_20261101.inc": "67145f687aedbfee916d8572be2030e062b7b7af4acc97d4cfdd3e8e914dd6a0",
+    "tests/reference/native_session_api_before_rust_20261101.json": "4ccd93b17fd58aeb460a30cb6c38651ce606a2ada07282c8c684178ddb0064b7",
+    "include/halo2/online_match_session.hpp": "7f68566ecd54a60eceb3be33830813327c9b1843e53ea6141c45612aabe3cf33",
+    "include/halo2/game_voice.hpp": "e07c8abfa307eb82affa3a088497a7b3a1438053b1696518615dd52dcfb29d5f",
+    "src/gameplay/game_voice.cpp": "0fc72c3d19fc6c451a6becb1acc2b2ae85d9c182ebdbb6b0f23c426d5d84bcf5"
+  },
+  "rust_api_entry_count": 9,
+  "native_exception_transport_entry_count": 2,
+  "no_mutable_rust_session_borrow_spans_callbacks": true,
+  "received_banks_move_without_clone": true,
+  "native_exception_type_message_and_identity_preserved": true,
+  "test_only_discard_control_absent_from_production": true,
+  "public_session_header_unchanged": true,
+  "local_slot_getter_remains_mutex_free": true,
+  "remaining": [
+    "Audit remaining production owner/API boundaries and prove Rust-only route closure; retain real native gameplay/device/resource IO",
+    "Recover original historical/service configuration, ordering and arbitration without guessing; preserve all 12 gaps, 53 algorithm IDs and G01-G12",
+    "Qualify every required natural outcome/topology and genuine world/provider; actual installed Linux playlist/Start flow and complete delivered artifact/restart/config-change/rollback remain open"
+  ],
+  "all_cpp_matchmaking_policy_removed": false,
+  "selected_runtime_replaced": false
+}

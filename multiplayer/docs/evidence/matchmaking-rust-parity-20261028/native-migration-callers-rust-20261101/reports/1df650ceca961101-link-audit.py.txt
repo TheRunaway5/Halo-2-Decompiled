@@ -1,0 +1,18 @@
+import hashlib,json,subprocess,sys,os
+from pathlib import Path
+root=Path.cwd();work=root/"build/test-results/native-migration-callers-rust-20261101";label=sys.argv[1]
+info=json.loads((work/"native/inputs.json").read_text());source=Path(info["source"]);build=Path(info["scratch"])/"build"
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+objects=list(build.glob("CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"));assert len(objects)==1
+obj=objects[0];before=sha(obj);command=["nm","-C","--undefined-only",str(obj)];run=subprocess.run(command,capture_output=True,text=True);assert run.returncode==0;assert sha(obj)==before
+entries=["native_migration_fence","native_migration_begin","native_migration_candidate"]
+found={n:[l.strip() for l in run.stdout.splitlines() if "online_protocol_bridge::"+n+"(" in l] for n in entries}
+expected=label!="baseline";assert all(bool(v)==expected for v in found.values())
+leaves=["native_session_fence","native_session_selection","native_session_candidate"]
+leaf_found={n:[l.strip() for l in run.stdout.splitlines() if "online_protocol_bridge::"+n+"(" in l] for n in leaves};assert all(leaf_found.values())
+names=["src/network/online_match_session.cpp","rust/online_protocol/src/matchmaking_native_migration.rs","rust/online_protocol/tests/matchmaking_native_migration.rs","rust/online_protocol/src/lib.rs","rust/online_protocol_bridge/src/matchmaking_native_migration.rs","rust/online_protocol_bridge/src/matchmaking_native_migration.hpp","rust/online_protocol_bridge/src/host_agreement.rs","rust/online_protocol_bridge/src/lib.rs","rust/online_protocol_bridge/build.rs","cmake/OnlinePeers.cmake","cmake/OnlineProtocolRust.cmake","tools/build_online_protocol_rust.py","tests/test_build_online_protocol_rust.py","tests/native_migration_callers_tests.cpp","tests/test_native_migration_callers.py","tests/reference/native_migration_callers_before_rust_20261101.inc","tests/reference/native_migration_callers_before_rust_20261101.json","include/halo2/online_match_session.hpp"]
+pins={n:sha(source/n) for n in names};current={n:sha(root/n) for n in names};mismatch=[n for n in names if pins[n]!=current[n]];assert mismatch==(["src/network/online_match_session.cpp"] if not expected else [])
+cpp=(source/"src/network/online_match_session.cpp").read_text();bridge=(source/"rust/online_protocol_bridge/src/matchmaking_native_migration.rs").read_text();core=(source/"rust/online_protocol/src/matchmaking_native_migration.rs").read_text()
+record={"passed":True,"scope":"Actual compiled Session object references and frozen source pins only; not installed runtime/native-world/original Live proof","label":label,"command":command,"object_sha256":before,"object_bytes":obj.stat().st_size,"rust_caller_references":found,"existing_rust_state_callback_references":leaf_found,"source_pins":pins,"current_source_drift":mismatch,"no_session_borrow_in_orchestration_bridge":("&NativeSession" not in bridge and "&mut NativeSession" not in bridge),"no_new_unsafe_rust":("unsafe " not in bridge+core),"source_caller_threshold_removed":expected and "return selected<16?" not in cpp,"actual_generation_mutex_retained":True,"retained_large_artifacts":[]}
+assert record["no_session_borrow_in_orchestration_bridge"] and record["no_new_unsafe_rust"]
+(work/(label+"-link-audit.json")).write_text(json.dumps(record,indent=2)+"\n");print(json.dumps({"passed":True,"label":label,"new_rust_entries_in_actual_object":sum(bool(x) for x in found.values()),"object_sha256":before}))

@@ -1,0 +1,22 @@
+{
+  "schema": "H2_FOREVER_LAUNCHER_ART_V1",
+  "source_site": "https://halo2forever.net",
+  "scope": "Website-authored vector ring shapes, reused at the user\u2019s explicit request. Static three-pair composition; no original game bitmap or font is distributed.",
+  "font": "Arial, with Liberation Sans / DejaVu Sans fallbacks; website FOREVER uses Arial with letter spacing.",
+  "files": {
+    "thin-ring.svg": {
+      "source": "/home/eric/Developer/Halo-2-PC-Website/public/vista/vista-loading-thin-mechanical-ring.svg",
+      "sha256": "54cab3db5ee7f1c002d160ae839fa4c0e40b88aae5a5cef3e97243e8fa0dc88c"
+    },
+    "wide-ring.svg": {
+      "source": "/home/eric/Developer/Halo-2-PC-Website/public/vista/vista-loading-wide-mechanical-ring.svg",
+      "sha256": "10150207f27b0e25c3b869015052b3e963d333c27514d2a6bb3fbb59c4ffdf27"
+    },
+    "background.png": {
+      "sha256": "97baf7470c0123d4cfdd4f557a4e436472b0ba708e25195d28d77e683e087261",
+      "bytes": 169279,
+      "width": 1040,
+      "height": 640
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "observed_at_utc": "2026-11-01",
+  "method": "Authenticated read-only official Docker Registry V2 manifest/index lookup via auth.docker.io and registry-1.docker.io",
+  "indexes": [
+    {
+      "image": "rust:1.96.0-slim-bookworm",
+      "digest": "sha256:4732ca96fd086cb9be682050c3f0176288eebaac2b80aa2bcefccfaf198e1950",
+      "linux_amd64_present": true
+    },
+    {
+      "image": "debian:bookworm-slim",
+      "digest": "sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3",
+      "linux_amd64_present": true
+    },
+    {
+      "image": "caddy:2.11.7",
+      "digest": "sha256:36c24ad91a7ff7bc4c87fe22bfa8df3c4b18da0773d73fc12ee2c52b98c0bb7e",
+      "linux_amd64_present": true
+    }
+  ],
+  "images_pulled": false,
+  "images_executed": false,
+  "metadata_probe_scratch_removed": true
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Lower unchanged TU1.5 renderer tail storage owners1FB90/20E30/20E90 and bounded12822 suffix."""
 import argparse
+from renderer_native_replacements import replace_lens_query_slot_body
 import hashlib
 import json
 from pathlib import Path
@@ -47,7 +48,7 @@ def main():
         'halo2/source_renderer_tail_storage_tu15.hpp').replace('source_run_physics_live_support_tu15',
         'source_run_renderer_tail_storage_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_renderer_tail_storage_tu15_owns_entry')
-    args.output.write_text(text)
+    args.output.write_text(replace_lens_query_slot_body(text))
     report = json.loads(args.manifest.read_text())
     report.update(renderer_tail_generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   generated_cpp_sha256=hashlib.sha256(args.output.read_bytes()).hexdigest())

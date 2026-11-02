@@ -1,4 +1,5 @@
 #include "halo2/sound_variation.hpp"
+#include "halo2/source_sound_gain_envelope_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -105,11 +106,8 @@ float source_sound_control_pitch(const SoundVariationDefinition &d,float base,fl
 }
 float source_sound_control_gain(const SoundVariationDefinition &d,float control) {
   const Bytes s(d.scale),c(d.sound_class);
-  const float lower=s.f32(0)+c.f32(0x20),upper=s.f32(4)+c.f32(0x24);
-  const auto linear=[](float db){return std::exp(double(std::clamp(db,-64.f,0.f))*double(.05f)*double(2.3025851f));};
-  const float low=float(linear(lower));
-  const float selected=float((linear(upper)-double(low))*double(control)+double(low));
-  return selected>0?std::clamp(float(20.0*std::log10(double(std::min(selected,1.f)))),-64.f,0.f):-64.f;
+  return std::bit_cast<float>(source_sound_gain_envelope_tu15({c.u32(0x20),c.u32(0x24),s.u32(0),s.u32(4)},
+      std::bit_cast<std::uint32_t>(control),{0x027f,0x1f80}));
 }
 std::int16_t source_sound_pitch_range(std::span<const SoundPitchRange> ranges,
                                      std::int16_t previous,float pitch) {

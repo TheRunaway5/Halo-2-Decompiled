@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, build_opener, HTTPRedirectHandler, ProxyHandler
 
-from .protocol import (VERSION, MAX_SYNC, Problem, canonical, parse, public_hex, master_id,
+from .protocol import (VERSION, MAX_SYNC, MAX_RECORDS, Problem, canonical, parse, public_hex, master_id, identifier,
                        server_id, load_key, save_private, signed, require, metadata)
 from .service import endpoint
 
@@ -111,11 +111,30 @@ def enroll(instance, base, token, operator=False, owner="simulator", ttl=86400 *
 
 def discover(masters, filters=None):
     errors = []
-    query = "?" + urlencode(filters) if filters else ""
     for base in masters:
         try:
-            result = request(base, "GET", "/v1/servers" + query)
-            return {"master_used": base, "servers": result["servers"]}
+            servers, cursors, cursor, bytes_seen = [], set(), None, 0
+            for _ in range(MAX_RECORDS + 1):
+                query = dict(filters or {})
+                if cursor is not None:
+                    query["cursor"] = cursor
+                result = request(base, "GET", "/v1/servers" + ("?" + urlencode(query) if query else ""))
+                bytes_seen += len(canonical(result))
+                require(bytes_seen <= MAX_SYNC, "Directory too large")
+                servers.extend(result["servers"])
+                require(len(servers) <= MAX_RECORDS, "Directory too large")
+                cursor = result.get("next_cursor")
+                if cursor is None:
+                    return {"master_used": base, "servers": servers}
+                require(type(cursor) is str and len(cursor) == 73 and cursor not in cursors,
+                        "Invalid discovery continuation")
+                parts = cursor.split(".")
+                require(len(parts) == 2 and bool(result["servers"]), "Invalid discovery continuation")
+                for part in parts:
+                    identifier(part)
+                require(not cursors or cursor > max(cursors), "Discovery cursor did not advance")
+                cursors.add(cursor)
+            require(False, "Too many discovery pages")
         except (OSError, URLError, ApiError, Problem) as error:
             errors.append(type(error).__name__)
     raise RuntimeError("No configured master answered: " + ", ".join(errors))

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cargo",
+    "check",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/home/eric/Developer/Halo-2-Decompiled/rust/online_protocol_bridge/Cargo.toml"
+  ],
+  "exit_code": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-bridge-preflight/halo2-test-h6mzn40v",
+  "source_sha256": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+  "retained_large_artifacts": []
+}

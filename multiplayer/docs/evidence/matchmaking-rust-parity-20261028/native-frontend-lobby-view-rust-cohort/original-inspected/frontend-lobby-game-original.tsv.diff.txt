@@ -1,0 +1,10 @@
+--- preserved/frontend-lobby-game-original.tsv
++++ fresh/frontend-lobby-game-original.tsv
+@@ -799,7 +799,6 @@
+ icon	-1	255	10
+ quick	0	0	2	25	0	Score to Win Round: 25
+ quick	0	1	10	480	0	Round Time Limit: 8 Minutes
+-quick	0	1	10	8	1	Round Time Limit: 
+ quick	0	2	89	0	0	Starting Weapon: Map Default
+ quick	0	3	83	0	0	Weapons on Map: Map Default
+ quick	0	4	20	1	0	Motion Sensor: On

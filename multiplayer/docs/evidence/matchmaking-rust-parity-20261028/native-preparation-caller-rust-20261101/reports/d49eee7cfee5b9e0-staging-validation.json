@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-preparation-caller-staging",
+    "--",
+    "python3",
+    "-B",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "tests",
+    "-p",
+    "test_build_online_protocol_rust.py",
+    "-v"
+  ],
+  "exit_code": 0,
+  "tests": 7,
+  "scope": "Existing mocked Cargo/compiler universal/selected SDK/header staging controls; no positive provider or cross-platform runtime proof",
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "d43e17c56a0191a5486f355371909e866bd628bb5eaaa4c76bff838be247b228",
+    "tools/build_online_protocol_rust.py": "360eb2aad0497c9954b446a86eb352dfb038347cddfe350e2581b89c4e2cefc7"
+  },
+  "retained_large_artifacts": []
+}

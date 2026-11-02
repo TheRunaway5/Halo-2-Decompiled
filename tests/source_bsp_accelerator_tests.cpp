@@ -1,4 +1,5 @@
 #include "halo2/source_bsp_accelerator.hpp"
+#include "halo2/detail/native_tu15_arithmetic_environment.hpp"
 #include <bit>
 #include <fstream>
 #include <iostream>
@@ -20,6 +21,49 @@ std::vector<std::byte> tree(std::initializer_list<unsigned> code) {
     for(auto op:code)out.push_back(std::byte(op));return out;
 }
 void controls() {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    {
+        auto input=tree({0});const auto scale=std::bit_cast<std::uint32_t>(3.f);
+        for(unsigned i=0;i<4;++i)input[12+i]=std::byte(scale>>(8*i));
+        NativeTu15PhysicsFrameFp fp{0x27f,0,0x1f80};std::vector<std::uint32_t> direct,ranges;
+        {detail::NativeTu15ArithmeticEnvironment environment(fp);
+            require(source_bsp_accelerator_query0(input,{},direct,ranges).complete,"empty x87 query rejected");}
+        // Whole2E79A0's FLD1/FDIV/FSTP and upper-bound FMUL publish PE in
+        // x87, independently of the SSE bank. Equal bounds alone miss this.
+        require(fp.status==0x20 && fp.mxcsr==0x1f80 && direct.empty()&&ranges.empty(),
+            "original accelerator reciprocal published precision in the wrong FP bank");
+    }
+    {
+        auto input=tree({0x20,7,1,0x31,0x32});const auto scale=std::bit_cast<std::uint32_t>(3.f);
+        for(unsigned i=0;i<4;++i)input[12+i]=std::byte(scale>>(8*i));
+        NativeTu15PhysicsFrameFp fp{0x27f,0,0x1f80};std::vector<std::uint32_t> direct,ranges;
+        {detail::NativeTu15ArithmeticEnvironment environment(fp);
+            require(source_bsp_accelerator_query0(input,{},direct,ranges).complete,"gap-split FP query rejected");}
+        require(fp.status==0x20 && fp.mxcsr==0x1fa0 && direct.empty()&&ranges==std::vector<std::uint32_t>{2,2,1,1},
+            "physical gap-split bound order/C1 differs");
+    }
+    {
+        auto input=tree({0x26,1,2,0x31});const auto scale=std::bit_cast<std::uint32_t>(3.f);
+        for(unsigned i=0;i<4;++i)input[12+i]=std::byte(scale>>(8*i));
+        const std::array<ShaderVector,6> planes{{{1,0,0,-5},{-1,0,0,-5},{0,1,0,-5},
+            {0,-1,0,-5},{0,0,1,-5},{0,0,-1,-5}}};
+        NativeTu15PhysicsFrameFp fp{0x67f,0,0x1f80};std::vector<std::uint32_t> direct,ranges;
+        {detail::NativeTu15ArithmeticEnvironment environment(fp);
+            require(source_bsp_accelerator_query0(input,planes,direct,ranges).complete,"packed-plane FP query rejected");}
+        require(fp.status==0x20 && fp.mxcsr==0x1fa0 && direct.empty()&&ranges.empty(),
+            "physical SSE group rejected before executing all its lanes");
+    }
+    {
+        auto input=tree({0x10,5,7,4,0x26,1,3,0x31,0x27,2,7,0x32});
+        const auto scale=std::bit_cast<std::uint32_t>(3.f);
+        for(unsigned i=0;i<4;++i)input[12+i]=std::byte(scale>>(8*i));
+        NativeTu15PhysicsFrameFp fp{0x27f,0,0x1f80};std::vector<std::uint32_t> direct,ranges;
+        {detail::NativeTu15ArithmeticEnvironment environment(fp);
+            require(source_bsp_accelerator_query0(input,{},direct,ranges).complete,"child-prefix FP query rejected");}
+        require(fp.status==0x220 && fp.mxcsr==0x1fa0 && direct.empty()&&ranges==std::vector<std::uint32_t>{2,2,1,1},
+            "physical left/right child-prefix rounding order differs");
+    }
+#endif
     const std::vector<std::uint32_t> initial_direct{42},initial_ranges{7,9};
     const auto reject=[&](std::vector<std::byte> code,std::vector<ShaderVector> planes={},std::size_t direct_cap=1024,std::size_t range_cap=1024) {
         auto direct=initial_direct,ranges=initial_ranges;

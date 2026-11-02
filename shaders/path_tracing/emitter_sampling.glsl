@@ -13,7 +13,7 @@ uint traceEmitterGroupCandidate(uint table,uint count,float total,inout uint sta
     }
     return min(low,count-1u);
 }
-vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out float weight) {
+vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out float weight,float backgroundHint) {
     weight=1.0;uint header=floatBitsToUint(traceScene.environment.w)+traceScene.counts.w;
     uint length=uint(tracePixels.length());
     if(traceScene.counts.w==0u || header>=length || length-header<4u ||
@@ -46,8 +46,17 @@ vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out flo
     vec3 axis=delta*inversesqrt(squared);
     float cosineMaximum=sqrt(max(0.0,1.0-selectedRadius*selectedRadius/squared));
     if(cosineMaximum>=1.0)return traceHemisphere(normal,state);
+    // Power/area and the retained static/sky field estimate which proposal
+    // carries the signal. These hints change only its probability; actual
+    // radiance still comes from the closest hit and the exact mixture PDF.
+    // Keep at least one third cosine support for all other sources/paths.
+    float sourceHint=maximumScore/tracePi;
+    if(traceEnvironmentNee())backgroundHint=max(backgroundHint,
+        traceSourceBrightness(max(textureLod(traceSky,normal,0.0).rgb,vec3(0))));
+    float totalHint=sourceHint+backgroundHint;
+    float coneProbability=totalHint>0.0?(2.0/3.0)*(sourceHint/totalHint):0.0;
     vec3 direction;
-    if(traceRandom(state)<.5) {
+    if(traceRandom(state)<coneProbability) {
         float cosine=mix(cosineMaximum,1.0,traceRandom(state)),phi=2.0*tracePi*traceRandom(state);
         float sine=sqrt(max(0.0,1.0-cosine*cosine));
         vec3 tangent=traceNormalize(cross(abs(axis.z)<.999?vec3(0,0,1):vec3(0,1,0),axis),vec3(1,0,0));
@@ -59,6 +68,6 @@ vec3 traceDiffuseContinuation(vec3 position,vec3 normal,inout uint state,out flo
     // sky miss and indirect surface. Visibility is the existing closest ray.
     float bsdf=max(dot(normal,direction),0.0)/tracePi;
     float cone=dot(axis,direction)>=cosineMaximum?1.0/(2.0*tracePi*(1.0-cosineMaximum)):0.0;
-    float pdf=.5*(bsdf+cone);weight=pdf>0.0?bsdf/pdf:0.0;return direction;
+    float pdf=(1.0-coneProbability)*bsdf+coneProbability*cone;weight=pdf>0.0?bsdf/pdf:0.0;return direction;
 }
 #endif

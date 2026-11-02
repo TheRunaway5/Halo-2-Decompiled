@@ -1,6 +1,7 @@
 #include "halo2/source_grenade_scene.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_object_colors.hpp"
+#include "halo2/source_tag_metadata.hpp"
 #include "halo2/content.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/original_data.hpp"
@@ -68,6 +69,36 @@ void scene(const Cache&cache,std::uint32_t one){
     // templates remain two banks regardless of active/allocator capacity.
     SourceGrenadeScene scene(cache,0,mesh,collision,0x800,one);
     check(scene.banks().size()==2 && mesh.materials.size()==8,"grenade authored residency bank changed");
+    // Shadow residency must cover both authored definitions before either
+    // grenade exists. Read the matg -> proj -> hlmt -> mode references rather
+    // than deriving the expected catalog from scene implementation state.
+    const auto matg=std::find_if(cache.tags().begin(),cache.tags().end(),
+        [](const auto &tag){return tag.group=="matg";});
+    check(matg!=cache.tags().end(),"grenade inventory lacks authored globals");
+    const auto globals=cache.load_source_tag_metadata(matg->datum);
+    const Bytes globals_root(globals.bytes_at(globals.source_address(),globals.size()));
+    check(globals_root.u32(0x100)==2,"grenade inventory lost the two authored grenade types");
+    const Bytes grenade_rows(globals.bytes_at(globals_root.u32(0x104),2*0x2c));
+    std::array<std::uint32_t,2> authored_models{};
+    for(unsigned type=0;type<authored_models.size();++type) {
+        const auto definition=grenade_rows.u32(type*0x2c+0x28);
+        check(scene.banks()[type].type==type && scene.banks()[type].definition==definition,
+            "grenade prepared bank differs from its actual matg reference");
+        const auto projectile=cache.load_source_tag_metadata(definition);
+        check(projectile.group()=="proj","grenade inventory reference is not a full projectile datum");
+        const auto model=cache.load_source_tag_metadata(Bytes(projectile.bytes_at(projectile.source_address(),0x3c)).u32(0x38));
+        check(model.group()=="hlmt","grenade inventory lost its authored model owner");
+        authored_models[type]=Bytes(model.bytes_at(model.source_address(),8)).u32(4);
+        const auto render=cache.load_source_tag_metadata(authored_models[type]);
+        check(render.group()=="mode" && render.datum()==authored_models[type] &&
+            cache.load_initial_model_definition(definition).render_model==authored_models[type],
+            "grenade inventory changed the authored full render-model datum");
+    }
+    const std::set<std::uint32_t> expected_models(authored_models.begin(),authored_models.end());
+    const auto shadow_models=scene.source_render_models();
+    check(expected_models.size()==2 && !expected_models.contains(0xffffffffu) &&
+        shadow_models==std::vector<std::uint32_t>(expected_models.begin(),expected_models.end()),
+        "grenade shadow inventory must contain both authored models sorted, unique and without NONE");
     std::vector<NativeGrenadeProjectile> objects;
     for(unsigned i=0;i<4;++i){NativeGrenadeProjectile p;p.datum=0x12340002+i;p.type=std::int16_t(i/2);
         p.definition=scene.banks()[unsigned(p.type)].definition;p.position={float(i),0,3};
@@ -96,6 +127,8 @@ void scene(const Cache&cache,std::uint32_t one){
         for(unsigned i=0;i<saved.size();++i){const auto&a=saved[i],&b=again[i];
             check(a.owner==objects[i].datum && a.definition==objects[i].definition && a.type==unsigned(objects[i].type),
                 "grenade draw lost actual source identity/type");
+            check(std::binary_search(shadow_models.begin(),shadow_models.end(),authored_models[a.type]),
+                "actual grenade draw has no pre-birth shadow model residency");
             check(a.vertices.size()==b.vertices.size() && !a.vertices.empty() &&
                 !std::memcmp(a.vertices.data(),b.vertices.data(),a.vertices.size()*sizeof(Vertex)),
                 "same-frame grenade selection/pose is not byte-stable");

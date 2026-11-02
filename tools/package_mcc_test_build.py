@@ -350,6 +350,7 @@ def _assemble(root, runtime, launchers, output, shader_directory, shaders, stage
     verify_ui_layout(root)
     copy(root / UI_LAYOUT_SOURCE, stage / UI_LAYOUT_SOURCE)
     copy(root / "resources/launcher.svg", stage / "resources/launcher.svg")
+    shutil.copytree(root / "resources/launcher", stage / "resources/launcher")
     shutil.copytree(root / "resources/licenses", stage / "resources/licenses")
     for name in ("COPYING", "PROVENANCE.json", "README.md"):
         source = root / "external/ww2ogg" / name

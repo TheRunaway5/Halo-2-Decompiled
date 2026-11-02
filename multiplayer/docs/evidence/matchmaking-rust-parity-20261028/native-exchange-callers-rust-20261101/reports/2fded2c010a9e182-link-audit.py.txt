@@ -1,0 +1,38 @@
+import hashlib,json,os,re,subprocess,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/native-exchange-callers-rust-20261101'
+iteration=int(sys.argv[1]);native=json.loads((work/f'native/iteration-{iteration}-report.json').read_text())
+assert native['passed'] and native['frozen_inputs_intact']
+source=Path(native['source']);build=Path(native['scratch'])/'build';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={}
+for name in native['source_pin_parts']:pins.update(json.loads((work/'native'/name).read_text()))
+objects=list(build.rglob('online_match_session.cpp.o'));assert len(objects)==1,objects
+command=['nm','-C','--undefined-only',str(objects[0])];run=subprocess.run(command,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE);assert run.returncode==0,run.stderr
+names=['native_exchange_'+n for n in ['session','source_publish','source_visible','authority_publish','capability','common','common_view','candidates']]
+entries={name:any(name+'(' in line for line in run.stdout.splitlines()) for name in names}
+parser_crypto=[line.strip() for line in run.stdout.splitlines() if re.search(r'nlohmann|SHA256|EVP_|Json::|json::',line)]
+critical=['src/network/online_match_session.cpp','rust/online_protocol/src/matchmaking_native_exchange.rs',
+    'rust/online_protocol/src/matchmaking_native_session.rs','rust/online_protocol/src/lib.rs',
+    'rust/online_protocol/tests/matchmaking_native_session.rs',
+    'rust/online_protocol_bridge/src/matchmaking_native_exchange.rs','rust/online_protocol_bridge/src/matchmaking_native_exchange.hpp',
+    'rust/online_protocol_bridge/src/matchmaking_native_session.rs','rust/online_protocol_bridge/src/lib.rs',
+    'rust/online_protocol_bridge/build.rs','cmake/OnlineProtocolRust.cmake','tools/build_online_protocol_rust.py',
+    'tests/test_build_online_protocol_rust.py','tests/peer_host_session_tests.cpp']
+rust=json.loads((work/'full-rust/report.json').read_text());assert rust['passed'] and rust['syntax']['passed'] and rust['frozen_inputs_intact']
+rust_mismatch=[n for n,h in rust['source_pins'].items() if not (source/n).is_file() or sha(source/n)!=h]
+critical_drift=[n for n in critical if sha(root/n)!=pins[n]]
+expected_baseline=iteration==1
+assert native['baseline']==expected_baseline
+if expected_baseline:assert sha(source/'src/network/online_match_session.cpp')==json.loads((work/'before.json').read_text())['src/network/online_match_session.cpp']['sha256']
+drift=[{'path':n,'frozen':h,'current':sha(root/n) if (root/n).is_file() else None} for n,h in pins.items() if not (root/n).is_file() or sha(root/n)!=h]
+result={'passed':not any(entries.values()) if expected_baseline else all(entries.values()),
+    'baseline_cpp_caller':expected_baseline,'command':command,'object_sha256':sha(objects[0]),'rust_entries':entries,
+    'cpp_parser_crypto_dependencies':parser_crypto,'rust_native_source_count':len(rust['source_pins']),
+    'final_rust_native_source_mismatch':rust_mismatch,'current_critical_source_drift':critical_drift,
+    'source_pins':{n:pins[n] for n in critical},'audit_scratch':os.environ['HALO2_TEST_SCRATCH'],
+    'scope':'Compiled Session caller references only. Native leases/owners, genuine worlds/providers, original Live and installed delivery are not certified.',
+    'retained_large_artifacts':[]}
+result['passed']=result['passed'] and not parser_crypto and not rust_mismatch and (expected_baseline or not critical_drift)
+(work/('baseline-link-audit.json' if expected_baseline else 'link-audit.json')).write_text(json.dumps(result,indent=2)+'\n')
+if not expected_baseline:(work/'current-source-drift.json').write_text(json.dumps(drift,indent=2)+'\n')
+print(json.dumps({'passed':result['passed'],'baseline':expected_baseline,'entries':entries,'rust_mismatch':rust_mismatch,'critical_drift':critical_drift,'drift_count':len(drift)}));assert result['passed']

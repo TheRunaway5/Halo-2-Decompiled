@@ -6,6 +6,7 @@
 namespace halo2 {
 class Cache;
 struct MccSoundVanillaFlagPlan;
+class MccOriginalSoundRuntimeDeliveryTu15;
 // Source tokens and full salted tag identities only. Readers must return the
 // exact requested raw MCC bytes; no pointer in this interface is a host address.
 struct MccSoundRuntimeSource {
@@ -21,7 +22,7 @@ struct MccSoundRuntimePatch {
     std::uint32_t source_address{};
     std::vector<std::byte> before,after;
 };
-enum class MccSoundDataFile { Neutral,English,Remastered };
+enum class MccSoundDataFile { Neutral,English,Remastered,Original };
 struct MccSoundRuntimeChunk {
     TagHandle gestalt;
     std::uint32_t source_address{},native_address{},source_index{};
@@ -64,6 +65,8 @@ struct MccSoundRuntimePlan {
     std::vector<std::byte> bytes;
     std::array<TagBlock,11> blocks;
     std::vector<MccSoundRuntimePatch> patches;
+    // When original is present, these layouts and chunk routes describe the
+    // retained MCC prefix. Original appended routes belong to that owner.
     std::vector<MccSoundRuntimeGestalt> gestalts;
     std::vector<MccSoundRuntimeChunk> chunks;
     std::vector<MccSoundRuntimeDefinition> sounds;
@@ -75,6 +78,10 @@ struct MccSoundRuntimePlan {
     // authentication/custom/unmatched status. Pure Source loading remains
     // generic and leaves this empty; raw Cache/source_flags are unchanged.
     std::shared_ptr<const MccSoundVanillaFlagPlan> authored_flags;
+    // Explicit immutable original-bank publication lineage. Its native roots,
+    // tables and resource owner must be admitted together by each consumer;
+    // Original is never an MCC DAT route or a readiness/timing lease.
+    std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> original;
 };
 // Pure, staged conversion. No Cache/raw DAT bytes or live runtime bank change.
 // Caller atomically validates all before bytes/target extents, appends bytes,

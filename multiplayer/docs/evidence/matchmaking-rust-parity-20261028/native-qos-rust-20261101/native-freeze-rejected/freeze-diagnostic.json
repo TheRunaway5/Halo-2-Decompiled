@@ -1,0 +1,12 @@
+{
+  "schema": "H2_SOURCE_FREEZE_DIAGNOSTIC_V1",
+  "passed": false,
+  "validation_not_run": true,
+  "observed_exit_code": 1,
+  "reason": "Concurrent audio CMake input changed during the freeze; coherence guard rejected it before compilation.",
+  "changed_source": "cmake/NativeTu15SoundGpOutput.cmake",
+  "copied_sha256": "fb3bdc50ddfacc7a70e13a610ab0097c71efc80591690dd55d0e37f4caaa42fc",
+  "current_sha256": "dfde20f1dab1a5bd23c6d2d0219ef653ca45a75d00a01c0263b4a711154bbbfc",
+  "scratch_roots_removed": true,
+  "retained_large_artifacts": []
+}

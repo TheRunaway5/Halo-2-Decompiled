@@ -1,0 +1,186 @@
+import datetime,hashlib,json,re,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/native-exchange-callers-rust-20261101'
+evidence=root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028'
+destination=evidence/'native-exchange-callers-rust-20261101/reports'
+receipt_path=evidence/'native-exchange-callers-rust-validation.json'
+ledger_path=root/'multiplayer/docs/matchmaking-rust-parity-gaps.json'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+read=lambda p:json.loads(p.read_text())
+write=lambda p,d:p.write_text(json.dumps(d,indent=2)+'\n')
+criteria_fields=('algorithm_index','scope','gaps','acceptance_gates')
+before=read(work/'criteria-before.json');ledger=read(ledger_path)
+assert before=={k:ledger[k] for k in criteria_fields}
+criteria_hash=hashlib.sha256(json.dumps(before,sort_keys=True).encode()).hexdigest()
+assert criteria_hash=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+gates=before['acceptance_gates']['gates']
+assert len(before['gaps'])==12 and len(before['algorithm_index']['ids'])==53
+assert len(gates)==12 and all(g['status']=='open' and not g['certified'] for g in gates)
+rust=read(work/'full-rust/report.json');audit=read(work/'link-audit.json');baseline_audit=read(work/'baseline-link-audit.json')
+inputs=read(work/'native/inputs.json');baseline=read(work/'before.json')
+assert rust['passed'] and rust['frozen_inputs_intact'] and rust['syntax']['passed'] and audit['passed'] and baseline_audit['passed']
+assert not inputs['drift_during_freeze'] and inputs['iterations']==2
+counts={name:sum(map(int,re.findall(r'test result: ok\. (\d+) passed',(work/'full-rust'/f'{name}-test.log').read_text())))
+    for name in ('online_protocol','online_protocol_bridge','matchmaking_service')}
+assert counts=={'online_protocol':414,'online_protocol_bridge':61,'matchmaking_service':20}
+native_runs=[];replays=[];native_pins={}
+control_line='PASS public native source/capability/Common/authority callers:'
+for iteration in (1,2):
+    report=read(work/f'native/iteration-{iteration}-report.json');log=(work/f'native/iteration-{iteration}/tests.log').read_text()
+    assert report['passed'] and report['exit_code']==0 and report['frozen_inputs_intact']
+    assert '100% tests passed out of 15' in log
+    native_log=(work/f'native/iteration-{iteration}/evidence/Testing/Temporary/LastTest.log').read_text()
+    assert native_log.count(control_line)==4,native_log.count(control_line)
+    native_runs.append({'iteration':iteration,'baseline_cpp_caller':report['baseline'],
+        'report':str((work/f'native/iteration-{iteration}-report.json').relative_to(root)),
+        'seconds':float(re.search(r'Total Test time \(real\) =\s*([\d.]+)',log)[1]),
+        'passed':True,'tests':15,'public_authority_control_executions':4,
+        'source_pin_sha256':report['source_pin_sha256']})
+    replay=read(work/f'native/iteration-{iteration}/evidence/test-artifacts/source-admissions-cpp-rust.json')
+    assert replay['passed'] and replay['commands']==25054
+    assert replay['corpus_and_observations_sha256']=='630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6'
+    replays.append(replay)
+    if iteration==2:
+        assert report['refreshed']==[{'path':'src/network/online_match_session.cpp','before':baseline['src/network/online_match_session.cpp']['sha256'],'after':audit['source_pins']['src/network/online_match_session.cpp']}]
+        for name in report['source_pin_parts']:native_pins.update(read(work/'native'/name))
+assert native_runs[0]['baseline_cpp_caller'] and not native_runs[1]['baseline_cpp_caller']
+assert all(native_pins[n]==h for n,h in rust['source_pins'].items() if n in native_pins)
+borrowed_rust_inputs={n:h for n,h in rust['source_pins'].items() if n not in native_pins}
+assert audit['rust_native_source_count']==len(rust['source_pins']) and not audit['final_rust_native_source_mismatch']
+assert all(sha(root/n)==h for n,h in borrowed_rust_inputs.items())
+protocol_probe=read(work/'protocol-version-replay.json');assert protocol_probe['passed']
+assert [(r['protocol'],r['commands']) for r in protocol_probe['runs']]==[(123,25054),(124,25054)]
+assert protocol_probe['runs'][-1]['corpus_and_observations_sha256']==replays[-1]['corpus_and_observations_sha256']
+assert sha(root/'include/halo2/multiplayer_datagrams.hpp')==protocol_probe['after_header_sha256']==native_pins['include/halo2/multiplayer_datagrams.hpp']
+syntax_mismatch=[n for n,h in rust['syntax']['source_pins'].items()
+    if native_pins['src/network/online_match_session.cpp' if n=='online_match_session.cpp' else n]!=h]
+assert not syntax_mismatch,syntax_mismatch
+failed=read(work/'bridge-test-compile-failure/report.json');assert not failed['passed']
+assert failed['commands'][-1]['crate']=='online_protocol_bridge' and failed['commands'][-1]['exit_code']==101
+correction=read(work/'bridge-enum-test-fix.json');text=(work/'qualified-bridge-exchange.rs.txt').read_text()
+assert sha(work/'qualified-bridge-exchange.rs.txt')==correction['after_sha256']==sha(root/correction['source'])
+change=correction['inverse_change'];assert text.count(change['after'])==1
+assert hashlib.sha256(text.replace(change['after'],change['before'],1).encode()).hexdigest()==correction['before_sha256']
+owned_paths=[inputs['scratch'],rust['scratch'],failed['scratch'],audit['audit_scratch'],baseline_audit['audit_scratch'],protocol_probe['scratch']]
+parents={}
+for suffix in ('native','full-rust','staging','format','audit','protocol-replay'):
+    p=root/'.local/test-scratch'/('native-exchange-callers-'+suffix)
+    parents[str(p)]=[str(child) for child in p.iterdir()] if p.exists() else []
+assert all(not Path(p).exists() for p in owned_paths) and not any(parents.values())
+unit='halo2-native-exchange-callers-rust-20261101.service'
+run=subprocess.run(['systemctl','--user','show',unit,'-p','LoadState','-p','ActiveState','-p','SubState','-p','Result'],text=True,stdout=subprocess.PIPE)
+state=dict(line.split('=',1) for line in run.stdout.splitlines() if '=' in line)
+assert state.get('ActiveState')=='inactive' and state.get('LoadState')=='not-found'
+cleanup={'passed':True,'owned_scratch_paths':owned_paths,'all_removed':True,'parent_remaining':parents,
+    'native_unit_state':state,'retained_large_artifacts':[],
+    'preserved':'Original assets/reference evidence, previous frozen inputs, selected runtimes and unrelated active work',
+    'bounded_reports_exactly_deduplicated':True}
+write(work/'cleanup.json',cleanup)
+docs=['multiplayer/docs/matchmaking-rust-parity-audit-20261028.md','rust/online_protocol/README.md',
+      'rust/online_protocol_bridge/README.md','multiplayer/docs/matchmaking-rust-parity-gaps.json']
+drift=read(work/'current-source-drift.json');doc_drift=[r for r in drift if r['path'] in docs];unrelated=[r for r in drift if r['path'] not in docs]
+assert len(doc_drift)==2 and len(unrelated)==8
+remaining=[
+    'Complete C++ reliable authority and snapshot transfer/codec/hash/state/window/retry/deadline/credit/native-validation policy still needs Rust owners; genuine byte/buffer/lease IO stays native',
+    'Session receive dispatch, phase/epoch/history rules, feature-limit construction, remaining native resource/local-seat views and postgame pump decisions still need Rust ownership',
+    'Actual native world/objective/role/clock/identity/device owners and lease operations remain genuine; metadata cannot create native preparation, Ready or a world',
+    'Original historical/service recovery, genuine providers and positive EOS/native worlds, all required natural outcomes/topologies, physical installed input and complete delivered G01-G12 acceptance',
+]
+relative_receipt=str(receipt_path.relative_to(root))
+ledger['native_preparation_callers_rust']['remaining_superseded_by']=relative_receipt
+ledger['native_exchange_callers_rust']={
+    'receipt':relative_receipt,'implementation':'rust/online_protocol/src/matchmaking_native_exchange.rs',
+    'session_world_caller':'rust/online_protocol/src/matchmaking_native_session.rs',
+    'bridge':'rust/online_protocol_bridge/src/matchmaking_native_exchange.rs','native_io':'src/network/online_match_session.cpp',
+    'component_passed':True,'complete_source_authority_common_capability_candidate_callers_in_rust':True,
+    'world_phase_role_current_epoch_selected_seal_caller_in_rust':True,
+    'native_generation_lock_and_unlocked_owner_boundaries_preserved':True,
+    'cpp_caller_fallback':False,'raw_u32_peer_context_host_binding':True,
+    'rust_counts':counts,'rust_total':sum(counts.values()),'new_rust_controls':11,'staging_tests':7,
+    'native_unique_tests':15,'native_executions':30,'public_authority_control_executions':8,
+    'native_build_failures':0,'native_execution_failures':0,'rust_test_compile_failures':1,
+    'freeze_drift_failures_before_build':0,'rust_native_policy_sources_match':True,
+    'source_admission_replay_regression_commands':25054,'new_original_executable_calls':0,
+    'native_protocol':124,'prior_native_protocol':123,'two_version_cpp_replay_difference_verified':True,
+    'played_world':False,'genuine_provider':False,'selected_runtime_replaced':False,
+    'all_cpp_matchmaking_policy_removed':False,'remaining':remaining,
+    'full_native_flow_qualified':False,'full_matchmaking_ready':False}
+write(ledger_path,ledger);assert before=={k:read(ledger_path)[k] for k in criteria_fields}
+files=sorted(p for p in work.rglob('*') if p.is_file());unique={sha(p):p for p in files}
+assert max(p.stat().st_size for p in files)<=1048576
+assert sum(p.stat().st_size for p in unique.values())<=8*1048576
+assert not destination.exists() and not receipt_path.exists()
+destination.mkdir(parents=True);by_hash={};mapping={}
+for p in files:
+    h=sha(p)
+    if h not in by_hash:
+        target=destination/(h[:16]+'-'+p.name);shutil.copyfile(p,target)
+        assert sha(target)==h and target.read_bytes()==p.read_bytes();by_hash[h]=target
+    mapping[str(p.relative_to(root))]={'path':str(by_hash[h].relative_to(root)),'sha256':h,'bytes':p.stat().st_size}
+assert set(destination.iterdir())==set(by_hash.values())
+for path,h in audit['source_pins'].items():assert sha(root/path)==h
+receipt={
+    'schema':'halo2-native-exchange-callers-rust-validation-v1',
+    'created_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'component_passed':True,
+    'scope':'Complete existing replacement source/authority/Common/capability/candidate-view and world-command callers in Rust with actual typed native IO; no original Live, genuine world/provider or installed-runtime acceptance',
+    'source_pins':audit['source_pins'],'rust_manifest_report':mapping[str((work/'full-rust/report.json').relative_to(root))],
+    'baseline':{**baseline['src/network/online_match_session.cpp'],
+        'retained_source':mapping[baseline['src/network/online_match_session.cpp']['path']],
+        'modern_cpp_reference':True,'original_xnet':False},
+    'rust_owns':[
+        'Full source publication/view and immutable continuity rows, authority full/ahead publication admission and clock order',
+        'Capability/direct-readiness/full-width peer/terminal-camera checks and exact complete feature masks',
+        'All eight Common actions and view, exact raw context and phase/retirement admission, operation then Abort/progress even on refusal',
+        'Host-candidate view phase/current-host decisions and actual candidate query sequence',
+        'World-command caller phase/role/current epoch/exact selected-seal decisions in the authoritative Rust Session',
+    ],
+    'cpp_retains':[
+        'Actual generation mutex and source/authority/quality owner capture; unlocked owner work remains outside the mutex',
+        'Actual Common action under the outer generation mutex through selection Abort/progress',
+        'Genuine native returned values, archived bytes/buffers/resources and private owner/lease lifetimes',
+    ],
+    'rust_counts':counts,'rust_total':sum(counts.values()),'new_rust_controls':11,'staging_tests':7,
+    'syntax_check':rust['syntax'],'syntax_native_input_mismatch':syntax_mismatch,
+    'syntax_diagnostics':'Only two preexisting PeerIo misleading-indentation warnings; final linked/native checks pass',
+    'native_runs':native_runs,'native_unique_tests':15,'native_executions':30,
+    'native_seconds':sum(r['seconds'] for r in native_runs),'public_authority_control_executions':8,
+    'native_build_failures':0,'native_execution_failures':0,'rust_test_compile_failures':1,'freeze_drift_failures_before_build':0,
+    'retained_failure':correction,'exact_failed_source_reconstruction_verified':True,
+    'public_authority_controls':'Actual public Session full/pipelined byte delivery, explicit declared validation only, rejected-cut refusal, source receipts, feature masks and full-width peer/Common context guards over real admitted DTLS fixture links',
+    'admission_replay_regression':replays[-1],'driver_byte_exact_packet_replay_claim':False,
+    'native_protocol_binding':{'current':124,'previous':123,'header_sha256':protocol_probe['after_header_sha256'],
+        'prior_header_sha256':protocol_probe['before_header_sha256'],'concurrent_change_predates_cohort_freeze':True,
+        'admission_source_and_harness_unchanged':True,'root_header_preserved':True,
+        'two_version_cpp_replay':protocol_probe},
+    'baseline_link_audit':baseline_audit,'link_audit':audit,'frozen_native_files':inputs['frozen_files'],
+    'freeze_drift':inputs['drift_during_freeze'],'unrelated_current_source_drift':unrelated,
+    'post_qualification_documentation_drift':doc_drift,'final_rust_native_policy_sources_match':True,
+    'borrowed_rust_cohort_input_pins':borrowed_rust_inputs,
+    'borrowed_inputs_checked_against_actual_frozen_paths_by_final_link_audit':True,
+    'remaining_native_ownership_inventory':mapping[str((work/'remaining-native-ownership.json').relative_to(root))],
+    'remaining':remaining,'new_original_executable_calls':0,'original_live_wire_recovered':False,
+    'historical_service_configuration_recovered':False,'played_world':False,'positive_genuine_steam':False,
+    'positive_genuine_eos':False,'physical_installed_input':False,'selected_runtime_replaced':False,
+    'production_service_activated':False,'full_native_flow_qualified':False,'all_cpp_matchmaking_policy_removed':False,
+    'original_whole_system_parity':False,'full_matchmaking_ready':False,'full_goal_complete':False,
+    'goal_criteria_sha256':'72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8',
+    'scope_inventory_snapshot_before_after_sha256':criteria_hash,
+    'all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved':True,
+    'retained_reports':mapping,'retained_unique_report_files':len(by_hash),
+    'retained_unique_report_bytes':sum(p.stat().st_size for p in by_hash.values()),'cleanup':cleanup,
+    'post_qualification_documentation':{p:sha(root/p) for p in docs},
+}
+write(receipt_path,receipt);assert receipt_path.stat().st_size<=1048576
+for p in files:
+    item=mapping[str(p.relative_to(root))];assert sha(p)==item['sha256']==sha(root/item['path'])
+shutil.rmtree(work);cleanup.update(working_report_files_removed=len(files),working_report_directory_removed=True)
+receipt['final_verification']={
+    'scope_inventory_snapshot_before_after_sha256':criteria_hash,'gap_count':12,'algorithm_id_count':53,'acceptance_gate_count':12,
+    'all_acceptance_gates_open':True,'current_source_pins_match':all(sha(root/p)==h for p,h in receipt['source_pins'].items()),
+    'working_reports_removed':not work.exists(),'all_owned_scratch_removed':all(not Path(p).exists() for p in owned_paths),
+    'selected_runtime_changed_by_this_work':False,'retained_large_artifacts':[]}
+assert receipt['final_verification']['current_source_pins_match'];write(receipt_path,receipt)
+print(json.dumps({'receipt':relative_receipt,'passed':True,'rust_counts':counts,'native_executions':30,
+    'retained_files':len(by_hash),'retained_bytes':receipt['retained_unique_report_bytes'],
+    'working_files_removed':len(files),'all_owned_scratch_removed':True}))

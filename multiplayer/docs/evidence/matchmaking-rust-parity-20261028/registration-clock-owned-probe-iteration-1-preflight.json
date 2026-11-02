@@ -1,0 +1,47 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-probe/halo2-test-9db0me8c",
+  "mode": "preflight",
+  "candidate": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock/halo2-test-l_g5jw4g/cargo/release/halo2-matchmaking-service",
+    "sha256": "2fe647b7827bd00a3c1be010cfb70b95b6876f04bb1a60ed975d011b43fbb1ec",
+    "bytes": 11448920,
+    "retained": false
+  },
+  "candidate_borrowed_read_only": true,
+  "donor_report": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-registration-clock-owned-worker-20261101/iteration-1-report.json",
+  "retained_large_artifacts": [],
+  "probe_source_pins": {
+    "tools/test_rust_matchmaking_service.py": "604e25658bca4d5ecad052714076afa18da86e2ea0519cdc89e8826a0e2989a3",
+    "tools/rust_service_clock_controls.py": "3c741c8c8d351f98a161badaf0d32fa6421ef9cbe348897e735fcf4e72ca1c67",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670"
+  },
+  "clock": {
+    "passed": false,
+    "contract": "Steam expiry uses credential wall time; social account registration uses Store.now with the persisted floor.",
+    "statuses": [
+      201,
+      201,
+      401
+    ],
+    "expected_statuses": [
+      201,
+      201,
+      401
+    ],
+    "registration_dates": [
+      1793510112,
+      1793510112
+    ],
+    "expected_registration_dates": [
+      1793510712,
+      1793510712
+    ],
+    "expired_identity_allocations": 0,
+    "floor_retained": true,
+    "fixture": "Private provider grants and a later registration clock floor; no system-clock mutation.",
+    "real_provider": false,
+    "original_parity": false
+  },
+  "donor_unchanged": true
+}

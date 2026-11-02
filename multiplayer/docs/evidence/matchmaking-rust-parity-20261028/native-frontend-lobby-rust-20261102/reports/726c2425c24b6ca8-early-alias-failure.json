@@ -1,0 +1,33 @@
+{
+  "scope": "Differential fixture declarations only",
+  "command": {
+    "command": [
+      "c++",
+      "-std=c++20",
+      "-O2",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source/include",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source/tests",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/cargo/cxxbridge",
+      "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source/rust/online_protocol_bridge",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source/tests/frontend_lobby_policy_tests.cpp",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source/src/ui/frontend_matchmaking_lobby_bridge.cpp",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/cargo/debug/libhalo2_online_protocol_bridge.a",
+      "-lcurl",
+      "-lssl",
+      "-lcrypto",
+      "-ldl",
+      "-lpthread",
+      "-lm",
+      "-o",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/comparison"
+    ],
+    "cwd": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-early-20261102/halo2-test-2nmu7a9r/source",
+    "exit_code": 1,
+    "log": "early-cpp.log",
+    "full_log_sha256": "09e49462ee9429864d99ab529b2d128a971aa4a08a89653e98d9d9fed650aca0",
+    "full_log_bytes": 2524
+  },
+  "diagnostic": "Exact captured online_party_screen signature requires the declared MenuFrame alias",
+  "reference_body_changed": false,
+  "product_code_changed": false
+}

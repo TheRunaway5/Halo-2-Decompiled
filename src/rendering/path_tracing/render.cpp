@@ -8,6 +8,7 @@
 #include <cstring>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -45,7 +46,7 @@ struct Buffer {
 };
 struct ShaderModules {
     VkDevice device{};
-    std::array<VkShaderModule,2> modules{};
+    std::array<VkShaderModule,3> modules{};
     ~ShaderModules(){for(auto shader:modules)if(shader)vkDestroyShaderModule(device,shader,nullptr);}
 };
 template<class T> std::span<const std::byte> bytes(const std::vector<T>& value) {
@@ -117,6 +118,8 @@ struct Render::Impl {
     VkDescriptorSet descriptor{};
     VkPipelineLayout pipeline_layout{};
     VkPipeline graphics_pipeline{};
+    std::map<std::pair<std::string,unsigned>,VkPipeline> source_depth_pipelines;
+    bool source_depth_prepared{};
     VkImage environment_image{},environment_depth{};
     VkDeviceMemory environment_memory{},environment_depth_memory{};
     VkImageView environment_view{},environment_depth_view{};
@@ -139,7 +142,7 @@ struct Render::Impl {
     VkFramebuffer visibility_framebuffer{};
     VkFramebuffer lighting_framebuffer{};
     VkExtent2D visibility_extent{};
-    std::array<Buffer,9> buffers;
+    std::array<Buffer,10> buffers;
     // Binding9 is an immutable previous-frame snapshot. Keeping its read bank
     // separate avoids races when several current pixels reproject to the same
     // old cell. Only the two bounded16-word histories are copied on the GPU.
@@ -203,6 +206,7 @@ struct Render::Impl {
         clear_environment();
         clear_visibility_target();
         for(auto& buffer:buffers)buffer.clear();
+        for(const auto& [key,pipeline]:source_depth_pipelines)if(pipeline)vkDestroyPipeline(context.device,pipeline,nullptr);
         if(visibility_pipeline)vkDestroyPipeline(context.device,visibility_pipeline,nullptr);
         if(visibility_pass)vkDestroyRenderPass(context.device,visibility_pass,nullptr);
         if(lighting_pipeline)vkDestroyPipeline(context.device,lighting_pipeline,nullptr);
@@ -240,8 +244,8 @@ struct Render::Impl {
         check(vkMapMemory(context.device,replacement.memory,0,replacement.capacity,0,&replacement.mapped),"map scene buffer");
         destination.swap(replacement);
     }
-    VkShaderModule shader(const char* name)const {
-        const auto path=context.shaders/"path_tracing"/name;
+    VkShaderModule shader(const char* name,bool catalog=false)const {
+        const auto path=catalog?context.shaders/name:context.shaders/"path_tracing"/name;
         std::ifstream file(path,std::ios::binary|std::ios::ate);
         const auto length=file.tellg();
         if(length<=0 || length%4 || std::uint64_t(length)>64u*1024u*1024u)
@@ -261,11 +265,12 @@ struct Render::Impl {
         if(properties.limits.maxPerStageDescriptorStorageBuffers<8 || properties.limits.maxDescriptorSetStorageBuffers<8 ||
            properties.limits.maxPushConstantsSize<camera_bytes)
             throw FormatError("Path Tracing scene resources exceed this Vulkan device's descriptor or push-constant limits");
-        std::array<VkDescriptorSetLayoutBinding,10> bindings{};
+        std::array<VkDescriptorSetLayoutBinding,11> bindings{};
         for(unsigned i=0;i<bindings.size();++i) {
             bindings[i].binding=i;bindings[i].descriptorCount=1;bindings[i].stageFlags=VK_SHADER_STAGE_FRAGMENT_BIT;
             bindings[i].descriptorType=i==7?VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                i==5?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                i==5 || i==10?VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            if(i==10)bindings[i].stageFlags|=VK_SHADER_STAGE_VERTEX_BIT;
         }
         VkDescriptorSetLayoutCreateInfo scene{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         scene.bindingCount=bindings.size();scene.pBindings=bindings.data();
@@ -275,7 +280,7 @@ struct Render::Impl {
         VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         layout.setLayoutCount=layouts.size();layout.pSetLayouts=layouts.data();layout.pushConstantRangeCount=1;layout.pPushConstantRanges=&push;
         check(vkCreatePipelineLayout(context.device,&layout,nullptr,&pipeline_layout),"create pipeline layout");
-        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,8},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1},
+        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,8},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,2},
             {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1}};
         VkDescriptorPoolCreateInfo descriptor_pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
         descriptor_pool.maxSets=1;descriptor_pool.poolSizeCount=3;descriptor_pool.pPoolSizes=sizes;
@@ -285,13 +290,18 @@ struct Render::Impl {
         check(vkAllocateDescriptorSets(context.device,&allocation,&descriptor),"allocate scene descriptor");
         graphics_pipeline=make_pipeline(context.render_pass,false);
     }
-    VkPipeline make_pipeline(VkRenderPass pass,bool visibility,bool lighting=false) {
+    VkPipeline make_pipeline(VkRenderPass pass,bool visibility,bool lighting=false,const NativeWorldKernelEntry* native=nullptr) {
         ShaderModules modules;modules.device=context.device;
-        modules.modules[0]=shader("world.vert.spv");
-        modules.modules[1]=shader(visibility?"depth.frag.spv":lighting?"lighting.frag.spv":"world.frag.spv");
+        const auto path=native?std::string(native->path_tracing_source_depth_vertex_path):std::string{};
+        if(native && path.empty())throw FormatError("Path Tracing native depth lost its compiled authored vertex kernel");
+        modules.modules[0]=native?shader(path.c_str(),true):shader("world.vert.spv");
+        modules.modules[1]=shader(native?(visibility?"source_depth_visibility.frag.spv":lighting?"source_depth_lighting.frag.spv":"source_depth.frag.spv"):
+            visibility?"depth.frag.spv":lighting?"lighting.frag.spv":"world.frag.spv");
+        if(native)modules.modules[2]=shader("source_depth.geom.spv");
         const VkPipelineShaderStageCreateInfo stages[]{
             {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,modules.modules[0],"main",nullptr},
-            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,modules.modules[1],"main",nullptr}};
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,modules.modules[1],"main",nullptr},
+            {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,modules.modules[2],"main",nullptr}};
         const VkVertexInputBindingDescription binding{0,sizeof(Vertex),VK_VERTEX_INPUT_RATE_VERTEX};
         const VkVertexInputAttributeDescription attributes[]{
             {0,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,position)},
@@ -303,9 +313,26 @@ struct Render::Impl {
             {6,0,VK_FORMAT_R32_UINT,offsetof(Vertex,lightmap)},
             {7,0,VK_FORMAT_R32_SINT,offsetof(Vertex,bsp_cluster)},
             {8,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,lightmap_uv)}};
+        const VkVertexInputAttributeDescription native_attributes[]{
+            {0,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,position)},
+            {1,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,color)},
+            {2,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,uv)},
+            {3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex,lightmap_uv)},
+            {4,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,normal)},
+            {5,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,tangent)},
+            {6,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,binormal)},
+            {7,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,incident)},
+            {8,0,VK_FORMAT_R32_UINT,offsetof(Vertex,lightmap)},
+            {11,0,VK_FORMAT_R32_UINT,offsetof(Vertex,source_stipple_level)},
+            {12,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex,source_local_position)},
+            {13,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,source_color_alpha)},
+            {14,0,VK_FORMAT_R32_SINT,offsetof(Vertex,bsp_cluster)},
+            {9,0,VK_FORMAT_R32_SFLOAT,offsetof(Vertex,prt_cluster)},
+            {10,0,VK_FORMAT_R32G32B32A32_SFLOAT,offsetof(Vertex,prt_weights)}};
         VkPipelineVertexInputStateCreateInfo input{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
         input.vertexBindingDescriptionCount=1;input.pVertexBindingDescriptions=&binding;
         input.vertexAttributeDescriptionCount=std::size(attributes);input.pVertexAttributeDescriptions=attributes;
+        if(native) {input.vertexAttributeDescriptionCount=native->extended_vertex_bank?15:13;input.pVertexAttributeDescriptions=native_attributes;}
         VkPipelineInputAssemblyStateCreateInfo assembly{VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
         assembly.topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkPipelineViewportStateCreateInfo viewport{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
@@ -313,6 +340,7 @@ struct Render::Impl {
         VkPipelineRasterizationStateCreateInfo raster{VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
         raster.polygonMode=VK_POLYGON_MODE_FILL;raster.cullMode=context.cull_mode;
         raster.frontFace=VK_FRONT_FACE_COUNTER_CLOCKWISE;raster.lineWidth=1;
+        raster.depthClampEnable=native?VK_TRUE:VK_FALSE;
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         samples.rasterizationSamples=VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
@@ -327,7 +355,7 @@ struct Render::Impl {
         VkPipelineDynamicStateCreateInfo dynamic{VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO};
         dynamic.dynamicStateCount=std::size(states);dynamic.pDynamicStates=states;
         VkGraphicsPipelineCreateInfo pipeline{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-        pipeline.stageCount=std::size(stages);pipeline.pStages=stages;pipeline.pVertexInputState=&input;
+        pipeline.stageCount=native?3:2;pipeline.pStages=stages;pipeline.pVertexInputState=&input;
         pipeline.pInputAssemblyState=&assembly;pipeline.pViewportState=&viewport;pipeline.pRasterizationState=&raster;
         pipeline.pMultisampleState=&samples;pipeline.pDepthStencilState=&depth;pipeline.pColorBlendState=&blend;
         pipeline.pDynamicState=&dynamic;pipeline.layout=pipeline_layout;pipeline.renderPass=pass;
@@ -632,7 +660,8 @@ struct Render::Impl {
         visibility_extent=extent;update_visibility_binding();
     }
     void bind(VkCommandBuffer command,VkDescriptorSet material,std::uint32_t dynamic_bank_offset,
-              std::span<const std::byte> camera,std::uint32_t material_index,bool visibility,bool lighting=false) {
+              std::span<const std::byte> camera,std::uint32_t material_index,bool visibility,bool lighting=false,
+              const NativeWorldKernelEntry* native=nullptr) {
         if(!uploaded)throw FormatError("Path Tracing scene must be uploaded before binding");
         if(camera.size()!=camera_bytes || (material_index!=~0u && material_index>=0x80000000u))
             throw FormatError("Path Tracing draw lost its camera or material identity");
@@ -651,9 +680,17 @@ struct Render::Impl {
             const auto binding=material_index|0x80000000u;
             std::memcpy(push.data()+camera_bytes-sizeof(binding),&binding,sizeof(binding));
         }
+        auto pipeline=visibility?visibility_pipeline:lighting?lighting_pipeline:graphics_pipeline;
+        if(native) {
+            if(!source_depth_prepared || material_index==~0u)throw FormatError("Path Tracing source depth requires its current raster and material owner");
+            const auto key=std::pair{std::string(native->path_tracing_source_depth_vertex_path),unsigned(visibility?1:lighting?2:0)};
+            auto found=source_depth_pipelines.find(key);
+            if(found==source_depth_pipelines.end())found=source_depth_pipelines.emplace(key,
+                make_pipeline(visibility?visibility_pass:lighting?lighting_pass:context.render_pass,visibility,lighting,native)).first;
+            pipeline=found->second;
+        }
         const VkDescriptorSet sets[]{material,descriptor};
-        vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,
-            visibility?visibility_pipeline:lighting?lighting_pipeline:graphics_pipeline);
+        vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline);
         vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,2,sets,1,&dynamic_bank_offset);
         vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,
                            0,camera_bytes,push.data());
@@ -745,6 +782,7 @@ void Render::upload(const Scene& scene,const GpuSceneUniform& uniform) {
     p.previous_history_camera_mask=p.current_history_camera_mask;
     p.current_history_camera_mask=0;p.previous_history_prepared=false;
     p.visibility_ready=p.lighting_ready=false;
+    p.source_depth_prepared=false;
     const std::array<std::span<const std::byte>,7> input{
         bytes(scene.nodes),bytes(scene.triangles),bytes(scene.materials),bytes(scene.lights),bytes(scene.pixels),
         std::as_bytes(std::span(&uniform,1)),bytes(scene.color_guide_pixels)};

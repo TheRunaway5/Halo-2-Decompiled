@@ -1,0 +1,200 @@
+{
+  "schema": "H2_LEGACY_STATE_CUTOVER_RUST_VALIDATION_V1",
+  "qualified_populated_fixture_host_handoff": true,
+  "real_production_state_qualified": false,
+  "production_activated": false,
+  "goal_complete": false,
+  "certified": false,
+  "goal_status": "active",
+  "reference": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d",
+    "bytes": 639228,
+    "pages": 42,
+    "uploaded_name": "Halo2_Original_Matchmaking_Parity_Master_Reference_v5.pdf",
+    "embedded_edition": "Retained V4 plus V4.1 recovery appendix",
+    "expanded_companion_registry_supplied": false
+  },
+  "immutable_ledger_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_goal_criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "scope": {
+    "legacy_adapter": "Current frozen Python HTTP/room adapter using the production Rust ABI",
+    "candidate": "Rust service HTTP/SQLite runtime",
+    "storage": "Private generated legacy fixture cloned by SQLite backup; no real production snapshot available in the checked workspace",
+    "transport": "Actual Caddy TLS and legacy room WebSockets; no OCI execution",
+    "profile": "Declared modern legacy-v10 relay/Slayer fixture; no original profile, genuine provider or played-world claim"
+  },
+  "validation": {
+    "rust_service_unit_tests": 20,
+    "python_directory_http_registry_tests": 18,
+    "host_handoff_checks": 5,
+    "api_views_compared_per_phase": 19,
+    "source_tables": 67,
+    "nonempty_tables": 33,
+    "source_rows": 75,
+    "cohort_source_files": 356,
+    "checks": [
+      "legacy HTTP/room completion creates nonempty hidden XP, unanimous result/admission, public PCR and two persistent players while excluding the guest",
+      "SQLite backup clones every populated table and both original signing keys into private owned storage",
+      "Rust opens the populated legacy clone without changing existing table contents, preserves canonical/public identities, profiles, social memberships, history and JWKS, and rejects old runtime grants",
+      "Rust replays the legacy party command without duplicating the party and commits a new canonical profile revision",
+      "the real legacy host process reopens Rust-written state and reads the same canonical/profile/social/history views and signing identity"
+    ],
+    "observations": {
+      "legacy_room_fixture": {
+        "observed": {
+          "persistent_xp_total": 100,
+          "real_start_elapsed_seconds": 10.049252730997978,
+          "physical_connections": 2,
+          "logical_seats": 3
+        },
+        "fixture": {
+          "compatibility": "halo2-native-queue-v10",
+          "declared": true,
+          "original_profile": false,
+          "real_gameplay": false,
+          "catalog_sha256": "b7d2506b1ecfe22f656017fa11a139030db456e61506406618abee2c5b7f90ca"
+        },
+        "adapter": "Legacy Python HTTP and production Rust ABI",
+        "real_gameplay": false
+      },
+      "startup_table_differences": {},
+      "rollback_table_differences": {},
+      "nonempty_tables": {
+        "carnage_player_summaries": 2,
+        "carnage_reports": 1,
+        "clan_members": 3,
+        "clan_requests": 4,
+        "clans": 2,
+        "clock_floor": 1,
+        "directory_revision": 1,
+        "eos_profile_outbox": 2,
+        "history_players": 4,
+        "master_identity": 1,
+        "match_result_admission": 1,
+        "match_result_players": 2,
+        "match_result_skill": 2,
+        "match_results": 1,
+        "matchmaking_ledger_lock": 1,
+        "parties": 1,
+        "party_members": 2,
+        "party_privacy": 1,
+        "party_requests": 3,
+        "player_customization": 1,
+        "player_friend_block_epoch": 1,
+        "player_friend_commands": 2,
+        "player_friend_tags": 4,
+        "player_friendships": 1,
+        "player_identities": 8,
+        "player_profiles": 4,
+        "players": 4,
+        "playlist_ranks": 2,
+        "playlist_skill": 2,
+        "report_schema": 1,
+        "social_voice_membership_epoch": 5,
+        "steam_login_sessions": 4,
+        "voice_blocks": 1
+      },
+      "baseline_table_hashes_sha256": "e0fcbfa4e1786820949110eee915f4d8d5c6e57204ea458e91e9d4bb74cf7e6b",
+      "source_state_unchanged": true
+    },
+    "binary": {
+      "sha256": "f3432d311f3d3fb338c848f3928c55aa292e238000cd033d12e9ef2bba26db5a",
+      "bytes": 11481976,
+      "retained": false
+    },
+    "directory_abi": {
+      "sha256": "24a0f789d812a7a1415c25c2ec0b91c4713963647494dab4e922280c347b9d97",
+      "bytes": 4973928,
+      "retained": false
+    },
+    "caddy": {
+      "version": "v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=",
+      "archive_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz",
+      "checksum_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_checksums.txt",
+      "archive_sha512": "a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7",
+      "archive_sha256": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+      "binary_sha256": "678ade3bfc088749c81a681adc603333ee0bb023b6a6cfe3c0f58bef8ff854e9",
+      "retained": false
+    },
+    "driver_cli_checked": true,
+    "exception_bearer_redaction_checked": true
+  },
+  "asserted_invariants": [
+    "All existing table contents match on Rust startup excluding clock-floor maintenance",
+    "All 19 profile/clan/party/friend/history/JWKS API views match after fresh login",
+    "Legacy runtime account grants fail at the new Rust process",
+    "Replaying the legacy party command creates no additional party",
+    "A new Rust profile revision is visible after legacy host process rollback",
+    "All existing Rust-written table contents survive legacy startup excluding clock-floor maintenance",
+    "The protected legacy source table contents and both signing key files remain unchanged"
+  ],
+  "driver_corrections": [
+    {
+      "kind": "Fixture setup mismatch",
+      "detail": "Reusing the Rust-specific fault-injection suite against legacy produced expected plain-text500 instead of JSON. A normal legacy room/PCR producer replaced it; no production adapter, Rust algorithm or handoff assertion was weakened.",
+      "compiler_inputs_changed": false
+    },
+    {
+      "kind": "Diagnostic redaction",
+      "detail": "Bearer grants are redacted from aiohttp exception reprs, traceback reports and terminal failures. The report-only helper change was tested separately after the passing cohort.",
+      "proof": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/f811039cbdd4aab3-redaction-validation.json",
+      "source_difference": {
+        "qualification_source_files": 356,
+        "current_source_differences": {
+          "tools/test_rust_matchmaking_delivery.py": {
+            "qualified_sha256": "591a5a4317398fbe6f6d15dab6b0f9d91a270a0e3ed59eaa76e28c6f3aa48c50",
+            "current_sha256": "bd69a48156d62c17882e40f5e191704b3b2be5149cf33a5d1bf487c6eb82af71"
+          }
+        },
+        "reason": "Exception bearer redaction added after the passing state handoff; tested separately in redaction-validation.json. Compiled crates, service adapters and state controls remain exact.",
+        "compiled_inputs_changed": false,
+        "state_controls_changed": false
+      }
+    }
+  ],
+  "limits": {
+    "state_fixture": true,
+    "real_production_snapshot": false,
+    "real_provider": false,
+    "original_live": false,
+    "played_world": false,
+    "docker_image_executed": false,
+    "service_image_rollback": false,
+    "host_process_state_rollback": true,
+    "installed_client_input": false,
+    "full_matchmaking_ready": false
+  },
+  "remaining": [
+    "Qualify an actual protected production state clone and the exact deployed legacy image/version",
+    "Build/execute the actual OCI/SDK dependency cohort and verify container recreation/restart and service-image rollback",
+    "Complete the 53-owner production-route audit and original historical/service recovery without guessing",
+    "Qualify genuine providers, all required natural families/topologies/outcomes/continuity/results/XP/PCR/party-return cases",
+    "Qualify physical installed Linux playlist/Start flow and complete delivered G01-G12 acceptance"
+  ],
+  "retained_reports": {
+    "retention": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/retention.json",
+    "final_report": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/542ede959895130d-report.json",
+    "manifest": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/cbef25d0b8a4deb6-source-manifest-final.json",
+    "table_hashes": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/31434d69f4243890-legacy-before.json",
+    "postqualification_driver": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/legacy-state-cutover-rust-20261101/reports/e05613514d3c6fef-postqualification-driver.json",
+    "unique_files": 23,
+    "unique_report_bytes": 175846,
+    "cohort_files_including_retention_manifest": 24,
+    "cohort_bytes_including_retention_manifest": 184961
+  },
+  "cleanup": {
+    "scratch_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101/halo2-test-nq9f3hpj",
+    "scratch_removed": true,
+    "scratch_parents": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-20261101",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-cli",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-state-cutover-redaction"
+    ],
+    "scratch_parents_empty": true,
+    "working_duplicates_removed": true,
+    "new_large_artifacts_retained": [],
+    "selected_runtime_modified_by_this_milestone": false
+  }
+}

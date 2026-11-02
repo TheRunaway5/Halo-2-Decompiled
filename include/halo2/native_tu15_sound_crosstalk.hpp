@@ -34,6 +34,7 @@ struct ArithmeticTrace {
 struct Result {bool exit_arithmetic_saturation;};
 using Input=std::span<const Word24,32>;
 using Output=std::span<Word24,32>;
+void validate_controls(const Controls&);
 // Four disjoint original input blocks and four disjoint output blocks.
 // Two sequential stereo pairs share the authored coefficients. Each pair
 // retains two11-word histories, two filtered words and an explicit cursor.

@@ -1,6 +1,8 @@
 #include "halo2/native_tu15_constraint_step_residuals.hpp"
+#include "halo2/native_tu15_constraint_frame_build_input_observer.hpp"
 #include "halo2/native_tu15_dynamic_accumulator.hpp"
 #include "halo2/native_tu15_motion_commit.hpp"
+#include "halo2/native_tu15_stack_arena.hpp"
 #include <stdexcept>
 #include <sstream>
 namespace halo2 {
@@ -12,7 +14,8 @@ void native_tu15_step_island_constraints_with_residuals(SourcePhysicsContactMemo
   const NativeTu15PhysicsConstraintInput&input,NativeTu15PhysicsFrameFp&fp,unsigned depth,
   std::uint32_t packet,const NativeTu15ConstraintResidualCall&invoke,
   const SourcePhysicsContactRecordObserver&observe,NativeTu15ConstraintBindingActivity*activity,
-  const NativeTu15SystemFiletimeSource&actual_filetime){
+  const NativeTu15SystemFiletimeSource&actual_filetime,
+  const NativeTu15ArrayGrowthServices*native_arena_backing){
   if(packet>0xfffffff0u)throw std::runtime_error("Native TU1.5 constraint builder packet wraps its retained storage");
   const auto call=[&](std::uint32_t owner,std::span<const std::uint32_t>args,
     std::optional<std::uint32_t>receiver,unsigned pop,auto&context){
@@ -21,9 +24,21 @@ void native_tu15_step_island_constraints_with_residuals(SourcePhysicsContactMemo
   };
   NativeTu15ConstraintStepServices services;
   services.allocate_stack_block=[&](auto allocator,auto owner,auto bytes,auto&context){
+    if(owner.identity==0x2e10a0u){
+      if(!native_arena_backing){if(activity)++activity->native_arena_refusals;
+        throw std::runtime_error("Native TU1.5 constraints require native slow-arena backing");}
+      const auto data=native_tu15_allocate_stack_arena(m,allocator.identity,bytes,context,*native_arena_backing,observe);
+      if(activity)++activity->native_arena_allocations;return data;
+    }
     const std::array args{bytes};return call(owner.identity,args,allocator.identity,4,context);
   };
   services.release_stack_block=[&](auto allocator,auto owner,auto block,auto bytes,auto&context){
+    if(owner.identity==0x2e1110u){
+      if(!native_arena_backing){if(activity)++activity->native_arena_refusals;
+        throw std::runtime_error("Native TU1.5 constraints require native slow-arena backing");}
+      native_tu15_release_stack_arena(m,allocator.identity,block,bytes,context,*native_arena_backing,observe);
+      if(activity)++activity->native_arena_releases;return;
+    }
     const std::array args{block,bytes};call(owner.identity,args,allocator.identity,8,context);
   };
   services.setup_motion=[&](auto motion,auto owner,auto step,auto gravity,auto output,auto&context){
@@ -40,7 +55,7 @@ void native_tu15_step_island_constraints_with_residuals(SourcePhysicsContactMemo
     put(m,packet+8u,build.jacobian_limit);put(m,packet+12u,build.secondary_jacobians);
     const auto recover=[&]{build={word(m,packet),word(m,packet+4u),word(m,packet+8u),word(m,packet+12u)};};
     try{
-      if(owner.identity==0x31f770u||owner.identity==0x31f860u){
+      if(owner.identity==0x31f770u||owner.identity==0x31f860u||owner.identity==0x325ef0u){
         NativeTu15ConstraintProducerServices producer;
         producer.build_base=[&](const auto&request,auto&base_context){
           native_tu15_build_constraint_base(m,request,base_context,depth,observe,
@@ -50,10 +65,23 @@ void native_tu15_step_island_constraints_with_residuals(SourcePhysicsContactMemo
         if(owner.identity==0x31f770u)
           native_tu15_build_axis_factor_constraint(m,{constraint.identity},{jacobian_input},{packet},
             context,depth,producer,observe,activity?&activity->producers:nullptr);
-        else native_tu15_build_scaled_accumulator_constraint(m,{constraint.identity},{jacobian_input},{packet},
-          context,depth,producer,observe,activity?&activity->producers:nullptr);
+        else if(owner.identity==0x31f860u)
+          native_tu15_build_scaled_accumulator_constraint(m,{constraint.identity},{jacobian_input},{packet},
+            context,depth,producer,observe,activity?&activity->producers:nullptr);
+        else{
+          if(activity)++activity->native_direct_base_builders;
+          const auto rows_before=activity?activity->base.rows:0u;
+          native_tu15_build_base_constraint(m,{constraint.identity},{jacobian_input},{packet},
+            context,producer,activity?&activity->producers:nullptr);
+          if(activity)activity->completed_direct_base_rows+=activity->base.rows-rows_before;
+        }
         if(activity)for(unsigned n=0;n<3;++n)
           activity->completed_producer_emissions[n]+=activity->producers.emissions[n]-before[n];
+      }else if(owner.identity==0x31d930u){
+        native_tu15_observe_constraint_frame_build_input(m,{constraint.identity,jacobian_input,packet,
+          {word(m,packet),word(m,packet+4u),word(m,packet+8u),word(m,packet+12u)},context,depth});
+        native_tu15_build_bound_joint_constraint(m,constraint.identity,{jacobian_input},{packet},
+          context,depth,observe,activity?&activity->joint_builder:nullptr);
       }else{
         const std::array args{jacobian_input,packet};
         call(owner.identity,args,constraint.identity,8,context);

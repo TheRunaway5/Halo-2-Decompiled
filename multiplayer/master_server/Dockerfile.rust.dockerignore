@@ -1,0 +1,12 @@
+**
+!rust/
+!rust/online_protocol/
+!rust/online_protocol/**
+!rust/matchmaking_service/
+!rust/matchmaking_service/**
+**/target/
+**/.local/
+**/.env
+**/.env.*
+**/*.pem
+**/*.sqlite3*

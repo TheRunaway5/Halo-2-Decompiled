@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-full-rust/halo2-test-p2dbpsgj",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-full-rust/halo2-test-23uxflap",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-3swdpsrr",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-syntax/halo2-test-87li7bf4",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-audit/halo2-test-e4y8960o"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-full-rust": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-staging": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-syntax": [],
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-audit": []
+  },
+  "native_unit_states": {
+    "halo2-native-preparation-caller-rust-20261101.service": {
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "Result": "success"
+    },
+    "halo2-native-preparation-caller-rust-20261101-retry1.service": {
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "Result": "success"
+    }
+  },
+  "retained_large_artifacts": [],
+  "preserved": "Original assets/reference evidence, previous frozen inputs, selected runtimes and unrelated active work",
+  "bounded_reports_exactly_deduplicated": true
+}

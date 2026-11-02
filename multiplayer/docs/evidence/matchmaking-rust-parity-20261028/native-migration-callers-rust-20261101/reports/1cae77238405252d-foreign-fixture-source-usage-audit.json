@@ -1,0 +1,82 @@
+{
+  "passed": true,
+  "scope": "Source/current registration audit of the foreign weapon-selector fixture added between frozen cohorts; no retained compiled dependency-file claim",
+  "foreign_inventory_difference": [
+    {
+      "path": "tests/fixtures/weapon_effect_selector_tu15_original.json",
+      "rust_sha256": "bb393418c88cef77cf883cd90422e08c9b51ad7253b97af2dd9f4ffdf330562d",
+      "native_sha256": null,
+      "native_present": false,
+      "current_root_sha256": "bb393418c88cef77cf883cd90422e08c9b51ad7253b97af2dd9f4ffdf330562d"
+    }
+  ],
+  "rust_source_files_compared": 171,
+  "rust_filename_consumers": [],
+  "rust_directory_readers": [
+    {
+      "path": "rust/online_protocol/src/netcode/stream.rs",
+      "line": 2607,
+      "text": "        for entry in std::fs::read_dir(&dir).unwrap() {"
+    }
+  ],
+  "directory_reader_scope": "Only ignored H2_NET_CORPUS network binary-corpus test; not a fixture directory sweep",
+  "test_log_confirms_ignored": [
+    "test netcode::stream::tests::captured_corpus_payload ... ignored"
+  ],
+  "current_native_consumers": [
+    "native_weapon_effect_selector_tu15_tests / native_weapon_effect_selector_tu15"
+  ],
+  "selected_native_consumer_present": false,
+  "proof_source_pins": {
+    "cmake/NativeWeaponEffectsTu15.cmake": {
+      "sha256": "ffe9aaeb9719ff5cf6758a259508c7c235c825c0783ced152ca3706779aa0750",
+      "matching_lines": [
+        {
+          "line": 114,
+          "text": "    add_executable(native_weapon_effect_selector_tu15_tests tests/native_weapon_effect_selector_tu15_tests.cpp"
+        },
+        {
+          "line": 116,
+          "text": "    target_include_directories(native_weapon_effect_selector_tu15_tests PRIVATE include tests)"
+        },
+        {
+          "line": 117,
+          "text": "    target_link_libraries(native_weapon_effect_selector_tu15_tests PRIVATE nlohmann_json::nlohmann_json halo2_glm)"
+        },
+        {
+          "line": 118,
+          "text": "    add_test(NAME native_weapon_effect_selector_tu15 COMMAND native_weapon_effect_selector_tu15_tests"
+        },
+        {
+          "line": 119,
+          "text": "        \"${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_effect_selector_tu15_original.json\")"
+        },
+        {
+          "line": 127,
+          "text": "        foreach(target native_weapon_effect_dispatch_tu15_tests native_weapon_effect_request_tu15_tests native_weapon_effect_location_tu15_tests native_weapon_effect_iterator_tu15_tests native_weapon_effect_state_tu15_tests native_weapon_effect_creation_tu15_tests native_weapon_effect_initialization_tu15_tests native_weapon_effect_allocation_tu15_tests native_weapon_effect_selector_tu15_tests native_weapon_zoom_reset_tu15_tests)"
+        }
+      ]
+    },
+    "tools/validate_weapon_material_snapshot_tu15.py": {
+      "sha256": "2cbcb05d4d2c3f784e2a72853b39fe6516faf94e95519f492d002d642bf40977",
+      "matching_lines": [
+        {
+          "line": 198,
+          "text": "        'weapon_effect_selector_tu15_original.json',"
+        }
+      ]
+    },
+    "rust/online_protocol/src/netcode/stream.rs": {
+      "sha256": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c",
+      "matching_lines": [
+        {
+          "line": 2607,
+          "text": "        for entry in std::fs::read_dir(&dir).unwrap() {"
+        }
+      ]
+    }
+  },
+  "fixture_and_concurrent_work_preserved": true,
+  "compiled_dependency_files_audited": false,
+  "broad_inventory_identity_claim": false
+}

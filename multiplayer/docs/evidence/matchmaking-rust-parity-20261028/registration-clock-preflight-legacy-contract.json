@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-clock-legacy/halo2-test-nb8o_4ta",
+  "credential_accepted_by_actual_legacy_owner": true,
+  "registration_time_uses_floor": true,
+  "source_pins": {
+    "multiplayer/master_server/store.py": "f34675b7f173f7f30d2feb459069c47843be249aab9339fd181974e0bed81e97",
+    "multiplayer/master_server/steam_login.py": "b8832aea855ef9c72db352aa064b9ddc27f225e0783bf0e6138d7e8acdef6b23",
+    "multiplayer/master_server/clans_http.py": "6d511b721e5a734e25132c6c0d7c5789c4b9eb3535dd740d0c2552564ca7e80f"
+  },
+  "provider_fixture": true,
+  "original_parity": false,
+  "retained_large_artifacts": []
+}

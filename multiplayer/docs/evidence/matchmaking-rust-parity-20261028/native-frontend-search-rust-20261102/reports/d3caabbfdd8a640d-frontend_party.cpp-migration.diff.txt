@@ -1,0 +1,11 @@
+--- tests/reference/frontend_search_before_rust_20261102/frontend_party.cpp.reference
++++ src/ui/frontend_party.cpp
+@@ -192,7 +192,7 @@
+       }
+     }
+     if(i==0 && online_lobby_.matchmaking() && account_.party && !account_.party->countdown_supported &&
+-        !selected_playlist_.empty())return online_lobby_start_error();
++        !matchmaking_search_.selected().empty())return online_lobby_start_error();
+     if(i==0)return account_.party_message; // Real service errors; no invented authored idle/voice status.
+     if(i==1 || i==2 || i==3 || i==48)return expand(authored(i));
+     if(i==10) {

@@ -1,0 +1,193 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final/halo2-test-2u0a4tgx/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "rust_service_account_probe",
+        "rust_service_matchmaking_probe",
+        "rust_service_qos_probe",
+        "rust_service_room_probe",
+        "online_login_probe",
+        "rust_service_social_probe",
+        "online_voice_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^(online_protocol_rust_build_helper|rust_matchmaking_service_http|rust_friend_cloud_service_http|rust_friend_cloud_room_service_http|rust_social_voice_service_http)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final/halo2-test-2u0a4tgx/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final/halo2-test-2u0a4tgx/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "rust-social-voice/report.json",
+      "status": "retained",
+      "bytes": 4894,
+      "sha256": "ebd7492553ebbf266b94071b8b480fb21c9ab333e9dbd4a0d0eba561a532a2d5",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-social-voice/report.json"
+    },
+    {
+      "path": "rust-social-voice/source-manifest.json",
+      "status": "retained",
+      "bytes": 18223,
+      "sha256": "9b72b53bbad1546165997cff8e3fc9394dc160d0cc9c872b26aa033af619f8d6",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-social-voice/source-manifest.json"
+    },
+    {
+      "path": "rust-social-voice/step-0.log",
+      "status": "retained",
+      "bytes": 6293,
+      "sha256": "1956d5a1b46e7d4af424dfc0ae9dd03e6656a81057ba71b7a42c26ea88084a46",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-social-voice/step-0.log"
+    },
+    {
+      "path": "rust-social-voice/step-1.log",
+      "status": "retained",
+      "bytes": 342,
+      "sha256": "f41b0172f4e387061dd4c408be922ce3d54b954cedf3413a6b3fe9a264210796",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-social-voice/step-1.log"
+    },
+    {
+      "path": "rust-friend-cloud-room/report.json",
+      "status": "retained",
+      "bytes": 2450,
+      "sha256": "e156e7e0628d895aae259cb008cd4ac0590375493cbc13f973babd5213f6bbc4",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud-room/report.json"
+    },
+    {
+      "path": "rust-friend-cloud-room/source-manifest.json",
+      "status": "retained",
+      "bytes": 18223,
+      "sha256": "14c77f4f641c86eb8f19e715432c19597d2621d2ce6a1eae44018c72b33bede8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud-room/source-manifest.json"
+    },
+    {
+      "path": "rust-friend-cloud-room/step-0.log",
+      "status": "retained",
+      "bytes": 6293,
+      "sha256": "99ad595aab8d9191dcc2d881c5dd13168936e3c6ff1668ffb5f195e7ade85873",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud-room/step-0.log"
+    },
+    {
+      "path": "rust-friend-cloud-room/step-1.log",
+      "status": "retained",
+      "bytes": 342,
+      "sha256": "8487f4204bfaed20930723e4ae7cf324fed382641d4ab344506f80170ec79463",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud-room/step-1.log"
+    },
+    {
+      "path": "rust-friend-cloud/report.json",
+      "status": "retained",
+      "bytes": 4188,
+      "sha256": "e7e8eefce93a6a2ef7a1b5946d4175fef4d9ba7a73d5f131b141c0aced939428",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud/report.json"
+    },
+    {
+      "path": "rust-friend-cloud/source-manifest.json",
+      "status": "retained",
+      "bytes": 18223,
+      "sha256": "7e88317bebea966ddffaaa4721c06589206267833702ace2c9b96fdd246322e8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud/source-manifest.json"
+    },
+    {
+      "path": "rust-friend-cloud/step-0.log",
+      "status": "retained",
+      "bytes": 6293,
+      "sha256": "e868d50f745d69d6ae2091255dc5725f4ada14071c8cbc2314412db124735a71",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud/step-0.log"
+    },
+    {
+      "path": "rust-friend-cloud/step-1.log",
+      "status": "retained",
+      "bytes": 342,
+      "sha256": "2b0ad1c40dcd1db898c69df46394a62e8b5ec4010160eda1afd2e98aa542ad43",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-friend-cloud/step-1.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1934,
+      "sha256": "3c23c661abac8830c7a1e2c461de110f36b839963d6dd38904e155ccb38fcd94",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "retained",
+      "bytes": 23186,
+      "sha256": "8a97969ffc8d2cd9784d0836d384ee9a44c815f577c28c003b2f2efb9ef8e7b8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-service/report.json"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "retained",
+      "bytes": 18223,
+      "sha256": "fc1b6ffd9963b0f182a39e41371058041ba31a0992a4f5eff9b1f30f1dbb9656",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-service/source-manifest.json"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "retained",
+      "bytes": 6293,
+      "sha256": "4a2878e49439a99ebe421641f20cdfa128febe275929a81b4e067c60e00bbfe6",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-service/step-0.log"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "retained",
+      "bytes": 342,
+      "sha256": "5aa5dd652233b459c480160c5707c2e571c2b41e7af8bca7657a324e29450d05",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-social-voice-native-final-20261101/evidence/rust-service/step-1.log"
+    }
+  ]
+}

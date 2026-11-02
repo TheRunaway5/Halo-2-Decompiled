@@ -1,6 +1,8 @@
 #include "halo2/cache.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/water.hpp"
+#include "halo2/bsp_atmosphere.hpp"
+#include "halo2/model.hpp"
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <algorithm>
@@ -108,13 +110,17 @@ int main(int argc,char** argv){try {
     }
     need(frames==17&&mips==51&&hardware==34&&decoded==1462272&&low_bytes==2176&&water_vertices>0,
          "Incomplete native source resource/water admission");
+    const auto atmosphere=native.load_bsp_atmosphere(1);unsigned sky_models=0;
+    for(unsigned n=0;n<atmosphere.skies.size();++n)if(const auto sky=native.load_sky(n)) {
+        (void)native.load_model(sky->model,true);++sky_models;
+    }
     Json report={{"schema","H2_NATIVE_WATER_BEACH_OWNER_ADMISSION_V1"},{"passed",true},
         {"scope","Actual original and prepared native Cache source resources/consumer; no GPU, selector-state or framebuffer parity claim"},
         {"original_datum",old->datum},{"prepared_datum",current->datum},{"prepared_address",current->address},
         {"frames",frames},{"mips",mips},{"exact_hardware_partitions",hardware},{"decoded_rgba_bytes",decoded},
         {"retained_original_metadata_bytes",saved_metadata.size()},{"retained_software_low_detail_bytes",low_bytes},
         {"strict_full_handle_frame_controls",controls},{"bsp1_water_vertices",water_vertices},{"bsp1_water_materials",water_materials},
-        {"frames_sha256",results}};
+        {"frames_sha256",results},{"sky_models",sky_models}};
     std::ofstream out(argv[4]);need(bool(out),"Missing native resource report owner");out<<report.dump(2)<<'\n';
     std::cout<<report.dump(2)<<'\n';return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

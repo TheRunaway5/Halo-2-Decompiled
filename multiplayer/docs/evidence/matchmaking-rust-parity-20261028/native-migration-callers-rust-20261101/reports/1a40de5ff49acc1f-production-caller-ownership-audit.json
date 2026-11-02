@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "scope": "Pinned production caller and actual object ownership audit; not all-project C++ policy closure",
+  "source_pins": {
+    "src/network/online_match_session.cpp": "835049960581f4be8f5042c417ad371170a8d631eedc120dc9971b71a6e742b9",
+    "rust/online_protocol/src/matchmaking_native_migration.rs": "969e88a33dcdd0a658d7fa4347e4145d400cb1ddc1a99102a2f6bd1fec51116d",
+    "rust/online_protocol/tests/matchmaking_native_migration.rs": "2363a9ba887a440738f99039e3c20b23509f8e90d3f5e6fd08454032d78e28e2",
+    "rust/online_protocol/src/lib.rs": "6898b8338fc8c454784e728019b003569fa3fc34fb16c44f3bacddd2cb4c35f3",
+    "rust/online_protocol_bridge/src/matchmaking_native_migration.rs": "18bb66181afd0e7c106474043aa5e5fa3c88317a447c89a956d31619736fec41",
+    "rust/online_protocol_bridge/src/matchmaking_native_migration.hpp": "b511e2673cb878fd4133b317f30fd38d68169c39b060ac70a0551f99d7a7a55a",
+    "rust/online_protocol_bridge/src/host_agreement.rs": "e4f1cfe86a3962b940bdc23fc7246c2765256d76720a182f7484d19856d9f860",
+    "rust/online_protocol_bridge/src/lib.rs": "020805c1bb758ec9f4955c9c3ab8434a28cb2bd2e4d9864a454816d157ffd9e6",
+    "rust/online_protocol_bridge/build.rs": "533cfea5838a7f4cac8be5c61cf08be3334d6dd432d76693ee862c683709b8f1",
+    "cmake/OnlinePeers.cmake": "90fb8d24b1a84feae6c0ae2bbeb828cf49b52659a09932b73a3b38b6b67435bd",
+    "cmake/OnlineProtocolRust.cmake": "8670e2619efee743e06e1d44abe202d12b0e0747dce55acea1380835af7fce39",
+    "tools/build_online_protocol_rust.py": "7b3f6f352e943d79484cecaf5287ed95c1a583f7baff5333f643c5a739a8fdd3",
+    "tests/test_build_online_protocol_rust.py": "eb786a73f888be7e15ec0cec3b1dd05789d47d106877b7ecae770a4a98355345",
+    "tests/native_migration_callers_tests.cpp": "137651cd5ba0c8a091ef869bb1a8a77f7e24d968ffa145ce1db87b475912c5ff",
+    "tests/test_native_migration_callers.py": "80639a0973eaada28a05b80962cffc4928863eb4f4b31242d9da281b9e54f1f4",
+    "tests/reference/native_migration_callers_before_rust_20261101.inc": "031f585c93bd9e7c2f513bda5bccf51846593804acaec080565b940dfe5c977a",
+    "tests/reference/native_migration_callers_before_rust_20261101.json": "9e714a863ba930ab834a6fc28b0f84b7daed15db9bcf9390fc2ac4d7d4ccd0d3",
+    "include/halo2/online_match_session.hpp": "7f68566ecd54a60eceb3be33830813327c9b1843e53ea6141c45612aabe3cf33"
+  },
+  "new_rust_orchestration_entries_in_actual_session_object": 3,
+  "before_after_object_hashes_differ": true,
+  "cpp_fence_selection_candidate_decisions_removed_from_wrappers": true,
+  "existing_rust_state_operations_retained_as_io_callbacks": true,
+  "public_session_header_unchanged": true,
+  "local_slot_getter_remains_mutex_free": true,
+  "remaining": [
+    "Audit remaining Session public send/receive/voice and feature/resource API caller sequencing; retain actual native IO and typed ownership",
+    "Full production Rust owner/route closure and original historical/service recovery across all 12 gaps, 53 algorithm IDs and G01-G12",
+    "Every required natural outcome/topology, genuine world/provider, physical installed Linux playlist/Start flow and complete delivered artifact/restart/config-change/rollback acceptance"
+  ],
+  "all_cpp_matchmaking_policy_removed": false,
+  "selected_runtime_replaced": false
+}

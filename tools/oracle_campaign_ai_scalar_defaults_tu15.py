@@ -27,13 +27,18 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--fixture',type=Path,required=True);ap.add_argument('--report',type=Path,required=True)
     ap.add_argument('--data-output',type=Path,required=True);ap.add_argument('--verify',action='store_true')
+    ap.add_argument('--aim-scalars',action='store_true',help='Include the next four original aiming scalar constructors')
     args=ap.parse_args();scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve()
+    scope=__doc__.replace('Three callbacks in46DD00 order produce four geometry inputs before29BE40.',
+        'Callbacks in46DD00 order produce geometry/aiming inputs before AI startup.') if args.aim_scalars else __doc__
     assert args.data_output.resolve().is_relative_to(scratch)
     image=Xbe(NEW_DEFAULT);assert hashlib.sha256(image.data).hexdigest()==NEW_PIN
+    entries=ENTRIES+(0x382710,0x382730,0x382750,0x382770) if args.aim_scalars else ENTRIES
+    table_bytes=len(entries)*4
     code=_Code(image,'.text');functions=[];operands={};covered=set();cases=[]
-    assert struct.unpack('<3I',image.read(0x46dd00,12))==ENTRIES
-    for entry in ENTRIES:
-        body=_trace(code,entry,set(ENTRIES));pcs=sorted(body.code)
+    assert struct.unpack('<'+'I'*len(entries),image.read(0x46dd00,table_bytes))==entries
+    for entry in entries:
+        body=_trace(code,entry,set(entries));pcs=sorted(body.code)
         assert code.at(pcs[-1]).mnemonic=='ret' and len(pcs) in (3,5)
         copies=[]
         for load_pc,store_pc in zip(pcs[:-1:2],pcs[1:-1:2]):
@@ -78,19 +83,19 @@ def main():
                     flags=flags,final_gp=[g.reg_read(reg) for reg in GP],final_flags=g.reg_read(R.UC_X86_REG_EFLAGS),
                     final_xmm=[list(struct.unpack('<4I',g.reg_read(R.UC_X86_REG_XMM0+i).to_bytes(16,'little'))) for i in range(8)],
                     trace=trace,stores=stores,outputs=[[copy['destination'],bytes(g.mem_read(copy['destination'],4)).hex()] for copy in copies]))
-    fixture=dict(scope=__doc__,original_xbe_sha256=NEW_PIN,instruction_patches=[],supplied_dependency_returns=[],
-        functions=functions,callback_table=0x46dd00,callback_table_hex=image.read(0x46dd00,12).hex(),
+    fixture=dict(scope=scope,original_xbe_sha256=NEW_PIN,instruction_patches=[],supplied_dependency_returns=[],
+        functions=functions,callback_table=0x46dd00,callback_table_hex=image.read(0x46dd00,table_bytes).hex(),
         stack=STACK,return_address=STOP,cases=cases)
     data=(json.dumps(fixture,separators=(',',':'))+'\n').encode()
     if args.verify or args.fixture.exists():assert args.fixture.read_bytes()==data,'Preserve original scalar-default evidence'
     else:args.fixture.parent.mkdir(parents=True,exist_ok=True);args.fixture.write_bytes(data)
     lines=['// Authored TU1.5 AI scalar operands and _cinit identities; no completed scalar values.']
-    for address,raw in [(0x46dd00,image.read(0x46dd00,12)),*sorted(operands.items())]:
+    for address,raw in [(0x46dd00,image.read(0x46dd00,table_bytes)),*sorted(operands.items())]:
         lines.append(f'literal(memory,0x{address:x}u,std::array<std::uint8_t,{len(raw)}>{{'+','.join(f'0x{b:02x}' for b in raw)+'});')
     output=('\n'.join(lines)+'\n').encode();args.data_output.write_bytes(output)
-    report=dict(scope=__doc__,original_xbe_sha256=NEW_PIN,functions=functions,cases=len(cases),
+    report=dict(scope=scope,original_xbe_sha256=NEW_PIN,functions=functions,cases=len(cases),
         whole_instructions=sum(len(f['instructions']) for f in functions),executed_instructions=len(covered),
-        original_callback_order=ENTRIES,fixture_bytes=len(data),fixture_sha256=hashlib.sha256(data).hexdigest(),
+        original_callback_order=entries,fixture_bytes=len(data),fixture_sha256=hashlib.sha256(data).hexdigest(),
         data_sha256=hashlib.sha256(output).hexdigest(),tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         source_producer_required=True,runtime_reference_required=False)
     args.report.parent.mkdir(parents=True,exist_ok=True);args.report.write_text(json.dumps(report,indent=2)+'\n')

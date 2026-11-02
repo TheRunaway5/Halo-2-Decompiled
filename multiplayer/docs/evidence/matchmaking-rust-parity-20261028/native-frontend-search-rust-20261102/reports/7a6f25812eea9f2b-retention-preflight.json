@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "deduplicated_report_bytes_before_receipt": 7007009,
+  "unique_reports": 175,
+  "reserved_receipt_bytes": 650000,
+  "total_limit_bytes": 8388608,
+  "individual_limit_bytes": 1048576
+}

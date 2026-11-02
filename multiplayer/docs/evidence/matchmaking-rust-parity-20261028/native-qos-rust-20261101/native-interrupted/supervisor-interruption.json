@@ -1,0 +1,15 @@
+{
+  "schema": "H2_NATIVE_BUILD_INTERRUPTION_DIAGNOSTIC_V1",
+  "recorded_at_utc": "2026-11-01T10:33:47.348403+00:00",
+  "passed": false,
+  "observed_exit_code": 143,
+  "observed_signal": "SIGTERM",
+  "trigger_not_proven": true,
+  "ctests_started": false,
+  "validation_not_run": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend/halo2-test-01fayek5",
+  "scratch_removed": true,
+  "second_mouse_validation_not_run": true,
+  "retained_large_artifacts": [],
+  "scope": "External interruption of a live native build. Not a compiler rejection, runtime test result or passing parity evidence."
+}

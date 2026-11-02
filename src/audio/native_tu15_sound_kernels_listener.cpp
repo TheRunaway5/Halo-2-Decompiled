@@ -13,7 +13,7 @@ constexpr Kernel kernels[]{
     {0x12a810u,bridge<campaign_listeners_adapter::select>,{0xf9,0,0xc1}},
     {0x12a930u,bridge<campaign_listeners_adapter::distance>,{0xf8,0,0xf1}},
     {0x2287b0u,bridge<campaign_listeners_adapter::cut_off>,{0xf8,0,0xf8,0x01}},
-    {0x253070u,bridge<campaign_listeners_adapter::scale>,{0xf8,0,0xf9}},
+    {0x253070u,bridge<campaign_listeners_adapter::scale>,{0xff,0,0xff}},
     {0x2531e0u,bridge<campaign_listeners_adapter::byte>,{0xf8,0,0xff,0x01}},
 };
 }

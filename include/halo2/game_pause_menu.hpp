@@ -25,6 +25,7 @@ public:
   }
   void team_change_error(const std::string &error);
   void online_match(bool value) { online_match_=value; }
+  void splitscreen_match(bool value) { splitscreen_match_=value; }
   void party_notices(std::function<std::optional<FrontendInviteNotice>()> query,std::function<bool(bool)> action) {
     party_notice_=std::move(query);party_notice_action_=std::move(action);
   }
@@ -37,6 +38,7 @@ public:
   bool pauses_game_time() const { return visible_ && campaign_; }
   bool captures_game_input();
   bool quit_requested() const { return quit_; }
+  bool desktop_exit_requested() const { return desktop_exit_; }
   void command(std::function<std::string(GamePauseAction)> value) { command_=std::move(value); }
   MenuState &state() { return *state_; }
 private:
@@ -51,7 +53,7 @@ private:
   Renderer *renderer_{};
   std::function<std::string(unsigned)> audio_layout_;
   SDL_Cursor *previous_cursor_{},*hand_cursor_{};
-  bool campaign_{},online_match_{},visible_{},quit_{};
+  bool campaign_{},online_match_{},splitscreen_match_{},visible_{},quit_{},desktop_exit_{};
   bool await_release_{};
   std::int32_t input_instance_=-1;
   unsigned screen_{};

@@ -54,6 +54,23 @@ if(BUILD_TESTING)
         add_executable(${name} tests/${name}.cpp)
         target_link_libraries(${name} PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     endforeach()
+    set(context_original_map "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map")
+    if(EXISTS "${context_original_map}" AND EXISTS "${HALO2_TU15_GAMEPLAY_XBE}")
+        get_filename_component(context_original_maps "${context_original_map}" DIRECTORY)
+        foreach(mode ordinary declared-actions)
+            set(arguments)
+            if(mode STREQUAL "declared-actions")
+                list(APPEND arguments declared-actions)
+            endif()
+            add_test(NAME native_original_fp_context_${mode} COMMAND native_first_person_context_tests
+                "${context_original_map}" "${context_original_maps}"
+                "${CMAKE_CURRENT_BINARY_DIR}/native_original_fp_context_${mode}.json"
+                ${arguments} "${HALO2_TU15_GAMEPLAY_XBE}")
+            set_tests_properties(native_original_fp_context_${mode} PROPERTIES
+                TIMEOUT 300 RUN_SERIAL TRUE LABELS "original;native-component;resource-continuation"
+                ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+        endforeach()
+    endif()
     if(HALO2_MCC_ONLINE_PRESENTATION_MAP)
         get_filename_component(context_maps "${HALO2_MCC_ONLINE_PRESENTATION_MAP}" DIRECTORY)
         foreach(mode ordinary declared-actions)

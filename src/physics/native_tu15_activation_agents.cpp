@@ -14,6 +14,12 @@ public:
 };
 template<class F>void require(const F&f,const char*message){if(!f)throw std::runtime_error(message);}
 }
+std::uint32_t native_tu15_island_discrete_dispatcher(const SourcePhysicsContactMemory&memory,
+ NativeTu15PhysicsWorld world){
+    std::array<std::byte,4>bytes{};memory.read(world.identity+0x250u,bytes);
+    std::uint32_t value{};for(unsigned n=0;n<4;++n)value|=std::to_integer<unsigned>(bytes[n])<<(n*8u);
+    return value;
+}
 void native_tu15_recreate_island_agents(SourcePhysicsContactMemory&memory,NativeTu15PhysicsIsland island,
  NativeTu15ActivationAgentScratch scratch,NativeTu15PhysicsFrameFp&fp,
  const NativeTu15ActivationAgentServices&s,const SourcePhysicsContactRecordObserver&observe,
@@ -61,7 +67,7 @@ void native_tu15_recreate_island_agents(SourcePhysicsContactMemory&memory,Native
                     }
                     if(disabled){const auto rank_entries=m.word(island.identity+0x68u);m.word(0x282a3cu,rank_entries+offset+12u,0xffffffffu);if(stats)++stats->disabled_ranks;}
                     else{
-                        const NativeTu15PhysicsWorld query_world{m.word(island.identity+0x20u)};require(s.discrete_dispatcher,"Native TU1.5 activation agents require actual316200 owner");const auto dispatcher=s.discrete_dispatcher(query_world,fp);const auto table=m.word(dispatcher);const NativeTu15ContactVirtualOwner owner{m.word(table+4u)};
+                        const NativeTu15PhysicsWorld query_world{m.word(island.identity+0x20u)};const auto dispatcher=native_tu15_island_discrete_dispatcher(memory,query_world);const auto table=m.word(dispatcher);const NativeTu15ContactVirtualOwner owner{m.word(table+4u)};
                         require(s.test_discrete_pair,"Native TU1.5 activation agents require actual discrete pair query");const auto result=s.test_discrete_pair(dispatcher,owner,scratch.discrete_result,first,second,fp);if(stats)++stats->discrete_queries;
                         const bool accepted=m.word(result,1)!=0;const auto rank_entries=m.word(island.identity+0x68u);m.word(accepted?0x282a22u:0x282a2fu,rank_entries+offset+12u,accepted?0u:0xffffffffu);if(stats){if(accepted)++stats->zero_ranks;else ++stats->disabled_ranks;}
                     }

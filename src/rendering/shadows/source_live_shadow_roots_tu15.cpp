@@ -1,10 +1,26 @@
 #include "halo2/source_live_shadow_selection_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/native_tu15_shadow_basis_32340.hpp"
+#include "halo2/native_tu15_shadow_view_320a0.hpp"
 #include <bit>
 #include <cstring>
 #include <algorithm>
 #include <cmath>
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
 namespace halo2 {
+namespace {
+struct ShadowViewDiagnostics {
+    bool enabled=[] {const auto* v=std::getenv("HALO2_NATIVE_SHADOW_VIEW_STATS");return v&&*v&&*v!='0';}();
+    std::atomic<std::uint64_t> calls{},admitted{};
+    ~ShadowViewDiagnostics(){if(enabled)std::fprintf(stderr,"Native320A0 stats: calls=%llu admitted=%llu\n",
+        static_cast<unsigned long long>(calls.load()),static_cast<unsigned long long>(admitted.load()));}
+};
+void completed_shadow_view(bool admitted) {
+    static ShadowViewDiagnostics stats;if(stats.enabled){++stats.calls;if(admitted)++stats.admitted;}
+}
+}
 std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
     PhysicsLiveWorldTu15& world,std::span<const SourceShadowCandidate> selected,
     const SourceShadowAdmissionObserverTu15& observe,const SourceShadowRootCompletedTu15& completed_root,
@@ -15,6 +31,8 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
     const auto put=[&](std::uint32_t p,const auto& v){world.write_source_call_input(p,std::as_bytes(std::span(&v,1)));};
     const auto body=[&](std::uint32_t id){(void)world.object_body(id);return word(word(word(0x4ecbd0u)+0x44u)+(id&65535u)*12u+8u);};
     const auto vector=[&](std::uint32_t p){Vec3 v;std::memcpy(&v,memory.view(p,sizeof(v)).data(),sizeof(v));return v;};
+    const auto raw_vector=[&](std::uint32_t p){return std::array{word(p),word(p+4),word(p+8)};};
+    const auto value_vector=[](const std::array<std::uint32_t,3>& v){return Vec3{std::bit_cast<float>(v[0]),std::bit_cast<float>(v[1]),std::bit_cast<float>(v[2])};};
     //32340's two authored basis candidates. Reject an unsupported changed
     // global rather than selecting a different direction implicitly.
     const auto first_basis=vector(word(0x474d0cu)),second_basis=vector(word(0x474d14u));
@@ -43,39 +61,53 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
         root.lighting_address=world.call_actual(0x3dc80u,std::array{root.owner});
         if(!root.lighting_address){root.route=SourceLiveShadowRootRouteTu15::no_lighting;continue;}
         root.cached_opacity=real(root.lighting_address+0x1cu);
-        const auto fade=root.owner_fade*root.history_fade;
-        if(root.cached_opacity<=0 || root.cached_opacity*fade<=real(0x46a4c0u)) {
+        const auto& policy=a.floating_point.value();
+        NativeTu15PhysicsFrameFp arithmetic{policy.x87_control_word,a.x87_status,policy.mxcsr};
+        const auto gates=native_tu15_shadow_gates_32340(memory,
+            {std::bit_cast<std::uint32_t>(root.owner_fade),std::bit_cast<std::uint32_t>(root.history_fade),
+             word(root.lighting_address+0x1cu),word(object+0x3cu)},arithmetic);
+        if(!gates.admitted) {
             root.route=SourceLiveShadowRootRouteTu15::opacity;continue;
         }
-        const ShadowCasterSphere sphere{vector(object+0x30u),real(object+0x3cu)};
-        const auto minimum=std::max(sphere.radius,real(0x46a45cu));
         a=world.prepare_source_call();const auto stop=word(a.gp[4]);
-        const auto extents=a.gp[4]-0x100u;put(extents,minimum);put(extents+4u,minimum);
+        const auto extents=a.gp[4]-0x100u;put(extents,gates.minimum_radius);put(extents+4u,gates.minimum_radius);
         a.gp[4]=extents-24u;put(a.gp[4],stop);
         put(a.gp[4]+4u,root.owner);put(a.gp[4]+8u,object+0x30u);
         put(a.gp[4]+12u,root.lighting_address+0xcu);put(a.gp[4]+16u,extents);put(a.gp[4]+20u,extents+4u);
         world.run_actual(0x31f40u,a);root.extents={real(extents),real(extents+4u)};
-        root.frame=source_shadow_frame_from_extents(sphere,root.extents,vector(root.lighting_address+0xcu),
-            root.cached_opacity,fade,real(0x48c5e0u));
-        if(!root.frame)throw FormatError("Admitted TU1.5 root projection lost its completed opacity inputs");
-        // Literal32340 publications before C3960/C3AB0. Retained scalar,
-        // cone, mode and definition fields remain owned source inputs.
-        const auto& completed=*root.frame;
-        put(0x48c530u,completed.center);put(0x48c53cu,completed.center);
-        put(0x48c558u,completed.direction);put(0x48c564u,completed.up);
-        put(0x48c5d8u,completed.width);put(0x48c5e4u,completed.near_offset);put(0x48c5e8u,completed.far_offset);
+        //32459 reads the centre after31F40. The typed prefix publishes the
+        // original raw/normalized words in order, through the source owner.
+        const NativeTu15ShadowBasisInput basis_input{raw_vector(object+0x30u),raw_vector(root.lighting_address+0xcu),word(extents),word(extents+4)};
+        const auto basis=native_tu15_shadow_basis_32340(memory,basis_input,arithmetic,
+            [&](auto,auto address,auto bits){put(address,bits);});
+        auto& completed=root.frame.emplace();completed.center=value_vector(basis_input.center);
+        completed.direction=value_vector(basis.direction);completed.up=value_vector(basis.up);
+        completed.transverse_radius=root.extents.x;completed.axial_radius=root.extents.y;
+        completed.width=std::bit_cast<float>(basis.width);completed.near_offset=std::bit_cast<float>(basis.near_offset);
+        completed.far_offset=std::bit_cast<float>(basis.far_offset);completed.opacity=std::bit_cast<float>(gates.opacity);completed.cone_angle=real(0x48c5e0u);
         a=world.prepare_source_call();const auto projection=a.gp[4]-0x100u;
         a.gp[0]=0x48c5b8u;a.gp[2]=projection;world.run_actual(0xc3960u,a);
         a=world.prepare_source_call(std::array{0x48c5b8u});
         a.gp[1]=0x48c530u;a.gp[2]=projection;world.run_actual(0xc3ab0u,a);
         root.projection.emplace();std::memcpy(root.projection->words.data(),memory.view(projection,124).data(),124);
+        const auto tail=native_tu15_shadow_projection_tail_32340(memory,basis_input.center,basis,root.projection->words,arithmetic);
+        completed.left=value_vector(tail.left);completed.volume_center=value_vector(tail.volume_center);
+        completed.volume_half_extent=value_vector(tail.half_extent);completed.virtual_eye=value_vector(tail.virtual_eye);
+        completed.virtual_distance=std::bit_cast<float>(tail.virtual_distance);
         //320A0 consumes the actual first main camera at context+4. The
         // native portal owner already published that completed camera bank.
         SourceFrustumCamera camera;
         std::memcpy(&camera,memory.view(word(0x556e18u)+4u,sizeof(camera)).data(),sizeof(camera));
         const auto& frame=*root.frame;
         const SourceShadowViewBox box{{1.f,{frame.direction,frame.left,frame.up},frame.volume_center},frame.volume_half_extent};
-        root.view_volume=source_shadow_view_volume(camera,box);
+        // Explicit finite-frame comparison control; ordinary rendering always
+        // uses the original-differential native value kernel below.
+        static const bool reference_view=[] {const auto* v=std::getenv("HALO2_REFERENCE_SHADOW_VIEW");return v&&*v&&*v!='0';}();
+        if(reference_view)root.view_volume=source_shadow_view_volume(camera,box);
+        else {
+            root.view_volume=native_tu15_shadow_view_volume_320a0(memory,camera,box,arithmetic);
+            completed_shadow_view(root.view_volume->admitted);
+        }
         if(root.view_volume->admitted) {
             // Original327E0 rejects the volume before the secondary camera.
             // The typed nonzero-mode C3DC0 tail consumes its complete native
@@ -84,8 +116,7 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
             root.secondary_camera=source_shadow_secondary_camera(*root.projection,frame.direction,frame.up);
             // Complete134C00 uses the actual source secondary context and
             // prior main queues;168900 then classifies the retained rows.
-            const auto h=frame.volume_half_extent;
-            root.query_radius=float(std::sqrt((double(h.z)*h.z+double(h.y)*h.y)+double(h.x)*h.x));
+            root.query_radius=std::bit_cast<float>(tail.query_radius);
             a=world.prepare_source_call();const auto return_address=word(a.gp[4]);
             const auto inputs=a.gp[4]-0x300u,center=inputs+448u;
             world.write_source_call_input(inputs,std::as_bytes(std::span(&root.secondary_camera->camera,1)));
@@ -114,11 +145,24 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
                     Bytes(memory.view(word(header+20u)+2u*n,2)).u16(0),word(word(header+16u)+4u*n)});
             };
             rows(12u,queues.clusters);rows(20u,queues.objects);rows(24u,queues.instances);
-            a=world.prepare_source_call(std::array{std::uint32_t(std::to_integer<unsigned>(memory.view(object+0xaau,1)[0])!=1)});
+            const auto append_objects=std::uint32_t(std::to_integer<unsigned>(memory.view(object+0xaau,1)[0])!=1);
+            a=world.prepare_source_call(std::array{append_objects});
             if(observe)observe(true,0x2cba0u,root.owner,a,memory);
-            world.run_actual(0x2cba0u,a);
+            NativeTu15PhysicsFrameFp append_fp{a.floating_point->x87_control_word,a.x87_status,a.floating_point->mxcsr};
+            const auto append_context=world.collect_render_bsp_units_tu15(append_fp);
+            auto dynamic=world.prepare_source_call(std::array{append_objects});
+            const auto caller_ebx=a.gp[3],caller_sp=a.gp[4];
+            dynamic.gp[0]=append_context;dynamic.gp[3]=append_context;
+            for(unsigned reg:{5u,6u,7u})dynamic.gp[reg]=a.gp[reg];
+            dynamic.x87_status=append_fp.status;
+            dynamic.floating_point=SourcePhysicsFactoryFloatingPoint{append_fp.control_word,append_fp.mxcsr};
+            world.run_actual(0x136230u,dynamic);
+            a=dynamic;a.gp[3]=caller_ebx;a.gp[4]=caller_sp+8u;
             if(observe)observe(false,0x2cba0u,root.owner,a,memory);
+            const auto append_status=a.x87_status;
+            const auto append_control=a.floating_point;
             a=world.prepare_source_call();
+            a.x87_status=append_status;a.floating_point=append_control;
             if(observe)observe(true,0x44710u,root.owner,a,memory);
             world.run_actual(0x44710u,a);
             if(observe)observe(false,0x44710u,root.owner,a,memory);
@@ -163,7 +207,7 @@ std::vector<SourceLiveShadowRootTu15> source_live_shadow_root_frames_tu15(
                     a=world.prepare_source_call(); //EAX0 selects all shadow layers.
                     if(observe)observe(true,0x40e80u,root.owner,a,memory);
                     const auto translated=[&]{world.run_actual(0x40e80u,a);};
-                    if(commands)commands(a.gp[0],translated);else translated();
+                    if(commands)commands(a,translated);else translated();
                     if(observe)observe(false,0x40e80u,root.owner,a,memory);
                     auto& banks=root.commands.emplace();
                     for(unsigned n=0;n<banks.size();++n) {

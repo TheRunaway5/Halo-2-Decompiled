@@ -1,5 +1,7 @@
 #include "halo2/source_transparent_group_parts.hpp"
 #include "halo2/menu_world_source_geometry.hpp"
+#include "halo2/source_hologram_group.hpp"
+#include "halo2/source_bsp_ranges.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
@@ -62,6 +64,92 @@ int main(int argc,char **argv)try {
         }
     }
     require(body==17 && overrides==11,"actual native body/hologram schedule is incomplete");
+    std::vector<std::uint32_t> definitions;
+    for(const auto &unit:units)definitions.push_back(unit.definition);
+    std::ranges::sort(definitions);definitions.erase(std::unique(definitions.begin(),definitions.end()),definitions.end());
+    Mesh hologram_residency;SourceHologramGroupBindings holograms(cache,hologram_residency,definitions);
+    require(hologram_residency.materials.size()==1 &&
+        hologram_residency.materials.front().source_shader_datum==0xe87106fcu &&
+        hologram_residency.materials.front().forward_blend==1,
+        "Regret/throne definition preload lost its authored HLMT hologram override");
+    SourceHologramGroupDraw submission;submission.cache=&cache;submission.command=group.queue_command;
+    submission.owners=bound.owners;submission.shader_clock=group.shader_clock;
+    const std::array<std::array<float,12>,1> diagnostic_palette{{{1,0,0,0,0,1,0,0,0,0,1,0}}};
+    // This isolated range handoff uses retained unit flags with an explicitly
+    // declared identity palette. It does not stand in for a live WORLD pose.
+    auto unfiltered=group;auto ranges=std::make_shared<SourceLiveTransparentGroupGeometryTu15>();
+    ranges->units.resize(153);auto diagnostic_units=units;
+    for(auto &unit:diagnostic_units) {
+        ranges->units[unit.ordinal]=unit.unit;
+        unit.palette_rows.assign(diagnostic_palette.begin(),diagnostic_palette.end());
+    }
+    unfiltered.geometry=ranges;
+    const auto planned=holograms.draw(std::span{&unfiltered,1},std::span{&bound,1},diagnostic_units,
+        {},{}, {0,16777215,.01f,1024.f},{1,1},{640,480});
+    require(planned.size()==1 && planned.front().parts.size()==28,
+        "unfiltered original group lost its exact body/override range handoff");
+    for(const auto &part:planned.front().parts)if(part.layer!=21)
+        require(part.body_vertices>0,"unfiltered body part lost its nondegenerate original triangle count");
+    {
+        auto filtered=unfiltered;auto masked=std::make_shared<SourceLiveTransparentGroupGeometryTu15>(*ranges);
+        const auto &body_part=planned.front().parts.front();const auto &base=diagnostic_units.at(bound.ordered_layers.front().parts.front().base_unit);
+        const auto metadata=load_source_model_range_geometry(cache,base.unit.words[1],body_part.section);
+        require(metadata.subpart_count>0,"filtered body control lost its actual source subpart bank");
+        masked->arena_address=0x100000u;masked->units[body_part.base_ordinal].words[0]|=0x40u;
+        masked->units[body_part.base_ordinal].words[5]=masked->arena_address;filtered.geometry=masked;
+        bool failed=false;
+        try{(void)holograms.draw(std::span{&filtered,1},std::span{&bound,1},diagnostic_units,
+            {},{}, {0,16777215,.01f,1024.f},{1,1},{640,480});}
+        catch(const FormatError &error){failed=std::string_view(error.what())=="filtered hologram body part requires its native CPU range consumer";}
+        require(failed,"filtered native body range silently became an unfiltered whole-part draw");++rejected;
+    }
+    for(const auto &layer:bound.ordered_layers)for(const auto &part:layer.parts) {
+        const auto &unit=units.at(part.base_unit);
+        const auto &command=group.commands.at(part.command_ordinal-group.first_command).words;
+        auto &selected=submission.parts.emplace_back();selected.layer=layer.layer;selected.command=part.command_ordinal;
+        selected.sorted=part.sorted_ordinal;selected.base_ordinal=unit.ordinal;selected.object=unit.object;
+        selected.section=unit.unit.words[3]>>9&511u;selected.part=command[3]&255u;selected.pass=part.pass;
+        selected.body_vertices=3; // Explicit command-ledger diagnostic count, not a pose/range proof.
+        if(layer.layer==21) {
+            const auto geometry=std::make_shared<const MenuWorldSourceSection>(
+                load_menu_world_source_model_section(cache,unit.unit.words[1],selected.section));
+            const auto topology=(unit.unit.words[0]&0x200u) && !(geometry->parts().at(selected.part).flags&8u)?
+                MenuWorldSourceTopology::triangle_strip:MenuWorldSourceTopology::triangle_list;
+            selected.hologram_ranges.push_back(menu_world_source_draw(geometry,selected.part,
+                topology,diagnostic_palette));
+        }
+    }
+    std::vector<SourceHologramGroupSubmission> ledger{{SourceHologramGroupSubmission::Kind::scene_copy,0}};
+    for(unsigned d=0;d<submission.parts.size();++d) {
+        const auto &part=submission.parts[d];
+        std::vector<std::uint16_t> ordered;
+        if(part.layer==21)for(const auto &range:part.hologram_ranges)
+            for(std::size_t triangle=0;triangle<range.triangle_count();++triangle) {
+                const auto indices=range.triangle(triangle);
+                ordered.insert(ordered.end(),indices.begin(),indices.end());
+            }
+        ledger.push_back({SourceHologramGroupSubmission::Kind::part,0,d,part.layer,0,
+            part.layer==21?unsigned(ordered.size()):3u,part.object,part.pass->shader(),1,2});
+        if(part.layer==21){ledger.back().indexed=true;ledger.back().index_buffer=3;}
+    }
+    validate_source_hologram_group_submissions(std::span{&submission,1},ledger);
+    rejects([&]{validate_source_hologram_group_submissions(std::span{&submission,1},{});});
+    rejects([&]{auto bad=ledger;bad.erase(bad.begin());validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;std::swap(bad[0],bad[1]);validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;std::erase_if(bad,[](const auto &e){return e.layer==21;});
+        validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.back().descriptor_set=0;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.back().index_count^=1;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    require(submission.parts.at(17).hologram_ranges.front().index_range().count==785 &&
+        ledger.at(18).index_count==2349,"actual Regret strip no longer distinguishes785 source indices from2349 submitted list indices");
+    rejects([&]{auto bad=ledger;bad.at(18).index_count=785;
+        validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.back().first_index=1;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.back().vertex_offset=1;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.back().index_buffer=0;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.at(1).index_count=6;validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;std::swap(bad[1],bad[2]);validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
+    rejects([&]{auto bad=ledger;bad.push_back(bad.back());validate_source_hologram_group_submissions(std::span{&submission,1},bad);});
     const auto again=resolver.resolve(group,units);
     require(again.ordered_layers.back().parts.front().pass==bound.ordered_layers.back().parts.front().pass,
         "immutable selected pass was rebuilt between identical views");

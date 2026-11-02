@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "rooms",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/online_protocol/src/matchmaking_results.rs",
+    "rust/online_protocol/src/matchmaking_room_setup.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/matchmaking.rs",
+    "rust/matchmaking_service/src/websocket.rs",
+    "rust/matchmaking_service/src/room_io.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "rust/matchmaking_service/src/room_websocket.rs"
+  ],
+  "source_files": 123,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-rooms/halo2-test-s47jx_3s/cargo/release/halo2-matchmaking-service",
+    "sha256": "e1877bbee8df2da075da4c19253b8c3fe06bb320c4965acc1b0484652a9107eb",
+    "bytes": 10059592,
+    "retained": false
+  },
+  "rooms": {
+    "checks": [
+      "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+    ],
+    "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog; private provider fixtures. Room/gameplay/EOS provider and original/native/delivered acceptance remain separate."
+  }
+}

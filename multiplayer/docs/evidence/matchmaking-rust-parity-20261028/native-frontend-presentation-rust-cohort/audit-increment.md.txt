@@ -1,0 +1,53 @@
+## Native matchmaking text policy and next-playlist countdown in Rust (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-presentation-rust-validation.json).
+`matchmaking_frontend_presentation.rs` now owns native playlist/progress text
+selection, substitutions, roster/needed counts, countdown/variant/map/quick-option
+routing and compatibility explanations. The typed CXX boundary preserves opaque
+native bytes, full-width status/count facts, native read order and genuine native
+exception identity. C++ retains actual locale/assets/profile readers, the localized
+rendering expression and engine drawing/input; it has no independent text-policy
+fallback. Missing original clan strings remain absent rather than fabricated.
+
+The captured modern C++ methods and actual Rust/CXX wrapper agree on 1,752 cases,
+4,014 native IO observations and 19,646 comparisons, including 256 genuine native
+exception controls. Six new Rust text tests pass. These are modern caller and
+synthetic-reader comparisons, not recovered original service or locale producers.
+Immutable TU1.5 static inspection identifies playlist activation at
+`2BBE4B -> 2BBE83`; file/host/UI callees were not executed. Complete original
+activation and selectability/eligibility production remain open.
+
+A native search/cancel/next-playlist replay exposed a real Rust service defect.
+The completed consumed countdown was correctly retained for late observers, but
+its old playlist still blocked Start for a newly selected hopper. Rust now
+prepares a fresh profile/roster binding after consumption while retaining the
+old publication until commit. A regression reproduces the original 409 before
+the fix and passes afterward through completion, accepted queue, API Cancel,
+fresh member consent and a different playlist. Running and unconsumed zero
+countdowns still lock their hopper, and nonleaders cannot start. This repairs
+the replacement service lifecycle; it does not claim recovered original Live
+arbitration. All 620 Rust tests pass (535 protocol,65 bridge,20 service), with
+four existing platform-dependent ignores.
+
+The wider native tests also required precise fixture repairs. Unavailable clan
+requirements are inspected on hover before the explicit rejection dialog;
+Back must retain the chooser and the rejection cannot start a countdown or queue.
+Placeholder checks use the exact admitted raster registry rather than logical
+image descriptors without pixels. Modal validation admits an actually visible
+original lower channel, while hidden ancestors remain excluded. The map audit
+uses the authenticated scenario alias and exact selected MCC pixels separately
+from the original 220x207 logical descriptor. Fast loopback workers exhausted the
+fixture's default aggregate prefix bucket; all aggregate fixture budgets are
+now explicitly configured and any HTTP 429 fails the fixture. Production budgets
+are unchanged. Temporary diagnostics were removed.
+
+FINAL_NATIVE_RESULTS
+
+Remaining matching-related native party/local-seat/routing ownership, all 53
+original owners, historical/service recovery, every required family/profile/
+topology/unshortened natural outcome/continuity route, genuine providers,
+installed Linux input and delivered restart/retry/configuration/rollback gates
+remain open. No selected runtime or production service was replaced. All 12 GAP
+records, 53 algorithm IDs, G01-G12 criteria and the active goal objective remain
+unchanged; whole-system parity stays uncertified.
+

@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "native_rust_empty_pong_seen": true,
+  "fixture_failed": true,
+  "observed_error": "CancelledError while the TestServer context shut down its still-pending receive handler",
+  "production_failure_claimed": false,
+  "scratch_removed": true,
+  "retained_large_artifacts": []
+}

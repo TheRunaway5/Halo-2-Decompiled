@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "argv": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_matchmaking_errors_tu15.py",
+    "--report-output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-readiness-rust-source-20261101/errors-verified.json"
+  ],
+  "returncode": 0,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-errors-verified/halo2-test-jlxh5n1o",
+  "fixture_path": "/home/eric/Developer/Halo-2-Decompiled/tests/fixtures/tu15_matchmaking_errors_original.json",
+  "fixture_sha256": "900c42c87f7427983360a9e68db0eee2c2efc41879062948018773b28c34bb7b",
+  "original_inputs_outputs_unchanged": true,
+  "retained_large_artifacts": []
+}

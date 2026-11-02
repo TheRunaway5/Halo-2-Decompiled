@@ -32,11 +32,14 @@ fn approve(c: &mut Coordinator, facts: &mut Value) {
     approve_member(c, facts, 1);
 }
 fn approve_member(c: &mut Coordinator, facts: &mut Value, member: usize) {
+    approve_member_for(c, facts, member, "native", "v1");
+}
+fn approve_member_for(c: &mut Coordinator, facts: &mut Value, member: usize, playlist: &str, revision: &str) {
     let who = facts["party"]["members"][member]["player"].clone();
-    let plan=send(c,json!({"op":"party_ready","player":who,"playlist":"native","revision":"v1","version":facts["party"]["version"],"facts":facts,"rooms":[]})).unwrap();
+    let plan=send(c,json!({"op":"party_ready","player":who,"playlist":playlist,"revision":revision,"version":facts["party"]["version"],"facts":facts,"rooms":[]})).unwrap();
     let row = &mut facts["party"]["members"][member];
-    row["ready_playlist"] = json!("native");
-    row["ready_revision"] = json!("v1");
+    row["ready_playlist"] = json!(playlist);
+    row["ready_revision"] = json!(revision);
     row["ready_version"] = plan["consent"]["version"].clone();
     row["consent"] = plan["consent"].clone();
 }
@@ -340,6 +343,56 @@ fn countdown_clock_wrap_is_signed_and_each_tick_restarts_the_clock() {
     assert_eq!(countdown_get(&mut c)["seconds"], 9);
     countdown_tick(&mut c, 1984);
     assert_eq!(countdown_get(&mut c)["seconds"], 8);
+}
+#[test]
+fn completed_queue_cancel_allows_a_fresh_countdown_for_a_different_playlist() {
+    let mut c = owner();
+    let mut entries = send(&mut c, json!({"op":"catalog_get","id":null})).unwrap();
+    let mut other = entries[0].clone();
+    other["policy"]["id"] = json!("other");
+    other["policy"]["revision"] = json!("v2");
+    other["quickmatch"] = json!(false);
+    entries.as_array_mut().unwrap().push(other);
+    send(&mut c, json!({"op":"catalog_set","entries":entries})).unwrap();
+    let a = session(&mut c, "a");
+    session(&mut c, "b");
+    let mut f = facts();
+    approve(&mut c, &mut f);
+    countdown_command(&mut c, &f, "a", "countdown_start", 0);
+    let next_body = json!({"action":"countdown_start","request_id":"00000000-0000-0000-0000-000000000002","version":4,"playlist_id":"other","revision":"v2"});
+    let start = |c: &mut Coordinator, facts: &Value, who: &str| {
+        send(c, json!({"op":"party_countdown_prepare","body":next_body,"player":who,"facts":facts,"rooms":[],
+            "clock_ms":10000,"wall_seconds":1000,"requests":{"payload":null,"count":1}}))
+    };
+    assert_eq!(start(&mut c, &f, "a").unwrap_err().0, 409,
+        "A running countdown still locks its selected playlist");
+    for clock in (1000..=10000).step_by(1000) { countdown_tick(&mut c, clock); }
+    assert_eq!(start(&mut c, &f, "a").unwrap_err().0, 409,
+        "Unconsumed zero remains observable until the selected queue takes it");
+    let selected = prepare(&mut c, &a, &f).unwrap();
+    send(&mut c, queue(&a, &selected, &f)).unwrap();
+    let consumed = countdown_get(&mut c);
+    assert!(consumed["seconds"].is_null());
+    send(&mut c, json!({"op":"api_cancel","generation":a["generation"],"query":{"cancel":"1"},"rooms":[]})).unwrap();
+    assert_eq!(send(&mut c, json!({"op":"len","map":"tickets"})).unwrap(), 0);
+    assert_eq!(countdown_get(&mut c), consumed,
+        "Cancel retains the completed serial for late party observers");
+    assert_eq!(start(&mut c, &f, "a").unwrap_err().0, 409,
+        "The next playlist requires fresh member consent");
+    approve_member_for(&mut c, &mut f, 1, "other", "v2");
+    assert_eq!(start(&mut c, &f, "b").unwrap_err().0, 403);
+    let pending = start(&mut c, &f, "a").expect("Completed consumed countdown cannot lock the next playlist");
+    assert_eq!(countdown_get(&mut c), consumed, "Prepare is not publication");
+    countdown_commit(&mut c, &f, &pending).unwrap();
+    let fresh = countdown_get(&mut c);
+    assert_eq!(fresh["playlist"], "other");
+    assert_eq!(fresh["revision"], "v2");
+    assert_eq!(fresh["clock_ms"], 10000);
+    assert_eq!(fresh["seconds"], 10);
+    assert_eq!(fresh["complete"], false);
+    assert!(fresh["serial"].as_u64().unwrap() > consumed["serial"].as_u64().unwrap());
+    countdown_tick(&mut c, 11000);
+    assert_eq!(countdown_get(&mut c)["seconds"], 9);
 }
 #[test]
 fn countdown_staged_publication_abort_epoch_and_cancel_fail_closed() {

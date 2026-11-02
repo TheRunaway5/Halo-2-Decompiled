@@ -48,7 +48,7 @@ struct Fixture {
 }
 int main(int argc,char**argv)try {
     need(argc==2,"Expected literal shared character fixture");std::ifstream input(argv[1]);const auto fixture=Json::parse(input);
-    need(fixture.at("schema")=="H2_MCC_CHARACTER_SHARED_FIXTURE_V1"&&fixture.at("cases").size()==2,"Character fixture census changed");
+    need(fixture.at("schema")=="H2_MCC_CHARACTER_SHARED_FIXTURE_V1"&&fixture.at("cases").size()==12,"Character fixture census changed");
     unsigned rejects=0,banks_checked=0,curves_checked=0,words_checked=0;
     for(const auto& row:fixture.at("cases")) {
         Fixture value(row);const auto result=value.run();need(bool(result),"Actual shared character source was not admitted");
@@ -93,6 +93,6 @@ int main(int argc,char**argv)try {
         {auto bad=value;bad.native_stem.size+=1;bad.names[bad.native_stem.datum]=bad.native_stem;fail(bad,"Wrong native allocation extent admitted");}
         {auto same=value;same.shader.name="unrelated-authored-instance-name";same.names[same.shader.datum]=same.shader;need(bool(same.run()),"Character setup was replaced by material-name aliasing");}
     }
-    const Json report={{"passed",true},{"profiles",2},{"complete_banks",banks_checked},{"authored_curves",curves_checked},{"exact_words",words_checked},{"strict_rejections",rejects}};
+    const Json report={{"passed",true},{"profiles",fixture.at("cases").size()},{"complete_banks",banks_checked},{"authored_curves",curves_checked},{"exact_words",words_checked},{"strict_rejections",rejects}};
     std::cout<<report.dump()<<'\n';return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

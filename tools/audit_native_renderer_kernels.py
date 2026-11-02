@@ -52,7 +52,11 @@ def instructions(data):
 
 
 def audit_spirv(data):
-    ops = instructions(data)
+    return audit_instructions(instructions(data))
+
+
+def audit_instructions(ops):
+    """Audit an already decoded module from instructions(), without decoding twice."""
     types, constants, variables, names = {}, {}, {}, {}
     for op, args in ops:
         if 19 <= op <= 39 and args:

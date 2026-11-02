@@ -1,0 +1,8 @@
+{
+  "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build/CMakeFiles/native_session_access_tests.dir/link.d",
+  "was_private_native_build_output": true,
+  "reason": "The probe inherited the target linker dependency-file argument; keep future probe outputs inside its own owner and remove the overwritten private dependency file before native relinking",
+  "removed": true,
+  "production_or_source_changed": false,
+  "overwritten_sha256": "0313b0ed72baa5d3fa9da19289e2e87b2165c88446d0750afa6c2e255add8f54"
+}

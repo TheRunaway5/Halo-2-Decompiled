@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "argv": [
+    "nm",
+    "-C",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx/build/libhalo2_online_protocol.a"
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx",
+  "library": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-readiness/halo2-test-k9oqlrwx/build/libhalo2_online_protocol.a",
+    "sha256": "59487f104d54b8441769267104b76fd31d1e47302f52b098741a3297568e63cd",
+    "bytes": 96834,
+    "retained": false
+  },
+  "symbols": [
+    "                 U halo2::online_protocol_bridge::matchmaking_eligibility(bool, bool, bool, bool, bool, bool, bool)",
+    "                 U halo2::online_protocol_bridge::matchmaking_error_clear(bool, int, unsigned int, unsigned int)",
+    "                 U halo2::online_protocol_bridge::matchmaking_error_dialog(int, bool)",
+    "                 U halo2::online_protocol_bridge::matchmaking_connected_teams(rust::cxxbridge1::Slice<unsigned int const>, unsigned int, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::MatchmakingSeat const>)",
+    "                 U halo2::online_protocol_bridge::matchmaking_native_launch_ready(halo2::online_protocol_bridge::MatchmakingLaunchObservation const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::MatchmakingSeat const>)",
+    "0000000000000580 T halo2::native_matchmaking_launch_ready(halo2::NativeMatchmakingLaunchObservation const&, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>)",
+    "00000000000004f0 T halo2::original_matchmaking_eligibility(bool, bool, bool, bool, bool, bool, bool)",
+    "0000000000000570 T halo2::original_matchmaking_error_clear(bool, int, unsigned int, unsigned int)",
+    "0000000000000520 T halo2::original_matchmaking_error_dialog(int, bool)",
+    "0000000000000210 T halo2::original_matchmaking_connected_teams(std::span<halo2::OriginalMatchmakingPeer const, 18446744073709551615ul>, unsigned int, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>)",
+    "0000000000000039 t halo2::original_matchmaking_connected_teams(std::span<halo2::OriginalMatchmakingPeer const, 18446744073709551615ul>, unsigned int, std::span<halo2::OriginalMatchmakingSeat const, 18446744073709551615ul>) [clone .cold]"
+  ],
+  "retained_large_artifacts": []
+}

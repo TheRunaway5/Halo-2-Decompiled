@@ -195,10 +195,10 @@ def main():
     project=scratch/'physics-frame-project';project.mkdir()
     frozen=project/'source';shutil.copytree(ROOT/'include',frozen/'include')
     sources=('src/physics/native_tu15_physics_frame.cpp','src/physics/native_tu15_physics_frame_residuals.cpp',
-             'tests/native_tu15_physics_frame_tests.cpp')
+             'tests/native_tu15_physics_frame_tests.cpp','src/physics/native_tu15_object_publication.cpp','src/physics/native_tu15_activation_services.cpp','src/physics/native_tu15_memory_pressure.cpp','src/physics/native_tu15_contact_pressure.cpp')
     for name in sources:
         target=frozen/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,target)
-    tested=('include/halo2/native_tu15_physics_frame.hpp','include/halo2/native_tu15_physics_frame_residuals.hpp',*sources)
+    tested=('include/halo2/native_tu15_physics_frame.hpp','include/halo2/native_tu15_physics_frame_residuals.hpp','include/halo2/native_tu15_object_publication.hpp','include/halo2/native_tu15_activation_services.hpp','include/halo2/native_tu15_memory_pressure.hpp','include/halo2/native_tu15_contact_pressure.hpp','include/halo2/native_tu15_contact_pressure_binding.hpp',*sources)
     source_hashes={name:sha(frozen/name)for name in tested}
     header_hashes={str(p.relative_to(frozen)):sha(p)for p in (frozen/'include').rglob('*')if p.is_file()}
     (a.output/'frozen-header-sha256.json').write_text(json.dumps(header_hashes,indent=2,sort_keys=True)+'\n')
@@ -221,6 +221,10 @@ print("Unchanged original rejected private native mutation:",r.stderr.strip())
     (project/'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.20)
 project(native_physics_frame_validation LANGUAGES CXX)
 enable_testing()
+add_library(native_object_publication STATIC "{frozen}/src/physics/native_tu15_object_publication.cpp" "{frozen}/src/physics/native_tu15_activation_services.cpp" "{frozen}/src/physics/native_tu15_memory_pressure.cpp" "{frozen}/src/physics/native_tu15_contact_pressure.cpp")
+target_include_directories(native_object_publication PUBLIC "{frozen}/include")
+target_compile_features(native_object_publication PUBLIC cxx_std_20)
+target_compile_options(native_object_publication PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
 add_executable(native_tu15_physics_frame_tests "{frozen}/tests/native_tu15_physics_frame_tests.cpp" "{frozen}/src/physics/native_tu15_physics_frame.cpp" "{frozen}/src/physics/native_tu15_physics_frame_residuals.cpp")
 target_include_directories(native_tu15_physics_frame_tests PRIVATE "{frozen}/include")
 target_compile_features(native_tu15_physics_frame_tests PRIVATE cxx_std_20)
@@ -236,6 +240,10 @@ target_include_directories(native_tu15_physics_frame_read_mutation PRIVATE "{fro
 target_compile_features(native_tu15_physics_frame_read_mutation PRIVATE cxx_std_20)
 target_compile_options(native_tu15_physics_frame_read_mutation PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
 add_test(NAME native_physics_frame_original_read_mutation_rejected COMMAND "{sys.executable}" "{ROOT}/tools/run_test.py" -- "{sys.executable}" "{project}/assert_negative.py" $<TARGET_FILE:native_tu15_physics_frame_read_mutation> "{fixture_path}" "source read count differs")
+'''+'''
+foreach(target native_tu15_physics_frame_tests native_tu15_physics_frame_mutation native_tu15_physics_frame_read_mutation)
+    target_link_libraries(${target} PRIVATE native_object_publication)
+endforeach()
 ''')
     command=[sys.executable,str(ROOT/'tools/run_tests.py'),'--source',str(project),'--scratch-root',str(scratch/'builds'),'--output',str(a.output/'cmake'),
       '--target','native_tu15_physics_frame_tests','--target','native_tu15_physics_frame_mutation','--target','native_tu15_physics_frame_read_mutation',
@@ -250,7 +258,8 @@ add_test(NAME native_physics_frame_original_read_mutation_rejected COMMAND "{sys
       source_hashes=source_hashes,root_sources_still_match=all(sha(ROOT/name)==pin for name,pin in source_hashes.items()),
       tool_hashes={str(p.relative_to(ROOT)):sha(p)for p in (ROOT/'tools/observe_native_physics_frame_reference_tu15.cpp',Path(__file__))},
       ordered_original_data_reads=sum(len(c['reads'])for c in f['cases']),reads_checked_relative_to_stores=True,
-      fixture_sha256=sha(fixture_path),fixture_bytes=fixture_path.stat().st_size,retained_large_artifacts=[],command=command)
+      fixture_sha256=sha(fixture_path),fixture_bytes=fixture_path.stat().st_size,retained_large_artifacts=[],command=command,
+      owned_scratch=str(scratch),temporary_allocated_bytes_before_cleanup=sum(p.stat().st_blocks*512 for p in scratch.rglob('*')if p.is_file()))
     (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k]for k in ('passed','original_cases','ordered_original_persistent_stores','retained_large_artifacts')}))
     return result.returncode
 if __name__=='__main__':raise SystemExit(main())

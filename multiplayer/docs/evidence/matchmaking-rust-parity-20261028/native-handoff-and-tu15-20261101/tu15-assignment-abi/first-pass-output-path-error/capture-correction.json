@@ -1,0 +1,34 @@
+{
+  "reason": "Outer wrapper omitted --output and could not capture its successful child result before owner cleanup",
+  "passed_child_checks": true,
+  "outer_receipt_failed": true,
+  "child_reports": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101/first-pass-output-path-error/report.json",
+      "sha256": "36b6afdacbce4b939719cf27a28d91cd5716c1f792ea9c15d53152d9801d1399",
+      "bytes": 2324
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101/first-pass-output-path-error/source-manifest.json",
+      "sha256": "5791b299813090c4c1839604cb670e3f1bf9333a4b41c1541fb642650834d9fe",
+      "bytes": 38310
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101/first-pass-output-path-error/step-0.log",
+      "sha256": "491185ab6eba4ccf4299fda03c0fc940493501df309cf1baef5d9d3199711a14",
+      "bytes": 1827
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101/first-pass-output-path-error/step-1.log",
+      "sha256": "ad434d705b58cffa48093f8d335b6174dd16f579c90247772b00eeb51a042419",
+      "bytes": 1619
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-tu15-assignment-abi-20261101/first-pass-output-path-error/step-2.log",
+      "sha256": "b77b3eecbb8b58408bbf2c56825f5a7e1c3ea451dc9b20633ade6ed8a8a1e8e9",
+      "bytes": 101
+    }
+  ],
+  "scratch_removed": true,
+  "retained_large_artifacts": []
+}

@@ -54,6 +54,18 @@ class ClassProfileTests(unittest.TestCase):
         self.reject(lambda d: d["deltas"].append(copy.deepcopy(d["deltas"][0])))
         self.reject(lambda d: d["evidence"].__setitem__("class_names", "not-a-digest"))
 
+    def test_serialized_context_requires_complete_measured_namespace(self):
+        self.reject(lambda d:d['serialized_contexts'].pop())
+        self.reject(lambda d:d['serialized_contexts'].append(copy.deepcopy(d['serialized_contexts'][0])))
+        self.reject(lambda d:d['serialized_contexts'][0]['source_maps'].clear())
+        for owner in ('globals','legacy'):
+            for field in ('datum','address','size','name','group'):
+                with self.subTest(owner=owner,field=field):
+                    self.reject(lambda d:d['serialized_contexts'][0][owner].__setitem__(field,0))
+        for field in ('sound_block','sound_globals','class_root','source_bank_sha256'):
+            with self.subTest(field=field):
+                self.reject(lambda d:d['serialized_contexts'][0].__setitem__(field,'0'*len(d['serialized_contexts'][0][field])))
+
     def test_published_armory_context_keeps_exact_namespace_and_route(self):
         self.reject(lambda d: d["published_contexts"].clear())
         self.reject(lambda d: d["published_contexts"].append(copy.deepcopy(d["published_contexts"][0])))

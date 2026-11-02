@@ -1,5 +1,124 @@
 # Player, vehicle and object physics: 1:1 port goal
 
+November2 live update: frozen1480/00 delivers native broad-phase2EA380,
+Host look/controller/context/camera/query/reorientation and a positive native
+31D930 Warthog joint in imported-MCC multiplayer. All three driving450,
+grenade1200 and rocket1200 frames match the original bytes and FP, with
+262/305/300 actual seated vehicle-camera frames. Native broad-phase calls are
+986/1,573/1,775 with zero refusals/old2EA380 calls; the grenade run has78 native
+joint completions,156 angular rows and234 linear rows, zero errors. Its required
+joint gate passes. Remaining observed Frame owners are2E5320 and304350; this
+count excludes internal generated look callers and player/object schedulers.
+World-deferred/island-listener positive coverage and wider domains remain open.
+
+Historical1478 driving fails strict equality by107 heap bytes in26 runs; the
+passing1479 run does not establish a fix or cause. Original hardware watch
+identifies a512-byte303EE0→2E3250→2E2E30
+copy from600EFCF0 to10081B80, followed by30479C/304820 vector stores. Record
+production/lifetime and a native repair remain open. Historical42/104/182-byte
+player/driving/Elongation failures stay red; no byte or lifetime is waived.
+
+Native320260/2F81B0 deletion/destruction passes full strict1474 multiplayer;
+native1D77D0 body update and282C10 post-step pass strict1475 multiplayer.
+Positive body impulse/wake and dirty post-step work remain unexercised.
+Reorientation18A2A0 and joint-constraint31D930 now pass native-only component,
+same-helper, genuine1478 input and177-CPP combined World proofs under both
+compilers. Reorientation runs positively in1479–1480; joint building is positive in1480.
+The genuine positive input is the selected Warthog hull–bumper hinge; its
+authored damage/model activation condition is still being traced.
+
+Native collision-key querying now composes1F6D10 with AABB/oriented MOPP
+setup/traversal, visibility and compaction. Both compilers pass540 profiles,
+68 full original returns and all174 parent sites. Six kernels are in the normal
+strict-FP build; actual2F36F0/304350 service/lifetime and live integration remain
+open. The typed local-cache guard supplies no unwritten bytes or CPU state.
+
+Native contact publication now reaches real native point creation and cache
+reduction under both compilers/all187 publication sites. Eight completed
+kernels are in the build; their immutable196-CPP dependency/four-model cohort
+passes. The sole point-creation binding independently passes77 physical cases
+and guarded-memory/native-only refusal models. Actual304350 parent services,
+constructor lifetime and live admission remain open; these component/build
+results do not change the two-owner live Frame census.
+
+The completed1474–1478 integrations are now wired into canonical Root through
+thirty guarded source changes, preserving unrelated work. Both compilers pass
+181-CPP World/four models, the Frame model and full Host/LiveWorld contexts.
+Qualified private cohorts and compact checkpoints preserve the live evidence;
+launcher/runtime delivery is separate. The regularly updated
+[checklist](PHYSICS_TU15_REMAINING_CHECKLIST.md) tracks common producers/solver,
+strict heap failures, World-deferred/island-listener coverage, lifts/conveyors,
+rollover/use-action8, schedulers, internal look callers and wider exceptional
+FP/lifetime/query domains. Native-only1:1 TU1.5 parity remains incomplete and
+the goal remains active.
+
+The cumulative cleanup ledger verifies989 completed scratch owners absent and
+240,030,220,288 allocated file bytes removed (223.5 GiB). This excludes active
+work and unmeasured build storage; it is not a global free-space delta. Required
+reference archives, requested videos and source checkpoints remain protected.
+
+November1 progress: v1466/08–09 exercises native pair consumption/filtering,
+record growth, phantom removal, object publication, inactive-island cleanup,
+policy destruction and recursive cached/wrapped agent cleanup in imported-MCC
+multiplayer. The09 grenade run of the identical08 binary passes the strict
+114,887,921-byte+FP original frame comparison,418 actual vehicle-camera frames
+and1,803 exact LAN comparisons. Seventeen residual owner identities remain in
+08 driving; newly exposed point removal322F70, manager3232B0 and distinct wrapped contact-process
+2F6CA0 remain open. The normal08 and finite-wall comparisons retain strict heap
+mismatches; later passing cases do not waive them.
+
+A readonly09 capture preserves genuine positive authored+80 constraint DATA
+(one row/two bodies/active island at actual depth0). Native creation, both body
+listeners and removal of each independently computed handle now match the
+original under both compilers, including448 ordered events and complete FP/
+lifetime state. These declared original entries on real frame inputs still
+require actual live invocation and visible positive effect. Native manager
+cleanup is wired. The32-byte owned-array profile now matches the original;
+new v1467/01 reaches owned224/256-byte arrays and stops at the next qualification
+guard. That actual profile and the source-derived capacity family now pass both
+compilers; the integrated ten-profile World model passes. Native pair/
+convex-factory wiring passes the default World and positive publication prefix;
+its full visible path remains open. Also finish contact/controller closure,
+genuine rollover/use-action8 and coverage across all maps/vehicles/objects.
+See the regularly updated [remaining checklist](PHYSICS_TU15_REMAINING_CHECKLIST.md).
+
+The native World merge3190D0, contact merge318DE0 and four lifetime children
+are now wired, with shared native activation services and aggregated counters.
+Both compiler cohorts pass the source-backed merge/factory prefixes; the actual
+Root World model passes and the live-world/acceptance objects compile.
+[The frozen integration](../analysis/physics/native-world-island-merge-root-binding-20261101-revision-02/source-pins.json)
+is queued for combined visible acceptance. v1468 stopped before a runtime was
+built, so it supplies no live pass. Its process-free expired build was removed,
+freeing849,362,944 allocated regular-file bytes after retaining the required
+source checkpoint. Contact-point removal322F70 and connectivity3187C0 are still
+being converted; every unqualified live path and failed strict comparison stays
+on the checklist. v1470/00 passes eight regressions, but all three full visible
+attempts stop at the shape-class guard before a completed frame/camera result.
+Its genuine typed322F70 input is retained for native callback qualification.
+Native wrapped2F6CA0 and
+compound2F7A50 processing are also wired and queued for the following refresh,
+with independent boundary, nested DATA-lifetime, counter and World model proofs.
+Their remaining producer returns and raw private composition are explicitly
+open. This goal remains active and incomplete.
+
+November2 continuation: native List/reversed-List and transformed contact-agent
+creation now pass their actual1470 input proofs and are delivered in06. This
+build reaches the visible multiplayer first frame, then stops in all three
+cases at the explicit manager lock-profile guard; it has no complete strict
+frame or actual-camera acceptance. Native point removal and its measured
+listener/metadata/world/detach closure are qualified and wired, with a coherent
+World model and16-field acceptance checks. Native3187C0 and its complete
+qualified native service builder also pass both compiler cohorts and are wired
+into Root. The combined124-CPP Root model passes. Genuine point DATA composed
+through declared native wake and regroup matches every captured byte and FP
+after all three phases; actual wake caller/live splitting remain pending.
+The captured manager lock is absent from its owning registry; full native
+manager cleanup now passes both compilers over all114.4 MB and ordered effects.
+The next combined visible cohort is09, with the actual vehicle camera and all
+prior and new positive gates required. The checklist keeps
+these component, wiring and live gates separate, including all wider refused
+branches and private raw-ledger failures.
+
 ## Required end state: native kernels with unchanged TU1.5 behavior
 
 Clarified October25,2026: port every player, vehicle, object and shared physics
@@ -42,6 +161,17 @@ TU1.1 is outside this goal and cannot qualify TU1.5 acceptance.
 The [native-kernel migration audit](PHYSICS_NATIVE_KERNEL_MIGRATION.md) records
 the current lifted owners, partial native kernels and remaining proof gaps.
 
+November1 continuation: completed v1463/00–15 results and source snapshots are
+preserved. Contact completion executes1,236 native calls and2,009 copied
+contacts in09, with its old owner absent and strict original comparison passing.
+The genuine two-grenade15 case passes strict original comparison at tick1200;
+three authored debris owners submit geometry to both views, which is separate
+from individual framebuffer visibility. The v1463 owner was interrupted during
+the next build, and its1,139,437,568 allocated bytes were removed. The exact
+cohort is reconstructed for v1464. Island listeners, deferred delete/update,
+full destruction, prop impulses and Gemini's red original comparison remain
+open. The interrupted v1462 build never ran live tests.
+
 Native-kernel continuation (October 26): corrected v1459 passes eight official
 regressions and ten visible multiplayer cases using the prepared imported MCC
 cache. Actual native activity includes 2,736 constraint steps, 2,992 dynamic
@@ -49,7 +179,7 @@ accumulator setups, 3,740 motion commits and 8,775 island collision entries.
 All three commit kinds execute. Seven strict whole-frame original comparisons
 pass; three Cyclotron raw-bank comparisons remain red without waived bytes.
 [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-constraint-original-v1459/iteration-01-summary.json).
-The [current vehicle recording](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-solver-original-v1460/iteration-06-island-agents-vehicle-camera/requested-video/window.mp4)
+The [current vehicle recording](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-motion-owners-original-v1463-20261101/iteration-09-native-velocity-completion-deps-vehicle-camera/requested-video/window.mp4)
 was visually inspected and shows the actual chase camera plus independent peer.
 
 The broad-phase refresh completed nine of sixteen planned cases before an

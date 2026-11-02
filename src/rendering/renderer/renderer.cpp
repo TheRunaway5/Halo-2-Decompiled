@@ -5,6 +5,7 @@
 #include "rendering/renderer/renderer_shadow_bitmap_pages.hpp"
 #include "rendering/renderer/renderer_upload_batch.hpp"
 #include "halo2/vulkan_portability.hpp"
+#include "halo2/cinematic_letterbox.hpp"
 #include "halo2/source_shadow_native_prefix_tu15.hpp"
 #include "halo2/macos/bundle.hpp"
 #include "halo2/macos/vulkan_math.hpp"
@@ -28,8 +29,10 @@
 #include "halo2/renderer.hpp"
 #include "halo2/source_world_depth_input.hpp"
 #include "halo2/source_model_depth_input.hpp"
+#include "halo2/source_hologram_depth_input.hpp"
 #include "halo2/source_world_depth_position_contract.hpp"
 #include "halo2/source_world_depth_raster_contract.hpp"
+#include "halo2/source_world_depth_scope.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/temporal_upscaler.hpp"
 #include "rendering/renderer/temporal_geometry.hpp"
@@ -71,6 +74,7 @@
 #include "halo2/source_shader_lod.hpp"
 #include "halo2/source_shadow_render.hpp"
 #include "halo2/pstencil/frame.hpp"
+#include "halo2/pstencil/geometry.hpp"
 #include "halo2/pstencil/environment.hpp"
 #include "halo2/pstencil/combined_environment.hpp"
 #include "halo2/pstencil/adaptation.hpp"
@@ -166,6 +170,22 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugUtilsMessageSeverityFlagBit
     VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data, void*) {
     std::cerr << "Vulkan validation: " << data->pMessage << '\n';
     return VK_FALSE;
+}
+RenderViewport model_viewport(const ModelView& view,VkExtent2D extent) {
+    if(view.source_ui_viewport) {
+        const auto &r=*view.source_ui_viewport;
+        return {float(r[1]),float(r[0]),float(r[3]-r[1]),float(r[2]-r[0])};
+    }
+    if(view.full_surface)
+        return full_surface_viewport({view.left,view.top,view.width,view.height},extent.width,extent.height);
+    const auto canvas=frontend_canvas(extent.width,extent.height);
+    return {canvas.left+view.left*canvas.scale,canvas.top+view.top*canvas.scale,
+        view.width*canvas.scale,view.height*canvas.scale};
+}
+std::int16_t camouflage_camera_edge(float value) {
+    if(!std::isfinite(value) || value<-32768.f || value>=32768.f)
+        throw FormatError("Camouflage source viewport exceeds its signed camera rectangle");
+    return std::int16_t(value);
 }
 glm::mat4 view_projection(const Camera& camera, VkExtent2D extent, bool title = false,
                          std::optional<Vec2> clip_planes = {}) {
@@ -383,6 +403,10 @@ struct Renderer::Impl {
     std::vector<bool> camouflage_group_materials;
     std::array<std::vector<VkDescriptorSet>,4> camouflage_descriptors;
     std::array<std::unique_ptr<SourceSceneCopyGpu>,4> camouflage_copies;
+    bool hologram_scene_required{};
+    struct HologramCopy {std::unique_ptr<SourceSceneCopyGpu> image;bool pending{};};
+    std::vector<HologramCopy> hologram_copies;
+    std::unique_ptr<SourceWorldDrawStorage> hologram_storage;
     std::vector<bool> texture_camera_materials;
     bool texture_camera_scene_required{};
     std::array<std::vector<VkDescriptorSet>,2> texture_camera_descriptors;
@@ -408,6 +432,7 @@ struct Renderer::Impl {
     VkPipeline light_volume_pipeline{};
     bool light_volume_materials{};
     VkPipeline overlay{},popup_tint_pipeline{},player_flash_pipeline{},ui_backdrop_pipeline{};
+    VkPipeline source_water_alpha_clear_pipeline{};
     VkPipeline ui_pipeline{};
     VkPipeline ui_frame_pipeline{},ui_frame_backdrop_pipeline{};
     VkPipelineLayout ui_frame_layout{};
@@ -510,6 +535,7 @@ struct Renderer::Impl {
         std::size_t observed_object=std::numeric_limits<std::size_t>::max();
         bool source_depth_owned{};
         const SourceModelDepthInput* source_model_depth_owned{};
+        const SourceHologramDepthInput* source_hologram_depth_owned{};
         std::uint32_t source_depth_first{},source_depth_count{};
         SourceBspDrawKey source_depth_key;
     };
@@ -692,11 +718,13 @@ struct Renderer::Impl {
     std::vector<bool> effect_light_materials;
     std::vector<unsigned> effect_light_blends;
     std::vector<ForwardRasterState> material_forward_states;
+    std::vector<unsigned> material_forward_blends;
     std::vector<bool> accumulation_materials;
     std::unique_ptr<ResidentDrawStorage> object_draw_storage;
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
     std::unique_ptr<MenuWorldNativeDraw> menu_world_native;
     std::unique_ptr<MenuWorldNativeDraw> effect_light_native;
+    std::unique_ptr<MenuWorldNativeDraw> hologram_native;
     std::array<std::unique_ptr<MenuWorldNativeDraw>,2> raw_shadow_native;
     bool menu_world_reported{};
     using MenuWorldDrawPair=std::pair<std::size_t,std::optional<std::size_t>>;
@@ -716,6 +744,7 @@ struct Renderer::Impl {
     CinematicBloomOverride campaign_bloom;
     std::unique_ptr<CinematicCrossfadeRender> cinematic_crossfade;
     CinematicCrossfadeFrame campaign_crossfade;
+    std::optional<float> campaign_letterbox_aspect;
     bool campaign_capture_completed{};
     std::optional<BspPostprocessState> bsp_postprocess_state;
     std::vector<GpuTexture> bsp_postprocess_textures;
@@ -754,6 +783,11 @@ struct Renderer::Impl {
     std::vector<std::array<float,2>> material_lighting_brightness;
     std::vector<int> water_material_definitions;
     std::vector<bool> water_materials;
+    std::vector<bool> water_edge_materials;
+    bool source_water_alpha_order=[] {
+        const auto* reference=std::getenv("HALO2_REFERENCE_EARLY_WATER_MASK");
+        return !reference || !*reference || std::strcmp(reference,"0")==0;
+    }();
     std::vector<std::array<bool,2>> water_texture_bindings;
     VkBuffer material_buffer{};
     VkDeviceMemory material_memory{};
@@ -783,6 +817,7 @@ struct Renderer::Impl {
     std::array<std::uint32_t,8> source_output_state=renderer_cold_output_values;
     std::array<std::uint32_t,4> source_coordinate_registers=renderer_passthrough_registers;
     std::vector<bool> extended_vertex_banks;
+    std::vector<bool> required_owner_prt_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
     std::vector<MaterialUniform> material_uniforms;
@@ -792,6 +827,7 @@ struct Renderer::Impl {
     std::vector<bool> pstencil_combined_environment_strengths,pstencil_polished_armor;
     std::vector<const pstencil::EnvironmentParameters*> pstencil_environment_parameters;
     std::vector<std::uint32_t> material_blend_colors;
+    std::vector<std::optional<ObjectColors>> material_object_render_colors;
     // Pixel remaps address fragments before the assembled combiner stages.
     // These CPU offsets are part of the active program, beyond its GPU words.
     std::vector<std::array<std::uint8_t,8>> material_fragment_offsets;
@@ -1980,6 +2016,9 @@ struct Renderer::Impl {
             light_volume_slots.push_back(material->light_volume_pass);
         }
         source_material_layers.reserve(materials.size());
+        hologram_scene_required=std::ranges::any_of(materials,[](const auto *m) {
+            return source_material_layer(*m)==21;
+        });
         for(const auto *material:materials)
             source_material_layers.push_back(pstencil_environment_companion_slots.contains(unsigned(source_material_layers.size()))?
                 pstencil_environment_carrier_layer:source_material_layer(*material));
@@ -2183,16 +2222,20 @@ struct Renderer::Impl {
         pstencil_combined_environment_strengths.resize(count);pstencil_polished_armor.resize(count);
         pstencil_environment_parameters.resize(count);
         material_blend_colors.resize(count);
+        material_object_render_colors.resize(count);
         vertex_bank_uniforms.resize(count);
         material_pending.resize(count);vertex_bank_pending.resize(count);
         extended_vertex_banks.resize(count);
+        required_owner_prt_banks.resize(count);
         effect_light_materials.resize(count);
         effect_light_blends.resize(count);
         material_forward_states.resize(count);
+        material_forward_blends.resize(count);
         accumulation_materials.resize(count);
         material_fragment_offsets.resize(count);
         baked_materials.resize(count);
         water_material_definitions.resize(count);water_materials.resize(count);water_texture_bindings.resize(count);
+        water_edge_materials.resize(count);
         // Bank zero belongs to the main scene/UI. Each local player's bank
         // retains its own original fog constants and planar pass program.
         make_buffer(stride*count*5,VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,material_buffer,material_memory);
@@ -2215,11 +2258,13 @@ struct Renderer::Impl {
             if(pstencil_environment_materials[i] || pstencil_combined_environment_strengths[i])
                 pstencil_environment_parameters[i]=pstencil::reference_environment_parameters(material.name);
             material_blend_colors[i]=material.forward_blend_color;
+            material_object_render_colors[i]=material.object_render_colors;
             pstencil_response_phases[i]=pstencil::light_utility_material_2003(material)?1u:
                 pstencil::dependent_light_material_2003(material)?2u:
                 pstencil::normal_accumulation_material_2003(material)?3u:
                 pstencil::normal_light_utility_material_2003(material)?4u:0u;
             material_forward_states[i]=material.forward_raster;
+            material_forward_blends[i]=material.forward_blend;
             accumulation_materials[i]=material.accumulation_texture;
             const bool projected_light=material.forward_vertex==6 && material.forward_pass &&
                 material.forward_pass_index<material.passes.size() &&
@@ -2233,6 +2278,9 @@ struct Renderer::Impl {
             texture_camera_materials[i]=material.texture_camera_texture;
             water_material_definitions[i]=material.water_definition;
             water_materials[i]=material.water_pass && material.forward_vertex>=7;
+            water_edge_materials[i]=material.forward_vertex==3 && source_world_depth_independent_water(material);
+            if(water_edge_materials[i] && source_material_layers[i]!=6)
+                throw FormatError("Native water edge lost its original layer6 owner");
             water_texture_bindings[i]={material.water_reflection_texture,material.water_refraction_texture};
             baked_materials[i]=!material.forward_pass || material.baked_lightmap_texture;
             if(material.hud_pass && (material.forward_blend<1 || material.forward_blend>4))
@@ -2317,6 +2365,7 @@ struct Renderer::Impl {
             std::memcpy(static_cast<std::byte*>(bank_mapped)+vertex_bank_stride*i,&bank,sizeof(bank));
             vertex_bank_uniforms[i]=bank;
             extended_vertex_banks[i]=bool(material.vertex_bank);
+            required_owner_prt_banks[i]=material.requires_owner_prt_bank;
         }
         vkUnmapMemory(device,vertex_bank_memory);
         // Action/frame constants and samplers remain per material. Identical
@@ -2508,6 +2557,10 @@ struct Renderer::Impl {
     }
 
     void retire_weather_aliases() {
+        for(auto &copy:hologram_copies)if(copy.pending) {
+            if(!copy.image->retire())throw FormatError("Hologram scene copy outlived its completed frame fence");
+            copy.pending=false;
+        }
         for(unsigned i=0;i<2;++i)if(texture_camera_pending[i]) {
             if(!texture_camera_copies[i]->retire())
                 throw FormatError("Texture camera image outlived its completed frame fence");
@@ -2617,6 +2670,7 @@ struct Renderer::Impl {
 #ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
         menu_world_native.reset();menu_world_reported=false;
         effect_light_native.reset();
+        hologram_native.reset();
         for(auto &service:raw_shadow_native)service.reset();
 #endif
         if(display_pipeline)vkDestroyPipeline(device,display_pipeline,nullptr);
@@ -2629,6 +2683,7 @@ struct Renderer::Impl {
         // the caller has retired GPU work before recreating these resources.
         shadow_storage.reset();
         raw_shadow_storage.reset();
+        hologram_storage.reset();hologram_copies.clear();
         effect_light_storage.reset();
         shadow_render.reset();
         pstencil_render.reset();
@@ -2723,6 +2778,8 @@ struct Renderer::Impl {
             p.handle=p.sky_handle=VK_NULL_HANDLE;
         }
         if (overlay) vkDestroyPipeline(device, overlay, nullptr);
+        if(source_water_alpha_clear_pipeline)vkDestroyPipeline(device,source_water_alpha_clear_pipeline,nullptr);
+        source_water_alpha_clear_pipeline=VK_NULL_HANDLE;
         if (player_flash_pipeline) vkDestroyPipeline(device, player_flash_pipeline, nullptr);
         player_flash_pipeline=VK_NULL_HANDLE;
         overlay = VK_NULL_HANDLE;
@@ -2981,7 +3038,7 @@ struct Renderer::Impl {
             method==Upscaler::Off && settings.internal_height?settings.internal_height:presentation_extent.height,method,settings.upscaling_quality):
             std::pair{presentation_extent.width,presentation_extent.height};
         extent={render_size.first,render_size.second};
-        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer || texture_camera_scene_required ||
+        const bool offscreen=active_upscaler!=Upscaler::Off || source_double_buffer || texture_camera_scene_required || hologram_scene_required ||
             std::any_of(camouflage_scene_materials.begin(),camouflage_scene_materials.end(),[](bool x){return x;}) ||
             std::any_of(texture_camera_materials.begin(),texture_camera_materials.end(),[](bool x){return x;}) ||
             extent.width!=presentation_extent.width || extent.height!=presentation_extent.height;
@@ -3682,6 +3739,19 @@ struct Renderer::Impl {
         blend.alphaBlendOp = VK_BLEND_OP_ADD;
         info.layout = overlay_layout;
         check(vkCreateGraphicsPipelines(device, pipeline_cache->get(), 1, &info, nullptr, &overlay), "create overlay pipeline");
+        // 44370 layer6 and3C3B0's no-layer6 branch clear alpha alone.
+        // A masked fixed GPU draw implements that clear without touching RGB,
+        // shared depth or stencil; Vulkan attachment clears have no channel mask.
+        const auto saved_water_blend=blend;
+        const auto saved_water_depth=depth_state;
+        const auto saved_water_raster=raster;
+        blend.blendEnable=VK_FALSE;blend.colorWriteMask=VK_COLOR_COMPONENT_A_BIT;
+        depth_state.depthTestEnable=depth_state.depthWriteEnable=depth_state.stencilTestEnable=VK_FALSE;
+        depth_state.depthBoundsTestEnable=VK_FALSE;raster.cullMode=VK_CULL_MODE_NONE;
+        raster.depthBiasEnable=raster.rasterizerDiscardEnable=VK_FALSE;
+        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&source_water_alpha_clear_pipeline),
+            "create native water alpha-only clear pipeline");
+        blend=saved_water_blend;depth_state=saved_water_depth;raster=saved_water_raster;
         // Original UI title and 147CDB tint draws preserve the lower scene's
         // alpha. The popup combiner consumes that alpha in its blur stages.
         blend.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT;
@@ -3826,6 +3896,9 @@ struct Renderer::Impl {
                     throw FormatError("unsupported Vista loading material program/blend");
                 vista_loading_materials[i]=m.vista_loading;
             }
+            // Combined LODs can leave their own constants unchanged while
+            // their shared texture pass still needs a new player color bank.
+            material_object_render_colors[i]=m.object_render_colors;
             if(!m.forward_pass)return;
             material_blend_colors[i]=m.forward_blend_color;
             if(bool(m.vertex_bank)!=extended_vertex_banks[i])
@@ -4932,8 +5005,10 @@ struct Renderer::Impl {
         std::vector<std::vector<Draw>> view_draws;
         struct ObjectDrawRange {std::size_t view{},object{},first{},count{};};
         std::vector<ObjectDrawRange> object_ranges;
+        std::vector<std::vector<std::optional<SourceHologramDepthInput>>> hologram_depth_inputs(views.size());
         for(std::size_t i=0;i<views.size();++i) {
             const auto &view=views[i];view_draws.emplace_back();
+            hologram_depth_inputs[i].resize(view.objects.size());
             if(!bsp_plans[i])group(view.vertices,view_draws.back());
             else {
             const auto &plan=*bsp_plans[i];
@@ -5010,7 +5085,23 @@ struct Renderer::Impl {
             }
             for(const auto &object:view.objects) {
                 auto &list=view_draws.back();const auto first=list.size();
-                group(object.vertices,list);
+                const auto object_index=std::size_t(&object-view.objects.data());
+                const SourceHologramGroupDraw* hologram_group{};
+                if(object.source_object)for(const auto& candidate:view.hologram_groups)
+                    if(std::ranges::find(candidate.owners,*object.source_object)!=candidate.owners.end()) {
+                        if(hologram_group)throw FormatError("hologram depth body belongs to ambiguous current groups");
+                        hologram_group=&candidate;
+                    }
+                auto& hologram_depth=hologram_depth_inputs[i][object_index];
+                if(hologram_group) {
+                    if(!object.deferred_skins.empty())
+                        throw FormatError("hologram depth requires its completed native body pose before GPU upload");
+                    hologram_depth.emplace(source_hologram_depth_input(*hologram_group,*object.source_object,object.vertices,
+                        {extent.width,extent.height}));
+                    hologram_depth->validate_vertices(hologram_depth->vertices());
+                    group(hologram_depth->vertices(),list);
+                    for(auto& draw:std::span{list}.subspan(first))draw.source_hologram_depth_owned=&*hologram_depth;
+                } else group(object.vertices,list);
                 if(object.source_model_depth)for(auto& draw:std::span{list}.subspan(first)) {
                     const SourceBspDrawKey key{draw.material,draw.lightmap,draw.cluster,draw.source_section,draw.source_part};
                     if(!object.source_model_depth->admits_draw(key))continue;
@@ -5018,7 +5109,7 @@ struct Renderer::Impl {
                     draw.source_depth_owned=true;draw.source_model_depth_owned=object.source_model_depth;
                     draw.source_depth_first=draw.first;draw.source_depth_count=draw.count;draw.source_depth_key=key;
                 }
-                if(view.completed_object_draw_observer)for(auto &draw:std::span{list}.subspan(first))
+                if(view.completed_object_draw_observer || !view.hologram_groups.empty())for(auto &draw:std::span{list}.subspan(first))
                     draw.observed_object=std::size_t(&object-view.objects.data());
                 object_ranges.push_back({i,std::size_t(&object-view.objects.data()),first,list.size()-first});
             }
@@ -5029,6 +5120,7 @@ struct Renderer::Impl {
             std::vector<LightVolumeDraw> lights;
             const SourceLightVolumeDraw *light_source{};
             const SourceContrailDraw *contrail_source{};
+            const SourceHologramGroupDraw *hologram_source{};
             bool first_person_projection{};
             std::optional<ObjectLightingState> lighting;
         };
@@ -5038,7 +5130,7 @@ struct Renderer::Impl {
         std::vector<std::array<std::vector<TransparentStep>,2>> transparent_views(views.size());
         for(std::size_t i=0;i<views.size();++i)for(unsigned phase=0;phase<2;++phase) {
             const auto &view=views[i];const auto &bank=phase?view.foreground_transparent:view.world_transparent;
-            if(!bank && (phase || (view.light_volumes.empty() && view.contrails.empty())))continue;
+            if(!bank && (phase || (view.light_volumes.empty() && view.contrails.empty() && view.hologram_groups.empty())))continue;
             std::vector<SourceTransparentCommand> commands;
             std::vector<SourceTransparentDrawBinding> bindings;
             unsigned first{};
@@ -5051,6 +5143,7 @@ struct Renderer::Impl {
                 commands.push_back(command);bindings.push_back(std::move(binding));
             };
             if(!phase) {
+                for(const auto &draw:view.hologram_groups)append(draw.command,SourceTransparentHologramGroupDraw{&draw});
                 for(const auto &draw:view.contrails)append(draw.command,SourceTransparentContrailDraw{&draw});
                 for(const auto &draw:view.light_volumes)append(draw.command,SourceTransparentLightVolumeDraw{&draw});
                 if(!bank) {
@@ -5084,6 +5177,10 @@ struct Renderer::Impl {
                 if(!commands[ordinal].callback)continue;
                 auto &step=transparent_views[i][phase].emplace_back();
                 const auto &binding=bindings[ordinal];
+                if(const auto *hologram=std::get_if<SourceTransparentHologramGroupDraw>(&binding)) {
+                    if(phase || !hologram->draw)throw FormatError("Hologram group lost its ordinary source view");
+                    step.hologram_source=hologram->draw;continue;
+                }
                 if(const auto *trail=std::get_if<SourceTransparentContrailDraw>(&binding)) {
                     if(phase || !trail->draw)throw FormatError("Contrail draw requires its actual ordinary world view");
                     step.contrail_source=trail->draw;continue;
@@ -5174,9 +5271,14 @@ struct Renderer::Impl {
             auto &copy=camouflage_copies[i];
             if(!copy)copy=std::make_unique<SourceSceneCopyGpu>(SourceSceneCopyGpuContext{
                 physical,device,queue_family,format,shader_directory});
-            const SourceSceneCopyContext source{{std::int16_t(view.top),std::int16_t(view.left),
-                std::int16_t(view.top+view.height),std::int16_t(view.left+view.width)},320,240,.015625f,1024.f};
-            const auto binding=copy->prepare({source,{640,480},extent});
+            // 34A90 reads the submitting camera's actual pixel rectangle.
+            // Keep the authored320x240 target; logical UI coordinates cannot
+            // describe rounded/offset native viewports at another resolution.
+            const auto copy_pixels=model_viewport(view,extent);
+            const SourceSceneCopyContext source{{camouflage_camera_edge(copy_pixels.top),camouflage_camera_edge(copy_pixels.left),
+                camouflage_camera_edge(copy_pixels.top+copy_pixels.height),camouflage_camera_edge(copy_pixels.left+copy_pixels.width)},
+                320,240,.015625f,1024.f};
+            const auto binding=copy->prepare({source,{std::int32_t(extent.width),std::int32_t(extent.height)},extent});
             for(unsigned m=0;m<camouflage_scene_materials.size();++m)if(camouflage_scene_materials[m]) {
                 const VkDescriptorImageInfo image{stage_samplers[m][2],binding.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
                 VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=camouflage_descriptors[i][m];
@@ -5185,7 +5287,7 @@ struct Renderer::Impl {
             }
             if(view.camouflage_fog && camouflage_alias_pass && !camouflage_alias_framebuffer) {
                 camouflage_alias=std::make_unique<SourceWeatherDepthAlias>(SourceWeatherDepthAliasContext{
-                    physical,device,queue_family,shader_directory});
+                    this->physical,device,queue_family,shader_directory});
                 camouflage_alias->prepare(extent);
                 const auto alias=camouflage_alias->prepared_binding();
                 const VkImageView attachments[]{alias.view,depth_attachment_view};
@@ -5851,7 +5953,8 @@ struct Renderer::Impl {
         const auto view_material_uniform=[&](const ModelView &view,std::size_t m,
                                              const ObjectLightingState *owner_light=nullptr,
                                              const ObjectColors *owner_colors=nullptr,const ShaderInput *owner_input=nullptr,
-                                             const float *owner_camouflage=nullptr,std::uint32_t *owner_blend=nullptr) {
+                                             const float *owner_camouflage=nullptr,std::uint32_t *owner_blend=nullptr,
+                                             const ObjectColors *owner_render_colors=nullptr) {
 
             const auto &prepared=prepared_views[std::size_t(&view-views.data())];
             const auto pass=fog_material_passes.find(unsigned(m));
@@ -5899,13 +6002,17 @@ struct Renderer::Impl {
             };
             if(owner_light)apply_light(*owner_light);
             else if(const auto *state=prepared.lighting[material_roots[m]])apply_light(*state);
-            if(owner_colors && pass!=fog_material_passes.end()) {
+            if((owner_colors || owner_render_colors) && pass!=fog_material_passes.end()) {
                 PixelProgram program{uniform.program,material_fragment_offsets[m]};
                 ShaderConstants constants{uniform.vertex_attributes,uniform.vertex_constants};
                 apply_object_render_color_bindings(program,constants,pass->second,
-                    source_object_render_colors(*owner_colors),fog_material_switches.at(unsigned(m)));
+                    owner_colors?source_object_render_colors(*owner_colors):*owner_render_colors,
+                    fog_material_switches.at(unsigned(m)));
                 uniform.program=program.words;
                 uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
+                if(owner_render_colors) {
+                    uniform.diffuse=constants[0][10];uniform.specular=constants[0][11];
+                }
             }
             if(owner_blend)*owner_blend=material_blend_colors[m];
             if(owner_camouflage && pass!=fog_material_passes.end()) {
@@ -6084,6 +6191,18 @@ struct Renderer::Impl {
         // One19510 selection policy serves both ordinary resident draws and
         // owner aliases. Owner storage copies this image/sampler bank before
         // replacing only its independent material and optional vertex UBOs.
+        std::array<bool,2> texture_camera_unwritten_ready{};
+        const auto observe_texture_camera_image=[&](const SourceSceneCopyGpuImage &image) {
+            if(!capture_bsp_draw_bindings)return;
+            RendererObservedImageBinding facts;facts.image=observed_handle(image.image);facts.view=observed_handle(image.view);
+            facts.width=image.extent.width;facts.height=image.extent.height;facts.layers=facts.mip_count=1;
+            facts.format=image.format;facts.image_owner_known=true;observed_image_views[facts.view]=facts;
+            for(auto &[handle,descriptor]:observed_descriptors)for(auto &table:descriptor.images)for(auto &bound:table)
+                if(bound.view==facts.view) {
+                    const auto sampler=bound.sampler;const auto layout=bound.layout;const auto present=bound.present;
+                    bound=facts;bound.sampler=sampler;bound.layout=layout;bound.present=present;
+                }
+        };
         const auto texture_camera_target=[&](unsigned material,std::size_t view,bool completed)->std::optional<unsigned> {
             if(!texture_camera_materials[material])return {};
             if(!texture_camera)throw FormatError("Texture camera draw lost its source frame");
@@ -6091,8 +6210,17 @@ struct Renderer::Impl {
             const auto target=texture_camera->source->targets().selected();
             if(!target)return {};
             const auto slot=*target==18?0u:1u;
-            if(completed && !texture_camera_produced[slot])
-                throw FormatError("Texture camera target was never produced by its actual scene");
+            if(completed && !texture_camera_produced[slot] && !texture_camera_unwritten_ready[slot]) {
+                const auto& source=*texture_camera->source;
+                std::ostringstream error;
+                error<<"Texture camera target was never produced by its actual scene: target="<<*target
+                    <<" view="<<view<<" scene="<<camera_scene<<" temporal="<<bool(temporal_upscaler)
+                    <<" copy="<<source.copy_target().value_or(0)<<" rendered="<<source.source_rendered_view()
+                    <<" camera=0x"<<std::hex<<source.before().camera_words[0]<<std::dec
+                    <<" cinematic="<<unsigned(source.before().cinematic)
+                    <<" auxiliary="<<unsigned(source.before().cinematic_auxiliary);
+                throw FormatError(error.str());
+            }
             return slot;
         };
         std::vector<std::map<std::pair<unsigned,unsigned>,std::size_t>> object_aliases;
@@ -6121,13 +6249,13 @@ struct Renderer::Impl {
                    !banks.emplace(target,pack_vertex_program_bank(*binding.bank)).second)
                     throw FormatError("owner PRT bank differs from resident layer5 declaration");
             }
-            const auto add=[&](unsigned material,unsigned lightmap) {
+            const auto add=[&](unsigned material,unsigned lightmap,const ObjectColors *render_colors=nullptr) {
                 if(material==~0u || aliases.contains({material,lightmap}))return;
                 if(water_materials[material] || scope_materials[material])
                     throw FormatError("owner draw cannot supply water or first-person external targets");
                 aliases.emplace(std::pair{material,lightmap},object_uniforms.size());
                 std::uint32_t blend{};
-                object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input,camouflage,&blend));
+                object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input,camouflage,&blend,render_colors));
                 object_native_pipeline_indices.push_back(admit_combiner(material,object_uniforms.back()));
                 if(input)if(const auto animation=owner_bitmap_animations.find(material);animation!=owner_bitmap_animations.end()) {
                     const auto frames=animate_bitmap_frames(animation->second,view.effect_time,*input,bound_frames[material]);
@@ -6138,6 +6266,8 @@ struct Renderer::Impl {
                 }
                 object_blend_colors.push_back(blend);
                 const auto bank=banks.find(material);
+                if(required_owner_prt_banks[material] && bank==banks.end())
+                    throw FormatError("Campaign PRT residency declaration has no completed owner upload");
                 object_vertex_banks.push_back(bank==banks.end()?std::nullopt:std::optional{bank->second});
                 const auto view_index=std::size_t(&view-views.data());
                 auto resident=camouflage_scene_materials[material]?
@@ -6148,7 +6278,12 @@ struct Renderer::Impl {
             };
             for(auto &draw:list) {
                 draw.object_alias=owner;add(draw.material,draw.lightmap);
-                if(pstencil_enabled)add(pstencil_texture_mask_materials[draw.material],draw.lightmap);
+                // Packed player/FP materials already own a completed 33980
+                // bank. The shared texture residency must borrow that bank
+                // without quantizing it again or changing another player.
+                const auto &render_colors=material_object_render_colors[draw.material];
+                if(pstencil_enabled)add(pstencil_texture_mask_materials[draw.material],draw.lightmap,
+                    !colors && render_colors?&*render_colors:nullptr);
                 if(pstencil_enabled)add(pstencil_environment_companions[draw.material],draw.lightmap);
                 add(environment_materials[draw.material],draw.lightmap);
                 for(auto m:world_before[draw.material])add(m,draw.lightmap);
@@ -6169,6 +6304,34 @@ struct Renderer::Impl {
             bind_geometry(step.geometry);
             if(!step.particles && !step.light_source)alias_owner(views[i],step.geometry,
                 step.lighting?&*step.lighting:nullptr);
+        }
+        // Packed runs carry their colors in resident material roots rather
+        // than ModelObjectDraw overrides. Keep their mask uniforms per root.
+        if(pstencil_enabled)for(std::size_t i=0;i<views.size();++i) {
+            std::map<std::pair<unsigned,unsigned>,std::size_t> color_aliases;
+            const auto bind_packed_colors=[&](std::vector<Draw>& list) {
+                for(auto& draw:list) {
+                    if(draw.object_alias!=std::numeric_limits<std::size_t>::max() || draw.cluster!=-1)continue;
+                    const auto mask=pstencil_texture_mask_materials[draw.material];
+                    const auto &colors=material_object_render_colors[draw.material];
+                    if(mask==~0u || mask==draw.material || !colors)continue;
+                    const auto &shared=material_object_render_colors[mask];
+                    bool different=false;
+                    for(unsigned n=0;n<colors->size();++n) {
+                        const auto a=colors->at(n),b=shared?shared->at(n):Vec3{1,1,1};
+                        different|=a.x!=b.x || a.y!=b.y || a.z!=b.z;
+                    }
+                    if(!different)continue;
+                    const auto key=std::pair{draw.material,draw.lightmap};
+                    if(const auto at=color_aliases.find(key);at!=color_aliases.end())draw.object_alias=at->second;
+                    else {
+                        alias_owner(views[i],std::span(&draw,1),
+                            prepared_views[i].lighting[material_roots[draw.material]],nullptr,nullptr);
+                        color_aliases.emplace(key,draw.object_alias);
+                    }
+                }
+            };
+            bind_packed_colors(view_draws[i]);bind_packed_colors(view_foreground[i]);
         }
         std::vector<MaterialUniform> object_gpu_uniforms;object_gpu_uniforms.reserve(object_uniforms.size());
         std::vector<ResidentDrawUpload> object_uploads;object_uploads.reserve(object_uniforms.size());
@@ -6644,6 +6807,316 @@ struct Renderer::Impl {
                 phase==0?frame_timing.world_native_shadow_generate_prepared_draws:frame_timing.world_native_shadow_apply_prepared_draws);
         }
 #endif
+        struct HologramPartRecord {
+            std::optional<Draw> body;
+            unsigned material{};
+            std::vector<std::size_t> raw;
+        };
+        struct HologramGroupRecord {
+            std::size_t copy{};
+            std::vector<HologramPartRecord> parts;
+        };
+        std::vector<std::vector<HologramGroupRecord>> hologram_views(views.size());
+        std::vector<std::vector<SourceHologramGroupSubmission>> hologram_ledgers(views.size());
+        const bool hologram_depth_diagnostic=!screenshot.empty() &&
+            std::getenv("HALO2_HOLOGRAM_DEPTH_DIAGNOSTICS");
+        std::ostringstream hologram_depth_report;
+        bool hologram_depth_case=false;
+        if(hologram_depth_diagnostic)hologram_depth_report<<"{\"schema\":\"H2_HOLOGRAM_DEPTH_INPUT_V1\",\"width\":"
+            <<extent.width<<",\"height\":"<<extent.height<<",\"cases\":[";
+#ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+        std::size_t hologram_count{};
+        for(const auto &view:views)hologram_count+=view.hologram_groups.size();
+        if(hologram_copies.size()<hologram_count)hologram_copies.resize(hologram_count);
+        std::vector<MaterialUniform> hologram_uniforms;
+        std::vector<SourceWorldDrawUpload> hologram_uploads;
+        struct HologramRawInput {
+            const SourceHologramGroupDraw *group{};
+            const SourceHologramGroupPart *part{};
+            const MenuWorldSourceDraw *range{};
+            std::array<const GpuTexture*,4> images{};
+            std::size_t view_index{},group_index{},descriptor{};
+        };
+        std::vector<HologramRawInput> hologram_raw;
+        std::size_t hologram_copy{};
+        for(std::size_t i=0;i<views.size();++i)for(const auto &group:views[i].hologram_groups) {
+            if(!group.cache || group.command.callback!=0x423b0u || !views[i].full_surface)
+                throw FormatError("hologram group lost its current ordinary Cache/view owner");
+            auto &record=hologram_views[i].emplace_back();record.copy=hologram_copy++;
+            auto &copy=hologram_copies[record.copy];
+            if(copy.pending)throw FormatError("hologram copy was not retired before preparation");
+            if(!copy.image)copy.image=std::make_unique<SourceSceneCopyGpu>(SourceSceneCopyGpuContext{
+                physical,device,queue_family,format,shader_directory});
+            const auto target=copy.image->prepare({{{0,0,std::int16_t(group.surface_size[1]),std::int16_t(group.surface_size[0])},
+                320,240,group.clip_range[2],group.clip_range[3]},
+                {std::int32_t(group.surface_size[0]),std::int32_t(group.surface_size[1])},extent});
+            for(const auto &part:group.parts) {
+                auto &bound=record.parts.emplace_back();
+                if(part.layer!=21) {
+                    for(const auto &draw:view_draws[i]) {
+                        if(draw.observed_object>=views[i].objects.size() ||
+                           views[i].objects[draw.observed_object].source_object!=part.object ||
+                           draw.source_section!=part.section || draw.source_part!=part.part)continue;
+                        std::optional<unsigned> selected;
+                        for(unsigned m=0;m<material_uniforms.size();++m) {
+                            if(material_roots[m]!=draw.material || source_material_layers[m]!=part.layer ||
+                               source_material_identities[m]!=std::array{part.pass->shader(),part.pass->choice().shader_lod})continue;
+                            const auto pass=fog_material_passes.find(m);
+                            if(pass==fog_material_passes.end() || pass->second.template_pass!=part.pass->template_pass() ||
+                               pass->second.implementation!=part.pass->choice().implementation)continue;
+                            if(selected)throw FormatError("hologram body descriptor has ambiguous resident material ownership");
+                            selected=m;
+                        }
+                        if(!selected)continue;
+                        if(bound.body)throw FormatError("hologram body descriptor has ambiguous source geometry ownership");
+                        if(!draw.source_hologram_depth_owned || &draw.source_hologram_depth_owned->group()!=&group)
+                            throw FormatError("hologram body has no exact current-group native depth capability");
+                        bound.body=draw;bound.material=*selected;
+                    }
+                    if(!bound.body || !bound.body->count || bound.body->count!=part.body_vertices) {
+                        std::ostringstream detail;
+                        detail<<"hologram body descriptor has no exact resident owner/pass/geometry draw: wanted={owner:"
+                            <<part.object<<",section:"<<part.section<<",part:"<<part.part<<",layer:"<<part.layer
+                            <<",shader:"<<part.pass->shader()<<",lod:"<<part.pass->choice().shader_lod
+                            <<",template:"<<part.pass->template_pass()<<",implementation:"<<part.pass->choice().implementation
+                            <<",vertices:"<<part.body_vertices<<",command:"<<part.command<<",base_ordinal:"<<part.base_ordinal
+                            <<"} selected={present:"<<bool(bound.body)<<",material:"<<bound.material
+                            <<",vertices:"<<(bound.body?bound.body->count:0)<<"} same_owner_draws=[";
+                        unsigned owners{},geometry{},shown{};
+                        for(const auto &draw:view_draws[i])if(draw.observed_object<views[i].objects.size() &&
+                            views[i].objects[draw.observed_object].source_object==part.object) {
+                            ++owners;geometry+=draw.source_section==part.section && draw.source_part==part.part;
+                            if(shown==32)continue;
+                            if(shown++)detail<<',';
+                            detail<<"{object:"<<draw.observed_object<<",section:"<<draw.source_section<<",part:"<<draw.source_part
+                                <<",root:"<<draw.material<<",shader:"<<source_material_identities.at(draw.material)[0]
+                                <<",lod:"<<source_material_identities.at(draw.material)[1]<<",layer:";
+                            if(source_material_layers.at(draw.material))detail<<*source_material_layers.at(draw.material);else detail<<"none";
+                            detail<<",vertices:"<<draw.count<<",first:"<<draw.first<<'}';
+                        }
+                        detail<<"] same_owner_total="<<owners<<" same_geometry_total="<<geometry<<" shader_materials=[";
+                        unsigned materials{};shown=0;
+                        for(unsigned m=0;m<material_uniforms.size();++m)if(source_material_identities[m][0]==part.pass->shader()) {
+                            ++materials;if(shown==64)continue;
+                            if(shown++)detail<<',';
+                            detail<<"{slot:"<<m<<",root:"<<material_roots[m]<<",lod:"<<source_material_identities[m][1]<<",layer:";
+                            if(source_material_layers[m])detail<<*source_material_layers[m];else detail<<"none";
+                            if(const auto pass=fog_material_passes.find(m);pass!=fog_material_passes.end())
+                                detail<<",template:"<<pass->second.template_pass<<",implementation:"<<pass->second.implementation;
+                            else detail<<",pass:none";
+                            detail<<'}';
+                        }
+                        detail<<"] shader_material_total="<<materials;
+                        throw FormatError(detail.str());
+                    }
+                    continue;
+                }
+                const auto slot=part.hologram_material;
+                if(slot>=material_count || source_material_layers.at(slot)!=21 ||
+                   source_material_identities.at(slot)!=std::array{part.pass->shader(),part.pass->choice().shader_lod})
+                    throw FormatError("hologram override changed its authored resident material slot");
+                auto uniform=view_material_uniform(views[i],slot);
+                const auto &pass=fog_material_passes.at(slot);
+                if(pass.template_pass!=part.pass->template_pass() || pass.implementation!=part.pass->choice().implementation)
+                    throw FormatError("hologram override changed its actual selected pass");
+                PixelProgram program=pass.program;ShaderConstants constants=pass.constants;
+                if(const auto animation=owner_material_animations.find(slot);animation!=owner_material_animations.end())
+                    animate_forward_constants(animation->second,pass,fog_material_switches.at(slot),
+                        group.shader_clock,{},program,constants);
+                uniform.program=program.words;uniform.vertex_attributes=constants[0];uniform.vertex_constants=constants[1];
+                uniform.texture_effects[0][1]|=1u;
+                auto frames=bound_frames.at(slot);
+                if(const auto animation=owner_bitmap_animations.find(slot);animation!=owner_bitmap_animations.end())
+                    frames=animate_bitmap_frames(animation->second,group.shader_clock,{},frames);
+                for(const auto &range:part.hologram_ranges) {
+                    bound.raw.push_back(hologram_raw.size());
+                    hologram_raw.push_back({&group,&part,&range,{&textures.at(slot),&detail_textures.at(slot),
+                        &bump_textures.at(slot),&auxiliary_textures.at(slot)},i,
+                        std::size_t(&group-views[i].hologram_groups.data()),std::size_t(&part-group.parts.data())});
+                    SourceWorldDrawUpload upload;upload.resident=textures.at(slot).descriptor;
+                    upload.target_view=target.view;upload.target_sampler=stage_samplers.at(slot)[0];
+                    upload.vertex_bank.range={34,158,0,0};
+                    for(unsigned stage=1;stage<4;++stage) {
+                        const auto &animated=animated_textures.at(slot)[stage];
+                        if(animated.empty())continue;
+                        const auto &image=animated.at(frames[stage]);hologram_raw.back().images[stage]=&image;
+                        upload.stage_images[stage]=SourceWorldDrawStageImages{stage_samplers.at(slot)[stage],
+                            image.depth?image_fallback.view:image.view,image.cube_view?image.cube_view:cube_fallback.cube_view,
+                            image.depth?image.view:volume_fallback.view};
+                    }
+                    hologram_uniforms.push_back(uniform);hologram_uploads.push_back(upload);
+                }
+            }
+        }
+        for(unsigned n=0;n<hologram_uploads.size();++n)
+            hologram_uploads[n].material_uniform=std::as_bytes(std::span{&hologram_uniforms[n],1});
+        if(!hologram_storage && !hologram_uploads.empty())
+            hologram_storage=std::make_unique<SourceWorldDrawStorage>(SourceWorldDrawStorageContext{
+                device,physical,texture_layout,sizeof(MaterialUniform)});
+        const auto hologram_sets=hologram_storage?upload_source_world(*hologram_storage,hologram_uploads):std::span<const VkDescriptorSet>{};
+        std::vector<MenuWorldNativeDrawInput> hologram_packets;
+        const Texture hologram_target{320,240,11,{},{}};
+        const auto &hologram_device=source_world_device;
+        for(unsigned n=0;n<hologram_raw.size();++n) {
+            const auto &raw=hologram_raw[n];const auto &group=*raw.group;const auto &part=*raw.part;
+            const auto slot=part.hologram_material;auto constants=group.constants;
+            std::copy(hologram_uniforms[n].vertex_constants.begin(),hologram_uniforms[n].vertex_constants.end(),constants.begin()+18);
+            const auto &geometry=*raw.range->geometry;
+            auto source=menu_world_source_binding_class(*group.cache,{MenuWorldSourceOwnerKind::dynamic_object,
+                geometry.owner_datum(),part.object&65535u,part.object},*raw.range,part.pass->vertex_shader(),part.vertex_class,constants);
+            const Vec2 scale{float(extent.width)/group.surface_size[0],float(extent.height)/group.surface_size[1]};
+            source=menu_world_source_resized_viewport(source,scale);
+            MenuWorldNativePacketInput input{source,generated_menu_world_vertex_catalog::entries,hologram_uniforms[n]};
+            input.fragment_offsets=material_fragment_offsets.at(slot);input.forward=material_forward_states.at(slot);
+            input.forward_blend=material_forward_blends.at(slot);input.texture_states=stage_sampler_states.at(slot);
+            input.images[0]=&hologram_target;input.texture_coordinates[0]=MenuWorldTextureCoordinates::pixel;
+            for(unsigned stage=1;stage<4;++stage)if(raw.images[stage]->source_image)input.images[stage]=&raw.images[stage]->source_shape;
+            input.sampler_limits={hologram_device.maximum_lod_bias,hologram_device.maximum_anisotropy,
+                hologram_device.anisotropy_enabled,hologram_device.custom_border_colors_enabled};
+            input.raster=group.raster;
+            for(auto &region:input.raster.regions)for(unsigned edge=0;edge<4;++edge) {
+                const auto value=region[edge]*(edge%2?scale.y:scale.x);
+                region[edge]=std::int32_t(edge<2?std::floor(value):std::ceil(value));
+            }
+            input.clip_range=group.clip_range;input.fog_parameters=group.fog_parameters;
+            input.surface_size={float(extent.width),float(extent.height)};
+            input.demote_to_helper_enabled=hologram_device.demote_to_helper_enabled;input.material_set=hologram_sets[n];
+            auto packet=menu_world_native_packet(input);
+            if(temporal_upscaler) {const auto jitter=temporal_upscaler->jitter();packet.raster_offset={jitter.x,jitter.y};}
+            if(hologram_depth_diagnostic) {
+                const auto native_positions=pstencil::complete_world_positions(packet.source);
+                const std::array selected_section{geometry.section()};
+                // Immutable source vertex origins are an ordinal witness;
+                // no floating-point position search pairs these two paths.
+                const auto model=group.cache->load_model_sections(geometry.owner_datum(),true,0,5,selected_section);
+                std::vector<RenderModel::VertexOrigin> origins;
+                std::vector<Vec3> local;
+                for(std::size_t v=0;v<model.vertex_origins.size();++v) {
+                    const auto &origin=model.vertex_origins[v];
+                    if(origin.section==part.section && origin.part==part.part) {
+                        origins.push_back(origin);local.push_back(model.mesh.vertices.at(v).source_local_position);
+                    }
+                }
+                const auto words=[&](const auto &vectors) {
+                    hologram_depth_report<<'[';bool first=true;
+                    for(const auto &vector:vectors) {
+                        if(!first)hologram_depth_report<<',';first=false;hologram_depth_report<<'[';
+                        unsigned lane=0;for(const auto value:vector) {
+                            if(lane++)hologram_depth_report<<',';
+                            hologram_depth_report<<std::bit_cast<std::uint32_t>(value);
+                        }hologram_depth_report<<']';
+                    }hologram_depth_report<<']';
+                };
+                for(unsigned d=0;d<group.parts.size();++d) {
+                    const auto &body=group.parts[d];
+                    if(body.layer==21 || body.object!=part.object || body.section!=part.section || body.part!=part.part)continue;
+                    const auto &actual=hologram_views[raw.view_index][raw.group_index].parts[d];
+                    if(!actual.body)throw FormatError("Hologram depth diagnostic lost its exact body draw");
+                    const auto &object=views[raw.view_index].objects[actual.body->observed_object];
+                    if(!object.deferred_skins.empty())throw FormatError("Hologram depth diagnostic cannot label deferred GPU skin inputs as completed WORLD vertices");
+                    std::vector<const Vertex*> vertices;
+                    std::vector<unsigned> source_indices;
+                    const auto* depth=actual.body->source_hologram_depth_owned;
+                    const auto uploaded=depth?depth->vertices():object.vertices;
+                    for(std::size_t v=0;v<uploaded.size();++v) {
+                        const auto& vertex=uploaded[v];
+                        if(vertex.material==actual.body->material && vertex.source_section==body.section && vertex.source_part==body.part) {
+                            vertices.push_back(&vertex);if(depth)source_indices.push_back(depth->source_vertices()[v]);
+                        }
+                    }
+                    if(depth) {
+                        const auto original_origins=origins;const auto original_local=local;
+                        origins.clear();local.clear();
+                        for(const auto index:source_indices) {
+                            const auto at=std::find_if(original_origins.begin(),original_origins.end(),
+                                [&](const auto& origin){return origin.vertex==index;});
+                            if(at==original_origins.end())throw FormatError("Hologram diagnostic lost its native primitive ordinal");
+                            const auto offset=std::size_t(at-original_origins.begin());
+                            origins.push_back(*at);local.push_back(original_local[offset]);
+                        }
+                    }
+                    if(vertices.size()!=origins.size() || vertices.size()!=actual.body->count)
+                        throw FormatError("Hologram depth diagnostic lost its complete source primitive occurrence bank");
+                    unsigned changed{};float maximum{};
+                    std::vector<std::array<float,3>> cpu,original;
+                    std::vector<std::array<unsigned,3>> source_triangles,native_triangles;
+                    for(std::size_t v=0;v<vertices.size();++v) {
+                        if(std::memcmp(&vertices[v]->source_local_position,&local[v],sizeof(Vec3)))
+                            throw FormatError("Hologram depth diagnostic source vertex ordinal changed its local input");
+                        const auto a=vertices[v]->position,b=native_positions.at(origins[v].vertex);
+                        changed+=std::memcmp(&a,&b,sizeof(Vec3))!=0;
+                        maximum=std::max({maximum,std::abs(a.x-b.x),std::abs(a.y-b.y),std::abs(a.z-b.z)});
+                        cpu.push_back({a.x,a.y,a.z});original.push_back({b.x,b.y,b.z});
+                        if(v%3==0)source_triangles.push_back({origins[v].vertex,origins.at(v+1).vertex,origins.at(v+2).vertex});
+                    }
+                    auto whole=packet.source.draw();whole.range.reset();
+                    for(std::size_t triangle=0;triangle<whole.triangle_count();++triangle) {
+                        const auto t=whole.triangle(triangle);
+                        if(t[0]!=t[1] && t[0]!=t[2] && t[1]!=t[2])native_triangles.push_back({t[0],t[1],t[2]});
+                    }
+                    const auto alias=actual.body->object_alias==std::numeric_limits<std::size_t>::max()?
+                        std::numeric_limits<std::size_t>::max():
+                        object_aliases.at(actual.body->object_alias).at({actual.material,actual.body->lightmap});
+                    const auto base_pipeline=alias!=std::numeric_limits<std::size_t>::max()?
+                        object_native_pipeline_indices.at(alias):view_native_pipeline_indices[raw.view_index].at(actual.material);
+                    const auto body_pipeline=depth?source_depth_pipeline(base_pipeline,true):base_pipeline;
+                    const auto &body_raster=forward_pipelines.at(body_pipeline).state;
+                    const auto body_uniform=alias!=std::numeric_limits<std::size_t>::max()?
+                        object_uniforms.at(alias):view_material_uniform(views[raw.view_index],actual.material);
+                    const auto raster=[&](const ForwardRasterState &state,unsigned blend) {
+                        hologram_depth_report<<"{\"depth_enable\":"<<state.depth_enable
+                            <<",\"depth_write\":"<<state.depth_write<<",\"depth_function\":"<<state.depth_function
+                            <<",\"cull\":"<<state.cull<<",\"blend\":"<<blend<<",\"color_write\":"<<state.color_write
+                            <<",\"alpha_test\":"<<state.alpha_test<<",\"alpha_function\":"<<state.alpha_function
+                            <<",\"alpha_reference\":"<<state.alpha_reference<<'}';
+                    };
+                    if(hologram_depth_case)hologram_depth_report<<',';hologram_depth_case=true;
+                    hologram_depth_report<<"{\"owner\":"<<body.object<<",\"section\":"<<body.section
+                        <<",\"part\":"<<body.part<<",\"body_descriptor\":"<<d<<",\"overlay_descriptor\":"<<raw.descriptor
+                        <<",\"body_layer\":"<<body.layer<<",\"body_shader\":"<<body.pass->shader()
+                        <<",\"overlay_shader\":"<<part.pass->shader()<<",\"vertex_class\":"<<part.vertex_class
+                        <<",\"body_source_depth_owned\":"<<actual.body->source_depth_owned
+                        <<",\"body_native_model_depth_owned\":"<<bool(actual.body->source_model_depth_owned)
+                        <<",\"body_hologram_depth_owned\":"<<bool(depth)
+                        <<",\"body_material_slot\":"<<actual.material<<",\"body_pipeline_index\":"<<body_pipeline
+                        <<",\"vertices\":"<<vertices.size()<<",\"changed_world_positions\":"<<changed
+                        <<",\"maximum_world_delta\":"<<maximum<<",\"same_triangle_order\":"<<(source_triangles==native_triangles)
+                        <<",\"body_raster\":";raster(body_raster,forward_pipelines.at(body_pipeline).blend);
+                    hologram_depth_report<<",\"overlay_raster\":";raster(packet.forward,packet.forward_blend);
+                    hologram_depth_report<<",\"overlay_depth_factor_offset_bits\":["
+                        <<std::bit_cast<std::uint32_t>(packet.raster.depth_factor_offset[0])<<','
+                        <<std::bit_cast<std::uint32_t>(packet.raster.depth_factor_offset[1])
+                        <<"],\"body_source_camera_control\":[";
+                    for(unsigned j=0;j<4;++j) {if(j)hologram_depth_report<<',';hologram_depth_report<<body_uniform.source_camera_control[j];}
+                    hologram_depth_report<<"],\"body_source_camera_world_bits\":";words(body_uniform.source_camera_world);
+                    hologram_depth_report<<",\"body_position_bits\":";words(cpu);
+                    hologram_depth_report<<",\"native_position_bits_in_body_order\":";words(original);
+                    hologram_depth_report<<",\"body_source_triangles\":[";
+                    for(std::size_t t=0;t<source_triangles.size();++t) {
+                        if(t)hologram_depth_report<<',';const auto a=source_triangles[t];
+                        hologram_depth_report<<'['<<a[0]<<','<<a[1]<<','<<a[2]<<']';
+                    }
+                    hologram_depth_report<<"],\"native_source_triangles\":[";
+                    for(std::size_t t=0;t<native_triangles.size();++t) {
+                        if(t)hologram_depth_report<<',';const auto a=native_triangles[t];
+                        hologram_depth_report<<'['<<a[0]<<','<<a[1]<<','<<a[2]<<']';
+                    }
+                    hologram_depth_report<<"],\"native_constants_bits\":";words(packet.source.constants());
+                    hologram_depth_report<<'}';
+                    if(hologram_depth_report.tellp()>8*1024*1024)
+                        throw FormatError("Hologram depth diagnostic exceeded its bounded frame report");
+                }
+            }
+            hologram_packets.push_back(std::move(packet));
+        }
+        if(!hologram_native && !hologram_packets.empty())hologram_native=std::make_unique<MenuWorldNativeDraw>(
+            MenuWorldNativeDrawContext{device,physical,continuation_pass,texture_layout,hologram_device.instance_api_version,
+                hologram_device.geometry_shader_enabled,hologram_device.geometry_point_size_enabled,
+                hologram_device.depth_clamp_enabled,hologram_device.demote_to_helper_enabled,shader_directory});
+        if(hologram_native)hologram_native->prepare(hologram_packets);
+#else
+        for(const auto &view:views)if(!view.hologram_groups.empty())throw FormatError("hologram group requires native raw shader support");
+#endif
         struct EffectLightRecord {unsigned material{},first{},count{},binding{};};
         std::vector<std::vector<EffectLightRecord>> light_views(views.size());
         std::size_t pstencil_specular_count{};
@@ -7078,6 +7551,9 @@ struct Renderer::Impl {
                     for(unsigned i=0;i<renderer.camouflage_copies.size();++i)if(renderer.camouflage_copy_pending[i]) {
                         renderer.camouflage_copies[i]->discard_unsubmitted(renderer.command);renderer.camouflage_copy_pending[i]=false;
                     }
+                    for(auto &copy:renderer.hologram_copies)if(copy.pending) {
+                        copy.image->discard_unsubmitted(renderer.command);copy.pending=false;
+                    }
                     if(renderer.camouflage_alias_pending) {
                         renderer.camouflage_alias->discard_unsubmitted(renderer.command);renderer.camouflage_alias_pending=false;
                     }
@@ -7087,6 +7563,22 @@ struct Renderer::Impl {
                 }catch(...){std::terminate();}
             }
         } weather_submission{*this};
+        //1DE30/1DC20 allocates target18 during a cinematic even when25800
+        // has no camera object and requests no scene/copy.19510 still selects
+        // that allocation. Admit its real image layout and fence lifetime;
+        // its unwritten contents do not establish a completed camera copy.
+        if(texture_camera && !camera_scene)if(const auto selected=texture_camera->source->targets().selected()) {
+            const auto slot=*selected==18?0u:1u;
+            if(!texture_camera_produced[slot]) {
+                if(!texture_camera_copies[slot])throw FormatError("Unwritten texture-camera allocation lost its native owner");
+                check(vkResetFences(device,1,&fence),"reset unwritten texture-camera allocation fence");
+                weather_submission.fence_reset=true;
+                const auto image=texture_camera_copies[slot]->record_unwritten_access({device,command,fence,queue_family,true,true});
+                if(!texture_camera_pending[slot])texture_camera_before_produced[slot]=texture_camera_produced[slot];
+                texture_camera_pending[slot]=true;texture_camera_unwritten_ready[slot]=true;
+                observe_texture_camera_image(image);
+            }
+        }
         if(lens_queries)lens_queries->reset(command);
         if(temporal_upscaler) {
             if(temporal_graphics_mode!=display.graphics_mode)temporal_upscaler->reset_history();
@@ -7204,7 +7696,8 @@ struct Renderer::Impl {
                 if(size!=path_tracing_camera.size())throw FormatError("Path Tracing camera ABI differs from112 bytes");
                 std::memcpy(path_tracing_camera.data(),data,size);
             }
-            if(!bsp_capture.view || !bsp_capture.view->completed_bsp_draw_observer)return;
+            if(!bsp_capture.view || (!bsp_capture.view->completed_bsp_draw_observer &&
+                !bsp_capture.view->completed_geometry_draw_observer))return;
             if(size!=bsp_capture.push.size())throw FormatError("BSP recorded camera push ABI differs from112 bytes");
             std::memcpy(bsp_capture.push.data(),data,size);bsp_capture.camera_known=true;
         };
@@ -7246,10 +7739,15 @@ struct Renderer::Impl {
         std::size_t active_material_view=std::numeric_limits<std::size_t>::max();
         std::optional<std::size_t> path_sky_capture;
         bool sky_raster=false,first_person_draw=false;
+        const SourceHologramGroupPart* hologram_depth_part{};
+        const auto is_hologram_depth=[&](const Draw* draw) {
+            return draw && draw->source_hologram_depth_owned && hologram_depth_part &&
+                !sky_raster && !first_person_draw && active_material_view<views.size();
+        };
         const auto is_source_material=[&](unsigned material,const Draw* draw) {
-            return draw && draw->source_depth_owned && !sky_raster && !first_person_draw &&
+            return is_hologram_depth(draw) || (draw && draw->source_depth_owned && !sky_raster && !first_person_draw &&
                 active_material_view<views.size() && views[active_material_view].source_world_depth &&
-                material<source_depth_masks[active_material_view].size() && source_depth_masks[active_material_view][material];
+                material<source_depth_masks[active_material_view].size() && source_depth_masks[active_material_view][material]);
         };
         bool path_tracing_material=false;
         const auto draw_material_geometry=[&](const Draw& draw) {
@@ -7316,7 +7814,12 @@ struct Renderer::Impl {
                 object_aliases.at(draw->object_alias).at({m,draw->lightmap}):std::numeric_limits<std::size_t>::max();
             const auto sky_alias=path_sky_capture?path_sky_aliases[*path_sky_capture].indices.at({m,draw?draw->lightmap:0}):0;
             const bool source=is_source_material(m,draw);
-            const auto index=source && draw->source_model_depth_owned && owner!=std::numeric_limits<std::size_t>::max()?
+            const bool hologram=is_hologram_depth(draw);
+            if(hologram && source_depth_bias!=0 && source_output_state[0]!=0)
+                throw FormatError("hologram native depth caller has an unqualified polygon offset");
+            const auto index=hologram?source_depth_pipeline(owner!=std::numeric_limits<std::size_t>::max()?
+                object_native_pipeline_indices.at(owner):view_native_pipeline_indices[active_material_view].at(m),true):
+                source && draw->source_model_depth_owned && owner!=std::numeric_limits<std::size_t>::max()?
                 source_depth_pipeline(object_native_pipeline_indices.at(owner),true):source?source_depth_pipelines[active_material_view].at(m):
                 path_sky_capture?path_sky_aliases[*path_sky_capture].pipelines[sky_alias]:
                 owner!=std::numeric_limits<std::size_t>::max()?object_native_pipeline_indices.at(owner):
@@ -7329,8 +7832,31 @@ struct Renderer::Impl {
                 (draw && (draw->source_section!=0xffffffffu || draw->source_part!=0xffffffffu));
             if(sky_raster && authored_sky && (native_world_kernel_indices[m]==~0u ||
                index==~0u || forward_pipelines.at(index).native_kernel==~0u))
-                throw FormatError("Sky material has no exact native Vulkan kernel");
-            if(source) {
+                throw FormatError("Sky material has no exact native Vulkan kernel: shader="+
+                    std::to_string(source_material_identities.at(m)[0])+" lod="+
+                    std::to_string(source_material_identities.at(m)[1])+" layer="+
+                    (source_material_layers.at(m)?std::to_string(*source_material_layers.at(m)):"none")+
+                    " material="+std::to_string(m));
+            if(hologram) {
+                if(!ordinary_push_valid || !views[active_material_view].full_surface)
+                    throw FormatError("hologram native depth lost its actual ordinary full-surface camera");
+                const auto& depth=*draw->source_hologram_depth_owned;
+                const auto& group=depth.group();
+                const SourceBspDrawKey key{draw->material,draw->lightmap,draw->cluster,draw->source_section,draw->source_part};
+                const auto uniform=owner!=std::numeric_limits<std::size_t>::max()?object_uniforms.at(owner):
+                    view_material_uniform(views[active_material_view],m);
+                const auto& bank=owner!=std::numeric_limits<std::size_t>::max() && object_vertex_banks.at(owner)?
+                    *object_vertex_banks.at(owner):vertex_bank_uniforms.at(m);
+                const auto vector=[](glm::vec4 value){return ShaderVector{value.x,value.y,value.z,value.w};};
+                depth.validate_draw(group,*hologram_depth_part,key,draw->count,*source_depth_constructor_materials.at(m),
+                    uniform,bank,vector(ordinary_push.eye),vector(ordinary_push.position),vector(ordinary_push.viewport),
+                    forward_pipelines.at(index).state,forward_pipelines.at(index).blend,forward_pipelines.at(index).pstencil_mask);
+                vkCmdPushConstants(command,source_world_depth_layout,VK_SHADER_STAGE_VERTEX_BIT,0,112,&ordinary_push);
+                capture_push(&ordinary_push,112);
+                const auto jitter=temporal_upscaler?temporal_upscaler->jitter():glm::vec2{};
+                const ShaderVector raster{group.clip_range[2],group.clip_range[3],jitter.x,jitter.y};
+                vkCmdPushConstants(command,source_world_depth_layout,VK_SHADER_STAGE_FRAGMENT_BIT,112,16,raster.data());
+            } else if(source) {
                 const auto& view=views[active_material_view];
                 const auto& depth=*view.source_world_depth;
                 const auto& use=*view.source_world_depth_targets;
@@ -7349,7 +7875,8 @@ struct Renderer::Impl {
                 const auto jitter=temporal_upscaler?temporal_upscaler->jitter():glm::vec2{};
                 const ShaderVector depth_raster{state.clip_range[2],state.clip_range[3],jitter.x,jitter.y};
                 vkCmdPushConstants(command,source_world_depth_layout,VK_SHADER_STAGE_FRAGMENT_BIT,112,16,depth_raster.data());
-            } else if(active_material_view<views.size() && views[active_material_view].source_world_depth) {
+            } else if(active_material_view<views.size() && (views[active_material_view].source_world_depth ||
+                      !views[active_material_view].hologram_groups.empty())) {
                 // Raw source draws use a128-byte layout. Restore the actual
                 // ordinary112-byte camera before a body/sky/FP continuation.
                 if(!ordinary_push_valid)throw FormatError("ordinary continuation lost its camera owner");
@@ -7380,7 +7907,14 @@ struct Renderer::Impl {
             return !source_policy || !layer || source_render_layer_enabled(*source_policy,*layer);
         };
         std::vector<std::uint32_t> visible_clusters;
+        bool hologram_body_scope=false;
         auto draw_visible=[&](const Draw &draw) {
+            if(!hologram_body_scope && active_material_view<views.size()) {
+                const auto &view=views[active_material_view];
+                if(draw.observed_object<view.objects.size())if(const auto owner=view.objects[draw.observed_object].source_object)
+                    for(const auto &group:view.hologram_groups)
+                        if(std::ranges::find(group.owners,*owner)!=group.owners.end())return false;
+            }
             if(bsp_admission)return bsp_admission->geometry_visible(draw.cluster);
             return !visibility_bank || visibility_bank->geometry_visible(draw.cluster,visible_clusters);
         };
@@ -7431,7 +7965,8 @@ struct Renderer::Impl {
                 path_tracing_camera.size(),path_tracing_camera.data());
         };
         std::uint64_t generic_geometry_serial{};
-        const auto emit_bsp_draw=[&](const Draw& draw,unsigned material,VkBuffer ordinary,RendererBspDrawPhase phase) {
+        const auto emit_bsp_draw=[&](const Draw& draw,unsigned material,VkBuffer ordinary,RendererBspDrawPhase phase,
+            SourceHologramGroupSubmission *hologram_event=nullptr) {
             const auto [handle,index,blend_constants]=material_pipeline(material,&draw);
             const auto [descriptor,dynamic_offset]=bind_material(draw,material);
             const auto buffer=bind_draw_vertices(draw,ordinary);
@@ -7525,15 +8060,24 @@ struct Renderer::Impl {
                     source_material_identities.at(material),material,draw.material,observed_handle(handle),
                     observed_handle(descriptor),observed_handle(buffer),draw.first,draw.count,
                     draw.object_alias!=std::numeric_limits<std::size_t>::max()});
+            if(hologram_event) {
+                hologram_event->pipeline=observed_handle(handle);hologram_event->descriptor_set=observed_handle(descriptor);
+                hologram_event->index_count=draw.count;
+            }
         };
         const auto texture_mapping_overlay=[&](unsigned material) {
             return source_material_layers[material]==2;
+        };
+        const auto deferred_water_edge=[&](unsigned material) {
+            return source_water_alpha_order && active_material_view<views.size() &&
+                !sky_raster && water_edge_materials[material];
         };
         auto draw_dynamic = [&](const std::vector<Draw>& list,int phase=-1) {
             vkCmdBindVertexBuffers(command, 0, 1, &debug_buffer, &offset);
             for (const auto &draw:list) if(draw.count && draw_visible(draw) && layer_enabled(draw.material) && !water_materials[draw.material] &&
                 projected_decal_layers[draw.material]==~0u &&
                 !texture_mapping_overlay(draw.material) &&
+                !deferred_water_edge(draw.material) &&
                 (phase<0 || after_fog[draw.material]==bool(phase))) {
                 emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::scene_base);
             }
@@ -7994,7 +8538,8 @@ struct Renderer::Impl {
             {vkCmdSetViewport(command,0,1,&full);capture_viewport(full);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
             vkCmdBindPipeline(command, VK_PIPELINE_BIND_POINT_GRAPHICS, overlay);
             if (effects.letterbox > 0) {
-                const std::array<float, 8> values{0,0,0,0,float(extent.width),float(extent.height),effects.letterbox * .125f,effects.letterbox};
+                const auto values=cinematic_letterbox_program(effects.letterbox,
+                    extent.width,extent.height,campaign_letterbox_aspect);
                 vkCmdPushConstants(command, overlay_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(values), values.data());
                 vkCmdDraw(command, 3, 1, 0, 0);
             }
@@ -8066,17 +8611,8 @@ struct Renderer::Impl {
                     const float angle=*v.camera.projection_vertical_angle;
                     if(!std::isfinite(angle) || angle<=0 || angle>=3.14159265358979323846f)return;
                 } else if(v.camera.field_of_view<=0 || v.camera.field_of_view>=180)return;
-                const float sx=v.full_surface?float(extent.width)/640.f:scale;
-                const float sy=v.full_surface?float(extent.height)/480.f:scale;
-                VkViewport model_view{(v.full_surface?0.f:x)+v.left*sx,(v.full_surface?0.f:y)+v.top*sy,v.width*sx,v.height*sy,0,1};
-                if(v.full_surface) {
-                    const auto physical=full_surface_viewport({v.left,v.top,v.width,v.height},extent.width,extent.height);
-                    model_view={physical.left,physical.top,physical.width,physical.height,0,1};
-                }
-                if(v.source_ui_viewport) {
-                    const auto &r=*v.source_ui_viewport;
-                    model_view={float(r[1]),float(r[0]),float(r[3]-r[1]),float(r[2]-r[0]),0,1};
-                }
+                const auto model_pixels=model_viewport(v,extent);
+                VkViewport model_view{model_pixels.left,model_pixels.top,model_pixels.width,model_pixels.height,0,1};
                 const auto left=std::max(0,int(model_view.x)),top=std::max(0,int(model_view.y));
                 const auto right=std::min(int(extent.width),int(model_view.x+model_view.width));
                 const auto bottom=std::min(int(extent.height),int(model_view.y+model_view.height));
@@ -8227,6 +8763,86 @@ struct Renderer::Impl {
                 };
                 const auto draw_transparent=[&](unsigned phase) {
                     for(const auto &step:transparent_views[i][phase]) {
+                        if(step.hologram_source) {
+#ifdef HALO2_MENU_WORLD_NATIVE_AVAILABLE
+                            if(phase)throw FormatError("hologram group entered a foreground drain");
+                            const auto g=std::size_t(step.hologram_source-v.hologram_groups.data());
+                            if(g>=v.hologram_groups.size())throw FormatError("hologram drain lost its prepared group owner");
+                            const auto &group=v.hologram_groups[g];const auto &prepared=hologram_views[i].at(g);
+                            std::vector<SourceHologramGroupSubmission> ledger;
+                            const auto observe=[&](SourceHologramGroupSubmission event) {
+                                ledger.push_back(event);
+                                hologram_ledgers[i].push_back(event);
+                                if(v.completed_hologram_submission_observer)v.completed_hologram_submission_observer(event);
+                            };
+                            if(!can_capture)throw FormatError("hologram target19 requires the actual scene transfer source");
+                            vkCmdEndRenderPass(command);
+                            if(!weather_submission.fence_reset) {
+                                check(vkResetFences(device,1,&fence),"reset hologram frame fence");weather_submission.fence_reset=true;
+                            }
+                            auto &copy=hologram_copies.at(prepared.copy);
+                            copy.image->record({device,command,images[index],format,extent,VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                scene_layout,VK_SAMPLE_COUNT_1_BIT,1,1,queue_family,fence,true,true});copy.pending=true;
+                            observe({SourceHologramGroupSubmission::Kind::scene_copy,unsigned(g)});
+                            auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                            const auto restore=[&] {
+                                set_temporal_viewport(model_view);vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);
+                                push_ordinary(model_uniform);
+                            };
+                            vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);restore();
+                            bool accumulation=false;
+                            hologram_body_scope=true;
+                            struct BodyScope {bool &active;~BodyScope(){active=false;}} body_scope{hologram_body_scope};
+                            for(unsigned d=0;d<group.parts.size();++d) {
+                                const auto &part=group.parts[d];const auto &bound=prepared.parts.at(d);
+                                const bool next=part.layer==1;
+                                if(next!=accumulation) {
+                                    vkCmdEndRenderPass(command);
+                                    if(next) {
+                                        if(!world_accumulation_pass || !accumulation_framebuffer)
+                                            throw FormatError("hologram body layer1 has no actual accumulation target");
+                                        auto target=resumed;target.renderPass=world_accumulation_pass;
+                                        target.framebuffer=accumulation_framebuffer;
+                                        VkClearValue zero{};target.clearValueCount=1;target.pClearValues=&zero;
+                                        vkCmdBeginRenderPass(command,&target,VK_SUBPASS_CONTENTS_INLINE);capture_target(target);
+                                    } else {vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);capture_target(resumed);}
+                                    accumulation=next;restore();
+                                }
+                                SourceHologramGroupSubmission event{SourceHologramGroupSubmission::Kind::part,
+                                    unsigned(g),d,part.layer,0,0,part.object,part.pass->shader()};
+                                if(part.layer!=21) {
+                                    hologram_depth_part=&part;
+                                    emit_bsp_draw(*bound.body,bound.material,debug_buffer,
+                                        part.layer==1?RendererBspDrawPhase::accumulation_base:RendererBspDrawPhase::overlay_after,&event);
+                                    hologram_depth_part=nullptr;
+                                    observe(event);continue;
+                                }
+                                const VkViewport full{0,0,float(extent.width),float(extent.height),0,1};
+                                vkCmdSetViewport(command,0,1,&full);capture_viewport(full);
+                                vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);
+                                if(bound.raw.empty())observe(event);
+                                for(unsigned r=0;r<bound.raw.size();++r) {
+                                    event.range=r;
+                                    hologram_native->record(command,bound.raw[r],[&](const auto &actual) {
+                                        event.pipeline=observed_handle(actual.pipeline);event.descriptor_set=observed_handle(actual.material);
+                                        event.indexed=actual.indexed;event.index_buffer=observed_handle(actual.index_buffer);
+                                        event.index_offset=actual.index_offset;event.first_index=actual.first_index;
+                                        event.vertex_offset=actual.vertex_offset;
+                                        event.index_count=actual.index_count;observe(event);
+                                    });
+                                    ++frame_timing.world_native_record_calls;
+                                }
+                            }
+                            if(accumulation)throw FormatError("hologram group did not restore its scene target after layer1");
+                            // The ledger is assembled only after the actual copy and
+                            // draw calls above. Validate this sorted group's range
+                            // without imposing increasing IDs on the shared drain.
+                            for(auto &event:ledger)event.group=0;
+                            validate_source_hologram_group_submissions(std::span{&group,1},ledger);
+                            restore();
+#endif
+                            continue;
+                        }
                         if(step.contrail_source) {
 #if HALO2_SOURCE_CONTRAILS_AVAILABLE
                             const auto index=std::size_t(step.contrail_source-v.contrails.data());
@@ -8553,6 +9169,42 @@ struct Renderer::Impl {
                         emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::planar_fog);
                     }
                 }
+                const auto clear_water_alpha=[&] {
+                    {set_temporal_viewport(model_view);}
+                    {vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
+                    capture_unknown();
+                    vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,source_water_alpha_clear_pipeline);
+                    const std::array<float,8> clear{0,0,0,0,float(extent.width),float(extent.height),0,0};
+                    vkCmdPushConstants(command,overlay_layout,VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(clear),clear.data());
+                    vkCmdDraw(command,3,1,0,0);
+                    {push_ordinary(model_uniform);}
+                };
+                bool infinite_water_alpha_clear=false;
+                if(source_water_alpha_order) {
+                    bool edge=false,infinite=false;
+                    for(const auto& draw:view_draws[i])if(draw.count && draw_visible(draw) && layer_enabled(draw.material)) {
+                        edge|=water_edge_materials[draw.material];
+                        if(water_materials[draw.material] && material_uniforms[draw.material].flags[2]==8) {
+                            const int definition=water_material_definitions[draw.material];
+                            if(definition<0 || std::size_t(definition)>=v.water.size())
+                                throw FormatError("Native water alpha phase lost its authored scenario record");
+                            infinite|=v.water[definition].infinite;
+                        }
+                    }
+                    if(edge) {
+                        // TU1.5 2C0B1..2C112: fog, layer16, then layer6.
+                        // 3BA80 returns1 only when collection+8 lacks bit6;
+                        // 3C3B0 then clears alpha itself. With layer6 present,
+                        // 44370 clears it before the authored edge mask instead.
+                        // This is the ordinary main-view phase, before the late
+                        // first-person clear-override bracket.
+                        clear_water_alpha();
+                        vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
+                        for(const auto& draw:view_draws[i])if(draw.count && draw_visible(draw) &&
+                            layer_enabled(draw.material) && water_edge_materials[draw.material])
+                            emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::overlay_after);
+                    } else infinite_water_alpha_clear=infinite;
+                }
                 if(water_copy_pass && !v.water.empty()) {
                     // 3BD00 renders sky alone into 21; 3BEA0/352E0 preserve
                     // the current viewport's pre-water color in target 22.
@@ -8624,6 +9276,9 @@ struct Renderer::Impl {
                     {set_temporal_viewport(model_view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
                     {push_ordinary(model_uniform);}
                 }
+                // The no-layer6 clear is3C3B0:3C4EF..3C505, after the
+                // optional scene/reflection copies and before the water draw.
+                if(infinite_water_alpha_clear)clear_water_alpha();
                 vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                 for(const auto &draw:view_draws[i])if(draw_visible(draw) && water_materials[draw.material]) {
                     if(v.water.empty())throw FormatError("water draw has no authored viewport state");
@@ -8644,6 +9299,7 @@ struct Renderer::Impl {
                 if(v.atmosphere)draw_dynamic(view_draws[i],1);
                 draw_overlays(view_draws[i],false,debug_buffer,true);
                 if(v.world_transparent || sorted_world_effects[i])draw_transparent(0);
+                validate_source_hologram_group_submissions(v.hologram_groups,hologram_ledgers[i]);
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                 const auto &particle_range=view_particle_ranges[i];
                 if(!v.world_transparent && !sorted_world_effects[i] && particle_range.world_count)
@@ -8902,18 +9558,7 @@ struct Renderer::Impl {
                                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT,scene_layout,VK_SAMPLE_COUNT_1_BIT,1,1,queue_family,fence,true,true});
                             if(!texture_camera_pending[slot])texture_camera_before_produced[slot]=texture_camera_produced[slot];
                             texture_camera_pending[slot]=texture_camera_produced[slot]=true;
-                            if(capture_bsp_draw_bindings) {
-                                RendererObservedImageBinding facts;facts.image=observed_handle(image.image);facts.view=observed_handle(image.view);
-                                facts.width=image.extent.width;facts.height=image.extent.height;facts.layers=facts.mip_count=1;
-                                facts.format=image.format;facts.image_owner_known=true;observed_image_views[facts.view]=facts;
-                                // Enrich actual earlier descriptor-write records with newly
-                                // observed owner facts; this is not an invented write event.
-                                for(auto &[handle,descriptor]:observed_descriptors)for(auto &table:descriptor.images)for(auto &bound:table)
-                                    if(bound.view==facts.view) {
-                                        const auto sampler=bound.sampler;const auto layout=bound.layout;const auto present=bound.present;
-                                        bound=facts;bound.sampler=sampler;bound.layout=layout;bound.present=present;
-                                    }
-                            }
+                            observe_texture_camera_image(image);
                             if(texture_camera->copied)texture_camera->copied(target,
                                 observed_handle(image.image),observed_handle(image.view));
                             auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
@@ -9165,7 +9810,8 @@ struct Renderer::Impl {
             if(!submission)throw FormatError("cannot write live title haze submission trace");
         }
         measure(frame_timing.present_ms);
-        if(!verified_skin_vertices.empty() || !verified_ui_vertices.empty()) {
+        if(!verified_skin_vertices.empty() || !verified_ui_vertices.empty() ||
+           (verify_frame && vertex_count())) {
             check(vkWaitForFences(device,1,&fence,VK_TRUE,UINT64_MAX),"wait GPU model skin verification");
             void *mapped{};check(vkMapMemory(device,debug_memory,0,vertex_count()*sizeof(Vertex),0,&mapped),"map completed GPU model skins");
             struct ReadMapping {VkDevice device;VkDeviceMemory memory;~ReadMapping(){vkUnmapMemory(device,memory);}} read_mapping{device,debug_memory};
@@ -9176,6 +9822,30 @@ struct Renderer::Impl {
             for(std::size_t i=0;i<verified_ui_vertices.size();++i)
                 if(std::memcmp(actual+ui_first+i,&verified_ui_vertices[i],sizeof(Vertex)))
                     throw FormatError("GPU execution changed an unskinned UI vertex at destination "+std::to_string(ui_first+i));
+            if(verify_frame) {
+                // Read the same completed buffer bound for ordinary draws.
+                // Only actual deferred-skin destinations can differ from the
+                // independently rebuilt staging bank; CPU-skinned bodies are
+                // checked byte-for-byte even across frames sharing one tick.
+                std::vector<bool> deferred(dynamic.size());
+                for(const auto& record:skin_plan.records()) {
+                    if(record.destination>=deferred.size())
+                        throw FormatError("completed frame skin destination escapes its actual staging bank");
+                    deferred[record.destination]=true;
+                }
+                std::size_t verified{},excluded{};
+                std::uint64_t fingerprint=14695981039346656037ull;
+                for(std::size_t i=0;i<dynamic.size();++i) {
+                    if(deferred[i]) {++excluded;continue;}
+                    if(std::memcmp(actual+i,&dynamic[i],sizeof(Vertex)))
+                        throw FormatError("completed GPU frame upload differs from current unskinned staging bytes at destination "+std::to_string(i));
+                    for(const auto byte:std::as_bytes(std::span{actual+i,1}))
+                        fingerprint=(fingerprint^std::to_integer<unsigned char>(byte))*1099511628211ull;
+                    ++verified;
+                }
+                std::cout<<"Verified completed frame upload: vertices="<<dynamic.size()
+                    <<" deferred="<<excluded<<" verified="<<verified<<" fnv1a="<<fingerprint<<'\n';
+            }
             frame_timing.model_skin_gpu_verified_vertices=verified_skin_vertices.size();
         }
         if(frame_timing.model_skin_gpu_jobs && std::any_of(views.begin(),views.end(),
@@ -9241,6 +9911,12 @@ struct Renderer::Impl {
                 write(".depth-d24-low24.bin",bytes,depth_capture_size);
                 write(".stencil-u8.bin",bytes+depth_capture_size,stencil_capture_size);
                 std::cout<<"Captured D24S8 depth/stencil aspects ("<<extent.width<<'x'<<extent.height<<")\n";
+            }
+            if(hologram_depth_diagnostic && hologram_depth_case) {
+                hologram_depth_report<<"],\"completed_frame\":true,\"scope\":\"CPU upload inputs and exact fixed native position prefix; actual GPU depth is the separately completed D24 aspect capture\"}\n";
+                std::ofstream output(screenshot.string()+".hologram-depth.json");
+                if(!output || !(output<<hologram_depth_report.str()))
+                    throw FormatError("Failed writing bounded completed hologram depth inputs");
             }
             if(path_tracing_capture) {
                 // This receipt follows successful submission, the actual frame
@@ -9999,6 +10675,11 @@ void Renderer::campaign_cinematic_crossfade(const CinematicCrossfadeFrame &frame
     impl_->campaign_crossfade=frame;
 }
 bool Renderer::cinematic_crossfade_captured()const{return impl_->campaign_capture_completed;}
+void Renderer::campaign_cinematic_letterbox_aspect(std::optional<float> aspect) {
+    if(aspect && (!std::isfinite(*aspect) || !(*aspect>0)))
+        throw FormatError("Cinematic letterbox requires its positive authored observer aspect");
+    impl_->campaign_letterbox_aspect=aspect;
+}
 std::string Renderer::device_name() const { return impl_->gpu; }
 SourceWorldDeviceState Renderer::source_world_device_state() const { return impl_->source_world_device; }
 bool Renderer::prepare_world_targets() {

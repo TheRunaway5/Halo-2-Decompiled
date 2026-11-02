@@ -1,0 +1,38 @@
+{
+  "schema": "H2_RUST_SERVICE_REGISTRATION_CLOCK_NATIVE_INPUTS_V1",
+  "before_sha256": "7a610ba7faecf66d0960ed1adf002652e3c5b28414d5ca8a8cfe52cf370a3cf0",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json"
+  ],
+  "input_count": 4444,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final/halo2-test-ollrkdmb/native-source",
+  "copied_source_bytes": 167812132,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final/halo2-test-ollrkdmb",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "7a610ba7faecf66d0960ed1adf002652e3c5b28414d5ca8a8cfe52cf370a3cf0",
+  "changed": [],
+  "current_source_drift": [
+    "CMakeLists.txt",
+    "cmake/PhysicsLiveWorldTu15.cmake",
+    "include/halo2/native_tu15_physics_frame_residuals.hpp",
+    "include/halo2/native_tu15_world_integration.hpp",
+    "src/gameplay/multiplayer/multiplayer.cpp",
+    "src/physics/native_tu15_collision_component.cpp",
+    "src/physics/native_tu15_world_integration_residuals.cpp",
+    "src/physics/physics_live_world_tu15.cpp"
+  ]
+}

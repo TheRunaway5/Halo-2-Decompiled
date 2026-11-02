@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/iteration-3",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "qos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/http.rs"
+  ],
+  "source_files": 118,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-qos/halo2-test-akrrg_4d/cargo/release/halo2-matchmaking-service",
+    "sha256": "f8e6c173c127b42fd7a93b3b143e179177fa45d2712e4fa56d997cee1472c6ca",
+    "bytes": 9472672,
+    "retained": false
+  },
+  "qos": {
+    "checks": [
+      "real search upgrade requires a matchmaking grant and rejects duplicate live physical connections",
+      "actual WebSocket parser/native controls reject duplicate JSON, invented controls, oversized messages, binary and unmasked frames",
+      "real session replacement closes the old socket and its late detach cannot retire the replacement",
+      "native application heartbeat expires a silent socket while an answering upgraded connection survives beyond the HTTP30s deadline",
+      "actual physical socket echoes produce native relay measurements and a real authored Lab proposal with two owners and a transient guest",
+      "socket-backed search cancellation/revocation retains grant fencing and never advertises full room/gameplay readiness",
+      "real Rust restart cannot revive an old search WebSocket grant"
+    ],
+    "observed": {
+      "pings": 8,
+      "probes": 6
+    },
+    "scope": "Real modern relay-cycle socket IO on the authored Lab profile; no original XNet, rendered/played-world, real provider grant or delivery acceptance."
+  }
+}

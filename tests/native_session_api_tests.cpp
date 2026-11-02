@@ -1,0 +1,189 @@
+// Exact modern C++ Session API callers versus production Rust orchestration.
+// Both sides invoke the real Rust Session owner. Devices, workers, barriers and
+// exceptions are declared observations. No original Live/world/provider claim.
+#include "halo2/online_match_session.hpp"
+#include "halo2/custom_slayer.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
+#include <nlohmann/json.hpp>
+#include <openssl/evp.h>
+#include <bit>
+#include <exception>
+#include <iostream>
+#include <mutex>
+#include <stdexcept>
+using Json=nlohmann::json;
+using namespace halo2;
+namespace actual=halo2::online_protocol_bridge;
+namespace fixture {
+class OnlineMatchSession;
+void record(OnlineMatchSession &,const std::string &,Json=Json::object());
+void destroy_audio(OnlineMatchSession &,unsigned);
+std::string hex(std::span<const std::uint8_t> v){const char *digits="0123456789abcdef";std::string s;for(auto b:v){s+=digits[b>>4];s+=digits[b&15];}return s;}
+std::array<std::uint8_t,32> seed(unsigned p){std::array<std::uint8_t,32> r;r.fill(p+1);return r;}
+const std::array<std::string,16> &public_keys(){static const auto keys=[] {std::array<std::string,16> r;for(unsigned p=0;p<16;++p){auto s=seed(p);std::unique_ptr<EVP_PKEY,decltype(&EVP_PKEY_free)> key(EVP_PKEY_new_raw_private_key(EVP_PKEY_ED25519,nullptr,s.data(),s.size()),EVP_PKEY_free);std::array<std::uint8_t,32> pub;std::size_t n=pub.size();if(!key||EVP_PKEY_get_raw_public_key(key.get(),pub.data(),&n)!=1||n!=pub.size())throw std::runtime_error("fixture key derivation");r[p]=hex(pub);}return r;}();return keys;}
+actual::NativeSessionConfig config(const Json &v,unsigned self=0){actual::NativeSessionConfig c;auto &o=c.origin;o.input_valid=true;o.origin="http://127.0.0.1:4555";o.bearer=std::string(48,'A');o.loopback=true;o.url_parsed=true;o.url_normalized="http://127.0.0.1:4555/";o.url_scheme="http";o.url_host="127.0.0.1";o.url_path="/";c.room="01234567-89ab-cdef-0123-456789abcdef";c.self_peer=self;c.protocol=native_multiplayer_protocol;c.extension_floor=native_slayer_ruleset_parameter;c.team_present=true;c.team_mode=false;c.direct=true;c.peer_migration=true;const unsigned group=v.value("group",1u),n=v.value("nodes",4u);for(unsigned i=0;i<n;++i){actual::NativeSessionSeat p;p.slot=i;p.peer=i-i%group;p.guest=i%group!=0;p.team=-1;p.name="seat"+std::to_string(i);for(auto &b:p.identity)b=i;c.seats.push_back(std::move(p));}return c;}
+void text(actual::NativeSession &s,const Json &v){const auto str=v.dump();actual::NativeSessionResources resources;(void)actual::native_session_text(s,{reinterpret_cast<const std::uint8_t*>(str.data()),str.size()},resources);}
+void keys(actual::NativeSession &s,unsigned group,unsigned n,unsigned self){Json values=Json::array();for(unsigned i=0;i<n;++i)values.push_back(public_keys()[i-i%group]);text(s,{{"voice_auth",{{"version",1},{"seed",hex(seed(self))},{"keys",values}}}});}
+std::vector<std::uint8_t> bytes(const rust::Vec<std::uint8_t> &v){return {v.begin(),v.end()};}
+actual::NativeSessionAudio wire_audio(const GameVoiceFrame &f){actual::NativeSessionAudio r;r.source=f.source;r.sequence=f.sequence;r.radio=f.radio;r.left=f.gains.left;r.right=f.gains.right;r.generation=f.delivery_generation;for(auto b:f.opus)r.opus.push_back(b);if(f.origin_signature)for(auto b:*f.origin_signature)r.signature.push_back(std::to_integer<std::uint8_t>(b));return r;}
+Json frame_json(const actual::NativeSessionAudio &f){return {{"source",f.source},{"sequence",f.sequence},{"radio",f.radio},{"left_bits",std::bit_cast<std::uint32_t>(f.left)},{"right_bits",std::bit_cast<std::uint32_t>(f.right)},{"generation",f.generation},{"opus",bytes(f.opus)},{"signature",bytes(f.signature)}};}
+Json packet_json(const actual::NativeSessionPacket &p){return {{"peer",p.peer},{"epoch",p.epoch},{"generation",p.generation},{"bytes",bytes(p.bytes)}};}
+Json voice_json(const actual::NativeSessionVoice &p){return {{"peer",p.peer},{"preferences",p.preferences},{"enabled",p.enabled},{"muted",p.muted},{"frame",frame_json(p.audio)}};}
+const std::vector<std::uint8_t> &signed_audio(){static const auto packet=[] {auto c=config(Json::object(),1);auto s=actual::new_native_session(c);keys(*s,1,4,1);text(*s,{{"phase","running"},{"host",1}});GameVoiceFrame f;f.source=1;f.sequence=UINT32_MAX;f.radio=true;f.gains={0.5f,0.25f};f.opus={0,17,255};actual::native_session_voice(*s,0,wire_audio(f),true);auto p=actual::native_session_outgoing(*s);if(p.size()!=1)throw std::runtime_error("fixture signed voice");return bytes(p[0].bytes);}();return packet;}
+struct Mutex {OnlineMatchSession &s;bool held{};void lock();void unlock();};
+struct GameVoice {OnlineMatchSession &s;unsigned id;bool closed{};GameVoice(OnlineMatchSession &v,unsigned i):s(v),id(i){}~GameVoice(){destroy_audio(s,id);}std::uint64_t fence();bool ready(std::uint64_t)const;bool resume(std::uint64_t);void close();};
+struct Worker {OnlineMatchSession &s;bool stopped{},joined{};void request_stop();bool joinable()const;void join();};
+struct Controller {rust::Box<actual::NativeSession> state;OnlineMatchSession &s;};
+namespace bridge {
+using NativeSessionAudio=actual::NativeSessionAudio;using NativeSessionPacket=actual::NativeSessionPacket;
+void native_session_fence_audio(Controller &,std::uint64_t);void native_session_send(Controller &,unsigned,rust::Slice<const std::uint8_t>);
+rust::Vec<NativeSessionPacket> native_session_receive(Controller &);void native_session_voice(Controller &,unsigned,const NativeSessionAudio &,bool);
+void native_session_preferences(Controller &,unsigned,bool,std::uint16_t);rust::Vec<actual::NativeSessionVoice> native_session_voices(Controller &);
+void native_session_bind_audio(Controller &);void native_session_close_postgame(Controller &);
+}
+rust::Slice<const std::uint8_t> wire(std::span<const std::byte> p){return {reinterpret_cast<const std::uint8_t*>(p.data()),p.size()};}
+std::vector<std::byte> native_bytes(const rust::Vec<std::uint8_t> &);
+std::vector<std::byte> native_bytes(rust::Slice<const std::uint8_t>);
+GameVoiceFrame native_audio(const actual::NativeSessionAudio &);
+void require(bool v){if(!v)throw std::runtime_error("ONLINE match connection failed or ended. Search again.");}
+class OnlineMatchSession {
+public:
+    Json args,current,trace=Json::array();const std::exception *thrown{};const std::uint8_t *first_bank{};
+    unsigned output_peer=123,decoded{};std::vector<std::byte> output{std::byte{0xee},std::byte{0xdd}};
+    struct Impl {
+        OnlineMatchSession &s;Mutex mutex{s};Worker worker{s};std::shared_ptr<GameVoice> audio;
+        std::unique_ptr<Controller> controller;actual::NativeSessionView projection;actual::HostAgreementContext context;bool context_present{};
+        std::uint64_t audio_generation{};std::uint16_t voice_blocked{};
+        explicit Impl(OnlineMatchSession &v):s(v){}
+        void refresh(){record(s,"refresh");projection=actual::native_session_view(*controller->state);audio_generation=projection.audio_generation;voice_blocked=projection.voice_blocked;if(s.current.contains("sync"))projection.sync_audio=s.current["sync"].get<bool>();}
+        void fence_peer_generation(){record(s,"fence");if(s.current.value("barrier",false)&&context_present){actual::NativeSessionFence o;o.context=context;o.fenced=true;const auto e=actual::native_session_fence(*controller->state,o);refresh();if(e.audio_fence)fence_audio();}}
+#include "reference/native_session_api_private_before_rust_20261101.inc"
+    };
+    Impl impl;Impl *impl_=&impl;
+    explicit OnlineMatchSession(const Json &v):args(v),current(v),impl(*this){
+        auto c=config(v);impl.controller=std::make_unique<Controller>(Controller{actual::new_native_session(c),*this});const unsigned group=v.value("group",1u),n=v.value("nodes",4u),host=group;
+        keys(*impl.controller->state,group,n,0);const auto phase=v.value("phase",std::string("running"));
+        if(phase!="connecting"){
+            const auto str=Json{{"phase",phase=="loading"?"loading":"running"},{"host",host}}.dump();actual::NativeSessionResources r;const auto e=actual::native_session_text(*impl.controller->state,{reinterpret_cast<const std::uint8_t*>(str.data()),str.size()},r);require(e.initialize);impl.context=e.context;impl.context_present=true;
+        }
+        if(phase=="reviewing")text(*impl.controller->state,{{"postgame",std::string(0xdc78*2,'0')}});
+        if(phase=="failed")(void)actual::native_session_fail(*impl.controller->state,"declared failed phase");
+        const auto generation=v.value("generation",0ull);actual::native_session_fence_audio(*impl.controller->state,generation);
+        if(v.value("audio",true)){impl.audio=std::make_shared<GameVoice>(*this,1);actual::native_session_bind_audio(*impl.controller->state);}
+        impl.projection=actual::native_session_view(*impl.controller->state);impl.audio_generation=impl.projection.audio_generation;impl.voice_blocked=impl.projection.voice_blocked;if(v.contains("sync"))impl.projection.sync_audio=v["sync"].get<bool>();
+        for(unsigned i=0;i<v.value("incoming",2u);++i){std::vector<std::uint8_t> p={'H','2','N','2',std::uint8_t(native_multiplayer_protocol),std::uint8_t(native_multiplayer_protocol>>8),3,std::uint8_t(i)};(void)actual::native_session_datagram(*impl.controller->state,host,0,{p.data(),p.size()});}
+        std::vector<std::uint8_t> prefs={'H','2','N','2',std::uint8_t(native_multiplayer_protocol),std::uint8_t(native_multiplayer_protocol>>8),6,1,1,0x01,0x80};
+        (void)actual::native_session_datagram(*impl.controller->state,host,0,{prefs.data(),prefs.size()});
+        if(group==1){const auto &p=signed_audio();(void)actual::native_session_datagram(*impl.controller->state,1,0,{p.data(),p.size()});}
+        trace=Json::array();
+    }
+    void send(std::span<const std::byte>,unsigned);bool receive(std::vector<std::byte> &,unsigned &);
+    void voice(unsigned,const GameVoiceFrame &);void voice_preferences(unsigned,bool,std::uint16_t);
+    std::uint16_t voice_blocks()const;std::vector<MatchVoicePacket> voice_packets();void retain_voice(std::shared_ptr<GameVoice>);
+    std::shared_ptr<GameVoice> retained_voice()const{std::lock_guard lock(impl_->mutex);record(impl_->s,"pin");return impl_->audio;}
+    void close_postgame();
+};
+template<class Base>struct Tracked final:Base {
+    OnlineMatchSession &s;Tracked(OnlineMatchSession &v,const std::string &m):Base(m),s(v){s.thrown=this;}
+    Tracked(const Tracked &v):Base(v),s(v.s){s.thrown=this;}
+};
+void record(OnlineMatchSession &s,const std::string &event,Json data){
+    s.trace.push_back({{"event",event},{"locked",s.impl.mutex.held},{"audio_refs",s.impl.audio.use_count()},{"data",data}});
+    if(s.current.value("fail",std::string{})==event){const auto kind=s.current.value("exception",std::string("runtime"));const auto message=kind=="overflow"?std::string("Voice delivery generation exhausted"):std::string("declared native IO refusal ")+event;
+        if(kind=="overflow")throw Tracked<std::overflow_error>(s,message);if(kind=="logic")throw Tracked<std::logic_error>(s,message);throw Tracked<std::runtime_error>(s,message);}
+}
+void destroy_audio(OnlineMatchSession &s,unsigned id){s.trace.push_back({{"event","destroy_audio"},{"locked",s.impl.mutex.held},{"audio_refs",0},{"data",id}});}
+void Mutex::lock(){require(!held);record(s,"lock");held=true;}void Mutex::unlock(){require(held);record(s,"unlock");held=false;}
+std::uint64_t GameVoice::fence(){record(s,"device_fence",s.impl.audio_generation);return s.current.value("next_generation",UINT64_MAX-1);}
+bool GameVoice::ready(std::uint64_t g)const{record(s,"ready",g);return s.current.value("ready",true);}
+bool GameVoice::resume(std::uint64_t g){record(s,"resume",g);return s.current.value("resume",true);}
+void GameVoice::close(){record(s,"close_audio");closed=true;}
+void Worker::request_stop(){require(!s.impl.mutex.held);record(s,"stop");stopped=true;}
+bool Worker::joinable()const{return !joined&&s.current.value("joinable",true);}void Worker::join(){require(!s.impl.mutex.held);record(s,"join");joined=true;}
+inline OnlineMatchSession *active{};
+std::vector<std::byte> native_bytes(rust::Slice<const std::uint8_t> b){auto &s=*active;std::vector<std::uint8_t> data(b.begin(),b.end());record(s,"copy",{{"peer_already_written",s.output_peer},{"same_bank",b.data()==s.first_bank},{"bytes",data}});std::vector<std::byte> r;r.reserve(b.size());for(auto v:b)r.push_back(std::byte(v));return r;}
+std::vector<std::byte> native_bytes(const rust::Vec<std::uint8_t> &b){return native_bytes(rust::Slice<const std::uint8_t>{b.data(),b.size()});}
+GameVoiceFrame native_audio(const actual::NativeSessionAudio &f){auto &s=*active;++s.decoded;record(s,"decode_frame",{{"index",s.decoded},{"frame",frame_json(f)}});GameVoiceFrame r;r.source=f.source;r.sequence=f.sequence;r.radio=f.radio;r.gains={f.left,f.right};r.delivery_generation=f.generation;r.opus=bytes(f.opus);if(f.signature.size()==64){std::array<std::byte,64> sig;for(unsigned i=0;i<64;++i)sig[i]=std::byte(f.signature[i]);r.origin_signature=sig;}return r;}
+namespace bridge {
+void native_session_fence_audio(Controller &c,std::uint64_t g){record(c.s,"stamp",g);actual::native_session_fence_audio(*c.state,g);}
+void native_session_send(Controller &c,unsigned peer,rust::Slice<const std::uint8_t> p){std::vector<std::uint8_t> data(p.begin(),p.end());record(c.s,"send",{{"peer",peer},{"bytes",data}});actual::native_session_send(*c.state,peer,p);}
+rust::Vec<NativeSessionPacket> native_session_receive(Controller &c){record(c.s,"receive");rust::Vec<NativeSessionPacket> out;if(c.s.current.contains("direct_packets")){for(const auto &row:c.s.current["direct_packets"]){NativeSessionPacket p;p.peer=row.value("peer",256u);p.epoch=row.value("epoch",UINT32_MAX);p.generation=row.value("generation",UINT64_MAX);for(auto b:row.value("bytes",std::vector<std::uint8_t>{0,255,17}))p.bytes.push_back(b);out.push_back(std::move(p));}}else out=actual::native_session_receive(*c.state);c.s.first_bank=out.empty()?nullptr:out[0].bytes.data();Json rows=Json::array();for(const auto &p:out)rows.push_back(packet_json(p));record(c.s,"received_banks",rows);return out;}
+void native_session_voice(Controller &c,unsigned target,const NativeSessionAudio &f,bool ready){record(c.s,"voice",{{"target",target},{"ready",ready},{"frame",frame_json(f)}});actual::native_session_voice(*c.state,target,f,ready);}
+void native_session_preferences(Controller &c,unsigned target,bool enabled,std::uint16_t muted){record(c.s,"preferences",{{"target",target},{"enabled",enabled},{"muted",muted}});actual::native_session_preferences(*c.state,target,enabled,muted);}
+rust::Vec<actual::NativeSessionVoice> native_session_voices(Controller &c){record(c.s,"voices");return actual::native_session_voices(*c.state);}
+void native_session_bind_audio(Controller &c){record(c.s,"bind");actual::native_session_bind_audio(*c.state);}
+void native_session_close_postgame(Controller &c){record(c.s,"close_presence");actual::native_session_close_postgame(*c.state);}
+}
+#include "reference/native_session_api_stream_before_rust_20261101.inc"
+#include "reference/native_session_api_close_before_rust_20261101.inc"
+}
+class ApiIo final:public actual::NativeSessionApiIo {
+    fixture::OnlineMatchSession &s;
+public:
+    mutable std::shared_ptr<fixture::GameVoice> incoming_audio,closing_audio;
+    mutable std::unique_lock<fixture::Mutex> generation;
+    mutable std::vector<MatchVoicePacket> voices;
+    mutable std::exception_ptr failure;
+    const GameVoiceFrame *frame{};
+    explicit ApiIo(fixture::OnlineMatchSession &v):s(v),generation(s.impl.mutex,std::defer_lock){}
+    void held()const{fixture::require(generation.owns_lock());}
+    template<class F>decltype(auto) capture(F &&action)const{try{return action();}catch(...){if(!failure)failure=std::current_exception();throw;}}
+    template<class F>decltype(auto) invoke(F &&action)const{try{return action();}catch(...){if(failure&&!s.current.value("discard_native_exception",false))std::rethrow_exception(failure);throw;}}
+    void api_lock()const override{capture([&]{generation.lock();});}
+    void api_unlock()const override{capture([&]{held();generation.unlock();});}
+    void api_fence()const override{capture([&]{held();s.impl.fence_peer_generation();});}
+    void api_send(std::uint32_t peer,rust::Slice<const std::uint8_t> b)const override{capture([&]{held();fixture::bridge::native_session_send(*s.impl.controller,peer,b);});}
+    rust::Vec<actual::NativeSessionPacket> api_receive()const override{return capture([&]{held();return fixture::bridge::native_session_receive(*s.impl.controller);});}
+    void api_receive_peer(std::uint32_t peer)const override{capture([&]{held();s.output_peer=peer;});}
+    void api_receive_bytes(rust::Slice<const std::uint8_t> b)const override{capture([&]{held();s.output=fixture::native_bytes(b);});}
+    bool api_audio_present()const override{return bool(s.impl.audio);}
+    bool api_audio_resume_allowed()const override{return s.impl.projection.sync_audio;}
+    void api_audio_resume()const override{capture([&]{(void)s.impl.audio->resume(s.impl.audio_generation);});}
+    bool api_audio_ready()const override{return capture([&]{return s.impl.audio->ready(s.impl.audio_generation);});}
+    std::uint64_t api_audio_generation()const override{return s.impl.audio_generation;}
+    std::uint64_t api_audio_fence()const override{return capture([&]{return s.impl.audio->fence();});}
+    void api_apply_audio_fence(std::uint64_t g)const override{capture([&]{fixture::bridge::native_session_fence_audio(*s.impl.controller,g);s.impl.refresh();});}
+    void api_voice(std::uint32_t target,bool ready)const override{capture([&]{held();fixture::require(frame);fixture::bridge::native_session_voice(*s.impl.controller,target,fixture::wire_audio(*frame),ready);});}
+    void api_preferences(std::uint32_t target,bool enabled,std::uint16_t muted)const override{capture([&]{held();fixture::bridge::native_session_preferences(*s.impl.controller,target,enabled,muted);});}
+    void api_collect_voices()const override{capture([&]{held();std::vector<MatchVoicePacket> result;for(const auto &v:fixture::bridge::native_session_voices(*s.impl.controller))result.push_back({v.peer,v.preferences,v.enabled,v.muted,fixture::native_audio(v.audio)});voices=std::move(result);});}
+    actual::NativeApiAudioBinding api_audio_binding()const override{actual::NativeApiAudioBinding r;r.existing=bool(s.impl.audio);r.same=s.impl.audio==incoming_audio;return r;}
+    void api_install_audio()const override{capture([&]{held();s.impl.audio=std::move(incoming_audio);});}
+    void api_bind_audio()const override{capture([&]{held();fixture::bridge::native_session_bind_audio(*s.impl.controller);});}
+    void api_close_presence()const override{capture([&]{held();fixture::bridge::native_session_close_postgame(*s.impl.controller);s.impl.refresh();});}
+    bool api_pin_audio()const override{return capture([&]{fixture::require(!generation.owns_lock());std::lock_guard lock(s.impl.mutex);fixture::record(s,"pin");closing_audio=s.impl.audio;return bool(closing_audio);});}
+    void api_close_audio()const override{capture([&]{closing_audio->close();});}
+    void api_unpin_audio()const override{capture([&]{closing_audio.reset();});}
+    void api_stop_worker()const override{capture([&]{s.impl.worker.request_stop();});}
+    bool api_worker_joinable()const override{return s.impl.worker.joinable();}
+    void api_join_worker()const override{capture([&]{s.impl.worker.join();});}
+};
+GameVoiceFrame frame(const Json &v){GameVoiceFrame f;f.source=v.value("source",0u);f.sequence=v.value("sequence",UINT32_MAX);f.radio=v.value("radio",true);f.gains={std::bit_cast<float>(v.value("left_bits",0x3f000000u)),std::bit_cast<float>(v.value("right_bits",0x3e800000u))};f.delivery_generation=v.value("frame_generation",v.value("generation",0ull));for(unsigned i=0;i<v.value("opus",3u);++i)f.opus.push_back((i*17+1)&255);if(v.value("signature",false))f.origin_signature=std::array<std::byte,64>{std::byte{0x91}};return f;}
+std::shared_ptr<fixture::GameVoice> incoming(fixture::OnlineMatchSession &s){const auto v=s.current.value("incoming_owner",std::string("new"));if(v=="none")return {};if(v=="same")return s.impl.audio;return std::make_shared<fixture::GameVoice>(s,2);}
+std::string category(const std::exception &e){if(dynamic_cast<const std::overflow_error*>(&e))return "overflow";if(dynamic_cast<const std::logic_error*>(&e))return "logic";if(dynamic_cast<const std::runtime_error*>(&e))return "runtime";return "other";}
+Json native_data(std::span<const std::byte> v){Json r=Json::array();for(auto b:v)r.push_back(std::to_integer<unsigned>(b));return r;}
+Json run(fixture::OnlineMatchSession &s,bool rust){
+    fixture::active=&s;Json steps=Json::array();const auto commands=s.args.value("commands",Json::array({Json{{"op",s.args.value("op",std::string("voice"))}}}));
+    for(const auto &command:commands){
+        s.current=s.args;for(auto it=command.begin();it!=command.end();++it)s.current[it.key()]=it.value();s.thrown=nullptr;s.decoded=0;
+        if(s.current.contains("sync"))s.impl.projection.sync_audio=s.current["sync"].get<bool>();
+        const auto op=s.current.value("op",std::string("voice"));const unsigned target=s.current.value("target",1u);bool error{},received{};Json identity=nullptr;std::string message,kind;Json delivered=Json::array();
+        try{
+            if(op=="send"){std::vector<std::byte> data;for(unsigned i=0;i<s.current.value("bytes",7u);++i)data.push_back(std::byte((i*13+7)&255));if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_send(io,target,fixture::wire(data));});}else s.send(data,target);}
+            else if(op=="receive"){if(rust){ApiIo io(s);received=io.invoke([&]{return actual::native_api_receive(io);});}else received=s.receive(s.output,s.output_peer);}
+            else if(op=="voice"){const auto f=frame(s.current);if(rust){ApiIo io(s);io.frame=&f;io.invoke([&]{actual::native_api_voice(io,target);});}else s.voice(target,f);}
+            else if(op=="preferences"){const bool enabled=s.current.value("enabled",true);const auto muted=s.current.value("muted",std::uint16_t(0x8001));if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_preferences(io,target,enabled,muted);});}else s.voice_preferences(target,enabled,muted);}
+            else if(op=="voices"){std::vector<MatchVoicePacket> values;if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_voices(io);});values=std::move(io.voices);}else values=s.voice_packets();for(const auto &v:values)delivered.push_back({{"peer",v.peer},{"preferences",v.preferences},{"enabled",v.enabled},{"muted",v.muted},{"frame",fixture::frame_json(fixture::wire_audio(v.frame))}});}
+            else if(op=="retain"){if(rust){ApiIo io(s);io.incoming_audio=incoming(s);fixture::require(io.invoke([&]{return actual::native_api_retain_audio(io);}));}else s.retain_voice(incoming(s));}
+            else if(op=="close"){if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_close(io);});}else s.close_postgame();}
+            else if(op=="sync"){std::lock_guard lock(s.impl.mutex);if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_sync_audio(io);});}else s.impl.sync_audio();}
+            else if(op=="fence_audio"){std::lock_guard lock(s.impl.mutex);if(rust){ApiIo io(s);io.invoke([&]{actual::native_api_fence_audio(io);});}else s.impl.fence_audio();}
+            else throw std::invalid_argument("fixture op");
+        }catch(const std::exception &e){error=true;message=e.what();kind=category(e);if(s.thrown)identity=&e==s.thrown;}
+        const auto v=actual::native_session_view(*s.impl.controller->state);const auto presence=actual::native_session_presence(*s.impl.controller->state);
+        steps.push_back({{"error",error},{"exception",message},{"category",kind},{"native_exception_identity",identity},{"received",received},{"peer",s.output_peer},{"bytes",native_data(s.output)},{"voices",delivered},{"phase",v.phase},{"fenced",v.peer_fenced},{"generation",v.audio_generation},{"presence",presence.present},{"audio",s.impl.audio?s.impl.audio->id:0},{"audio_refs",s.impl.audio.use_count()},{"audio_closed",s.impl.audio&&s.impl.audio->closed},{"stopped",s.impl.worker.stopped},{"joined",s.impl.worker.joined},{"held",s.impl.mutex.held}});
+    }
+    Json outgoing=Json::array(),voices=Json::array(),packets=Json::array();for(const auto &p:actual::native_session_outgoing(*s.impl.controller->state))outgoing.push_back(fixture::packet_json(p));for(const auto &v:actual::native_session_voices(*s.impl.controller->state))voices.push_back(fixture::voice_json(v));
+    for(unsigned i=0;i<1024;++i){auto values=actual::native_session_receive(*s.impl.controller->state);if(values.empty())break;for(const auto &p:values)packets.push_back(fixture::packet_json(p));}
+    return {{"steps",steps},{"outgoing",outgoing},{"remaining_voices",voices},{"remaining_packets",packets},{"trace",s.trace}};
+}
+int main(){std::string line;while(std::getline(std::cin,line)){try{const auto v=Json::parse(line);fixture::OnlineMatchSession before(v),after(v);const auto a=run(before,false),b=run(after,true);Json out={{"matched",a==b},{"result",a}};if(a!=b)out["rust"]=b;std::cout<<out.dump()<<std::endl;}catch(const std::exception &e){std::cout<<Json{{"fixture_error",e.what()}}.dump()<<std::endl;}}}

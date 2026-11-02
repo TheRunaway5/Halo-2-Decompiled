@@ -39,6 +39,7 @@ public:
     static bool is_packet(std::span<const std::byte>);
 private:
     struct Impl;
+    explicit PeerSourceAdmissions(std::unique_ptr<Impl>);
     std::unique_ptr<Impl> impl_;
 };
 }

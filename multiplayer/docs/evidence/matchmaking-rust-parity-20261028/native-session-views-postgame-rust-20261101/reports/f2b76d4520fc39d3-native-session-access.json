@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "scope": "Preserved C++ feature/view/postgame caller versus production Rust policy.\n\nAudio devices, buffers, phase races, readiness and IO failures are declared\nfixtures. Frames are compared in full. No original Live, genuine provider,\nplayed world, waveform or installed Linux delivery acceptance is implied.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "error": "{'command': {'op': 'metadata', 'seats': 8, 'group': 1, 'stage': 1, 'continuity': True, 'terminal': False}, 'result': {'fixture_error': 'ONLINE match connection failed or ended. Search again.'}}",
+  "commands": 31308,
+  "last_command": {
+    "op": "metadata",
+    "seats": 8,
+    "group": 1,
+    "stage": 1,
+    "continuity": true,
+    "terminal": false
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ],
+  "child_exit_code": 0
+}

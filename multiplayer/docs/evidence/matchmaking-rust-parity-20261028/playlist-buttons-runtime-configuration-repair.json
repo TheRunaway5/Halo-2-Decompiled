@@ -1,0 +1,17 @@
+{
+  "schema": "H2_SELECTED_RUNTIME_ONLINE_CONFIGURATION_REPAIR_V1",
+  "passed": true,
+  "runtime": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/halo2_native",
+  "runtime_sha256": "c4cf078db68795d25668e12241d7eeb345e0382a5bbc097d0688d2e76b0b5b49",
+  "binary_unchanged": true,
+  "selection_unchanged": true,
+  "added_configuration": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/eos-client.env",
+  "configuration_sha256": "b02a15cc5c7dee8fc05077f98ee18e8843641e22f31fa7de03c44c0d32b460f0",
+  "configuration_bytes": 378,
+  "source": "existing private shared game client setup; values withheld",
+  "process_restarted": false,
+  "restart_required": true,
+  "production_service_changed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-ox8ymysd",
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,158 @@
+--- src/ui/frontend_state.cpp captured-before
++++ src/ui/frontend_state.cpp rust-wired
+@@ -327,60 +327,9 @@
+   const auto owner=pcr->vista_pcr;
+   if(owner->input.continue_session)owner->input.continue_session();
+ }
+-void MenuState::enter_online_matchmaking_lobby() {
+-  online_lobby_matchmaking_=true;
+-  online_lobby_countdown_party_.clear();
+-  cancel_online_lobby_countdown();
+-  if(account_.party && account_.party->countdown && account_.party->countdown->complete)
+-    online_lobby_countdown_consumed_=account_.party->countdown->serial;
+-  if(frame().screen==14 && mode_==3){stack_.back().entries.clear();populate_online_party(stack_.back());++revision;}
+-}
+-void MenuState::cancel_online_lobby_countdown() {
+-  online_lobby_countdown_=online_lobby_countdown_stage_=-1;
+-}
+-bool MenuState::update_online_lobby_countdown() {
+-  const bool lobby=mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;});
+-  if(online_lobby_leave_pending_)return false;
+-  if(!lobby || !account_.party || !account_.party->countdown_supported) {
+-    online_lobby_countdown_party_.clear();
+-    if(online_lobby_countdown_>=0){cancel_online_lobby_countdown();++revision;}
+-    return false;
+-  }
+-  const auto &published=account_.party->countdown;
+-  if(published && published->seconds && *published->seconds>0 && online_lobby_countdown_party_.empty())
+-    for(const auto &m:account_.party->members)online_lobby_countdown_party_.push_back(m.handle);
+-  if(!published && !online_lobby_countdown_party_.empty()) {
+-    const auto counted=std::exchange(online_lobby_countdown_party_,{});
+-    const bool departed=std::any_of(counted.begin(),counted.end(),[&](const auto &handle){
+-      return std::none_of(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==handle;});
+-    });
+-    if(departed) {
+-      // Actual accepted member departure invalidated party A's parameter.
+-      // 250804 presents its departure states6/14/19 as the original0xAE.
+-      cancel_online_lobby_countdown();quickmatch_pending_=false;
+-      if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-      reset_online_matchmaking_progress();
+-      while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
+-      dialog(0xae,-5,true);++revision;return true;
+-    }
+-  }
+-  const auto seconds=published && published->seconds &&
+-    (!published->complete || published->serial!=online_lobby_countdown_consumed_)?*published->seconds:-1;
+-  if(seconds!=online_lobby_countdown_){online_lobby_countdown_=seconds;++revision;}
+-  // 0x250A8B: UI sound10 for each new stage 0..3.
+-  if(matchmaking_lobby_countdown_beeps(online_lobby_countdown_stage_,online_lobby_countdown_) &&
+-     pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::PregameCountdown);
+-  online_lobby_countdown_stage_=online_lobby_countdown_;
+-  if(!published || !published->complete || published->serial==online_lobby_countdown_consumed_)return false;
+-  // 0x6E410: a zero countdown stops and a matchmaking party enters mode6,
+-  // which 0x19B1C9 presents as screen210 for the retained playlist.
+-  online_lobby_countdown_consumed_=published->serial;
+-  online_lobby_countdown_party_.clear();
+-  cancel_online_lobby_countdown();
+-  while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
+-  open(210);
+-  return true;
+-}
++
++
++
+ std::optional<DiscordIdentity> MenuState::online_identity() const {
+   if (online_account_ && !account_.authenticated) return std::nullopt;
+   return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
+@@ -1091,7 +1040,7 @@
+   if(screen==14 && mode_==3) {
+     // Custom Game/Create Party from the ONLINE menu forms a lobby with no
+     // matchmaking hopper; matchmaking returns re-mark it afterwards.
+-    if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_matchmaking_=false;cancel_online_lobby_countdown();}
++    if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_.exit();}
+     if(online_account_ && !account_.party && !online_account_->snapshot().busy)
+       online_account_->party_command({"create"});
+     if(!matchmaking_active_)refresh_online_matchmaking();
+@@ -1929,18 +1878,7 @@
+     if(owner && owner->leave_session)owner->leave_session();
+     update_online_account();return_online();
+   } else if (entry.destination == -11) {
+-    if(mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &frame){return frame.screen==14;})) {
+-      // Original0x8B callbacks25132E/251345 leave the sessions, not merely
+-      // their widgets. A submitted command is acknowledged before UI return.
+-      if(online_lobby_leave_pending_)return;
+-      if(account_.party && (!online_account_ || !online_account_->party_command({"leave_lobby"}))) {
+-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+-        return;
+-      }
+-      online_lobby_leave_pending_=true;
+-      if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-      quickmatch_pending_=false;update_online_account();update_online_lobby_leave();return;
+-    }
++    if(online_lobby_input(3))return;
+     while (stack_.size() > 1 && frame().screen != 6)
+       stack_.pop_back();
+     ++revision;
+@@ -2104,7 +2042,7 @@
+ }
+ void MenuState::back() {
+   if (workshop_preparing_) return;
+-  if(online_lobby_leave_pending_)return; //199E3C's leave task owns completion.
++  if(online_lobby_.leave_pending())return; //199E3C's leave task owns completion.
+   if(online_couch_screen(frame())) {
+     if(online_local_options_) {
+       const auto login=local_discord_logins_[*online_local_options_];
+@@ -2171,17 +2109,7 @@
+     return;
+   }
+   if (frame().screen == 14 || frame().screen == 30) {
+-    if(frame().screen==14 && mode_==3 && account_.party && account_.party->leader && online_lobby_countdown_>=0) {
+-      // 250B1E param1/0xD: an active leader's B runs25122F/19A7E9 and
+-      // stays in the lobby. The later idle B may ask with0x8B.
+-      if(!online_account_ || !online_account_->party_command({"countdown_cancel"}))
+-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+-      return;
+-    }
+-    if(frame().screen==14 && mode_==3 && account_.party && !account_.party->leader && online_lobby_countdown_>=0)
+-      // 2511B6's member route runs25122F before its0x8B: the real mode1
+-      // request can be observed even when the later confirmation is canceled.
+-      if(online_account_)online_account_->party_command({"countdown_request"});
++    if(online_lobby_input(1))return;
+     dialog(frame().screen == 14 ? 0x8b : 0x37, -11);
+     return;
+   }
+@@ -2225,15 +2153,7 @@
+       lobby_session_action_(FrontendLobbySessionAction::Auxiliary))return;
+   if (frame().screen == 211 && frame().context == 41) { ++clan_message_page_; ++revision; return; }
+   update_online_login();
+-  if(frame().screen==14 && mode_==3) {
+-    // Authored host status 0x200001F0: X cancels a running start countdown.
+-    if(online_lobby_countdown_>=0) {
+-      if(!online_account_ || !account_.party || !online_account_->party_command({account_.party->leader?"countdown_cancel":"countdown_request"}))
+-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
+-      return;
+-    }
+-    open(216);return;
+-  }
++  if(online_lobby_input(2))return;
+   if (frame().screen == 219 && online_identity()) {
+     if (frame().context == online_server_browser_context) refresh_online_directory();
+     else refresh_online_matchmaking();
+@@ -2668,7 +2588,7 @@
+     // This service does not publish Xbox Live's ordinary idle status enum.
+     // The source kernel's unknown branch owns no authored status string.
+     view.input.status=-1;
+-    view.input.countdown=online_lobby_countdown_>=0;
++    view.input.countdown=online_lobby_.seconds()>=0;
+     if(view.input.countdown)view.input.status=10;
+     if(account_.party && account_.party->countdown && !account_.party->countdown->requester.empty()) {
+       const auto &members=account_.party->members;
+@@ -2884,7 +2804,7 @@
+               frontend_lobby_difficulty_string(std::int16_t(difficulty_)));
+           break;
+         case 0xe413:
+-          result += mode_==3 && online_lobby_countdown_>=0?matchmaking_lobby_countdown_text(online_lobby_countdown_):
++          result += mode_==3 && online_lobby_.seconds()>=0?matchmaking_lobby_countdown_text(online_lobby_.seconds()):
+             session_countdown_?std::to_string(*session_countdown_):"0";
+           break;
+         case 0xe414:

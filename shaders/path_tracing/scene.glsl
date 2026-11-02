@@ -195,14 +195,16 @@ float traceReflection(TraceMaterial material,vec3 normal,vec3 incoming) {
 }
 uint traceBounceLimit() {return uint(clamp(camera.viewport.y,1.0,2.0));}
 bool traceEnvironmentNee() {return (traceVisibility.temporal.y&1u)!=0u;}
-vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint sourceTriangle,inout uint state,bool primary) {
+#include "path_tracing/source_indirect.glsl"
+vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint sourceTriangle,inout uint state,bool primary,
+                 bool cachedStatic) {
     // The primary continuation already samples diffuse sky misses and mesh
     // emission hits. Reserve its direct query for point/directional lights:
     // choosing between a sun, sky and black emitter needlessly gives every
     // receiver a high-variance direct shadow. Secondary surfaces retain NEE
     // for all three banks, including the final allowed transport vertex.
     bool pointBank=traceScene.counts.z>0u,meshBank=!primary && traceScene.counts.w>0u;
-    bool skyBank=!primary && traceEnvironmentNee();
+    bool skyBank=!primary && traceEnvironmentNee() && !cachedStatic;
     uint banks=uint(pointBank)+uint(meshBank)+uint(skyBank);
     if(banks==0u)return vec3(0);
     // Choose one bank and form its complete radiance estimate first. A single
@@ -219,7 +221,7 @@ vec3 traceDirect(vec3 position,vec3 normal,vec3 geometric,vec4 colorGuide,uint s
         for(uint plane=0u;plane<6u;++plane)
             if(dot(light.planes[plane].xyz,position)>light.planes[plane].w)inside=false;
         float distance=length(delta),radius=light.position_radius.w;
-        if(inside && distance>traceEpsilon && (distant || distance<radius)) {
+        if(!(cachedStatic && distant) && inside && distance>traceEpsilon && (distant || distance<radius)) {
             direction=delta/distance;float cosine=max(dot(normal,direction),0.0);
             maximum=distant?1.e10:max(traceEpsilon,distance-traceEpsilon*2.0);
             if(cosine>0.0) {
@@ -294,8 +296,13 @@ void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceM
     [[dont_unroll]] for(uint bounce=0u;bounce<=maximumBounces;++bounce) {
         float reflection=traceReflection(material,normal,incoming);
         bool diffuseSurface=bounce==0u?(material.texture.w&32u)==0u:any(greaterThan(albedo,vec3(0)));
+        bool cachedStatic=traceSourceIndirectAvailable(material,colorGuide,bounce);
         if(diffuseSurface && reflection<1.0) {
-            vec3 direct=(1.0-reflection)*traceDirect(position,normal,geometric,colorGuide,sourceTriangle,state,bounce==0u);
+            // Retain the original static diffuse field only at an actual
+            // compatible secondary hit. Static sky/sun NEE would count that
+            // field twice; current local lights and mesh emission stay traced.
+            vec3 direct=(1.0-reflection)*(traceDirect(position,normal,geometric,colorGuide,sourceTriangle,state,bounce==0u,
+                cachedStatic)+(cachedStatic?traceSourceIndirect(colorGuide):vec3(0)));
             // Keep the primary authored albedo outside the lighting estimate.
             // Secondary surfaces still contribute their own colored response.
             // A single authored light has deterministic primary visibility.
@@ -318,11 +325,17 @@ void traceLighting(vec3 position,vec3 normal,vec3 geometric,vec3 incoming,TraceM
             if(!traceGGXDirection(normal,incoming,material,state,direction,weight))break;
             throughput*=material.base.rgb*weight;
         }else {
+            // This diffuse field already integrates the remaining static
+            // paths. Stop at its first compatible hit for either bounce
+            // budget; a selected GGX lobe above still follows its normal ray.
+            if(cachedStatic)break;
             if(bounce!=0u)throughput*=albedo;
             else if((material.texture.w&32u)!=0u)break;
             if(!any(greaterThan(throughput,vec3(0))))break;
             if(bounce==0u) {
-                float weight;direction=traceDiffuseContinuation(position,normal,state,weight);throughput*=weight;
+                float backgroundHint=material.colorGuide.w==2u && colorGuide.a>0.0?
+                    2.0*traceSourceBrightness(colorGuide.rgb):0.0;
+                float weight;direction=traceDiffuseContinuation(position,normal,state,weight,backgroundHint);throughput*=weight;
             }else direction=traceHemisphere(normal,state);
         }
         if(!any(greaterThan(throughput,vec3(0))))break;

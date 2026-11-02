@@ -36,6 +36,8 @@ COLD=[(0x48605c,4),(0x486070,4),(0x4f3010,4),
  (0x56ae84,0x14),(0x56aeb0,4),(0x56aeb8,0x14),(0x56e080,12),
  # Original3826F0 publishes this separate AI geometry scalar before AI storage.
  (0x56e08c,4),
+ # Original382710/382730/382750/382770 construct four aiming scalars.
+ (0x56e090,16),
  # Whole164EF0 writes this one-byte time-extension announcement latch at
  #164FAF/164FBB. Startup's aligned read also covers it; that read does not
  # make this loader-zeroed mutable field an immutable literal.

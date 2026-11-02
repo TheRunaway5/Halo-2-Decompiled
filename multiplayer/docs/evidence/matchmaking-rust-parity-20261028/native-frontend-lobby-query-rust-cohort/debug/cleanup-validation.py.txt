@@ -1,0 +1,13 @@
+import json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-query-rust-20261102'
+info=json.loads((work/'native/inputs.json').read_text());assert not Path(info['scratch']).exists()
+names=['native','core','component','component-authenticated','component-original-qualified','rust','rust-qualified','rust-original-qualified','stager','original','wide-team-original','linkage']
+rows=[]
+for name in names:
+ p=root/'.local/test-scratch'/('frontend-lobby-query-'+name+'-20261102');children=sorted(q.name for q in p.iterdir())if p.exists()else[]
+ rows.append(dict(path=str(p),empty=not children,children=children))
+assert all(r['empty']for r in rows)
+before=json.loads((work/'native-before-cleanup.json').read_text())
+report=dict(owned_scratch_removed=True,parents=rows,completed_native_removed_regular_bytes=before['regular_bytes'],retained_large_artifacts=[],original_assets_existing_references_other_owners_and_selected_runtimes_preserved=True)
+(work/'cleanup.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(owned_parents_empty=len(rows),removed_native_regular_bytes=before['regular_bytes'],retained_large_artifacts=[])))

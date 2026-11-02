@@ -205,7 +205,18 @@ void deferred_cache(Environment &scalar,Environment &verify) {
             same_vertices(expected,materialize(model,strict.pose),"Deferred cache strict hit/rebuild changed complete materialized vertices");
             if(strict.reused)++hits;else ++rebuilds;if(strict.pose.gpu)++gpu;
             terminal.restore();const auto repeated=cache.update_deferred(model,nodes,true);const auto repeated_effects=Fp::get();
-            need(repeated.reused && terminal.same(repeated_effects),"Deferred cache failed to reuse existing exact effects");++cases;
+            need(terminal.same(repeated_effects),"Deferred cache changed existing exact effects");
+            same_vertices(expected,materialize(model,repeated.pose),"Deferred cache changed terminal-input materialized vertices");
+            // Incoming PE is a real factory-admission input. A fresh palette
+            // may set it, so restoring terminal effects can change the key
+            // from the original cold input. Permit that one required fill;
+            // the now-identical input must reuse its complete retained result.
+            if(!repeated.reused) {
+                need((initial.mxcsr^terminal.mxcsr)&0x20u,"Deferred cache missed an unchanged admission key");
+                terminal.restore();const auto warm=cache.update_deferred(model,nodes,true);
+                need(warm.reused && terminal.same(Fp::get()),"Deferred cache failed stable-key exact-effect reuse");
+            }
+            ++cases;
         }
     }
     need(hits && rebuilds && gpu,"Deferred cache missed admitted GPU, strict hit or required rebuild coverage");

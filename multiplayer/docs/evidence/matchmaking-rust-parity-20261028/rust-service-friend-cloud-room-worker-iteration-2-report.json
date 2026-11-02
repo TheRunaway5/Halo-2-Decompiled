@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "friend_cloud",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/eos_binding.rs",
+    "tools/rust_service_friend_cloud_controls.py",
+    "tools/test_rust_matchmaking_service.py"
+  ],
+  "source_files": 144,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-room/halo2-test-gs9fzvez/cargo/release/halo2-matchmaking-service",
+    "sha256": "361ed664c34a0b22c2932451ed89e0b9a7492de10b342de40f745910e76973b1",
+    "bytes": 11191104,
+    "retained": false
+  },
+  "friend_cloud": {
+    "qualified": true,
+    "checks": [
+      "valid configured service starts; public/symlink/FIFO/duplicate/oversized/publisher config and public/symlink cache roots fail before listening",
+      "actual source-v16 queue-only room EOS proof and private friend-file upload succeed without an account-session login or pre-existing public history ID",
+      "a real deferred history COMMIT failure rolls back public identity, canonical PUID, outbox and native room proof; retry with a different verified PUID commits once"
+    ],
+    "room_only": true,
+    "worker_calls": 1,
+    "worker_pids": [
+      1586435
+    ],
+    "real_sdk": false,
+    "real_cloud": false,
+    "native_played_world": false
+  }
+}

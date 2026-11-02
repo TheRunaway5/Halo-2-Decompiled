@@ -3,10 +3,10 @@
 // that range as an amplitude (220000 dB to amplitude, 220200 amplitude to dB)
 // and adds its class's ducked gain (129B20).
 //
-// None of these routines stores live memory: every store the original makes
-// is stack scratch below its caller's stack pointer after the return. What
-// they owe their callers is registers, x87 state and MXCSR, all reproduced
-// here exactly (scratch registers included).
+// The scalar helpers use private stack scratch.2216D0 publishes the actual
+// combined parent's four output gains and routing flag. All routines preserve
+// their full caller-visible registers, x87 state and MXCSR (scratch registers
+// included); the publisher retains ordered caller/output stores as well.
 #include "audio/native_tu15_sound_kernel.hpp"
 
 namespace halo2::native_tu15_sound {
@@ -296,6 +296,134 @@ void gain_interpolation(M &m,Abi &a,FP fp,const O &,const Services &) {
     pop_return(m,a,8);
 }
 
+// Complete2216D0: publish the four independent gains of a combined loop.
+// The actual data-array generation and definition-wide key must match before
+// any sound metadata or output backing is touched. Closed gain callees above
+// run natively, with their complete caller-visible volatile registers/FP state.
+void combined_gain_publication(M &m,Abi &a,FP fp,const O &o,const Services &services) {
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t value){g[4]-=4;store(m,o,pc,g[4],value);};
+    const auto pop=[&](){const auto value=u32(m,g[4]);g[4]+=4;return value;};
+    const auto low_byte=[](std::uint32_t value,std::uint32_t byte){return (value&0xffffff00u)|(byte&255u);};
+    push(0x2216d0u,g[1]);push(0x2216d1u,g[6]);
+    g[6]=u32(m,g[4]+0xcu);g[0]=low_byte(g[0],0);
+    if(g[6]!=0xffffffffu) {
+        g[2]=u32(m,0x50ebe8u);g[1]=g[6];push(0x2216e9u,g[7]);
+        g[7]=u32(m,g[2]+0x38u);g[1]&=0xffffu;
+        if(std::int32_t(g[1])<std::int32_t(g[7])) {
+            g[7]=u32(m,g[2]+0x24u);g[7]*=g[1];push(0x221701u,g[3]);
+            g[3]=u32(m,g[2]+0x44u);
+            g[1]=(g[1]&0xffff0000u)|u16(m,g[7]+g[3]);g[7]+=g[3];
+            if(g[1]&0xffffu) {
+                g[1]=std::uint32_t(std::int32_t(std::int16_t(g[1])));
+                g[6]=std::uint32_t(std::bit_cast<std::int32_t>(g[6])>>16);
+                if(g[1]==g[6]) {
+                    g[2]=u32(m,g[7]+4u);g[1]=u32(m,g[7]+8u);g[2]|=0x6000u;
+                    if(g[1]==g[2]) {
+                        g[0]=u32(m,g[4]+0x18u);g[1]=u32(m,tag_instances);g[0]&=0xffffu;
+                        push(0x221741u,g[5]);g[5]=u32(m,g[4]+0x24u);g[0]<<=4;
+                        g[6]=u32(m,g[0]+g[1]+8u);g[5]+=0x28u;g[3]=g[7]+0xc4u;
+                        store(m,o,0x221756u,g[4]+0x18u,4u);
+                        do {
+                            set_xmm(a,0,lane(u32(m,g[3])));
+                            push(0x221764u,0x221769u);amplitude_to_db_kernel(m,a,fp,o,services);
+                            g[2]=u32(m,g[7]+0x10u);push(0x22176cu,g[2]);push(0x22176du,g[0]);
+                            push(0x22176eu,0x221773u);gain_interpolation(m,a,fp,o,services);
+                            store(m,o,0x221773u,g[4]+0x1cu,g[0]);g[0]=u32(m,g[7]+0x14u);
+                            set_xmm(a,0,lane(u32(m,g[4]+0x1cu)));
+                            store(m,o,0x221780u,g[4]+0x10u,g[0]);
+                            {Floating floating(a,fp);set_xmm(a,0,_mm_add_ss(xmm(a,0),lane(u32(m,g[4]+0x10u))));}
+                            g[0]=u32(m,g[4]+0x18u);store(m,o,0x22178eu,g[5],lane_bits(xmm(a,0)));
+                            g[3]+=4;g[5]+=4;--g[0];store(m,o,0x22179au,g[4]+0x18u,g[0]);
+                        }while(g[0]!=0);
+                        g[0]=u32(m,g[4]+0x24u);store(m,o,0x2217a4u,g[0],u32(m,g[0])|0x10u);
+                        g[0]=low_byte(g[0],1);g[5]=pop();
+                    }
+                }
+            }
+            g[3]=pop();
+        }
+        g[7]=pop();
+    }
+    g[6]=pop();g[1]=pop();pop_return(m,a,0x10u);
+}
+
+// Complete2B9450, the routing-plugin callback installed at4633FC+18. Keep
+// the four independently published2216D0 gains and the ordered class sends.
+// In particular class1 appends two bin10 entries; they are not deduplicated.
+void combined_mix_bin_routing(M &m,Abi &a,FP fp,const O &o,const Services &) {
+    Floating floating(a,fp);require_x87_room(a,2);
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t value){g[4]-=4;store(m,o,pc,g[4],value);};
+    const auto pop=[&](){const auto value=u32(m,g[4]);g[4]+=4;return value;};
+    const auto byte=[](std::uint32_t value,std::uint32_t low){return (value&0xffffff00u)|(low&255u);};
+    // Every call has the same literal bounds[-64,0]. Its x87 range test is
+    // nondegenerate and exact, then12DB16..4C normalizes/clamps using SSE.
+    // Preserve the full SIMD result and the caller's sticky FP exceptions.
+    const auto normalize=[&](){
+        a.x87_status&=std::uint16_t(~0x200u);
+        set_xmm(a,1,lane(silence_db));set_xmm(a,0,lane(u32(m,g[4]+12u)));
+        set_xmm(a,2,lane(0));set_xmm(a,0,_mm_sub_ss(xmm(a,0),xmm(a,1)));
+        set_xmm(a,2,_mm_sub_ss(xmm(a,2),xmm(a,1)));set_xmm(a,1,_mm_setzero_ps());
+        set_xmm(a,0,_mm_div_ss(xmm(a,0),xmm(a,2)));
+        if(above(xmm(a,1),xmm(a,0)))set_xmm(a,0,xmm(a,1));
+        else {set_xmm(a,1,lane(unit));if(above(xmm(a,0),xmm(a,1)))set_xmm(a,0,xmm(a,1));}
+        pop_return(m,a,12);
+    };
+    const auto convert=[&](){
+        set_xmm(a,1,xmm(a,0));set_xmm(a,0,lane(0x45c80000u)); //46A53C:6400
+        set_xmm(a,1,_mm_mul_ss(xmm(a,1),xmm(a,0)));
+        set_xmm(a,1,_mm_sub_ss(xmm(a,1),xmm(a,0)));
+        return std::uint32_t(_mm_cvttss_si32(xmm(a,1)));
+    };
+    const auto call=[&](std::uint32_t pc){push(pc,pc+5u);normalize();};
+    push(0x2b9450u,g[3]);push(0x2b9451u,g[5]);push(0x2b9452u,g[6]);
+    g[6]=u32(m,g[4]+0x1cu);g[2]=u32(m,g[6]+0x40u);push(0x2b945au,g[7]);
+    g[7]=u32(m,g[4]+0x14u);g[3]=u32(m,g[7]);g[0]=u32(m,g[7]+4u);
+    set_xmm(a,0,lane(u32(m,g[7]+8u)));g[5]=g[1];g[3]=(g[3]>>3)&0xffffff01u;
+    g[1]=(g[3]&255u)!=0;store(m,o,0x2b9479u,g[4]+0x14u,g[0]);g[0]=u32(m,g[7]+0x18u);
+    set_xmm(a,0,_mm_add_ss(xmm(a,0),lane(u32(m,g[4]+0x14u))));
+    push(0x2b9486u,g[0]);push(0x2b9487u,0);push(0x2b9489u,silence_db);
+    g[1]=(g[1]-1u)&6u;store(m,o,0x2b9492u,g[6]+g[2]*8u,g[1]);g[1]=byte(g[1],1);
+    store(m,o,0x2b9497u,g[4]+0x20u,lane_bits(xmm(a,0)));call(0x2b949du);
+    g[1]=u32(m,g[6]+0x40u);g[0]=convert();store(m,o,0x2b94bcu,g[6]+g[1]*8u+4u,g[0]);
+    g[1]=u32(m,g[6]+0x40u)+1u;g[2]=byte(g[2],0u-(g[3]&255u));
+    store(m,o,0x2b94c8u,g[6]+0x40u,g[1]);g[0]=g[1];g[1]=u32(m,g[7]+0x1cu);
+    push(0x2b94d0u,g[1]);push(0x2b94d1u,0);push(0x2b94d3u,silence_db);
+    // NEG DL; SBB EDX,EDX; AND -6; ADD7 gives1 for bypass,7 otherwise.
+    g[2]=(g[3]&255u)?1u:7u;g[1]=byte(g[1],1);store(m,o,0x2b94e2u,g[6]+g[0]*8u,g[2]);call(0x2b94e5u);
+    g[1]=u32(m,g[6]+0x40u);g[0]=convert();store(m,o,0x2b9504u,g[6]+g[1]*8u+4u,g[0]);
+    g[0]=u32(m,g[6]+0x40u)+1u;g[2]=(g[3]&255u)?0u:1u;
+    store(m,o,0x2b9513u,g[6]+0x40u,g[0]);g[1]=u32(m,g[7]+0x20u);
+    push(0x2b9519u,g[1]);push(0x2b951au,0);push(0x2b951cu,silence_db);g[1]=byte(g[1],1);g[2]=g[2]*4u+4u;
+    store(m,o,0x2b952au,g[6]+g[0]*8u,g[2]);call(0x2b952du);
+    g[1]=u32(m,g[6]+0x40u);g[0]=convert();store(m,o,0x2b954cu,g[6]+g[1]*8u+4u,g[0]);
+    g[2]=u32(m,g[6]+0x40u)+1u;store(m,o,0x2b9554u,g[6]+0x40u,g[2]);g[7]=u32(m,g[7]+0x24u);
+    g[0]=g[2];g[2]=(g[3]&255u)?0u:1u;push(0x2b9563u,g[7]);push(0x2b9564u,0);push(0x2b9566u,silence_db);
+    g[1]=byte(g[1],1);g[2]=g[2]*4u+5u;store(m,o,0x2b9574u,g[6]+g[0]*8u,g[2]);call(0x2b9577u);
+    g[1]=u32(m,g[6]+0x40u);g[0]=convert();store(m,o,0x2b9596u,g[6]+g[1]*8u+4u,g[0]);
+    g[7]=u32(m,g[6]+0x40u);g[0]=u32(m,g[4]+0x1cu);++g[7];store(m,o,0x2b95a5u,g[6]+0x40u,g[7]);g[1]=g[7];
+    if(g[0]==0){
+        g[0]=u32(m,g[4]+0x14u);push(0x2b9670u,g[0]);push(0x2b9671u,0);
+        store(m,o,0x2b9673u,g[6]+g[1]*8u,10);push(0x2b967au,silence_db);g[1]=byte(g[1],1);call(0x2b9681u);
+        g[1]=u32(m,g[6]+0x40u);g[0]=convert();store(m,o,0x2b96a0u,g[6]+g[1]*8u+4u,g[0]);
+        store(m,o,0x2b96a4u,g[6]+0x40u,u32(m,g[6]+0x40u)+1u);
+    }else if(--g[0]==0){
+        g[7]=u32(m,g[4]+0x14u);set_xmm(a,0,lane(u32(m,g[5]+0x18u)));store(m,o,0x2b95c0u,g[4]+0x14u,g[7]);
+        set_xmm(a,0,_mm_add_ss(xmm(a,0),lane(u32(m,g[4]+0x14u))));store(m,o,0x2b95cau,g[4]+0x14u,lane_bits(xmm(a,0)));
+        g[0]=u32(m,g[4]+0x14u);push(0x2b95d4u,g[0]);push(0x2b95d5u,0);
+        store(m,o,0x2b95d7u,g[6]+g[1]*8u,10);push(0x2b95deu,silence_db);g[1]=byte(g[1],1);call(0x2b95e5u);
+        g[0]=u32(m,g[6]+0x40u);g[2]=convert();store(m,o,0x2b9604u,g[6]+g[0]*8u+4u,g[2]);
+        g[3]=u32(m,g[6]+0x40u)+1u;store(m,o,0x2b960cu,g[6]+0x40u,g[3]);set_xmm(a,0,lane(u32(m,g[5]+0x18u)));g[0]=g[3];
+        store(m,o,0x2b9616u,g[4]+0x14u,g[7]);set_xmm(a,0,_mm_add_ss(xmm(a,0),lane(u32(m,g[4]+0x14u))));
+        store(m,o,0x2b9620u,g[4]+0x14u,lane_bits(xmm(a,0)));store(m,o,0x2b9626u,g[6]+g[0]*8u,10);
+        g[0]=u32(m,g[4]+0x14u);push(0x2b9631u,g[0]);push(0x2b9632u,0);push(0x2b9634u,silence_db);g[1]=byte(g[1],1);call(0x2b963bu);
+        g[2]=u32(m,g[6]+0x40u);g[1]=convert();store(m,o,0x2b965au,g[6]+g[2]*8u+4u,g[1]);g[0]=u32(m,g[6]+0x40u);
+        g[7]=pop();++g[0];store(m,o,0x2b9663u,g[6]+0x40u,g[0]);g[6]=pop();g[5]=pop();g[3]=pop();pop_return(m,a,16);return;
+    }
+    g[7]=pop();g[6]=pop();g[5]=pop();g[3]=pop();pop_return(m,a,16);
+}
+
 // Every register is reproduced, so each kernel owes the full default contract.
 constexpr Kernel gain_kernels_table[]{
     {0x127cf0u,gain_interpolation},         // EAX gain (dB)
@@ -304,6 +432,8 @@ constexpr Kernel gain_kernels_table[]{
     {0x21f7f0u,upper_gain_bound},           // EAX upper gain bound (dB)
     {0x220000u,db_to_amplitude_kernel},     // ST(0) amplitude
     {0x220200u,amplitude_to_db_kernel},     // EAX gain (dB)
+    {0x2216d0u,combined_gain_publication},  // four combined-loop gain fields
+    {0x2b9450u,combined_mix_bin_routing},   // independent dry bins and class sends
 };
 } // namespace
 std::span<const Kernel> gain_kernels(){return gain_kernels_table;}

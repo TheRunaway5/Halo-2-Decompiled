@@ -1,0 +1,21 @@
+{
+  "scope": "Exact modern pre-migration Session packet/audio API caller bodies; not original Live or Xbox executable evidence",
+  "production_use": false,
+  "source": "src/network/online_match_session.cpp",
+  "source_sha256": "835049960581f4be8f5042c417ad371170a8d631eedc120dc9971b71a6e742b9",
+  "source_bytes": 78675,
+  "extractions": {
+    "private": {
+      "path": "tests/reference/native_session_api_private_before_rust_20261101.inc",
+      "sha256": "fd20254393e0860c95c776fda79c4e26ea8e67171ba10b8d101495d4e3c13055"
+    },
+    "stream": {
+      "path": "tests/reference/native_session_api_stream_before_rust_20261101.inc",
+      "sha256": "b0ebcc7eb5fbdc442d7b1c1601edb80d5930d43254ed054591d06342dffc82b2"
+    },
+    "close": {
+      "path": "tests/reference/native_session_api_close_before_rust_20261101.inc",
+      "sha256": "67145f687aedbfee916d8572be2030e062b7b7af4acc97d4cfdd3e8e914dd6a0"
+    }
+  }
+}

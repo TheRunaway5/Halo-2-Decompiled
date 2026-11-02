@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import math
+import mmap
 import os
 from pathlib import Path
 import subprocess
@@ -62,18 +63,25 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def loading_owner(cache):
+def loading_owner(cache, runtime=None):
     """Pin the bank main.cpp actually selects, with an admission witness."""
     from native_gameplay_test import (FRONTEND_LOADING_PROFILE, FRONTEND_H2EK_LOADING_PROFILE,
                                      FRONTEND_H2EK_LOADING_FILES)
     import h2ek_loading_ambience as h2ek
-    if (cache / h2ek.BANK).exists() or (cache / h2ek.BANK).is_symlink():
+    original_witness = 'Original loading: H2EK logo/sweep art and four-voice ambience admitted'
+    supports_original = True
+    if runtime is not None:
+        # Older Windows builds implement MCC V3 only. A newer cache may also
+        # hold an optional kit bank; its presence cannot change that executable.
+        with runtime.open('rb') as stream, mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
+            supports_original = data.find(original_witness.encode()) >= 0
+    if supports_original and ((cache / h2ek.BANK).exists() or (cache / h2ek.BANK).is_symlink()):
         report = json.loads((cache / 'provenance.json').read_bytes())
         if not h2ek.verify(cache, report.get('h2ek_loading_ambience')):
             raise ValueError('Selected H2EK loading bank has no completed onboarding owner')
         return dict(profile=FRONTEND_H2EK_LOADING_PROFILE, original=True,
             files=sorted(FRONTEND_H2EK_LOADING_FILES),
-            witness='Original loading: H2EK logo/sweep art and four-voice ambience admitted')
+            witness=original_witness)
     return dict(profile=FRONTEND_LOADING_PROFILE, original=False,
         files=['presentation/loading-v3/' + name for name in ('manifest.json', 'glow-mask.dds', 'loading.wav')],
         witness='MCC V3 loading: genuine PCM and reconstructed artwork admitted')
@@ -122,7 +130,8 @@ def _readmit_frontend_owner(root, runtime, cache, sidecar, receipt, capability):
             return
 
 
-def qualify(root, runtime, cache, output, scratch, eos_worker=None):
+def qualify(root, runtime, cache, output, scratch, eos_worker=None, *, progress=print,
+            include_optional_movie=True):
     from native_gameplay_test import (FRONTEND_CAPABILITY, FRONTEND_MAP, FRONTEND_SCHEMA,
                                      FRONTEND_SCOPE)
     from native_renderer_shaders import shader_capability
@@ -140,8 +149,15 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         validate_eos_worker(runtime, eos_worker)
     resources = [maps/name for name in ('shared.map', 'textures.dat', 'sounds_neutral.dat')]
     resources += [p for p in (cache/'halo2/h2_fonts').rglob('*') if p.is_file()]
-    loading = loading_owner(cache)
+    loading = loading_owner(cache, runtime)
     resources += [cache/name for name in loading['files']]
+    from controller_prompt_assets import runtime_sources, PROFILE as prompt_profile
+    owned_prompts = runtime_sources(root)[0]['files']
+    for name, row in owned_prompts.items():
+        path = cache/name
+        if not path.is_file() or path.is_symlink() or digest(path) != row['sha256']:
+            raise ValueError('Our button prompt bank is missing or changed; run launcher Repair')
+        resources.append(path)
     if (cache/'frontend-map-bindings.json').exists():
         resources.append(cache/'frontend-map-bindings.json')
     # Match the frontend reader: loose reference pages are not an active pack.
@@ -152,12 +168,26 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
     pins = {p.relative_to(cache).as_posix(): digest(p) for p in resources}
     shaders = runtime.parent/'shaders'
     shader_proof = shader_capability(shaders,runtime)
+    windows = runtime.suffix.lower() == '.exe'
+    if windows and (os.name != 'nt' or runtime != root/'halo2_native.exe'):
+        raise ValueError('Qualify the Windows package using its native bundled Python')
+    if not include_optional_movie:
+        from installation_paths import resource_root
+        # A missing optional bank is valid for an MCC-only package. An existing
+        # or declared bank must still pass the original movie capture check.
+        optional_owners = (cache/'presentation/movies', resource_root(root)/'resources/movies',
+                           resource_root(root)/'resources/movie-manifest.json')
+        if any(path.exists() or path.is_symlink() for path in optional_owners):
+            raise ValueError('Optional movie files are present or declared; their intro check remains required')
     report = dict(passed=False, runtime=str(runtime), runtime_sha256=pin, cases=[], scratch=str(scratch))
     cases = [('intro',['--menu-screen','9','--movie-frame','100']),
              ('title',['--menu-screen','9','--skip-intro']),
              ('main-menu',['--menu-screen','6','--skip-intro']),
              ('online-sign-in',['--menu-screen','20','--skip-intro'])]
+    if not include_optional_movie:
+        cases = cases[1:]
     for name, extra in cases:
+        progress('Checking game startup: ' + name + '…')
         image = scratch/(name+'.ppm')
         command = [str(runtime),'--menu-maps',str(maps),'--shared-maps',str(maps),
                    '--hidden','--mute','--frames','4','--screenshot',str(image),*extra]
@@ -167,9 +197,12 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         started = time.monotonic()
         failure = None
         try:
-            result = subprocess.run(command, cwd=root, env=dict(os.environ,SDL_VIDEODRIVER='x11',SDL_AUDIODRIVER='dummy',
+            environment = dict(os.environ,SDL_VIDEODRIVER='windows' if windows else 'x11',SDL_AUDIODRIVER='dummy',
                                 XDG_DATA_HOME=str(scratch/'data'),XDG_CONFIG_HOME=str(scratch/'config'),
-                                XDG_CACHE_HOME=str(scratch/'cache')),
+                                XDG_CACHE_HOME=str(scratch/'cache'))
+            if windows:
+                environment.update(APPDATA=str(scratch/'appdata'), LOCALAPPDATA=str(scratch/'localappdata'))
+            result = subprocess.run(command, cwd=root, env=environment,
                                 text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=180)
             stdout, exit_code = result.stdout, result.returncode
         except subprocess.TimeoutExpired as error:
@@ -180,7 +213,8 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         passed = exit_code == 0 and image.is_file() and 'Rendered 4 frontend frames' in stdout
         if exit_code == 0 and loading['witness'] not in stdout:
             passed, failure = False, 'Runtime did not admit the declared loading presentation'
-        if name == 'intro': passed = passed and 'Frontend movie:' in stdout
+        if name == 'intro' and 'Frontend movie:' not in stdout:
+            passed, failure = False, 'The declared optional intro movie did not start'
         row = dict(name=name,passed=passed,exit_code=exit_code,seconds=time.monotonic()-started,command=command)
         if wait_intro and passed:
             try:
@@ -193,8 +227,11 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
         if image.is_file(): row.update(capture_sha256=digest(image),capture_bytes=image.stat().st_size)
         report['cases'].append(row)
         (output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
-        print(name, 'passed' if passed else 'failed', flush=True)
-        if not passed: raise RuntimeError('Frontend check failed: '+name)
+        from setup_progress import ProgressUpdate
+        progress(ProgressUpdate('menu-startup', 'Checking game startup', len(report['cases']), len(cases)))
+        if not passed:
+            raise RuntimeError('Frontend check failed: '+name+
+                               (' — '+failure if failure else ' (exit '+str(exit_code)+')'))
     if digest(runtime)!=pin or any(digest(cache/name)!=value for name,value in pins.items()):
         raise RuntimeError('Frontend owner changed during validation')
     if shader_capability(shaders,runtime)!=shader_proof:
@@ -202,22 +239,32 @@ def qualify(root, runtime, cache, output, scratch, eos_worker=None):
     if eos_worker is not None:
         validate_eos_worker(runtime, eos_worker)
         report['eos_worker'] = eos_worker
-    report.update(passed=True,limits='Four rendered menu frames per screen after the actual source map intro clears, plus supplied intro frame 100; real account sign-in and completed online gameplay remain unverified.')
+    limits = ('Four rendered menu frames per screen after the actual source map intro clears; ' +
+              ('supplied intro frame 100 also checked. ' if include_optional_movie else
+               'optional intro movie is not packaged and was not checked. ') +
+              'Real account sign-in and completed online gameplay remain unverified.')
+    report.update(passed=True, optional_intro_movie='checked' if include_optional_movie else 'not-packaged',
+                  limits=limits)
     receipt = output/'report.json'
     receipt.write_text(json.dumps(report,indent=2)+'\n')
     capability = dict(schema=FRONTEND_SCHEMA,capability=FRONTEND_CAPABILITY,
-        runtime=dict(path=str(runtime),sha256=pin),
-        shaders=dict(binding='compiled-default',directory=str(shaders),**shader_proof),
+        runtime=dict(path='halo2_native.exe' if windows else str(runtime),sha256=pin),
+        shaders=dict(binding='windows-executable-adjacent' if windows else 'compiled-default',
+                     directory='shaders' if windows else str(shaders),**shader_proof),
         map=dict(path=FRONTEND_MAP,sha256=digest(cache/FRONTEND_MAP)),resources=pins,
         validation=dict(passed=True,scope=FRONTEND_SCOPE,report_sha256=digest(receipt),
             mcc_loading_presentation_profile=loading['profile'],
             mcc_prompt_font_profile='mcc-native-control-fonts-v1',original_loading_ambience=loading['original'],
+            controller_prompt_profile=prompt_profile,
             frontend_capture_policy='source-map-intro-clear-v1',
+            optional_intro_movie=report['optional_intro_movie'],
             full_game_parity=False,limits=report['limits']))
     if eos_worker is not None:
         capability['eos_worker'] = eos_worker
-    with sidecar.open('x') as stream:
-        stream.write(json.dumps(capability,indent=2)+'\n')
+    # The readmission pin is canonical UTF-8/LF on both platforms. Text mode
+    # would translate LF to CRLF on Windows and reject our own successful proof.
+    with sidecar.open('xb') as stream:
+        stream.write((json.dumps(capability,indent=2)+'\n').encode('utf-8'))
     try: _readmit_frontend_owner(root,runtime,cache,sidecar,receipt,capability)
     except BaseException:
         sidecar.unlink()

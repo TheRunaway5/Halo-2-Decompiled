@@ -15,6 +15,7 @@ constexpr std::array banks{
     Bank{0x4c683cu,4u,"native TU1.5 cold main view geometry LOD cap"},
     Bank{0x4c6840u,6u,"native TU1.5 cold main view six geometry feature flags"},
     Bank{0x4c6848u,8u,"native TU1.5 cold main view coverage and secondary scales"},
+    Bank{0x473628u,4u,"native TU1.5 authored mutable main view render scale"},
     Bank{0x473644u,4u,"native TU1.5 authored mutable main view effect scale"}};
 }
 void mount_native_tu15_main_view_data(SourceRuntimeMemory& memory) {
@@ -29,10 +30,13 @@ void mount_native_tu15_main_view_data(SourceRuntimeMemory& memory) {
                 throw std::invalid_argument("Native TU1.5 main-view cold storage overlaps an existing owner");
     for(const auto& bank:banks){
         std::vector<std::byte> bytes(bank.bytes);
-        // This sole initialized field is literal writable .data in TU1.5,
+        // These initialized fields are literal writable .data in TU1.5,
         // independently of2C470's later per-player output. The other353
         // bytes are the exact loader-zeroed tail, not preset view results.
-        if(bank.address==0x473644u){constexpr std::uint32_t bits=0x3f59999au;
+        // HS real global444 also exposes473628 through its actual mutable
+        // registration descriptor. Preserve its authored1.0 loader value.
+        if(bank.address==0x473628u || bank.address==0x473644u){
+            const std::uint32_t bits=bank.address==0x473628u?0x3f800000u:0x3f59999au;
             for(unsigned i=0;i<4;++i)bytes[i]=std::byte(bits>>(8*i));}
         memory.mount(bank.address,bytes,SourceRuntimeMemory::Access::ReadWrite,bank.owner);
     }

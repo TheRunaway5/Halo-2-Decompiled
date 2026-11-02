@@ -57,14 +57,16 @@ void run_case(const nlohmann::json& fixture,const nlohmann::json& input) {
 }
 void mounted_producers(const nlohmann::json& fixture) {
     SourceRuntimeMemory memory;mount_native_tu15_final_startup_storage_data(memory);
-    check(hex(memory.view(fixture.at("callback_table"),12))==fixture.at("callback_table_hex").get<std::string>(),"Scalar _cinit order differs");
+    const auto table_bytes=unhex(fixture.at("callback_table_hex")).size();
+    check(hex(memory.view(fixture.at("callback_table"),table_bytes))==fixture.at("callback_table_hex").get<std::string>(),"Scalar _cinit order differs");
     memory.mount(fixture.at("stack"),bytes(fixture.at("return_address")),SourceRuntimeMemory::Access::ReadWrite,"Scalar startup caller");
     for(const auto& function:fixture.at("functions"))for(const auto& copy:function.at("copies")) {
         check(word(memory,copy.at("destination"))==0,"Scalar was seeded instead of loader-zeroed");
         check(memory.is_read_only(copy.at("source"),4),"Authored scalar operand became writable");
     }
     SourcePhysicsWorldRuntimeAbi abi{};abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
-    for(unsigned slot=0x46dd00;slot<0x46dd0c;slot+=4) {
+    const unsigned table=fixture.at("callback_table");
+    for(unsigned slot=table;slot<table+table_bytes;slot+=4) {
         abi.gp[4]=fixture.at("stack");
         source_run_campaign_ai_scalar_defaults_tu15(memory,word(memory,slot),abi,*abi.floating_point,{});
     }
@@ -76,7 +78,7 @@ void mounted_producers(const nlohmann::json& fixture) {
     memory.restore(saved);
     for(const auto& function:fixture.at("functions"))for(const auto& copy:function.at("copies"))
         check(hex(memory.view(copy.at("destination"),4))==copy.at("default_hex").get<std::string>(),"Checkpoint lost produced scalar");
-    for(unsigned address:{0x56e07fu,0x56e090u}) {
+    for(unsigned address:{0x56e07fu,0x56e0a0u}) {
         bool hole=false;try{(void)memory.view(address,1);}catch(const std::out_of_range&){hole=true;}
         check(hole,"Scalar mapping borrowed adjacent unowned bytes");
     }

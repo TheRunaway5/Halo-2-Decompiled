@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-lvnyhrgf/cargo/release/halo2-matchmaking-service",
+    "bytes": 11452552,
+    "sha256": "d38897aac0acb4f19eafd0dcdf0fba63a7a288c63f583a1735d3679915d73c91",
+    "retained": false
+  },
+  "mode": "friend-cloud-only",
+  "friend_cloud": {
+    "qualified": true,
+    "checks": [
+      "valid configured service starts; public/symlink/FIFO/duplicate/oversized/publisher config and public/symlink cache roots fail before listening",
+      "actual login and friend consent enqueue opaque public records for both peers; no synthetic EOS identity or upload is created for unbound accounts",
+      "real account EOS proof wakes upload; independently verified Rust RSA delegation binds the existing canonical account, issuer/audience and120-second lifetime; exact downloaded record evicts only the acknowledged payload",
+      "actual failed EOS binding COMMIT publishes neither a canonical PUID nor an upload; verified retry binds and publishes its existing pending record once",
+      "real deferred outbox COMMIT failure rolls back friendship, both payloads and replay; identical request retries once without upload or revision churn on committed replay",
+      "health and an independent SQL write proceed during actual worker IO; a newer consent revision cannot be acknowledged by an older successful download",
+      "a private SQL identity-change fixture during owned IO cannot acknowledge a successful reply under the former PUID",
+      "real deferred completion COMMIT failure retains the sealed claim; acknowledgement retry succeeds without repeating provider IO",
+      "wrong read-back, duplicate JSON, oversized lines and excess SDK log lines cannot acknowledge; native retry waits the unshortened thirty-second backoff and stores only a generic error",
+      "real130-second worker deadline kills/reaps the exact child before its private cache is removed and leaves the payload pending",
+      "SIGTERM during real owned IO cancels and reaps before cache removal; restart retains the same pending revision and canonical EOS identity and uploads it through a fresh native claim"
+    ],
+    "timings": {
+      "health_and_sql_seconds": 0.0046966359950602055,
+      "real_backoff_seconds": 30.10126436399878,
+      "real_worker_timeout_seconds": 129.977929967994,
+      "shutdown_seconds": 0.015618200006429106
+    },
+    "worker_calls": 15,
+    "worker_pids": [
+      1952968,
+      1952971,
+      1952972,
+      1952977,
+      1952978,
+      1952979,
+      1952984,
+      1953319,
+      1953335,
+      1953338,
+      1953350,
+      1954322,
+      1954335,
+      1960468,
+      1960504
+    ],
+    "real_sdk": false,
+    "real_cloud": false,
+    "native_played_world": false
+  }
+}

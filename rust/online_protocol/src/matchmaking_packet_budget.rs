@@ -8,7 +8,7 @@ pub enum Stream {
     Game(u8),
     Audio(u8, u8),
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Budget {
     streams: BTreeMap<Stream, (f64, f64)>,
 }

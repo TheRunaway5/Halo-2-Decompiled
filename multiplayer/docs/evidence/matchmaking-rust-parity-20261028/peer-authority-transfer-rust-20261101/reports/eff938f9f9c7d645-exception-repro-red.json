@@ -1,0 +1,123 @@
+{
+  "passed": true,
+  "mode": "red",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-exception-probe/halo2-test-mn51y_b_",
+  "cases": [
+    {
+      "case": "empty_targets",
+      "commands": [
+        {
+          "op": "new",
+          "id": 0,
+          "self": 0,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "limits": {}
+        },
+        {
+          "op": "publish",
+          "id": 0,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "tick": 0,
+          "bytes": "aa",
+          "targets": [],
+          "now": 0
+        }
+      ],
+      "observations": [
+        {
+          "ok": true
+        }
+      ],
+      "difference": {
+        "command": {
+          "op": "publish",
+          "id": 0,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "tick": 0,
+          "bytes": "aa",
+          "targets": [],
+          "now": 0
+        },
+        "reference": {
+          "category": "invalid_argument",
+          "error": true
+        },
+        "rust": {
+          "category": "exception",
+          "error": true
+        }
+      },
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "case": "bad_constructor",
+      "commands": [
+        {
+          "op": "new",
+          "id": 0,
+          "self": 256,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "limits": {}
+        }
+      ],
+      "observations": [],
+      "difference": {
+        "command": {
+          "op": "new",
+          "id": 0,
+          "self": 256,
+          "context": {
+            "session": "4242424242424242424242424242424242424242424242424242424242424242",
+            "epoch": 3,
+            "revision": 5,
+            "peers": 1,
+            "host": 0
+          },
+          "limits": {}
+        },
+        "reference": {
+          "category": "invalid_argument",
+          "error": true
+        },
+        "rust": {
+          "category": "exception",
+          "error": true
+        }
+      },
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ],
+  "scope": "Minimal paired public C++/Rust ABI exception-category control, not the installed playlist symptom or a native world/provider test",
+  "production_source_sha256": "8791a8596d82b447d760de7e5164b33c7581fefa46483dbf94dbb94d57059ec1",
+  "retained_large_artifacts": []
+}

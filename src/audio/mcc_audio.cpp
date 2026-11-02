@@ -23,6 +23,7 @@ PcmSound decode_mcc_opus(const EncodedSound& input) {
         if(at>input.data.size() || chunk.bytes>input.data.size()-at)
             throw FormatError("MCC Opus chunk escapes its owned bytes");
         const auto end=at+chunk.bytes;
+        const auto first_frame=out.frames();
         const auto unit=input.channels*480u;
         // Original 769480 rounds a chunk's PCM allocation up to a 5ms block.
         const auto expected=(std::uint64_t(chunk.pcm_bytes)+unit-1)/unit*unit;
@@ -49,12 +50,18 @@ PcmSound decode_mcc_opus(const EncodedSound& input) {
             at+=length;last=signed_length<0;
         }
         if(decoded!=expected)throw FormatError("MCC Opus chunk PCM extent differs from decoded packets");
+        // MCC 779210 submits chunk+8 bytes to AIL_load_sample_buffer, not the
+        // rounded decode allocation. Discard each chunk's allocation padding
+        // before appending another chunk; a final permutation trim cannot do it.
+        out.stereo.resize((first_frame+chunk.pcm_bytes/(input.channels*2))*2);
+        out.chunk_boundaries.push_back({at,out.frames()});
         if(chunk.reset_after && opus_decoder_ctl(decoder.get(),OPUS_RESET_STATE)!=OPUS_OK)
             throw FormatError("Cannot release MCC Opus chunk state");
     }
     if(at!=input.data.size() || out.frames()<input.samples)
         throw FormatError("MCC Opus permutation extent differs from metadata");
     out.stereo.resize(std::size_t(input.samples)*2);
+    for(auto& boundary:out.chunk_boundaries)boundary.end_frame=std::min(boundary.end_frame,out.frames());
     return out;
 }
 }

@@ -1,0 +1,27 @@
+{
+  "passed": false,
+  "scope": "Exact modern C++ migration callers versus production Rust orchestration.\n\nBoth callers invoke the same real Rust Session owner. Agreement/QoS/selection\nobservations, times and IO refusals are declared fixtures. Every sampled field,\ncall order, effect, state and result is compared. This is not original Live,\ngenuine provider, native world or installed Linux delivery acceptance.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "error": "{'command': {'op': 'fence', 'phase': 'connecting', 'binding': True, 'agreement': False, 'force': False, 'fenced': False, 'feature': False, 'started': False, 'failed': False, 'decision': 'none'}, 'result': {'matched': False, 'result': {'steps': [{'epoch': 0, 'error': True, 'exception': 'ONLINE match connection failed or ended. Search again.', 'fenced': False, 'generation': 0, 'host': 16, 'members': 15, 'message': '', 'phase': 0, 'selected': None, 'started': False}], 'trace': [{'data': {'context': {'epoch': 0, 'host': 0, 'peers': 15, 'revision': 0, 'session': [162, 61, 0, 107, 176, 32, 168, 29, 253, 26, 250, 21, 150, 142, 7, 220, 174, 138, 158, 0, 22, 147, 75, 151, 73, 109, 131, 155, 138, 172, 143, 234]}, 'decision': None, 'failed': False, 'fenced': False, 'started': False}, 'event': 'fence'}]}, 'rust': {'steps': [{'epoch': 0, 'error': True, 'exception': 'Native migration caller failed', 'fenced': False, 'generation': 0, 'host': 16, 'members': 15, 'message': '', 'phase': 0, 'selected': None, 'started': False}], 'trace': [{'data': {'context': {'epoch': 0, 'host': 0, 'peers': 15, 'revision': 0, 'session': [162, 61, 0, 107, 176, 32, 168, 29, 253, 26, 250, 21, 150, 142, 7, 220, 174, 138, 158, 0, 22, 147, 75, 151, 73, 109, 131, 155, 138, 172, 143, 234]}, 'decision': None, 'failed': False, 'fenced': False, 'started': False}, 'event': 'fence'}]}}}",
+  "commands": 384,
+  "steps": 384,
+  "last_command": {
+    "op": "fence",
+    "phase": "connecting",
+    "binding": true,
+    "agreement": false,
+    "force": false,
+    "fenced": false,
+    "feature": false,
+    "started": false,
+    "failed": false,
+    "decision": "none"
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ],
+  "child_exit_code": 0
+}

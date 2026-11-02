@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final-cmake/halo2-test-_h2zf3jg/build/Testing/Temporary/scratch/halo2-test-ymrw3wk1/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final-cmake/halo2-test-_h2zf3jg/build/Testing/Temporary/scratch/halo2-test-ymrw3wk1",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final-cmake/halo2-test-_h2zf3jg/build/Testing/Temporary/scratch/halo2-test-ymrw3wk1/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final-cmake/halo2-test-_h2zf3jg/build/Testing/Temporary/scratch/halo2-test-ymrw3wk1/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-registration-clock-final-cmake/halo2-test-_h2zf3jg/build/Testing/Temporary/scratch/halo2-test-ymrw3wk1/cargo/release/halo2-matchmaking-service",
+    "bytes": 11471512,
+    "sha256": "07f1a4ae11a01c34429b956787eb90c654bf0468eb97c5e5cad3ccd7f12c72fb",
+    "retained": false
+  },
+  "mode": "clock-only",
+  "clock": {
+    "qualified": true,
+    "checks": [
+      "real HTTP keeps Steam expiry on credential wall time and clamps social registration to its persisted floor",
+      "new registration advances the SQL floor, returning login preserves its original date, and a later profile uses the retained floor",
+      "returning legacy profiles keep unknown registration dates without fabricated backfill",
+      "actual process restart retains registration dates and the persisted floor while retiring old account grants",
+      "a newer floor committed during the actual external SQL write lock is read before registration",
+      "a provider credential that expires during the SQL lock wait cannot allocate an identity despite the independent future registration floor",
+      "real deferred COMMIT failure rolls back the floor, canonical identity and profile; retry publishes one usable account"
+    ],
+    "preflight": {
+      "passed": true,
+      "contract": "Steam expiry uses credential wall time; social account registration uses Store.now with the persisted floor.",
+      "statuses": [
+        201,
+        201,
+        401
+      ],
+      "expected_statuses": [
+        201,
+        201,
+        401
+      ],
+      "registration_dates": [
+        1793512596,
+        1793512596
+      ],
+      "expected_registration_dates": [
+        1793512596,
+        1793512596
+      ],
+      "expired_identity_allocations": 0,
+      "floor_retained": true,
+      "fixture": "Private provider grants and a later registration clock floor; no system-clock mutation.",
+      "real_provider": false,
+      "original_parity": false
+    },
+    "real_provider": false,
+    "original_parity": false,
+    "native_played_world": false,
+    "system_clock_mutated": false
+  }
+}

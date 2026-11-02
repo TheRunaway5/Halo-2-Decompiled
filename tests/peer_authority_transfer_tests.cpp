@@ -10,11 +10,12 @@
 using namespace halo2;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
-template<class F>void rejects(F f){bool rejected=false;try{f();}catch(const std::exception &){rejected=true;}check(rejected,"Invalid authority publication accepted");}
+template<class F>void rejects(F f){bool rejected=false;try{f();}catch(const std::invalid_argument &){rejected=true;}check(rejected,"Invalid authority publication accepted or changed exception category");}
 AuthorityTransferContext context(){AuthorityTransferContext c;c.session[0]=std::byte{0x42};c.peers=(1u<<0)|(1u<<4);c.host=0;return c;}
 AuthorityTransferLimits limits(){AuthorityTransferLimits l;l.bytes_per_second=16*1024*1024;l.retry_ms=10;l.offer_ms=20;l.idle_ms=5000;l.lifetime_ms=30000;l.window_chunks=32;return l;}
 struct Link {
     PeerAuthorityTransfer a{0,context(),limits()},b{4,context(),limits()};
+    explicit Link(AuthorityTransferLimits configured=limits()):a(0,context(),configured),b(4,context(),configured){}
     std::uint64_t now{};unsigned serial{};std::vector<std::byte> old_offer,old_chunk;
     void step(bool loss=true,bool corrupt=false){
         ++now;
@@ -31,6 +32,132 @@ struct Link {
     }
     void handshake(){for(unsigned i=0;i<3000&&(!a.supported(4)||!b.supported(0));++i)step();check(a.supported(4)&&b.supported(0),"Capabilities did not survive loss");}
 };
+void observed_failures_and_fresh_retry(){
+    const std::array<unsigned,1> target{4};const std::vector<std::byte> old_bytes(4097,std::byte{0x31}),fresh_bytes(5003,std::byte{0x72});
+    const auto deliver=[&](Link& link,std::uint64_t tick,const auto& bytes){
+        link.handshake();const auto seal=link.a.publish(context(),tick,bytes,target,link.now);
+        std::optional<ReceivedAuthorityCut> value;
+        for(unsigned n=0;n<10000&&(!value||!link.a.delivered_to(context(),seal,4));++n){
+            link.step(false);if(!value)value=link.b.take_completed();
+        }
+        check(value&&value->seal==seal&&*value->bytes==bytes&&link.a.delivered_to(context(),seal,4),
+            "Failure/retry control did not deliver its exact immutable byte bank");return seal;
+    };
+    const auto ready_packets=[&](Link& link,const auto& seal){
+        check(link.b.acknowledge_validated(context(),seal),"Test executor could not validate its exact delivered bank");
+        std::vector<std::vector<std::byte>> packets;
+        for(auto& packet:link.b.poll(link.now,32))if(packet.bytes[8]==std::byte{5})packets.push_back(packet.bytes);
+        check(!packets.empty(),"Actual executor validation emitted no real Ready packet");return packets;
+    };
+    const auto finish=[&](Link& link,const auto& seal){
+        check(link.b.acknowledge_validated(context(),seal),"Fresh complete bank did not admit its executor validation");
+        std::vector<ValidatedAuthorityCut> received;
+        for(unsigned n=0;n<1000&&received.empty();++n){link.step(false);received=link.a.validated_cuts();}
+        check(received.size()==1&&received.front().seal==seal&&!link.a.failed_to(context(),seal,4,link.now),
+            "Fresh retry was not independently acknowledged or was reported failed after validation");
+    };
+    Link idle;const auto one=deliver(idle,10,old_bytes);const auto before=idle.now;
+    auto foreign=context();++foreign.membership_revision;auto partial=one;++partial.bytes;
+    check(!idle.a.failed_to(foreign,one,4,before+6000)&&!idle.a.failed_to(context(),partial,4,before+6000)&&
+        !idle.a.failed_to(context(),one,8,before+6000)&&!idle.b.failed_to(context(),one,0,before+6000)&&
+        !idle.a.failed_to(context(),one,4,before+4999),"Unknown/foreign failure observation expired or revived an unrelated cut");
+    idle.now=before+6000;
+    check(idle.a.failed_to(context(),one,4,idle.now)&&!idle.a.delivered_to(context(),one,4)&&idle.a.validated_cuts().empty(),
+        "Exact expired send did not report failure without inventing native readiness");
+    const auto late=ready_packets(idle,one);
+    for(const auto& packet:late)idle.a.receive(4,packet,idle.now);
+    check(idle.a.validated_cuts().empty(),"Late Ready revived an expired native send");
+    const auto two=deliver(idle,11,fresh_bytes);
+    check(two.id>one.id&&idle.a.context()==context(),"Retry changed context or reused a failed transfer identifier");
+    for(const auto& packet:late)idle.a.receive(4,packet,idle.now);
+    check(idle.a.validated_cuts().empty()&&!idle.a.failed_to(context(),one,4,idle.now),
+        "Retired old Ready matched a fresh pending bank");finish(idle,two);
+
+    Link lifetime;const auto full=deliver(lifetime,20,old_bytes);const auto began=lifetime.now;
+    for(unsigned n=0;n<7;++n){lifetime.now+=4000;check(lifetime.a.note_native_preparation(context(),full,4,lifetime.now),
+        "Lifetime failure control lost its genuine bounded preparation lease");}
+    lifetime.now=began+30001;
+    check(lifetime.a.failed_to(context(),full,4,lifetime.now),"Repeated progress concealed the original total lifetime expiry");
+    const auto expired_ready=ready_packets(lifetime,full);const auto renewed=deliver(lifetime,21,fresh_bytes);
+    for(const auto& packet:expired_ready)lifetime.a.receive(4,packet,lifetime.now);
+    check(lifetime.a.validated_cuts().empty(),"Overall-expired Ready validated the fresh retry");finish(lifetime,renewed);
+
+    Link rejected;const auto denied=deliver(rejected,30,old_bytes);
+    check(rejected.b.reject_delivered(context(),denied),"Exact delivered bank did not accept native preflight rejection");
+    rejected.step(false);
+    check(rejected.a.failed_to(context(),denied,4,rejected.now)&&rejected.a.validated_cuts().empty(),
+        "Authenticated native Nack was not observed as failure");
+    finish(rejected,deliver(rejected,31,fresh_bytes));
+
+    auto configured=limits();configured.features=authority_feature_source_pipeline;
+    Link pipeline(configured);const auto first=deliver(pipeline,40,old_bytes);
+    const auto second=pipeline.a.publish_ahead(context(),first,41,fresh_bytes,4,pipeline.now);
+    std::optional<ReceivedAuthorityCut> successor;
+    for(unsigned n=0;n<10000&&(!successor||!pipeline.a.delivered_to(context(),second,4));++n){
+        pipeline.step(false);if(!successor)successor=pipeline.b.take_completed();}
+    check(successor&&successor->seal==second&&*successor->bytes==fresh_bytes,
+        "Pipeline failure control lost its independent successor bytes");
+    check(pipeline.b.reject_delivered(context(),first),"Pipeline predecessor rejection was refused");pipeline.step(false);
+    check(pipeline.a.failed_to(context(),first,4,pipeline.now)&&!pipeline.a.failed_to(context(),second,4,pipeline.now),
+        "Retiring predecessor failure falsely acknowledged or failed the independent successor");
+    const auto old_successor_ready=ready_packets(pipeline,second);
+    const auto third=deliver(pipeline,42,old_bytes);
+    check(third.id>second.id&&pipeline.a.context()==context(),"Pipeline retry reset context or serial allocation");
+    for(const auto& packet:old_successor_ready)pipeline.a.receive(4,packet,pipeline.now);
+    check(pipeline.a.validated_cuts().empty(),"Abandoned pipeline successor Ready promoted a fresh retry");finish(pipeline,third);
+
+    Link incomplete;incomplete.handshake();const std::vector<std::byte> large(180123,std::byte{0x41});
+    const auto unreceived=incomplete.a.publish(context(),50,large,target,incomplete.now);
+    check(!incomplete.a.failed_to(context(),unreceived,4,incomplete.now),"Live undelivered bank was prematurely failed");
+    incomplete.now+=6000;check(incomplete.a.failed_to(context(),unreceived,4,incomplete.now)&&
+        incomplete.a.validated_cuts().empty(),"Undelivered idle failure manufactured native readiness");
+    std::cout<<"PASS exact failure observation, idle/lifetime/Nack/partial/foreign controls, same-context increasing-serial fresh retry, abandoned pipeline and late Ready isolation\n";
+}
+void native_preparation_lease(){
+    const std::array<unsigned,1> targets{4};const std::vector<std::byte> bytes(4097,std::byte{0x5a});
+    auto deliver=[&](Link& link){
+        link.handshake();const auto seal=link.a.publish(context(),90,bytes,targets,link.now);
+        check(!link.a.note_native_preparation(context(),seal,4,link.now),"Undelivered bytes admitted native construction progress");
+        std::optional<ReceivedAuthorityCut> complete;
+        for(unsigned i=0;i<10000&&(!complete||!link.a.delivered_to(context(),seal,4));++i){
+            link.step(false);if(!complete)complete=link.b.take_completed();
+        }
+        check(complete&&complete->seal==seal&&*complete->bytes==bytes&&link.a.delivered_to(context(),seal,4),
+            "Native construction lease fixture did not deliver its exact complete bytes");return seal;
+    };
+    Link live;const auto seal=deliver(live);const auto began=live.now;
+    auto wrong=seal;++wrong.tick;
+    check(!live.a.note_native_preparation(context(),wrong,4,live.now)&&
+        !live.a.note_native_preparation(context(),seal,8,live.now)&&
+        !live.b.note_native_preparation(context(),seal,0,live.now),"Foreign seal/peer/nonhost renewed native construction");
+    auto changed=context();++changed.membership_revision;
+    check(!live.a.note_native_preparation(changed,seal,4,live.now),"Foreign admission generation renewed construction");
+    for(unsigned i=0;i<6;++i){live.now+=1000;check(live.a.note_native_preparation(context(),seal,4,live.now),
+            "Actual delivered native preparation lost its idle lease");live.step(false);}
+    check(live.now-began>5000&&live.a.validated_cuts().empty(),"Native preparation pulse manufactured a Ready receipt");
+    check(live.b.acknowledge_validated(context(),seal),"Genuine native Ready failed after longer-than-idle preparation");
+    std::vector<ValidatedAuthorityCut> ready;
+    for(unsigned i=0;i<1000&&ready.empty();++i){live.step(false);ready=live.a.validated_cuts();}
+    check(ready.size()==1&&ready.front().seal==seal,"Actual native Ready did not survive construction lease renewal");
+    check(!live.a.note_native_preparation(context(),seal,4,live.now),"Already validated world renewed construction");
+
+    Link idle;const auto expired=deliver(idle);auto foreign=expired;foreign.digest.front()^=std::byte{1};
+    for(unsigned i=0;i<5;++i){idle.now+=1000;
+        check(!idle.a.note_native_preparation(context(),foreign,4,idle.now),"Foreign native seal renewed the real cut's idle lease");}
+    ++idle.now;
+    check(!idle.a.note_native_preparation(context(),expired,4,idle.now),"Expired native idle lease was revived");
+    check(idle.b.acknowledge_validated(context(),expired),"Delivered negative-control bytes disappeared");
+    for(unsigned i=0;i<50;++i)idle.step(false);
+    check(idle.a.validated_cuts().empty(),"Late native Ready revived expired construction");
+
+    Link bounded;const auto lifetime=deliver(bounded);const auto start=bounded.now;
+    for(unsigned i=0;i<7;++i){bounded.now+=4000;check(bounded.a.note_native_preparation(context(),lifetime,4,bounded.now),
+        "Live preparation expired before the existing lifetime bound");}
+    bounded.now=start+30001;
+    check(!bounded.a.note_native_preparation(context(),lifetime,4,bounded.now),"Construction progress extended the total native lifetime");
+    check(bounded.a.validated_cuts().empty(),"Unvalidated lifetime control produced native readiness");
+    std::cout<<"PASS exact delivered native construction lease beyond idle, no early Ready, foreign/partial/expired rejection and unchanged total lifetime\n";
+}
 void concurrent_delivery(){
     auto configured=limits();configured.features=authority_feature_source_pipeline;
     PeerAuthorityTransfer a(0,context(),configured),b(4,context(),configured);
@@ -96,6 +223,10 @@ void pipeline_delivery(){
     auto wait=[&](auto ready,bool drop=false){for(unsigned n=0;n<10'000&&!ready();++n)step(drop);check(ready(),"Two-cut pipeline did not progress under loss");};
     wait([&]{return host.supported(4)&&client.supported(0);});
     check(host.feature_supported(4,authority_feature_source_pipeline),"Pipeline feature was not negotiated");
+    const auto observed_features=host.feature_snapshot();
+    check(observed_features.context==host.context()&&
+        (observed_features.features[4]&authority_feature_source_pipeline)&&
+        observed_features.features[15]==0,"Capability snapshot lost its actual context or unknown-peer barrier");
     const std::array<unsigned,1> targets{4};std::vector<std::byte> first(90'011,std::byte{0x41}),second(80'013,std::byte{0x42});
     const auto one=host.publish(context(),10,first,targets,now);
     rejects([&]{host.publish_ahead(context(),one,11,second,4,now);});
@@ -110,6 +241,10 @@ void pipeline_delivery(){
     check(received_two->seal==two&&*received_two->bytes==second&&host.validated_cuts().empty(),"Prefetch changed or validated a world");
     rejects([&]{host.publish_ahead(context(),two,12,first,4,now);});
     auto wrong=one;++wrong.tick;check(!client.acknowledge_validated(context(),wrong),"Pipeline accepted a different completed world");
+    for(unsigned i=0;i<6;++i){now+=1000;
+        check(host.note_native_preparation(context(),one,4,now)&&host.note_native_preparation(context(),two,4,now),
+            "Exact pipelined predecessor/successor construction leases were lost");step();}
+    check(host.validated_cuts().empty(),"Pipelined construction progress produced native readiness");
     check(client.acknowledge_validated(context(),one),"Earlier executor validation was lost to prefetch");
     for(unsigned n=0;n<100;++n)step(true);check(host.validated_cuts().empty(),"Dropped validation still produced readiness");
     check(client.acknowledge_validated(context(),two),"Successor native validation was rejected");
@@ -243,6 +378,7 @@ void run(){
             "Older replay decoder advertised the shared projectile journal owner");
         auto next=context();++next.epoch;check(legacy.replace_context(context(),next),"Capability generation reset rejected");
         check(!legacy.feature_supported(0,authority_feature_source_replay),"Prior generation replay capability survived reset");
+        check(legacy.feature_snapshot().features[0]==0,"Prior generation capability snapshot survived reset");
     }
     Link l;l.handshake();std::vector<std::byte> bytes(180'123);for(unsigned i=0;i<bytes.size();++i)bytes[i]=std::byte((i*37+i/13)&255);
     const std::array<unsigned,1> targets{4};auto cut=l.a.publish(context(),42,bytes,targets,l.now);
@@ -276,7 +412,7 @@ void run(){
     for(unsigned i=0;i<100;++i)expired.b.receive(0,expired.old_chunk,expired.now+6002+i);
     check(!expired.b.take_completed(),"Timed-out transfer identifier was revived");
     PeerAuthorityTransfer alone(0,AuthorityTransferContext{context().session,0,0,1,0});check(alone.poll(0).empty(),"Couch-only room generated a self route");
-    pipeline_delivery();concurrent_delivery();
+    native_preparation_lease();observed_failures_and_fresh_retry();pipeline_delivery();concurrent_delivery();
     const bool default_fanout=default_credit_fanout(4),session_fanout=default_credit_fanout(2);
     check(default_fanout&&session_fanout,"Default-credit multi-recipient delivery starved an independently admitted physical peer");
     std::cout<<"PASS bounded peer authority delivery under deterministic loss/reorder/duplicates, explicit validated-world acknowledgements, context/source/timeout/corruption guards and couch-only rooms\n";

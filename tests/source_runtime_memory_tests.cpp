@@ -280,6 +280,9 @@ void native_read_view_queries() {
   bank.mount(0x3fff03,bytes,A::ReadOnly,"native query partial/full source pages");
   bank.mount(0x1000,std::span(bytes).first(16),A::ReadWrite,"first adjacent native owner");
   bank.mount(0x1010,std::span(bytes).first(16),A::ReadOnly,"second adjacent native owner");
+  bank.mount(0x2000,std::span(bytes).first(16),A::ReadWrite,"first adjacent writable extent");
+  bank.mount(0x2010,std::span(bytes).first(16),A::ReadWrite,"second adjacent writable extent");
+  bank.mount(0x48c530,std::span(bytes).first(0x88),A::ReadWrite,"bounded shadow basis owner");
   bank.mount(0xfffffff0,std::span(bytes).first(16),A::ReadOnly,"final native read extent");
   bank.reserve(0x600000,0x4000,0x1000,"native read committed pages");
   const std::vector<std::byte> page(0x1000,std::byte{0x37});
@@ -310,15 +313,21 @@ void native_read_view_queries() {
     Restore() {check(std::feholdexcept(&environment)==0,"Cannot hold native-view FP fixture");}
     ~Restore() {std::fesetenv(&environment);errno=error;}
   } restore;
-  struct Query {std::uint32_t address;std::size_t bytes;bool complete;};
+  struct Query {std::uint32_t address;std::size_t bytes;bool complete;bool writable=false;};
   const std::array queries{
     Query{0x3fff03,0x230,true},Query{0x400000,16,true},Query{0x400123,16,true},
-    Query{0x3fff02,1,false},Query{0x400124,16,false},Query{0x1000,16,true},
+    Query{0x3fff02,1,false},Query{0x400124,16,false},Query{0x1000,16,true,true},
     Query{0x1008,16,false},Query{0xfffffff0,16,true},Query{0xfffffff8,16,false},
-    Query{0x600ff0,16,true},Query{0x600ff8,16,false},Query{0x601000,16,false},
+    Query{0x600ff0,16,true,true},Query{0x600ff8,16,false},Query{0x601000,16,false},
+    Query{0x2000,16,true,true},Query{0x2008,16,false},
+    Query{0x48c558,12,true,true},Query{0x48c564,12,true,true},Query{0x48c530,0x88,true,true},
+    Query{0x48c52f,1,false},Query{0x48c5b8,1,false},Query{0x48c5b4,8,false},
     Query{0x600000,std::numeric_limits<std::size_t>::max(),false}};
   static_assert(noexcept(bank.try_read_view(0,1)));
   static_assert(noexcept(generic.try_read_view(0,1)));
+  static_assert(noexcept(bank.try_write_extent(0,1)));
+  static_assert(noexcept(generic.try_write_extent(0,1)));
+  check(!bank.try_write_extent(0x1000,0),"Empty native write extent was admitted");
   for(const auto rounding:{FE_TONEAREST,FE_DOWNWARD,FE_UPWARD,FE_TOWARDZERO}) {
     check(std::fesetround(rounding)==0 && std::feclearexcept(FE_ALL_EXCEPT)==0 &&
           std::feraiseexcept(FE_DIVBYZERO|FE_INEXACT)==0,"Cannot set native-view FP fixture");
@@ -327,6 +336,7 @@ void native_read_view_queries() {
       check(std::fegetenv(&before)==0,"Cannot capture native-view FP input");
       errno=E2BIG;
       const auto borrowed=bank.try_read_view(query.address,query.bytes);
+      const auto writable=bank.try_write_extent(query.address,query.bytes);
       const auto after_errno=errno;
       check(std::fegetenv(&after)==0,"Cannot capture native-view FP output");
       check(after_errno==E2BIG && std::memcmp(&before,&after,sizeof(before))==0,
@@ -334,19 +344,28 @@ void native_read_view_queries() {
       check(bool(borrowed)==(enabled && query.complete),"Native read admitted a partial/invalid region or lost a complete one");
       if(borrowed)check(borrowed->size()==query.bytes && borrowed->data()==bank.view(query.address,query.bytes).data(),
                         "Native read returned a different source span");
+      check(bool(writable)==(enabled&&query.complete&&query.writable),"Native write extent lost access, ownership or commitment bounds");
+      if(writable)check(writable->size()==query.bytes&&writable->data()==bank.view(query.address,query.bytes).data(),
+                        "Native write extent returned different backing");
     }
     std::fenv_t before{},after{};
     check(std::fegetenv(&before)==0,"Cannot capture custom native-view FP input");
     errno=E2BIG;
     const auto borrowed=generic.try_read_view(0x1000,16);
+    const auto writable=generic.try_write_extent(0x1000,16);
     const auto after_errno=errno;
     check(std::fegetenv(&after)==0,"Cannot capture custom native-view FP output");
-    check(!borrowed && generic.calls==0 && after_errno==E2BIG &&
+    check(!borrowed && !writable && generic.calls==0 && after_errno==E2BIG &&
           std::memcmp(&before,&after,sizeof(before))==0,"Custom memory did not refuse native read without side effects");
   }
   check(watch.calls==0,"Native read admission invoked an ownership guard or observer");
   bank.commit(0x601000,page);
   check(bool(bank.try_read_view(0x600ff8,16))==enabled,"Native read failed to requalify a newly committed page");
+  check(bool(bank.try_write_extent(0x600ff8,16))==enabled,"Native write extent failed to requalify newly committed pages");
+  bank.release(0x48c530);
+  check(!bank.try_write_extent(0x48c558,12),"Native write extent retained released sub-page storage");
+  bank.mount(0x48c530,std::span(bytes).first(0x88),A::ReadOnly,"rebound read-only shadow basis owner");
+  check(!bank.try_write_extent(0x48c558,12),"Native write extent ignored rebound read-only access");
   bank.release(0x3fff03);
   check(!bank.try_read_view(0x400000,16),"Native read retained a released page-index owner");
   bank.mount(0x3fff03,bytes,A::ReadOnly,"replacement native read region");
@@ -365,9 +384,17 @@ void native_read_view_queries() {
   SourceRuntimeMemory opaque;
   opaque.mount(0x900000,backing,A::ReadWrite,"unreadable native-view lease");
   const auto borrowed=opaque.try_read_view(0x90000d,0x1230);
-  check(bool(borrowed)==enabled && platform_guards==0,"Native view sampled backing or invoked its platform guard");
+  const auto writable=opaque.try_write_extent(0x90000d,0x1230);
+  check(bool(borrowed)==enabled && !writable && platform_guards==0,"Native extent sampled backing or invoked/bypassed its platform guard");
   if(borrowed)check(borrowed->data()==static_cast<const std::byte*>(mapped)+13 && borrowed->size()==0x1230,
                     "Native read capability lost its actual host extent");
+  // Poison the host mapping to detect even one accidental byte read during
+  // the topology-only positive query. This deliberately never executes it.
+  auto plain_backing=std::make_shared<halo2::SourceRuntimeMemoryBacking>(lifetime,
+      std::span(static_cast<std::byte*>(mapped),inaccessible_bytes));
+  SourceRuntimeMemory plain;plain.mount(0xa00000,plain_backing,A::ReadWrite,"unreadable write-extent query lease");
+  const auto plain_extent=plain.try_write_extent(0xa0000d,0x1230);
+  check(bool(plain_extent)==enabled,"Native write extent inspected host bytes or lost ordinary metadata");
 #endif
 }
 } // namespace

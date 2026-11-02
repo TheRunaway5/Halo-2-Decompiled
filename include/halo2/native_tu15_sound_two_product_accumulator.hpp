@@ -19,6 +19,7 @@ struct Controls {
 };
 struct ArithmeticTrace {std::int64_t primary_product,first_sum,secondary_product,final_sum;bool operator==(const ArithmeticTrace&)const=default;};
 struct Result {Word24 captured_status_operand;bool exit_arithmetic_saturation;};
+void validate_controls(const Controls&);
 // Source bodies are independently proved equivalent under their state/output
 // relocation. Three disjoint native spans; no partial/exact overlap admitted.
 Result process(const Controls&,const Parameters&,State&,std::span<const Word24,32> primary,

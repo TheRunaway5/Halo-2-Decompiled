@@ -1,0 +1,40 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-eos/halo2-test-s196essz/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 101
+    }
+  ],
+  "action": "eos",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/online_protocol/src/matchmaking_profile_directory.rs",
+    "rust/matchmaking_service/Cargo.toml",
+    "rust/matchmaking_service/Cargo.lock",
+    "rust/matchmaking_service/src/main.rs",
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/admission.rs",
+    "rust/matchmaking_service/src/http.rs",
+    "rust/matchmaking_service/src/rooms.rs",
+    "rust/matchmaking_service/src/eos_identity.rs",
+    "rust/matchmaking_service/src/eos_verifier.rs",
+    "rust/matchmaking_service/src/eos_binding.rs",
+    "rust/matchmaking_service/src/eos_http.rs"
+  ],
+  "source_files": 128,
+  "error": "Rust build/test failed"
+}

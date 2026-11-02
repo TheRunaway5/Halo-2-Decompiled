@@ -246,12 +246,16 @@ std::uint32_t SceneObjects::create(int name, bool replace,
     destroy(existing);
   }
   const auto &n = content_.object_names[name];
-  // RetailBB670 admits only names bound to a placement (+22 != NONE).
+  // TU1.5 BD6A0 admits only names bound to a placement (+22 != NONE).
   // Compiled name searches also visit unbound scenario name rows.
   if(n.placement==-1)return null_datum;
   for (std::size_t i = 0; i < content_.objects.size(); ++i)
     if (content_.objects[i].type == n.type &&
         content_.objects[i].placement == n.placement) {
+      // TU1.5 C1120/D75A0 returns NONE for an authored empty palette or
+      // definition. Containing-name searches legitimately visit these rows;
+      // they do not submit an invalid object request to the constructor.
+      if(content_.objects[i].definition==null_datum)return null_datum;
       if(game_context_ && !factory_game_allowed(content_.objects[i]))
         return null_datum;
       return place(i, creation_tick);

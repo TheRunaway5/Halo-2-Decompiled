@@ -1,0 +1,25 @@
+import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+output=root/'build/test-results/frontend-party-lobby-view-rust-20261102/original';output.mkdir(parents=True)
+folder=source/'analysis/frontend/lobby';folder.mkdir(parents=True);(source/'tests/fixtures').mkdir(parents=True)
+for name in ['assets','tools']:(source/name).symlink_to(root/name,target_is_directory=True)
+names=['oracle-game-panel.py','oracle-header-policy.py','game-panel-original.json']
+pins={}
+for name in names:
+ p=root/'analysis/frontend/lobby'/name;pins[str(p.relative_to(root))]=hashlib.sha256(p.read_bytes()).hexdigest();shutil.copyfile(p,folder/name)
+steps=[]
+for name in names[:2]:
+ command=[str(root/'.tools/python/bin/python'),'-B',str(folder/name)]
+ p=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ (output/(name+'.log')).write_bytes(p.stdout[-1048576:]);steps.append(dict(command=command,exit_code=p.returncode))
+ print(name,p.returncode,p.stdout.decode(errors='replace')[-1800:],flush=True)
+ if p.returncode:break
+fixtures={}
+for name in ['frontend-lobby-game-original.tsv','frontend_lobby_header_original.tsv']:
+ before=root/'tests/fixtures'/name;after=source/'tests/fixtures'/name
+ fixtures[name]=dict(unchanged=after.is_file() and before.read_bytes()==after.read_bytes(),reference_sha256=hashlib.sha256(before.read_bytes()).hexdigest(),fresh_sha256=hashlib.sha256(after.read_bytes()).hexdigest() if after.is_file() else None,rows=len([v for v in before.read_text().splitlines() if v and not v.startswith('#')]))
+pinned={str(p.relative_to(root)):dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),bytes=p.stat().st_size) for p in [root/'assets/disc/default.xbe',root/'assets/disc/maps/mainmenu.map']}
+result=dict(passed=len(steps)==2 and all(s['exit_code']==0 for s in steps) and all(f['unchanged'] for f in fixtures.values()),steps=steps,fixtures=fixtures,source_pins=pins,originals=pinned,scratch=str(scratch),version='Pinned supplied retail Xbox executable; this receipt does not relabel it as TU1.5',retained_large_artifacts=[])
+(output/'report.json').write_text(json.dumps(result,indent=2)+'\n')
+raise SystemExit(0 if result['passed'] else 1)

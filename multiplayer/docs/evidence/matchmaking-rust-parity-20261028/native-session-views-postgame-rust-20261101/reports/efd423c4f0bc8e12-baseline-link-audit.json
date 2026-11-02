@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "baseline_cpp_owner": true,
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-native/halo2-test-sv5ubjy9/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+  ],
+  "object_sha256": "0145629b72c3d7f8e7bf2194596d328c8babf6328990b93712e9efb272ee06e4",
+  "rust_entries": {
+    "authority_limits": false,
+    "local_slots": false,
+    "physical_peers": false,
+    "presence": false,
+    "continuity_view": false,
+    "control_postgame": false,
+    "snapshot_view": false,
+    "pump_postgame": false
+  },
+  "old_cpp_feature_function_present": true,
+  "cpp_local_slot_method_sha256": "a5712517ed3c7a11425a389d9ca82c8a8c397a378999dc107301e156c519a8e6",
+  "local_slot_read_remains_lock_free": true,
+  "cpp_postgame_caller_sha256": "cbb5df6cb7161d7929a69603fc9031ec132cedd72acb9808db7a0d6c125528a1",
+  "rust_native_input_count": 3418,
+  "rust_native_input_mismatch": [],
+  "all_qualified_input_snapshots_identical": true,
+  "current_critical_source_drift": [
+    "src/network/online_match_session.cpp"
+  ],
+  "source_pins": {
+    "src/network/online_match_session.cpp": "b1d9767cbbf6a6038f2d4a454e8da84a46a72bda452a1ac6a1310c5ff7356a35",
+    "rust/online_protocol/src/matchmaking_native_access.rs": "1d333477a68d8a4718eb4af6e9e48f0185a886defa23f16a7b2e8d5203fa4629",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "d252b8bb38bc6d4c7bafb299f1c1b649ea49167bcf1554fe084b7c0d0e06e091",
+    "rust/online_protocol/src/matchmaking_native_publication.rs": "61d63fcf9c77a13120b2b652057e7f58a83f8f471694639faf259ffb4f9b4e2d",
+    "rust/online_protocol/src/lib.rs": "22baf720d9834ccce462502a3169c26fb05a1d04303f24602c130e9d3a5315a1",
+    "rust/online_protocol/tests/matchmaking_native_session.rs": "c07ec44e33b384bb9de09ed9a7653395c9aca86c3b49c218f96fee61769a0d7c",
+    "rust/online_protocol_bridge/src/matchmaking_native_access.rs": "89faf8d1cfc3b32685dc68b5c6291c5ffc1b97b7f24dea1e24cdaf6c2c430d16",
+    "rust/online_protocol_bridge/src/matchmaking_native_access.hpp": "439720cc9639e8bd71fa11df863d1c0a7411c1462817e2cac115010307a04163",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "0c5e0c4f011843589f0ba2d671f182cacb1660ad33bece988d2f19c1fb5cff06",
+    "rust/online_protocol_bridge/src/matchmaking_native_publication.rs": "e8c67f377bd28cf8c5b9b797f94c94cdc212f0a0c2bc80143b22fedb8199a431",
+    "rust/online_protocol_bridge/src/lib.rs": "6239292bb3b7204b82196795276bf046ef2a457d85cf15c6023dbf0c74daf857",
+    "rust/online_protocol_bridge/build.rs": "0c18f134c32c72ec83446b83fa8498626c92a27ccc81926f4ca4ee80e4b97527",
+    "cmake/OnlinePeers.cmake": "26c213f829adf100dd834e56526c164a7e66b07b8c0233acffb1329bedb85ff4",
+    "cmake/OnlineProtocolRust.cmake": "ee1e7fb9fdd62232c776307e4b08a14526b675649de3f45cc9704feb5b04d78d",
+    "tools/build_online_protocol_rust.py": "aae64399fcd8169fd4f002cb76cb1ee5f5b8f978bf974f7018c73121dafa2ac1",
+    "tests/test_build_online_protocol_rust.py": "f00d53c1b91ea46ca0d78f423d3745a72543fac2238531d0391fd02b93b5d9b2",
+    "tests/native_session_access_tests.cpp": "d6d6fc9264c3354e0a10532717c5f7447e6fc9f263b2d566e17337c81ceb8d2a",
+    "tests/test_native_session_access.py": "df773dbff80e725a53f7842c08960773a233ffb4658db8bb1207668d30e08241",
+    "tests/peer_host_session_tests.cpp": "dccee793e11d608c36ff12c4e35b849cdb1f5129a9c13cdda21e6201dab595f2",
+    "tests/reference/native_session_limits_before_rust_20261101.inc": "73b788f6ecf82af7d62dfc39b28873fdd53d75817fb01ae0bdbd358bc2de4e9b",
+    "tests/reference/native_session_postgame_before_rust_20261101.inc": "75a658116195dff9ae8d1c10327f1aac5f2a00931415e813d5db9ed14634f97b",
+    "tests/reference/native_session_views_before_rust_20261101.inc": "a43435a86a951ab0f72830c488e4f0175334f14d510788f4c5310d097cb69229",
+    "tests/reference/native_session_views_postgame_before_rust_20261101.json": "472e6fc529c9d157e2c165a670a5d63bb476f11c8a2c2152fbc766da0921c1dd",
+    "include/halo2/multiplayer_datagrams.hpp": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c"
+  },
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-views-postgame-audit/halo2-test-ckwzc05h",
+  "retained_large_artifacts": [],
+  "scope": "Actual configured Session object, complete modern access/postgame caller, raw roster input and local getter lock contract; no original Live, native world/provider or installed delivery acceptance."
+}

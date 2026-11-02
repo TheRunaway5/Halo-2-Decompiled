@@ -28,7 +28,8 @@ struct SourceSceneCopyGpu::Impl {
     VkSampler sampler{};VkBuffer uniform{};VkDeviceMemory uniform_memory{};void *mapped{};
     Image source_copy,target;
     VkExtent2D source_extent{},target_extent{};
-    bool prepared{},initialized{},before_record_initialized{};
+    bool prepared{},source_initialized{},target_initialized{};
+    bool before_source_initialized{},before_target_initialized{};
     VkFence pending{};VkCommandBuffer recorded_command{};
     explicit Impl(SourceSceneCopyGpuContext c):context(std::move(c)) {
         try{initialize();}catch(...){destroy();throw;}
@@ -49,7 +50,8 @@ struct SourceSceneCopyGpu::Impl {
     }
     void destroy_images() {
         if(framebuffer)vkDestroyFramebuffer(context.device,framebuffer,nullptr);framebuffer={};
-        destroy(target);destroy(source_copy);source_extent={};target_extent={};prepared=initialized=false;
+        destroy(target);destroy(source_copy);source_extent={};target_extent={};
+        prepared=source_initialized=target_initialized=false;
     }
     void destroy() {
         destroy_images();const auto d=context.device;if(!d)return;
@@ -179,6 +181,26 @@ struct SourceSceneCopyGpu::Impl {
         std::memcpy(mapped,&values,sizeof(values));prepared=true;
         return {target.view,context.color_format,target_extent};
     }
+    void begin_access(VkCommandBuffer command,VkFence completion) {
+        if(pending&&(pending!=completion||recorded_command!=command))
+            throw FormatError("Scene-copy frame belongs to another live command/fence");
+        const auto status=vkGetFenceStatus(context.device,completion);
+        if(status!=VK_NOT_READY){if(status!=VK_SUCCESS)check(status,"query scene-copy completion");throw FormatError("Scene-copy command requires its reset unsignaled completion fence");}
+        if(!pending) {
+            pending=completion;recorded_command=command;
+            before_source_initialized=source_initialized;before_target_initialized=target_initialized;
+        }
+    }
+    SourceSceneCopyGpuImage record_unwritten_access(const SourceSceneCopyGpuUnwrittenAccess &in) {
+        owner();
+        if(!prepared||!in.command||!in.completion||in.owner!=context.device||in.queue_family!=context.queue_family||
+           !in.outside_render_pass||!in.exclusive_access||source_initialized)
+            throw FormatError("Unwritten scene target lacks its actual allocation/command ownership");
+        begin_access(in.command,in.completion);
+        if(!target_initialized)barrier(in.command,target.image,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            0,VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        target_initialized=true;return {target.image,target.view,context.color_format,target_extent};
+    }
     SourceSceneCopyGpuImage record(const SourceSceneCopyGpuRecord &in) {
         owner();
         if(!prepared||!in.command||!in.source||!in.completion||in.owner!=context.device||in.format!=context.color_format||
@@ -187,29 +209,25 @@ struct SourceSceneCopyGpu::Impl {
            in.queue_family!=context.queue_family||!in.outside_render_pass||!in.exclusive_access||
            in.source==source_copy.image||in.source==target.image)
             throw FormatError("Scene-copy record lacks its actual ordinary main-image/command ownership");
-        if(pending&&(pending!=in.completion||recorded_command!=in.command))
-            throw FormatError("Scene-copy frame belongs to another live command/fence");
-        const auto status=vkGetFenceStatus(context.device,in.completion);
-        if(status!=VK_NOT_READY){if(status!=VK_SUCCESS)check(status,"query scene-copy completion");throw FormatError("Scene-copy command requires its reset unsignaled completion fence");}
-        if(!pending){pending=in.completion;recorded_command=in.command;before_record_initialized=initialized;}
+        begin_access(in.command,in.completion);
         const auto c=in.command;
         barrier(c,in.source,in.layout,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,VK_ACCESS_TRANSFER_READ_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
-        barrier(c,source_copy.image,initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,initialized?VK_ACCESS_SHADER_READ_BIT:0,VK_ACCESS_TRANSFER_WRITE_BIT,
-            initialized?VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+        barrier(c,source_copy.image,source_initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,source_initialized?VK_ACCESS_SHADER_READ_BIT:0,VK_ACCESS_TRANSFER_WRITE_BIT,
+            source_initialized?VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
         VkImageCopy copy{};copy.srcSubresource=copy.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};copy.extent={source_extent.width,source_extent.height,1};
         vkCmdCopyImage(c,in.source,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,source_copy.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
         barrier(c,in.source,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,in.layout,VK_ACCESS_TRANSFER_READ_BIT,VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         barrier(c,source_copy.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-        barrier(c,target.image,initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            initialized?VK_ACCESS_SHADER_READ_BIT:0,VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            initialized?VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        barrier(c,target.image,target_initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            target_initialized?VK_ACCESS_SHADER_READ_BIT:0,VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            target_initialized?VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=pass;begin.framebuffer=framebuffer;begin.renderArea.extent=target_extent;
         vkCmdBeginRenderPass(c,&begin,VK_SUBPASS_CONTENTS_INLINE);vkCmdBindPipeline(c,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline);
         const VkViewport viewport{0,0,float(target_extent.width),float(target_extent.height),0,1};const VkRect2D scissor{{0,0},target_extent};
         vkCmdSetViewport(c,0,1,&viewport);vkCmdSetScissor(c,0,1,&scissor);
         vkCmdBindDescriptorSets(c,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&set,0,nullptr);vkCmdDraw(c,3,1,0,0);vkCmdEndRenderPass(c);
-        initialized=true;return {target.image,target.view,context.color_format,target_extent};
+        source_initialized=target_initialized=true;return {target.image,target.view,context.color_format,target_extent};
     }
     bool retire() {
         owner();if(!pending)return true;const auto status=vkGetFenceStatus(context.device,pending);
@@ -217,12 +235,14 @@ struct SourceSceneCopyGpu::Impl {
     }
     void discard(VkCommandBuffer reset_command) {
         owner();if(!pending||reset_command!=recorded_command)throw FormatError("Scene-copy discard has no matching reset unsubmitted command");
-        initialized=before_record_initialized;pending={};recorded_command={};
+        source_initialized=before_source_initialized;target_initialized=before_target_initialized;
+        pending={};recorded_command={};
     }
 };
 SourceSceneCopyGpu::SourceSceneCopyGpu(SourceSceneCopyGpuContext c):impl_(std::make_unique<Impl>(std::move(c))){}
 SourceSceneCopyGpu::~SourceSceneCopyGpu()=default;
 SourceSceneCopyGpuBinding SourceSceneCopyGpu::prepare(const SourceSceneCopyGpuInput &in){return impl_->prepare(in);}
+SourceSceneCopyGpuImage SourceSceneCopyGpu::record_unwritten_access(const SourceSceneCopyGpuUnwrittenAccess &in){return impl_->record_unwritten_access(in);}
 SourceSceneCopyGpuImage SourceSceneCopyGpu::record(const SourceSceneCopyGpuRecord &in){return impl_->record(in);}
 bool SourceSceneCopyGpu::retire(){return impl_->retire();}
 void SourceSceneCopyGpu::discard_unsubmitted(VkCommandBuffer c){impl_->discard(c);}

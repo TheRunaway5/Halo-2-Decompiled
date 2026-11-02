@@ -3,6 +3,7 @@
 #include <bit>
 #include <cfenv>
 #include <cmath>
+#include <cstring>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -44,15 +45,22 @@ void w3(M &m, std::uint32_t p, Vec3 v) {
   w(m, p + 4, std::bit_cast<std::uint32_t>(v.y));
   w(m, p + 8, std::bit_cast<std::uint32_t>(v.z));
 }
-// MOVAPS: two ordered eight-byte stores of x,y,z,0.
-void w4(M &m, std::uint32_t p, Vec3 v) {
+// The compatibility route retains its historical two-store observation.
+// Explicit native activation uses the source's single aligned MOVAPS store.
+void w4(M &m, std::uint32_t p, Vec3 v, bool contiguous = false) {
   std::array<std::byte, 16> b{};
   const std::array<std::uint32_t, 4> lanes{std::bit_cast<std::uint32_t>(v.x), std::bit_cast<std::uint32_t>(v.y),
                                            std::bit_cast<std::uint32_t>(v.z), 0u};
   for (unsigned i = 0; i < 16; ++i)
     b[i] = std::byte(lanes[i / 4] >> (8 * (i % 4)));
-  m.write(p, std::span<const std::byte>(b).first(8));
-  m.write(p + 8, std::span<const std::byte>(b).subspan(8, 8));
+  if (contiguous) {
+    if (p & 15u)
+      throw std::runtime_error("Native TU1.5 motion velocity requires aligned vector storage");
+    m.write(p, b);
+  } else {
+    m.write(p, std::span<const std::byte>(b).first(8));
+    m.write(p + 8, std::span<const std::byte>(b).subspan(8, 8));
+  }
 }
 std::int32_t sign(std::uint32_t v) { return std::bit_cast<std::int32_t>(v); }
 
@@ -192,7 +200,59 @@ void compact(M &m, std::uint32_t array_field) {
       w(m, r(m, array_field) + std::uint32_t(j) * 4u, r(m, r(m, array_field) + std::uint32_t(j + 1) * 4u));
   }
 }
-void activate(M &m, std::uint32_t b) { // 315CB0
+void activation_fp(NativeTu15PhysicsFrameFp &fp, bool restore) {
+  if (!restore) {
+    asm volatile("fnstcw %0" : "=m"(fp.control_word));
+    asm volatile("fnstsw %0" : "=a"(fp.status));
+    fp.mxcsr = _mm_getcsr();
+    return;
+  }
+  std::array<std::byte, 28> environment{};
+  asm volatile("fnstenv %0" : "=m"(environment) :: "memory");
+  std::memcpy(environment.data(), &fp.control_word, 2);
+  std::memcpy(environment.data() + 4, &fp.status, 2);
+  asm volatile("fldenv %0" :: "m"(environment) : "memory");
+  _mm_setcsr(fp.mxcsr);
+}
+class ActivationEnvironment {
+  alignas(16) std::array<std::byte, 108> outer_{};
+  NativeTu15PhysicsFrameFp &fp_;
+  unsigned outer_mxcsr_;
+public:
+  explicit ActivationEnvironment(NativeTu15ObjectActivationContext &context)
+      : fp_(context.floating_point), outer_mxcsr_(_mm_getcsr()) {
+    if (context.incoming_x87_depth > 5 || (fp_.control_word & 0x3fu) != 0x3fu ||
+        (fp_.status & 0x8080u) || (fp_.mxcsr & 0x1f80u) != 0x1f80u || (fp_.mxcsr & 0xffff0000u))
+      throw std::runtime_error("Native TU1.5 object activation requires its unsupported numerical-fault owner");
+    asm volatile("fnsave %0" : "=m"(outer_) :: "memory", "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)");
+    std::array<std::byte, 28> environment{};
+    std::memcpy(environment.data(), outer_.data(), 28);
+    const std::uint16_t empty = 0xffffu;
+    std::memcpy(environment.data(), &fp_.control_word, 2);
+    std::memcpy(environment.data() + 4, &fp_.status, 2);
+    std::memcpy(environment.data() + 8, &empty, 2);
+    asm volatile("fldenv %0" :: "m"(environment) : "memory");
+    _mm_setcsr(fp_.mxcsr);
+  }
+  ~ActivationEnvironment() {
+    activation_fp(fp_, false);
+    asm volatile("frstor %0" :: "m"(outer_) : "memory", "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)");
+    _mm_setcsr(outer_mxcsr_);
+  }
+};
+void activate(M &m, std::uint32_t b, NativeTu15ObjectActivationContext *context = nullptr) { // 315CB0
+  if (context) {
+    activation_fp(context->floating_point, false);
+    try {
+      native_tu15_activate_physics_body(m, {b}, context->floating_point, context->services,
+                                       context->observer, context->activity);
+    } catch (...) {
+      activation_fp(context->floating_point, true);
+      throw;
+    }
+    activation_fp(context->floating_point, true);
+    return;
+  }
   const auto world = r(m, b + 8);
   if (!world)
     return;
@@ -241,27 +301,28 @@ void activate(M &m, std::uint32_t b) { // 315CB0
     compact(m, r(m, r(m, island + 0x3c) + std::uint32_t(e) * 4u) + 0x70);
   w(m, island + 0x30, 0, 1);
 }
-void activate_component(M &m, std::uint32_t component) { // 1D9F10
+void activate_component(M &m, std::uint32_t component, NativeTu15ObjectActivationContext *context = nullptr) { // 1D9F10
   if (!(r(m, component + 4) & 0x20u))
     return;
   for (std::uint32_t i = 0; sign(i) < sign(r(m, component + 0x74)); ++i)
-    activate(m, body(m, component, i));
+    activate(m, body(m, component, i), context);
 }
 
 // ---- 1CD6A0 component velocity delivery ----
-void deliver(M &m, std::uint32_t component, std::uint32_t slot, const Vec3 &v, bool angular) {
+void deliver(M &m, std::uint32_t component, std::uint32_t slot, const Vec3 &v, bool angular,
+             NativeTu15ObjectActivationContext *context = nullptr) {
   if (angular && (r(m, component + 4) & 2u)) // 1D9100's static-component gate
     return;
   const auto b = body(m, component, slot);
   if (r(m, b + 0x40, 1))
     return;
   if (!island_active(m, b) && r(m, b + 0x44))
-    activate(m, b);
+    activate(m, b, context);
   const auto motion = r(m, b + 0x3c);
   const auto setter = r(m, r(m, motion) + (angular ? 0x54u : 0x50u));
   if (setter != (angular ? angular_setter : linear_setter))
     throw std::runtime_error("Native TU1.5 motion velocity virtual is outside the ported owners");
-  w4(m, motion + (angular ? 0x50u : 0x40u), v);
+  w4(m, motion + (angular ? 0x50u : 0x40u), v, context != nullptr);
 }
 template <class F> void each_delivered_body(const M &m, std::uint32_t object, std::uint32_t component, F &&visit) {
   if (type_mask(m, object) & 2u) {
@@ -320,11 +381,11 @@ void network_dirty(M &m, std::uint32_t entry, std::uint32_t flags) { // B7E50
   const auto at = state + 0x2098u + index * 36u + 0x14u + 0xcu;
   w(m, at, r(m, at) | flags);
 }
-void wake(M &m, std::uint32_t object) { // BBBC0 with DL=0
+void wake(M &m, std::uint32_t object, NativeTu15ObjectActivationContext *context = nullptr) { // BBBC0 with DL=0
   const auto mask = type_mask(m, object);
   const auto o = data(m, object);
   if ((mask & 0x1883u) && ((r(m, o + 0xc0, 1) >> 6) & 1u) && r(m, o + 0xb4) != 0xffffffffu)
-    activate_component(m, component_of(m, object));
+    activate_component(m, component_of(m, object), context);
   w(m, o + 0xc1, r(m, o + 0xc1, 1) & 0xfeu, 1);
   propagate(m, object);
   if ((mask & 0x1cu) || (mask & 0x20u)) {
@@ -633,16 +694,20 @@ std::string native_tu15_object_velocities_unsupported(const M &m, std::uint32_t 
   return {};
 }
 
-void native_tu15_set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear, const Vec3 *angular,
-                                       FP fp) {
-  Scope scope(fp);
+static void set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear, const Vec3 *angular,
+                                  FP fp, NativeTu15ObjectActivationContext *context) {
+  std::optional<Scope> scope;
+  if (!context)
+    scope.emplace(fp);
   const auto o = data(m, object);
-  const auto component = component_of(m, object);
-  const bool wakes = (linear && above(squared(*linear), std::bit_cast<float>(0x38d1b717u))) ||
-                     (angular && above(squared(*angular), std::bit_cast<float>(0x38d1b717u)));
+  const auto old_component = context ? 0u : component_of(m, object);
+  const auto moving = [&] { return (linear && above(squared(*linear), std::bit_cast<float>(0x38d1b717u))) ||
+                                  (angular && above(squared(*angular), std::bit_cast<float>(0x38d1b717u))); };
+  const bool old_wakes = context ? false : moving();
   // Refuse unported owners before any store.
-  if (const auto reason = native_tu15_object_velocities_unsupported(m, object, linear, angular); !reason.empty())
-    throw std::runtime_error(reason);
+  if (!context)
+    if (const auto reason = native_tu15_object_velocities_unsupported(m, object, linear, angular); !reason.empty())
+      throw std::runtime_error(reason);
   // B9770.
   std::uint32_t flags = 0;
   if (linear) {
@@ -656,20 +721,31 @@ void native_tu15_set_object_velocities(M &m, std::uint32_t object, const Vec3 *l
   if (flags && r(m, o + 0xd4) != 0xffffffffu)
     network_dirty(m, r(m, o + 0xd4), flags);
   // 1CD6A0 with force=1.
+  const auto component = context ? component_of(m, object) : old_component;
   if (component) {
     each_delivered_body(m, object, component, [&](std::uint32_t slot, std::uint32_t) {
       if (linear)
-        deliver(m, component, slot, *linear, false);
+        deliver(m, component, slot, *linear, false, context);
       if (angular)
-        deliver(m, component, slot, *angular, true);
+        deliver(m, component, slot, *angular, true, context);
     });
-    activate_component(m, component);
+    activate_component(m, component, context);
   }
-  if (wakes) {
-    wake(m, object);
+  if (context ? moving() : old_wakes) {
+    wake(m, object, context);
     propagate(m, object);
     update_root(m, object);
   }
+}
+void native_tu15_set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear, const Vec3 *angular,
+                                       FP fp) {
+  set_object_velocities(m, object, linear, angular, fp, nullptr);
+}
+void native_tu15_set_object_velocities(M &m, std::uint32_t object, const Vec3 *linear, const Vec3 *angular,
+                                       NativeTu15ObjectActivationContext &context) {
+  ActivationEnvironment environment(context);
+  set_object_velocities(m, object, linear, angular,
+                       {context.floating_point.control_word, context.floating_point.mxcsr}, &context);
 }
 
 std::vector<std::uint32_t> native_tu15_vehicle_riders(const M &m, std::uint32_t object) {

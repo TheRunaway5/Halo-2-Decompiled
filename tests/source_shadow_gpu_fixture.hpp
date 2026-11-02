@@ -24,21 +24,28 @@ struct Gpu {
     std::vector<Buffer> buffers;std::vector<Image> images;std::vector<VkRenderPass> passes;std::vector<VkFramebuffer> frames;
     std::vector<VkPipeline> pipelines;std::vector<VkShaderModule> modules;std::vector<VkSampler> samplers;
     VkDescriptorSetLayout descriptor_layout{};VkDescriptorPool descriptors{};VkPipelineLayout layout{};
-    bool initialize() {
+    bool initialize(std::uint32_t required_api=VK_API_VERSION_1_1) {
+        std::uint32_t loader_api=VK_API_VERSION_1_0;
+        const auto enumerate_version=reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+            vkGetInstanceProcAddr(nullptr,"vkEnumerateInstanceVersion"));
+        if(enumerate_version)check(enumerate_version(&loader_api));
+        if(loader_api<required_api)return false;
         unsigned count;check(vkEnumerateInstanceLayerProperties(&count,nullptr));std::vector<VkLayerProperties> layers(count);check(vkEnumerateInstanceLayerProperties(&count,layers.data()));
         if(std::none_of(layers.begin(),layers.end(),[](const auto&p){return std::string(p.layerName)=="VK_LAYER_KHRONOS_validation";}))return false;
         const char *layer="VK_LAYER_KHRONOS_validation",*extension=VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=VK_API_VERSION_1_1;
+        VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};app.apiVersion=required_api;
         VkDebugUtilsMessengerCreateInfoEXT debug{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};debug.messageSeverity=VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         debug.messageType=VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT|VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;debug.pfnUserCallback=diagnostic;
         VkInstanceCreateInfo ci{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};ci.pApplicationInfo=&app;ci.enabledLayerCount=1;ci.ppEnabledLayerNames=&layer;ci.enabledExtensionCount=1;ci.ppEnabledExtensionNames=&extension;ci.pNext=&debug;
         check(vkCreateInstance(&ci,nullptr,&instance));check(reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance,"vkCreateDebugUtilsMessengerEXT"))(instance,&debug,nullptr,&messenger));
         check(vkEnumeratePhysicalDevices(instance,&count,nullptr));std::vector<VkPhysicalDevice> devices(count);check(vkEnumeratePhysicalDevices(instance,&count,devices.data()));
         for(auto p:devices) {
+            VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(p,&properties);
+            if(properties.apiVersion<required_api)continue;
             vkGetPhysicalDeviceQueueFamilyProperties(p,&count,nullptr);std::vector<VkQueueFamilyProperties> families(count);vkGetPhysicalDeviceQueueFamilyProperties(p,&count,families.data());
             for(unsigned i=0;i<count;++i)if(families[i].queueFlags&VK_QUEUE_GRAPHICS_BIT){physical=p;family=i;break;}if(physical)break;
         }
-        require(physical,"shadow test has no graphics device");
+        if(!physical)return false;
         check(vkEnumerateDeviceExtensionProperties(physical,nullptr,&count,nullptr));std::vector<VkExtensionProperties> extensions(count);check(vkEnumerateDeviceExtensionProperties(physical,nullptr,&count,extensions.data()));
         if(std::none_of(extensions.begin(),extensions.end(),[](const auto&p){return std::string(p.extensionName)==VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME;}))return false;
         VkPhysicalDeviceCustomBorderColorFeaturesEXT custom{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT};VkPhysicalDeviceFeatures2 features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};features.pNext=&custom;vkGetPhysicalDeviceFeatures2(physical,&features);

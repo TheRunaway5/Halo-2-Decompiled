@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "negative controls reproduce the old 10s gateway failure and 16KiB voice-preference refusal"
+  ],
+  "observations": {
+    "old_proxy_timeout": {
+      "status": 504,
+      "seconds": 10.008344881003723
+    },
+    "old_proxy_voice_body_status": 413,
+    "candidate_steam_lookup_seconds": 12.156567507016007
+  }
+}

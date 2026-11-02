@@ -19,10 +19,10 @@ struct Memory:SourcePhysicsContactMemory {
 constexpr std::uint32_t base=0x1000000,island=base+0x100,step=base+0x200,solver=base+0x300,jacobian=base+0x400,workspace=base+0x500,
  allocator=base+0x600,bodies=base+0x700,constraints=base+0x800,gravity=base+0x900,body0=base+0x1000,body1=base+0x1100,
  motion0=base+0x2000,motion1=base+0x2200,arena=base+0x4000,extra=base+0x8000,packet=base+0xe000,
- setup_owner=0x230210,commit_owner=0x230220,builder_owner=0xf0000042;
+ setup_owner=0x230210,commit_owner=0x230220,release_owner=0x230240,builder_owner=0xf0000042;
 Memory model(){Memory m;m.banks[base].resize(0x10000);m.banks[0x410000].resize(0x70000);m.banks[0x48c000].resize(0x2000);m.banks[0x491000].resize(0x1000);
   m.put(0x48d480,1);m.put(0x491350,workspace);m.put(workspace+8,arena);m.put(workspace+0xc,0x1000);m.put(0x48c938,allocator);m.put(allocator,0x45f4cc);
-  m.put(allocator+8,extra);m.put(allocator+0xc,0x2000);m.put(allocator+0x14,0);m.put(0x45f4f0,0x2e10a0);m.put(0x45f4f4,0x2e1110);
+  m.put(allocator+8,extra);m.put(allocator+0xc,0x2000);m.put(allocator+0x14,0);m.put(0x45f4f0,0x2e10a0);m.put(0x45f4f4,release_owner);
   m.put(island+8,0x40);m.put(island+0xc,0x100);m.put(island+0x10,0x40);m.put(island+0x14,0x100);m.put(solver+0x20,0x3f000000);
   m.put(bodies,body0);m.put(bodies+4,body1);m.put(body0+0x3c,motion0);m.put(body1+0x3c,motion1);
   m.put(motion0,0x41f2e0);m.put(0x41f2ec,0x325410);m.put(0x41f2f0,0x3249e0);
@@ -38,6 +38,8 @@ Memory model(){Memory m;m.banks[base].resize(0x10000);m.banks[0x410000].resize(0
 NativeTu15PhysicsConstraintInput input(){return{{step},solver,jacobian,{gravity},{island},{bodies},2,constraints,2};}
 }
 int main()try{
+  // Arbitrary-owner ABI fixture: it has no genuine arena backing header.
+  // Real2E10A0/2E1110 and native pool lifetime are exercised by the World model.
   for(bool spill:{false,true}){
     auto m=model();if(spill)m.put(workspace+0xc,0x10);const auto start=spill?extra:arena;
     NativeTu15PhysicsFrameFp fp;NativeTu15ConstraintBindingActivity activity;std::vector<std::uint32_t>calls;unsigned builders{};
@@ -48,17 +50,17 @@ int main()try{
         if(!builders){m.put(packet,m.get(packet+8));m.put(packet+12,base+0xc000);}else check(m.get(packet)==base+0xc000&&m.get(packet+8)==0xffffffff,"Builder packet mutations were not recovered before rollover");m.put(packet+4,m.get(packet+4)+4);++builders;context.status|=1;return 0xabad1dea;
       }
       if(owner==0x3249e0||owner==commit_owner){const auto dynamic=owner==0x3249e0;check(receiver==(dynamic?motion0:motion1)&&pop==12&&args.size()==3&&args[0]==step&&args[1]==0x3f000000&&args[2]==start+(dynamic?0x80:0x100),"Commit lost actual returned accumulator/parameter/RET12");return args[2]+0x80;}
-      if(owner==0x2e1110){check(spill&&receiver==allocator&&pop==8&&args.size()==2&&args[0]==extra&&args[1]==0x2e0,"Spilled workspace lost actual release lifetime/RET8");return 0xdeadbeef;}
+      if(owner==release_owner){check(spill&&receiver==allocator&&pop==8&&args.size()==2&&args[0]==extra&&args[1]==0x2e0,"Spilled workspace lost actual release lifetime/RET8");return 0xdeadbeef;}
       throw std::runtime_error("Unexpected constraint residual owner");
     },{},&activity);
-    std::vector<std::uint32_t>expected{setup_owner,builder_owner,builder_owner,commit_owner};if(spill)expected.push_back(0x2e1110);
+    std::vector<std::uint32_t>expected{setup_owner,builder_owner,builder_owner,commit_owner};if(spill)expected.push_back(release_owner);
     check(calls==expected&&activity.residual_calls==calls.size()&&activity.solver.calls==1&&activity.solver.initializations==0&&activity.solver.iterations==0&&activity.native_dynamic_setups==1&&activity.native_motion_commits==1&&activity.native_motion_commit_kinds==std::array<std::uint64_t,3>{0,1,0},"Constraint binding failed native dynamic setup/actual dependency order");
     check(m.get(workspace+0x10,1)==0&&m.get(motion0+8)==0x80&&m.get(motion1+8)==0x100&&m.get(start+0x80+0xc,1)==0,"Constraint binding failed retained state and cleanup");
   }
   // Keep arbitrary-owner ABI transport distinct from the actual native
   // producers. The real zero-row inputs below invoke both native base/header
   // paths; scaled builders also create their genuine pre/post payloads.
-  for(const auto native_owner:{0x31f770u,0x31f860u}){
+  for(const auto native_owner:{0x31f770u,0x31f860u,0x325ef0u}){
     auto m=model();m.put(0x41edb4,native_owner);NativeTu15PhysicsFrameFp fp;
     NativeTu15ConstraintBindingActivity activity;std::vector<std::uint32_t>calls;
     native_tu15_step_island_constraints_with_residuals(m,input(),fp,0,packet,
@@ -72,11 +74,30 @@ int main()try{
       activity.base.rows==0&&activity.producers.base_calls==2,
       "Native producer binding bypassed genuine zero-row base construction");
     check(activity.producers.axis_factor_calls==2u*unsigned(native_owner==0x31f770u)&&
-      activity.producers.scaled_calls==2u*unsigned(native_owner==0x31f860u),
+      activity.producers.scaled_calls==2u*unsigned(native_owner==0x31f860u)&&
+      activity.native_direct_base_builders==2u*unsigned(native_owner==0x325ef0u)&&activity.completed_direct_base_rows==0,
       "Native producer binding selected the wrong original owner");
     if(native_owner==0x31f860u)check(activity.completed_producer_emissions==std::array<std::uint64_t,3>{2,2,0}&&
       activity.producers.emissions==activity.completed_producer_emissions,
       "Native producer completed-emission accounting differs from its direct native path");
+  }
+  {
+    auto m=model();m.put(0x41edb4,0x325ef0u);
+    for(unsigned n=0;n<2;++n){
+      const auto object=base+0xa00+n*0x100;
+      m.put(object+0x34,base+0xc000);m.put(object+0x38,1);m.put(object+0x90,base+0xc100);
+    }
+    m.put(base+0xc018,0x3f800000); // Actual ordinary +Z source direction.
+    NativeTu15PhysicsFrameFp fp;NativeTu15ConstraintBindingActivity activity;
+    native_tu15_step_island_constraints_with_residuals(m,input(),fp,0,packet,
+      [&](auto owner,auto args,auto receiver,unsigned,auto&)->std::uint32_t{
+        if(owner==setup_owner){check(receiver==motion1,"Direct base setup receiver differs");return args[2]+0x80;}
+        if(owner==commit_owner)return args[2]+0x80;
+        throw std::runtime_error("Native direct base fell back to an original builder");
+      },{},&activity);
+    check(activity.native_direct_base_builders==2&&activity.completed_direct_base_rows==2&&
+      activity.base.calls==2&&activity.base.rows==2&&activity.producers.base_calls==2,
+      "Native direct base did not complete its own actual row construction");
   }
   for(const auto owner:{0x31f3a0u,0x31f410u,0x31f560u,0x230abcu}){
     auto m=model();NativeTu15PhysicsFrameFp fp;NativeTu15ConstraintBindingActivity activity;

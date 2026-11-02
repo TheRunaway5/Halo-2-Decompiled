@@ -1,0 +1,17 @@
+[
+  {
+    "path": "CMakeLists.txt",
+    "frozen_sha256": "1161f5b34d292e9e1f10cc93448f7ad84e6c9c0884df37afb0d3a179e52a00db",
+    "current_sha256": "2646b59940a2fd14cb2a0972df609db7ecbc992fc474e678fe0d874d6c9a3809"
+  },
+  {
+    "path": "src/physics/native_tu15_world_integration_residuals.cpp",
+    "frozen_sha256": "a5252d1e9087f0d1218ec8546ee40d4d6fb0401ecb6fb9bcc56c213edcbfd6cb",
+    "current_sha256": "075582840e298b94829c826de4d23ed81d2d4dae7f3c248f84c9451e0136bd95"
+  },
+  {
+    "path": "tests/native_weapon_zoom_recipient_tu15_tests.cpp",
+    "frozen_sha256": "31d2b23ffcf33f2efb68b24f8aed04a7420cb7402b0230951015740b07940e4c",
+    "current_sha256": "a7fa0710aa8131e94a0443ef077f920c9f35af202d525ea2710f4c4c918e7d92"
+  }
+]

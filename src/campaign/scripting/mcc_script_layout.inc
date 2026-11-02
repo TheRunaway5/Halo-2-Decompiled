@@ -1,7 +1,7 @@
 // Generated from tools/mcc-script-layout.json.
 // MCC SHA256 de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946
 // Xbox TU1.5 SHA256 21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd
-constexpr std::array<Builtin,404> builtins{{
+constexpr std::array<Builtin,411> builtins{{
     {0,0,3,0,2,"begin",{}},
     {1,1,3,0,2,"begin_random",{}},
     {2,2,3,0,2,"if",{}},
@@ -76,6 +76,7 @@ constexpr std::array<Builtin,404> builtins{{
     {90,90,4,1,0,"object_cannot_take_damage",{31}},
     {91,91,4,1,0,"object_can_take_damage",{31}},
     {92,92,4,2,0,"object_cinematic_lod",{50,5}},
+    {93,93,4,2,0,"object_cinematic_collision",{50,5}},
     {94,94,4,2,0,"object_cinematic_visibility",{50,5}},
     {95,95,4,2,0,"object_uses_cinematic_lighting",{50,5}},
     {96,96,4,5,0,"cinematic_lighting_set_primary_light",{6,6,6,6,6}},
@@ -103,6 +104,7 @@ constexpr std::array<Builtin,404> builtins{{
     {145,144,4,3,0,"texture_camera_set_object_marker",{50,11,6}},
     {146,145,4,0,0,"texture_camera_off",{}},
     {147,146,4,4,0,"render_lights_enable_cinematic_shadow",{5,50,11,6}},
+    {185,184,4,3,0,"scenery_animation_start",{55,36,11}},
     {186,185,4,3,0,"scenery_animation_start_loop",{55,36,11}},
     {187,186,4,4,0,"scenery_animation_start_relative",{55,36,11,50}},
     {191,190,7,1,0,"scenery_get_animation_time",{55}},
@@ -184,6 +186,7 @@ constexpr std::array<Builtin,404> builtins{{
     {316,314,4,2,0,"ai_prefer_target",{31,5}},
     {317,315,4,1,0,"ai_teleport_to_starting_location_if_outside_bsp",{19}},
     {318,316,4,1,0,"ai_renew",{19}},
+    {319,317,4,2,0,"ai_force_active",{19,5}},
     {323,321,4,2,0,"ai_berserk",{19,5}},
     {327,325,7,1,0,"ai_fighting_count",{19}},
     {328,326,7,1,0,"ai_living_count",{19}},
@@ -368,6 +371,7 @@ constexpr std::array<Builtin,404> builtins{{
     {668,673,4,1,0,"time_code_show",{5}},
     {669,674,4,1,0,"time_code_start",{5}},
     {670,675,4,0,0,"time_code_reset",{}},
+    {691,65535,4,1,0,"rasterizer_blur",{7}},
     {702,705,4,1,0,"cinematic_screen_effect_start",{5}},
     {703,706,4,7,0,"cinematic_screen_effect_set_depth_of_field",{6,6,6,6,6,6,6}},
     {704,707,4,1,0,"cinematic_screen_effect_set_crossfade",{6}},
@@ -394,8 +398,11 @@ constexpr std::array<Builtin,404> builtins{{
     {864,884,4,2,0,"predict_model_section",{41,8}},
     {865,885,4,3,0,"predict_structure_section",{26,8,5}},
     {869,889,4,1,0,"rasterizer_bloom_override",{5}},
+    {871,891,4,1,0,"rasterizer_bloom_override_blur_amount",{6}},
     {872,892,4,1,0,"rasterizer_bloom_override_threshold",{6}},
     {873,893,4,1,0,"rasterizer_bloom_override_brightness",{6}},
+    {874,894,4,1,0,"rasterizer_bloom_override_box_factor",{6}},
+    {876,896,4,1,0,"rasterizer_bloom_override_silver_bullet",{5}},
     {881,901,4,0,0,"cache_block_for_one_frame",{}},
     {882,902,4,0,0,"sound_suppress_ambience_update_on_revert",{}},
     {886,906,4,0,0,"cinematic_lightmap_shadow_disable",{}},
@@ -410,7 +417,8 @@ constexpr std::array<Builtin,404> builtins{{
 constexpr std::array<SemanticAlias,1> semantic_aliases{{
     {661,653,"player_effect_set_max_vibration","player_effect_set_max_rumble"},
 }};
-constexpr std::array<ExternalGlobal,15> external_globals{{
+constexpr std::array<ExternalGlobal,17> external_globals{{
+    {203,211,6,"ssc_light_diffuse"},
     {787,797,19,"ai_current_squad"},
     {788,798,19,"ai_current_actor"},
     {796,806,7,"ai_combat_status_idle"},
@@ -426,4 +434,5 @@ constexpr std::array<ExternalGlobal,15> external_globals{{
     {807,817,7,"ai_movement_combat"},
     {808,818,7,"ai_movement_flee"},
     {978,995,8,"cinematic_letterbox_style"},
+    {991,1011,5,"global_playtest_mode"},
 }};

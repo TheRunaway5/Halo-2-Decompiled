@@ -11,6 +11,11 @@ from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate
 
+# The complete777E0 timer is owned by the typed native kernel. Keep this
+# explicit: the older support/alias discovery does not enumerate that owner.
+RETIRED_NATIVE_ENTRIES=frozenset((0x777e0,))
+NATIVE_TIMER_CALLS=((0x77c1a,0x77c1f,'e8c1fbffff'),)
+
 def digest(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True);ap.add_argument('--manifest',type=Path,required=True);a=ap.parse_args()
@@ -28,11 +33,16 @@ def main():
   p=pending.pop(0)
   if p in seen:continue
   seen.add(p)
-  if p!=0x6e830 and (p in support or p in existing or p==0x2e0b1e or not code.inside(p)):
+  if p in RETIRED_NATIVE_ENTRIES or (p!=0x6e830 and (p in support or p in existing or p==0x2e0b1e or not code.inside(p))):
    external.add(p);continue
   assert len(bodies)<1000,'Unexpected graph expansion requires a fresh ownership audit'
   body=_trace(code,p,starts);bodies[p]=body
   pending.extend(body.calls);pending.extend(body.tail_jumps)
+ assert not RETIRED_NATIVE_ENTRIES.intersection(bodies)
+ for site,continuation,raw in NATIVE_TIMER_CALLS:
+  instruction=code.at(site)
+  assert instruction.mnemonic=='call' and instruction.operands[0].imm==0x777e0
+  assert bytes(instruction.bytes).hex()==raw and site+instruction.size==continuation
  entries={f'{p:08x}':p for p in sorted(bodies)};sites={};instructions={};addresses={};routines=[]
  for p,body in sorted(bodies.items()):
   sites[f'{p:08x}']=sorted(body.code)
@@ -50,6 +60,13 @@ def main():
  a.correspondence.write_text(json.dumps(paired,sort_keys=True,indent=2)+'\n');a.additional_entries=Path(__file__)
  generate(a,paired,complete_listings=True)
  source=a.output.read_text().replace('halo2/physics_live_support_tu15.hpp','halo2/source_network_session_startup_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_network_session_startup_tu15').replace('source_physics_live_support_tu15_owns_entry','source_network_session_startup_tu15_owns_entry')
+ # Reached CALLs keep their real argument/return pushes and the existing
+ # full-ABI required-owner bridge; never lower the retired timer algorithm.
+ for site,_,_ in NATIVE_TIMER_CALLS:
+  source=source.replace(f'dispatch(s,target,0x{site:x}u,false);',f's.required(0x{site:x}u,target,false);')
+ for entry in RETIRED_NATIVE_ENTRIES:
+  assert f'run_{entry:x}(' not in source
+  assert f'case 0x{entry:x}u:run_' not in source
  a.output.write_text(source)
  # Compile only referenced immutable scalar/vector lanes and explicit branch
  # identity tables. Mutable records have separate constructor-owned extents.
@@ -72,7 +89,7 @@ def main():
  operand_file=a.output.with_name('native_tu15_network_session_parameters.inc')
  operand_file.write_text('// Typed scalar/vector lanes and branch identities from authenticated constructor instructions.\n'+''.join(f'{{0x{p:x}u,{n},0x{v:x}u}},\n'for p,n,v in rows))
  report=json.loads(a.manifest.read_text());report.update(typed_parameter_file_sha256=digest(operand_file),typed_parameter_fields=len(rows))
- report.update(network_session_generator_sha256=digest(__file__),generated_cpp_sha256=digest(a.output),source_entry='0006e830',external_entry_identities=[f'{p:08x}'for p in sorted(external)],existing_support_source_sha256=digest(ROOT/'src/physics/physics_live_support_tu15_generated.cpp'),existing_entry_metadata_sha256=digest(ROOT/'src/physics/physics_live_entries_tu15.hpp'))
+ report.update(network_session_generator_sha256=digest(__file__),generated_cpp_sha256=digest(a.output),source_entry='0006e830',external_entry_identities=[f'{p:08x}'for p in sorted(external)],existing_support_source_sha256=digest(ROOT/'src/physics/physics_live_support_tu15_generated.cpp'),existing_entry_metadata_sha256=digest(ROOT/'src/physics/physics_live_entries_tu15.hpp'),retired_native_timer_entries=[f'{p:08x}'for p in sorted(RETIRED_NATIVE_ENTRIES)])
  a.manifest.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
  print(json.dumps(dict(complete_source_bodies=len(bodies),instructions=len(instructions),external_entries=len(external))))
 if __name__=='__main__':main()

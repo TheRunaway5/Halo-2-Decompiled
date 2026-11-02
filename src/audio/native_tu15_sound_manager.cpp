@@ -64,8 +64,9 @@ void sound_class_row(M &m,Abi &a,FP,const O &,const Services &) {
     const auto reference=u32(m,globals+0xc0u)?u32(m,globals+0xc4u):0u;
     const auto datum=u32(m,reference+4u);
     const auto data=tag_data(m,datum);
+    const auto index=s16(m,a.gp[4]+4u);
     const auto rows=u32(m,data+4u);
-    a.gp[0]=s16(m,a.gp[4]+4u)*0x5cu+rows;a.gp[1]=rows;a.gp[2]=data;
+    a.gp[0]=index*0x5cu+rows;a.gp[1]=rows;a.gp[2]=data;
     pop_return(m,a,4);
 }
 

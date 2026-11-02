@@ -6,8 +6,6 @@ it never substitutes a device ID, creates a new PUID, or exposes this token.
 """
 import asyncio
 import contextlib
-import hashlib
-import json
 import os
 from pathlib import Path
 import re
@@ -15,7 +13,6 @@ import stat
 import tempfile
 from .protocol import canonical, require
 
-FORMAT = 'halo2-friends-v1'
 CONFIG_KEYS = frozenset(('H2_EOS_PRODUCT_ID','H2_EOS_SANDBOX_ID','H2_EOS_DEPLOYMENT_ID',
     'H2_EOS_FRIEND_CLIENT_ID','H2_EOS_FRIEND_CLIENT_SECRET','H2_EOS_FRIEND_CACHE_DIR',
     'H2_EOS_FRIEND_ENCRYPTION_KEY'))
@@ -60,47 +57,14 @@ class FriendCloud:
         self.lock=asyncio.Lock()
         self.task=None
         self.process=None
-        self.db.executescript("""
-          CREATE TABLE IF NOT EXISTS friend_cloud_outbox(
-            player TEXT PRIMARY KEY REFERENCES players(id), revision INTEGER NOT NULL,
-            fingerprint TEXT NOT NULL, payload TEXT, digest TEXT NOT NULL,
-            uploaded_revision INTEGER NOT NULL DEFAULT 0,
-            next_attempt INTEGER NOT NULL DEFAULT 0, failures INTEGER NOT NULL DEFAULT 0,
-            last_error TEXT NOT NULL DEFAULT '');
-          CREATE INDEX IF NOT EXISTS friend_cloud_pending ON friend_cloud_outbox(next_attempt)
-            WHERE revision>uploaded_revision;
-        """)
+        self._native('cloud_schema')
 
-    def enqueue(self,who):
-        if not self.enabled:return
-        snapshot=self.directory.friends.view(who)
-        # Dormant legacy accounts receive tags only on their next verified login.
-        if not snapshot['friend_tag']:return
-        public=self.db.execute('SELECT public_id FROM history_players WHERE player=?',(who,)).fetchone()
-        require(public is not None,'Friend cloud account is not published',500)
-        state=dict(format=FORMAT,player=public[0],friend_tag=snapshot['friend_tag'],
-                   relationships=sorted((dict(player=f['id'],state=f['state']) for f in snapshot['friends']),
-                                        key=lambda f:f['player']))
-        # Presence and mutable peer names are deliberately not persisted as facts.
-        fingerprint=hashlib.sha256(canonical(state)).hexdigest()
-        previous=self.db.execute('SELECT revision,fingerprint FROM friend_cloud_outbox WHERE player=?',(who,)).fetchone()
-        if previous and previous[1]==fingerprint:return
-        revision=previous[0]+1 if previous else 1
-        payload=canonical(dict(**state,revision=revision)).decode()
-        require(len(payload.encode())<=32768,'Friend cloud record exceeds bound',500)
-        digest=hashlib.sha256(payload.encode()).hexdigest()
-        self.db.execute('''INSERT INTO friend_cloud_outbox(player,revision,fingerprint,payload,digest) VALUES(?,?,?,?,?)
-          ON CONFLICT(player) DO UPDATE SET revision=excluded.revision,fingerprint=excluded.fingerprint,
-          payload=excluded.payload,digest=excluded.digest,next_attempt=0,failures=0,last_error='' ''',
-          (who,revision,fingerprint,payload,digest))
-        self.wake.set()
+    def _native(self,mode,player=None,**values):
+        from .native_party_directory import run
+        return run(self.directory.friends,mode,player,family='friends',friend_cloud=self.enabled,**values)
 
-    def status(self,who):
-        if not self.enabled:return dict(state='disabled')
-        row=self.db.execute('SELECT revision,uploaded_revision,last_error FROM friend_cloud_outbox WHERE player=?',(who,)).fetchone()
-        if not row:return dict(state='pending',revision=0,uploaded_revision=0)
-        return dict(state='synced' if row[0]==row[1] else 'unavailable' if row[2] else 'pending',
-                    revision=row[0],uploaded_revision=row[1])
+    def enqueue(self,who):return self._native('cloud_enqueue',who)
+    def status(self,who):return self._native('cloud_status',who)
 
     async def transfer(self,puid,token,payload):
         require(self.binary and self.config,'EOS friend storage is not configured',503)
@@ -158,40 +122,28 @@ class FriendCloud:
                     line=await process.stdout.readline()
                     if not line:raise ValueError('Storage worker exited')
                     if not line.startswith(b'H2EOS '):continue
-                    reply=json.loads(line[6:])
-                    require(type(reply) is dict and reply.get('ok') is True,'EOS friend storage unavailable',503)
-                    value=reply['value']
-                    require(type(value) is dict and value.get('record')==payload,'EOS friend storage read-back mismatch',503)
+                    from .native_matchmaking import value
+                    value('friend_worker_reply',text=line[6:].decode(),record=payload)
                     return
                 raise ValueError('No storage worker reply')
         finally:
             await self.retire(process)
 
     async def flush(self):
-        if not self.enabled:return False
         async with self.lock:
-            row=self.db.execute('''SELECT o.player,o.revision,o.payload,o.digest,e.puid,p.screen_name
-              ,o.failures FROM friend_cloud_outbox o JOIN eos_players e ON e.player=o.player
-              JOIN player_profiles p ON p.player=o.player
-              WHERE o.revision>o.uploaded_revision AND o.next_attempt<=? ORDER BY o.next_attempt,o.player LIMIT 1''',
-              (self.directory.store.now(),)).fetchone()
-            if not row:return False
-            who,revision,payload,digest,puid,name,failures=row
+            claim=self._native('cloud_next')
+            if claim is None:return False
             try:
-                token=self.directory.eos_identity.token(who,name)
-                await self.upload(puid,token,payload)
-                with self.db:
-                    binding=self.db.execute('SELECT puid FROM eos_players WHERE player=?',(who,)).fetchone()
-                    require(binding and binding[0]==puid,'EOS friend binding changed',409)
-                    current=self.db.execute('SELECT revision,digest FROM friend_cloud_outbox WHERE player=?',(who,)).fetchone()
-                    if current and current[0]==revision and current[1]==digest:
-                        self.db.execute("UPDATE friend_cloud_outbox SET uploaded_revision=?,payload=NULL,failures=0,last_error='' WHERE player=?",(revision,who))
-                    # A newer transaction stays pending; its file follows this one.
-            except asyncio.CancelledError:raise
+                token=self.directory.eos_identity.token(claim['player'],claim['name'])
+                await self.upload(claim['puid'],token,claim['payload'])
+            except asyncio.CancelledError:
+                with contextlib.suppress(Exception):
+                    self._native('cloud_finish',body=dict(claim=claim['claim'],outcome='cancel'))
+                raise
             except Exception:
-                with self.db:
-                    self.db.execute("UPDATE friend_cloud_outbox SET failures=failures+1,last_error='unavailable',next_attempt=? WHERE player=? AND revision=?",
-                        (self.directory.store.now()+min(900,30*(2**min(failures,5))),who,revision))
+                self._native('cloud_finish',body=dict(claim=claim['claim'],outcome='failure'))
+            else:
+                self._native('cloud_finish',body=dict(claim=claim['claim'],outcome='success'))
             return True
 
     async def run(self):

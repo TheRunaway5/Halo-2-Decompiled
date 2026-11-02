@@ -55,6 +55,14 @@ public:
     // same contract. A refusal leaves the original read/fault prefix intact.
     virtual std::optional<std::span<const std::byte>> try_read_view(
         std::uint32_t,std::size_t) const noexcept { return std::nullopt; }
+    // Topology-only proof of a complete committed ordinary ReadWrite extent,
+    // with no backing write guard. The same no-effects/lifetime contract as
+    // try_read_view applies. The const span exposes backing identity for alias
+    // checks; it grants no mutable borrow and consumes no registry policy.
+    // Native owners still use write() under their ordinary policy/executor
+    // admission. Custom/device adapters opt in only with that same guarantee.
+    virtual std::optional<std::span<const std::byte>> try_write_extent(
+        std::uint32_t,std::size_t) const noexcept { return std::nullopt; }
 protected:
     const SourceDirectPageIndex *direct_pages_{};
 };

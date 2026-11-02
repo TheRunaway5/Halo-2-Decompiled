@@ -9,7 +9,7 @@ namespace {
 struct Builtin {
     std::uint16_t mcc,xbox,return_type,arity,xbox_flags;
     const char* name;
-    std::array<std::uint16_t,7> arguments;
+    std::array<std::uint16_t,8> arguments;
 };
 struct ExternalGlobal {std::uint16_t mcc,xbox,type;const char* name;};
 struct SemanticAlias {std::uint16_t mcc,xbox;const char* name;const char* canonical;};
@@ -232,6 +232,7 @@ MccScriptLayout project_mcc_script_layout(std::span<const std::byte> nodes,
 MccScriptLayout project_mcc_script_layout(const Cache& cache,std::span<const std::byte> nodes,
     std::span<const std::byte> strings,std::span<const std::byte> scripts,MccScriptLayoutOptions options) {
     if(!cache.is_mcc())throw FormatError("MCC script projection requires an MCC donor cache");
+    if(cache.preserves_mcc_authoring())return project_mcc_script_layout(nodes,strings,scripts,options);
     if(nodes.size()%20 || scripts.size()%0x28)
         throw FormatError("MCC script record bank extent differs");
     const auto* tag=cache.find_tag(cache.scenario_tag());

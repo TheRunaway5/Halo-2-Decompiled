@@ -1,0 +1,13 @@
+{
+  "scope": "Existing native accuracy test before result-policy replacement",
+  "passed": false,
+  "observed_stage": "ordinary-warmup",
+  "observed_error": "Native TU1.5 contact features require read-only observers without active instruction traces",
+  "not_result_policy_failure": true,
+  "guard_source": "src/physics/native_tu15_contact_features_handoff.cpp",
+  "frozen_guard_sha256": "eeda132eb95bb5ea11626d4c2b8d092c532d1edcadd9ed367a5a9ee6364e7f20",
+  "guard_current_sha256": "eeda132eb95bb5ea11626d4c2b8d092c532d1edcadd9ed367a5a9ee6364e7f20",
+  "guard_not_modified_by_this_work": true,
+  "no_guard_disabled_or_evidence_suppressed": true,
+  "fixture_score_limit_one": true
+}

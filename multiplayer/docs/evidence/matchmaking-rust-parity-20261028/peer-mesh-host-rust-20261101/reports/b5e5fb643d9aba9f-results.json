@@ -1,0 +1,7 @@
+{
+  "master_gameplay_relay": false,
+  "metadata_and_declared_native_fixture": true,
+  "native_or_rendered_migration": false,
+  "predecessor_retired_after_actual_decision": false,
+  "survivor_selection_case": "abort"
+}

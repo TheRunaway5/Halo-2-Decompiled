@@ -6,6 +6,7 @@
 #include <bit>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <map>
 
@@ -21,6 +22,7 @@ class ContextMemory final:public SourcePhysicsContactMemory {
     const SourcePhysicsContactMemory *source_{};
     std::map<std::uint32_t,Page> pages_;
     bool reference_{};
+    std::function<void(std::uint32_t,std::span<const std::byte>)> read_observer_;
     static void extent(std::uint32_t at,std::size_t bytes) {
         if(bytes>std::uint64_t(std::numeric_limits<std::uint32_t>::max())+1u-at)
             throw FormatError("Native FP pose operand wraps its input address space");
@@ -54,6 +56,9 @@ class ContextMemory final:public SourcePhysicsContactMemory {
     }
 public:
     explicit ContextMemory(bool reference=reference_selected()):reference_(reference) {}
+    void observe_reads(std::function<void(std::uint32_t,std::span<const std::byte>)> observer) {
+        read_observer_=std::move(observer);
+    }
     void borrow(const SourcePhysicsContactMemory *source) {source_=source;}
     void clear() {pages_.clear();}
     void read(std::uint32_t at,std::span<std::byte> bytes)const override {
@@ -90,6 +95,7 @@ public:
             }
             n+=count;
         }
+        if(read_observer_)read_observer_(at,bytes);
     }
     void write(std::uint32_t at,std::span<const std::byte> bytes)override {
         extent(at,bytes.size());std::size_t n{};

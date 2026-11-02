@@ -335,7 +335,8 @@ std::array<std::uint64_t,2> material_image_key(const Material &material) {
         for(float value:surface->uv.base)add(std::bit_cast<std::uint32_t>(value));
         for(const auto& transform:surface->uv.stages)for(float value:transform)add(std::bit_cast<std::uint32_t>(value));
         const auto colors=surface_constants(material,surface->family);
-        const unsigned first=surface->family==SurfaceFamily::TerrainBlend?2:0;
+        const unsigned first=surface->family==SurfaceFamily::TerrainBlend ||
+            surface->family==SurfaceFamily::TerrainBlendThreeStage?2:0;
         add(colors[first]);add(colors[first+1]);
         for(unsigned stage=0;stage<4;++stage) {
             if(!(surface->stages&(1u<<stage)))continue;

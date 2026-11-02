@@ -1,0 +1,12 @@
+import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/peer-authority-transfer-rust-20261101';scratch=Path(os.environ['HALO2_TEST_SCRATCH'])
+inputs=json.loads((work/'native/inputs.json').read_text());source=Path(inputs['source']);build=Path(inputs['scratch'])/'build'
+original=root/'src/network/peer_authority_transfer.cpp';target=scratch/'peer_authority_transfer.cpp';shutil.copyfile(original,target)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();assert sha(original)==sha(source/'src/network/peer_authority_transfer.cpp')
+command=['/usr/bin/c++','-I'+str(build/'online-protocol/Release/include'),'-I'+str(source/'include'),'-std=c++20','-Wall','-Wextra','-Wpedantic','-fsyntax-only',str(target)]
+run=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);(work/'final-adapter-syntax.log').write_bytes(run.stdout[-1048576:])
+report={'passed':run.returncode==0,'command':command,'exit_code':run.returncode,'source_sha256':sha(original),
+    'generated_header_sha256':sha(build/'online-protocol/Release/include/halo2-online-protocol-bridge/src/lib.rs.h'),
+    'scratch':str(scratch),'scope':'Final typed C++ adapter syntax against the actual frozen release CXX interface, including exception translation; native linkage/flow are separate','retained_large_artifacts':[]}
+(work/'final-adapter-syntax.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({'passed':report['passed'],'exit_code':run.returncode}));assert report['passed']

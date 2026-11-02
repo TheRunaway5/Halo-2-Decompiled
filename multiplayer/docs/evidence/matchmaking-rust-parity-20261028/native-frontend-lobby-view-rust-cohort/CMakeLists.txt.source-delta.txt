@@ -1,0 +1,36 @@
+--- frozen/CMakeLists.txt
++++ current/CMakeLists.txt
+@@ -1285,7 +1285,6 @@
+ else()
+     set_source_files_properties(src/gameplay/units/player_screen_flash.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+ endif()
+-target_sources(halo2_systems PRIVATE src/ui/frontend_lobby.cpp)
+ target_sources(halo2_systems PRIVATE
+     src/ui/vista/vista_lobby_countdown.cpp
+     src/ui/vista/vista_session_countdown.cpp
+@@ -6801,7 +6800,7 @@
+     add_test(NAME retail_frontend_lobby_roster COMMAND frontend_lobby_roster_tests
+         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/frontend_lobby_roster_original.tsv)
+     add_executable(frontend_lobby_game_tests tests/frontend_lobby_game_tests.cpp)
+-    target_link_libraries(frontend_lobby_game_tests PRIVATE halo2_cache)
++    target_link_libraries(frontend_lobby_game_tests PRIVATE halo2_cache halo2_frontend_lobby_view)
+     add_test(NAME retail_frontend_lobby_game COMMAND frontend_lobby_game_tests
+         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/frontend-lobby-game-original.tsv
+         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps)
+@@ -8561,6 +8560,16 @@
+         add_test(NAME camouflage_scene_composition COMMAND camouflage_render_tests
+             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map ${CMAKE_CURRENT_BINARY_DIR}/camouflage-composition)
+         set_tests_properties(camouflage_scene_composition PROPERTIES SKIP_RETURN_CODE 77)
++        foreach(case IN ITEMS "640;480;1" "1280;720;2" "1920;1080;2" "3840;2160;4" "1279;719;4")
++            list(GET case 0 width)
++            list(GET case 1 height)
++            list(GET case 2 views)
++            set(name camouflage_scene_composition_${width}x${height}_${views}views)
++            add_test(NAME ${name} COMMAND camouflage_render_tests
++                ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map ${CMAKE_CURRENT_BINARY_DIR}/${name}
++                --extent ${width} ${height} --views ${views})
++            set_tests_properties(${name} PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
++        endforeach()
+         add_executable(equipment_render_tests tests/equipment_render_tests.cpp)
+         target_link_libraries(equipment_render_tests PRIVATE halo2_renderer)
+         add_test(NAME mcc_equipment_renderer_gpu COMMAND equipment_render_tests

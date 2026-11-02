@@ -20,6 +20,16 @@ ENTRIES = (0x226b0,0x30c40,0x31f40,0x320a0,0x32340,0x333f0,0x335b0,0x335d0,
 # CALL-only trace collector cannot discover its required complete body.
 ENTRIES += (0x1e2b0,0x40e00,0x41630,0x42090,0x42750,0xc0700,0x179a40,0x17cd10)
 
+# Native camera owners must stay external even when a physical trace reaches
+# them. Do not reintroduce their former register-machine bodies by regeneration.
+RETIRED_NATIVE_CAMERA_ENTRIES = frozenset((0x2c470, 0x144090))
+NATIVE_CAMERA_CALLS = ((0xc4879, 0x144090, 0xc487e, 'e812f80700'),)
+NATIVE_MODEL_DRAW_CALL=(0x136ce0,0x2cbd0,0x136ce5,'e8eb5eefff')
+# The old published address catalog also names these retired camera inputs.
+# Retain their identities without lowering either camera body again.
+NATIVE_CAMERA_ADDRESSES=(0x2c470,0x144090,0x46a140,0x46a22c,
+    0x4c6841,0x4c6842,0x4c6843,0x4c6844,0x4c684c)
+
 NATIVE_PREFIXES = {
     0x2e66b2: dict(resume=0x2e6714,code_sha256='2a88f4b134df82c047af7903b64d1f23f410ec54e0c532aacdf7a5f072eac29b',instructions=(
         (0x2e66b2,'0f284110'),
@@ -131,6 +141,21 @@ def native_prefix_guard(instruction):
     return ''
 
 
+def native_required_calls(*,get,keep_translated_model_call=False,**unused):
+    def emit(instruction):
+        calls=NATIVE_CAMERA_CALLS+(()if keep_translated_model_call else(NATIVE_MODEL_DRAW_CALL,))
+        for site,target,continuation,raw in calls:
+            if instruction.address!=site:continue
+            assert instruction.mnemonic=='call' and instruction.operands[0].imm==target
+            assert bytes(instruction.bytes).hex()==raw and site+instruction.size==continuation
+            # These native owners keep their actual required boundary even
+            # when a trace contains the complete caller and other callees.
+            result=get(instruction,SimpleNamespace(type=2,imm=continuation))
+            return f's.push(0x{site:x}u,{result});s.required(0x{site:x}u,0x{target:x}u,false);'
+        return None
+    return emit
+
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -143,10 +168,20 @@ def main():
                         help='Entry retained by an actual native platform owner, not lowered here')
     parser.add_argument('--additional-entry',type=lambda value:int(value,0),action='append',default=[],
                         help='Authenticated complete entry invoked directly by the native caller')
+    parser.add_argument('--keep-translated-model-call',action='store_true',
+                        help='Reference regeneration only: retain136CE0 direct2CBD0 call')
     args = parser.parse_args()
+    if RETIRED_NATIVE_CAMERA_ENTRIES.intersection(args.additional_entry):
+        parser.error('Retired native camera entries cannot be lowered as additional entries')
+    if NATIVE_MODEL_DRAW_CALL[1]in args.external_entry:
+        parser.error('Keep2CBD0 lowered for the BSP and model original-code reference paths')
     assert sha(NEW_DEFAULT) == NEW_PIN
     image = Xbe(NEW_DEFAULT)
     code = _Code(image, '.text')
+    for site, target, continuation, raw in (*NATIVE_CAMERA_CALLS,NATIVE_MODEL_DRAW_CALL):
+        instruction = code.at(site)
+        assert instruction.mnemonic == 'call' and instruction.operands[0].imm == target
+        assert bytes(instruction.bytes).hex() == raw and site + instruction.size == continuation
     # Ordinary44E80 marks selected subparts through this complete leaf.
     # Elongation reaches the call even though the earlier bounded bank did not.
     assert 0x4526f in _trace(code,0x44e80,set()).code
@@ -168,7 +203,8 @@ def main():
                 if operand.type==2:
                     assert target==operand.imm&0xffffffff
                 entries.add(target)
-    entries=tuple(sorted(entries-set(args.external_entry)))
+    entries=tuple(sorted(entries-set(args.external_entry)-RETIRED_NATIVE_CAMERA_ENTRIES))
+    assert not RETIRED_NATIVE_CAMERA_ENTRIES.intersection(entries)
     sites, instructions, addresses, routines = {}, {}, {}, []
     for entry in entries:
         body = _trace(code, entry, set(entries))
@@ -193,24 +229,41 @@ def main():
                   entries={f'{p:08x}': p for p in entries}, body_sites=sites,
                   instruction_map=instructions,
                   address_map={f'{p:08x}': q for p, q in addresses.items()}, routines=routines)
+    paired['address_map'].update({f'{p:08x}':p for p in NATIVE_CAMERA_ADDRESSES})
     args.directory.mkdir(parents=True, exist_ok=True)
     correspondence = args.directory / 'bodies.json'
     correspondence.write_text(json.dumps(paired, indent=2, sort_keys=True) + '\n')
     generate(SimpleNamespace(output=args.output, manifest=args.directory/'generation.json',
                              correspondence=correspondence, additional_entries=Path(__file__)), paired,
-             instruction_guard=native_prefix_guard)
+             instruction_guard=native_prefix_guard,extra_instruction_factory=lambda **kw:
+                native_required_calls(keep_translated_model_call=args.keep_translated_model_call,**kw),
+             preserve_selected_addresses=True,retained_selected_addresses=NATIVE_CAMERA_ADDRESSES)
     source = args.output.read_text().replace('tools/generate_physics_live_support_tu15.py',
         'tools/generate_shadow_frame_tu15.py').replace('halo2/physics_live_support_tu15.hpp',
         'halo2/source_shadow_frame_tu15.hpp').replace('source_run_physics_live_support_tu15',
         'source_run_shadow_frame_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_shadow_frame_tu15_owns_entry')
-    source=source.replace('#include "physics/runtime/physics_world_runtime_internal.hpp"',
-        '#include "physics/runtime/physics_world_runtime_internal.hpp"\n'
+    source=source.replace('#include "halo2/source_presented_model_pose_tu15.hpp"',
+        '#include "halo2/source_presented_model_pose_tu15.hpp"\n'
         '#include "rendering/shadows/source_shadow_native_prefix_tu15_internal.hpp"',1)
+    for entry in RETIRED_NATIVE_CAMERA_ENTRIES:
+        assert f'run_{entry:x}(' not in source
+        assert f'case 0x{entry:x}u:run_' not in source
+        following=next((p for p in entries if p>entry),None)
+        if following is not None:
+            # Retain the canonical separators left by the retired bodies.
+            # This keeps unchanged generation byte-identical to its reference.
+            before=f'\n\nstatic void run_{following:x}(WorldState &s)'
+            assert source.count(before)==1
+            source=source.replace(before,'\n'+before,1)
     prefix_owner_present=0x2e6290 in entries
     for entry,spec in NATIVE_PREFIXES.items():
         assert source.count(f'if(source_shadow_native_prefix_tu15_detail::run_{entry:x}(s))goto L{spec["resume"]:x};')==int(prefix_owner_present)
         assert source.count(f'L{spec["resume"]:x}: ')==int(prefix_owner_present)
+    site,target,continuation,raw=NATIVE_MODEL_DRAW_CALL
+    model_native=0x136a80 in entries and not args.keep_translated_model_call
+    assert source.count(f's.required(0x{site:x}u,0x{target:x}u,false);')==int(model_native)
+    if 0x136a80 in entries:assert 'static void run_2cbd0(WorldState &s)'in source
     assert source.count('} // namespace halo2')==1
     source=source.replace('} // namespace halo2',
         'SourceShadowNativePrefixTu15Stats source_shadow_native_prefix_tu15_stats() noexcept {\n'
@@ -218,12 +271,22 @@ def main():
         'void source_reset_shadow_native_prefix_tu15_stats() noexcept {\n'
         '    source_shadow_native_prefix_tu15_detail::stats={};\n}\n'
         '} // namespace halo2')
-    args.output.write_text(source)
+    from native_normalize_vector_bridge_tu15 import install_native_normalizer
+    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
     report = json.loads((args.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(args.output), module_generator_sha256=sha(Path(__file__)))
     if args.additional_trace:report['original_callee_trace_sha256']={str(p):sha(p)for p in args.additional_trace}
     report['actual_native_external_entries']=[f'{p:08x}'for p in args.external_entry]
     report['additional_direct_entries']=[f'{p:08x}'for p in args.additional_entry]
+    report['retired_native_camera_entries']=[f'{p:08x}' for p in sorted(RETIRED_NATIVE_CAMERA_ENTRIES)]
+    report['native_camera_calls']=[dict(instruction=f'{site:08x}', target=f'{target:08x}',
+        continuation=f'{continuation:08x}', bytes=raw)
+        for site,target,continuation,raw in NATIVE_CAMERA_CALLS]
+    report['native_model_draw_call']=dict(instruction=f'{site:08x}',target=f'{target:08x}',
+        continuation=f'{continuation:08x}',bytes=raw,native=model_native,
+        genuine_callee_retained=0x2cbd0 in entries)
+    if model_native:
+        report['external_owners'][f'{site:08x}']=dict(target=f'0x{target:x}',full_guest_abi=True)
     report['native_read_prefixes']={f'{entry:08x}':dict(
         first=f'{entry:08x}',last=f"{spec['instructions'][-1][0]:08x}",resume=f"{spec['resume']:08x}",
         code_sha256=spec['code_sha256'],instruction_count=27,owner_present=prefix_owner_present,

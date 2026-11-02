@@ -144,6 +144,46 @@ void separator_contract_tests(const fs::path& scratch) {
         {"preferred_cache_root",result->cache_root.string()},{"positive_forms",1},
         {"rejected_dot_dotdot_repeated_separator_forms",aliases}}.dump()<<'\n';
 }
+void original_sound_pointer_tests(const fs::path& scratch) {
+    Fixture f(scratch/"original-sound-pointer");f.indexed();
+    const std::string name="halo2/h2_maps_win64_dx11/lockout.map";
+    const std::string raw="{\"declared_metadata_fixture\":true}\n";
+    const Json pointer{{"schema","H2_PREPARED_ORIGINAL_SOUND_CATALOG_TU15_V1"},
+        {"path","original-sounds/catalog.json"},{"sha256",hash(raw)},{"bytes",raw.size()},
+        {"maps",{{name,{{"input_sha256",f.final_hashes.at(name)},{"input_bytes",f.encoded.at(name).size()},{"original_map","lockout.map"}}}}}};
+    write(f.root/"original-sounds/catalog.json",raw);f.provenance["original_sound_catalog"]=pointer;f.save();
+    const auto admitted=f.admit();
+    check(admitted->original_sound_catalog&&admitted->original_sound_catalog->directory==f.root/"original-sounds"&&
+        admitted->original_sound_catalog->sha256==hash(raw)&&admitted->original_sound_catalog->original_map=="lockout.map",
+        "Exact original catalog provenance pointer was lost");
+    check(!f.admit("halo2/h2_maps_win64_dx11/shared.map")->original_sound_catalog,"Resource cache inherited scenario original sounds");
+    unsigned controls{};
+    const auto bad=[&](auto mutate){auto changed=pointer;mutate(changed);f.provenance["original_sound_catalog"]=changed;f.save();
+        rejected([&]{f.admit();},"Invalid original sound catalog pointer was admitted");++controls;f.provenance["original_sound_catalog"]=pointer;f.save();};
+    bad([](auto& p){p["schema"]="other";});
+    bad([](auto& p){p["path"]="original-sounds/../catalog.json";});
+    bad([](auto& p){p["sha256"]=std::string(64,'0');});
+    bad([](auto& p){p["bytes"]=0;});
+    bad([](auto& p){p["bytes"]=4u*1024u*1024u+1;});
+    bad([](auto& p){p["bytes"]=1;});
+    bad([](auto& p){p["maps"]=Json::object();});
+    bad([&](auto& p){p["maps"][name]["input_sha256"]=std::string(64,'0');});
+    bad([&](auto& p){p["maps"][name]["input_bytes"]=1;});
+    bad([&](auto& p){p["maps"][name]["original_map"]="../lockout.map";});
+    bad([&](auto& p){p["maps"]["halo2/Mods/lockout.map"]=p["maps"][name];});
+    bad([&](auto& p){p["maps"]["halo2/h2_maps_win64_dx11/shared.map"]={{"input_sha256",f.final_hashes.at("halo2/h2_maps_win64_dx11/shared.map")},
+        {"input_bytes",f.encoded.at("halo2/h2_maps_win64_dx11/shared.map").size()},{"original_map","shared.map"}};});
+    fs::remove(f.root/"original-sounds/catalog.json");
+    rejected([&]{f.admit();},"Missing declared original catalog was silently omitted");++controls;
+    write(f.root/"original-sounds/alias.json",raw);
+    fs::create_symlink(f.root/"original-sounds/alias.json",f.root/"original-sounds/catalog.json");
+    rejected([&]{f.admit();},"Symbolic original catalog was admitted");++controls;
+    fs::remove(f.root/"original-sounds/catalog.json");write(f.root/"original-sounds/catalog.json",raw);
+    f.provenance["native_shader_library"].erase("owner_bindings");f.save();
+    rejected([&]{f.admit();},"Original catalog without indexed prepared ownership was admitted");++controls;
+    std::cout<<"Original sound provenance pointer: "<<Json{{"positives",2},{"negative_controls",controls},
+        {"scope","metadata pointer only; actual banks and Cache binding have separate integration tests"}}.dump()<<'\n';
+}
 }
 
 int main(int argc, char** argv) try {
@@ -161,6 +201,7 @@ int main(int argc, char** argv) try {
     Temporary temporary;
     separator_contract_tests(temporary.root);
     if(separator_only)return 0;
+    original_sound_pointer_tests(temporary.root);
     {
         Fixture f(temporary.root / "legacy"); f.save();
         const auto a = f.admit(); check(a && a->binding && !a->indexed, "Legacy stock projection absent");

@@ -21,8 +21,20 @@ def main():
     cache = args.cache.resolve(strict=True)
     policy = module.generate(cache)
     assert [(r["map"], len(r["records"])) for r in policy["maps"]] == [
-        ("needle", 34), ("street_sweeper", 34)]
+        ("needle", 35), ("street_sweeper", 36)]
     cases = 1
+
+    with mock.patch.object(module, "RESIDENT_TEMPLATE_ROOTS", {}):
+        without_metadata = module.generate(cache)
+    for before_map, after_map in zip(without_metadata["maps"], policy["maps"]):
+        before = {(item["record"]["group"], item["record"]["name"]): item for item in before_map["records"]}
+        after = {(item["record"]["group"], item["record"]["name"]): item for item in after_map["records"]}
+        expected = {("stem", r"shaders\shader_templates\opaque\tex_bump_env_illum")}
+        if after_map["map"] == "street_sweeper":
+            expected.add(("stem", r"shaders\shader_templates\opaque\tex_bump_env_alpha_test"))
+        assert after.keys() - before.keys() == expected
+        assert all(after[key] == item for key, item in before.items())
+    cases += 1
 
     def rejected(action):
         nonlocal cases

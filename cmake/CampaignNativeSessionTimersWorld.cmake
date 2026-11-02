@@ -1,0 +1,10 @@
+include_guard(GLOBAL)
+include(${CMAKE_CURRENT_LIST_DIR}/CampaignNativeSessionTimersBinding.cmake)
+if(BUILD_TESTING)
+    set(HALO2_CAMPAIGN_SESSION_TIMER_TEST_MAP "" CACHE FILEPATH "Prepared MCC map for actual native World timer integration acceptance")
+    add_executable(native_campaign_session_timers_world_tests tests/native_campaign_session_timers_world_tests.cpp)
+    target_link_libraries(native_campaign_session_timers_world_tests PRIVATE halo2_systems)
+    add_test(NAME native_campaign_session_timers_world_tu15 COMMAND native_campaign_session_timers_world_tests
+        "${HALO2_CAMPAIGN_SESSION_TIMER_TEST_MAP}")
+    set_tests_properties(native_campaign_session_timers_world_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+endif()

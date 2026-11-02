@@ -1,0 +1,31 @@
+{
+  "unchanged_policy_owners": [
+    {
+      "path": "src/ui/frontend_party.cpp",
+      "sha256": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6"
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "sha256": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a"
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "sha256": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf"
+    },
+    {
+      "path": "include/halo2/frontend.hpp",
+      "sha256": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494"
+    }
+  ],
+  "remaining_native_decisions": [
+    "populate_online_party and online_party_text still choose party menu entries and lobby/roster strings",
+    "lobby_view still composes ONLINE matchmaking session/query facts and roster activity from account/countdown/voice snapshots",
+    "update_account still chooses party arrival/departure, worker replacement, automatic voice entry and pending profile publication",
+    "has_online_prior_stats still owns access to the retained report and per-matchmaking namespace view"
+  ],
+  "constraints": [
+    "Keep mutation/read/exception order and actual identity/seat/voice IO while moving selection to Rust",
+    "Fresh retail kernel evidence does not authenticate original Live query producers or label all paths TU1.5",
+    "Retain all 12 GAP records, all 53 owners and G01-G12 exit criteria; full goal stays active"
+  ]
+}

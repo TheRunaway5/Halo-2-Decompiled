@@ -59,22 +59,37 @@ def main():
     parser.add_argument('--maps',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--map',action='append',default=[])
+    parser.add_argument('--vehicle-destruction-only',action='store_true',
+                        help='Follow vehicle model damage/response roots instead of weapon/engine roots')
     args=parser.parse_args()
+    groups=GROUPS|{'bloc','prt3','PRTM'} if args.vehicle_destruction_only else GROUPS
     scratch=Path(os.environ['HALO2_TEST_SCRATCH'])
     scope=BASE/'authored-scope.json'
     source=json.loads(scope.read_text())
     owners={};maps=[];issues=[]
+    # Scenario indices can omit resident sound identities supplied by the
+    # imported shared owners. Record those real owners before testing names.
+    shared_names=set();shared_inputs=[]
+    for name in ('shared.map','single_player_shared.map'):
+        path=args.maps/name
+        if not path.is_file():continue
+        shared=MccCache(path)
+        try:
+            shared_names.update((tag['group'],tag['name']) for tag in shared.tags.values()
+                                if tag['offset'] is not None)
+            shared_inputs.append(dict(path=str(path.resolve()),sha256=sha(path)))
+        finally:shared.close()
     for item in source['maps']:
         path=Path(item['path'])
         if args.map and path.stem not in args.map:continue
         if sha(path)!=item['sha256']:raise ValueError('Reference map differs from pinned scope: '+str(path))
         c=Cache(path)
-        mcc_path=args.maps/path.name
+        mcc_path=args.maps/('highplains.map' if path.name=='highplains2.map' else path.name)
         try:
             present=None
             if mcc_path.is_file():
                 mcc=MccCache(mcc_path)
-                try:present={(tag['group'],tag['name']) for tag in mcc.tags.values()}
+                try:present=shared_names|{(tag['group'],tag['name']) for tag in mcc.tags.values()}
                 finally:mcc.close()
             else:issues.append(dict(map=path.name,error='Matching MCC map filename is absent; namespace not compared'))
             edges={};leaves={};outside=set()
@@ -85,18 +100,27 @@ def main():
                 if tag is None:raise ValueError(f'Authored reference has no full-salt owner: {datum:08x}')
                 group=tag['group']
                 if group=='snd!':leaves[datum]=tag;return
-                if group not in GROUPS:outside.add(group);return
+                if group not in groups:outside.add(group);return
                 if tag['offset'] is None:raise ValueError(f'Nonresident {group} dependency: {tag["name"]}')
                 if datum not in edges:edges[datum]=tuple(references(c,schema(group),tag['offset']))
                 for child in edges[datum]:closure(child,visited)
             count=0;missing=set()
+            names={(tag['group'],tag['name']):datum for datum,tag in c.tags.items()}
             for datum,tag in c.tags.items():
                 if tag['group'] not in ('weap','vehi'):continue
+                if args.vehicle_destruction_only and tag['group']!='vehi':continue
                 key=(tag['group'],tag['name'])
                 owner=owners.setdefault(key,dict(group=key[0],name=key[1],maps=[],sounds=set(),loops=set(),missing=set()))
                 owner['maps'].append(path.name)
                 visited=set()
-                try:closure(datum,visited)
+                try:
+                    if args.vehicle_destruction_only:
+                        from audit_destruction_contracts_tu15 import Reader
+                        from audit_destruction_effect_graphs_tu15 import response_roots
+                        model=c.u(tag['offset']+0x38)
+                        roots=[] if model==0xffffffff else response_roots(Reader(c).model(c.tags[model]))
+                        for identity in roots:closure(names[tuple(identity)],visited)
+                    else:closure(datum,visited)
                 except (ValueError,AssertionError,KeyError) as error:
                     issues.append(dict(map=path.name,owner=tag['name'],error=str(error)));continue
                 audio=[c.tags[d] for d in visited if c.tags[d]['group'] in ('snd!','lsnd')]
@@ -105,7 +129,7 @@ def main():
                     if present is not None and (sound['group'],sound['name']) not in present:
                         owner['missing'].add(sound['name']);missing.add(sound['name'])
                 count+=1
-            maps.append(dict(name=path.name,reference_sha256=item['sha256'],mcc_sha256=sha(mcc_path) if present is not None else None,
+            maps.append(dict(name=path.name,mcc_path=str(mcc_path.resolve()),reference_sha256=item['sha256'],mcc_sha256=sha(mcc_path) if present is not None else None,
                              weapon_vehicle_rows=count,missing_sound_paths=sorted(missing),
                              unfollowed_reference_groups=sorted(outside)))
             print(json.dumps(dict(map=path.name,owners=count,missing=len(missing),issues=[i for i in issues if i['map']==path.name][:2])),flush=True)
@@ -115,8 +139,10 @@ def main():
         rows.append({key:sorted(value) if isinstance(value,set) else value for key,value in owner.items()})
     missing=sorted({name for row in rows for name in row['missing']})
     report=dict(scope=__doc__,passed=not issues and not missing and len(maps)==len(source['maps']),
+                dependency_roots='vehicle model damage and section responses' if args.vehicle_destruction_only else 'whole weapon and vehicle',
                 reference_scope_sha256=sha(scope),schema_commit=PIN,schema_sha256=SCHEMAS,
-                followed_reference_groups=sorted(GROUPS),maps=maps,owners=rows,issues=issues,
+                followed_reference_groups=sorted(groups),maps=maps,owners=rows,issues=issues,
+                shared_cache_inputs=shared_inputs,shared_resident_tag_names=len(shared_names),
                 weapon_paths=sum(row['group']=='weap' for row in rows),
                 vehicle_paths=sum(row['group']=='vehi' for row in rows),
                 missing_sound_paths=missing,implicit_dependencies_verified=False,

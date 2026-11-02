@@ -17,7 +17,7 @@ cross-field player counts, UUID/key derivation, timestamps, and state transition
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `/v1/servers` | `{"servers": [publicListing, ...]}` |
+| GET | `/v1/servers` | `{"servers": [publicListing, ...], "next_cursor"?: string}` |
 | GET | `/v1/servers/{server_id}` | One active public listing; otherwise 404 |
 | GET | `/v1/masters` | `master: {id, public_key, url}` and configured `peers` |
 | GET | `/v1/health` | `status`, `ready`, `master_id`, `uptime_seconds`, peer status |
@@ -26,8 +26,33 @@ Filters on discovery are exact, case-sensitive strings: `game_version`, `map`,
 `gametype`, `region`, `server_type`. `available_slots` is an integer from 0 to 16
 and selects `max_players - players >= available_slots`. Region is an optional,
 operator-declared tag such as `US-EAST`, not IP geolocation. Unknown or repeated
-query parameters return 400. Results are sorted by server UUID. An empty list is
+query parameters return 400. Results are sorted by `(origin_master_id, server_id)`. An empty list is
 a successful response and does not trigger failover.
+
+Collection responses contain at most 64 records and 64 KiB of serialized JSON.
+`limit` optionally selects 1–64 records; the byte ceiling can shorten a page.
+While `next_cursor` is present and non-null, request the same filters with
+`cursor` set to that value. It is omitted on the final page, preserving the
+existing response shape for small directories. Cursors contain an origin UUID,
+a dot, and a server UUID. Pagination
+uses the last returned key, so concurrent updates may change subsequent pages;
+it does not pin a historical snapshot. Individual lookup accepts filters only.
+The CLI and native browser follow continuations with bounded record/byte totals.
+
+Discovery consumes four route tokens per request: a source has 128 initial
+tokens and refills 480 per minute (32 initial pages, then two pages per second).
+A shared bucket permits 64 initial pages and ten per second across sources.
+These limits are additional to the generic source limiter. HTTP 429 signals
+rate admission failure; HTTP 503 signals occupied response capacity. Health and
+control routes do not share this response budget.
+
+Discovery and inbound federation share four response slots and an 8 MiB budget.
+Admission reserves the route's maximum response size before materialization;
+it fails immediately without queued waiters. Reservations last through response
+drain, which has a five-second deadline; failure aborts the connection. WebSocket
+routes keep their existing lifetime policy. Directory projections and canonical
+snapshot records are cached by a durable SQLite listing revision; expiry is
+still checked on every public read.
 
 ```json
 {

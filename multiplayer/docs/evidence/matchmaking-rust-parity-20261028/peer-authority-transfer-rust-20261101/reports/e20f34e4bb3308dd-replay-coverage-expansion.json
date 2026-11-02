@@ -1,0 +1,10 @@
+{
+  "scope": "The initial first-packet capture selected a one-byte tail chunk. Retain the longest representative and seed the other valid chunks so every payload mutation reaches the final hash path. No production code changed.",
+  "source": "tests/test_peer_authority_transfer_replay.py",
+  "before_sha256": "5d7409e86d7a21c529cf911765c02a87fe75e8d92d67e537205bdb2c299bea89",
+  "after_sha256": "d18e31368086a762197519dcd2bbafce955ba86cb37771237ad54b8ff3028cfb",
+  "full_chunk_packet_bytes": 1093,
+  "full_chunk_payload_bytes": 1024,
+  "native_iteration_1_2_use_initial_corpus": true,
+  "expanded_corpus_requires_separate_declared_native_refresh": true
+}

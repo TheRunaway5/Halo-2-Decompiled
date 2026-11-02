@@ -1,0 +1,28 @@
+import hashlib,json,os,shutil,subprocess,sys,time
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ["HALO2_TEST_SCRATCH"]).resolve();out=root/"build/test-results/native-result-authority-rust-20261102/full-rust";out.mkdir(parents=True,exist_ok=True)
+source=scratch/"source";source.mkdir();pins={}
+for name in ("online_protocol","online_protocol_bridge","matchmaking_service"):
+ original=root/"rust"/name;target=source/"rust"/name
+ shutil.copytree(original,target,ignore=shutil.ignore_patterns("target","__pycache__"))
+ for p in target.rglob("*"):
+  if p.is_file():pins[str(p.relative_to(source))]=hashlib.sha256(p.read_bytes()).hexdigest()
+for name in ("tests/fixtures","multiplayer/master_server/examples","multiplayer/master_server/data","multiplayer/master_server/tests/fixtures"):
+ shutil.copytree(root/name,source/name)
+ for p in (source/name).rglob("*"):
+  if p.is_file():pins[str(p.relative_to(source))]=hashlib.sha256(p.read_bytes()).hexdigest()
+assert all(hashlib.sha256((root/n).read_bytes()).hexdigest()==h for n,h in pins.items()),"Rust freeze drift"
+record={"passed":False,"scratch":str(scratch),"source_pins":pins,"commands":[],"scope":"Rust checks/tests only; no native provider, played world or original Live acceptance"}
+try:
+ env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_AUTO_INSTALL="0",RUSTUP_TOOLCHAIN="1.96.0")
+ for mode in ("check","test"):
+  for name in ("online_protocol","online_protocol_bridge","matchmaking_service"):
+   command=["cargo",mode,"--locked","--offline"]
+   start=time.monotonic();result=subprocess.run(command,cwd=source/"rust"/name,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+   log=out/(name+"-"+mode+".log");log.write_bytes(result.stdout[-1048576:])
+   record["commands"].append({"command":command,"crate":name,"exit_code":result.returncode,"seconds":time.monotonic()-start,"log":str(log)})
+   print(name,mode,result.returncode,flush=True)
+   if result.returncode:print(result.stdout.decode(errors="replace")[-6500:],flush=True);sys.exit(result.returncode)
+ record["frozen_inputs_intact"]=all(hashlib.sha256((source/n).read_bytes()).hexdigest()==h for n,h in pins.items());assert record["frozen_inputs_intact"]
+ record["passed"]=True
+finally:(out/"report.json").write_text(json.dumps(record,indent=2)+"\n")

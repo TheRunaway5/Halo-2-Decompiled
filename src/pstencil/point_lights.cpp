@@ -268,7 +268,7 @@ std::vector<WorldEffectLightReceiver> PointLights::receivers(const SourceEffectL
         if(at==lights.records.end())throw FormatError("pStencil selected point light lacks its source record");
         const auto& r=at->runtime;
         const auto shape=source_effect_light_sphere(*at->definition,r.position,r.forward,r.up,r.state.size);
-        auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,shape,fog,main);
+        auto receiver=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,shape,fog,main,at->definition->flags);
         out.push_back({selected.identity,++i.queries.epoch,selected.requested_fade,std::move(receiver)});
     }
     return out;

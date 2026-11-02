@@ -38,6 +38,7 @@ struct Controls {
 // Exactly 32 source samples. Exact alias and disjoint native spans are admitted;
 // partial overlap is rejected before any mutation. flags bit 0 initialization
 // follows P0198..019E; this is module state, not engine or DSP readiness.
+void validate_controls(const Controls&);
 // Only the traced arithmetic/linear-address modes are admitted. RM is irrelevant
 // because this module executes no rounding instruction. MR scaling exits at zero.
 void process(const Controls&, Parameters&, State&, std::span<const Word24,32> input,

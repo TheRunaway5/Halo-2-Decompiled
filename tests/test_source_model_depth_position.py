@@ -43,6 +43,42 @@ class NativeModelDepth(unittest.TestCase):
         cls.proof = audit(cls.registry)
         cls.rows = receiver_rows(cls.registry, cls.proof)
 
+    def test_prt_world_position_retains_indexed_color_and_rejects_changed_tokens(self):
+        compiler = shutil.which('c++')
+        if not compiler:self.skipTest('C++ compiler unavailable')
+        entries = self.proof['prt_world_programs']
+        self.assertEqual(len(entries), 2)
+        self.assertEqual({name.rsplit('\\', 1)[-1] for entry in entries for name in entry['aliases']},
+                         {'prt', 'prt_lightmap'})
+        _, ordinary = world_audit(self.registry)
+        self.assertTrue(all(entry['program_sha256'] not in ordinary for entry in entries))
+        codes = {sha(bytes.fromhex(row['vertex_program_hex'])):bytes.fromhex(row['vertex_program_hex'])
+                 for row in self.registry['entries']}
+        rows = ['{'+','.join(map(str,codes[entry['program_sha256']]))+'}' for entry in entries]
+        scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
+        unit = scratch/'prt-world-position.cpp'
+        unit.write_text('''
+#include "halo2/source_model_depth_position_contract.hpp"
+#include <stdexcept>
+#include <vector>
+int main(){
+ const std::vector<std::vector<unsigned char>> rows{'''+','.join(rows)+'''};
+ for(const auto& row:rows){
+  const auto valid=[](const auto& bytes){return halo2::source_model_depth_private::world_position_program_admitted(std::as_bytes(std::span(bytes)));};
+  if(!valid(row))throw std::runtime_error("Exact wheel PRT WORLD position rejected");
+  if(halo2::source_world_depth_private::position_program_admitted(std::as_bytes(std::span(row))))
+   throw std::runtime_error("Indexed PRT acquired ordinary BSP scope");
+  for(unsigned n=0;n<row.size();++n){auto changed=row;changed[n]^=128;
+   if(valid(changed))throw std::runtime_error("Changed PRT token admitted");}
+ }
+}
+''')
+        result = subprocess.run([compiler,'-std=c++20','-O2','-I'+str(ROOT/'include'),
+                                 str(unit),'-o',str(scratch/'prt-world-position')],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        result = subprocess.run([str(scratch/'prt-world-position')],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
     def test_complete_program_and_class_contract_is_reproducible(self):
         self.assertEqual((ROOT / 'include/halo2/source_model_depth_position_contract.hpp').read_text(),
                          header(self.registry, self.proof))
@@ -104,7 +140,7 @@ int main(){
     def test_native_prefix_cpu_and_gpu_projection_w_clip_d24(self):
         compiler, glslang, validator = [shutil.which(name) for name in ('c++', 'glslangValidator', 'spirv-val')]
         if not all((compiler, glslang, validator)):self.skipTest('Native compiler/Vulkan shader tools unavailable')
-        scratch = Path(os.environ['HALO2_TEST_SCRATCH']) / 'model-depth-composition'
+        scratch = Path(os.environ['HALO2_TEST_SCRATCH']) / ('model-depth-composition-' + self._testMethodName)
         scratch.mkdir()
         source_header, _ = build_position_header({'cpu_vertex_programs': self.rows})
         (scratch/'native_position_kernels.generated.hpp').write_text(source_header)
@@ -249,6 +285,14 @@ int main(int argc,char** argv){try{
         self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
         self.assertNotIn('Validation Error', result.stderr)
         print(result.stdout.strip())
+
+    def test_hologram_prefix_and_original_gpu_w_depth(self):
+        keys = {item['program_sha256'] for item in self.proof['admitted']
+                if item['family'].rsplit('\\', 1)[-1] == 'hologram'}
+        self.rows = sorted((row for row in self.registry['cpu_vertex_programs']
+                            if sha(_program(row)[0]) in keys), key=lambda row: sha(_program(row)[0]))
+        self.assertEqual(len(self.rows), 5)  # Classes2/3 share one complete program.
+        self.test_native_prefix_cpu_and_gpu_projection_w_clip_d24()
 
 
 if __name__ == '__main__':unittest.main()

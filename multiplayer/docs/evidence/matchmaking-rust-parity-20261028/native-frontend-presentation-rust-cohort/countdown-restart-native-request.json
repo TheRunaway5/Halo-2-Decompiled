@@ -1,0 +1,12 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "rust/online_protocol/src/matchmaking_party_countdowns.rs",
+    "rust/online_protocol/tests/matchmaking_parties.rs"
+  ],
+  "targets": [
+    "frontend_online_tests"
+  ],
+  "filter": "^(frontend_matchmaking_http|frontend_matchmaking_gathering_http)$"
+}

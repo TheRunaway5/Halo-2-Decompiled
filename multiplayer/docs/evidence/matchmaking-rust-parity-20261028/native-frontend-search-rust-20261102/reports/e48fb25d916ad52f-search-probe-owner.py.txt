@@ -1,0 +1,37 @@
+import hashlib,json,os,shutil,subprocess,sys,select
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);work=root/'build/test-results/frontend-search-rust-20261102/probe-linked';work.mkdir(exist_ok=True)
+source=scratch/'source';report={'scratch':str(scratch),'iterations':[],'retained_large_artifacts':[]}
+for directory in ['rust/online_protocol','rust/online_protocol_bridge','include','src/ui','tests/reference/frontend_search_before_rust_20261102','tests/reference/frontend_lobby_before_rust_20261102']:
+ shutil.copytree(root/directory,source/directory,ignore=shutil.ignore_patterns('target','__pycache__'))
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'cargo'),CARGO_BUILD_JOBS='2',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+cflags=subprocess.check_output(['pkg-config','--cflags','sdl2'],text=True).split()
+fifo=scratch/'control.fifo';os.mkfifo(fifo);fd=os.open(fifo,os.O_RDWR);pending=b'';print('READY '+str(fifo),flush=True)
+def run(command,label):
+ p=subprocess.run(command,cwd=source,env=env,capture_output=True);data=p.stdout+p.stderr;(work/(label+'.log')).write_bytes(data[-131072:]);entry['commands'].append({'command':command,'exit_code':p.returncode,'log':label+'.log','sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)})
+ print(label,p.returncode,flush=True)
+ if p.returncode:print(data.decode(errors='replace')[-6500:],flush=True);raise RuntimeError(label+' failed')
+try:
+ while True:
+  while b'\n' not in pending:
+   if not select.select([fd],[],[],1200)[0]:raise RuntimeError('Owned probe idle deadline')
+   pending+=os.read(fd,65536)
+  line,pending=pending.split(b'\n',1);request=json.loads(line)
+  if request.get('quit'):break
+  entry={'passed':False,'commands':[]};serial=len(report['iterations'])+1;label='iteration-'+str(serial)
+  try:
+   for name in ['rust/online_protocol/src/matchmaking_frontend_search.rs','rust/online_protocol/tests/matchmaking_frontend_search.rs','rust/online_protocol_bridge/src/matchmaking_frontend_search.rs','rust/online_protocol_bridge/src/matchmaking_frontend_search.hpp','rust/online_protocol_bridge/src/lib.rs','src/ui/frontend_matchmaking_search.cpp','src/ui/frontend_matchmaking_search_bridge.cpp','include/halo2/frontend_matchmaking_search.hpp','tests/native_frontend_search_rust_tests.cpp','tests/test_native_frontend_search_rust.py']:
+    (source/name).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,source/name)
+   pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source.rglob('*') if p.is_file()}
+   pin_bytes=(json.dumps(pins,sort_keys=True,indent=2)+'\n').encode();pin_name='pins-'+hashlib.sha256(pin_bytes).hexdigest()[:16]+'.json';(work/pin_name).write_bytes(pin_bytes);entry['pins_file']=pin_name
+   run(['cargo','build','--locked','--offline','--manifest-path',str(source/'rust/online_protocol_bridge/Cargo.toml')],label+'-cargo')
+   inc=['-I'+str(source/'include'),'-I'+str(source/'src'),'-I'+str(scratch/'cargo/cxxbridge'),'-I'+str(source/'rust/online_protocol_bridge')]
+   for name in ['src/ui/frontend_matchmaking_search_bridge.cpp','src/ui/frontend_matchmaking_search.cpp']:
+    run(['c++','-std=c++20','-fsyntax-only',*cflags,*inc,str(source/name)],label+'-'+Path(name).stem)
+   run(['c++','-std=c++20','-O1',*inc,str(source/'tests/native_frontend_search_rust_tests.cpp'),str(source/'src/ui/frontend_matchmaking_search_bridge.cpp'),str(scratch/'cargo/debug/libhalo2_online_protocol_bridge.a'),'-lpthread','-ldl','-lm','-lcurl','-lssl','-lcrypto','-lz','-o',str(scratch/'replay')],label+'-replay-build')
+   run([sys.executable,'-B',str(source/'tests/test_native_frontend_search_rust.py'),str(scratch/'replay'),'--report',str(work/(label+'-replay.json'))],label+'-replay')
+   entry['passed']=True
+  except BaseException as error:entry['error']=repr(error)
+  finally:
+   report['iterations'].append(entry);(work/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({'iteration':serial,'passed':entry['passed']}),flush=True)
+finally:print('Owner exiting, supervisor removes all generated products',flush=True)

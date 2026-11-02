@@ -6,13 +6,19 @@ admitted physical client validates and confirms the same native Vista report.
 This establishes client agreement; the master does not independently simulate
 gameplay or prove anti-cheat integrity.
 
-New reports preserve the actual 304-byte selected variant, admission/completion
-times, authenticated players' chosen screen names and verified Discord usernames
-at the match, appearance, all 45 general stat slots, 32 medal slots, 45×8 weapon
-fields, authenticated opponent records and admitted team statistics. Sparse
-source-index arrays omit zero entries. Unidentified source fields retain their
-indices instead of receiving guessed names. The original 15-bit stat accessors
-own decoding. The complete consumed report is not persisted as a raw blob.
+The current verified-summary publisher preserves the actual 304-byte selected
+variant, admission/completion times, authenticated players' chosen screen names
+and verified Discord usernames at the match, and accepted player/team summary
+standings. `native-verified-accuracy-v3` additionally records the separately
+verified shot/hit counters and their coverage. It does not turn client agreement
+into independent simulation truth.
+
+Summary publication does not manufacture appearance, medal, general-stat,
+weapon or opponent detail. Existing detailed rows retain their source indices:
+45 general slots, 32 medal slots, 45×8 weapon fields and authenticated opponent
+records. Sparse arrays omit zero entries. Their presence is reported separately
+from summary/accuracy coverage; unknown semantics do not receive guessed names.
+The consumed report is not persisted as a raw blob.
 
 Guest personal rows, names, appearance, weapon/medal statistics and opponent
 columns are excluded. Team totals describe the team as a whole. Stable random
@@ -31,10 +37,35 @@ renaming a Discord or Halo name preserves the name snapshot in existing reports.
   completion time plus the public match alias gives stable pagination for ties.
 - `GET /v1/history/matches/{public_match_id}` returns the normalized report,
   current names, names at the match and available source details.
+- `GET /v1/history/players/{public_player_id}/profile` returns the current public
+  customization and career totals, separately from historical PCR appearance.
 
 These are public, read-only endpoints under the existing bounded-request and
 rate middleware. The future website may proxy them from its own origin. No
 website or CORS policy is added by this change.
+
+Rust now owns these public-read SQL statements, query/cursor validation,
+pagination and field/detail projections in `matchmaking_public_history.rs`.
+The temporary Python adapter supplies HTTP/SQLite IO. Current-profile validation,
+career-total queries and the revision/expiry/LRU cache now also belong to Rust;
+history calls that native owner directly. Population observations, general HTTP
+middleware and the complete Rust service replacement remain open work.
+
+Totals enter the shared cache only after an owned SQL transaction commits.
+Reads inside an outer transaction bypass that cache, preserving uncommitted
+visibility without publishing values that may later roll back. The current
+[profile ownership receipt](evidence/matchmaking-rust-parity-20261028/profile-validation.json)
+records the authorization, transaction and cache controls.
+
+History reads preserve an existing caller transaction and do not advance the
+registry's durable clock floor. Duplicate/unknown query fields and malformed
+cursor types reject. Pages remain bounded to 50 matches. Detailed weapon rows
+are read in 128-row SQL pages without truncating the full 360-row bank. An
+ambiguous stale-username search exceeding the native 128-row reply bound rejects
+instead of silently returning a partial bank. These are modern API resource
+rules, not recovered Xbox Live behavior. See the
+[current ownership audit](matchmaking-rust-parity-audit-20261028.md#rust-public-history-read-ownership)
+and [validation receipt](evidence/matchmaking-rust-parity-20261028/public-history-validation.json).
 
 The additive schema lives in the existing persistent `registry.sqlite3` volume.
 Report details, result summaries and skill progression share one transaction.
@@ -61,13 +92,16 @@ The source audit and dated catalog inventories are linked in
 complete native Action Sack/Fiesta, host migration, community admission and
 original clan-rank publication remain separate unfinished requirements.
 
-Release `20261013T185856Z` is active on `master.halotoforever.com`. All 75
-frozen source files match the running container. 168 backend tests pass locally
-and in the VPS image. An independent two-process native check completes an
+## Historical deployment receipt
+
+The retained 2026-10-13 receipt records release `20261013T185856Z` on
+`master.halotoforever.com`, 75 frozen source files and 168 passing backend tests
+locally and in its VPS image. It records an independent two-process check of an
 eight-player match, full Vista PCR, Done and requeue using the TU1.5 policy;
 website lookup returns the four authenticated players and excludes the four
 guests. Discord authorization is the external fixture in that automated check,
 not a fresh live Discord account verification. The stopped pre-release backup
 restores in an isolated container, matches all retained-state hashes and accepts
 the additive history schema with successful integrity/foreign-key checks.
-Evidence: `.local/online-completion-20261013/verification.json`.
+Evidence: `.local/online-completion-20261013/verification.json`. This is dated
+deployment evidence, not activation or verification of the current Rust work.

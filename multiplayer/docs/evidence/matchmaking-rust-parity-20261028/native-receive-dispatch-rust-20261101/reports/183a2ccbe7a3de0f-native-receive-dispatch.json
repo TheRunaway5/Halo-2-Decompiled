@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "scope": "Compare the exact preserved C++ receive caller with production Rust dispatch.\n\nPhase/capability/resource/history observations and injected IO refusals are\nfixtures. Both invoke the actual protocol recognizers; only the caller's routing,\nraw operand/payload forwarding, lock lifetime and effect order are compared.\nThis does not certify original Live, a native world, provider or installed client.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "error": "Expecting value: line 1 column 1 (char 0)",
+  "commands": 0,
+  "last_command": {
+    "flags": 0,
+    "capabilities": 0,
+    "packet": "48324e327c000d",
+    "epoch": 0
+  }
+}

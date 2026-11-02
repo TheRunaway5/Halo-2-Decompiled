@@ -1,0 +1,11 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();out=root/'build/test-results/frontend-progress-rust-20261102';scratch=Path(os.environ['HALO2_TEST_SCRATCH'])
+paths=[p for p in (root/'rust/online_protocol').rglob('*') if p.is_file() and 'target' not in p.parts]+[root/'tests/fixtures'/n for n in ('matchmaking_progress_sort_tu15_original.json','matchmaking_progress_input_tu15_original.json')]
+pins={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
+cmd=['cargo','test','--locked','--offline','--manifest-path','rust/online_protocol/Cargo.toml','--test','matchmaking_frontend_progress']
+r=subprocess.run(cmd,env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'target'),CARGO_BUILD_JOBS='2',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0'),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(out/'focused-rust-final.log').write_bytes(r.stdout[-1048576:])
+intact=all(hashlib.sha256((root/p).read_bytes()).hexdigest()==h for p,h in pins.items())
+report={'passed':r.returncode==0 and intact,'command':cmd,'exit_code':r.returncode,'pins':pins,'inputs_intact':intact,'scratch':str(scratch),'retained_large_artifacts':[]}
+(out/'focused-rust-final.json').write_text(json.dumps(report,indent=2)+'\n');print(r.stdout.decode(errors='replace')[-2500:]);raise SystemExit(0 if report['passed'] else 1)

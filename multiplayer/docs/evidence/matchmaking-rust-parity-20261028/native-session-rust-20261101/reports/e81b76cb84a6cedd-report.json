@@ -1,0 +1,20 @@
+{
+  "qualified_files": 18299,
+  "continuity_files": 18307,
+  "differences": [
+    "CMakeLists.txt",
+    "cmake/NativeTu15SoundEpInput.cmake",
+    "include/halo2/native_tu15_sound_ep_input.hpp",
+    "src/audio/dsp/native_tu15_sound_ep_input.cpp",
+    "tests/fixtures/sound_ep_input_join_tu15.json",
+    "tests/native_tu15_sound_ep_input_tests.cpp",
+    "tests/online_continuity_transport_tests.cpp",
+    "tools/oracle_sound_ep_input_join_tu15.py",
+    "tools/prepare_native_world_island_merge_binding_tu15.py",
+    "tools/validate_native_contact_manager_array_family_tu15.py",
+    "tools/validate_native_tu15_sound_ep_input.py"
+  ],
+  "matchmaking_production_files": 151,
+  "matchmaking_production_sources_identical": true,
+  "current_matchmaking_production_sources_match": true
+}

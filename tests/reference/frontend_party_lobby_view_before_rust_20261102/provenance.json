@@ -1,0 +1,14 @@
+{
+  "purpose": "Captured native party view and source-backed lobby kernels; original producer and historical version evidence remain distinct",
+  "source_pins": {
+    "src/ui/frontend_party.cpp": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+    "src/ui/frontend_lobby.cpp": "051db86581c171a7e3c6189f28456f03b37c8ebc0af58743b91d22e6db9e5f5b",
+    "include/halo2/frontend_lobby.hpp": "6bcf8746c721badd78946e96613f699b4e7f63f91209635e3b7eaaa2b1e61a13",
+    "include/halo2/frontend_lobby_game.hpp": "6cbf2d31a43668ccb06ff59907a691640da7d1fb9de1405967b3db2048fa1b44",
+    "include/halo2/frontend.hpp": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+    "tests/frontend_lobby_policy_tests.cpp": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+    "tests/frontend_lobby_game_tests.cpp": "cde8b133c4c27413921bb5bd0fc83e9af229d4aa85d0cad44a7d7a05208a4d6d",
+    "tests/variant_write_order_tests.cpp": "1bfb5ca1eba34541580686239e9574a6d237af3647beff4e9615e4b76c183b00"
+  },
+  "variant_fixture_capture": "Captured before correcting borrowed-directory routing and unsupported-native-extension expectations; production admission guards remain unchanged"
+}

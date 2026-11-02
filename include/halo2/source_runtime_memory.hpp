@@ -86,6 +86,8 @@ public:
   void read_vector(std::uint32_t,std::span<std::byte,16>) const override;
   std::optional<std::span<const std::byte>> try_read_view(
       std::uint32_t,std::size_t) const noexcept override;
+  std::optional<std::span<const std::byte>> try_write_extent(
+      std::uint32_t,std::size_t) const noexcept override;
   // Span adapters for original heap, constructors and packed animation
   // owners. Each view must fit a single real region. Views survive mounting
   // other regions. Releasing/rebinding the region or replacing the bank
@@ -195,6 +197,8 @@ private:
   using SourceSmallIndex = std::array<std::unique_ptr<SourceSmallBlock>,1024>;
   std::unique_ptr<SourceSmallIndex> small_pages_;
   Position small_lookup(std::uint32_t) const noexcept;
+  std::optional<std::span<const std::byte>> try_ordinary_view(
+      std::uint32_t,std::size_t,bool writable) const noexcept;
   // Published as the base direct-page index for the same full pages. Every
   // source-page change also refreshes commitment, access and backing guards.
   std::unique_ptr<SourceDirectPageIndex> direct_index_;

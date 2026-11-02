@@ -118,8 +118,12 @@ void run(const Json& expected, const std::filesystem::path& directory, Json& rep
         check(state.gp == call.at("returned_gp").get<decltype(state.gp)>() &&
             (state.eflags & 0xcc5u) == (call.at("returned_eflags").get<std::uint32_t>() & 0xcc5u),
             "Bounded renderer tail differs from original returned ABI");
-        check(instructions - previous == call.at("original_instructions"),
-            "Bounded renderer tail differs from original instruction execution count");
+        // 12822 retires511 slots through the semantic native kernel. Each
+        // former20E30 body executed40 original instructions; all remaining
+        // translated instructions retain their independently measured count.
+        const auto retired_instructions = entry == 0x12822u ? 511u * 40u : 0u;
+        check(instructions - previous + retired_instructions == call.at("original_instructions"),
+            "Renderer tail changed translated work outside the retired native slot owner");
         }
     }
     if(!native_prefix) {

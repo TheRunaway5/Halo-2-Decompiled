@@ -1,0 +1,9 @@
+{
+  "aborted_selected_cut_blocked": true,
+  "authenticated_voice_rejection": true,
+  "fenced_abort_acknowledgement": true,
+  "handoffs": [],
+  "master_gameplay_relay": false,
+  "native_commit_callback_guard": true,
+  "native_cut_and_role_completion": "declared fixture"
+}

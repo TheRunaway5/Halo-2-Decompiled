@@ -35,7 +35,9 @@ struct Reader {
 }
 std::shared_ptr<const PropSandboxDefinition> load_prop_sandbox_definition(
     const Cache& cache,const ScenarioObject& placement){
-  if(placement.type!=11)return {};
+  // Native C1120/D75A0 leaves authored empty slots without an object birth.
+  // Keep their placement ordinal without preparing nonexistent prop resources.
+  if(placement.type!=11 || placement.definition==null_datum)return {};
   const auto definition=cache.load_source_prop_definition(placement.definition);
   if(!definition.constructor_admitted || definition.render_model==null_datum ||
       cache.load_initialized_object_idle(placement.definition))return {};

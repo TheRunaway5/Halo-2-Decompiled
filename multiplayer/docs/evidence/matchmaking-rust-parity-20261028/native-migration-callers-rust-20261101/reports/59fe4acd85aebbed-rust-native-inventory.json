@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "counts": {
+    "online_protocol": 453,
+    "online_protocol_bridge": 65,
+    "matchmaking_service": 20
+  },
+  "total": 538,
+  "qualified_inventory_count": 3424,
+  "mismatches": [],
+  "rust_scratch_removed": true,
+  "baseline_session_sha256": "32d4d6057eb8bb03f3e6b2ecfdcfbaac09c51e6a309ce562fd1819f3283923b5",
+  "preliminary_owned_only_comparison": {
+    "missing_owned_pins_are_borrowed_reference_links": 469,
+    "not_a_content_comparison": true
+  },
+  "owned_inventory_count": 2955,
+  "borrowed_reference_inventory_count": 469,
+  "all_qualified_inputs_compared_by_content": true
+}

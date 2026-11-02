@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "exit_code": 0,
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "d115def25109b8f09dc1884ff7277022616fe8a57c9cda1fc7798b4e5cd12f16",
+    "tools/build_online_protocol_rust.py": "f4166996d997af81ae8c9bc72d8357e1d2c2d2fc5e89c9e46c7d51cd45615234"
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-stager-20261102/halo2-test-zh7bb7a3",
+  "retained_large_artifacts": []
+}

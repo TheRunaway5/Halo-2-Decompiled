@@ -1,5 +1,6 @@
 #include "halo2/source_runtime_sound_pio_resources.hpp"
 #include "halo2/source_sound_pio_storage_tu15.hpp"
+#include "halo2/source_sound_pio_native_tu15.hpp"
 #include <algorithm>
 #include <cstring>
 #include <map>
@@ -96,7 +97,7 @@ std::uint32_t SourceRuntimeSoundPioResources::run(std::uint32_t entry,std::uint3
     require_live();if(running_)throw std::runtime_error("Native PIO source execution cannot reenter");running_=true;auto scoped=services;
     scoped.instruction=[&](auto pc){pc_=pc;if(pc==stop)throw Boundary{};if(services.instruction)services.instruction(pc);};
     scoped.required_owner=[](auto&,const auto&,auto&,const auto&){throw std::runtime_error("Unsupported native PIO CPU dependency remains required");};
-    try{source_run_sound_pio_storage_tu15(*cpu_,entry,abi,fp,scoped,observe);throw std::runtime_error("Native PIO crossed its suspended source boundary");}
+    try{source_run_sound_pio_native_tu15(*cpu_,entry,abi,fp,scoped,observe);throw std::runtime_error("Native PIO crossed its suspended source boundary");}
     catch(const Boundary&){running_=false;return stop;}
     catch(...){running_=false;abort();throw;}
 }

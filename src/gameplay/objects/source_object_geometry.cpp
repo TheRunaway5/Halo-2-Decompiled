@@ -415,4 +415,25 @@ void SourceObjectGeometry::reset_history() noexcept {invalidate_views();previous
 bool SourceObjectGeometry::ordinary_lighting()const{
     return union_ordinary_lighting;
 }
+void SourceObjectGeometry::validate_material_rebase(unsigned before,unsigned after)const {
+    if(!material_count)return;
+    const auto validate=[&](unsigned value){
+        if(value<before || std::uint64_t(value-before)+after>0xffffffffull)
+            throw FormatError("Object material rebase lost its resident namespace");
+    };
+    validate(first_material);
+    for(const auto&slot:slots)validate(slot.material);
+    for(const auto&bank:parts)for(const auto&part:bank)for(auto value:part.materials)validate(value);
+    for(const auto&lod:lods){for(auto value:lod.vertex_materials)validate(value);for(const auto&vertex:lod.vertices)validate(vertex.material);}
+    for(const auto&view:views)for(const auto&vertex:view.vertices)validate(vertex.material);
+}
+void SourceObjectGeometry::rebase_materials(unsigned before,unsigned after) {
+    validate_material_rebase(before,after);if(!material_count)return;
+    const auto translate=[&](unsigned value){return value-before+after;};
+    first_material=translate(first_material);
+    for(auto&slot:slots)slot.material=translate(slot.material);
+    for(auto&bank:parts)for(auto&part:bank)for(auto&value:part.materials)value=translate(value);
+    for(auto&lod:lods){for(auto&value:lod.vertex_materials)value=translate(value);for(auto&vertex:lod.vertices)vertex.material=translate(vertex.material);}
+    for(auto&view:views)for(auto&vertex:view.vertices)vertex.material=translate(vertex.material);
+}
 }

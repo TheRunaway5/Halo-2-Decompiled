@@ -4,6 +4,7 @@
 #include "halo2/mcc_ordinary_pointer.hpp"
 #include "halo2/mcc_sound_tag_layout.hpp"
 #include "halo2/mcc_sound_runtime_delivery.hpp"
+#include "halo2/mcc_original_sound_runtime_delivery_tu15.hpp"
 #include "halo2/mcc_model_node_map.hpp"
 #include <algorithm>
 #include <limits>
@@ -141,6 +142,14 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
 }
 MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::uint32_t base,std::uint32_t available,
     const std::function<void(MccSoundRuntimePlan&&)>& capture_sound) {
+    return plan_impl(cache,base,available,capture_sound,nullptr);
+}
+MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::uint32_t base,std::uint32_t available,
+    const std::function<void(MccSoundRuntimePlan&&)>& capture_sound,const MccOriginalSoundRuntimeInputTu15& original) {
+    return plan_impl(cache,base,available,capture_sound,&original);
+}
+MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan_impl(const Cache& cache,std::uint32_t base,std::uint32_t available,
+    const std::function<void(MccSoundRuntimePlan&&)>& capture_sound,const MccOriginalSoundRuntimeInputTu15* original) {
     if(!cache.is_mcc() || base<0x80061000u || base%4096 || !available || std::uint64_t(base)+available>address_end)
         throw FormatError("Canonical MCC delivery requires an explicit aligned runtime reservation");
     MccRuntimeCacheDelivery out;
@@ -407,6 +416,16 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
     // complete merged tables and projected definition/class roots.
     auto sound=plan_mcc_sound_runtime_delivery(cache,address(cursor),
         [&](std::uint32_t source,std::size_t bytes){return translate_sorted_source(out.relocations_,source,bytes);});
+    if(original) {
+        if(!capture_sound)throw FormatError("Original sound publication requires its complete captured resource/metadata owner");
+        const auto consumed=std::uint64_t(sound.address)-base;
+        if(consumed>=available)throw FormatError("Original sound publication has no remaining canonical reservation");
+        const MccSoundRuntimeSource source{cache.tags(),
+            [&](auto at,auto n){return cache.read_tag_bytes(at,n);},
+            [&](TagHandle h){return cache.mcc_sound_gestalt_owner(h).handle();},
+            [&](auto at,auto n){return translate_sorted_source(out.relocations_,at,n);}};
+        sound=stage_mcc_original_sound_runtime_delivery_tu15(source,sound,*original,std::uint32_t(available-consumed));
+    }
     struct SoundCommit {std::size_t offset;const MccSoundRuntimePatch* patch;};
     std::vector<SoundCommit> sound_commits;
     std::vector<std::pair<std::uint64_t,std::uint64_t>> sound_ranges;
@@ -450,6 +469,7 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
     const auto reserved=aligned(cursor-base,4096);
     if(reserved>available || reserved>0xffffffffu)throw FormatError("Canonical MCC reservation exceeds available pages");
     out.reservation_bytes_=std::uint32_t(reserved);
+    out.original_sound_=sound.original;
     // No later allocation is appended. Keep serialized addresses, bytes and
     // validation unchanged; only the host lookup order is indexed here.
     std::ranges::sort(out.relocations_,{},&MccRuntimeRelocation::source);

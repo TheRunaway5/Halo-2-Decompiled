@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "baseline_cpp_owner": true,
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/CMakeFiles/halo2_authority_transfer.dir/src/network/peer_authority_transfer.cpp.o"
+  ],
+  "object_sha256": "da518ad0a54c0191ec16f1f585df02545dc79e95ec0a48249b1496e792afe5a5",
+  "rust_entries": {
+    "new_peer_authority_transfer": false,
+    "peer_authority_transfer_context": false,
+    "peer_authority_transfer_replace": false,
+    "peer_authority_transfer_supported": false,
+    "peer_authority_transfer_feature_supported": false,
+    "peer_authority_transfer_features": false,
+    "peer_authority_transfer_publish": false,
+    "peer_authority_transfer_ahead": false,
+    "peer_authority_transfer_delivered": false,
+    "peer_authority_transfer_failed": false,
+    "peer_authority_transfer_preparing": false,
+    "peer_authority_transfer_poll": false,
+    "peer_authority_transfer_receive": false,
+    "peer_authority_transfer_completed": false,
+    "peer_authority_transfer_acknowledge": false,
+    "peer_authority_transfer_reject": false,
+    "peer_authority_transfer_validated": false,
+    "peer_authority_transfer_is_packet": false
+  },
+  "cpp_parser_crypto_dependencies": [
+    "U SHA256"
+  ],
+  "standalone_cpp_poll_cursor_dependencies": [
+    "U halo2::online_protocol_bridge::peer_poll_order(halo2::online_protocol_bridge::PeerPollCursor const&)",
+    "U halo2::online_protocol_bridge::peer_record_served(halo2::online_protocol_bridge::PeerPollCursor&, unsigned char)",
+    "U halo2::online_protocol_bridge::new_peer_poll_cursor()"
+  ],
+  "rust_native_input_count": 3401,
+  "rust_native_input_mismatch": [],
+  "current_critical_source_drift": [
+    "src/network/peer_authority_transfer.cpp"
+  ],
+  "source_pins": {
+    "src/network/peer_authority_transfer.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "include/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "rust/online_protocol/src/peer_authority_transfer.rs": "de37b82b7f72c0c9ceffe2e8539d8a6b1135d53b085b6af273448b04e444fb6d",
+    "rust/online_protocol/src/lib.rs": "e1179482c68ee686547f6ec25a53d8c0ce5973db17cdb01082482d67aed7e3dd",
+    "rust/online_protocol_bridge/src/peer_authority_transfer.rs": "f8095514193bad7f1f56f20ccb368fab96ecdfe5ab2b343547f59fd732911b61",
+    "rust/online_protocol_bridge/src/lib.rs": "17d24d5f312657e0ffeba384376448b8f5f22462a2fa71cb05c0841f3ae47fa9",
+    "cmake/OnlinePeers.cmake": "7b13cb084026a46058ec35fbd616f4fb1a24da13ada042c6c3009f37cd776be9",
+    "tests/peer_authority_transfer_tests.cpp": "d8191dbcf087a2d0f9a353cb6ca9fe245a7a3f51467deabd36f81fa2dbe943a2",
+    "tests/peer_authority_transfer_replay.cpp": "8daf291dd7053c9cdb8fd40662985737de5321169b3deed2ae70f4e8aa70e7e6",
+    "tests/test_peer_authority_transfer_replay.py": "5d7409e86d7a21c529cf911765c02a87fe75e8d92d67e537205bdb2c299bea89",
+    "tests/reference/peer_authority_transfer_before_rust_20261101.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "tests/reference/peer_authority_transfer_before_rust_20261101.json": "e6010e761bd82a0f2f57ed50d1d8cecb28def1bdddcbb9701cbd76043a40c0c9",
+    "tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "include/halo2/multiplayer_datagrams.hpp": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c",
+    "include/halo2/authority_network_limits.hpp": "6c977b194b1f0143da5a985b4767fd62517d2c2454bde6da9cf419fb7fd91fbb"
+  },
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit/halo2-test-wjzeatf0",
+  "retained_large_artifacts": [],
+  "scope": "Compiled configured authority owner and source identities only; native worlds/providers, original wire, allocation identity/performance and delivery are not certified."
+}

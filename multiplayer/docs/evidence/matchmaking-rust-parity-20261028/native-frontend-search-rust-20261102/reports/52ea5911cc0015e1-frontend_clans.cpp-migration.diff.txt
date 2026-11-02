@@ -1,0 +1,11 @@
+--- tests/reference/frontend_search_before_rust_20261102/frontend_clans.cpp.reference
++++ src/ui/frontend_clans.cpp
+@@ -77,7 +77,7 @@
+   if(joined_party && !frame().vista_pcr && !launch &&
+      std::none_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;})) {
+     if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-    matchmaking_active_=quickmatch_pending_=false;
++    matchmaking_search_.stop();
+     return_online();open(14);
+   }
+   if(party_voice_wanted_ && account_.party && account_.authenticated && !voice_party_ && !frame().vista_pcr) {

@@ -1,0 +1,17 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-view-rust-20261102'
+info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build'
+archive=build/'libhalo2_frontend_party_flow.a';adapter=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_party_view.cpp.o'
+assert archive.is_file()and adapter.is_file()
+def symbols(path):
+ p=subprocess.run(['nm','-C',str(path)],capture_output=True,text=True);assert p.returncode==0;return p.stdout.splitlines()
+required=['frontend_party_view_populate','frontend_party_view_text']
+imports=[line for line in symbols(archive)if' U halo2::online_protocol_bridge::frontend_party_view_'in line]
+missing=[n for n in required if not any('::'+n+'('in line for line in imports)]
+units=json.loads((build/'compile_commands.json').read_text());compiled=[r for r in units if Path(r['file']).name=='frontend_matchmaking_party_view.cpp']
+assert len(compiled)==1 and'CMakeFiles/halo2_systems.dir/'in compiled[0]['command']
+adapter_symbols=[line for line in symbols(adapter)if'FrontendMatchmakingPartyFlow::populate('in line or'FrontendMatchmakingPartyFlow::text[abi:cxx11]('in line]
+assert len(adapter_symbols)==2 and all(' U 'in line for line in adapter_symbols)
+result=dict(passed=not missing,required_rust_entries=required,missing=missing,undefined_rust_entry_observations=imports,production_adapter_flow_imports=adapter_symbols,single_native_adapter_translation_unit=True,compile_owner='halo2_systems',native_archive=dict(path=str(archive),sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),bytes=archive.stat().st_size),native_adapter=dict(path=str(adapter),sha256=hashlib.sha256(adapter.read_bytes()).hexdigest(),bytes=adapter.stat().st_size),scope='Actual CMake pimpl imports the two Rust party-view entries; actual MenuState adapter imports only those typed pimpl calls. Component linkage, not installed delivery.',scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[])
+(work/'native-linkage.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result));raise SystemExit(0 if result['passed']else 1)

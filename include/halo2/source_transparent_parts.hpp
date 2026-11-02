@@ -29,6 +29,7 @@ struct SourceTransparentPart {
     std::uint16_t shader_priority_flags{},shader_command_flags{}; //rawshader+16/+3C
     std::vector<std::uint32_t> template_lod_layers;
     std::optional<std::array<float,4>> plane; //1E280's authored key lookup
+    std::uint8_t breakable_surface=255; // BSP material+1C; model parts retain NONE.
 };
 struct SourceTransparentPartSection {
     unsigned section{};

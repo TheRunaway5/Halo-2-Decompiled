@@ -1,0 +1,301 @@
+{
+  "passed": true,
+  "scope": "Paired scoped controller/menu acceptance plus wider functional outcomes; shared failures remain failures",
+  "cases": [
+    {
+      "name": "frontend_matchmaking_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "Nonmember clan details lost the membership requirement"
+    },
+    {
+      "name": "frontend_matchmaking_gathering_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "Matched/empty slot artwork is not an admitted source page"
+    },
+    {
+      "name": "frontend_clans_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "ONLINE bitmaps missing selected imported sampling:"
+    },
+    {
+      "name": "frontend_parties_http",
+      "captured_cpp_passed": false,
+      "rust_passed": false,
+      "shared_failure": true,
+      "functional_improvement": false,
+      "shared_diagnostic": "ONLINE bitmaps missing selected imported sampling:"
+    }
+  ],
+  "all_wider_functional_tests_passed": false,
+  "all_final_native_tests_passed": false,
+  "native_runs": [
+    {
+      "iteration": 1,
+      "passed": true,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "rust_frontend_lobby_blocked",
+        "rust_frontend_lobby_complete",
+        "rust_frontend_lobby_rendered",
+        "frontend_online_lobby_buttons",
+        "frontend_online_lobby_legacy_countdown",
+        "frontend_online_lobby_blocked_playlist",
+        "frontend_online_lobby_complete_playlist",
+        "original_party_countdown_kernels"
+      ],
+      "failed_tests": [],
+      "source_pin_sha256": "979d65f7361e03db52712b8625d14af08f3cde5a92c84d0f2496c93500795d95",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          0
+        ]
+      ]
+    },
+    {
+      "iteration": 2,
+      "passed": false,
+      "frozen_inputs_intact": true,
+      "successful_tests": [],
+      "failed_tests": [
+        "frontend_matchmaking_http",
+        "frontend_matchmaking_gathering_http",
+        "frontend_clans_http",
+        "frontend_parties_http"
+      ],
+      "source_pin_sha256": "979d65f7361e03db52712b8625d14af08f3cde5a92c84d0f2496c93500795d95",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          8
+        ]
+      ]
+    },
+    {
+      "iteration": 3,
+      "passed": false,
+      "frozen_inputs_intact": true,
+      "successful_tests": [],
+      "failed_tests": [],
+      "source_pin_sha256": "6c75c39c267f1a63ff5d9d74bf1c7824a7ed3cee718ca4f4af4d41fb70080f02",
+      "refreshed": [
+        {
+          "path": "src/ui/frontend_state.cpp",
+          "before": "8c6a7cb37700faaf6239b38a25329c4d46ce1a71f3e108b84afeccdbad4bc17a",
+          "after": "79a34c1a67d90a06fbb12385b9156114880c9100f21d81ecf42a5342fe4e7320"
+        },
+        {
+          "path": "src/ui/frontend_party.cpp",
+          "before": "d18e34a4171608b3dfb446fe2b65e54ad1a5d1c8fa3dacee6b22e8bc5930bc43",
+          "after": "4e494806508eb53e10a8e1d5b5a160557cf7193b7fdf1488f9c9dc1c11401914"
+        },
+        {
+          "path": "src/ui/frontend_matchmaking_lobby.cpp",
+          "before": null,
+          "after": "2a86b890b43913114bf8d071800989faea59d2e5952f89459ee1c88e5e73a906"
+        },
+        {
+          "path": "include/halo2/frontend.hpp",
+          "before": "de856e8cdb96aceae7cb1adfe263aabf69ca55acee1bcee1f9b73d550a4a950d",
+          "after": "79cf5299358f23d3f03ede1eb937ba26e880b91964810a756e9fb196302044cb"
+        },
+        {
+          "path": "include/halo2/frontend_matchmaking_lobby.hpp",
+          "before": null,
+          "after": "f5d4b0c7fa44063b6ca2a37d9bd5a2b186414e3c162f1a467a9c688620a5b5b7"
+        },
+        {
+          "path": "rust/online_protocol/src/matchmaking_frontend_lobby.rs",
+          "before": null,
+          "after": "2bd52f45c3f6caecbcde51ce7d74c455556b9e00d52403c6885ae7e79048f8bb"
+        },
+        {
+          "path": "rust/online_protocol/tests/matchmaking_frontend_lobby.rs",
+          "before": null,
+          "after": "c7eecd581b180696e9bbcd73e9f7ffb846e800e272b7199aea786d21062067aa"
+        },
+        {
+          "path": "rust/online_protocol/src/lib.rs",
+          "before": "621b5275c52be1d2a4e443068ab5fa51cf4929855e2d9ad3c53a24b931e3584e",
+          "after": "943baa29b996ff0c77a623fabf0bb2fc2cb7d3a0d8799c9dfa1d8145f469d2da"
+        },
+        {
+          "path": "rust/online_protocol_bridge/src/matchmaking_frontend_lobby.rs",
+          "before": null,
+          "after": "dd7ff39cbe1212b82e31614b53f732c2e2f6b25915fc9092e4b8fa771bf12839"
+        },
+        {
+          "path": "rust/online_protocol_bridge/src/lib.rs",
+          "before": "1a3ca3435764c05c7304f4c09dcf0847f02994a8c338db7735b8894bda9afbe7",
+          "after": "14d9b5d16188d16b4bde469aa6ca042abcc0767b3e91f033ed33b1c92fb56237"
+        },
+        {
+          "path": "cmake/OnlinePeers.cmake",
+          "before": "89fbc0381e4ff5ef3e21ce4345f74041ae2ec38ca1d14116bb04a6f5b4b0e31c",
+          "after": "7a12e49205bbb4881705c9eff53165c2dd9a7c76e7c10e8354e79a3d3a80cfde"
+        },
+        {
+          "path": "tests/frontend_lobby_policy_tests.cpp",
+          "before": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+          "after": "f6725b387bde4d104e54699f2361dcaec31f6823ed7c2c40b76b859c08e92da3"
+        },
+        {
+          "path": "tests/test_frontend_lobby_policy.py",
+          "before": null,
+          "after": "da5d0cf47cf311fd51c481fb0c489fde82e69de7312a82fdeb00f36bd8e0f42d"
+        },
+        {
+          "path": "src/ui/frontend_matchmaking_lobby_bridge.cpp",
+          "before": null,
+          "after": "01ed8c1b7d95bc4fa156e53d11503e93535ffda8d43b252a6bf126c43278893c"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/input-accept.cpp.inc",
+          "before": null,
+          "after": "cf58e87416242f5be11909fe5164cfbb7781d9b0f95038a86ab263a121fd7805"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/input-auxiliary.cpp.inc",
+          "before": null,
+          "after": "319e6019970212f1cd321a56c4f690b20fa6cf14a09bf92ef06cf3adf1dea829"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/input-back.cpp.inc",
+          "before": null,
+          "after": "27275ce77408f92d9921091c6b65a1d2c085849f286e8c08ba751bd8e4f77b20"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/input-leave.cpp.inc",
+          "before": null,
+          "after": "a10aff620093b5072d163d02e1f1f12c804d1e70acdff94dec2c3e9ce826fc33"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/online_party_screen.cpp.inc",
+          "before": null,
+          "after": "40aaf0929f447883485d036e0d954dca334e4638c6a89af54d992f4f9163ece1"
+        },
+        {
+          "path": "tests/reference/frontend_lobby_before_rust_20261102/provenance.json",
+          "before": "1259b6c1852aaf52f23506ddd5a414189e746b3bfbdccee8829967c776e7437b",
+          "after": "11404ecdf1af7302ad26b6ebacd18b9cbae2da118ab26401616cacf4a3c96112"
+        }
+      ],
+      "steps": [
+        [
+          "configure",
+          1
+        ]
+      ]
+    },
+    {
+      "iteration": 4,
+      "passed": false,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "online_protocol_rust_build_helper",
+        "frontend_lobby_cpp_rust",
+        "rust_frontend_lobby_blocked",
+        "rust_frontend_lobby_complete",
+        "rust_frontend_lobby_rendered",
+        "frontend_online_lobby_buttons",
+        "frontend_online_lobby_legacy_countdown",
+        "frontend_online_lobby_blocked_playlist",
+        "frontend_online_lobby_complete_playlist",
+        "original_party_countdown_kernels"
+      ],
+      "failed_tests": [
+        "frontend_matchmaking_http",
+        "frontend_matchmaking_gathering_http",
+        "frontend_clans_http",
+        "frontend_parties_http"
+      ],
+      "source_pin_sha256": "c864a07667179a96100b9854003733cb50e0550edc5164715717d214d6630887",
+      "refreshed": [
+        {
+          "path": "cmake/OnlinePeers.cmake",
+          "before": "7a12e49205bbb4881705c9eff53165c2dd9a7c76e7c10e8354e79a3d3a80cfde",
+          "after": "0e4121c7e615b4e284d1a45cce180c2f3a4ebf8be0324765f0fa09c05e5b0c02"
+        },
+        {
+          "path": "tests/frontend_lobby_policy_tests.cpp",
+          "before": "f6725b387bde4d104e54699f2361dcaec31f6823ed7c2c40b76b859c08e92da3",
+          "after": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae"
+        },
+        {
+          "path": "tests/frontend_matchmaking_lobby_rust_tests.cpp",
+          "before": null,
+          "after": "f6725b387bde4d104e54699f2361dcaec31f6823ed7c2c40b76b859c08e92da3"
+        }
+      ],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          8
+        ]
+      ]
+    },
+    {
+      "iteration": 5,
+      "passed": true,
+      "frozen_inputs_intact": true,
+      "successful_tests": [
+        "retail_frontend_lobby_policy"
+      ],
+      "failed_tests": [],
+      "source_pin_sha256": "c864a07667179a96100b9854003733cb50e0550edc5164715717d214d6630887",
+      "refreshed": [],
+      "steps": [
+        [
+          "configure",
+          0
+        ],
+        [
+          "build",
+          0
+        ],
+        [
+          "tests",
+          0
+        ]
+      ]
+    }
+  ],
+  "original_lobby_policy_test_exactly_restored": true,
+  "target_collision_iteration": 3,
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,7 @@
+[
+  "rust/online_protocol/src/matchmaking_frontend_lobby_query.rs",
+  "rust/online_protocol/tests/matchmaking_frontend_lobby_query.rs",
+  "tests/native_frontend_lobby_query_rust_tests.cpp",
+  "tests/test_native_frontend_lobby_query_rust.py",
+  "tests/fixtures/frontend_lobby_signed_team_original.json"
+]

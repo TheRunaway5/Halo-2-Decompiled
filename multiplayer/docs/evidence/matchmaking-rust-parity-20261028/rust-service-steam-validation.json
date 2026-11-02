@@ -1,0 +1,1560 @@
+{
+  "schema": "H2_MATCHMAKING_RUST_SERVICE_STEAM_VALIDATION_V1",
+  "updated_utc": "2026-11-01T01:29:42.176370+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "rust_service_steam_identity_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "full_matchmaking_service_ready": false,
+  "real_steam_authorization_acceptance": false,
+  "real_discord_authorization_acceptance": false,
+  "real_eos_sdk_acceptance": false,
+  "native_eos_peer_world_acceptance": false,
+  "native_played_game_acceptance": false,
+  "rendered_linux_menu_acceptance": false,
+  "runtime_replaced": false,
+  "service_activated": false,
+  "original_oracle_calls_this_increment": 0,
+  "rust_authorities": [
+    "Fixed-provider OpenID callback parsing, nonce/identity/destination/signed-field validation and direct verification; optional fixed persona lookup.",
+    "Private device/pending/challenge/game-confirmation/cookie/origin/expiry/generation authority and one-time publication after COMMIT.",
+    "Hashed active/remembered credentials, fixed renewal expiry, selective atomic forget/revocation, subject/global capacity and restart persistence.",
+    "Current Steam plus verified Discord canonical adoption using the shared Rust directory, preserving profile/clan and retiring the adopted bare account.",
+    "Runtime transaction clocks refresh after the actual BEGIN IMMEDIATE wait, before any proof-based canonical plan.",
+    "Bounded provider work retains HTTP request capacity across preflight handoff, queue cancellation and actual IO; stale replies cannot publish."
+  ],
+  "api_routes": [
+    "POST /v1/auth/steam/start",
+    "POST /v1/auth/steam/poll",
+    "POST /v1/auth/steam/resume",
+    "POST /v1/auth/steam/forget",
+    "GET /v1/auth/steam/callback/{state}",
+    "GET /v1/auth/steam/confirm/{state}",
+    "POST /v1/auth/steam/confirm/{state}",
+    "GET /v1/auth/steam/complete",
+    "POST /v1/account/link-discord"
+  ],
+  "modern_service_bounds": {
+    "pending_seconds": 300,
+    "active_seconds": 28800,
+    "remembered_seconds": 2592000,
+    "confirmation_code_hex_digits": 12,
+    "wrong_confirmation_attempts": 5,
+    "anonymous_pending_per_source": 4,
+    "anonymous_pending_per_prefix": 8,
+    "anonymous_pending_total": 128,
+    "pending_total": 1000,
+    "active_per_subject": 4,
+    "active_total": 1000,
+    "remembered_total": 100000,
+    "provider_workers": 2,
+    "provider_queue_seconds": 2,
+    "provider_owned_deadline_seconds": 20,
+    "provider_connect_seconds": 2,
+    "provider_transfer_seconds": 5,
+    "openid_reply_bytes": 4096,
+    "persona_reply_bytes": 16384,
+    "qualified_capacity_scope": "Actual wire source4/prefix8/global16 controls and private SQL active1000/remembered100000 unit fixtures; no global pending saturation/performance or distributed-capacity acceptance."
+  },
+  "provider_contract": {
+    "openid_endpoint": "https://steamcommunity.com/openid/login",
+    "persona_endpoint": "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/",
+    "runtime_endpoint_override": false,
+    "proxy_disabled": true,
+    "redirects_disabled": true,
+    "tls_peer_and_host_verified": true,
+    "openid_spec": "https://openid.net/specs/openid-authentication-2_0.html",
+    "valve_documentation": "https://partner.steamgames.com/doc/features/auth",
+    "keeps_existing_native_https_contract": true,
+    "game_ownership_claim": false,
+    "nonce_clock_parser": "chrono 0.4.45 with std only; no clock/default features",
+    "optional_key_priority": [
+      "H2_STEAM_KEY_FILE",
+      "H2_STEAM_KEY",
+      "STEAM_KEY"
+    ]
+  },
+  "genuine_regressions": [
+    {
+      "case": "Missing Rust Steam issuance route",
+      "observed": "('Rust Steam start', 503, 'Required service capability unavailable')",
+      "red_report": "rust-service-steam-old-worker-iteration-1-report.json",
+      "green_report": "rust-service-steam-owned-worker-iteration-9-report.json",
+      "linux_button_reproduction": false
+    },
+    {
+      "case": "Expired proof after actual SQLite write-lock wait allocated one canonical player",
+      "red_log": "rust-service-steam-owned-worker-iteration-4-compile-0.log",
+      "fix": "Refresh shared runtime transaction clock after acquiring SQL ownership.",
+      "green_log": "rust-service-steam-owned-worker-iteration-5-compile-0.log",
+      "latest_green_log": "rust-service-steam-native-final-evidence-rust-service-step-0.log",
+      "expected_status": 401,
+      "expected_new_players": 0,
+      "http_control_limit": "HTTP lock-wait control also passes, but periodic maintenance can acquire the runtime mutex first. The isolated owned SQLite unit is the direct red/green proof."
+    }
+  ],
+  "inspection_repairs": [
+    {
+      "case": "Cancellation between blocking callback state mutation and asynchronous preflight handoff could strand verification.",
+      "fix": "Create shared cancellation/request ownership before preflight; atomically hand off the plan or retire it after cancellation.",
+      "direct_windows_tested": [
+        "during preflight before plan handoff",
+        "queued behind both actual provider permits"
+      ],
+      "red_execution_claim": false
+    }
+  ],
+  "fixture_corrections": [
+    {
+      "observed": "'Content-Security-Policy'",
+      "fix": "Preserve case-insensitive HTTP headers with response.headers.copy(); a plain dict made Content-Security-Policy lookup case-sensitive.",
+      "product_regression_claim": false
+    }
+  ],
+  "compile_only_repairs": [
+    {
+      "iteration": 8,
+      "observed": "Missing need import in callback preflight",
+      "fix": "Qualify steam::need",
+      "product_regression_claim": false
+    }
+  ],
+  "owned_runtime": {
+    "worker_iterations": 9,
+    "final_iteration": 9,
+    "passed": true,
+    "service_unit_tests": 14,
+    "http_checks": [
+      "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+      "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+      "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+      "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+      "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+      "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+      "Rust public history/profile SQL and duplicate-query rejection",
+      "native account logout retires its grant",
+      "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+      "revoked persisted Steam credential cannot create a new account grant",
+      "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+    ],
+    "matchmaking_checks": [
+      "session parser and verified couch preflight reject forged/duplicate inputs before canonical writes",
+      "actual 14-row catalog over Rust HTTP: v12 admits zero; v16 admits all twelve non-clan playlists",
+      "real queue API/SQL/gathering continuation rolls back ticket and rank writes on failed COMMIT, retries once, waits for actual QoS and cancels without fabricated matches",
+      "accepted-party create/invite/accept follows the same Rust queue source and hides private identities",
+      "real shared pregame countdown requires remote consent, enforces leader authority, replays once and ticks without request clocks",
+      "actual failed session COMMIT restores the prior native grant, accepted-party version, consent and active countdown",
+      "failed countdown COMMIT preserves publication and request retry cancels exactly once",
+      "four-seat canonical transaction rolls back new signed locals on failed COMMIT; guests remain transient, renewal preserves the grant and duplicate physical seating is rejected",
+      "actual session retirement clears shared countdown and stale consent through Rust directory effects",
+      "real Rust restart keeps accepted membership and canonical identities, while retiring session grants and countdown state",
+      "high-frequency countdown reads use the separate native countdown allowance and preserve ordinary social request capacity",
+      "room descriptors reject an account-only grant; unported EOS issuance stays unavailable and full readiness stays false"
+    ],
+    "steam": {
+      "qualified": true,
+      "checks": [
+        "real Rust native URL/device/PKCE and browser-cookie/code authorization, escaped confirmation HTML, wrong-origin/proof rejection and one-time handoff",
+        "actual failed credential COMMIT rolls back active/remembered/mapping writes and preserves confirmed pending state; retry publishes once",
+        "Rust-issued Steam grant creates the existing canonical account/clan/profile namespace; saved renewal credentials cannot authorize account APIs",
+        "renewal preserves the fixed thirty-day expiry without upstream IO; failed forget COMMIT rolls back, retry revokes only its issued sessions and is idempotent",
+        "real Rust dual-provider linking uses the shared canonical owner: wrong application is rejected, failed COMMIT retains both identities/grants, retry preserves the existing clan and revokes only the adopted bare account",
+        "Steam credential revocation during actual Discord provider IO is revalidated before canonical linking and creates no alias",
+        "actual BEGIN IMMEDIATE wait crosses Steam expiry and rejects the late canonical transaction without writing an alias",
+        "wrong destination/identity/signed fields, duplicate query and invalid/stale nonce are rejected before provider IO; five wrong game codes retire confirmation",
+        "independent fixture HMAC rejects a modified signed Steam identity before any credential is issued",
+        "actual curl boundary disables ambient proxy/redirects, verifies TLS, bounds and parses replies, rejects compression/duplicate fields/oversize and checks profile identity",
+        "failed nonce COMMIT leaves no replay record or browser authorization publication",
+        "provider cancellation remains a proof-bound declined pending state without credential writes",
+        "real trusted-proxy source/prefix occupancy caps4/8 preserve fresh sources; rejected occupancy leaves the independent sixteen-start global burst intact",
+        "real Rust process restart retains valid remembered grants and revocations while dropping private pending browser flows"
+      ],
+      "observed": {
+        "subject_b": "76561197960287931",
+        "nonce_rows": 5,
+        "provider_calls": 32
+      },
+      "capacity": {
+        "per_source": 4,
+        "per_prefix": 8,
+        "accepted_global": 16,
+        "forwarded_sources_are_private_proxy_fixtures": true
+      },
+      "restart": {
+        "persisted_refresh": true,
+        "revocation_persisted": true
+      },
+      "native": null,
+      "fixture": {
+        "compiler": [
+          "g++",
+          "-std=c++20",
+          "-O1",
+          "-shared",
+          "-fPIC",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source/tools/rust_service_steam_provider_fixture.cpp",
+          "-o",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-9/steam/provider.so",
+          "-ldl",
+          "-lcrypto"
+        ],
+        "sha256": "11bb5a7aa5917d5a62c4b69091256333377d365a3ce9d365d626fc04af426cdd",
+        "default_production_binary": true,
+        "policy_in_rust": true,
+        "upstream_interposed": true
+      },
+      "real_steam": false,
+      "scope": "Actual Rust browser/device/SQL/renewal HTTP with fixed-provider curl IO replaced by an independent private HMAC fixture; no real Steam grant, original or delivered/gameplay acceptance."
+    },
+    "binary": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/cargo/release/halo2-matchmaking-service",
+      "sha256": "7c51cddc47cf1315b61954f73b0990a06d3329551f36db4246951484da5d76ac",
+      "bytes": 10965136,
+      "retained": false
+    },
+    "private_worker_exited": true
+  },
+  "native": {
+    "ctests": 2,
+    "passed": true,
+    "seconds": 180.65,
+    "service_unit_tests": 14,
+    "source_inputs": {
+      "schema": "H2_RUST_SERVICE_STEAM_NATIVE_INPUTS_V1",
+      "before_sha256": "7cdf658c69553f4f9921dd2becde806571978264fa2a85a356f2ccc5b5b7038a",
+      "source_pin_parts": [
+        "source-pins-0.json",
+        "source-pins-1.json",
+        "source-pins-2.json",
+        "source-pins-3.json",
+        "source-pins-4.json",
+        "source-pins-5.json",
+        "source-pins-6.json",
+        "source-pins-7.json",
+        "source-pins-8.json",
+        "source-pins-9.json",
+        "source-pins-10.json"
+      ],
+      "input_count": 4394,
+      "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u/native-source",
+      "copied_source_bytes": 167448796,
+      "borrowed_cpp_headers": 0,
+      "drift_during_freeze": [],
+      "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u",
+      "retained_large_artifacts": [],
+      "returncode": 0,
+      "after_sha256": "7cdf658c69553f4f9921dd2becde806571978264fa2a85a356f2ccc5b5b7038a",
+      "changed": [],
+      "current_source_drift": [
+        "include/halo2/source_hologram_depth_input.hpp",
+        "include/halo2/source_hologram_group.hpp",
+        "rust/matchmaking_service/README.md",
+        "src/app/main.cpp",
+        "src/rendering/mcc_native_shaders.cpp",
+        "src/rendering/models/source_hologram_group.cpp",
+        "src/rendering/renderer/renderer.cpp",
+        "src/rendering/world/source_hologram_depth_input.cpp"
+      ]
+    },
+    "frozen_inputs_unchanged": true,
+    "current_source_drift": [
+      "include/halo2/source_hologram_depth_input.hpp",
+      "include/halo2/source_hologram_group.hpp",
+      "rust/matchmaking_service/README.md",
+      "src/app/main.cpp",
+      "src/rendering/mcc_native_shaders.cpp",
+      "src/rendering/models/source_hologram_group.cpp",
+      "src/rendering/renderer/renderer.cpp",
+      "src/rendering/world/source_hologram_depth_input.cpp"
+    ],
+    "current_service_manifest_drift": [
+      "rust/matchmaking_service/README.md"
+    ],
+    "upstream_fixture_only": true,
+    "real_steam": false,
+    "rendered_linux_menu": false,
+    "native_played_game": false,
+    "commands": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "rust_service_account_probe",
+          "rust_service_matchmaking_probe",
+          "rust_service_qos_probe",
+          "rust_service_room_probe",
+          "online_login_probe"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(online_protocol_rust_build_helper|rust_matchmaking_service_http)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "binary": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/cargo/release/halo2-matchmaking-service",
+      "bytes": 10967864,
+      "sha256": "36cc55878f8712977517e96bdff6144b658e037b4cfc1852b011d1a16a4ead29",
+      "retained": false
+    },
+    "probes": {
+      "native_client": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_account_probe",
+        "sha256": "af43e1ef9cc9e1c0e38529188e8316b441e83f8879c702cc0fb78efaee9f2cd9",
+        "borrowed_read_only": true
+      },
+      "native_matchmaking_client": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_matchmaking_probe",
+        "sha256": "e9be06d2d59669368f088b08340bc1b8ee5494235523a60956158bfde4b32c71",
+        "borrowed_read_only": true
+      },
+      "native_qos_probe": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_qos_probe",
+        "sha256": "ecfc704ae9310d16687f5700af570df51daec95fac2b7ecc57ea760d6647a255",
+        "borrowed_read_only": true
+      },
+      "native_room_probe": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_room_probe",
+        "sha256": "534debb34650ad692aacfab83647b0eb326fe2b53eb08826df77b34e72c18d65",
+        "borrowed_read_only": true
+      },
+      "native_steam_probe": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/online_login_probe",
+        "sha256": "80a2cfa23353f66de46d5987f229fbddd8f1c18c8ccce8901a3d1f2d651b670f",
+        "borrowed_read_only": true
+      }
+    },
+    "steam": {
+      "qualified": true,
+      "checks": [
+        "real Rust native URL/device/PKCE and browser-cookie/code authorization, escaped confirmation HTML, wrong-origin/proof rejection and one-time handoff",
+        "actual failed credential COMMIT rolls back active/remembered/mapping writes and preserves confirmed pending state; retry publishes once",
+        "Rust-issued Steam grant creates the existing canonical account/clan/profile namespace; saved renewal credentials cannot authorize account APIs",
+        "renewal preserves the fixed thirty-day expiry without upstream IO; failed forget COMMIT rolls back, retry revokes only its issued sessions and is idempotent",
+        "real Rust dual-provider linking uses the shared canonical owner: wrong application is rejected, failed COMMIT retains both identities/grants, retry preserves the existing clan and revokes only the adopted bare account",
+        "Steam credential revocation during actual Discord provider IO is revalidated before canonical linking and creates no alias",
+        "actual BEGIN IMMEDIATE wait crosses Steam expiry and rejects the late canonical transaction without writing an alias",
+        "wrong destination/identity/signed fields, duplicate query and invalid/stale nonce are rejected before provider IO; five wrong game codes retire confirmation",
+        "independent fixture HMAC rejects a modified signed Steam identity before any credential is issued",
+        "actual curl boundary disables ambient proxy/redirects, verifies TLS, bounds and parses replies, rejects compression/duplicate fields/oversize and checks profile identity",
+        "failed nonce COMMIT leaves no replay record or browser authorization publication",
+        "provider cancellation remains a proof-bound declined pending state without credential writes",
+        "real trusted-proxy source/prefix occupancy caps4/8 preserve fresh sources; rejected occupancy leaves the independent sixteen-start global burst intact",
+        "real Rust process restart retains valid remembered grants and revocations while dropping private pending browser flows",
+        "actual native SteamLogin/browser proof/code/poll and OnlineAccount/clan/sign-out use real Rust HTTP; only upstream Steam verification/profile IO is a fixture"
+      ],
+      "observed": {
+        "subject_b": "76561197960287931",
+        "nonce_rows": 5,
+        "provider_calls": 32
+      },
+      "capacity": {
+        "per_source": 4,
+        "per_prefix": 8,
+        "accepted_global": 16,
+        "forwarded_sources_are_private_proxy_fixtures": true
+      },
+      "restart": {
+        "persisted_refresh": true,
+        "revocation_persisted": true
+      },
+      "native": {
+        "passed": true,
+        "scope": "Real native Steam/account clients over Rust HTTP, independent upstream fixture; no real Steam grant or played-game/delivered acceptance."
+      },
+      "fixture": {
+        "compiler": [
+          "g++",
+          "-std=c++20",
+          "-O1",
+          "-shared",
+          "-fPIC",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/source/tools/rust_service_steam_provider_fixture.cpp",
+          "-o",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/steam/provider.so",
+          "-ldl",
+          "-lcrypto"
+        ],
+        "sha256": "11bb5a7aa5917d5a62c4b69091256333377d365a3ce9d365d626fc04af426cdd",
+        "default_production_binary": true,
+        "policy_in_rust": true,
+        "upstream_interposed": true
+      },
+      "real_steam": false,
+      "scope": "Actual Rust browser/device/SQL/renewal HTTP with fixed-provider curl IO replaced by an independent private HMAC fixture; no real Steam grant, original or delivered/gameplay acceptance."
+    },
+    "rooms": {
+      "checks": [
+        "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+      ],
+      "relay": {
+        "checks": [
+          "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+          "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+          "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+          "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+          "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+        ],
+        "observed": {
+          "start_countdown_ms": 9999,
+          "real_start_elapsed_seconds": 9.998134141991613,
+          "physical_connections": 2,
+          "logical_seats": 3,
+          "persistent_xp_total": 100
+        },
+        "fixture": {
+          "compatibility": "halo2-native-queue-v10",
+          "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+          "declared": true,
+          "original_profile": false,
+          "real_gameplay": false
+        },
+        "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+      },
+      "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate.",
+      "direct": {
+        "checks": [
+          "actual signal route drains a buffered candidate, validates physical peer reports and reaches running through the real ten-second gate; test RTT claims come from real local UDP exchanges",
+          "live direct socket replacement closes the old generation with its native reason; its late detach cannot remove the replacement, and frontend logout leaves the transferred bearer valid",
+          "explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room"
+        ],
+        "observed": {
+          "physical_connections": 2,
+          "udp_probe_exchanges": 6,
+          "client_reported_rtt_ms": [
+            1,
+            1
+          ],
+          "replaced_close_code": 1001
+        },
+        "scope": "Actual Rust direct signaling/clock/generation/departure IO on a declared v12 legacy fixture, private grants and real local UDP client RTT probes. No native peer/gameplay/world promotion, original XNet or delivered acceptance."
+      },
+      "content_failure": {
+        "checks": [
+          "actual loading-content rejection requires the current grant/room, closes the real streams, preserves actor/other-party failure codes after teardown and fences stale receipts after requeue"
+        ],
+        "scope": "Real Rust HTTP/room-close/failure IO on a declared legacy fixture; no rendered map-load or played-world acceptance."
+      },
+      "native": {
+        "passed": true,
+        "observed": {
+          "input_bytes": 27,
+          "players": 2,
+          "protocol": 123,
+          "real_start_timer": true,
+          "result_recorded": true,
+          "snapshot_bytes": 1400
+        },
+        "scope": "Actual native OnlineMatchSession clients, real Rust loading/start, datagram relay and unanimous PCR/XP commit; declared legacy profile, synthetic datagrams/PCR/fingerprint and fixture provider grants. No native world/rendered game or delivered acceptance."
+      }
+    },
+    "eos": {
+      "checks": [
+        "actual Rust JWKS route, configured signing identity and private persistent key",
+        "actual RS256 signature verifies against the public JWK; canonical account/name, issuer/audience and full120-second lifetime are bound without caller identity",
+        "SDK-receipt account check, immutable unique PUID binding, actual failed COMMIT rollback and exactly-once outbox revision/retry",
+        "revocation during actual body upload is rechecked before SDK IO and cannot persist a link",
+        "actual three-second SDK IO survives a distinct two-second queue timeout; duplicate in-flight principal is rejected without consuming another reply",
+        "account revocation while the actual worker owns a proof is rechecked after SDK IO and persists no identity",
+        "duplicate JSON from the actual worker retires/reaps that exact stream and a fresh process verifies the next account",
+        "real twenty-second verifier deadline kills/reaps its owned child; no stale reply reaches the following request",
+        "source-v16 full-options room grants issue real signed EOS tokens independent of account sessions; malformed hints never reach the verifier",
+        "failed room-proof COMMIT rolls back canonical and native proof publication; retry binds only SDK-verified PUIDs to real signal sockets and rejects forged identities",
+        "a forged peer identity is rejected and closes the actual room; SDK IO cannot publish a late proof after that teardown",
+        "actual SIGTERM during owned SDK IO cancels and reaps the exact verifier child before process exit, without linking the pending identity",
+        "real Rust process restart retains the signing key, canonical PUID and revision while retiring old capabilities; full readiness remains false"
+      ],
+      "provider": {
+        "queue_timeout_seconds": 2,
+        "owned_timeout_seconds": 20.003069255995797,
+        "retired_worker_pids": [
+          1243993,
+          1244033
+        ],
+        "real_sdk": false
+      },
+      "rooms": {
+        "compatibility": "halo2-native-queue-v16",
+        "physical_owners": 2,
+        "logical_seats": 3,
+        "real_signed_tokens": true,
+        "real_signal_sockets": true,
+        "real_sdk": false,
+        "played_world": false
+      },
+      "shutdown": {
+        "elapsed_seconds": 0.0034373280068393797,
+        "worker_pid": 1245718,
+        "child_reaped": true,
+        "service_exit_code": 0
+      },
+      "public_key_kid": "785a66b0dbe6c4b86a71d679d516e159",
+      "scope": "Real Rust EOS HTTP, RSA cryptography, SQL and owned worker IO; private SDK receipt/provider fixtures only. No real Epic authorization, native peer world, original or delivered acceptance."
+    },
+    "ctest_report": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/report.json"
+  },
+  "earlier_backend_evidence_reused": {
+    "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-eos-validation.json",
+    "rerun_this_increment": false,
+    "full_rust_checks": 296,
+    "full_backend_checks": 579,
+    "production_rust_checks": 274,
+    "production_backend_checks": 371,
+    "source_files": 298,
+    "full_and_production_inputs_identical": true,
+    "current_source_drift": [],
+    "manifests": {
+      "rust-service-eos-full-source-manifest.json": "a260e3b73390c35bea07db2ced1223c1bf01805954c2eeda9466ee985c433fb1",
+      "rust-service-eos-production-source-manifest.json": "417604e90d52cb692912b0caf09ae645f0a95761f3751567bacbb7b8214ec408"
+    },
+    "scope": "Shared online_protocol/bridge/backend inputs are unchanged. These earlier results are not new service, original-oracle, native-world or activation acceptance."
+  },
+  "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "full_gap_count": 12,
+  "algorithm_id_count": 53,
+  "full_acceptance_gate_count": 12,
+  "reference_pdf": {
+    "path": "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf",
+    "bytes": 639228,
+    "sha256": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "source_pins": {
+    "tools/test_rust_matchmaking_service.py": "1a39cd2fe4ca7e9cb829d3d905a2dc6073afbc3cdb22187de221d4042b590a31",
+    "tools/rust_service_qos_controls.py": "a9d716e559d4c5d706851b42115e171aa5f78c17a79dfd603530d3160ba3a6ff",
+    "tools/rust_service_room_controls.py": "d38a7e54050d7bc3a450cf3e82bdd93fad3f098bb18a208bc97ae8b88cc00241",
+    "tools/rust_service_eos_controls.py": "399167b0e730fae7943806a7193a3aba64d4ca0432b90104a235e6cfcc6a34c5",
+    "tools/rust_service_steam_controls.py": "eaa7059cef11e55fc476da61e15c743e199b411fd1d737a44df1c162980742e3",
+    "tools/rust_service_steam_provider_fixture.cpp": "11bb5a7aa5917d5a62c4b69091256333377d365a3ce9d365d626fc04af426cdd",
+    "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "rust/online_protocol/Cargo.toml": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+    "rust/online_protocol/Cargo.lock": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+    "rust/online_protocol/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+    "rust/online_protocol/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+    "rust/online_protocol/README.md": "38850ba143016c94ab0b84116dff1df830699f7fa26c5ad1e7b2ea52f9c078c7",
+    "rust/matchmaking_service/Cargo.toml": "f2759115be40b732488785ff75a3c32c8aee3b9edeef2bb981ced1502c3026f3",
+    "rust/matchmaking_service/rust-toolchain.toml": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+    "rust/matchmaking_service/Cargo.lock": "e70f32ffbfc2f69d4776b497291dab153c024fe255ccd783c9a6af4f8720638d",
+    "rust/matchmaking_service/README.md": "ac150bde0b77fb464e3349463768f6448e6817ee544f877f4da8feb9675ba36a",
+    "rust/matchmaking_service/src/main.rs": "17e54a0acc82a307db7731df3d2908a44613f9abaabe8024a71d93cf5dd7a9ec",
+    "rust/matchmaking_service/src/database.rs": "18ac324c19a8fd39079199361c5fffb21028743216026e89b23ca632650641a1",
+    "rust/matchmaking_service/src/authentication.rs": "65506fae095042a95d97b264ec447c467de4b9d92c90ab9be9c0da19f9e178f9",
+    "rust/matchmaking_service/src/runtime.rs": "72d56fe17ac4513bda1002390e7ca5f5d51b2423d0e5bef6292abcaec7fbfba1",
+    "rust/matchmaking_service/src/admission.rs": "9f1a014032c38678ec248d30ab1641bf6cb3bef78c4bdd1b80a34c909688ccaf",
+    "rust/matchmaking_service/src/http.rs": "fd4f41decbbd24c7dcb015b3edb86765b0ab49af1f98520f13ed6eaa0176d4d6",
+    "rust/matchmaking_service/src/matchmaking.rs": "a7369ad87c7e9f97d098f73c3a1dd866ee5d2646a14745ea06b7706cdb3adcc3",
+    "rust/matchmaking_service/src/search_qos.rs": "70dbf7d160965e11556523a142def77028afb09fecfdbfba34681ac16efa4563",
+    "rust/matchmaking_service/src/websocket.rs": "077ecb09d4966fce8b2f8a35e65e0b296d843435fe225f81ea6e1a5c8b02ac06",
+    "rust/matchmaking_service/src/room_io.rs": "62dc806f1e7890c9798bb906429502c531935cc9e1badcafd9a9d7e2dbb95f31",
+    "rust/matchmaking_service/src/rooms.rs": "05a1b84701e4d3b61ca9e62bf1c8fd64d6de61f78c9a56620461e6d3231102dc",
+    "rust/matchmaking_service/src/room_websocket.rs": "f07b961b02b67e70304f0ddf64c7c4ffcd1f6c772ce609e02b98e3806fda9ff8",
+    "rust/matchmaking_service/src/eos_identity.rs": "1bc0942ec37d5981257e28077827663f517fca2df51f2686f64215ec1ce04e89",
+    "rust/matchmaking_service/src/eos_verifier.rs": "ad47c4708083da980085cf1ccf64be623ce96fbde439262d39c85959acfcb8e3",
+    "rust/matchmaking_service/src/eos_binding.rs": "274f73171fb1587631f641113dec47782c9358513a65c2593f72697b2adcc247",
+    "rust/matchmaking_service/src/eos_http.rs": "be807583142bb90b1e2a46c5765c0b6b3bec2521767bcfc125b492d196e9dab0",
+    "rust/matchmaking_service/src/steam_login.rs": "509c5dca7b38c8764f12e9d89130cb99aad4baf5d3a4819e41cf0cf59c7b89cf",
+    "rust/matchmaking_service/src/steam_provider.rs": "15500cb52b421861e9838a2574b26d375ff54770e2292b6a0bc13ec764c0597a",
+    "rust/matchmaking_service/src/steam_sessions.rs": "1938ddcfdb3abae6cfe59c2ab1ab188d747474ef4f665ab983373f24ce266a44",
+    "rust/matchmaking_service/src/steam_http.rs": "937bcef1ab3364206ac93ba0a4fe9b42828bf5ab29f286288a441be2679b9f74",
+    "rust/online_protocol/src/lib.rs": "a0edd773e653c944711b8bbdd1ed5b417e6280636caaf17c32996de1ab3bf3b2",
+    "rust/online_protocol/src/native_requests.rs": "8ddc00433afb4ece7e8bf3e2ba2904339ae25330a110ed236e5c367e0d2f8cfa",
+    "rust/online_protocol/src/authority_archive.rs": "691b4bf8fe5a7f5715efdc91d1a912931a9da99f9ac6eda7bffe10698029d59a",
+    "rust/online_protocol/src/eos_wire.rs": "5154a76798a1e83c16aafbc03509004ae6ce125bf81cca746980524d55da8bc8",
+    "rust/online_protocol/src/migration_preparation.rs": "1a5ad045c7cc48231f0f1a3180b56f750dca74831e7d83a7fa6392f14e982abe",
+    "rust/online_protocol/src/peer_pacing.rs": "01e9173cd4204273cd47b195864fea9b3f7d8246e235824d4daf6c24b73f5d39",
+    "rust/online_protocol/src/host_agreement.rs": "3856a8d008bb24e51b6f4f4116ccf5e6e7c1057670bf80b80e94ad3ab9af4261",
+    "rust/online_protocol/src/common_cut.rs": "eeae0747328e32d6aa8312dee2c04e4f4a23b2e72d2590d3e1abc66fd2dd6035",
+    "rust/online_protocol/src/survivor_selection.rs": "aa8cdf1218694fd5039f1f69569692b1c53aa43feb98e0663fdc4a50a8c15e97",
+    "rust/online_protocol/src/prospective_role.rs": "4cb7efdd20d8f075c76c6d0b7d7257004471088b807d46ca92cccc2e1dd8e685",
+    "rust/online_protocol/src/migration_driver.rs": "5ba6ef71f097e776ab728a528e9da50a13208ecde815bed43af4bb21d664c340",
+    "rust/online_protocol/src/eos_account_auth.rs": "11586f175fa16b8d6c39f97e0177676759a1bec028681606e4734fdbd44b5b91",
+    "rust/online_protocol/src/lan_auth.rs": "883cf24371221d496fb07c9b53dc8872029a658550baa0a52f21451827373fa8",
+    "rust/online_protocol/src/security_policy.rs": "3e95d883dffd98c903006d3081740ddf0d6e74944332ae21a51aa143f85ae8eb",
+    "rust/online_protocol/src/eos_outgoing.rs": "292c42cba1767905a1e2c96a5866ec6abcf846a4fedd22294da87962f0daa873",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+    "rust/online_protocol/src/matchmaking_readiness.rs": "8bea8734addadd6928c8f7bbe7fb5d537ea3d66b01e443f7d8a733d37322e830",
+    "rust/online_protocol/src/party_privacy.rs": "56315211b71cbac524f61a47978b9d6476cc9b825c6b27326817887a538f5e92",
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/hopper_selection.rs": "dfc47195ced2500f0a928eee3bddbb72f255a87e55beee8ee34351aca90183e9",
+    "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+    "rust/online_protocol/src/session_candidates.rs": "522251ae3f0e6cd449f678ceccb527efae2b85e0e432037e340b4673d053243f",
+    "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+    "rust/online_protocol/src/matchmaking_model.rs": "1f7748b4ac71dfe8b6d7c3bb201fcb7569c4697cc2d513feff3607aee316e752",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "96093a2c7e2f1d99d2d64862d11b1a5726a950d4d5ce6d8e6fa31c6f9326bc00",
+    "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+    "rust/online_protocol/src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "56217497815fed7f80fe945a75e1aa6ca8b62c744a2d53cccca3856206612c38",
+    "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+    "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+    "rust/online_protocol/src/matchmaking_parties.rs": "74df6958e49eb5900a01888f39acf5d0f7fe21a52c7e1c4b3012cd2324e40ef4",
+    "rust/online_protocol/src/matchmaking_party_countdowns.rs": "9d899eb34296fa30a00aea749f89ff32af93f2321bed36800d6177393d95b91c",
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+    "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "2044f332e43d0701d6d8f54090e6cc73cbdb1203c3b68dca6e93432a2a4e4671",
+    "rust/online_protocol/src/matchmaking_continuity.rs": "bd444109d876b1ceb3e982fc609c26152f88cd0d8efc7f1a8dd915ff920b2758",
+    "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "d9a9bbc75a2261d05b579194d897d3fb245b58eaaa0a9c4c820b792bc33b597c",
+    "rust/online_protocol/src/matchmaking_room_wire.rs": "51ab682a1b6d8f0e3e8dc8b115e9b63816f4a4f1f9b47e33e393924db59cd5ab",
+    "rust/online_protocol/src/matchmaking_packet_budget.rs": "96646f99f08e997ce0c6823b68ed2dfd29c83dee282fe75574fe8098adc52ad2",
+    "rust/online_protocol/src/matchmaking_room_packets.rs": "34f885da19331846424b7f99c7121ff28e5744f624c58f240a1ab6df66e440cf",
+    "rust/online_protocol/src/matchmaking_room_control.rs": "45184c06e788162c541356d51b176f5e9a039e29f4fd49fc4890bd21aac90eb8",
+    "rust/online_protocol/src/matchmaking_search_qos.rs": "f2d222201f29d3a77b0666e6ab8dee64f65a19d655ba7979dc0190b058568a5e",
+    "rust/online_protocol/src/matchmaking_party_directory.rs": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+    "rust/online_protocol/src/matchmaking_accounts.rs": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+    "rust/online_protocol/src/matchmaking_clan_directory.rs": "9f4638f0cb7638df1cacb74476d9fe52a4365e4a68138bd0e5226b8c3db42f51",
+    "rust/online_protocol/src/matchmaking_public_history.rs": "8e60a14e8728d911523aadbe84a92ca985f69ed9834975673a6974be44279e94",
+    "rust/online_protocol/src/matchmaking_profiles.rs": "325f7e71df4c6a7d1ed99dc68cd6809b4755d6c385e3dfc32075e2d762c7c2e1",
+    "rust/online_protocol/src/matchmaking_profile_directory.rs": "f61a14ca95a1bc3e5d4b560ab047332010aef60dbdff434875679c2f272f4be2",
+    "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+    "rust/online_protocol/src/matchmaking_unicode.rs": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+    "rust/online_protocol/src/matchmaking_unicode_fold_table.rs": "ea8126a271bdf120ce1cddae5a64a421ecf7c7c499ff89a6213b562055c62537",
+    "rust/online_protocol/src/matchmaking_friend_cache.rs": "de20a771ea36803ac96eb666a677cf8e55a623cf06e52b26dd5dd8f07212109a",
+    "rust/online_protocol/src/matchmaking_friend_directory.rs": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+    "rust/online_protocol/src/matchmaking_friend_cloud.rs": "1b6144e6e68c30dfeb245324428c80c04cb9d6a7e929a79036f2f8123c4ce32f",
+    "rust/online_protocol/src/matchmaking_voice_directory.rs": "b9ea5a1dd8f00beb9bb45ae80885195922c417e7153c062d02800426e39a982c",
+    "rust/online_protocol/src/matchmaking_social_voice.rs": "f42501c569ecb7fa717e1905a6d38309468ff63e2d571ba735001032676c652d",
+    "rust/online_protocol/src/matchmaking_steam_cache.rs": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+    "rust/online_protocol/src/matchmaking_steam_request.rs": "f5928d70575fd6e4a7cdea05006f6ce7aac53244d46fbe3f02359d4c946eac7b",
+    "rust/online_protocol/src/matchmaking_identity_directory.rs": "0a70f8b96da2a35deec81bf4e1246f7c6b638820626e3d5f6222ed68665b1b0b",
+    "rust/online_protocol/src/matchmaking_owners.rs": "3e659557279f44a339bdb61035cdf333472ab7b07fa342021a37ed83ed30e677",
+    "rust/online_protocol/src/matchmaking_room_service.rs": "6fa1c1d0330b3049646c9924f4278c2c63b193b207235f53286363836c4ceff3",
+    "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+    "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+    "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+    "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+    "rust/online_protocol/tests/matchmaking_coordinator.rs": "82ae3a3cf740f5b9824504d2afb645767e16dd4cb8e1a9b2be002e58a546bab7",
+    "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+    "rust/online_protocol/tests/matchmaking_results.rs": "166e932749344d6525975aca83bb0d4c1a9712768be7f910a7ee2b7db09bebf0",
+    "rust/online_protocol/tests/matchmaking_skill_original.rs": "a7e0fcdfe55ff4b298612a227692ddc74cbf51a05be9fdea626e66c2ae84cc1c",
+    "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+    "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+    "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+    "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+    "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+    "rust/online_protocol/tests/matchmaking_room_setup.rs": "bfad18614680a2007d5eae6a6c330770c079e2d1fc00f592c1bdbc245edf4c55",
+    "rust/online_protocol/tests/matchmaking_continuity.rs": "da577d56b818f02fc926c9082ad89a0bd19eda413cb4a33ea75c687a0740fac7",
+    "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+    "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+    "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+    "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+    "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+    "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+    "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+    "rust/online_protocol/data/unicode16/CaseFolding.txt": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+    "rust/online_protocol/data/unicode16/LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+    "rust/online_protocol/data/unicode16/provenance.json": "68995ccbb6629c3d789dec9f4ea9b30976db42f4d12b92a570ab98bb0cda3f3e",
+    "rust/online_protocol/src/netcode/range.rs": "490b50be09203a24750edbdb470d94d3728fc0c49e820bad53bf3b08fc7044a9",
+    "rust/online_protocol/src/netcode/pose.rs": "4b91e33bc013b305e25b92b56ff36d8f4d739af38bcc2cdfd7b5b2ed7d913ed1",
+    "rust/online_protocol/src/netcode/bandwidth.rs": "efff209143ca9e8bd9484c0daff7bdaa108cf5b81c5ae73d954ae24f5dd4a1f5",
+    "rust/online_protocol/src/netcode/mod.rs": "65791ed28c6fb25a0efc42d3c74f9f8b190ecc3d6550de0dc21b200f7c58705c",
+    "rust/online_protocol/src/netcode/generic.rs": "06c961f78e717dd49dab8d0a9a853909d16cecdbabb9f2280b9a4fdaba577fd4",
+    "rust/online_protocol/src/netcode/stream.rs": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c",
+    "CMakeLists.txt": "23049f0d9f2260f67fa04c56827645a1a1f68b476ded7fc169ccb01dbc60a93b",
+    "tools/online_login_probe.cpp": "7e6d116d3ed77577862f2c37908241176c80073bb1b4214e4de4e0d6df9772ed",
+    "tools/rust_service_account_probe.cpp": "88f78c832e2707bcc86e9ad2390e7f634b42ce9f212553fd6e685aa70e8d3465",
+    "tools/rust_service_matchmaking_probe.cpp": "757101c50cfe1204a0268f53a0b2692069deb92056fab4369956f94da9017bc9",
+    "tools/rust_service_qos_probe.cpp": "2cc850928d90b8a21dbd889519a41cea12a6e3be3d2e2b0a17265f17d41c1f15",
+    "tools/rust_service_room_probe.cpp": "e4ad16be51751f16f28633f1c459528bc38e5043a80a26b6982273820262f04e",
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "f710219f2122eb1a8b857dbdde32171c1daef5dfe04eb47e1e07779e38c0e3d9",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "d7e8b30b71aaa22044fe2821dd17a78dcc67fa249d6094b0512284493a967bcc",
+    "multiplayer/docs/reference/halo2-original-matchmaking-master-v5.pdf": "37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d"
+  },
+  "frozen_service_manifest_drift_now": [
+    "rust/matchmaking_service/README.md"
+  ],
+  "post_test_documentation_pins": [
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json",
+    "rust/matchmaking_service/README.md"
+  ],
+  "retained_reports": [
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/dependencies.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-dependencies.log",
+      "bytes": 221,
+      "sha256": "0cbb255ede5198ea5e02231430c5d7c65c873b58f6a82d9abdd4db668498444a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-1-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-1-compile-0.log",
+      "bytes": 4823,
+      "sha256": "121b9680cb434bb6a20820d0dc00c4e1df70fb6151b6ce08005f85352740a4f6"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-1-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-1-compile-1.log",
+      "bytes": 240,
+      "sha256": "33554190451474f6c7801f672d41d19ff3479ad0ecc885163c997b2bbcd687ff"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-1-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-1-report.json",
+      "bytes": 8586,
+      "sha256": "0366d9aaa1c83e95c43083c17a6cc50e6954c5be4c02419298f9a008f0ef9f4e"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-1-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-1-source-manifest.json",
+      "bytes": 16064,
+      "sha256": "79566cfbdfb779a3ab5f9b9466f011f2b118efaaf2c0de2f85ba46f9871ede8b"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-2-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-2-compile-0.log",
+      "bytes": 1397,
+      "sha256": "e258b94f7723a964b04123fbf77df25bb8685e0b07c2def87820f44623adcd24"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-2-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-2-compile-1.log",
+      "bytes": 240,
+      "sha256": "2d2b86992d28406644ee106b56a966b2ed75e7eb7769a7307405e9fd918dbd01"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-2-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-2-report.json",
+      "bytes": 2158,
+      "sha256": "e3870162551d55d273ea602544873f0552aac84c0d3abcd22bbb24b99ed8466a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-2-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-2-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "d46ca11b359b164353fa961590dd5aff824e952e2f3c96513e1549cd33df4b65"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-3-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-3-report.json",
+      "bytes": 985,
+      "sha256": "d6c9746acad1bd2ab3c7e54fd1e2234fdd1b854b2417078a1b75ac61510a3b02"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/iteration-3-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-iteration-3-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "c67397199ced565dfec0aaf4e729b0a56783dfd149c73f1d79815de5a1d74840"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261030/owner.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-old-worker-owner.json",
+      "bytes": 290,
+      "sha256": "14c6fc7a12739cc88fd550170c5c0d4150f9c00bbf00e2e6edd03e216663a686"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-1-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-1-compile-0.log",
+      "bytes": 4911,
+      "sha256": "a86897318e5b5adea31166acda2e5e788fdda2654d7e2783649ee633b5f77dca"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-1-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-1-compile-1.log",
+      "bytes": 241,
+      "sha256": "9b92374dea83a086d4130a0ad0c2a1a793e44e2c279a21380803c06580fdef60"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-1-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-1-report.json",
+      "bytes": 11612,
+      "sha256": "b46d19b0ee765359964a9ae83b9140de6e2ffa84e478587a712c40182fe187f2"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-1-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-1-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "a77644efbfe07e2ce486d7512fa7bca19394519e0491998ed0d935813874a707"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-2-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-2-compile-0.log",
+      "bytes": 1310,
+      "sha256": "d2bd0800589fddb6fa4b1ff1bfe5de817a70d3beacdf35d52d27e83ffb85be04"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-2-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-2-compile-1.log",
+      "bytes": 241,
+      "sha256": "3f192342cfcd293d947b599cef8c5787ec63bef024e34d9ac779f976a17449a4"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-2-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-2-report.json",
+      "bytes": 5088,
+      "sha256": "f4c2b3fd8a45ca57b1ab3fa866d4a759f7b9ad2196ae08a2a18810834c288fee"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-2-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-2-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "d78d82d17ceba1f4d0134b6e4b991f80ccdca9d9c1e844b4c5b46b9b7eb3faef"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-3-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-3-report.json",
+      "bytes": 4284,
+      "sha256": "f3bb3bab8b7668c8046d14fcf6a2f91f69ac5688c6fbc097f166d7a4e2936eae"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-3-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-3-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "58e1ae3facbc29f6f05cbca0581c412c47a8cca88c8de1197cf2cf25a9a30db8"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-4-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-4-compile-0.log",
+      "bytes": 2145,
+      "sha256": "10baef5b98fd627d1aa87dda4732a1ceec62caab07565060bc14b1eaee590b98"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-4-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-4-report.json",
+      "bytes": 964,
+      "sha256": "4b682d50e6da31055605c775038bc9ba0f2dd6f14cdcb9ad63b87434e52bf109"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-4-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-4-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "a69c393c13693f89e8d9cb666077f88b9996198397a08420a1e6dc5dfaacccb0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-5-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-5-compile-0.log",
+      "bytes": 1430,
+      "sha256": "9b4517e50b78f0bd0daa07ffe0a17f68e0ca344d446c707bdd95d4044173f8a7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-5-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-5-compile-1.log",
+      "bytes": 241,
+      "sha256": "02210c4e6cc200e910546648d5d8028ade6dcfff44f2f7d301687eaf8c8f2c15"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-5-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-5-report.json",
+      "bytes": 4965,
+      "sha256": "aaf3a6f2a4783d8f4aeecdc95af9ab02e1bbe3866cc68b934366a61880e2202b"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-5-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-5-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "9f1ebd7378a77eb4408af9007ee6ce6ba51832235c60b78b77352887701945c3"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-6-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-6-compile-0.log",
+      "bytes": 1776,
+      "sha256": "ba5bd6768dd0bf1a347eabce2a7c469d9c4258b534319ddd692615032c5fa835"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-6-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-6-compile-1.log",
+      "bytes": 241,
+      "sha256": "7ea590ee8c55a71cd09a881fd4ec3ce5af263a8b73fa0634c06e6496991aad23"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-6-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-6-report.json",
+      "bytes": 14829,
+      "sha256": "e2d1b897aaba0035f83f457058505d5470f496234fe8753be3fcb74e20838f74"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-6-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-6-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "3650e1608531f60002db55117a1e4c9edd8a587dcf7568fc61234a553025c0bc"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-7-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-7-compile-0.log",
+      "bytes": 1889,
+      "sha256": "989f8f45cfc2cf27b9281bcf180a7c96b399c43f8423c66ec4f1723c35f055b1"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-7-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-7-compile-1.log",
+      "bytes": 240,
+      "sha256": "fdeabeeb35224fdebcf74300b1716bc91c9e2153ce85436d42bc65addc486e3d"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-7-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-7-report.json",
+      "bytes": 14790,
+      "sha256": "fca8b298186f2c5c583417efe9462ae103b908407acdecd204e1f12ab9127caf"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-7-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-7-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "06bda7a02978ea1c96b296abc9b33e64e290737149c015c74929b6e3b9c39694"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-8-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-8-compile-0.log",
+      "bytes": 629,
+      "sha256": "e3134a2066efdef5ef5a14dc9651fc2cb2a804704664cbf626ff140479de978b"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-8-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-8-report.json",
+      "bytes": 956,
+      "sha256": "39d9df43252afb1936f6d3719264ec83fc7f293921cd998c9691c373562fbdd7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-8-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-8-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "153811914872d58ca393110afde935794e606755f9f68296a2d802640f65ea96"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-9-compile-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-9-compile-0.log",
+      "bytes": 2012,
+      "sha256": "71e81557457bdff7cb03e8d3a1236694c26a6d44eb69bcc4c8ef2741630e6d5a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-9-compile-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-9-compile-1.log",
+      "bytes": 240,
+      "sha256": "d315434c22ef91a94b3f9a0291ddcbecb9d9dc10e7c885ce5e2baf403fdef0ed"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-9-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-9-report.json",
+      "bytes": 14736,
+      "sha256": "4ba941da01c2dac062d00647cdf8243f76fc7e5f06f49a0fcd2d74e57440123c"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/iteration-9-source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-iteration-9-source-manifest.json",
+      "bytes": 16545,
+      "sha256": "e33eb7479b45e3b61b8cf36be1e7ae14f912a16c13256b90d3a3637ed2b01849"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-owned-worker-20261031/owner.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-owned-worker-owner.json",
+      "bytes": 290,
+      "sha256": "0155764a17bb2c7ef05422a813c890bd9461cf79dc56d95f14c0c5104ccf74c1"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/build.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-build.log",
+      "bytes": 41787,
+      "sha256": "27d63da1756eead63b13f766e7a979b1a66bdef7dac622e3ac7f8609929b55de"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/configure.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-configure.log",
+      "bytes": 4647,
+      "sha256": "a5fecaabe64793355e263ecaf8fea8ca1ce96940275a641589c86cb781c55bdd"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/evidence/online-protocol/Release/build-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1895,
+      "sha256": "74808bcc4b0de2a624346172967794e40bfb775bcbae7b31a4cf47e944194eb8"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/evidence/rust-service/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-evidence-rust-service-report.json",
+      "bytes": 17791,
+      "sha256": "4194f7a40638aae3fde28598306cbd4cc44820987f25c9aa8bb86d6bc5796b35"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/evidence/rust-service/source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-evidence-rust-service-source-manifest.json",
+      "bytes": 16518,
+      "sha256": "a1ba47251c2ae4b7df649a609b7bce3d563969f161e718d2ec0fad226826bf07"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/evidence/rust-service/step-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-evidence-rust-service-step-0.log",
+      "bytes": 5591,
+      "sha256": "095d2389d689419552ef2ef61100021c4293c016f8c2b0d8f67d1902e42c9b94"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/evidence/rust-service/step-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-evidence-rust-service-step-1.log",
+      "bytes": 298,
+      "sha256": "23fc65ae99bcdada347921a66c2fcdc8ae86eb3ab3abf1de3741bcee7968c3f0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/inputs.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-inputs.json",
+      "bytes": 1329,
+      "sha256": "4fa310e7fbb0e5e8590c1bea406b7b9eeed3f68e83abd8ff14ea07d3e25eb31a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-report.json",
+      "bytes": 4616,
+      "sha256": "f5cbbfed18c0b3d5bcf7420c283484d8773aab07741e1a03008f0fe73d6731ac"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/runner.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-runner.log",
+      "bytes": 47890,
+      "sha256": "77aeeccc13d10865d93728bbe956430a7cd5891031e3ef0fa457c5e691676594"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-0.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-0.json",
+      "bytes": 43900,
+      "sha256": "a6dca5934757947b981aa695a202d6e3c6da0efdb62081b9fe8db142762d0cc7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-1.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-1.json",
+      "bytes": 46876,
+      "sha256": "338d6f067b2faec10973f38fd7fa69d34d7b03acc7cf4b1f78c52564bc4d35e3"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-10.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-10.json",
+      "bytes": 44632,
+      "sha256": "cf5ba58919a3061b6cdbbf1c25a82a903fdb1b1edfac44f5f56027820fc6ccc1"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-2.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-2.json",
+      "bytes": 46803,
+      "sha256": "d3351b17d713ea57a9ae6b655174fab43d6d8e0baaa1be0f9fbbf7bf2d3b4d57"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-3.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-3.json",
+      "bytes": 46543,
+      "sha256": "0fdc18102d61da7652d7f13436a500dc6cdaf7286f9033bb15202d3c2d768041"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-4.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-4.json",
+      "bytes": 46669,
+      "sha256": "fc939369b70c3c6180c0d363ad31c1f751b12f6b98ef4796842fdb0c84422e8d"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-5.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-5.json",
+      "bytes": 48696,
+      "sha256": "b28a2f98d7ea7f669f64c03cfaad7a79fc4277de6797b90639877e506af3ab73"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-6.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-6.json",
+      "bytes": 48787,
+      "sha256": "7e7fcf6c2ac8a6b37e39a581cec05f0e69432b38ff557c06d5a69ace0bfdf537"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-7.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-7.json",
+      "bytes": 49746,
+      "sha256": "7173f799c13415b39f5f9adf20887d63284064614ebe592b261233eae755ca38"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-8.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-8.json",
+      "bytes": 48023,
+      "sha256": "7ae28c27154dc652c0f20427e0fb75540f4d6c12c17ee55a5f6bf8942b820bbe"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/source-pins-9.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-source-pins-9.json",
+      "bytes": 48580,
+      "sha256": "5ae102650539ca284c6e9b9fcb4e8c168fcf36e35bccc71bf1762087c7e99071"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-20261031/tests.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-first-tests.log",
+      "bytes": 430,
+      "sha256": "f58f852b0d2398fdcb7f6a1502df3e2366ee8fb74e9b70e75df9cdba47e01426"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/build.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-build.log",
+      "bytes": 41787,
+      "sha256": "528ee6e8194f4be8a06064f68dd0020e4e9eea6de2c4e41bde151a6c12c21df7"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/configure.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-configure.log",
+      "bytes": 4647,
+      "sha256": "a21ecfb93efe9bfd84ba9a1f54cc4d5b23da36ce77f135edcc4482d682def778"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/evidence/online-protocol/Release/build-report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1895,
+      "sha256": "c05a08ae78e970385e150626a8a4c4effac5b0e9989364374fec6f386a5445ba"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/evidence/rust-service/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-evidence-rust-service-report.json",
+      "bytes": 17790,
+      "sha256": "75ae90cb6b64b9e60510d7d4d134a763a3a5fbbc0b542c0798844aa0f722b678"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/evidence/rust-service/source-manifest.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-evidence-rust-service-source-manifest.json",
+      "bytes": 16518,
+      "sha256": "59007850bf833eaf4ed3bc65e35f2c6a586de22f7bef5b8f2bf331f8f1bf1d64"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/evidence/rust-service/step-0.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-evidence-rust-service-step-0.log",
+      "bytes": 5827,
+      "sha256": "6125e4626c607c2a96b578478a752658aab8eee59e2b817da8c547962f51fb48"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/evidence/rust-service/step-1.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-evidence-rust-service-step-1.log",
+      "bytes": 298,
+      "sha256": "1a461d6a876bc4e612d3476ab44c9861e3336f013d4d4a7cf48d3fc32accc817"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/inputs.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-inputs.json",
+      "bytes": 1408,
+      "sha256": "9604a8f66e5987c5b70ac9beb000ce0d042e3f463217a48e2383a5abda3bb6ec"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/report.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-report.json",
+      "bytes": 4664,
+      "sha256": "3edc9132de947fb4d24c54002dd8f1b43d7e26494becfc3b0b9da39b1093fd13"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/runner.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-runner.log",
+      "bytes": 47890,
+      "sha256": "529f00af7217a710f0c26ce1b94123c2c590a1adf187b2a95df686819119bbec"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-0.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-0.json",
+      "bytes": 43900,
+      "sha256": "7a0e78212a01ee1d37e4e7e598c03406239807228c2d103e9827059e0b05860e"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-1.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-1.json",
+      "bytes": 46876,
+      "sha256": "338d6f067b2faec10973f38fd7fa69d34d7b03acc7cf4b1f78c52564bc4d35e3"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-10.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-10.json",
+      "bytes": 44632,
+      "sha256": "cf5ba58919a3061b6cdbbf1c25a82a903fdb1b1edfac44f5f56027820fc6ccc1"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-2.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-2.json",
+      "bytes": 46803,
+      "sha256": "d3351b17d713ea57a9ae6b655174fab43d6d8e0baaa1be0f9fbbf7bf2d3b4d57"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-3.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-3.json",
+      "bytes": 46543,
+      "sha256": "0fdc18102d61da7652d7f13436a500dc6cdaf7286f9033bb15202d3c2d768041"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-4.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-4.json",
+      "bytes": 46669,
+      "sha256": "62947bdeef9c4f52ca2f16615e752f1e9537ca5bce5d82e307d3f31b03fc054a"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-5.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-5.json",
+      "bytes": 48696,
+      "sha256": "e842f1a27e0af0426aa090ce73282ef55cfe2de2de5e7462afd33bec1f3790a0"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-6.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-6.json",
+      "bytes": 48787,
+      "sha256": "7e7fcf6c2ac8a6b37e39a581cec05f0e69432b38ff557c06d5a69ace0bfdf537"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-7.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-7.json",
+      "bytes": 49746,
+      "sha256": "d200f9dde8dd6e1fc2a96d53dac556503f6de0a627216da95fb69e0ac0b3afcc"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-8.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-8.json",
+      "bytes": 48023,
+      "sha256": "7ae28c27154dc652c0f20427e0fb75540f4d6c12c17ee55a5f6bf8942b820bbe"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/source-pins-9.json",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-source-pins-9.json",
+      "bytes": 48580,
+      "sha256": "5ae102650539ca284c6e9b9fcb4e8c168fcf36e35bccc71bf1762087c7e99071"
+    },
+    {
+      "source": "build/test-results/matchmaking-rust-service-steam-native-cmake-final-20261031/tests.log",
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-steam-native-final-tests.log",
+      "bytes": 430,
+      "sha256": "44175eb63d5402560ba3cc48d2639da9e38fc39b888b3a054f6d07f5d53e89c9"
+    }
+  ],
+  "retained_report_bytes": 1631515,
+  "retained_large_artifacts": [],
+  "cleanup": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/cargo/release/halo2-matchmaking-service",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/source/rust/matchmaking_service/Cargo.toml",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/source/tools/rust_service_steam_provider_fixture.cpp",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/Testing/Temporary/scratch/halo2-test-3exuffxx/steam/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/online-protocol/Release/cargo",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/online-protocol/Release/eos_sdk_worker",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/online_login_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_account_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_matchmaking_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_qos_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-6cdzapop/build/rust_service_room_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly/cargo/release/halo2-matchmaking-service",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly/source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly/source/rust/matchmaking_service/Cargo.toml",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly/source/tools/rust_service_steam_provider_fixture.cpp",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/Testing/Temporary/scratch/halo2-test-8o7x6rly/steam/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/online-protocol/Release/cargo",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/online-protocol/Release/eos_sdk_worker",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/online_login_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/rust_service_account_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/rust_service_matchmaking_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/rust_service_qos_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake/halo2-test-j1u0qi6m/build/rust_service_room_probe",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u/native-source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u/native-source/.tools/validation/usr/lib",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-1gcbdv2u/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70/native-source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70/native-source/.tools/validation/usr/lib",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native/halo2-test-b4sdlg70/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/cargo/release/halo2-matchmaking-service",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/iteration-1",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/iteration-2",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/iteration-3",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source/rust/matchmaking_service/Cargo.toml",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/cargo/release/halo2-matchmaking-service",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-1",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-1/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-2",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-2/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-3",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-3/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-4",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-5",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-5/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-6",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-6/steam/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-7",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-7/steam/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-8",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-9",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-9/steam/provider.so",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source/rust/matchmaking_service/Cargo.toml",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source/tools/rust_service_steam_provider_fixture.cpp",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-cmake",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-dependencies",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-native",
+      "empty_or_absent": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-evidence/halo2-test-x82nd2mj",
+      "removed": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-evidence",
+      "empty_or_absent": true
+    }
+  ],
+  "evidence_writer": {
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-evidence/halo2-test-x82nd2mj",
+    "cleanup_checked_after_exit": true,
+    "repair": "The initial evidence writer included its own still-active scratch parent in the empty-parent assertion. It now defers only that owner check until wrapper exit; no product failure."
+  },
+  "reproduce_commands": [
+    "python3 tools/run_test.py -- python3 tools/test_rust_matchmaking_service.py",
+    "python3 tools/run_tests.py --jobs 2 --test-jobs 1 --target rust_service_account_probe --target rust_service_matchmaking_probe --target rust_service_qos_probe --target rust_service_room_probe --target online_login_probe --filter '^(online_protocol_rust_build_helper|rust_matchmaking_service_http)$' --cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON --retain-report rust-service/report.json --retain-report rust-service/source-manifest.json --retain-report rust-service/step-0.log --retain-report rust-service/step-1.log"
+  ],
+  "remaining": [
+    "The selected legacy service still uses Python HTTP/socket/provider/storage adapters; the separately tested Rust service has not replaced its production authority. All matching policy, account/clan/canonical identity, friends/voice/provider policy already ported to shared Rust owners remains there.",
+    "The standalone Rust HTTP/SQLite process owns accounts/clans/profile/history, sessions/local seats/catalog/accepted parties/countdowns/tickets, actual search and room sockets, admission/content-failure/result publication, EOS JWKS/token/proof/verifier IO and now Steam OpenID/pending/active/remembered issuance/renewal/forget plus dual-provider linking.",
+    "Remaining standalone Rust API/effect wiring includes friends/privacy/presence/population, private friend-file outbox, social/clan voice and Steam relationship/invitation IO. Shared Rust policy exists for these domains, while selected legacy HTTP/socket/file effects remain temporary Python adapters.",
+    "Cross-store publication acknowledgement, process/crash/distributed recovery, clock/epoch domains and complete service/delivery configuration still require qualification. Current canonical transactions refresh clocks after acquiring SQL locks; this does not close all recovery boundaries.",
+    "Real Steam/Discord/Epic authorization, official EOS SDK and native peer/world acceptance, original XNet/QoS/service/configuration/order/arbitration recovery and every required family/profile/topology/natural outcome remain open.",
+    "Actual installed Linux playlist selection/Start input, full native played flows and delivered client/library/service/catalog/feature correspondence remain unqualified; component/native client probes do not close these gates. Full readiness, certification and goal completion remain false."
+  ]
+}

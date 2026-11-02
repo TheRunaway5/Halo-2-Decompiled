@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/c++",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq/native-source/src",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq/build/online-protocol/Release/include",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq/native-source/include",
+    "-O3",
+    "-DNDEBUG",
+    "-std=c++20",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-DWITH_GZFILEOP",
+    "-fsyntax-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-syntax/halo2-test-87li7bf4/online_match_session.cpp"
+  ],
+  "exit_code": 0,
+  "source_sha256": "f9d5f2932c0f202d5c50dc63d6049b98571869b1b9b71f368441c65bf315a4d6",
+  "native_build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-native/halo2-test-ep5gdtrq/build",
+  "probe_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-preparation-caller-syntax/halo2-test-87li7bf4",
+  "scope": "New native C++ IO adapter syntax against the actual frozen generated Rust interface; no link/runtime acceptance",
+  "retained_large_artifacts": []
+}

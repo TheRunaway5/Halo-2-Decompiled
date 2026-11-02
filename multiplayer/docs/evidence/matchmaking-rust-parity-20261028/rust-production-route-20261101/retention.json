@@ -1,0 +1,286 @@
+{
+  "schema": "H2_RUST_PRODUCTION_ROUTE_RETENTION_V1",
+  "records": [
+    {
+      "source": "build/test-results/rust-delivery-20261101/criteria-before.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/51f4ea0feb12e67c-criteria-before.json",
+      "sha256": "51f4ea0feb12e67cce735b7b244c8c7265b6d84616e8f5bc34da86fc80bda0d1",
+      "bytes": 14841
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/registry-indexes.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/907c9bd3a71e6a08-registry-indexes.json",
+      "sha256": "907c9bd3a71e6a082e02a017f4e92ca4672675fd3e4d6d7454de6b22a8f3118f",
+      "bytes": 814
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-01/download-validator-before.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/1e30a4e35c7bb385-download-validator-before.py.txt",
+      "sha256": "1e30a4e35c7bb385686061322aa91e3efe0af193ed6218141b19f979d82b4f5c",
+      "bytes": 7459
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-01/report.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/77081fb60d61eaca-report.json",
+      "sha256": "77081fb60d61eaca8177ccd333636c9b5545b94ff78c7c6ab37f0ef437ab4125",
+      "bytes": 436
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-01/source-manifest.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/f872de42af4ef86d-source-manifest.json",
+      "sha256": "f872de42af4ef86d16b2e7978fef21174a54485b59dd0e6546a4efc3b8cd140e",
+      "bytes": 44636
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/controls-before-status-fix.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/2c4b28276e323abb-controls-before-status-fix.py.txt",
+      "sha256": "2c4b28276e323abbe044d1eb4adee2a710c7b4413406981403db190fd3d69d8a",
+      "bytes": 22409
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/delivery-controls-before-delay.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/0765c58630614f08-delivery-controls-before-delay.py.txt",
+      "sha256": "0765c58630614f08fc80343a0790914c4c10da1cc598ab8ad5ec0cc7c451aaf2",
+      "bytes": 21307
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/delivery-controls-before-diagnostics.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/21a26d10d35079d3-delivery-controls-before-diagnostics.py.txt",
+      "sha256": "21a26d10d35079d32b3e8e34cb7a50090b451dda632743dd69b3017d73952294",
+      "bytes": 21764
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/delivery-controls-before-media.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/ea2f28712d3de02d-delivery-controls-before-media.py.txt",
+      "sha256": "ea2f28712d3de02d1c586cbc89daad65e5d95037e8f16bc998ae64cdf03f7dbc",
+      "bytes": 21308
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/delivery-inputs-final.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/6bd39e14f029c07e-delivery-inputs-final.json",
+      "sha256": "6bd39e14f029c07e4c935430eddeec497f3c556355c5ddaa4480ef5d1a4a9ec4",
+      "bytes": 312
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/directory-production-abi.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/26b4d485abb9c554-directory-production-abi.log",
+      "sha256": "26b4d485abb9c554028a5d07ba19b7da166eeadaa09b13e1a0d86f24b2e8c71b",
+      "bytes": 598
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/directory-regressions.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/221459b2a9631f56-directory-regressions.log",
+      "sha256": "221459b2a9631f56e2578124cacbe47c25f4244239ebf441fdae71817dc03049",
+      "bytes": 1078
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/directory.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/97d2f0676aca1e3a-directory.log",
+      "sha256": "97d2f0676aca1e3af2916bf14c338eb125de37dda3feb3f9a7f2ac3b3ca77070",
+      "bytes": 189
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/driver-before-owned-retry.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/55f7c19f14a810ab-driver-before-owned-retry.py.txt",
+      "sha256": "55f7c19f14a810ab9b3ecc753d697cc2e4cc512517bcdc417ad50b942d7e4ae4",
+      "bytes": 7741
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/fixture-refresh.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/5fbafc9e063a946f-fixture-refresh.json",
+      "sha256": "5fbafc9e063a946fb100998f33e2db02325ee289eecfb06ee499b5fad1156beb",
+      "bytes": 1546
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/ae6dd05f3268884c-gateway.log",
+      "sha256": "ae6dd05f3268884c50564b433b7a2d86ef32bbb266f6e1b978d2c6aac4af0936",
+      "bytes": 3197
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/private-provider-fixture.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e3b0c44298fc1c14-private-provider-fixture.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/report.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/ccdce14cb2beff73-report.json",
+      "sha256": "ccdce14cb2beff73bc62f6d0bd9c9b9cc4891de923059a36d339e8caf58c3cfc",
+      "bytes": 3487
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/rust-service-build.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/670761738bad83f0-rust-service-build.log",
+      "sha256": "670761738bad83f01e9e53e99951f59b94373e333917fac59753dd4c413deab9",
+      "bytes": 275
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/rust-service-tests.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/6411db35e6c1a702-rust-service-tests.log",
+      "sha256": "6411db35e6c1a7026e01b7b29a0e1dd982c986de1cc12d399bca23ba15f18123",
+      "bytes": 6428
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/server.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e3b0c44298fc1c14-private-provider-fixture.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-02/source-manifest.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/7b9ba75202845db2-source-manifest.json",
+      "sha256": "7b9ba75202845db2a7a9977582154b35f0377afa53009978e6d6ac395c09ab91",
+      "bytes": 44636
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/caddy-adapted.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/343cf1973ef5eadd-caddy-adapted.json",
+      "sha256": "343cf1973ef5eaddd8d7b33e8df65baa1937c7e627970a571515b729b319e58f",
+      "bytes": 4483
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/controls-before-voice-token.py.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/1f7590f3a01a400b-controls-before-voice-token.py.txt",
+      "sha256": "1f7590f3a01a400b37cfb4edb43b37c634fb548209d311d6161a5029705a9693",
+      "bytes": 22580
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/delivery-inputs-final.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/49a2e669fa9e4099-delivery-inputs-final.json",
+      "sha256": "49a2e669fa9e409920b493590ad28e2cfd62334f71cd312254f10cf852f4752c",
+      "bytes": 312
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/delivery-observations.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/516bb70746b3a01a-delivery-observations.json",
+      "sha256": "516bb70746b3a01a468d9baf5fb85a1b448a3c0661b392db81834459d74ffbe7",
+      "bytes": 332
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/directory.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/35a6cb7469d5d5d2-directory.log",
+      "sha256": "35a6cb7469d5d5d29f526c143ef06667cc43a4c3322f33fbd6fcac7e40aaa787",
+      "bytes": 189
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/failure.txt",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/5395b4670aa2ab15-failure.txt",
+      "sha256": "5395b4670aa2ab156b787cb6e492366ec9d27f68e4f3181876db4e60be9f0c40",
+      "bytes": 1380
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/8fca70ad3cb112ef-gateway.log",
+      "sha256": "8fca70ad3cb112efd6b5fd14a59f49b0955596a645c381f3c57ec57d5bc62b9e",
+      "bytes": 5929
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-01/server.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e3b0c44298fc1c14-private-provider-fixture.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/caddy-adapted.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/bcc09ba5d434743d-caddy-adapted.json",
+      "sha256": "bcc09ba5d434743d79539a6e84267c855bbcc4621e9d21db2642827461d81360",
+      "bytes": 4483
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/compose-merged.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/1895b17562675795-compose-merged.json",
+      "sha256": "1895b1756267579584f24d7610d78609dd86ec9f214e188926d45934d62eb2cf",
+      "bytes": 4482
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/delivery-inputs-final.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/1aeb333f873d246a-delivery-inputs-final.json",
+      "sha256": "1aeb333f873d246a26f99bb4e3856cdebecb0947a0e8fe913cd61b68bfa03a0c",
+      "bytes": 312
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/delivery-observations.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e9aa27d2a56978cb-delivery-observations.json",
+      "sha256": "e9aa27d2a56978cbcdbe6e2d0d47a0a63b6a9b22cb5ad42f97fa8872a16eb264",
+      "bytes": 1797
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/directory.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/f959f2f675a75a27-directory.log",
+      "sha256": "f959f2f675a75a2752a06acd5e8f06f3b34d81933f34d594ed1fc1ad1082a2b0",
+      "bytes": 674
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/gateway.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e61305fa5a4c386c-gateway.log",
+      "sha256": "e61305fa5a4c386c7996e7317e47d9988d68a14618158f79e6a5b8e450072c99",
+      "bytes": 11972
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/attempt-02/server.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e3b0c44298fc1c14-private-provider-fixture.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/directory-production-abi.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/488251b7d837faf0-directory-production-abi.log",
+      "sha256": "488251b7d837faf09612589d7bc65386a0148342b40e7fc21445eecc06155c15",
+      "bytes": 598
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/directory-regressions.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/ade305a88efe8986-directory-regressions.log",
+      "sha256": "ade305a88efe89861af00ab3dd731946861ca6fc1ec68ce3c144f4394272b0ae",
+      "bytes": 1903
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/private-provider-fixture.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/e3b0c44298fc1c14-private-provider-fixture.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/report.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/2a1fc0723515afe2-report.json",
+      "sha256": "2a1fc0723515afe21a0500f490142f9bfb171de2e653d2c875807af3710d7498",
+      "bytes": 6571
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/rust-service-build.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/44044a2fd239e8bf-rust-service-build.log",
+      "sha256": "44044a2fd239e8bfe1718d2662474e8d82f9dc0745d1caeab3012db4dcbdb7d4",
+      "bytes": 275
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/rust-service-tests.log",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/aae987bb13ac1af5-rust-service-tests.log",
+      "sha256": "aae987bb13ac1af5932c9cf7fe7467e76b74afc5750168fd4281dfe7271f19e1",
+      "bytes": 6428
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/source-manifest-final.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/b7100106bb929289-source-manifest-final.json",
+      "sha256": "b7100106bb92928974e470c51d4825303cbd2baec7378df029bf4bfef473990b",
+      "bytes": 45560
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/run-03/source-manifest.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/f328cb2b5a87e5b0-source-manifest.json",
+      "sha256": "f328cb2b5a87e5b0c46c21aad08f22956fcfd218f539c43166a7eb647efa7ae3",
+      "bytes": 44636
+    },
+    {
+      "source": "build/test-results/rust-delivery-20261101/selected-linux-observation.json",
+      "retained": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-production-route-20261101/reports/a39dc4e6dd19edae-selected-linux-observation.json",
+      "sha256": "a39dc4e6dd19edaef121dda0adea007216846a248bf212914107c4b1832ce254",
+      "bytes": 1671
+    }
+  ],
+  "source_files": 46,
+  "unique_files": 42,
+  "unique_report_bytes": 391028,
+  "large_artifacts_retained": [],
+  "working_duplicates_removed": true
+}

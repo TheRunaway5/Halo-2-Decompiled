@@ -17,6 +17,7 @@
 #include <map>
 #include <utility>
 #include <cmath>
+#include <deque>
 
 namespace halo2 {
 AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const try {
@@ -157,6 +158,10 @@ struct NativeMuzzleEffects::Impl {
   std::map<std::uint32_t,Definition> definitions;
   std::map<std::uint32_t,std::optional<SourceParticleSpriteContext>> sprite_contexts;
   std::map<std::uint32_t,Effect> effects;
+  struct SourceBinding {std::uint32_t source=DatumPool::none,presentation=DatumPool::none;};
+  std::deque<SourceMuzzleEffectRequest> source_requests;
+  std::map<std::pair<std::uint32_t,std::uint32_t>,SourceBinding> source_bindings;
+  std::map<std::uint32_t,Effect::Pose> source_poses;
   std::map<std::uint32_t,ParticleSimulationState> particles;
   std::map<std::uint32_t,ParticleSimulationState> previous_particles;
   std::optional<std::uint32_t> advanced;
@@ -168,7 +173,8 @@ struct NativeMuzzleEffects::Impl {
       :cache(o.cache),owned_seed{},seed(streams.auxiliary),random_streams(streams),
        effect_pool(o.effect_pool),system_pool(o.system_pool),location_pool(o.location_pool),
        emitter_pool(o.emitter_pool),particle_pool(o.particle_pool),definitions(o.definitions),
-       sprite_contexts(o.sprite_contexts),effects(o.effects),particles(o.particles),
+       sprite_contexts(o.sprite_contexts),effects(o.effects),source_requests(o.source_requests),
+       source_bindings(o.source_bindings),source_poses(o.source_poses),particles(o.particles),
        previous_particles(o.previous_particles),advanced(o.advanced),sounds(o.sounds),collision(std::move(query)){}
   std::uint32_t next_random(){seed=seed*1664525u+1013904223u;return seed;}
   float random_fraction(){return float(double(next_random()>>16)*double(1.f/65535.f));}
@@ -353,6 +359,19 @@ std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::u
   if(i.advanced)for(auto t=tick;t<*i.advanced && !e.retiring;++t)i.event_step(e,1.f/30.f);
   return handle;
 }
+void NativeMuzzleEffects::source_request(const SourceMuzzleEffectRequest &input) {
+  auto &i=*impl_;
+  if(input.source_instance==DatumPool::none || input.weapon==DatumPool::none)
+    throw FormatError("Muzzle journal request has no actual source effect/weapon identity");
+  const auto &definition=i.definition(input.effect);
+  if(definition.light_parts && !input.light_parts_owned)
+    throw FormatError("Muzzle journal light parts have no completed world owner");
+  if(!i.source_requests.empty() && input.tick<i.source_requests.back().tick)
+    throw FormatError("Muzzle source journal reversed its effect clock");
+  // Do not allocate or consume RNG at receipt time. A later request must not
+  // reset an earlier pending event before its original begin-parts call.
+  i.source_requests.push_back(input);
+}
 std::uint32_t NativeMuzzleEffects::marker_name(std::uint32_t effect) const {return impl_->definition(effect).marker;}
 std::vector<std::uint32_t> NativeMuzzleEffects::marker_names(std::uint32_t effect) const {
   std::vector<std::uint32_t> out;for(const auto &system:impl_->definition(effect).systems)
@@ -406,22 +425,64 @@ void NativeMuzzleEffects::pose(std::uint32_t weapon,const Marker &marker,const M
 }
 void NativeMuzzleEffects::pose(std::uint32_t weapon,const Markers &marker,const MuzzleEffectView &view,
     std::uint32_t tick,float seconds) {
+  stage_pose(weapon,marker,view);
   auto &i=*impl_;
+  for(auto &[handle,e]:i.effects)if(e.weapon==weapon) {
+    const auto retained=[&](std::uint32_t name){return e.pose->markers.at(name);};
+    for(const auto &slice:e.slices)i.birth(e,retained,view,tick,seconds,slice);
+    e.slices.clear();
+  }
+}
+void NativeMuzzleEffects::stage_pose(std::uint32_t weapon,const Markers &marker,const MuzzleEffectView &view) {
+  auto &i=*impl_;
+  std::optional<Impl::Effect::Pose> pending_pose;
+  for(const auto &request:i.source_requests)if(request.weapon==weapon) {
+    if(!pending_pose){pending_pose.emplace();pending_pose->view=view;}
+    for(const auto &system:i.definition(request.effect).systems)
+      if(!pending_pose->markers.contains(system.marker))
+        pending_pose->markers.emplace(system.marker,marker(system.marker));
+  }
+  if(pending_pose)i.source_poses.insert_or_assign(weapon,std::move(*pending_pose));
   for(auto &[handle,e]:i.effects)if(e.weapon==weapon) {
     e.pose.emplace();e.pose->view=view;
     for(const auto &system:i.definition(e.definition).systems) {
       const auto name=e.attachment && e.marker_alias?e.marker_alias:system.marker;
       e.pose->markers.try_emplace(name,marker(name));
     }
-    const auto retained=[&](std::uint32_t name){return e.pose->markers.at(name);};
-    for(const auto &slice:e.slices)i.birth(e,retained,view,tick,seconds,slice);
-    e.slices.clear();
   }
 }
+std::optional<std::uint32_t> NativeMuzzleEffects::completed_tick()const noexcept{return impl_->advanced;}
+std::size_t NativeMuzzleEffects::pending_source_requests()const noexcept{return impl_->source_requests.size();}
 void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
-  auto &i=*impl_;if(!i.advanced){i.advanced=tick;return;}
+  auto &i=*impl_;
+  if(!i.advanced) {
+    i.advanced=i.source_requests.empty()?tick:std::min(tick,i.source_requests.front().tick);
+  }
   if(tick<*i.advanced)throw FormatError("muzzle clock reversed");
+  const auto apply_source_requests=[&](std::uint32_t at) {
+    while(!i.source_requests.empty() && i.source_requests.front().tick<=at) {
+      const auto &input=i.source_requests.front();
+      auto &binding=i.source_bindings[{input.weapon,input.effect}];
+      const auto previous=binding.source==input.source_instance?binding.presentation:DatumPool::none;
+      const auto handle=request({input.effect,input.weapon,previous,input.a_bits,input.b_bits},
+          input.tick,input.colors,input.velocity,input.light_parts_owned,true);
+      binding={input.source_instance,handle};
+      if(const auto effect=i.effects.find(handle);effect!=i.effects.end())
+        if(const auto pose=i.source_poses.find(input.weapon);pose!=i.source_poses.end())
+          effect->second.pose=pose->second;
+      i.source_requests.pop_front();
+    }
+  };
+  const auto birth_slices=[&](std::uint32_t at) {
+    for(auto &[handle,e]:i.effects)if(e.pose) {
+      const auto marker=[&](std::uint32_t name){return e.pose->markers.at(name);};
+      for(const auto &slice:e.slices)i.birth(e,marker,e.pose->view,at,seconds,slice);
+      e.slices.clear();
+    }
+  };
+  apply_source_requests(*i.advanced);birth_slices(*i.advanced);
   for(auto t=*i.advanced;t<tick;++t) {
+   apply_source_requests(t+1);birth_slices(t+1);
    i.previous_particles=i.particles;
    for(auto &[handle,e]:i.effects)for(auto &s:e.systems)for(auto &location:s.locations)for(unsigned j=0;j<location.emitters.size();++j) {
     auto &emitter=location.emitters[j];
@@ -462,11 +523,7 @@ void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
     }
    }
    for(auto &[handle,e]:i.effects)if(t+1>e.tick && !e.retiring)i.event_step(e,seconds);
-   for(auto &[handle,e]:i.effects)if(e.pose) {
-     const auto marker=[&](std::uint32_t name){return e.pose->markers.at(name);};
-     for(const auto &slice:e.slices)i.birth(e,marker,e.pose->view,t+1,seconds,slice);
-     e.slices.clear();
-   }
+   birth_slices(t+1);
    for(auto effect=i.effects.begin();effect!=i.effects.end();) {
     auto &e=effect->second;
     // 1764B0/176E20 retains a retired system while any emitter owns live
@@ -493,6 +550,14 @@ void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
    }
   }
   i.advanced=tick;
+  for(auto it=i.source_bindings.begin();it!=i.source_bindings.end();)
+    if(!i.effects.contains(it->second.presentation))it=i.source_bindings.erase(it);else ++it;
+  for(auto it=i.source_poses.begin();it!=i.source_poses.end();) {
+    const auto weapon=it->first;
+    const bool active=std::any_of(i.effects.begin(),i.effects.end(),[&](const auto &entry){return entry.second.weapon==weapon;}) ||
+        std::any_of(i.source_requests.begin(),i.source_requests.end(),[&](const auto &input){return input.weapon==weapon;});
+    if(!active)it=i.source_poses.erase(it);else ++it;
+  }
 }
 std::vector<ParticleDraw> NativeMuzzleEffects::draw(std::uint32_t weapon,const Transform &marker,
     const MuzzleEffectView &view,std::uint32_t tick,float fraction,float seconds) {

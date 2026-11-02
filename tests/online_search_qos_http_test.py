@@ -11,7 +11,7 @@ async def main():
     connections, completed = [], []
     errors = []
     async def connect(request):
-        socket = web.WebSocketResponse()
+        socket = web.WebSocketResponse(autoping=False)
         try:
             assert request.headers.get("Authorization") == "Bearer "+"s"*43
             await socket.prepare(request)
@@ -22,6 +22,11 @@ async def main():
             elif number == 2:
                 await socket.send_json({"probe":"c"*32,"rank":127})
             else:
+                for payload in (b"", bytes(range(125))):
+                    await socket.ping(payload)
+                    reply=await asyncio.wait_for(socket.receive(),1)
+                    assert reply.type==WSMsgType.PONG and reply.data==payload,"Native lost or changed a WebSocket Pong"
+                await socket.pong(b"unsolicited")
                 await socket.send_json({"ping":"d"*32})
                 reply = await asyncio.wait_for(socket.receive(),1)
                 assert reply.type == WSMsgType.TEXT and json.loads(reply.data)=={"pong":"d"*32}

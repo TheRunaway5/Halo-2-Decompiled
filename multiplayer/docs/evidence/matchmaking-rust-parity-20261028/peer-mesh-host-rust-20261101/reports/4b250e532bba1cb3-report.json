@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "scope": "Declared native fixture observations, no world or frame captures.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-results/halo2-test-4wp7e42_",
+  "files": [
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-selection-normal/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-normal/results.json",
+      "sha256": "8ea16f77b3b1ace5a8f19abb0ba6ef676ae130cc1efc6be5bbc07dd4b5ebfcba",
+      "bytes": 219
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-selection-mixed/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-mixed/results.json",
+      "sha256": "34937a45738ceb9413e11b3c7c865553d886703c0dc1afda9a1269ac0f5b28de",
+      "bytes": 218
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-selection-abort/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-abort/results.json",
+      "sha256": "b5e5fb643d9aba9f1b545bfdce7703585df9b3d5c28a7e3c44a1bc8b58b4aef7",
+      "bytes": 218
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-selection-preparation/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-preparation/results.json",
+      "sha256": "bfc9583a6daae78d105e1f82a5843ef7f504fcd11760282ebd0837c3e03f58e3",
+      "bytes": 170
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-aborted-cut/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-aborted-cut/results.json",
+      "sha256": "fa74a0169017dc2d971af3db9e7c861775b75362ac77ca8626c8f378a85f4c55",
+      "bytes": 272
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-measured/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-measured/results.json",
+      "sha256": "1c82c560dba256a98e069bae7abe0245fc79babb40d114384c8243f86ac75747",
+      "bytes": 1669
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/test-artifacts/peer-audio/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-audio/results.json",
+      "sha256": "413409b2c8549e45f95a3a5cf067416a8fde3d2d8ae4bef71ea77112dad13456",
+      "bytes": 3914
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/.local/player-host-continuity-20261015/peer-quality/native-session-results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/native-source/.local/player-host-continuity-20261015/peer-quality/native-session-results.json",
+      "sha256": "d96800f8531fc61f54c92c0c7f44449ac9055276f9fc52c1df114b6a49799aa8",
+      "bytes": 1374
+    },
+    {
+      "original": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/.local/peer-session-migration-20261018/session/results.json",
+      "retained": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/peer-mesh-host-native-results-20261101/native-source/.local/peer-session-migration-20261018/session/results.json",
+      "sha256": "dda8dcb0da2d010dcce42305750ba850fe74453901f47caf6e3aee1dac96fd45",
+      "bytes": 1572
+    }
+  ],
+  "retained_large_artifacts": []
+}

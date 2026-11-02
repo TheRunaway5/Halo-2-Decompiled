@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "tests": 7,
+  "command": [
+    "python3",
+    "tools/run_test.py",
+    "--scratch-root",
+    ".local/test-scratch/native-receive-dispatch-staging",
+    "--",
+    "python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "source_sha256": "0bb0419c0d070ae2b630c52e3cbd4e759665c1000142ffb300179947d589d9da",
+  "scratch_parent_empty": true,
+  "scope": "staging helper controls, no actual installed platform delivery"
+}

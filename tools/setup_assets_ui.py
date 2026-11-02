@@ -1,7 +1,7 @@
-"""Hand-drawn first-run source selector; imports run off the UI thread.
+"""Native first-run setup, measured progress and owned background imports.
 
-The backdrop and wordmark are Canvas geometry. No game art, image files,
-external fonts, or generated images are loaded by this window.
+The shared launcher artwork is authored website geometry. Game content is
+imported only into its existing verified, privately owned MCC cache.
 """
 import math
 import codecs
@@ -12,9 +12,11 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 from setup_pipe import read_available
+from setup_progress import PREFIX as PROGRESS_PREFIX, parse_update
 
 
 WIDTH, HEIGHT = 1040, 720
@@ -29,10 +31,14 @@ EDGE = "#31566c"
 class SetupProcess:
     """One main-thread-owned CLI import; its reader never writes game data."""
 
-    def __init__(self, root, events, *, popen=None, cleanup_timeout=30):
+    def __init__(self, root, events, *, popen=None, cleanup_timeout=30,
+                 tool='setup_assets.py', extra_arguments=()):
         self.root, self.events = Path(root).resolve(), events
         self.popen = popen or subprocess.Popen
         self.cleanup_timeout = cleanup_timeout
+        if tool not in ('setup_assets.py', 'repair_launcher.py'):
+            raise ValueError('Unsupported owned launcher operation')
+        self.tool, self.extra_arguments = tool, tuple(extra_arguments)
         self.process = self.reader = None
         self.stop_signal = None
         self.previous = {}
@@ -61,6 +67,7 @@ class SetupProcess:
 
     def _read(self, process):
         decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        pending = ''
         try:
             fd = process.stdout.fileno()
             while not self.reader_stop.is_set():
@@ -71,8 +78,23 @@ class SetupProcess:
                 if text:
                     with self.lock:
                         self.tail = (self.tail + text)[-8192:]
-                        self.latest = text.rstrip().splitlines()[-1][:250] if text.rstrip() else self.latest
+                        pending += text
+                        while '\n' in pending:
+                            line, pending = pending.split('\n', 1)
+                            line = line.rstrip('\r')
+                            if line:
+                                update = parse_update(line)
+                                if update is not None or not line.startswith(PROGRESS_PREFIX):
+                                    self.latest = update or line[:250]
+                        # A broken or non-line-oriented writer stays bounded.
+                        if len(pending) > 4096:
+                            self.latest, pending = pending[-250:], ''
                 if not data:
+                    if pending.strip():
+                        with self.lock:
+                            update = parse_update(pending)
+                            if update is not None or not pending.startswith(PROGRESS_PREFIX):
+                                self.latest = update or pending[-250:]
                     break
         except Exception as error:
             with self.lock:
@@ -92,8 +114,8 @@ class SetupProcess:
         resources = resource_root(self.root)
         bundled = resources / ("python/python.exe" if os.name == "nt" else "python/bin/python3")
         python = str(bundled) if bundled.is_file() else sys.executable
-        command = [python, "-u", "-B", str(resources / "tools/setup_assets.py"),
-                   "--root", str(self.root), "--gui-owner"]
+        command = [python, "-u", "-B", str(resources / 'tools' / self.tool),
+                   "--root", str(self.root), "--gui-owner", *self.extra_arguments]
         if selected is not None:
             command += ["--mcc-root", str(Path(selected).expanduser().resolve())]
         env = os.environ.copy()
@@ -200,19 +222,19 @@ def _color(a, b, amount):
 class LauncherCanvas:
     """Shared canvas, typography and controls for setup and the launcher home."""
 
-    def __init__(self, window, root, title):
+    def __init__(self, window, root, title, *, width=WIDTH, height=HEIGHT):
         import tkinter as tk
         from tkinter import filedialog, font
 
         self.window, self.root = window, root
         self.tk, self.filedialog = tk, filedialog
-        self.scale = min(1.0, (window.winfo_screenwidth() - 40) / WIDTH,
-                         (window.winfo_screenheight() - 80) / HEIGHT)
+        self.scale = min(1.0, (window.winfo_screenwidth() - 40) / width,
+                         (window.winfo_screenheight() - 80) / height)
         self.scale = max(0.4, self.scale)
         families = set(font.families(window))
-        self.family = next((name for name in ("Bahnschrift", "DejaVu Sans", "Arial") if name in families), "TkDefaultFont")
+        self.family = next((name for name in ("Arial", "Liberation Sans", "DejaVu Sans") if name in families), "TkDefaultFont")
         self.mono = next((name for name in ("Consolas", "DejaVu Sans Mono") if name in families), "TkFixedFont")
-        w, h = self.px(WIDTH), self.px(HEIGHT)
+        w, h = self.px(width), self.px(height)
         window.title(title)
         window.configure(background=FIELD)
         window.resizable(False, False)
@@ -262,21 +284,87 @@ class LauncherCanvas:
         self.place(button, x, y, width, height)
         return button
 
-    def progressbar(self):
-        from tkinter import ttk
+    def progressbar(self, window=None):
+        tk = self.tk
 
-        style = ttk.Style(self.window)
-        # Clam uses colorable elements on Windows as well as Linux/macOS.
-        style.theme_use("clam")
-        style.layout("Halo.Horizontal.TProgressbar", [
-            ("Horizontal.Progressbar.trough", {"sticky": "nswe", "children": [
-                ("Horizontal.Progressbar.pbar", {"side": "left", "sticky": "ns"})]})])
-        style.configure("Halo.Horizontal.TProgressbar", troughcolor=FIELD, background=CYAN,
-                        bordercolor=FIELD, lightcolor=CYAN, darkcolor=CYAN,
-                        borderwidth=0, thickness=self.px(3))
-        return ttk.Progressbar(self.window, style="Halo.Horizontal.TProgressbar", mode="indeterminate")
+        class ProgressBar(tk.Canvas):
+            """Identical measured fill on Windows and Linux, independent of Tk themes."""
+
+            def __init__(self, window):
+                super().__init__(window, background=FIELD, highlightthickness=0, borderwidth=0)
+                self.values = dict(mode='indeterminate', value=0, maximum=100)
+                self.timer, self.offset = None, 0
+                self.fill = self.create_rectangle(0, 0, 0, 0, fill=CYAN, outline='')
+                self.bind('<Configure>', lambda event: self.draw())
+
+            def configure(self, cnf=None, **options):
+                if isinstance(cnf, dict):
+                    options = {**cnf, **options}
+                    cnf = None
+                for name in self.values:
+                    if name in options:
+                        self.values[name] = options.pop(name)
+                result = super().configure(cnf, **options) if options or cnf is not None else None
+                self.draw()
+                return result
+
+            config = configure
+
+            def cget(self, name):
+                return self.values[name] if name in self.values else super().cget(name)
+
+            def draw(self):
+                width, height = self.winfo_width(), self.winfo_height()
+                if self.values['mode'] == 'determinate':
+                    fraction = float(self.values['value']) / max(1, float(self.values['maximum']))
+                    left, right = 0, round(width * max(0, min(1, fraction)))
+                elif self.timer is not None:
+                    left = round(width * self.offset) - width // 4
+                    right = left + width // 4
+                else:
+                    left = right = 0
+                self.coords(self.fill, max(0, left), 0, max(0, min(width, right)), height)
+
+            def start(self, interval=14):
+                self.stop()
+                def tick():
+                    self.offset = (self.offset + .025) % 1.25
+                    self.timer = self.after(interval, tick)
+                    self.draw()
+                tick()
+
+            def stop(self):
+                if self.timer is not None:
+                    self.after_cancel(self.timer)
+                    self.timer = None
+                self.draw()
+
+            def destroy(self):
+                self.stop()
+                super().destroy()
+
+        return ProgressBar(window or self.window)
+
+    def _launcher_background(self):
+        from installation_paths import resource_root
+
+        self._background = None
+        artwork = resource_root(self.root) / 'resources/launcher/background.png'
+        try:
+            from PIL import Image, ImageTk
+            with Image.open(artwork) as source:
+                if source.size != (1040, 640):
+                    raise ValueError('Invalid launcher background dimensions')
+                resized = source.resize((self.px(1040), self.px(640)), Image.Resampling.LANCZOS)
+            self._background = ImageTk.PhotoImage(resized, master=self.window)
+            self.canvas.create_image(0, 0, image=self._background, anchor='nw', tags='art')
+            return True
+        except (OSError, ValueError, ImportError):
+            return False
 
     def _backdrop(self):
+        if self._launcher_background():
+            return
         c = self.canvas
         # All decoration is deterministic linework, including the tilted Halo
         # silhouette. It is drawn beneath every hit region and never takes focus.
@@ -313,32 +401,26 @@ class LauncherCanvas:
         self.line(920, 701, 1014, 701, 1014, 676, fill="#6392a7")
 
     def _wordmark(self, x, y):
-        # Original vector lettering: open, extended strokes and an elliptical
-        # O, with an inset cut on the numeral. No traced logo or font asset.
-        c = self.canvas
-        strokes = [
-            (0, 0, 0, 53), (51, 0, 51, 53), (0, 25, 51, 25),
-            (69, 53, 92, 0, 99, 0, 122, 53), (80, 32, 111, 32),
-            (141, 0, 141, 53, 187, 53),
-            (271, 6, 280, 0, 313, 0, 321, 8, 321, 19, 277, 51, 321, 51),
-        ]
-        for width, color in ((5, "#24465b"), (2, "#d2eaf5")):
-            for stroke in strokes:
-                self.line(*[value + (x if i % 2 == 0 else y) for i, value in enumerate(stroke)],
-                          fill=color, width=width)
-            c.create_oval(x + 202, y, x + 251, y + 53, outline=color, width=width, tags="art")
-        self.line(x + 279, y + 57, x + 315, y + 57, fill="#6c9caf")
-        self.line(x, y + 63, x + 252, y + 63, fill="#466a7e")
+        from tkinter import font
+
+        for value, offset, size, spacing in (('FOREVER', 0, 30, 7), ('LAUNCHER', 42, 10, 4)):
+            face = font.Font(self.window, font=self.font(size))
+            cursor = x
+            for character in value:
+                self.text(cursor, y + offset, character, size, INK if not offset else MUTED)
+                cursor += face.measure(character) / self.scale + spacing
 
 
 class SourceSelector(LauncherCanvas):
     """Detect MCC in the background and import into an owned local cache."""
 
     def __init__(self, window, root, mcc=None, setup_function=None,
-                 discover_function=None, auto_detect=True, setup_process=None, steam_helper=None):
+                 discover_function=None, auto_detect=True, setup_process=None, steam_helper=None,
+                 requirements_function=None, steam_request_function=None):
         from mcc_content import discover
+        from steam_client import inspect_content, request_downloads
 
-        super().__init__(window, root, "Halo 2 — MCC setup")
+        super().__init__(window, root, "Forever Launcher — Game file setup")
         self.setup = setup_function
         self.discover = discover_function or discover
         self.events = setup_process.events if setup_process is not None else queue.Queue()
@@ -347,14 +429,20 @@ class SourceSelector(LauncherCanvas):
         self.result, self.working, self.scanning, self.closed, self.error = 1, False, False, False, False
         self.modal = False
         self.steam = None
+        self.requirements_function = requirements_function or inspect_content
+        self.steam_request_function = steam_request_function or request_downloads
+        self.installation = None
+        self.requirements_generation = 0
+        self.checking_requirements = self.requesting_download = self.watch_downloads = False
+        self.next_install_check = 0
         if steam_helper is None:
             from macos.steam_setup import helper_path
             steam_helper = helper_path(root)
         self.steam_helper = steam_helper
         self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
         self.line(50, 193, 318, 193, fill=EDGE)
-        self.text(49, 225, "Bring your copy.", 29, INK)
-        self.text(51, 274, "Install Halo MCC.\nWe’ll prepare the cache.", 17, MUTED, width=280)
+        self.text(49, 225, "Game file setup", 29, INK)
+        self.text(51, 274, "Select your MCC installation.\nDownload missing files from Steam.", 17, MUTED, width=280)
         self.text(51, 354, "G E T   S T A R T E D", 11, MUTED)
         self.steps = []
         for i, (title, detail) in enumerate((("Find MCC", "Search installed game libraries"),
@@ -368,7 +456,7 @@ class SourceSelector(LauncherCanvas):
         self._set_step(0)
         self.line(365, 223, 365, 660, fill="#29475b")
         self.text(400, 119, "Prepare from MCC", 30, INK)
-        self.text(402, 163, "Halo MCC is the only installation you need.", 15, MUTED)
+        self.text(402, 163, "MCC Halo 2 content and Halo 2 Mod Tools (H2EK).", 15, MUTED)
         self.canvas.create_polygon(400, 209, 977, 209, 988, 220, 988, 370,
                                    400, 370, fill=PANEL, outline=EDGE, tags="art")
         self.line(400, 209, 477, 209, fill=CYAN, width=2)
@@ -385,9 +473,10 @@ class SourceSelector(LauncherCanvas):
         self.place(self.entry, 423, 323, 426, 32)
         self.browse_button = self.button("Browse…", self.browse, 861, 323, 104, 32)
         self.scan_button = self.button("Scan installed games", self.scan, 400, 397, 220, 36)
-        self.controls = [self.entry, self.browse_button, self.scan_button]
+        self.download_button = self.button('Download from Steam', self.download_from_steam, 644, 397, 344, 36)
+        self.controls = [self.entry, self.browse_button, self.scan_button, self.download_button]
         if self.steam_helper is not None:
-            self.steam_button = self.button('Download owned MCC from Steam…', self.start_steam, 644, 397, 344, 36)
+            self.steam_button = self.button('Download without Steam client…', self.start_steam, 52, 605, 282, 32)
             self.controls.append(self.steam_button)
         self.status_label = self.tk.Label(window, text="Scan installed games or browse to the MCC folder.",
                                          background=PANEL, foreground=MUTED, font=self.font(14),
@@ -395,7 +484,10 @@ class SourceSelector(LauncherCanvas):
                                          padx=self.px(12), pady=self.px(12), borderwidth=0)
         self.place(self.status_label, 400, 451, 588, 138)
         self.bar = self.progressbar()
-        self.place(self.bar, 400, 614, 588, 3)
+        self.percent_label = self.tk.Label(window, text='', background=FIELD, foreground=CYAN,
+                                          font=self.font(12), anchor='e', borderwidth=0)
+        self.place(self.percent_label, 400, 594, 588, 20)
+        self.place(self.bar, 400, 620, 588, 6)
         self.cancel = self.button("Cancel", self.close, 400, 641, 124, 43)
         self.prepare = self.button("Prepare MCC cache  ›", self.start, 696, 641, 292, 43, primary=True)
         self.text(52, 651, "YOUR ORIGINAL FILES STAY INTACT", 10, MUTED, mono=True)
@@ -410,6 +502,8 @@ class SourceSelector(LauncherCanvas):
         self.entry.focus_set()
         if auto_detect and not mcc:
             window.after(1, self.scan)
+        elif auto_detect:
+            window.after(1, self.check_requirements)
 
     def _set_step(self, active):
         for i, (number, heading, caption) in enumerate(self.steps):
@@ -435,6 +529,30 @@ class SourceSelector(LauncherCanvas):
         path = self.filedialog.askdirectory(parent=self.window, title="Select the Halo MCC installation or halo2 folder")
         if path:
             self.value.set(path)
+            self.check_requirements()
+
+    def check_requirements(self, *, download=False):
+        if self.closed or self.working or self.scanning or self.modal or self.checking_requirements:
+            return
+        self.requirements_generation += 1
+        generation = self.requirements_generation
+        self.checking_requirements = True
+        self.requesting_download = download
+        self.download_button.configure(state='disabled')
+        selected = self.value.get().strip() or None
+        if download:
+            self.status_label.configure(text='Checking which Steam downloads are needed…', foreground=CYAN)
+        def work():
+            try:
+                content = self.requirements_function(mcc_source=selected)
+                sent = self.steam_request_function(content) if download else ()
+                self.events.put(('requirements', (generation, selected, content, download, sent, None)))
+            except Exception as error:
+                self.events.put(('requirements', (generation, selected, None, download, (), str(error))))
+        threading.Thread(target=work, name='halo2-steam-content', daemon=True).start()
+
+    def download_from_steam(self):
+        self.check_requirements(download=True)
 
     def scan(self):
         if self.closed or self.working or self.scanning or self.modal:
@@ -443,6 +561,8 @@ class SourceSelector(LauncherCanvas):
         for widget in self.controls + [self.prepare]:
             widget.configure(state="disabled")
         self.status_label.configure(text="Searching installed MCC game libraries…", foreground=CYAN)
+        self.percent_label.configure(text='Searching for MCC…')
+        self.bar.configure(mode='indeterminate')
         self.bar.start(14)
         def work():
             try:
@@ -459,12 +579,18 @@ class SourceSelector(LauncherCanvas):
                                background="#173448" if busy else "#a6e4ef")
         self._set_step(1 if busy else 0)
         if busy:
+            self.percent_label.configure(text='Planning preparation…')
+            self.bar.configure(mode='indeterminate', value=0)
             self.bar.start(14)
         else:
             self.bar.stop()
+            if self.installation is not None and not self.installation.ready:
+                self.prepare.configure(state='disabled')
 
     def start(self):
         if self.working or self.scanning or self.closed or self.modal:
+            return
+        if self.installation is not None and not self.installation.ready:
             return
         value = self.value.get().strip()
         selected = Path(value).expanduser() if value else None
@@ -561,11 +687,20 @@ class SourceSelector(LauncherCanvas):
                     if self.steam is not None:
                         self.steam.event(kind, value)
                 elif kind == "status":
+                    update = parse_update(value)
+                    if update is None and str(value).startswith(PROGRESS_PREFIX):
+                        continue
+                    if update is not None:
+                        self.bar.stop()
+                        self.bar.configure(mode='determinate', maximum=100, value=update.percent)
+                        self.percent_label.configure(text=str(update))
+                        value = update
                     text = str(value).replace("\n", " ")
                     self.status_label.configure(text=text if len(text) <= 250 else text[:247] + "…")
                 elif kind in ("detected", "not-found"):
                     self.scanning = False
                     self.bar.stop()
+                    self.percent_label.configure(text='')
                     for widget in self.controls + [self.prepare]:
                         widget.configure(state="normal")
                     if kind == "detected":
@@ -573,15 +708,50 @@ class SourceSelector(LauncherCanvas):
                         self.status_label.configure(text="Found MCC Halo 2. Prepare to copy its content into your local cache.", foreground=CYAN)
                     else:
                         self.status_label.configure(text="MCC Halo 2 was not found. Install its Classic content, or browse to your MCC folder.", foreground="#ffd29b")
+                    self.check_requirements()
+                elif kind == 'requirements':
+                    generation, selected, content, requested, sent, error = value
+                    if generation != self.requirements_generation:
+                        continue
+                    self.checking_requirements = self.requesting_download = False
+                    if self.scanning or selected != (self.value.get().strip() or None):
+                        if not self.scanning:
+                            self.check_requirements()
+                        continue
+                    self.installation = content
+                    if error:
+                        self.watch_downloads = False
+                        if not self.working:
+                            self.download_button.configure(state='normal')
+                            self.prepare.configure(state='disabled')
+                            self.status_label.configure(text='Steam setup could not continue: '+error, foreground='#ffd29b')
+                        continue
+                    if not self.working and content.halo2 is not None and not self.value.get().strip():
+                        self.value.set(str(content.halo2))
+                    if (requested and sent) or content.pending:
+                        self.watch_downloads = True
+                        self.next_install_check = time.monotonic()+2
+                    if content.ready:
+                        self.watch_downloads = False
+                    if not self.working and not self.scanning:
+                        self.download_button.configure(state='normal' if content.download_ids else 'disabled')
+                        self.prepare.configure(state='normal' if content.ready else 'disabled')
+                        text = content.message()
+                        if self.watch_downloads:
+                            text += ' Confirm the installation in Steam. This window will check again automatically.'
+                        self.status_label.configure(text=text, foreground=CYAN if content.ready else '#ffd29b')
                 elif kind == "done":
                     self.result = 0
                     self._set_step(2)
                     self.closed = True
                     self.bar.stop()
+                    self.bar.configure(mode='determinate', value=100)
+                    self.percent_label.configure(text='Complete — 100%')
                     self.window.destroy()
                     return
                 else:
                     self._busy(False)
+                    self.percent_label.configure(text='Preparation stopped')
                     self.error = True
                     self.status_label.configure(text="Import did not complete. Check the MCC folder and try again.", foreground="#ffd29b")
                     self.modal = True
@@ -591,6 +761,10 @@ class SourceSelector(LauncherCanvas):
                         self.modal = False
         except queue.Empty:
             pass
+        if (self.watch_downloads and time.monotonic() >= self.next_install_check and
+                not self.working and not self.scanning and not self.checking_requirements):
+            self.next_install_check = time.monotonic()+2
+            self.check_requirements()
         if not self.closed:
             self.poll_id = self.window.after(50, self.poll)
 

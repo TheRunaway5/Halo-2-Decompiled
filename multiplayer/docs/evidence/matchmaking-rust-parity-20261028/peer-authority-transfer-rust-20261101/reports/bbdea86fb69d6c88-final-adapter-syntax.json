@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/c++",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/include",
+    "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/include",
+    "-std=c++20",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-fsyntax-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-final-syntax/halo2-test-a6c64dv0/peer_authority_transfer.cpp"
+  ],
+  "exit_code": 0,
+  "source_sha256": "d7fc2298dff21437e309d3ee5b96a8a6b318f5b59af4a90e67bfcd39f234ee72",
+  "generated_header_sha256": "7d3faebcdb39d51a242c014a29b11430292c108e1747e0e47c90f37ef9e603fd",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-final-syntax/halo2-test-a6c64dv0",
+  "scope": "Final typed C++ adapter syntax against the actual frozen release CXX interface, including exception translation; native linkage/flow are separate",
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,151 @@
+--- before
+
++++ after
+
+@@ -12,6 +12,7 @@
+
+ #include <bit>
+ #include <cmath>
+ #include <deque>
++#include <exception>
+ #include <functional>
+ #include <mutex>
+ #include <limits>
+@@ -530,11 +531,79 @@
+
+   // Session mutex is held. Once a vote is accepted, no queued predecessor
+   // gameplay or voice can reach a native consumer, even before a learner has
+   // enough independent receipts to identify the successor.
+-  void fence_audio(){
+-    const auto generation=audio?audio->fence():audio_generation;
+-    bridge::native_session_fence_audio(*controller,generation);refresh();
+-  }
+-  void sync_audio(){if(audio&&projection.sync_audio)(void)audio->resume(audio_generation);}
++  struct ApiIo final:bridge::NativeSessionApiIo {
++    Impl &s;
++    // Incoming/pinned owners outlive mutex release on unwinding, matching the
++    // prior parameter/if-statement lifetimes. Partial output conversion stays
++    // local to its callback and retires while the actual lock is still held.
++    mutable std::shared_ptr<GameVoice> incoming_audio,closing_audio;
++    mutable std::unique_lock<std::mutex> generation;
++    mutable std::vector<MatchVoicePacket> voices;
++    mutable std::exception_ptr failure;
++    const GameVoiceFrame *frame{};unsigned *received_peer{};std::vector<std::byte> *received_bytes{};
++    explicit ApiIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
++    void held()const{require(generation.owns_lock());}
++    template<class F> decltype(auto) capture(F &&action)const{
++      try{return action();}catch(...){if(!failure)failure=std::current_exception();throw;}
++    }
++    // Re-emit the actual native exception object after the Rust caller has
++    // completed its cleanup. This preserves type, message and identity.
++    template<class F> decltype(auto) invoke(F &&action)const{
++      try{return action();}catch(...){if(failure)std::rethrow_exception(failure);throw;}
++    }
++    void api_lock()const override{capture([&]{require(!generation.owns_lock());generation.lock();});}
++    void api_unlock()const override{capture([&]{held();generation.unlock();});}
++    void api_fence()const override{capture([&]{held();s.fence_peer_generation();});}
++    void api_send(std::uint32_t peer,rust::Slice<const std::uint8_t> bytes)const override{
++      capture([&]{held();bridge::native_session_send(*s.controller,peer,bytes);});
++    }
++    rust::Vec<bridge::NativeSessionPacket> api_receive()const override{
++      return capture([&]{held();return bridge::native_session_receive(*s.controller);});
++    }
++    void api_receive_peer(std::uint32_t peer)const override{capture([&]{held();require(received_peer);*received_peer=peer;});}
++    void api_receive_bytes(rust::Slice<const std::uint8_t> bytes)const override{
++      capture([&]{held();require(received_bytes);std::vector<std::byte> copied;copied.reserve(bytes.size());
++        for(auto value:bytes)copied.push_back(std::byte(value));*received_bytes=std::move(copied);});
++    }
++    // These observations also serve standalone audio effects whose caller
++    // already holds the same generation mutex. They do not acquire it again.
++    bool api_audio_present()const override{return bool(s.audio);}
++    bool api_audio_resume_allowed()const override{return s.projection.sync_audio;}
++    void api_audio_resume()const override{capture([&]{require(bool(s.audio));(void)s.audio->resume(s.audio_generation);});}
++    bool api_audio_ready()const override{return capture([&]{require(bool(s.audio));return s.audio->ready(s.audio_generation);});}
++    std::uint64_t api_audio_generation()const override{return s.audio_generation;}
++    std::uint64_t api_audio_fence()const override{return capture([&]{require(bool(s.audio));return s.audio->fence();});}
++    void api_apply_audio_fence(std::uint64_t stamp)const override{
++      capture([&]{bridge::native_session_fence_audio(*s.controller,stamp);s.refresh();});
++    }
++    void api_voice(std::uint32_t target,bool ready)const override{
++      capture([&]{held();require(frame);bridge::native_session_voice(*s.controller,target,wire_audio(*frame),ready);});
++    }
++    void api_preferences(std::uint32_t target,bool enabled,std::uint16_t muted)const override{
++      capture([&]{held();bridge::native_session_preferences(*s.controller,target,enabled,muted);});
++    }
++    void api_collect_voices()const override{
++      capture([&]{held();std::vector<MatchVoicePacket> result;
++        for(const auto &v:bridge::native_session_voices(*s.controller))result.push_back({v.peer,v.preferences,v.enabled,v.muted,native_audio(v.audio)});
++        voices=std::move(result);});
++    }
++    bridge::NativeApiAudioBinding api_audio_binding()const override{
++      bridge::NativeApiAudioBinding out;out.existing=bool(s.audio);out.same=s.audio==incoming_audio;return out;
++    }
++    void api_install_audio()const override{capture([&]{held();s.audio=std::move(incoming_audio);});}
++    void api_bind_audio()const override{capture([&]{held();bridge::native_session_bind_audio(*s.controller);});}
++    void api_close_presence()const override{capture([&]{held();bridge::native_session_close_postgame(*s.controller);s.refresh();});}
++    bool api_pin_audio()const override{
++      return capture([&]{require(!generation.owns_lock());std::lock_guard lock(s.mutex);closing_audio=s.audio;return bool(closing_audio);});
++    }
++    void api_close_audio()const override{capture([&]{require(closing_audio&&!generation.owns_lock());closing_audio->close();});}
++    void api_unpin_audio()const override{capture([&]{closing_audio.reset();});}
++    void api_stop_worker()const override{capture([&]{require(!generation.owns_lock());s.worker.request_stop();});}
++    bool api_worker_joinable()const override{return s.worker.joinable();}
++    void api_join_worker()const override{capture([&]{require(!generation.owns_lock());s.worker.join();});}
++  };
++  void fence_audio(){ApiIo io(*this);io.invoke([&]{bridge::native_api_fence_audio(io);});}
++  void sync_audio(){ApiIo io(*this);io.invoke([&]{bridge::native_api_sync_audio(io);});}
+   void fence_peer_generation(){PublicationIo io(*this);bridge::native_publication_fence(io);}
+   void world_request(std::uint8_t kind,std::uint64_t tick,const std::string &digest,std::uint32_t epoch=0){
+     bridge::NativeSessionSeal value;value.present=true;value.epoch=epoch;value.tick=tick;value.digest=digest;
+@@ -1014,30 +1083,25 @@
+
+   std::lock_guard lock(impl_->mutex);return impl_->native_fingerprint;
+ }
+ void OnlineMatchSession::send(std::span<const std::byte> packet,unsigned peer){
+-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();bridge::native_session_send(*impl_->controller,peer,wire(packet));
++  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_send(io,peer,wire(packet));});
+ }
+ bool OnlineMatchSession::receive(std::vector<std::byte> &packet,unsigned &peer){
+-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();auto received=bridge::native_session_receive(*impl_->controller);
+-  if(received.empty())return false;
+-  peer=received[0].peer;packet=native_bytes(received[0].bytes);return true;
++  Impl::ApiIo io(*impl_);io.received_bytes=&packet;io.received_peer=&peer;
++  return io.invoke([&]{return bridge::native_api_receive(io);});
+ }
+ void OnlineMatchSession::voice(unsigned target,const GameVoiceFrame &frame){
+-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();impl_->sync_audio();
+-  bridge::native_session_voice(*impl_->controller,target,wire_audio(frame),!impl_->audio||impl_->audio->ready(impl_->audio_generation));
++  Impl::ApiIo io(*impl_);io.frame=&frame;io.invoke([&]{bridge::native_api_voice(io,target);});
+ }
+ void OnlineMatchSession::voice_preferences(unsigned target,bool enabled,std::uint16_t muted){
+-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();bridge::native_session_preferences(*impl_->controller,target,enabled,muted);
++  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_preferences(io,target,enabled,muted);});
+ }
+ std::uint16_t OnlineMatchSession::voice_blocks() const {std::lock_guard lock(impl_->mutex);return impl_->voice_blocked;}
+ std::vector<MatchVoicePacket> OnlineMatchSession::voice_packets(){
+-  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();std::vector<MatchVoicePacket> result;
+-  for(const auto &v:bridge::native_session_voices(*impl_->controller))result.push_back({v.peer,v.preferences,v.enabled,v.muted,native_audio(v.audio)});
+-  return result;
++  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_voices(io);});return std::move(io.voices);
+ }
+ void OnlineMatchSession::retain_voice(std::shared_ptr<GameVoice> audio) {
+-  std::lock_guard lock(impl_->mutex);require(!impl_->audio || impl_->audio==audio);
+-  if(impl_->audio==audio)return;
+-  impl_->audio=std::move(audio);if(impl_->audio)bridge::native_session_bind_audio(*impl_->controller);impl_->fence_audio();impl_->sync_audio();
++  Impl::ApiIo io(*impl_);io.incoming_audio=std::move(audio);
++  require(io.invoke([&]{return bridge::native_api_retain_audio(io);}));
+ }
+ std::shared_ptr<GameVoice> OnlineMatchSession::retained_voice() const {
+   std::lock_guard lock(impl_->mutex);return impl_->audio;
+@@ -1053,9 +1117,7 @@
+
+ }
+ 
+ void OnlineMatchSession::close_postgame() {
+-  {std::lock_guard lock(impl_->mutex);bridge::native_session_close_postgame(*impl_->controller);impl_->refresh();}
+-  if(const auto audio=retained_voice())audio->close();
+-  impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
++  Impl::ApiIo io(*impl_);io.invoke([&]{bridge::native_api_close(io);});
+ }
+ void OnlineMatchSession::complete(std::span<const std::byte> report){
+   std::lock_guard lock(impl_->mutex);bridge::native_session_complete(*impl_->controller,wire(report));

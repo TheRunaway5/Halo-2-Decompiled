@@ -7,7 +7,6 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/model_selection.hpp"
-#include "halo2/source_bsp_admission.hpp"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -24,12 +23,8 @@ int main(int argc,char**argv){try {
     PhysicsLiveWorldTu15 world(cache,argv[1],files);
     world.configure_session(source_game_variant_default(0),1,30,0x12345678u);
     world.preload_render_model(cache.load_initial_model_definition(tag->datum).render_model);world.initialize_map();
-    // Explicit resource fixture, not a visibility result. Production supplies
-    // the actual main-camera admission instead of this complete resource set.
-    const auto geometry=cache.load_source_bsp_admission(0);SourceBspAdmission resident;
-    for(unsigned n=0;n<geometry.clusters.size();++n)resident.clusters.push_back({n});
-    for(unsigned n=0;n<geometry.instances.size();++n)resident.instances.push_back({n});
-    pstencil::prepare_native_incident_geometry_tu15(world,resident);
+    // The genuine baked-light updater owns resource requests at its actual
+    // query sites; no eager geometry/lightmap admission runs before it.
     // Same real Cairo floor used by the retained native armor photograph.
     // The campaign spawn is not a substitute for a surface-lit actor position.
     const auto object=world.create_biped(tag->datum,{59.1033f,-12.3787f,5.01502f},{1,0,0});

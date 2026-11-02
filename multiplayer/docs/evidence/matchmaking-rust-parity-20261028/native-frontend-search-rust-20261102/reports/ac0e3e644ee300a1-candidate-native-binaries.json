@@ -1,0 +1,18 @@
+{
+  "frontend_online_lobby_buttons_tests": {
+    "sha256": "33d589b45fb0c0fe6d04babf808c061741275c3d6a9347e6dbe322e00c9af917",
+    "bytes": 260161264
+  },
+  "frontend_online_tests": {
+    "sha256": "7fd4a8e83ac9e74530e34c43cd8cc73b3940af0d9477120f93fec4d874a5c78a",
+    "bytes": 259231304
+  },
+  "frontend_lobby_policy_tests": {
+    "sha256": "b6635572f387579a63d919daf3891b3ea576c9bf81f3790af1a7b599c4cad66f",
+    "bytes": 37848
+  },
+  "party_countdown_kernel_tests": {
+    "sha256": "c86c8d3cae2c3dd51478396ce7257fd88ec38c2be99b816a9dd2e00bd1abad25",
+    "bytes": 131424
+  }
+}

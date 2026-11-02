@@ -67,6 +67,8 @@ class MccOnboardingTests(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('{}')
         custom_ui_menu_fixture(self.cache, self.root)
+        from test_controller_prompt_assets import controller_prompt_fixture
+        controller_prompt_fixture(self.root)
         files, omitted = source_files(self.source)
         self.report = dict(schema=PROFILE, source=str(self.source),
                            external_installation_requirement='Halo MCC only', runtime_active=False,
@@ -94,6 +96,21 @@ class MccOnboardingTests(unittest.TestCase):
 
     def select(self):
         return onboarding.select(self.root, self.cache, progress=self.messages.append)
+
+    def test_select_repairs_our_prompts_without_touching_copied_mcc_fonts(self):
+        before = {p.relative_to(self.cache): p.read_bytes()
+                  for p in (self.cache/'halo2/h2_fonts').rglob('*') if p.is_file()}
+        cache, report = onboarding.select(self.root, self.cache, progress=self.messages.append)
+        self.assertEqual(report['controller_prompts']['families'], ['xbox', 'playstation'])
+        self.assertFalse(report['controller_prompts']['mcc_button_glyphs_used'])
+        for name in report['controller_prompts']['files']:
+            self.assertTrue((cache/name).is_file())
+        self.assertEqual(before, {p.relative_to(self.cache):p.read_bytes()
+                         for p in (self.cache/'halo2/h2_fonts').rglob('*') if p.is_file()})
+        missing = cache/'presentation/prompts-xbox/atlases/0.dds'
+        original = missing.read_bytes();missing.unlink()
+        onboarding.select(self.root, cache, progress=self.messages.append)
+        self.assertEqual(missing.read_bytes(), original)
 
     def test_select_preserves_mcc_directory_case_and_incomplete_readiness(self):
         self.select()
@@ -388,6 +405,17 @@ class MccOnboardingTests(unittest.TestCase):
         prepare.assert_called_once()
         self.assertEqual(registry.read_bytes(), before)
         self.assertEqual((self.cache / 'loading/mcc-loading-assets.json').read_bytes(), old_loading)
+
+    def test_known_incompatible_family_skips_large_tree_verification(self):
+        self.select()
+        registry = self.root / onboarding.REGISTRY
+        previous = registry.read_bytes()
+        with patch('mcc_presentation.compatible', return_value=False), \
+             patch.object(onboarding, 'private_cache', side_effect=AssertionError('unneeded full-tree verification')), \
+             patch.object(onboarding, 'prepare', side_effect=FormatError('fresh import requested')):
+            with self.assertRaisesRegex(FormatError, 'fresh import requested'):
+                onboarding.setup(self.root, self.source, progress=self.messages.append)
+        self.assertEqual(registry.read_bytes(), previous)
 
     def test_reuse_repairs_missing_defusal_without_reimporting_or_rewriting_maps(self):
         self.select()

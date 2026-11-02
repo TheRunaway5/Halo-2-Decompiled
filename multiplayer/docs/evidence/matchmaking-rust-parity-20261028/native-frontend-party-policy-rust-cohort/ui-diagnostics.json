@@ -1,0 +1,227 @@
+{
+  "observations": [
+    {
+      "probe": "[DEBUG-party-policy-legacy]",
+      "observation": {
+        "definitions": [
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 0,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 0,
+            "pane": 0,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 1,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 1,
+            "pane": 1,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 2,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 2,
+            "pane": 2,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 3,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 3,
+            "pane": 3,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          }
+        ],
+        "material": 718,
+        "name": "ui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu",
+        "screen": 186,
+        "selected": 0,
+        "source_pages": [
+          7
+        ],
+        "vista_pages": []
+      }
+    },
+    {
+      "probe": "[DEBUG-party-policy-legacy]",
+      "observation": {
+        "definitions": [
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 0,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 0,
+            "pane": 0,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 1,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 1,
+            "pane": 1,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 2,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 2,
+            "pane": 2,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 1,
+            "flags": 0,
+            "frame": 7,
+            "pane": 3,
+            "position": [
+              -23.0,
+              5.0
+            ],
+            "sequences": 0
+          },
+          {
+            "bitmap": 3,
+            "flags": 0,
+            "frame": 3,
+            "pane": 3,
+            "position": [
+              108.0,
+              194.0
+            ],
+            "sequences": 0
+          }
+        ],
+        "material": 1399,
+        "name": "ui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu",
+        "screen": 186,
+        "selected": 0,
+        "source_pages": [],
+        "vista_pages": [
+          0
+        ]
+      }
+    },
+    {
+      "probe": "[DEBUG-party-policy-emblem]",
+      "observation": {
+        "base_matching_pages": [
+          0
+        ],
+        "context": 0,
+        "material": 2277,
+        "screen": 14,
+        "selected_array_matches_admitted": true,
+        "selected_frame": 9,
+        "stage": 0
+      }
+    }
+  ],
+  "source_pins": "ui-source-evidence-pins.json",
+  "native_report": "native/iteration-2-report.json",
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "cargo",
+    "check",
+    "--locked",
+    "--offline",
+    "--manifest-path",
+    "/home/eric/Developer/Halo-2-Decompiled/rust/online_protocol/Cargo.toml"
+  ],
+  "exit_code": 101,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-core-preflight/halo2-test-xu6zb074",
+  "source_sha256": "968a44d4e7120520234742b854f05cef2fb6c79c35268ba10c139a0e0d8aa3b1",
+  "retained_large_artifacts": []
+}

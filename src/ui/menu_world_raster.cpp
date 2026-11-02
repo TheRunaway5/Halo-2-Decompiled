@@ -12,7 +12,7 @@ bool supported(MenuWorldRasterLayer layer) {
   return base(layer) || layer==MenuWorldRasterLayer::emissive_7 ||
       layer==MenuWorldRasterLayer::shadow_10 || layer==MenuWorldRasterLayer::shadow_apply_11 ||
       layer==MenuWorldRasterLayer::sphere_diffuse_12 ||
-      layer==MenuWorldRasterLayer::planar_fog_16;
+      layer==MenuWorldRasterLayer::planar_fog_16 || layer==MenuWorldRasterLayer::hologram_21;
 }
 }
 void MenuWorldRasterContext::no_entry() const {
@@ -69,6 +69,9 @@ void MenuWorldRasterContext::entry_begin(const MenuWorldRasterEntryInput &input)
     throw FormatError("ordinary raster shadow entry has no active source setup");
   if(shadow_active_ && *layer_!=MenuWorldRasterLayer::shadow_10)
     throw FormatError("ordinary raster shadow entry precedes its matching layer transition");
+  // Layer21's44360 table installs stencil mode0. The base-layer entry
+  // predicates below are not read by this caller; retain them as unknown.
+  if(*layer_==MenuWorldRasterLayer::hologram_21) {entry_=Entry{false};return;}
   if(!input.stencil_marked_4000 || !input.special_485a75 || !input.special_485a76)
     throw FormatError("ordinary raster entry is missing its source stencil predicate or special context");
   const bool special=*input.special_485a75 || *input.special_485a76;

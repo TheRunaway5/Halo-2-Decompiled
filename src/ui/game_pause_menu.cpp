@@ -82,6 +82,7 @@ GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
   state_=std::make_unique<MenuState>(content_,preferences);
   state_->set_game_pause_action([this](GamePauseAction action) {
     if(action==GamePauseAction::Quit)quit_=true;
+    else if(action==GamePauseAction::ExitToDesktop)desktop_exit_=true;
     else if(action!=GamePauseAction::Resume) {
       if(!command_)return std::string("The current game cannot perform this action.");
       if(auto error=command_(action);!error.empty())return error;
@@ -93,7 +94,8 @@ GamePauseMenu::GamePauseMenu(const std::filesystem::path &maps,
     // the activating button is still held) re-hides and re-confines the
     // pointer just before the runtime releases it, which can leave Xwayland's
     // hidden-cursor pointer lock behind. Only actions that resume play recapture.
-    if(window_ && action!=GamePauseAction::Quit)SDL_SetRelativeMouseMode(SDL_TRUE);
+    if(window_ && action!=GamePauseAction::Quit && action!=GamePauseAction::ExitToDesktop)
+      SDL_SetRelativeMouseMode(SDL_TRUE);
     return std::string{};
   });
   painter_=std::make_unique<FrontendPainter>(content_,gameplay_font_directory(menu),mesh,
@@ -175,7 +177,7 @@ void GamePauseMenu::show() {
   state_->game_pause_teams(teams_?teams_(input_instance_):std::nullopt,[this](std::int16_t team) {
     return change_team_?change_team_(input_instance_,team):"The host is unavailable.";
   });
-  state_->ui_clock(SDL_GetTicks());state_->open_game_pause(campaign_,online_match_);
+  state_->ui_clock(SDL_GetTicks());state_->open_game_pause(campaign_,online_match_,splitscreen_match_);
   visible_=true;entered_=SDL_GetTicks();screen_=state_->frame().screen;
   if(window_)SDL_SetRelativeMouseMode(SDL_FALSE);
   refresh();

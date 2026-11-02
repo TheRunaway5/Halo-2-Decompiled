@@ -384,6 +384,8 @@ public:
 
 private:
   friend class EffectPresentationHistory;
+  friend class SourceShadowPresentationOwner;
+  bool shadow_preparation_progress(const AcceptedShadowCut &)const;
   struct SnapshotCandidate;
   std::shared_ptr<SnapshotCandidate> arm_snapshot_candidate(std::shared_ptr<PeerSnapshotCandidate>,const PeerSnapshotToken &);
   static bool snapshot_candidate_live(const std::shared_ptr<SnapshotCandidate> &)noexcept;

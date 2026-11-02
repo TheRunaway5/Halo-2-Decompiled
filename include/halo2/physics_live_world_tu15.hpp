@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/native_tu15_physics_frame.hpp"
 #include "halo2/source_hud_messages.hpp"
 #include "halo2/source_player_status.hpp"
 #include "halo2/source_gameplay_fade_tu15.hpp"
@@ -11,6 +12,7 @@
 #include "halo2/physics_world_runtime.hpp"
 #include "halo2/source_object_audio_views_tu15.hpp"
 #include "halo2/source_loop_sound_request_tu15.hpp"
+#include "halo2/native_weapon_zoom_reset_tu15.hpp"
 #include "halo2/source_object_loop_emitter_tu15.hpp"
 #include "halo2/source_effect_light_birth_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
@@ -63,6 +65,7 @@ struct SourceObjectBuildRequest;
 struct SourcePortalVisibilitySet;
 struct SourceObjectAdmission;
 struct SourceObjectAdmissionInput;
+struct SourceEffectLightFlagReference31650;
 // Local native input owner. Callback objects never cross a world checkpoint.
 // Monotonic domains rebase on import; UTC remains an absolute external input.
 class PhysicsLiveClockSource {
@@ -100,6 +103,21 @@ using SourceSoundSubmitObserverTu15=std::function<void(bool,std::uint32_t,
 // admission/voice result. Independent of diagnostic instruction tracing.
 using SourceSoundRequestObserverTu15=std::function<void(std::uint32_t,
     std::span<const std::byte,160>)>;
+// Same completed request, with the actual unit retained while executing
+// C7DD0's zoom call or CABC0's forced reset. Other unit sounds have no zoom
+// provenance; an unowned forced zoom-out request keeps its original bytes.
+using SourceSoundRequestContextObserverTu15=std::function<void(std::uint32_t,
+    std::span<const std::byte,160>,std::optional<std::uint32_t> zoom_unit)>;
+struct SourceWeaponZoomResetEventTu15 {
+    NativeWeaponZoomResetTu15 reset;
+    std::uint32_t tick{},sound=0xffffffffu,control_bits{};
+};
+using SourceWeaponZoomResetObserverTu15=std::function<void(const SourceWeaponZoomResetEventTu15 &)>;
+struct SourceWeaponZoomSoundEventTu15 {
+    std::uint32_t tick{},unit=0xffffffffu,player=0xffffffffu,sound=0xffffffffu;
+    std::array<std::byte,160> request{};
+};
+using SourceWeaponZoomSoundObserverTu15=std::function<void(const SourceWeaponZoomSoundEventTu15 &)>;
 using SourceLoopSoundRequestObserverTu15=std::function<void(const SourceLoopSoundRequestTu15 &)>;
 struct SourceTeleporterActivationTu15 {
     std::uint32_t player{},sound=0xffffffffu;
@@ -265,6 +283,9 @@ public:
     // Native original-ABI caller frame using this world's actual retained
     // stack/TLS/floating-point owner. Does not execute or admit a source entry.
     SourcePhysicsWorldRuntimeAbi prepare_source_call(std::span<const std::uint32_t> arguments={});
+    // Ordered native40E80/44AB0/460C0 with genuine named residual services.
+    // Publishes the same completed main-camera borrow after all producers.
+    NativeTu15PhysicsFrameFp run_native_command_frame_tu15(std::uint32_t selector=0);
     // A separately typed source2B770/2B9F0 CPU-prefix scope. The genuine
     //132B0 boundary yields a retained packet/ABI; no completed graphics call
     // or GPU result is supplied. Whole13C00 restores source context afterward.
@@ -316,6 +337,27 @@ public:
     // real cache-sector I/O and22A680 pointer publication on this same bank.
     void preload_render_model(std::uint32_t render_model);
     bool request_render_geometry(std::uint32_t flags,std::uint32_t resource_header);
+    // Same native130980 policy with a compound native caller's arithmetic
+    // context carried through the genuine acquisition/scheduling services.
+    bool request_render_geometry_tu15(std::uint32_t flags,std::uint32_t resource_header,NativeTu15PhysicsFrameFp&);
+    std::uint32_t classify_render_lighting_tu15(std::uint32_t object,std::uint32_t model,std::uint32_t instance,NativeTu15PhysicsFrameFp&);
+    // Bank-native2CB10 /135EA0 /136030, including whole2CBD0. Returns the
+    // context pinned before2CB10. Dynamic136230 remains the caller's service.
+    std::uint32_t collect_render_bsp_units_tu15(NativeTu15PhysicsFrameFp&);
+    void append_light_parent_biped_tu15(std::uint32_t definition_data,std::uint32_t shadow_address,
+        std::uint32_t owner,std::uint32_t context);
+    std::uint32_t render_light_parent_biped(std::uint32_t owner) const;
+    // Sphere31650's reached31867 store, retaining the live datum generation.
+    void set_effect_light_full_f8_tu15(std::uint32_t light);
+    // Finite reference control: project declared post-admission rows into
+    // existing queues, run genuine31650, compare flags/F8, then restore queues.
+    void reference_effect_light_flags_tu15(const SourceEffectLightFlagReference31650&);
+    // Read-only renderer queries retain the executor and bank lifetime without
+    // constructing a source call frame or writing source stack residue.
+    std::uint32_t render_object_root(std::uint32_t object) const;
+    std::uint32_t render_attachment_marker(std::uint32_t object,std::int16_t attachment) const;
+    bool render_object_has_view_priority(std::uint32_t object) const;
+    std::array<std::uint32_t,3> render_light_up_vector(std::uint32_t up,std::uint32_t forward) const;
     void begin_model_frame();
     // Publish a completed native173130 portal result into the actual render
     // collector, then run whole3F3E0. Calls union the local views; the literal
@@ -388,6 +430,11 @@ public:
     void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
     void observe_sound_submissions(SourceSoundSubmitObserverTu15);
     void observe_sound_requests(SourceSoundRequestObserverTu15);
+    void observe_sound_requests_with_context(SourceSoundRequestContextObserverTu15);
+    // Committed native CABC0 decision before its local-user sound gate.
+    // Independent of sound tracing/output so nonlocal resets remain visible.
+    void observe_weapon_zoom_resets(SourceWeaponZoomResetObserverTu15);
+    void observe_weapon_zoom_sounds(SourceWeaponZoomSoundObserverTu15);
     void observe_loop_sound_requests(SourceLoopSoundRequestObserverTu15);
     // Native presentation's actual local camera inputs. Complete18EE50,
     //18F900 and190460 compute every scheduling/PVS/distance result. The
@@ -473,7 +520,9 @@ public:
     void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
     void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
     // Read-only retained ABI/bank snapshots around the real scheduled108A70.
-    void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15);
+    // State-only observation leaves instruction tracing off, allowing native
+    // callees whose complete instruction traces are intentionally unavailable.
+    void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15,bool instruction_trace=true);
     void observe_effect_damage(SourceEffectDamageObserverTu15);
     // Borrowed until replaced or cleared with nullptr; see SourceHitscanQueryTu15.
     // Configuration only: install before stepping and clear before the owner dies.
@@ -607,6 +656,7 @@ public:
         // cache/history while importing the next accepted simulation cut.
         void retain_live_multiplayer_render_history();
         void retain_live_multiplayer_render_history_from(const PhysicsLiveWorldTu15 &);
+        void retain_native_particle_history_from(const PhysicsLiveWorldTu15 &);
     private:
         friend class PhysicsLiveWorldTu15;
         PreparedAuthority();
@@ -640,6 +690,7 @@ public:
     bool commit_authority(PreparedAuthority &&) noexcept;
 private:
     friend class NativeVehicleCamera;
+    void publish_completed_main_camera_tu15();
     std::array<std::byte,0x5c> collect_native_input(std::uint32_t player,unsigned view,
         float frame_seconds,float game_seconds,SourceCameraControllerState &,SourceObserverState &);
     friend class MccScriptSoundWorldAccess;

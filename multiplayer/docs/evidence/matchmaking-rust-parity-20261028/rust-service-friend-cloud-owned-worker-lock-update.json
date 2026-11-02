@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "cargo",
+    "update",
+    "--offline",
+    "--manifest-path",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/source/rust/matchmaking_service/Cargo.toml",
+    "-p",
+    "halo2-matchmaking-service"
+  ],
+  "returncode": 0,
+  "before_sha256": "e70f32ffbfc2f69d4776b497291dab153c024fe255ccd783c9a6af4f8720638d",
+  "after_sha256": "1e7ab09c6da07493fc678c1216222bf0cbb31caa75495da01a734118b9afcf77",
+  "added": [
+    [
+      "linux-raw-sys",
+      "0.12.1",
+      "registry+https://github.com/rust-lang/crates.io-index"
+    ],
+    [
+      "rustix",
+      "1.1.4",
+      "registry+https://github.com/rust-lang/crates.io-index"
+    ]
+  ]
+}

@@ -65,6 +65,7 @@ def main():
     parser.add_argument('--hardware',action='store_true',help='Use actual original i386 results as the native scalar expectations')
     parser.add_argument('--reference',type=Path,help='Replay a retained hardware-derived scalar reference')
     parser.add_argument('--reverse-product',action='store_true',help='Reject a private swapped-operand mutation')
+    parser.add_argument('--reverse-search',action='store_true',help='Reject a private reversed native search direction')
     parser.add_argument('--whole-owner',action='store_true',help='Also qualify both native D8110 observer APIs against fresh original i386 banks/ABI')
     parser.add_argument('--owner-reference',type=Path,help='Sealed original i386 owner banks/ABI for --whole-owner with --reference')
     parser.add_argument('--native-source',type=Path,default=ROOT,help='Native source cohort to freeze; test/oracle tools stay in this workspace')
@@ -74,6 +75,8 @@ def main():
     if args.whole_owner and not(args.hardware or args.reference and args.owner_reference):
         parser.error('Whole-owner qualification requires fresh --hardware or both original references')
     if args.owner_reference and not(args.whole_owner and args.reference):parser.error('Owner reference requires --whole-owner and --reference')
+    if args.reverse_search and (not args.whole_owner or args.reverse_product):
+        parser.error('Reversed search requires --whole-owner and cannot combine with --reverse-product')
     owner=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     native_source=args.native_source.resolve(strict=True)
     args.output=args.output.resolve();args.output.mkdir(parents=True,exist_ok=False)
@@ -235,6 +238,13 @@ def main():
             if text.count(needle)!=1:raise ValueError('Material owner mutation seam changed')
             path.write_text(text.replace(needle,'detail::damage_product(accumulated,modifier)'))
             pins[str(path.relative_to(source))]=sha(path)
+    if args.reverse_search:
+        path=source/'src/gameplay/objects/source_damage_material_native_tu15_internal.hpp';text=path.read_text()
+        needle='if(si(s.gp[0])>0)'
+        if text.count(needle)!=1:raise ValueError('Native material search mutation seam changed')
+        before=sha(path);path.write_text(text.replace(needle,'if(si(s.gp[0])<0)'))
+        pins[str(path.relative_to(source))]=sha(path)
+        mutation=dict(before=before,after=sha(path),scope='Private reversed search direction; original CPU reference unchanged')
     (source/'CMakeLists.txt').write_text('''cmake_minimum_required(VERSION 3.20)
 project(Halo2DamageMultiplier LANGUAGES CXX)
 enable_testing()
@@ -294,6 +304,13 @@ add_custom_target(material_qualification DEPENDS damage_multiplier_tu15_tests so
         report['original_owner_reference']=dict(path=str(args.owner_reference),sha256=sha(args.owner_reference))if args.owner_reference else receipt
         if args.reverse_product:
             report['passed']=report['passed']and all(row.get('product_mutation_rejected',False)for row in owner_reports)
+        if args.reverse_search:
+            build_passed=all(step['exit_code']==0 for step in worker['steps']if step['name']!='tests')
+            report['reversed_search_rejected']=bool(result!=0 and build_passed and native.get('passed') and
+                all(row.get('differences',0)>0 and row.get('native_search_calls',0)>0 and
+                    row.get('native_comparator_calls',0)>0 for row in owner_reports))
+            report['passed']=report['reversed_search_rejected'] and report['source_unchanged']
+            report['whole_owner_component_ABI_and_banks_qualified']=False
     report['native_source']=str(native_source)
     (args.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report),flush=True)
     return 0 if report['passed']else result or 1

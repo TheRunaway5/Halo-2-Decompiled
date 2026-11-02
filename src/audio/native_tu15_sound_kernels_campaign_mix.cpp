@@ -571,9 +571,9 @@ void r_2271a0(CampaignContext &c,Abi &a) {
 // player p (player datum at [4F54F0]+0xC+4p, observer camera 4F655C+p*0x358,
 // listener record [4F2C50]+0x88+p*0x48) gets its listener: the camera's
 // (the observer cameras follow [474C24]), or, for a unit in a vehicle seat
-// seen in first person (158290 camera mode 0/1), the camera blended toward
+// with a nonzero admitted camera mode (the two tests retain mode1), blended toward
 // the unit (CD440) by the seat's factor (seat +0x40): the camera position
-// interpolated, and its forward/up rotated by the slerp (120060, 120310)
+// interpolated, and its forward/up rotated by normalized linear interpolation (120060, 120310)
 // between identity and the rotation from the camera to the unit's aim. The
 // listener's location comes from BC200/11E600 (the camera's when that has
 // no cluster). The record gets +0 location, +4 cluster, +6 active, +7
@@ -693,7 +693,7 @@ void r_129f10(CampaignContext &c,Abi &a) {
             edx=x.d(identity_rotation);
             x0=x.ld(ebx+0x40u);
             ecx=eax;
-            x.call(0x12a0e3u,0x120310u);         // slerp from identity by the seat factor
+            x.call(0x12a0e3u,0x120310u);         // normalized linear blend from identity by the seat factor
             // The camera's forward ([ESI]) and up ([EDI+0x2C]) rotated by
             // the quaternion at [ESP+0x6C] (2(q.v)q + (w^2 - q.q)v + 2w(q x v)).
             x0=x.ld(esp+0x74u);

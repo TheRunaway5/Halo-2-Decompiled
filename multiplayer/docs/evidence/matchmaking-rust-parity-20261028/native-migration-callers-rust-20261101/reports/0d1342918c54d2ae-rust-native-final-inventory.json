@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "qualified_inventory_count": 3425,
+  "borrowed_reference_inventory_count": 469,
+  "mismatches": [
+    {
+      "path": "tests/fixtures/weapon_effect_selector_tu15_original.json",
+      "rust_sha256": "bb393418c88cef77cf883cd90422e08c9b51ad7253b97af2dd9f4ffdf330562d",
+      "native_sha256": null,
+      "native_present": false,
+      "current_root_sha256": "bb393418c88cef77cf883cd90422e08c9b51ad7253b97af2dd9f4ffdf330562d"
+    }
+  ],
+  "rust_source_mismatches": [],
+  "counts": {
+    "online_protocol": 453,
+    "online_protocol_bridge": 65,
+    "matchmaking_service": 20
+  },
+  "total": 538,
+  "rust_scratch_removed": true,
+  "all_broad_inventory_inputs_identical": false,
+  "native_iteration": 3,
+  "source_usage_audit_pending": false,
+  "scope": "All Rust crate inputs match; one unrelated non-consumed fixture addition is separately source-audited. No broad inventory identity claim.",
+  "all_rust_crate_inputs_identical": true,
+  "rust_crate_input_count": 211,
+  "foreign_difference_source_audit": "foreign-fixture-source-usage-audit.json",
+  "compiled_dependency_files_audited": false
+}

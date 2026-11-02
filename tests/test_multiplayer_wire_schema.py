@@ -16,6 +16,8 @@ RESULTS = []
 # These types/serializers can change bytes while the C++ wrapper stays equal.
 # Keep this witness independent of the module's declared input inventory.
 TRANSITIVE_WIRE_OWNERS = (
+    'include/halo2/native_weapon_zoom_audio_tu15.hpp',
+    'src/gameplay/weapons/native_weapon_zoom_audio_tu15.cpp',
     'include/halo2/source_first_person_context_tu15.hpp',
     'include/halo2/source_runtime_resources.hpp',
     'include/halo2/transform.hpp',

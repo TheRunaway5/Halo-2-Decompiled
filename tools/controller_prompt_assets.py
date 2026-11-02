@@ -79,7 +79,8 @@ def runtime_sources(root):
         files[path] = dict(bytes=len(metadata), sha256=hashlib.sha256(metadata).hexdigest())
         payloads[path] = metadata
     entry = dict(schema=PROFILE, complete=True, files=files,
-                 families=list(FAMILIES), font_files_replaced=False)
+                 families=list(FAMILIES), font_files_replaced=False,
+                 pixel_source='port-authored', mcc_button_glyphs_used=False)
     return entry, payloads
 
 

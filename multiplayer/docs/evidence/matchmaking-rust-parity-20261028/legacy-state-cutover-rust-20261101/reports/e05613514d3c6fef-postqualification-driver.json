@@ -1,0 +1,12 @@
+{
+  "qualification_source_files": 356,
+  "current_source_differences": {
+    "tools/test_rust_matchmaking_delivery.py": {
+      "qualified_sha256": "591a5a4317398fbe6f6d15dab6b0f9d91a270a0e3ed59eaa76e28c6f3aa48c50",
+      "current_sha256": "bd69a48156d62c17882e40f5e191704b3b2be5149cf33a5d1bf487c6eb82af71"
+    }
+  },
+  "reason": "Exception bearer redaction added after the passing state handoff; tested separately in redaction-validation.json. Compiled crates, service adapters and state controls remain exact.",
+  "compiled_inputs_changed": false,
+  "state_controls_changed": false
+}

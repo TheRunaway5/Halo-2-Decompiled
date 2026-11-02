@@ -1,0 +1,9 @@
+{
+  "owned_cache_removed": [
+    {
+      "path": "tests/__pycache__/test_frontend_lobby_policy.cpython-314.pyc",
+      "bytes": 14395
+    }
+  ],
+  "unrelated_cache_preserved": true
+}

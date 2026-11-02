@@ -1,0 +1,17 @@
+{
+  "src/ui/frontend_state.cpp": {
+    "before_lines": 2920,
+    "after_lines": 2840,
+    "diff_bytes": 8561
+  },
+  "src/ui/frontend_party.cpp": {
+    "before_lines": 382,
+    "after_lines": 336,
+    "diff_bytes": 5126
+  },
+  "include/halo2/frontend.hpp": {
+    "before_lines": 957,
+    "after_lines": 955,
+    "diff_bytes": 2078
+  }
+}

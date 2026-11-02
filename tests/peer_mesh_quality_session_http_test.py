@@ -79,7 +79,11 @@ async def main():
                     (output / ('session-' + str(d['slot']) + '.log')).write_bytes(out + err)
                     print(process.returncode, out.decode(), err.decode(), flush=True)
                     assert process.returncode == 0, 'Native direct quality session failed'
-                await asyncio.wait_for(asyncio.gather(*(collect(d, p) for d, p in zip(descriptors, processes))), 90 if eos else 50)
+                async with asyncio.timeout(90 if eos else 50):
+                    while not all((path / ('result-' + str(d['slot']) + '.json')).is_file() for d in descriptors):
+                        if any(p.returncode is not None for p in processes):
+                            raise AssertionError('Native client exited before live measurement collection')
+                        await asyncio.sleep(.01)
                 api = next(iter(app.values())).matchmaking
                 room = api.transport.rooms[descriptors[0]['id']]
                 measured_hosts = room.measured_hosts()
@@ -87,12 +91,14 @@ async def main():
                 rows = [json.loads((path / ('result-' + str(d['slot']) + '.json')).read_text()) for d in descriptors]
                 assert all(r['host'] == room.host and r['received'] > 50 and len(r['candidates']) == 2 for r in rows)
                 assert all(q['upload'] > 0 and q['peer'] in (0, 4) for r in rows for q in r['candidates'])
-                ready = [{str(peer): metrics for peer, metrics in reports.items()} for reports in room.direct_ready.values()]
+                ready = [{str(peer): dict(metrics) for peer, metrics in reports.items()} for reports in room.direct_ready.values()]
                 assert all(row['upload_bytes_per_second'] > 0 for reports in ready for row in reports.values())
                 evidence = dict(host=room.host, selected_host_score=list(measured_hosts[min(measured_hosts, key=measured_hosts.__getitem__)]),
                     native=rows, admitted_direct_summaries=ready,
                     gameplay_master_relay=False, world_promotion=False, discord='fixture', eos_sessions=eos, eos_force_relay=eos)
                 (output / 'native-session-results.json').write_text(json.dumps(evidence, indent=2) + '\n')
+                (path / 'collector-finished').touch()
+                await asyncio.wait_for(asyncio.gather(*(collect(d, p) for d, p in zip(descriptors, processes))), 10)
                 print('PASS actual measured setup, physical host selection, eight-seat admission and concurrent direct datagrams')
             finally:
                 for process in processes:

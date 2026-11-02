@@ -10,13 +10,16 @@ import argparse
 from collections import Counter
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import struct
 import sys
+import threading
 import uuid
 
 from audit_rendering import FormatError, file_sha, ImportBudget, donor_inventory
+from donor_tree import DonorTree, DonorError, private_output
 from mcc_content import MccCache, directory, discover, texture_resource
 from mcc_conversion_coverage import validate as validate_conversion_coverage
 from mcc_multiplayer_catalog import apply_catalog_plan, plan_catalog
@@ -24,6 +27,7 @@ from mcc_instant_charge import apply_instant_charge_plan, plan_instant_charge
 from mcc_player_screen_flashes import inventory_maps as inventory_player_screen_flashes
 from mcc_movies import _cancellation
 from vista_tag_conversion import TagGraph, TU15_SHA256, apply_combat, apply_netgame
+from setup_progress import WorkProgress
 
 PROFILE = "H2_MCC_TU15_PREPARATION_V1"
 MAX_BITMAP_BYTES = 32 * 1024**3
@@ -71,40 +75,92 @@ def source_directories(source, inventory=None):
     return result
 
 
-def copy_verified(source, target, files, progress, directories=None):
+def copy_verified(source, target, files, progress, directories=None, *, workers=None):
+    try:
+        with DonorTree(source) as donor:
+            return _copy_verified(source, target, files, progress, directories, workers=workers, donor=donor)
+    except (DonorError, OSError) as error:
+        raise FormatError(str(error).replace('Source changed', 'MCC source changed')) from error
+
+
+def _copy_verified(source, target, files, progress, directories, *, workers, donor):
     records = {}
     # Source-format folders retain their relative names/case. In particular a
     # loose-tag donor's tags/ and data/ trees are not content-addressed blobs.
     for relative in (source_directories(source) if directories is None else directories):
-        (target/relative).mkdir(parents=True,exist_ok=True)
+        (target/relative).mkdir(parents=True,exist_ok=True,mode=0o700)
     total = sum(stat.st_size for _, stat in files)
     progress(f"Copying {len(files)} MCC asset files ({total / 1024**3:.2f} GiB) to the private PC-port cache…")
-    copied = 0
-    next_notice = 1024**3
-    for relative, before in files:
-        path, output = source / relative, target / relative
-        current = path.stat()
-        if path.is_symlink() or (current.st_size, current.st_mtime_ns, current.st_ino) != (
-                before.st_size, before.st_mtime_ns, before.st_ino):
-            raise FormatError(f"MCC source changed during import: {relative}")
-        output.parent.mkdir(parents=True, exist_ok=True)
+    if workers is None:
+        available = getattr(os, 'process_cpu_count', os.cpu_count)() or 1
+        workers = min(4, max(1, available - 1), len(files)) if total >= 32 * 1024**2 else 1
+    if type(workers) is not int or not 1 <= workers <= 4:
+        raise ValueError('MCC verified copy requires one to four workers')
+    work = WorkProgress('copy', 'Copying and verifying game files',
+                        2 * total if total else len(files), progress, 'bytes' if total else 'items')
+    stopped = threading.Event()
+
+    def copy_one(item):
+        relative, before = item
+        if stopped.is_set():
+            raise RuntimeError('MCC copy cancelled')
+        output = target / relative
         digest = hashlib.sha256()
-        with path.open("rb") as inp, output.open("xb") as out:
-            while block := inp.read(1024 * 1024):
-                digest.update(block)
-                out.write(block)
-        after = path.stat()
-        if path.is_symlink() or (after.st_size, after.st_mtime_ns, after.st_ino) != (
-                before.st_size, before.st_mtime_ns, before.st_ino) or output.stat().st_size != before.st_size:
+        with donor.open_file(relative, before) as inp:
+            output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            with private_output(output) as out:
+                while block := inp.read(1024 * 1024):
+                    if stopped.is_set():
+                        raise RuntimeError('MCC copy cancelled')
+                    digest.update(block)
+                    out.write(block)
+                    work.advance(len(block))
+        if output.stat().st_size != before.st_size:
             raise FormatError(f"MCC source changed during copy: {relative}")
-        if file_sha(output) != digest.hexdigest():
+        # Read the independent destination back, with measured progress and
+        # bounded cancellation even for MCC's multi-gigabyte archive files.
+        verified = hashlib.sha256()
+        with output.open('rb') as stream:
+            while block := stream.read(1024 * 1024):
+                if stopped.is_set():
+                    raise RuntimeError('MCC copy cancelled')
+                verified.update(block)
+                work.advance(len(block))
+        if verified.hexdigest() != digest.hexdigest():
             raise FormatError(f"MCC copied asset hash differs: {relative}")
-        records[relative.as_posix()] = dict(bytes=before.st_size, sha256=digest.hexdigest())
-        copied += before.st_size
-        if copied >= next_notice:
-            progress(f"Verified {copied / 1024**3:.1f} / {total / 1024**3:.1f} GiB…")
-            next_notice = copied + 1024**3
-    return records
+        if not total:
+            work.advance()
+        return relative.as_posix(), dict(bytes=before.st_size, sha256=digest.hexdigest())
+
+    if workers == 1:
+        for item in files:
+            name, record = copy_one(item)
+            records[name] = record
+    else:
+        from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+        items = iter(files)
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix='mcc-copy') as pool:
+            pending = set()
+            try:
+                for _ in range(workers):
+                    item = next(items, None)
+                    if item is not None:
+                        pending.add(pool.submit(copy_one, item))
+                while pending:
+                    done, pending = wait(pending, return_when=FIRST_COMPLETED)
+                    for job in done:
+                        name, record = job.result()
+                        records[name] = record
+                        item = next(items, None)
+                        if item is not None:
+                            pending.add(pool.submit(copy_one, item))
+            except BaseException:
+                stopped.set()
+                for job in pending:
+                    job.cancel()
+                raise
+    work.finish()
+    return {relative.as_posix(): records[relative.as_posix()] for relative, _ in files}
 
 
 def save_changed_cache(cache):
@@ -137,11 +193,13 @@ def bitmap_partitions(cache):
                     yield pointer, size
 
 
-def plan_bitmaps(paths, textures, progress, budget=None):
+def plan_bitmaps(paths, textures, progress, budget=None, *, work=None):
     # Decode one partition at a time to measure compressed resources exactly.
     # Retain only sizes/hashes; repeated references are charged once.
     plan, total = {}, 0
     budget = budget or ImportBudget()
+    own_work = work is None
+    work = work or WorkProgress('inspect-maps', 'Inspecting map resources', len(paths), progress)
     for path in paths:
         progress(f"Checking aggregate MCC bitmap budget: {path.name}")
         cache = MccCache(path, budget)
@@ -159,6 +217,9 @@ def plan_bitmaps(paths, textures, progress, budget=None):
                 del payload
         finally:
             cache.close()
+        work.advance()
+    if own_work:
+        work.finish()
     return plan, total
 
 
@@ -166,7 +227,11 @@ def prepare_maps(maps, output, progress):
     paths = sorted(maps.glob("*.map"))
     if not paths or not (maps / "shared.map").is_file():
         raise FormatError("MCC maps/shared metadata is incomplete")
-    before = {p.name: file_sha(p) for p in paths}
+    inspection = WorkProgress('inspect-maps', 'Inspecting map resources', 2 * len(paths), progress)
+    before = {}
+    for path in paths:
+        before[path.name] = file_sha(path)
+        inspection.advance()
     # Project the two complete, authored scenario catalog records before bitmap
     # extraction so both the metadata and copied-pixel inventories describe the
     # same destination previews. This runs only in the private import stage.
@@ -181,7 +246,8 @@ def prepare_maps(maps, output, progress):
         menu.close()
     budget = ImportBudget()
     with (maps / "textures.dat").open("rb") as textures:
-        bitmap_plan, bitmap_bytes = plan_bitmaps(paths, textures, progress, budget)
+        bitmap_plan, bitmap_bytes = plan_bitmaps(paths, textures, progress, budget, work=inspection)
+    inspection.finish()
     # Preflight cache/parser objects have retired. Only the bounded partition
     # plan survives into conversion; keep its memory charged without counting
     # released parser metadata as live. The shared work counter never resets.
@@ -191,6 +257,9 @@ def prepare_maps(maps, output, progress):
     shared = MccCache(maps / "shared.map")
     resources, banks, results, inventory, instant_charge = {}, [], [], [], []
     decoded_bytes = 0
+    conversion_work = WorkProgress('convert-maps', 'Converting map resources',
+                                   bitmap_bytes if bitmap_bytes else len(paths), progress,
+                                   'bytes' if bitmap_bytes else 'items')
     (output / "bitmap-resources").mkdir()
     try:
         with (maps / "textures.dat").open("rb") as textures:
@@ -257,6 +326,7 @@ def prepare_maps(maps, output, progress):
                                     resources[key] = dict(source_pointer=pointer, stored_bytes=size,
                                         decoded_bytes=len(payload), sha256=digest, path=relative)
                                     decoded_bytes += len(payload)
+                                    conversion_work.advance(len(payload))
                                     del payload
                                 frame["partitions"].append(key)
                             row["frames"].append(frame)
@@ -280,6 +350,8 @@ def prepare_maps(maps, output, progress):
                 finally:
                     if cache is not shared:
                         cache.close()
+                if not bitmap_bytes:
+                    conversion_work.advance()
         if any(s["map"] == "shared.map" and s["before"] != s["after"] for r in results for s in r["stores"]):
             save_changed_cache(shared)
     finally:
@@ -295,6 +367,7 @@ def prepare_maps(maps, output, progress):
         coverage="Recovered multiplayer netgame/combat postprocessors, two source-authored menu catalog projections and one whole-qualified instant-charge effect tuple; no full MCC-to-Xbox layout/semantic conversion",
         maps=[dict(**r, source_sha256=before[r["map"]], output_sha256=file_sha(maps / r["map"])) for r in results])
     write_json(output / "tag-conversion.json", report)
+    conversion_work.finish()
     return dict(maps=len(paths), multiplayer_maps=sum(r["role"] == "multiplayer" for r in results),
         tag_revisions={r["map"]: dict(source_sha256=r["source_sha256"], output_sha256=r["output_sha256"])
                        for r in report["maps"]},
@@ -340,7 +413,7 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
     identifier = "mcc-" + uuid.uuid4().hex
     stage, final = imports / (".staging-" + identifier), imports / identifier
     try:
-        stage.mkdir()
+        stage.mkdir(mode=0o700)
         progress(f"Found MCC Halo 2: {source}")
         record = copy_verified(source, stage / "halo2", files, progress, directories)
         summary = prepare_maps(stage / "halo2/h2_maps_win64_dx11", stage, progress)
@@ -349,28 +422,41 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
             catalog_projection=summary.get("multiplayer_catalog"))
         write_json(stage / "vista-menu-inventory.json", menu_inventory)
         from mcc_menu_assets import prepare as prepare_menu_assets
+        presentation_work = WorkProgress('presentation', 'Preparing menus and audio', 8, progress)
         progress("Assembling verified MCC menu images and font ownership…")
         menu_assets = prepare_menu_assets(stage, menu_inventory)
+        presentation_work.advance()
         from mcc_loading_assets import prepare as prepare_loading
         progress("Preparing MCC loading resources and retaining authored custom loading textures…")
         loading = prepare_loading(root, stage)
+        presentation_work.advance()
         presentation_report = mcc_presentation.prepare(root, stage, source, presentation, progress=progress)
+        presentation_work.advance()
         presentation_report['controller_prompts']=controller_prompt_assets.prepare(root,stage,progress=progress)
+        presentation_work.advance()
         presentation_report['custom_ui_assets'] = custom_ui_assets.prepare(root, stage, progress=progress)
+        presentation_work.advance()
         presentation_report['h2ek_loading_ambience'] = h2ek_loading_ambience.prepare(root, stage, progress=progress)
+        presentation_work.advance()
         ui_layout = prepare_ui_layout(root, stage, progress=progress)
+        presentation_work.advance()
         install_variants(root, stage, progress=progress)
+        presentation_work.finish()
         from preserve_native_shaders import copy_selected as preserve_shaders
         progress("Preserving the selected existing native shader library…")
+        final_work = WorkProgress('finalize', 'Verifying and publishing the cache', 7, progress)
         shaders = preserve_shaders(root, stage)
+        final_work.advance()
         from mcc_graphics_corrections import apply_selected as restore_graphics
         progress("Applying verified graphics corrections…")
         graphics = restore_graphics(root, stage, tag_revisions=summary.get("tag_revisions"))
+        final_work.advance()
         # Damage flashes are inline jpt! Player Responses, not a shader-name
         # closure. Include shared definitions and exact same-address aliases;
         # a zero-sized directory record does not mean an absent flash.
         flashes = inventory_player_screen_flashes(stage / "halo2/h2_maps_win64_dx11", progress=progress)
         write_json(stage / "player-screen-flashes.json", flashes)
+        final_work.advance()
         # Refuse to publish an inconsistent mixed-version snapshot after a Steam
         # update changes the set, size or timestamp of any selected source file.
         current_inventory = donor_inventory(source)
@@ -378,6 +464,7 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
         identity = lambda rows: [(p.as_posix(), s.st_size, s.st_mtime_ns, s.st_ino) for p, s in rows]
         if identity(now) != identity(files) or omitted_now != omitted or source_directories(source, current_inventory)!=directories:
             raise FormatError("MCC installation changed during preparation; retry after Steam finishes updating")
+        final_work.advance()
         # A successful copy is insufficient: every stock map must retain one
         # source-bound conversion result, even if that map needed no stores.
         # Nested/mod owners stay explicit copied inputs, never implied converted
@@ -407,7 +494,7 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
             graphics_corrections=graphics,
             policy=dict(assets="Private verified MCC copy, authored port content, and optional authenticated H2EK loading ambience",
                 shaders="Native port renderer remains selected; MCC binaries/shader cache excluded",
-                prompt_artwork="Port-owned Xbox/PlayStation control rasters per local player; verified MCC fonts retain ordinary text and logical metrics",
+                prompt_artwork="Port-owned Xbox/PlayStation button and keycap rasters per local player; MCC fonts supply ordinary text and logical metrics only",
                 rank_artwork="MCC ordinary rank pages; port-authored celestial DDS in original bitmap slots",
                 embedded_material_metadata="Retained in original caches for inspection, never admitted as native shader programs",
                 visuals="No guessed correction; launch and DLC differences require separate reference checks"))
@@ -416,10 +503,13 @@ def prepare(root, mcc_source=None, progress=print, *, presentation=None):
             progress("Binding final converted map paths to their retained native libraries…")
             report = publish_staged_owner_index(stage, report)
         write_json(stage / "provenance.json", report)
+        final_work.advance()
         custom_map_assets.prepare(root, stage, progress=progress)
         report = json.loads((stage / "provenance.json").read_text())
         mcc_presentation.recheck(presentation)
+        final_work.advance()
         stage.rename(final)
+        final_work.finish()
         progress(f"Prepared MCC cache: {final}")
         progress("Native MCC playback/full TU1.5 conversion remain incomplete. The active game-file selection was preserved.")
         return final, report

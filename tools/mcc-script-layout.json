@@ -6,7 +6,7 @@
   "builtin_table_xbox": "0x480c00",
   "external_global_table_mcc": "0x180e086f0",
   "external_global_table_xbox": "0x47fb88",
-  "coverage": "Definitions referenced by all 40 installed MCC gameplay maps; unlisted definitions require explicit admission.",
+  "coverage": "Definitions referenced by the 40 installed MCC gameplay maps, plus independently verified Workshop additions; unlisted definitions require explicit admission.",
   "builtins": [
     {
       "mcc_opcode": 0,
@@ -1239,6 +1239,28 @@
       ]
     },
     {
+      "arguments": [
+        50,
+        5
+      ],
+      "mcc_descriptor": "0x180b1ebd0",
+      "mcc_evaluator": "0x180784280",
+      "mcc_flags": 0,
+      "mcc_opcode": 93,
+      "name": "object_cinematic_collision",
+      "return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ],
+      "xbox_descriptor": "0x457208",
+      "xbox_evaluator": "0x2abea0",
+      "xbox_flags": 0,
+      "xbox_opcode": 93,
+      "xbox_return_type": 4,
+      "workshop_evidence": "tests/fixtures/workshop_bloom_tu15.json"
+    },
+    {
       "mcc_opcode": 94,
       "name": "object_cinematic_visibility",
       "return_type": 4,
@@ -1758,6 +1780,27 @@
         50,
         11,
         6
+      ]
+    },
+    {
+      "mcc_opcode": 185,
+      "name": "scenery_animation_start",
+      "return_type": 4,
+      "arguments": [
+        55,
+        36,
+        11
+      ],
+      "xbox_opcode": 184,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21170",
+      "mcc_evaluator": "0x180784d50",
+      "xbox_descriptor": "0x457914",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        55,
+        36,
+        11
       ]
     },
     {
@@ -3309,6 +3352,26 @@
       "xbox_arguments": [
         19
       ]
+    },
+    {
+      "mcc_opcode": 319,
+      "name": "ai_force_active",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "mcc_descriptor": "0x180b24610",
+      "mcc_evaluator": "0x180786990",
+      "xbox_arguments": [
+        19,
+        5
+      ],
+      "xbox_descriptor": "0x4583d0",
+      "xbox_evaluator": "0x2af4c0",
+      "xbox_flags": 0,
+      "xbox_opcode": 317,
+      "xbox_return_type": 4
     },
     {
       "mcc_opcode": 323,
@@ -6488,6 +6551,27 @@
       "xbox_arguments": []
     },
     {
+      "mcc_opcode": 691,
+      "name": "rasterizer_blur",
+      "return_type": 4,
+      "arguments": [
+        7
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2d380",
+      "mcc_evaluator": "0x18078a9d0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null,
+      "native_command_contract": {
+        "kind": "authenticated_mcc_empty_legacy_effect",
+        "effect": "0x180030cc0",
+        "effect_bytes": "c20000",
+        "oracle": "tools/oracle_workshop_mcc_blur.py"
+      }
+    },
+    {
       "mcc_opcode": 702,
       "name": "cinematic_screen_effect_start",
       "return_type": 4,
@@ -6948,6 +7032,26 @@
       ]
     },
     {
+      "arguments": [
+        6
+      ],
+      "mcc_descriptor": "0x180b31c70",
+      "mcc_evaluator": "0x18078b8f0",
+      "mcc_flags": 0,
+      "mcc_opcode": 871,
+      "name": "rasterizer_bloom_override_blur_amount",
+      "return_type": 4,
+      "xbox_arguments": [
+        6
+      ],
+      "xbox_descriptor": "0x45afc4",
+      "xbox_evaluator": "0x2b63c0",
+      "xbox_flags": 0,
+      "xbox_opcode": 891,
+      "xbox_return_type": 4,
+      "workshop_evidence": "tests/fixtures/workshop_bloom_tu15.json"
+    },
+    {
       "mcc_opcode": 872,
       "name": "rasterizer_bloom_override_threshold",
       "return_type": 4,
@@ -6980,6 +7084,46 @@
       "xbox_arguments": [
         6
       ]
+    },
+    {
+      "arguments": [
+        6
+      ],
+      "mcc_descriptor": "0x180b31dc0",
+      "mcc_evaluator": "0x18078b980",
+      "mcc_flags": 0,
+      "mcc_opcode": 874,
+      "name": "rasterizer_bloom_override_box_factor",
+      "return_type": 4,
+      "xbox_arguments": [
+        6
+      ],
+      "xbox_descriptor": "0x45b000",
+      "xbox_evaluator": "0x2b64b0",
+      "xbox_flags": 0,
+      "xbox_opcode": 894,
+      "xbox_return_type": 4,
+      "workshop_evidence": "tests/fixtures/workshop_bloom_tu15.json"
+    },
+    {
+      "arguments": [
+        5
+      ],
+      "mcc_descriptor": "0x180b31ea0",
+      "mcc_evaluator": "0x18078b9e0",
+      "mcc_flags": 0,
+      "mcc_opcode": 876,
+      "name": "rasterizer_bloom_override_silver_bullet",
+      "return_type": 4,
+      "xbox_arguments": [
+        5
+      ],
+      "xbox_descriptor": "0x45b028",
+      "xbox_evaluator": "0x2b6550",
+      "xbox_flags": 0,
+      "xbox_opcode": 896,
+      "xbox_return_type": 4,
+      "workshop_evidence": "tests/fixtures/workshop_bloom_tu15.json"
     },
     {
       "mcc_opcode": 881,
@@ -7233,6 +7377,24 @@
       "mcc_type": 8,
       "xbox_index": 995,
       "xbox_type": 8
+    },
+    {
+      "name": "ssc_light_diffuse",
+      "mcc_index": 203,
+      "mcc_type": 6,
+      "xbox_index": 211,
+      "xbox_type": 6,
+      "mcc_backing": "0x0",
+      "xbox_backing": "0x0"
+    },
+    {
+      "name": "global_playtest_mode",
+      "mcc_index": 991,
+      "mcc_type": 5,
+      "xbox_index": 1011,
+      "xbox_type": 5,
+      "mcc_backing": "0x0",
+      "xbox_backing": "0x0"
     }
   ],
   "xbox_catalogue_sha256": "4c530af0cafcff892f937e3c7e6046fa463605cd010e6319128672a06ed2103d"

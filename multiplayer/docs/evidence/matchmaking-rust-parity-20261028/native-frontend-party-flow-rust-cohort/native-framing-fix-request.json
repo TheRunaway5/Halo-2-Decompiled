@@ -1,0 +1,12 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/test_native_frontend_party_flow_rust.py"
+  ],
+  "targets": [
+    "native_frontend_party_flow_rust_tests",
+    "native_frontend_party_rust_tests"
+  ],
+  "filter": "^(frontend_party_flow_cpp_rust|frontend_party_cpp_rust)$"
+}

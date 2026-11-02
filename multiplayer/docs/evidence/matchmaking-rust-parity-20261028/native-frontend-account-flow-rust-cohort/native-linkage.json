@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "sole_account_observer_adapter": true,
+  "native_observer_and_continuation_delegate_to_rust": true,
+  "four_former_native_fields_removed": true,
+  "match_voice_composition_in_rust": true,
+  "existing_rust_party_flow_owner_used": true,
+  "required_rust_imports": [
+    "                 U halo2::online_protocol_bridge::frontend_account_flow(halo2::online_protocol_bridge::FrontendPartyFlow const&, bool, halo2::online_protocol_bridge::NativeFrontendAccountFlowIo const&)",
+    "                 U halo2::online_protocol_bridge::frontend_party_flow_join_serial(halo2::online_protocol_bridge::FrontendPartyFlow const&, unsigned long)",
+    "                 U halo2::online_protocol_bridge::frontend_party_flow_account_name(halo2::online_protocol_bridge::FrontendPartyFlow const&, rust::cxxbridge1::Slice<unsigned char const>)",
+    "                 U halo2::online_protocol_bridge::frontend_party_flow_voice_party(halo2::online_protocol_bridge::FrontendPartyFlow const&, bool)",
+    "                 U halo2::online_protocol_bridge::frontend_party_flow_voice_wanted(halo2::online_protocol_bridge::FrontendPartyFlow const&, bool)",
+    "                 U halo2::online_protocol_bridge::frontend_party_flow_match_voice(halo2::online_protocol_bridge::FrontendPartyFlow const&, bool, bool)"
+  ],
+  "compile_owner": "halo2_systems",
+  "objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_account_flow.cpp.o": {
+      "sha256": "371884c5d855634519159e5df93278f207d2b8222bc83ff01aa36a9504a3c368",
+      "bytes": 96232
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_clans.cpp.o": {
+      "sha256": "b0bf9ba296a87b95aecebd33346970c0d1b1e90ed76068d2e706b51eee57530f",
+      "bytes": 124320
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o": {
+      "sha256": "62329689f20bcb53382099b315890b02ecfaf1365d9906d1f38156e0373d1519",
+      "bytes": 95080
+    },
+    "libhalo2_frontend_party_flow.a": {
+      "sha256": "e5c3d55d82c80fde5e40431fadd8b53adfc6307a2e19f5b7aa212e8de35d1005",
+      "bytes": 25488
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_search.cpp.o": {
+      "sha256": "095a48a9fbeb7030284b6f131c0ae4f0fdafe4be13090b87b66b16d3cd5d61d3",
+      "bytes": 135584
+    }
+  },
+  "scope": "Actual frozen native account adapter and ABI archive reach the Rust owner. This is component linkage, not installed-client or original Live provider proof.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-linkage-20261102/halo2-test-190jzl9y",
+  "retained_large_artifacts": []
+}

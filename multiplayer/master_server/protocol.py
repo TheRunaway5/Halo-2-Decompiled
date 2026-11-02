@@ -13,6 +13,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat
 VERSION = 1
 MAX_BODY = 16 * 1024
 MAX_SYNC = 4 * 1024 * 1024
+MAX_DISCOVERY = 64 * 1024
+MAX_PAGE = 64
 MAX_RECORDS = 1000
 MAX_LEASE = 180
 SKEW = 30

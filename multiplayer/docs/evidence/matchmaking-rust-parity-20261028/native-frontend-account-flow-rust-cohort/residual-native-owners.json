@@ -1,0 +1,78 @@
+{
+  "scope": "Next native ownership seams observed while the frozen account-flow cohort builds. No claims of original service recovery or complete residual enumeration.",
+  "owners": [
+    {
+      "owner": "account_binding",
+      "path": "src/ui/frontend_clans.cpp",
+      "line": 13,
+      "sha256": "e205d1b7314b8a26d74fa94ff3e1f0bad2a4a948d937f7acfe766de7633c8d0d",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "voice_binding",
+      "path": "src/ui/frontend_clans.cpp",
+      "line": 35,
+      "sha256": "e205d1b7314b8a26d74fa94ff3e1f0bad2a4a948d937f7acfe766de7633c8d0d",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "clan_population",
+      "path": "src/ui/frontend_clans.cpp",
+      "line": 47,
+      "sha256": "e205d1b7314b8a26d74fa94ff3e1f0bad2a4a948d937f7acfe766de7633c8d0d",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "clan_actions",
+      "path": "src/ui/frontend_clans.cpp",
+      "line": 175,
+      "sha256": "e205d1b7314b8a26d74fa94ff3e1f0bad2a4a948d937f7acfe766de7633c8d0d",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "native_friend_population",
+      "path": "src/ui/frontend_friends.cpp",
+      "line": 42,
+      "sha256": "fe67294cb41b3a1816bac98e84330cc197f8f205427217f85fb44afed8f0fbb1",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "native_friend_actions",
+      "path": "src/ui/frontend_friends.cpp",
+      "line": 83,
+      "sha256": "fe67294cb41b3a1816bac98e84330cc197f8f205427217f85fb44afed8f0fbb1",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "social_friend_observation",
+      "path": "src/ui/frontend_friends.cpp",
+      "line": 169,
+      "sha256": "fe67294cb41b3a1816bac98e84330cc197f8f205427217f85fb44afed8f0fbb1",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "social_friend_actions",
+      "path": "src/ui/frontend_friends.cpp",
+      "line": 201,
+      "sha256": "fe67294cb41b3a1816bac98e84330cc197f8f205427217f85fb44afed8f0fbb1",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    },
+    {
+      "owner": "postgame_review",
+      "path": "src/ui/frontend_state.cpp",
+      "line": 1140,
+      "sha256": "1b9166216a1594b0026a6b57cd2357226aa03a40d3dfd2b8ca37266a0be2024e",
+      "status": "native_policy_remaining",
+      "scope": "Read-only residual-owner inventory; matching-related branches need Rust ownership, while provider/device IO remains native."
+    }
+  ],
+  "full_goal_complete": false
+}

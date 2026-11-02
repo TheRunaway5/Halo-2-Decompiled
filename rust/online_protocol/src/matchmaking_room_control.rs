@@ -5,7 +5,7 @@ use crate::matchmaking_model::{Error, Result};
 use crate::matchmaking_packet_budget::Stream;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Connection {
     now: f64,
     sent: Option<f64>,
@@ -331,29 +331,32 @@ fn world(
     }
     Ok(change["handled"] == true)
 }
+pub(super) fn presence(row: &mut Setup, r: &Value) -> Result<Value> {
+    let Ok(who) = wire::current(row, r) else {
+        return Ok(json!([]));
+    };
+    let now = m::real(&r["control_now"])?;
+    m::check(now >= 0., "Invalid room probe clock")?;
+    let c = row.wire.control(&who)?;
+    c.observe(now)?;
+    let expired = c.expired();
+    if expired || row.life.now >= row.life.deadline {
+        return Ok(json!([]));
+    }
+    Ok(json!(
+        row.players
+            .iter()
+            .filter(|p| p.owner == who)
+            .map(|p| json!({"player":p.id,"guest":p.guest}))
+            .collect::<Vec<_>>()
+    ))
+}
 pub(super) fn execute(row: &mut Setup, core: &mut Coordinator, r: &Value) -> Result<Value> {
     row.life.observe(r, core.clock)?;
     let op = m::text(&r["op"], 64)?;
     let mut e = effect();
     if op == "room_control_presence" {
-        let Ok(who) = wire::current(row, r) else {
-            return Ok(json!([]));
-        };
-        let now = m::real(&r["control_now"])?;
-        m::check(now >= 0., "Invalid room probe clock")?;
-        let c = row.wire.control(&who)?;
-        c.observe(now)?;
-        let expired = c.expired();
-        if expired || row.life.now >= row.life.deadline {
-            return Ok(json!([]));
-        }
-        return Ok(json!(
-            row.players
-                .iter()
-                .filter(|p| p.owner == who)
-                .map(|p| json!({"player":p.id,"guest":p.guest}))
-                .collect::<Vec<_>>()
-        ));
+        return presence(row, r);
     }
     // These are private IO continuations. Text input cannot select their opcodes.
     match op {

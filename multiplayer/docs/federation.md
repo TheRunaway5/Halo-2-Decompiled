@@ -36,6 +36,15 @@ uses full snapshots, not deltas. Peer requests have five-second total timeouts;
 redirects and ambient proxies are disabled. Failures are independent, and local
 registration/discovery keeps working during a partition.
 
+Inbound sync permits one response in flight per pinned peer, held through
+response drain. Its token bucket starts with one request and refills one per
+configured `H2_MASTER_SYNC_SECONDS` interval; fresh nonces do not bypass this
+cadence (429). Global response slots/bytes are reserved before reading the sync
+body, and unavailable capacity returns 503 without queued work. Parsed records
+and their canonical snapshot array are cached by the directory's durable record
+revision. Each accepted response still signs its own audience, timestamp and
+nonce; cache reuse does not reuse the outer signature or extend record leases.
+
 Trust applies to both transport peers and listing origins. A three-master mesh
 must pin all three origins on each member. Receiving C's signature through B
 does not implicitly trust C. An untrusted origin or invalid record rejects the

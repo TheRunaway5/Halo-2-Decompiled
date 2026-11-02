@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "label": "baseline",
+  "scope": "Actual compiled Session object and frozen source identity only; no installed/native-world/provider/original Live claim",
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-api-native/halo2-test-atlxsp52/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+  ],
+  "object_sha256": "a174210ca5b3976d7ca17abeac61316684cd9513b7f7fa7d6e4c2ecfc51fd2ee",
+  "object_bytes": 476784,
+  "rust_caller_references": {
+    "native_api_send": [],
+    "native_api_receive": [],
+    "native_api_voice": [],
+    "native_api_preferences": [],
+    "native_api_voices": [],
+    "native_api_retain_audio": [],
+    "native_api_close": [],
+    "native_api_sync_audio": [],
+    "native_api_fence_audio": []
+  },
+  "existing_rust_state_callback_references": {
+    "native_session_send": [
+      "U halo2::online_protocol_bridge::native_session_send(halo2::online_protocol_bridge::NativeSession&, unsigned int, rust::cxxbridge1::Slice<unsigned char const>)"
+    ],
+    "native_session_receive": [
+      "U halo2::online_protocol_bridge::native_session_receive(halo2::online_protocol_bridge::NativeSession&)"
+    ],
+    "native_session_voice": [
+      "U halo2::online_protocol_bridge::native_session_voice(halo2::online_protocol_bridge::NativeSession&, unsigned int, halo2::online_protocol_bridge::NativeSessionAudio const&, bool)"
+    ],
+    "native_session_preferences": [
+      "U halo2::online_protocol_bridge::native_session_preferences(halo2::online_protocol_bridge::NativeSession&, unsigned int, bool, unsigned short)"
+    ],
+    "native_session_voices": [
+      "U halo2::online_protocol_bridge::native_session_voices(halo2::online_protocol_bridge::NativeSession&)"
+    ],
+    "native_session_bind_audio": [
+      "U halo2::online_protocol_bridge::native_session_bind_audio(halo2::online_protocol_bridge::NativeSession&)"
+    ],
+    "native_session_close_postgame": [
+      "U halo2::online_protocol_bridge::native_session_close_postgame(halo2::online_protocol_bridge::NativeSession&)"
+    ],
+    "native_session_fence_audio": [
+      "U halo2::online_protocol_bridge::native_session_fence_audio(halo2::online_protocol_bridge::NativeSession&, unsigned long)"
+    ]
+  },
+  "native_exception_identity_io_references": {
+    "current_exception": [],
+    "rethrow_exception": []
+  },
+  "source_pins": {
+    "src/network/online_match_session.cpp": "835049960581f4be8f5042c417ad371170a8d631eedc120dc9971b71a6e742b9",
+    "rust/online_protocol/src/matchmaking_native_api.rs": "d86666b317f4a25f660aecf8b7b327c093b879063250b25be6662ab00487183d",
+    "rust/online_protocol/tests/matchmaking_native_api.rs": "58f182f9f24117e1f60f3c024636dd2feaf255181d13cc2ec30d6df8ee3db389",
+    "rust/online_protocol/src/lib.rs": "82b2c8a35a2a89423fce558527f5e8765596a20e68771b3abe3c81c3ca89da43",
+    "rust/online_protocol_bridge/src/matchmaking_native_api.rs": "f5c3bbbe9bb2d41130e21a03dfeb8f8a4d86c8522b1f6e19ee4525f1f6ac89b0",
+    "rust/online_protocol_bridge/src/matchmaking_native_api.hpp": "b1c1cb774a25b65cf74d7a04234d1181d810b271442e375fd5bc35099db15593",
+    "rust/online_protocol_bridge/src/lib.rs": "bc28ec4c490fb2621985ff9ea71b597b77f6196d01105456e35defa765dc3d88",
+    "rust/online_protocol_bridge/build.rs": "f1dd47ccb7cdee050a6d83834c17e1de40fc2120b3aa91da4f6e4ce164e25f69",
+    "cmake/OnlinePeers.cmake": "a6a2a1d2b1309aaea9a7a1dfecdcf51aeaaf0c9d053624028bdadba2c092f312",
+    "cmake/OnlineProtocolRust.cmake": "596dfa31707bbe7420503591b521dab10c769134e0d956db64c645d7d4be208e",
+    "tools/build_online_protocol_rust.py": "e3dd3159220301a3e4c75975bb101d0ac8b6499ac1c486f3c27c998c3ae86868",
+    "tests/test_build_online_protocol_rust.py": "aaa9477cb0b876df957cfa87aff539fe7c9642152a3ff1f29361eb7c0e0a35da",
+    "tests/native_session_api_tests.cpp": "821e7ea24266103485fd735f38015e957ea5b4ae8a77699bc8f025cfa29792cf",
+    "tests/test_native_session_api.py": "46ac10e1fa0f50d3193b666a71aca9c0cf27f7259047a05f92faa1f3e11cbca0",
+    "tests/reference/native_session_api_private_before_rust_20261101.inc": "fd20254393e0860c95c776fda79c4e26ea8e67171ba10b8d101495d4e3c13055",
+    "tests/reference/native_session_api_stream_before_rust_20261101.inc": "b0ebcc7eb5fbdc442d7b1c1601edb80d5930d43254ed054591d06342dffc82b2",
+    "tests/reference/native_session_api_close_before_rust_20261101.inc": "67145f687aedbfee916d8572be2030e062b7b7af4acc97d4cfdd3e8e914dd6a0",
+    "tests/reference/native_session_api_before_rust_20261101.json": "4ccd93b17fd58aeb460a30cb6c38651ce606a2ada07282c8c684178ddb0064b7",
+    "include/halo2/online_match_session.hpp": "7f68566ecd54a60eceb3be33830813327c9b1843e53ea6141c45612aabe3cf33",
+    "include/halo2/game_voice.hpp": "e07c8abfa307eb82affa3a088497a7b3a1438053b1696518615dd52dcfb29d5f",
+    "src/gameplay/game_voice.cpp": "0fc72c3d19fc6c451a6becb1acc2b2ae85d9c182ebdbb6b0f23c426d5d84bcf5"
+  },
+  "current_source_drift": [
+    "src/network/online_match_session.cpp",
+    "tests/test_native_session_api.py"
+  ],
+  "no_session_borrow_in_orchestration_bridge": true,
+  "no_new_unsafe_rust": true,
+  "received_bank_container_moves_without_clone": true,
+  "old_private_audio_predicate_removed": false,
+  "no_test_exception_discard_switch_in_production": true,
+  "retained_large_artifacts": []
+}

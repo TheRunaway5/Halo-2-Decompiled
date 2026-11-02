@@ -82,6 +82,7 @@ public:
     // quiesces borrowers and synchronizes actual incoming released projectiles.
     void reset_lifetimes() noexcept;
     std::span<const SourceGrenadePreparedBank> banks()const;
+    std::vector<std::uint32_t> source_render_models()const;
     void synchronize(std::span<const NativeGrenadeProjectile>);
     // Actual admitted view/distance/shader producers remain required. This
     // does not manufacture source PVS/registration or full Xbox physics.

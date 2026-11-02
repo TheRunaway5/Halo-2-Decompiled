@@ -1,0 +1,8 @@
+{
+  "scoped_inputs_unchanged": false,
+  "scoped_drift": [
+    "CMakeLists.txt"
+  ],
+  "rust_inputs": 257,
+  "rust_drift": []
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "scope": "Preserved C++ feature/view/postgame caller versus production Rust policy.\n\nAudio devices, buffers, phase races, readiness and IO failures are declared\nfixtures. Frames are compared in full. No original Live, genuine provider,\nplayed world, waveform or installed Linux delivery acceptance is implied.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "commands": 31360,
+  "declared_io_refusals": 31,
+  "operations": {
+    "pump": 31185,
+    "snapshot": 8,
+    "limits": 5,
+    "seats": 106,
+    "metadata": 54,
+    "control": 2
+  },
+  "sha256": "993b69af892595d026c3f5f99558be37f58c1fb821ac760fe027b5a481195cba",
+  "binary_sha256": "6ca110c003f63a59bc26092e9f3e280bb99a45ee2a68244385f37ecc12c6ee28",
+  "source_pins": {
+    "tests/native_session_access_tests.cpp": "d6d6fc9264c3354e0a10532717c5f7447e6fc9f263b2d566e17337c81ceb8d2a",
+    "tests/test_native_session_access.py": "df773dbff80e725a53f7842c08960773a233ffb4658db8bb1207668d30e08241",
+    "tests/reference/native_session_limits_before_rust_20261101.inc": "73b788f6ecf82af7d62dfc39b28873fdd53d75817fb01ae0bdbd358bc2de4e9b",
+    "tests/reference/native_session_postgame_before_rust_20261101.inc": "75a658116195dff9ae8d1c10327f1aac5f2a00931415e813d5db9ed14634f97b",
+    "tests/reference/native_session_views_before_rust_20261101.inc": "a43435a86a951ab0f72830c488e4f0175334f14d510788f4c5310d097cb69229"
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ],
+  "child_exit_code": 0
+}

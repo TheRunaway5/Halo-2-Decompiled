@@ -19,20 +19,24 @@ pub(super) fn same(a: &str, b: &str) -> bool {
         .fold(0u8, |bits, (a, b)| bits | (a ^ b))
         == 0
 }
+#[derive(Clone)]
 struct Capability {
     token: String,
     revision: u64,
 }
+#[derive(Clone)]
 struct Connection {
     id: u64,
     features: Value,
     budget: Budget,
     control: super::control::Connection,
 }
+#[derive(Clone)]
 struct Pending {
     source: String,
     packet: Value,
 }
+#[derive(Clone)]
 pub(super) struct Wire {
     compatibility: String,
     caps: BTreeMap<String, Capability>,
@@ -48,6 +52,9 @@ pub(super) struct Wire {
     descriptions: BTreeSet<(usize, usize)>,
 }
 impl Wire {
+    pub(super) fn active(&self) -> Vec<String> {
+        self.caps.keys().cloned().collect()
+    }
     pub fn detached(&self, who: &str, connection: u64) -> bool {
         self.connections.get(who).is_none() && self.detached.get(who) == Some(&connection)
     }

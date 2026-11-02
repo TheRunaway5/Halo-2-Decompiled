@@ -1,0 +1,31 @@
+{
+  "schema": "H2_RUST_SERVICE_STEAM_FRIENDS_NATIVE_INPUTS_V1",
+  "before_sha256": "e34d263f18ee72f11d1396e7a6dc17854ef2a036da2c4d9af9645296867d6f13",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json"
+  ],
+  "input_count": 4402,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends-native/halo2-test-r0utjhtq/native-source",
+  "copied_source_bytes": 167526214,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends-native/halo2-test-r0utjhtq",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "e34d263f18ee72f11d1396e7a6dc17854ef2a036da2c4d9af9645296867d6f13",
+  "changed": [],
+  "current_source_drift": [
+    "rust/matchmaking_service/README.md"
+  ]
+}

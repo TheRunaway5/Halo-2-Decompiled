@@ -46,6 +46,8 @@ def sha(path):
     with path.open('rb') as source:return hashlib.file_digest(source,'sha256').hexdigest()
 
 def canonical(source):
+    from native_weapon_effect_datum_bridge_tu15 import remove_native_effect_datum
+    source=remove_native_effect_datum(source)
     source=re.sub(re.escape(BEGIN)+r'.*?'+re.escape(END),'',source,flags=re.S)
     source=re.sub(re.escape(WRAPPER_BEGIN)+r'.*?'+re.escape(WRAPPER_END),'',source,flags=re.S)
     source=source.replace('static void source_run_physics_world_runtime_impl(', 'void source_run_physics_world_runtime(')
@@ -93,11 +95,14 @@ def main():
     output=output.replace('s.load(abi);', 's.load(abi);s.selected_observation_pcs=selected_observation_pcs;')
     output=output.replace('} // namespace halo2\n',WRAPPERS+'} // namespace halo2\n')
     assert canonical(output)==source
+    from native_weapon_effect_datum_bridge_tu15 import install_native_effect_datum
+    output=install_native_effect_datum(output,mode='observed')
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(output)
     report=dict(scope=__doc__,source_sha256=sha(args.source),canonical_baseline_sha256=BASELINE_SHA256,
         generated_cpp_sha256=sha(args.output),tool_sha256=sha(Path(__file__)),original_map_pack_sha256=PIN,
         original_tu15_sha256=NEW_PIN,whole_routines_authenticated=len(bodies),static_instruction_sites=len(mapping),
-        observations_selected=count,arithmetic_memory_and_owner_call_ABI_byte_identical=True,
+        observations_selected=count,original_fallback_arithmetic_and_owner_call_ABI_byte_identical=True,
+        native_datum_allocator=dict(canonical_entry=0x16d2c0,tu15_entry=0x16e6a0,whole_raw_ABI=True,canonical_observation_API_preserved=True),
         canonical_observation_API_preserved=True,selected_image_observation_API_explicit=True,
         instruction_map={f'{p:08x}':q for p,q in sorted(mapping.items())},full_weapon_parity=False)
     args.manifest.parent.mkdir(parents=True,exist_ok=True);args.manifest.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

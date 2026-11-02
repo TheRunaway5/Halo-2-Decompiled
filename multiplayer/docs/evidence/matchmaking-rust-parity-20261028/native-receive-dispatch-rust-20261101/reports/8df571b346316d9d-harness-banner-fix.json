@@ -1,0 +1,8 @@
+{
+  "source": "tests/test_native_receive_dispatch.py",
+  "before_sha256": "66529510566bd65d1f8308d31e83a421b7d9503bb21cd36eddb70a1d16623e9f",
+  "after_sha256": "eb95b6035a08e29f855570c157cbdcf9762a8bde176fc34a16c9fe068123d750",
+  "root_cause": "The linked native library emits the known fixed shutdown-handler lifecycle banner before JSON. The process exits successfully and the first fixture comparison matches.",
+  "fix": "Consume only the two fixed lifecycle banner lines, matching the existing protocol replay driver. Unexpected output still fails JSON parsing.",
+  "policy_code_changed": false
+}

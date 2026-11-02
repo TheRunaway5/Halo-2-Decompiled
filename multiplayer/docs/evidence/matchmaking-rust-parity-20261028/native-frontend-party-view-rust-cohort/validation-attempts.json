@@ -1,0 +1,30 @@
+{
+  "production_adapter_syntax_passed_before_harness_fix": true,
+  "initial_component_failure": {
+    "report": "native-component/report.json",
+    "step": "native-compile",
+    "classification": "Test harness initialization used three fields for native OnlineClanInvite, whose actual shape has two strings",
+    "fix": "Removed third initializer value only; production adapter unchanged"
+  },
+  "superseded_helper_launch": {
+    "exit_code": 1,
+    "classification": "Corrected probe initially reused an existing output directory and refused to overwrite it",
+    "fix": "Selected unique native-component-corrected output; owned scratch cleaned"
+  },
+  "accepted_component": {
+    "report": "native-component-corrected/report.json",
+    "all_steps_passed": true,
+    "comparison": "native-component-corrected/native-differential.json"
+  },
+  "full_native_initial_failure": {
+    "report": "native/iteration-1-report.json",
+    "classification": "Pre-existing frozen renderer shadows VkPhysicalDevice with RenderViewport",
+    "correction_receipt": "preexisting-renderer-correction.json"
+  },
+  "goal_complete": false,
+  "superseded_linkage_selector": {
+    "exit_code": 1,
+    "classification": "Probe used abbreviated C++ class name and omitted the std::string ABI tag when selecting symbols",
+    "fix": "Select actual FrontendMatchmakingPartyFlow::populate and text[abi:cxx11] imports; production unchanged"
+  }
+}

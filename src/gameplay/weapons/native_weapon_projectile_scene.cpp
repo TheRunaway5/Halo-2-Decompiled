@@ -27,6 +27,7 @@ struct NativeWeaponProjectileScene::Impl {
     struct Color {unsigned channel{};Vec3 lower,upper;};
     struct Bank {
         SourceObjectGeometry geometry;ShadowCasterDefinition bounds;std::uint16_t flags{};
+        std::uint32_t render_model=~0u;
         std::vector<Color> colors;float initial_velocity{},final_velocity{},acceleration_start{},acceleration_scale{};
     };
     struct Owner {
@@ -172,6 +173,7 @@ struct NativeWeaponProjectileScene::Impl {
                         " regions="+std::to_string(initial.regions.size())+" variant="+std::to_string(selection.variant_index));
                 if(c.load_source_prt_definition(initial.render_model))throw FormatError("projectile requires its live PRT producer");
                 Bank bank;bank.flags=object.u16(2);bank.bounds=c.load_object_shadow_definition(definition);
+                bank.render_model=initial.render_model;
                 bank.initial_velocity=object.f32(0x17c);bank.final_velocity=object.f32(0x180);
                 bank.acceleration_start=object.f32(0x18c);bank.acceleration_scale=object.f32(0x194);
                 for(unsigned i=0;i<colors.channels.size();++i) {
@@ -356,6 +358,11 @@ void NativeWeaponProjectileScene::reset_lifetimes() noexcept {
     for(auto &view:s.draws)view.clear();
     for(auto &view:s.light_draws)view.clear();
     for(auto &[definition,bank]:s.banks)bank.geometry.reset_history();
+}
+std::vector<std::uint32_t> NativeWeaponProjectileScene::source_render_models()const {
+    impl_->own();std::set<std::uint32_t> models;
+    for(const auto &[definition,bank]:impl_->banks)if(bank.render_model!=~0u)models.insert(bank.render_model);
+    return {models.begin(),models.end()};
 }
 void NativeWeaponProjectileScene::synchronize(std::span<const NativeWeaponProjectile> p){Impl::Mutation mutation(*impl_);impl_->synchronize(p);}
 const std::vector<NativeWeaponProjectileDraw>& NativeWeaponProjectileScene::draw_view(std::int32_t frame,const SourceObjectViewLod &v){Impl::Mutation mutation(*impl_);return impl_->draw(frame,v);}

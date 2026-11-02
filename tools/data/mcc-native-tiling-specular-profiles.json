@@ -1,0 +1,519 @@
+{
+  "schema": "H2_MCC_NATIVE_TILING_SPECULAR_PROFILES_V1",
+  "template": "shaders\\shader_templates\\opaque\\tex_bump_env_tiling_specular",
+  "source_graph": {
+    "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+    "source_root_counts": {
+      "0": 0,
+      "16": 0,
+      "24": 0,
+      "40": 0,
+      "48": 0,
+      "56": 0
+    },
+    "definitions": [
+      {
+        "definition_hex": "03000000000000004b0000000000000011000000000000003d00000000000000fb00000000000000",
+        "arrays": [
+          {
+            "field": 0,
+            "count": 3,
+            "raw_hex": "0032083d0100cdcc4c3d1932083d0100cdcccc3c32320801010000000000",
+            "typed_references": []
+          },
+          {
+            "field": 8,
+            "count": 75,
+            "raw_hex": "0000000000000002010001000100010001020200020203020402050206000600060207000700070007000700070007000700070007000700070208000800080008000802090009020a020b020c020d000d000d020e000e000e000e000e000e000e000e000e000e000e000e020f000f000f000f000f021000100010001000100010001000100211001100110011001100110011001100",
+            "typed_references": []
+          },
+          {
+            "field": 16,
+            "count": 17,
+            "raw_hex": "7361707300000000000873617073000000000402736170730000000005087361707300000000090e7361707300000000100a736170730000000015027361707300000000160873617073000000001a0873617073000000001e0273617073000000001f087361707300000000230e73617073000000002a0a73617073000000002f0273617073000000003008736170730000000034087361707300000000380273617073000000003908",
+            "typed_references": [
+              [
+                "spas",
+                "shaders\\shader_passes\\lightmap\\lightmap_tex_tiling"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\shadow\\shadow_generate"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\fog\\fog_planar"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\lightmap\\lightmap_tex_tiling"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space_fast"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\shadow\\shadow_generate"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\fog\\fog_planar"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\lightmap\\lightmap_tex_tiling"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\environment_mapping\\default_environment_map_tangent_space_super_fast"
+              ],
+              [
+                "spas",
+                "shaders\\shader_passes\\fog\\fog_planar"
+              ]
+            ]
+          },
+          {
+            "field": 24,
+            "count": 61,
+            "raw_hex": "0008040406080a080e041008140818061b081f082302240c2a062d042f0c3504370037003704390039043b043d003d023e044000400442024300430043024400440044024500450045024600460046024700470047024800480048024900490049044b044d044f04510051045304550055045704590059045b045d045f0461046300630867006700670067006700670067006700670067006700670067086b046d087108750477087b087f06820886088a028b0c91069400940c9a049c009c009c049e009e04a004a200a202a304a500a504a702a800a800a802a900a900a902aa00aa00aa02ab00ab00ab02ac00ac00ac02ad00ad00ad02ae00ae00ae04b004b204b404b600b604b804ba00ba04bc04be00be04c004c204c404c604c800c808cc00cc00cc00cc00cc00cc00cc00cc00cc00cc00cc00cc00cc08d004d208d608da04dc08e008e406e708eb08ef02f00cf602f700f708fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00fb00",
+            "typed_references": []
+          },
+          {
+            "field": 32,
+            "count": 251,
+            "raw_hex": "000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d0003000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d000300000000010000010200000203000004810000008500000186000002b2010000b0050001b1090002330d00030000000001000001020000020300000481000000b2010000b0050001981c0004991c0005b1090002330d000300000005010000000200000162000003830000048a1c00068b1c00076a1c00086b1c0009b2050000b009000100000000010000010000000001000001b2010000b00500010000000001000001b20100000000000001000001b2010000b00500010000000600000006000000060000000600000006000000060000000600000000010000018100000182000002b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b005000100000000010000018100000182000002b2010000b00500010000000001000001b20100008a1c000a8b1c000bb0050001000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d0003000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d000300000000010000010200000203000004810000008500000186000002b2010000b0050001b1090002330d00030000000001000001020000020300000481000000b2010000b0050001981c0004991c0005b1090002330d00030000000501000000020000018a1c00068b1c00076a1c00086b1c0009b2050000b009000100000000010000010000000001000001b2010000b00500010000000001000001b20100000000000001000001b2010000b00500010000000600000006000000060000000600000006000000060000000600000000010000018100000182000002b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b00500010000000001000001b2010000b005000100000000010000018100000182000002b2010000b00500010000000001000001b20100008a1c000a8b1c000bb0050001000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d0003000000000100000102000002030000048100000084000001b2010000b0050001b1090002330d000300000000010000010200000203000004810000008500000186000002b2010000b0050001b1090002330d00030000000001000001020000020300000481000000b2010000b0050001981c0004991c0005b1090002330d0003000000058a1c00068b1c00076a1c00086b1c0009",
+            "typed_references": []
+          }
+        ]
+      },
+      {
+        "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "arrays": [
+          {
+            "field": 0,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 8,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 16,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 24,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 32,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          }
+        ]
+      },
+      {
+        "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "arrays": [
+          {
+            "field": 0,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 8,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 16,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 24,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          },
+          {
+            "field": 32,
+            "count": 0,
+            "raw_hex": "",
+            "typed_references": []
+          }
+        ]
+      }
+    ]
+  },
+  "native_arrays": [
+    {
+      "field": 0,
+      "count": 3,
+      "raw_hex": "00320a3c01000100a03e19320a3c01005655d53d32320a00010000000000",
+      "typed_references": []
+    },
+    {
+      "field": 8,
+      "count": 75,
+      "raw_hex": "0000000201000102020002000200020002000200020203020402050206000600060207000700070007000700070007000700070007020800080209000900090009000900090009020a020b020c020d000d000d020e000e000e000e000e000e000e000e000e000e020f000f02100010001000100010001000100010001000100010001000100211001100110011001100110011001100",
+      "typed_references": []
+    },
+    {
+      "field": 16,
+      "count": 17,
+      "raw_hex": "7361707300000000000273617073000000000108736170730000000005067361707300000000080e73617073000000000f0a73617073000000001402736170730000000015087361707300000000190273617073000000001a0873617073000000001e067361707300000000210e7361707300000000280a73617073000000002d0273617073000000002e08736170730000000032027361707300000000330873617073000000003708",
+      "typed_references": [
+        [
+          "spas",
+          "shaders\\shader_passes\\texture_mapping\\tiling_specular_zwrite"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\lightmap\\lightmap_env"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\shadow\\shadow_generate"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\fog\\fog_planar"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\texture_mapping\\tiling_specular_zwrite"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\lightmap\\lightmap_env"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\shadow\\shadow_generate"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\fog\\fog_planar"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\texture_mapping\\tiling_specular_zwrite"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\lightmap\\lightmap_env"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\fog\\fog_planar"
+        ]
+      ]
+    },
+    {
+      "field": 24,
+      "count": 59,
+      "raw_hex": "00060302040607060a0a0f041106140a19041b061e182a042c062f0230083404360036003604380038043a043c003c023d023e003e003e023f003f003f02400040004002410041004102420042004202430043004302440044004404460046084a044c004c044e04500050045204540054045604580058085c045e005e0862006200620062006200620062006200620062006200620062066502660669066c0a71047306760a7b047d0680188c048e069102920896049800980098049a009a049c049e009e029f02a000a000a002a100a100a102a200a200a202a300a300a302a400a400a402a500a500a502a600a600a604a800a808ac04ae00ae04b004b200b204b404b600b604b804ba00ba08be04c000c008c400c400c400c400c400c400c400c400c400c400c400c400c406c702c806cb06ce0ad304d506d80add04df06e218ee04f006f302f408f800f800f800f800f800f800f800f800f800f800f800f800",
+      "typed_references": []
+    },
+    {
+      "field": 32,
+      "count": 248,
+      "raw_hex": "00000001010000020200000400020400b105000032090001b00100020000000001000001020000058000040180040402c0000303c004030440010405b2010003b00500020000000001000001020000058000040180040402c0000303c004030440010405b2010003b0050002000000000100000102000005c0000405c004040601000401010404020900040109040402110004011104040219000401190404024200030342040304b2010003b005000200000000010000010200000500020303b2010003b0050002981c0004991c000500000000010000010000000001000001b2010003b00500020000000001000001b2010003000000060000000600000006000000060000000600000006000000060000000001000001b20100038a1c00068b1c0007b00500020000000001000001b2010003b00500020000000001000001b2010003b00500020000000001000001b2010003b00500020000000001000001b20100038a1c00068b1c0007b00500020000000001000001b20100038a1c00068b1c0007b005000200000001010000020200000400020400b105000032090001b00100020000000001000001020000058000040180040402c0000303c004030440010405b2010003b00500020000000001000001020000058000040180040402c0000303c004030440010405b2010003b0050002000000000100000102000005c0000405c004040601000401010404020900040109040402110004011104040219000401190404024200030342040304b2010003b005000200000000010000010200000500020303b2010003b0050002981c0004991c000500000000010000010000000001000001b2010003b00500020000000001000001b2010003000000060000000600000006000000060000000600000006000000060000000001000001b20100038a1c00068b1c0007b00500020000000001000001b2010003b00500020000000001000001b2010003b00500020000000001000001b2010003b00500020000000001000001b20100038a1c00068b1c0007b00500020000000001000001b20100038a1c00068b1c0007b005000200000001010000020200000400020400b105000032090001b00100020000000001000001020000058000040180040402c0000303c004030440010405b2010003b00500020000000001000001020000058000040180040402c0000303c004030440010405b2010003b0050002000000000100000102000005c0000405c004040601000401010404020900040109040402110004011104040219000401190404024200030342040304b2010003b005000200000000010000010200000500020303b2010003b0050002981c0004991c0005",
+      "typed_references": []
+    }
+  ],
+  "native_records": [
+    {
+      "map": "05b_deltatowers",
+      "payload": "376bad8bb587786d2abcea3a86f559a6e7110c96df956010b79e8d76853dc496.bin",
+      "bytes": 1846,
+      "fnv64": "d9fb3218d02557f1",
+      "source_xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d"
+    },
+    {
+      "map": "07b_forerunnership",
+      "payload": "ee580ba41193290ba75dd85f62443b52d8a52c9a75974fcd4ff8e0d4813909dd.bin",
+      "bytes": 1846,
+      "fnv64": "78d31e91c66a2077",
+      "source_xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d"
+    }
+  ],
+  "roles": {
+    "vector_sources": [
+      2,
+      3,
+      1,
+      0,
+      4,
+      5,
+      10,
+      11
+    ],
+    "pixel_sources": [
+      {
+        "kind": "pixel",
+        "source": 0,
+        "parameter": "diffuse_color",
+        "component": "rgb"
+      },
+      {
+        "kind": "vector",
+        "source": 6,
+        "parameter": "env_tint_color",
+        "component": "rgb"
+      },
+      {
+        "kind": "vector",
+        "source": 7,
+        "parameter": "env_glancing_tint_color",
+        "component": "rgb"
+      },
+      {
+        "kind": "vector",
+        "source": 8,
+        "parameter": "env_brightness",
+        "component": "a"
+      },
+      {
+        "kind": "vector",
+        "source": 9,
+        "parameter": "env_glancing_brightness",
+        "component": "a"
+      },
+      {
+        "kind": "pixel",
+        "source": 1,
+        "parameter": "specular_color",
+        "component": "rgb"
+      },
+      {
+        "kind": "pixel",
+        "source": 2,
+        "parameter": "specular_glancing_color",
+        "component": "rgb"
+      }
+    ],
+    "source_vector_roles": {
+      "0": [
+        "bump_map",
+        13
+      ],
+      "1": [
+        "base_map",
+        13
+      ],
+      "2": [
+        "detail_map",
+        13
+      ],
+      "3": [
+        "specular_monochrome",
+        9
+      ],
+      "4": [
+        "lightmap_direct_vector_internal",
+        4
+      ],
+      "5": [
+        "lightmap_indirect_vector_internal",
+        4
+      ],
+      "6": [
+        "env_tint_color",
+        4
+      ],
+      "7": [
+        "env_glancing_tint_color",
+        4
+      ],
+      "8": [
+        "env_brightness",
+        3
+      ],
+      "9": [
+        "env_glancing_brightness",
+        3
+      ],
+      "10": [
+        "specular_color",
+        4
+      ],
+      "11": [
+        "specular_glancing_color",
+        4
+      ]
+    },
+    "native_vector_roles": {
+      "3": [
+        "bump_map",
+        13
+      ],
+      "2": [
+        "base_map",
+        13
+      ],
+      "4": [
+        "lightmap_direct_vector_internal",
+        4
+      ],
+      "5": [
+        "lightmap_indirect_vector_internal",
+        4
+      ],
+      "6": [
+        "specular_color",
+        4
+      ],
+      "7": [
+        "specular_glancing_color",
+        4
+      ]
+    },
+    "source_pixel_roles": {
+      "0": [
+        "diffuse_color",
+        "rgb"
+      ],
+      "1": [
+        "specular_color",
+        "rgb"
+      ],
+      "2": [
+        "specular_glancing_color",
+        "rgb"
+      ],
+      "3": [
+        "env_midrange_tint_factor",
+        "a"
+      ],
+      "4": [
+        "env_midrange_tint_color",
+        "rgb"
+      ]
+    },
+    "native_pixel_roles": {
+      "0": [
+        "diffuse_color",
+        "rgb"
+      ],
+      "1": [
+        "env_tint_color",
+        "rgb"
+      ],
+      "2": [
+        "env_glancing_tint_color",
+        "rgb"
+      ],
+      "3": [
+        "env_brightness",
+        "a"
+      ],
+      "4": [
+        "env_glancing_brightness",
+        "a"
+      ],
+      "5": [
+        "specular_color",
+        "rgb"
+      ],
+      "6": [
+        "specular_glancing_color",
+        "rgb"
+      ]
+    },
+    "inactive_midrange_factor_pixel": 3,
+    "inactive_midrange_color_pixel": 4,
+    "source_counts": {
+      "4": 7,
+      "12": 5,
+      "20": 12,
+      "28": 3,
+      "36": 75,
+      "44": 17,
+      "52": 61,
+      "60": 0,
+      "68": 0,
+      "76": 0,
+      "84": 0,
+      "92": 5,
+      "100": 2,
+      "108": 6
+    }
+  },
+  "authority": {
+    "path": "build/test-results/workshop-goal-20261101/tex_bump_env_tiling_specular-pairs-1.json.xz",
+    "sha256": "238934cca0d90abf57f4448d86d7660f410149a581b822531ff69a2ba6f2aa74",
+    "materials": 14,
+    "paired_controls": 2
+  },
+  "named_bindings_sha256": "78115c96637125a606ac330ea5e4afdb7abe9bd3541dde737141870c46953410",
+  "packing_proof_sha256": "ab62d2a2722e3927428ac75aa56b203fbb8092d25967d75deafb3251d3912272",
+  "inactive_midrange_proof_sha256": "f554cb0a70ac5de0714e559fe28522df8ffb3b6476afdcc172d31133ed8b6d58"
+}

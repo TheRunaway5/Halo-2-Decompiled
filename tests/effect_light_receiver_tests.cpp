@@ -1,5 +1,6 @@
 #include "halo2/effect_light_receiver.hpp"
 #include "halo2/bsp_atmosphere.hpp"
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <fstream>
@@ -54,7 +55,7 @@ int main(int argc,char** argv) {try {
         const auto cluster=std::int16_t(file.word());const auto center=file.read<Vec3>();const auto radius=file.read<float>();
         const auto count=file.word();std::vector<std::uint32_t> expected;
         for(unsigned i=0;i<count;++i)expected.push_back(file.word());
-        const auto out=source_effect_light_receiver_view(world,cluster,center,radius,shape,fog,&main);
+        const auto out=source_effect_light_receiver_view(world,cluster,center,radius,shape,fog,&main,0);
         require(out.visibility.groups.size()==6,"receiver lost original six cameras");
         require(std::memcmp(out.visibility.groups.data(),cameras.data(),sizeof(cameras))==0,"receiver C1D90 camera words differ");
         std::vector<std::uint32_t> actual{out.flags,out.pass_mode,out.query_mode,out.location.leaf,
@@ -76,6 +77,13 @@ int main(int argc,char** argv) {try {
                 if(actual[i]!=expected[i]){std::cerr<<"case "<<index<<" word "<<i<<" source="<<std::hex<<expected[i]<<" native="<<actual[i]<<'\n';break;}
             throw FormatError("whole original receiver preparation differs at case "+std::to_string(index));
         }
+        const auto restricted=source_effect_light_receiver_view(world,cluster,center,radius,shape,fog,&main,0x40008au);
+        const auto same_records=[](const auto& a,const auto& b){return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin(),
+            [](const auto& x,const auto& y){return x.id==y.id&&x.flags==y.flags&&x.association==y.association&&x.other==y.other;});};
+        require(restricted.flags==(out.flags|0x400u),"Muzzle light lost31E49's machine-only query flag");
+        require(restricted.bsp.cluster_entries==out.bsp.cluster_entries&&restricted.bsp.marked_clusters==out.bsp.marked_clusters&&
+            same_records(restricted.bsp.clusters,out.bsp.clusters)&&same_records(restricted.bsp.instances,out.bsp.instances)&&restricted.bsp.associations==out.bsp.associations,
+            "Parent-biped object restriction changed BSP admission");
         words+=actual.size()+camera_words;positive+=!out.bsp.clusters.empty()||!out.bsp.instances.empty();
         association_count+=out.bsp.associations.size();
     }

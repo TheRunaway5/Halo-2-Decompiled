@@ -1,0 +1,7 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/native_session_api_tests.cpp"
+  ]
+}

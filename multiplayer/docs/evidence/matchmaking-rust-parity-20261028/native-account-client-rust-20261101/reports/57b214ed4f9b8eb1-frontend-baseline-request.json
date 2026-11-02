@@ -1,0 +1,18 @@
+{
+  "action": "validate",
+  "targets": [
+    "frontend_account_cpp_reference",
+    "frontend_online_tests",
+    "native_account_client_tests",
+    "native_account_client_cpp_reference"
+  ],
+  "filter": "^(frontend_account_cpp_rust_diagnostics|native_account_client_(late_grant|cpp_before|real_curl))$",
+  "refresh": [
+    "cmake/OnlinePeers.cmake",
+    "tests/test_account_frontend_comparison.py",
+    "tests/reference/account_client_before_rust_20261101/online_account.cpp.inc",
+    "tests/reference/account_client_before_rust_20261101/online_account_before.cpp",
+    "tests/reference/account_client_before_rust_20261101/provenance.json",
+    "tests/reference/account_client_before_rust_20261101/online_account.hpp.reference"
+  ]
+}

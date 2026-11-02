@@ -1,0 +1,136 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-cmake/halo2-test-t6w5japn/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-cmake/halo2-test-t6w5japn/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-cmake/halo2-test-t6w5japn/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "rust_service_account_probe",
+        "rust_service_matchmaking_probe",
+        "rust_service_qos_probe",
+        "rust_service_room_probe",
+        "online_login_probe",
+        "rust_service_social_probe"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-cmake/halo2-test-t6w5japn/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^(online_protocol_rust_build_helper|rust_matchmaking_service_http|rust_friend_cloud_service_http)$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-native/halo2-test-zirq471u/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "rust-friend-cloud/report.json",
+      "status": "retained",
+      "bytes": 4159,
+      "sha256": "302cba023e41136f364949d3b7180803377cfbadd9dfc6781d985a508580524f",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-friend-cloud/report.json"
+    },
+    {
+      "path": "rust-friend-cloud/source-manifest.json",
+      "status": "retained",
+      "bytes": 17860,
+      "sha256": "425699e8626db341094aa79fce140ecdab553a9bdb257f22ecc40c54c7c6050a",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-friend-cloud/source-manifest.json"
+    },
+    {
+      "path": "rust-friend-cloud/step-0.log",
+      "status": "retained",
+      "bytes": 6040,
+      "sha256": "98d0fd0c21f762cfb68065ca0e96bfdc5c2b0cc7a05f64de44b086309b1767f8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-friend-cloud/step-0.log"
+    },
+    {
+      "path": "rust-friend-cloud/step-1.log",
+      "status": "retained",
+      "bytes": 306,
+      "sha256": "9a492a6a8a454fb29cb9d5af50f3d02c4f9e3e7da8664eaddd7f8575caa1d778",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-friend-cloud/step-1.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 1916,
+      "sha256": "8bb9bac5c469cceb3e7f3b1066cd6a6f68266dd7bac566919d9fcbddbc0844e2",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "retained",
+      "bytes": 23094,
+      "sha256": "16096c4add412de67c25fda8e1e85d7b2353d0ae425cfe1d93df69a223022c29",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-service/report.json"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "retained",
+      "bytes": 17860,
+      "sha256": "b69d2989e3b2457d77b91152f35b02bd24676902cd97c986be927a4103910f03",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-service/source-manifest.json"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "retained",
+      "bytes": 6040,
+      "sha256": "2937ffd0e507a511eb01609d5f17ba0cdabec8c490850e180a4850d1c3a275ad",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-service/step-0.log"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "retained",
+      "bytes": 306,
+      "sha256": "ab250d0357a27c9618659d5ac03dcbfb79582c47f25e2f505c2c34ecaf7da721",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-friend-cloud-native-cmake-20261031/evidence/rust-service/step-1.log"
+    }
+  ]
+}

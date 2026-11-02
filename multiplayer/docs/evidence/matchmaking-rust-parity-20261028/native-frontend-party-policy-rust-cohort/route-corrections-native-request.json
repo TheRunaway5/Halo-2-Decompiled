@@ -1,0 +1,14 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/frontend_online_tests.cpp",
+    "src/ui/frontend_party.cpp",
+    "src/ui/frontend_matchmaking_party_bridge.cpp"
+  ],
+  "targets": [
+    "frontend_online_tests",
+    "native_frontend_party_rust_tests"
+  ],
+  "filter": "^(frontend_party_cpp_rust|frontend_clans_http|frontend_parties_http)$"
+}

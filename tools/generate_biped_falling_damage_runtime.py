@@ -89,7 +89,11 @@ def main():
         complete_listings=True,runtime_header='halo2/biped_falling_damage.hpp',
         runtime_function='source_run_biped_falling_damage_runtime',extra_instruction=extension,
         extra_preamble=TRIG,instruction_guard=guard)
+    from native_weapon_effect_paired_bridge_tu15 import install_native_paired_weapon_owners
+    a.output.write_text(install_native_paired_weapon_owners(a.output.read_text(),'biped'))
     manifest=json.loads(a.manifest.read_text());manifest['configuration_tool_sha256']=sha(Path(__file__))
+    manifest['generated_cpp_sha256']=sha(a.output)
+    manifest['native_weapon_paired_owners']=['bacc0/bbe00']
     manifest['scope']='Complete paired producers; actual required lower frames; no supplied velocity/support/damage/lifecycle result or live gameplay proof'
     a.manifest.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':main()

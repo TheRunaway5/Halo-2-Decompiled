@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/model.hpp"
 #include "halo2/source_model_shader.hpp"
+#include <functional>
 #include <map>
 
 namespace halo2 {
@@ -10,9 +11,13 @@ namespace halo2 {
 // an owner, pose, geometry LOD, collector ordering or attachment lifetime.
 class SourceDynamicModelShaders {
 public:
+    // A source model with section-owned inputs (PRT) prepares each section's
+    // material independently. The callback retains the selected shader LOD.
+    using MaterialPreparer=std::function<bool(Material &,unsigned section)>;
     SourceDynamicModelShaders(const Cache &,RenderModel &,std::uint32_t render_model,
                               unsigned lighting_implementation = 2,
-                              std::optional<float> camouflage = {});
+                              std::optional<float> camouflage = {},MaterialPreparer = {});
+    std::vector<unsigned> material_slots(unsigned section)const;
     // Vertices remain model-local until the caller composes the actual pose.
     // Attached and first-person callers supply the root's copied collector.
     void select(std::vector<Vertex> &,const SourceModelShaderCollector &,

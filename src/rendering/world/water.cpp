@@ -47,6 +47,13 @@ void bind_water_pool_materials(const BspWater &water,std::span<Material> materia
   for(auto &material:materials)bind(bind,material);
 }
 WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
+                       float vertical_fov,const std::array<std::int16_t,4> &camera_outer,bool anamorphic) {
+  const int width=int(camera_outer[3])-int(camera_outer[1]);
+  const int height=int(camera_outer[2])-int(camera_outer[0]);
+  if(width<=0 || height<=0)throw FormatError("invalid water source camera outer rectangle");
+  return water_frame(definition,eye,forward,vertical_fov,float(width)/float(height),anamorphic);
+}
+WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
                        float vertical_fov,float viewport_aspect,bool anamorphic) {
   const auto &s=definition.parameters;WaterFrame out;
   const double angle=std::atan2(double(forward.x),double(forward.y))+double(s[35]);
@@ -127,19 +134,26 @@ BspWater Cache::load_bsp_water(std::size_t index) const {
           stride=std::to_integer<unsigned>(data.slice(base+offset+1,1)[0]);
         }
       }
-      if(stride!=12 || !position_size || position_size%stride || !index_size || index_size%8)
-        throw FormatError("unsupported water position-only quad layout");
+      // MCC has already triangulated the Xbox quad list. Its index stream
+      // must stay a triangle list; regrouping four indices drops faces and
+      // creates the repeating triangular holes across the ocean.
+      const unsigned primitive_size=is_mcc()?3u:4u;
+      if(stride!=12 || !position_size || position_size%stride || !index_size || index_size%(primitive_size*2))
+        throw FormatError("unsupported water position-only primitive layout");
       definition.geometry.minimum={std::numeric_limits<float>::max(),std::numeric_limits<float>::max(),std::numeric_limits<float>::max()};
       definition.geometry.maximum=definition.geometry.minimum*-1.f;
-      // 3C3C0 calls 1C8A0 with D3DPT_QUADLIST (8); preserve each quad's
-      // original winding with the same 0-2 diagonal during triangle expansion.
-      for(std::size_t q=0;q<index_size/2;q+=4) {
+      // 3C3C0 calls 1C8A0 with D3DPT_QUADLIST (8) on Xbox. Preserve that
+      // expansion there and the actual authored triangle order on MCC.
+      constexpr std::array<unsigned,6> quad_triangles{0,1,2,0,2,3};
+      constexpr std::array<unsigned,3> triangle{0,1,2};
+      const auto order=is_mcc()?std::span<const unsigned>(triangle):std::span<const unsigned>(quad_triangles);
+      for(std::size_t q=0;q<index_size/2;q+=primitive_size) {
         std::array<unsigned,4> quad{};
-        for(unsigned k=0;k<4;++k) {
+        for(unsigned k=0;k<primitive_size;++k) {
           quad[k]=data.u16(indices+(q+k)*2);
           if(quad[k]>=position_size/stride)throw FormatError("water index outside position stream");
         }
-        for(const unsigned k:{0u,1u,2u,0u,2u,3u}) {
+        for(const unsigned k:order) {
           const auto p=positions+quad[k]*stride;
           const Vec3 position{data.f32(p),data.f32(p+4),data.f32(p+8)};
           if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(position.z))

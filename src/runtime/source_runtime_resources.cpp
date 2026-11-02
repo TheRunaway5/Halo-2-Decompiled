@@ -6,6 +6,9 @@
 #include "halo2/mcc_cache.hpp"
 #include "halo2/mcc_model_node_map.hpp"
 #include "halo2/mcc_sound_geometry.hpp"
+#include "halo2/mcc_original_sound_runtime_delivery_tu15.hpp"
+#include "halo2/prepared_original_sound_catalog_tu15.hpp"
+#include "halo2/mcc_sound_dat_resources_tu15.hpp"
 #include <openssl/evp.h>
 #include <fstream>
 #include <algorithm>
@@ -23,6 +26,7 @@ struct PreparedResourceState {
     std::shared_ptr<const Cache> cache;
     std::unique_ptr<SourceRuntimeResources> resources;
     std::unique_ptr<SourceRuntimeMccPreparation> metadata;
+    bool original_sound_required{};
 };
 struct PreparedResourceRegistry {
     std::mutex mutex;
@@ -39,8 +43,10 @@ std::unique_ptr<SourceRuntimeResources> take_prepared_resources(const Cache& cac
     if(at==registry.entries.end())return {};
     const auto state=at->second.lock();
     if(!state){registry.entries.erase(at);return {};}
+    if(!state->resources&&state->original_sound_required)
+        throw FormatError("Original sound resource preparation was already consumed");
     auto resources=std::move(state->resources);
-    if(!state->metadata)registry.entries.erase(at);
+    if(!state->metadata&&!state->original_sound_required)registry.entries.erase(at);
     return resources;
 }
 std::size_t native_page_size() noexcept {
@@ -94,6 +100,34 @@ SourceRuntimeResources::Digest digest(std::span<const std::byte> bytes) {
         throw FormatError("Cannot authenticate source resource binding");
     return result;
 }
+std::unique_ptr<SourceRuntimeMccPreparation> prepare_mcc_metadata(
+    const Cache& cache,const MccOriginalSoundRuntimeInputTu15* original) {
+    constexpr std::uint32_t base=0x90000000u,budget=0x60000000u;
+    std::optional<MccSoundRuntimePlan> sound;
+    const std::function<void(MccSoundRuntimePlan&&)> capture=[&](MccSoundRuntimePlan&& value){sound.emplace(std::move(value));};
+    auto delivery=original?MccRuntimeCacheDelivery::plan(cache,base,budget,capture,*original):
+        MccRuntimeCacheDelivery::plan(cache,base,budget,capture);
+    if(!sound)throw FormatError("MCC metadata preparation lost its sound owner");
+    auto timing=build_mcc_sound_timing_reference(cache,*sound,
+        [&](auto address,auto bytes){return delivery.runtime_address(address,bytes);});
+    if(original) {
+        if(!sound->original||delivery.original_sound_owner()!=sound->original)
+            throw FormatError("Original preparation lost its exact canonical sound owner");
+        sound->original->require_plan(*sound);
+        std::size_t expected{};
+        for(const auto& binding:sound->original->bindings()) {
+            std::size_t count{};for(const auto& pitch:binding.bank->metadata().pitch_ranges)count+=pitch.permutations.size();
+            if(!count||std::ranges::count(timing.bindings(),binding.sound,&MccSoundTimingBinding::sound)!=std::ptrdiff_t(count)||
+                std::ranges::count(timing.stored_references(),binding.sound,&MccSoundTimingStoredReference::sound)!=1||
+                std::ranges::count(timing.permutation_references(),binding.sound,&MccSoundTimingPermutationReference::sound)!=std::ptrdiff_t(count))
+                throw FormatError("Original sound preparation lacks its complete joined timing inputs");
+            expected+=count;
+        }
+        if(!expected)throw FormatError("Original sound preparation has no complete native timing routes");
+    }
+    return std::make_unique<SourceRuntimeMccPreparation>(
+        SourceRuntimeMccPreparation{base,budget,std::move(delivery),std::move(*sound),std::move(timing)});
+}
 }
 struct SourceRuntimeResources::Impl {
     const Cache &cache;
@@ -107,8 +141,15 @@ struct SourceRuntimeResources::Impl {
     DescriptorAddress descriptor_address;
     std::vector<MccModelNodeMap> model_node_maps;
     std::vector<MccSoundGeometryResource> sound_geometry;
-    explicit Impl(const Cache &cache,DescriptorAddress address):cache(cache),descriptor_address(std::move(address)) {
+    std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> original_sound;
+    std::shared_ptr<const MccSoundDatResourcesTu15> sound_dat;
+    std::unique_ptr<SourceRuntimeMccPreparation> metadata;
+    bool owns_metadata{};
+    explicit Impl(const Cache &cache,DescriptorAddress address,const SourceRuntimeMccPreparation* preparation=nullptr)
+        :cache(cache),descriptor_address(std::move(address)),original_sound(preparation?preparation->sound.original:nullptr) {
         if(cache.is_vista())throw FormatError("Native source resources require Xbox or normalized MCC cache ownership");
+        if(original_sound&&!cache.is_mcc())throw FormatError("Original sound replacement resources require their canonical MCC preparation");
+        if(preparation)sound_dat=MccSoundDatResourcesTu15::prepare(cache,*preparation);
         if(cache.is_mcc())model_node_maps=plan_mcc_model_node_maps(cache);
         if(cache.is_mcc())sound_geometry=plan_mcc_sound_geometry_resources(cache);
         identity.resident=digest(cache.source_runtime_cache_bytes());
@@ -141,6 +182,8 @@ struct SourceRuntimeResources::Impl {
             if(cache.is_mcc())file.storage=decode_mcc_cache(file.bytes());
             identity.shared[i]=digest(file.bytes());shared[i]=std::move(file);
         }
+        if(sound_dat)identity.resident=sound_dat->bind_resource_identity(identity.resident);
+        if(original_sound)identity.resident=original_sound->bind_resource_identity(identity.resident);
     }
 };
 SourceRuntimeResources::SourceRuntimeResources(const Cache &cache):SourceRuntimeResources(cache,{}){}
@@ -148,13 +191,23 @@ SourceRuntimeResources::SourceRuntimeResources(const Cache &cache,DescriptorAddr
     if(auto prepared=take_prepared_resources(cache)) {
         impl_=std::move(prepared->impl_);
         impl_->descriptor_address=std::move(address);
+    } else if(cache.is_mcc()&&!cache.scenario_tag().is_null()) {
+        std::optional<MccOriginalSoundRuntimeInputTu15> input;
+        if(const auto catalog=cache.original_sound_catalog())input=catalog->input(cache);
+        auto metadata=prepare_mcc_metadata(cache,input?&*input:nullptr);
+        impl_=std::make_unique<Impl>(cache,std::move(address),metadata.get());
+        require_sound_plan(metadata->sound);
+        impl_->metadata=std::move(metadata);impl_->owns_metadata=true;
     } else impl_=std::make_unique<Impl>(cache,std::move(address));
 }
 SourceRuntimeResources::~SourceRuntimeResources()=default;
+SourceRuntimeResources::SourceRuntimeResources(const Cache& cache,DescriptorAddress address,const SourceRuntimeMccPreparation& preparation)
+    :impl_(std::make_unique<Impl>(cache,std::move(address),&preparation)){}
 struct SourceRuntimeResourcePreparation::Impl {
     std::shared_ptr<PreparedResourceState> state;
-    explicit Impl(std::shared_ptr<const Cache> cache) {
+    explicit Impl(std::shared_ptr<const Cache> cache,const MccOriginalSoundRuntimeInputTu15* original) {
         if(!cache)throw FormatError("Resource preparation requires its immutable Cache owner");
+        if(original&&!cache->is_mcc())throw FormatError("Original sound preparation requires a canonical MCC Cache owner");
         auto& registry=prepared_resources();
         {
             std::lock_guard lock(registry.mutex);
@@ -162,7 +215,7 @@ struct SourceRuntimeResourcePreparation::Impl {
             if(at!=registry.entries.end() && !at->second.expired())
                 throw FormatError("Cache already has an active resource preparation");
         }
-        state=std::make_shared<PreparedResourceState>();state->cache=std::move(cache);
+        state=std::make_shared<PreparedResourceState>();state->cache=std::move(cache);state->original_sound_required=original!=nullptr;
         // Only the explicit match-scoped preparation publishes a reusable
         // owner. Ordinary resource construction retains its original lifetime.
         struct BuildScope {
@@ -170,18 +223,13 @@ struct SourceRuntimeResourcePreparation::Impl {
             BuildScope(){building_preparation=true;}
             ~BuildScope(){building_preparation=previous;}
         } scope;
-        state->resources=std::make_unique<SourceRuntimeResources>(*state->cache);
         if(state->cache->is_mcc()) {
-            constexpr std::uint32_t base=0x90000000u,budget=0x60000000u;
-            std::optional<MccSoundRuntimePlan> sound;
-            auto delivery=MccRuntimeCacheDelivery::plan(*state->cache,base,budget,
-                [&](MccSoundRuntimePlan&& value){sound.emplace(std::move(value));});
-            if(!sound)throw FormatError("MCC metadata preparation lost its sound owner");
-            auto timing=build_mcc_sound_timing_reference(*state->cache,*sound,
-                [&](auto address,auto bytes){return delivery.runtime_address(address,bytes);});
-            state->metadata=std::make_unique<SourceRuntimeMccPreparation>(
-                SourceRuntimeMccPreparation{base,budget,std::move(delivery),std::move(*sound),std::move(timing)});
-        }
+            state->metadata=prepare_mcc_metadata(*state->cache,original);
+            // Both owners are complete before the registry entry exists.
+            // This private construction cannot consume an unrelated entry.
+            state->resources.reset(new SourceRuntimeResources(*state->cache,{},*state->metadata));
+            state->resources->require_sound_plan(state->metadata->sound);
+        } else state->resources=std::make_unique<SourceRuntimeResources>(*state->cache);
         std::lock_guard lock(registry.mutex);
         auto& entry=registry.entries[state->cache.get()];
         if(!entry.expired())throw FormatError("Cache already has an active resource preparation");
@@ -193,8 +241,18 @@ struct SourceRuntimeResourcePreparation::Impl {
         if(at!=registry.entries.end() && at->second.lock()==state)registry.entries.erase(at);
     }
 };
-SourceRuntimeResourcePreparation::SourceRuntimeResourcePreparation(std::shared_ptr<const Cache> cache)
-    :impl_(std::make_unique<Impl>(std::move(cache))) {}
+SourceRuntimeResourcePreparation::SourceRuntimeResourcePreparation(std::shared_ptr<const Cache> cache) {
+    if(cache && cache->original_sound_catalog()) {
+        const auto input=cache->original_sound_catalog()->input(*cache);
+        impl_=std::make_unique<Impl>(std::move(cache),&input);
+    } else impl_=std::make_unique<Impl>(std::move(cache),nullptr);
+}
+SourceRuntimeResourcePreparation::SourceRuntimeResourcePreparation(std::shared_ptr<const Cache> cache,const MccOriginalSoundRuntimeInputTu15& original)
+    :impl_(std::make_unique<Impl>(std::move(cache),&original)) {}
+SourceRuntimeResourcePreparation::SourceRuntimeResourcePreparation(std::shared_ptr<const Cache> cache,const PreparedOriginalSoundCatalogBindingTu15& catalog){
+    if(!cache)throw FormatError("Original catalog preparation requires its immutable Cache owner");
+    const auto input=catalog.input(*cache);impl_=std::make_unique<Impl>(std::move(cache),&input);
+}
 SourceRuntimeResourcePreparation::~SourceRuntimeResourcePreparation()=default;
 std::unique_ptr<SourceRuntimeMccPreparation> take_prepared_mcc_world_metadata(
     const Cache& cache,std::uint32_t base,std::uint32_t budget) {
@@ -203,12 +261,38 @@ std::unique_ptr<SourceRuntimeMccPreparation> take_prepared_mcc_world_metadata(
     if(at==registry.entries.end())return {};
     const auto state=at->second.lock();
     if(!state){registry.entries.erase(at);return {};}
+    if(!state->metadata&&state->original_sound_required)
+        throw FormatError("Original sound metadata preparation was already consumed");
     if(!state->metadata || state->metadata->base!=base || state->metadata->budget!=budget)return {};
     auto metadata=std::move(state->metadata);
-    if(!state->resources)registry.entries.erase(at);
+    if(!state->resources&&!state->original_sound_required)registry.entries.erase(at);
     return metadata;
 }
 const SourceRuntimeResources::Identity &SourceRuntimeResources::identity() const noexcept{return impl_->identity;}
+void SourceRuntimeResources::require_sound_plan(const MccSoundRuntimePlan& plan)const{
+    if(plan.original!=impl_->original_sound)throw FormatError("Native sound metadata and immutable resource identities have different original owners");
+    if(impl_->sound_dat)impl_->sound_dat->require_routes(plan);
+    if(impl_->original_sound)impl_->original_sound->require_plan(plan);
+}
+void SourceRuntimeResources::require_sound_plan(const Cache& expected,const MccSoundRuntimePlan& plan)const {
+    if(&expected!=&impl_->cache)throw FormatError("Sound resource publication belongs to another Cache");
+    require_sound_plan(plan);
+}
+std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> SourceRuntimeResources::original_sound_owner()const{return impl_->original_sound;}
+std::shared_ptr<const MccSoundDatResourcesTu15> SourceRuntimeResources::sound_dat_owner()const{return impl_->sound_dat;}
+std::unique_ptr<SourceRuntimeMccPreparation> SourceRuntimeResources::take_mcc_world_metadata(std::uint32_t base,std::uint32_t budget) {
+    if(!impl_->owns_metadata)return {};
+    if(!impl_->metadata)throw FormatError("Direct World metadata was already consumed");
+    if(impl_->metadata->base!=base||impl_->metadata->budget!=budget)
+        throw FormatError("Direct World metadata has a different canonical layout");
+    return std::move(impl_->metadata);
+}
+std::vector<std::byte> SourceRuntimeResources::sound_cache(const SourceSoundCacheReadTu15& request)const{
+    if(impl_->original_sound)if(auto original=impl_->original_sound->read_cache_resource(request))return std::move(*original);
+    if(impl_->sound_dat)return impl_->sound_dat->read(request);
+    if(impl_->cache.is_mcc())throw FormatError("MCC sound read has no admitted DAT resource owner");
+    return load(request.encoded_offset,request.bytes);
+}
 std::vector<std::byte> SourceRuntimeResources::load(std::uint32_t encoded,std::uint32_t bytes) const {
     if(!bytes || bytes>128u*1024u*1024u)throw FormatError("Invalid original source resource size");
     const auto location=encoded>>30,offset=encoded&0x3fffffffu;

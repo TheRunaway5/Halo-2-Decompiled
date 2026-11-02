@@ -1,0 +1,10 @@
+{
+  "source": "src/network/online_postgame.cpp",
+  "source_sha256": "8e92b152036e3473f3cc3e6e2bdcd5182f0341285cfb72284d840e450cccacb0",
+  "extracted_functions": [
+    "online_postgame_publish",
+    "online_postgame_validate"
+  ],
+  "extraction_sha256": "391f7a49945b9ef5476f9fddc46a44139efa7ce890b3983fc793f4a6521dbffe",
+  "scope": "Exact modern C++ admission/publication caller bodies; profile/ranking/numeric writer IO is declared in the differential fixture, not original Live or played-world evidence"
+}

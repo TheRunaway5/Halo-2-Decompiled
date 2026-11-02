@@ -255,6 +255,16 @@ int main(int argc,char **argv) {try {
   }
   require(file.eof() && counts==std::array<unsigned,4>{6,9,24,1} && words==651,
       "incomplete original ordinary raster fixture coverage");
+  {
+    MenuWorldRasterContext hologram;hologram.viewport_reset({640,480});hologram.game_initialize_offset();
+    hologram.layer_begin(MenuWorldRasterLayer::hologram_21);hologram.entry_begin({});
+    const auto packet=hologram.snapshot(input());
+    require(!packet.stencil.enabled && packet.source_stencil_mode==0 && !packet.stencil.values &&
+        offset(packet)==std::array<std::uint32_t,2>{0,0},
+        "literal44360 layer21 mode0 acquired invented base-layer predicates or stencil values");
+    hologram.entry_end();hologram.layer_begin(MenuWorldRasterLayer::base_3);hologram.entry_begin(ordinary);
+    require(stencil(hologram.snapshot(input()))[0]==1,"hologram teardown poisoned the following ordinary layer");
+  }
   const auto rejected=controls();
   std::cout<<"40 source-pinned caller cases / "<<words<<" packet words exact; "<<rejected
       <<" unknown/malformed/lifecycle inputs rejected; source-only context, no live admission\n";

@@ -46,6 +46,7 @@ struct MccNativeMapBinding {
     MccCacheRole role{MccCacheRole::Scenario};
     MccNativeBankMode mode{MccNativeBankMode::None};
     bool custom_authoring{}; // Authenticated explicit-custom-owner receipt.
+    bool preserve_mcc_authoring{}; // Workshop producer keeps authored gameplay values.
     std::filesystem::path shared_directory, bank_directory;
     std::string library_namespace, library_sha256;
     std::string bootstrap_policy_sha256, bootstrap_source_canonical_sha256;

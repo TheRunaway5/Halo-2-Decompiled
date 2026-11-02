@@ -25,7 +25,8 @@ std::optional<Material> prepare(const Cache& cache,Material authored,unsigned in
     remap_pixel_constants(pass.program,authored.pixel_constants,pass.pixel_remaps,
         pass.fragments,authored.shader_switches);
     std::array<float,256> scalars{};scalars[21]=authored.specular_brightness;
-    scalars[22]=authored.ambient_brightness;std::vector<ShaderRemap> brightness;
+    scalars[22]=1.f; // TU1.5 33768 scalar external; ambient is a vector input.
+    std::vector<ShaderRemap> brightness;
     for(const auto& r:pass.pixel_externs)if(r.source==21 || r.source==22)brightness.push_back(r);
     remap_pixel_externs(pass.program,scalars,{},brightness,pass.fragments,authored.shader_switches);
     return load_images?bind_light_pass(cache,authored,index,uniforms):complete_light_pass(cache,authored,index,uniforms);

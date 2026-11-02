@@ -1,5 +1,6 @@
 #include "halo2/effect_sound.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/source_effect_part_admission_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -48,19 +49,19 @@ std::vector<EffectSoundCue> sound_parts(const Cache& cache,std::uint32_t datum,
     if(parts>65536)throw FormatError("Effect sound part limit exceeded");
     if(parts){const Bytes rows(read(events.u32(p+0x1c),std::size_t(parts)*0x38));
       for(unsigned j=0;j<parts;++j){const auto q=std::size_t(j)*0x38;
-        if(rows.u32(q+8)!=0x736e6421u || rows.u32(q+0x10)==0xffffffffu)continue;
-        const auto location=std::bit_cast<std::int16_t>(rows.u16(q+4));
-        if(location<0 || unsigned(location)>=locations)continue;
-        // The current prop response is the dry environment branch. Original
-        //17BDF0 excludes environment2 there. It does not choose by tag name.
-        if(rows.u16(q+2)==2)continue;
-        if(rows.u16(q+2)>2)throw FormatError("Invalid authored effect sound environment");
+        const auto part=source_effect_sound_part_tu15(rows.slice(q,0x38),locations);
+        if(!part)continue;
+        // This fixed host profile retains its existing clear-bit5 selection.
+        // Original part+2 and effect+2 bit5 are separate from part+0's later
+        // environment query. Source-backed world effects use observed flags.
+        if(!source_effect_part_selector_admitted_tu15(part->selector,0))continue;
+        if(part->selector>2)throw FormatError("Unsupported authored effect sound selector");
         if(rows.u16(q+6)&2)throw FormatError("Effect sound requires original randomized location");
         float gain=1;
-        if(rows.u32(q+0x30)&0x20)gain=a;
-        if(rows.u32(q+0x34)&0x20)gain=b*gain;
-        result.push_back({fixed?elapsed:0.f,gain,rows.u32(q+0x10),i,
-            bool(rows.u32(q+0x30)&0x20),bool(rows.u32(q+0x34)&0x20)});
+        if(part->scale_a&0x20)gain=a;
+        if(part->scale_b&0x20)gain=b*gain;
+        result.push_back({fixed?elapsed:0.f,gain,part->sound,i,
+            bool(part->scale_a&0x20),bool(part->scale_b&0x20)});
       }
     }
     elapsed+=duration;

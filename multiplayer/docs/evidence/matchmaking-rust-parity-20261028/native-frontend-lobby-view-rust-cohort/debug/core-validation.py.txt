@@ -1,0 +1,20 @@
+import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+output=root/'build/test-results/frontend-party-lobby-view-rust-20261102/core-initial';output.mkdir(parents=True)
+ignore=shutil.ignore_patterns('target','__pycache__','*.so','*.dll','*.dylib')
+for name in ('online_protocol','online_protocol_bridge','online_security_ffi','matchmaking_service'):
+ shutil.copytree(root/'rust'/name,source/'rust'/name,ignore=ignore)
+shutil.copytree(root/'include',source/'include',ignore=ignore)
+shutil.copytree(root/'tests/fixtures',source/'tests/fixtures',ignore=ignore)
+for name in ('data','examples','tests/fixtures'):
+ shutil.copytree(root/'multiplayer/master_server'/name,source/'multiplayer/master_server'/name,ignore=ignore)
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source.rglob('*') if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'target'),CARGO_BUILD_JOBS='2',CARGO_INCREMENTAL='0',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+command=['cargo','test','--locked','--offline','--manifest-path','rust/online_protocol/Cargo.toml','--test','matchmaking_frontend_lobby_view']
+run=subprocess.run(command,cwd=source,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(output/'tests.log').write_bytes(run.stdout[-1048576:])
+result={'passed':run.returncode==0,'exit_code':run.returncode,'command':command,'scratch':str(scratch),'source_pins':pins,
+ 'frozen_inputs_intact':all(hashlib.sha256((source/n).read_bytes()).hexdigest()==h for n,h in pins.items()),'retained_large_artifacts':[]}
+(output/'report.json').write_text(json.dumps(result,indent=2)+'\n')
+print(run.stdout.decode(errors='replace')[-5000:]);raise SystemExit(run.returncode)

@@ -88,3 +88,33 @@ Final reports in `analysis/campaign-native-listeners-20261028/`:
 The completed fade, ducking and channel algorithm files remain unchanged. Raw
 banks, ELF files, vectors, private mutations and builds are removed through the
 official scratch wrappers; only small reports and source references are retained.
+
+## Object-loop composition correction, 2026-11-01
+
+The vehicle-destruction audio qualification exposed a stronger caller obligation
+for `253070`. Its register-level object-loop parents retain the complete register
+image; the earlier semantic adapter's distance-only result left different XMM1,
+XMM2 and volatile GPR values. The existing full comparison rejected `190A80`
+case1 and `18F900` case0; restoring SIMD alone then exposed `18F900` case4's ECX.
+
+The semantic calculation now optionally records its existing lower/span values,
+while its typed table services capture the already-read count, pointer and cell.
+The ABI bridge publishes the original complete GPR/SIMD output from those values.
+It performs no additional source reads or FP calculations. The actual manager's
+`253070` contract now requires all GPR and SIMD registers. Other listener return
+contracts remain separately scoped.
+
+The [focused composition and independent original CPU checks](../build/test-results/vehicle-destruction-native-20261031/native-audio-scale-registers/report.json)
+pass both affected entries, their expanded contract regression and the fresh
+physical listener corpus. The physical regression additionally checks every GPR
+required by the actual registry contract. The complete object-loop suites and
+normal destruction audio delivery remain distinct acceptance gates; this
+correction alone does not certify all audible vehicle behavior.
+
+The [complete eight-suite sound regression](../build/test-results/vehicle-destruction-native-20261031/native-audio-kernels-final/report.json)
+now passes manager, resources, gain, properties, listener, object-loop update,
+object-loop sources and the complete object-loop frame without the focused
+entry filter. The standalone suites also link their actual data-array deletion
+dependency. The vehicle cohort admits only the three qualified listener files
+before `halo2_systems` begins compilation, with fresh timestamps and an explicit
+[source refresh receipt](../build/test-results/vehicle-destruction-native-20261031/current-world/audio-scale-source-refresh.json).

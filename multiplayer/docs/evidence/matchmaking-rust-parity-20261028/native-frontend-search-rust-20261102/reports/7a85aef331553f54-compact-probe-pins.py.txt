@@ -1,0 +1,15 @@
+import hashlib,json,os
+from pathlib import Path
+w=Path.cwd()/'build/test-results/frontend-search-rust-20261102';read=lambda p:json.loads(p.read_text());digest=lambda d:hashlib.sha256(d).hexdigest();base={}
+for n in read(w/'native-candidate/inputs.json')['initial_source_pin_parts']:base.update(read(w/'native-candidate'/n))
+prefixes=['include/','src/ui/','rust/online_protocol/','rust/online_protocol_bridge/','tests/reference/frontend_search_before_rust_20261102/','tests/reference/frontend_lobby_before_rust_20261102/','tests/native_frontend_search_rust_tests.cpp','tests/test_native_frontend_search_rust.py']
+subset={k:v for k,v in base.items() if any(k.startswith(p) for p in prefixes)};records=[];retire=[]
+for p in sorted((w/'probe-linked').glob('pins-*.json')):
+ data=p.read_bytes();old=json.loads(data);extra={k:v for k,v in old.items() if subset.get(k)!=v};remove=[k for k in subset if k not in old];restored={k:v for k,v in subset.items() if k not in remove};restored.update(extra)
+ assert restored==old
+ rebuilt=(json.dumps(restored,sort_keys=True,indent=2)+'\n').encode();assert rebuilt==data
+ records.append({'original':str(p.relative_to(w)),'sha256':digest(data),'bytes':len(data),'changed_values':extra,'remove_from_base_subset':remove,'original_bytes_exactly_reconstructed':True});retire.append(p)
+report={'schema':'halo2-probe-pins-lossless-delta-v1','passed':True,'base':'native-candidate/inputs.json initial_source_pin_parts','filter_prefixes':prefixes,'reconstruction':'Filter the base map by the listed prefixes, remove remove_from_base_subset, apply changed_values, then serialize json.dumps(sort_keys=True,indent=2) plus newline. All original file bytes were reconstructed and verified before retirement.','records':records,'scratch':os.environ['HALO2_TEST_SCRATCH'],'retained_large_artifacts':[]}
+(w/'probe-source-pin-retirement.json').write_text(json.dumps(report,indent=2)+'\n')
+for p in retire:p.unlink()
+print('Losslessly retired',len(retire),'duplicate probe pin inventories')

@@ -1,0 +1,36 @@
+  struct SnapshotViewIo final:bridge::NativeSnapshotViewIo {
+    Impl &s;mutable std::shared_ptr<PeerSnapshotCandidate> selected;
+    explicit SnapshotViewIo(Impl &session):s(session){}
+    bool snapshot_view_common()const override{return s.projection.common_phase;}
+    bool snapshot_view_supported()const override{return s.snapshot_supported();}
+    void snapshot_view_select()const override{selected=s.snapshot_candidate;}
+  };
+  struct PostgameIo final:bridge::NativePostgameIo {
+    Impl &s;mutable std::shared_ptr<GameVoice> audio;mutable std::unique_lock<std::mutex> generation;
+    explicit PostgameIo(Impl &session):s(session),generation(s.mutex,std::defer_lock){}
+    bool postgame_pin_audio()const override{std::lock_guard lock(s.mutex);audio=s.audio;return bool(audio);}
+    std::uint32_t postgame_phase()const override{std::lock_guard lock(s.mutex);return std::uint32_t(s.phase);}
+    void postgame_enable(bool value)const override{require(bool(audio));audio->enable(value);}
+    bool postgame_focused()const override{return s.voice_focused;}
+    void postgame_focus(bool value)const override{require(bool(audio));audio->focus(value);}
+    void postgame_radio(bool pressed,bool active)const override{require(bool(audio));audio->radio(pressed,active);}
+    std::uint16_t postgame_blocks()const override{std::lock_guard lock(s.mutex);return s.voice_blocked;}
+    void postgame_set_blocks(std::uint16_t value)const override{require(bool(audio));audio->blocks(value);}
+    bridge::NativePostgamePreferences postgame_preferences()const override{
+      require(bool(audio));const auto selected=audio->snapshot();bridge::NativePostgamePreferences out;
+      out.enabled=selected.enabled;out.muted=selected.muted;out.blocked=selected.blocked;return out;
+    }
+    rust::Vec<bridge::NativeSessionAudio> postgame_outgoing()const override{
+      require(bool(audio));rust::Vec<bridge::NativeSessionAudio> out;for(const auto &frame:audio->outgoing())out.push_back(wire_audio(frame));return out;
+    }
+    void postgame_lock()const override{require(!generation.owns_lock());generation.lock();}
+    void postgame_unlock()const override{require(generation.owns_lock());generation.unlock();}
+    void postgame_fence()const override{require(generation.owns_lock());s.fence_peer_generation();}
+    rust::Vec<bridge::NativeSessionAudio> postgame_exchange(const bridge::NativePostgamePreferences &selected,rust::Vec<bridge::NativeSessionAudio> outgoing)const override{
+      require(audio&&generation.owns_lock());return bridge::native_session_postgame_voice(*s.controller,transfer_time(),selected.enabled,
+          selected.muted,selected.blocked,std::move(outgoing),audio->ready(s.audio_generation));
+    }
+    void postgame_deliver(rust::Vec<bridge::NativeSessionAudio> frames)const override{
+      require(audio&&!generation.owns_lock());for(const auto &frame:frames)audio->receive(native_audio(frame));
+    }
+  };

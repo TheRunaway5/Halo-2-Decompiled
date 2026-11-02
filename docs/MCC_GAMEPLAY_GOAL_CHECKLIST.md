@@ -1,6 +1,6 @@
 # MCC-only native gameplay goal checklist
 
-Updated: 2026-10-28. This checklist owns the remaining scope; detailed evidence
+Updated: 2026-11-02. This checklist owns the remaining scope; detailed evidence
 stays in [MCC_GAMEPLAY_CONVERSION.md](MCC_GAMEPLAY_CONVERSION.md).
 Check a box only after its stated acceptance test passes. Component proofs do
 not complete an integration, gameplay, visual or audio acceptance gate.
@@ -8,6 +8,57 @@ not complete an integration, gameplay, visual or audio acceptance gate.
 Goal status: **active**. Keep this checklist current at each verified milestone
 and before a handoff. Preserve unchecked work across sessions; the goal is
 complete only when all required acceptance and delivery gates below pass.
+
+The Workshop objective covers **all Halo2 mods**. The installed packages are
+the current regression cohort; their57 recorded script requirements do not
+exhaust MCC's scripting or content capabilities. Completion also requires the
+remaining declarations, globals, value types and content features to have
+authenticated native owners and appropriate execution coverage. Keep unknown
+or unqualified features explicit as the cohort and feature inventory expand.
+
+- [ ] Complete the MCC registry/content capability inventory beyond the
+  installed cohort, and close its native behavior and delivery gates. The
+  current compiled profile contains411 builtin declarations and17 external
+  globals; those counts describe admitted metadata, not complete effects or
+  the total MCC registry. The current411 signatures match the pinned full
+  registry;507 declarations still require explicit admission and qualified
+  native effects. [Current profile inventory](../build/test-results/workshop-goal-20261101/mcc-script-profile-current-1.json).
+- [x] Re-audit all918 pinned MCC declarations directly after scenery-start
+  admission. All411 current signatures match the authenticated binary, with
+  897 distinct names, maximum arity8 and507 declarations still unprofiled.
+  The separate audit owner is removed. This does not inventory every external
+  global/value type or qualify untested engine effects.
+  [Fresh complete declaration audit](../build/test-results/workshop-goal-20261101/mcc-script-registry-inventory-2.json).
+- [ ] Authenticate the complete external-global and value-type registry
+  bounds, backing, initialization and actual consumers. Direct encoded
+  LEA/MOV searches around the first global record find no authenticated
+  consumer, while the same search proves13 builtin-table references. That
+  bounded negative result does not establish a global count or absence of
+  indirect consumers; do not infer either from neighboring data. The
+  separate probe owners are removed and no runtime admission is changed.
+  [Bounded global-reference probe](../build/test-results/workshop-goal-20261101/mcc-global-table-consumers-3.json).
+- [x] Authenticate the full pinned MCC builtin registry bound through its
+  actual name-search loop and918-entry count at180B228E4. Inventory all918
+  declarations,897 distinct names, signatures and original Xbox candidates;
+  all410 profile declarations at the time of that audit match. After the
+  separately qualified scenery-start admission below,507 declarations remain
+  outside the profile. The full registry exposes eight-argument calls beyond
+  the previous seven-argument compiled metadata capacity. This is declaration
+  evidence only; full effects, globals, value types and content coverage remain
+  open. All registry-audit scratch is removed.
+  [Full MCC registry](../build/test-results/workshop-goal-20261101/mcc-script-registry-inventory.json),
+  [Original bound consumers](../build/test-results/workshop-goal-20261101/mcc-script-registry-bound-consumers.json).
+- [x] Extend the generator and native metadata capacity to eight arguments,
+  covering both authenticated registry declarations596 and712. A private
+  test-only profile exercises complete signatures and unchanged call records;
+  exact arity8 remains an explicit unowned native requirement, while arity7
+  and9 fail argument validation. The old generator and seven-slot native
+  metadata both reject these actual declarations. GCC, Clang and ASan/UBSan
+  pass all six native projection cases; the ordinary410-entry generated
+  profile remains current. No additional production declaration or effect is
+  admitted. Scratch is removed. This source change is separate from the
+  already-frozen candidate8 and is not in that feedback binary.
+  [Eight-argument capacity](../build/test-results/workshop-goal-20261101/script-arity-1/report.json).
 
 **Required goal rule, part of the active objective:** Whenever a task or
 acceptance gate is completed and verified, immediately update its checkbox and
@@ -18,6 +69,2584 @@ This requirement applies to work completed by the primary agent and subagents.
 Saving that checklist update is a required part of completing each task; do
 not defer it until the end of a session. For subagent work, the primary agent
 records the verified result here before starting dependent work.
+
+## October30 Steam Workshop discovery and mod launch
+
+### October31 complete installed-mod sweep and follow-up
+
+- [x] Authenticate Alpha Moon's actual cloud-function inputs against unchanged
+  TU1.5 scalar execution:432 samples across eight literal original/mod curves
+  return through the complete matched original routine without patches or
+  intercepted calls. Native shader evaluation matches every output bit using
+  the same authenticated encoded lookup tables. This covers scalar curves;
+  cooked-material admission, animation-role publication and GPU draws remain
+  separate open gates. Temporary oracle/compiler owners are removed.
+  [Original](../build/test-results/workshop-goal-20261101/sky-curves-original.json),
+  [Native](../build/test-results/workshop-goal-20261101/sky-curves-native.json).
+- [x] Admit the three paired sky template layouts as a data component, including
+  authored clock curves and their independently proved scalar variants. The
+  regression first rejects the original-paired sky dome, then passes all seven
+  original/mod owners, all98 cooked banks and nested curves, with complete
+  template/remap/role/payload mutation controls. Preserve sky shad LOD flags
+  separately from stem availability and apply only the paired environment
+  pixel-slot permutation. All four focused new/preceding animated CTests pass.
+  Full Cache integration, actual submitted sky frames and publication remain
+  open. Retained required inputs are the6481-byte compressed metadata fixture
+  (updated hashes in its descriptor),36389-byte original scalar TSV and bounded
+  source policy; no new texture, geometry or GPU-program asset is imported.
+  [Red](../build/test-results/workshop-goal-20261101/sky-cooked-red/report.json),
+  [Green](../build/test-results/workshop-goal-20261101/sky-cooked-green-3/report.json).
+- [x] Verify the production Cache/Workshop bridge with the native template
+  variant actually selected by the prepared bank. Sentinelwalls' retained
+  illumination template has the same complete typed postprocess remap graph
+  as the independently paired Zanzibar template; both complete payloads remain
+  independently authenticated. The actual installed Alpha Moon preparation
+  admits all three authored sky materials at native layer15 and retains its
+  52-byte periodic cloud curve and ten animation roles. Six focused Cache,
+  scalar, cooked-data and preceding animated tests pass without skips. No
+  shader instance, bitmap, curve or renderer guard is replaced. Actual frames
+  and engine publication remain open.
+  [Template proof](../build/test-results/workshop-goal-20261101/sky-paired-policy.json),
+  [Cache integration](../build/test-results/workshop-goal-20261101/cache-integration-3/report.json).
+- [x] Publish the sky/native-contact feedback update through both root
+  launchers. Successor `7a93ace1fe284d21b55c9a2deb6a3bc4` passes77 required
+  CTests,14 packaged stock cases and four frontend cases without waivers,
+  preserving a629's water correction and networking cohort. Its full v9
+  sweep retains96 inspections,35 simulations and35 previews with no passing
+  losses; no mod passes the gameplay-render gate. Both installed launchers
+  select7a93 and render Mods after private build removal. Real isolated X11
+  input reaches E3 Explore Map through ordinary asynchronous preparation,
+  renders293 preview frames and exits cleanly. Main E3's25 native script
+  requirements and complete mod gameplay remain open.
+  [Qualified publication](../build/test-results/workshop-goal-20261101/publication.json),
+  [All-installed v9 results](../build/test-results/workshop-goal-20261101/installed-candidate-3-summary.json),
+  [Actual E3 menu handoff](../build/test-results/workshop-goal-20261101/installed-e3-menu-handoff-1.json).
+- [x] Complete the all-installed rerun on pinned unpublished candidate SHA256
+  `a90f4efc6dd4425fe6e87e02920654fde707f9070e202aaf5e21ca9d0ff73d50`.
+  Its3283-module production shader bank is restaged from the same frozen build
+  under the active owner, with a temporary link at its literal fallback path.
+  Launcher selections are untouched. Every declared map still attempts native
+  inspection,90 ticks, four gameplay frames and four preview frames. Original
+  map/runtime/resource verification remains uncached; preparation alone uses
+  the bounded identity-checked hash memo. Keep every failure and remove the
+  temporary shader link after the sweep. All10 packages/101 files are recorded;
+  all96 declared missions prepare and inspect,31 pass90-tick simulation,35
+  submit preview frames and none submits four gameplay frames. All96 map and
+  resource source checks and per-map scratch removals pass; the binary and
+  exact3283-module shader package remain unchanged. The temporary fallback
+  link is removed. Previews gain16 with no losses; Reformation containment,
+  elongation and headlong regress at the shape-class dispatch guard, and dune
+  regresses at contact-manager cleanup. Do not publish these regressions or
+  call any mission complete. The active source/build owner is still needed
+  for their diagnosis and will be removed when that investigation finishes.
+  [Complete sweep](../build/test-results/workshop-goal-20261101/installed-candidate-1/runtime/sweep.json),
+  [All package totals and regressions](../build/test-results/workshop-goal-20261101/installed-candidate-summary.json),
+  [Shader/cleanup receipt](../build/test-results/workshop-goal-20261101/installed-candidate-1/candidate-route.json).
+- [x] Submit and visually inspect four Original Alpha Moon preview frames on
+  the rebuilt unpublished candidate through actual Workshop preparation. The
+  640×480 capture shows sky and rocky terrain, passing the former sky-material
+  refusal. Other material warnings remain, including `cov_floodlight_illum`;
+  this is neither whole-map visual parity nor campaign/script acceptance.
+  The temporary capture and its probe owner are verified removed.
+  Packaged publication, campaign execution and all-installed rerun remain open.
+  [Candidate frames](../build/test-results/workshop-goal-20261101/mod-candidate-frames-1.json).
+- [x] Capture and compare the complete delayed-title setter/evaluator as a
+  component:120 original cases cover all four slot positions/full banks,
+  signed clock words, fractional/nonfinite delays and parsed/deferred HS
+  arguments. The native55-instruction proposal first fails for a missing
+  owner, then matches title bytes, full GP/SIMD/flags, instruction/call paths
+  and measured host-x86 x87 status. Direct unchanged i386 execution confirms
+  all non-FP outputs of the emulator and corrects44 emulator status omissions;
+  no original instruction is patched and no title effect is intercepted.
+  This proposal is not enabled in the runtime: native title lifetime,
+  presentation consumption and script-layout admission remain open. All
+  compiler/oracle/proposal scratch is removed; only bounded references,
+  generator/source hashes and failure diagnostics are retained.
+  [Original host proof](../build/test-results/workshop-goal-20261101/title-delayed-original-host.json),
+  [Native CPU comparison](../build/test-results/workshop-goal-20261101/title-delayed-native-hostcpu.json).
+- [x] Follow literal cinematic-state references to complete lifecycle13F160
+  and authenticate its actual13AB71 call site. All80 original instructions
+  execute across120 declared timing/slot/letterbox/subtitle cases, with no
+  patches or intercepted dependencies. Unchanged host-i386 execution agrees
+  with the emulator's complete bank, GP/SIMD/flags and x87 outputs. The combined
+  three-body native proposal matches all120 lifetime cases,768 ordered stores
+  and the preceding120 setter/evaluator cases. Temporary source/compiler owners
+  are removed. Native World scheduling, shared title-bank consumption, visible
+  title drawing and script-layout admission remain unqualified; this component
+  is not enabled in the delivered runtime.
+  [Original CPU comparison](../build/test-results/workshop-goal-20261101/title-lifetime-original.json),
+  [Native comparison](../build/test-results/workshop-goal-20261101/title-lifetime-component-2.json).
+- [x] Retain the135-instruction title component as a separate native library
+  with permanent original-backed tests. Both positive CTests and four
+  meaningful negative controls pass: changed delayed counters, expired IDs,
+  expiry comparison and missing lifecycle registration are rejected. Both
+  positive tests also pass Clang ASan/UBSan. All component and mod-capture
+  scratch owners are verified removed. The
+  required compressed CPU references total15390 bytes; no runtime bank,
+  executable or capture is retained. This library is not linked into gameplay;
+  World/presentation integration remains open.
+  [Component qualification and cleanup](../build/test-results/workshop-goal-20261101/title-component-acceptance.json).
+- [x] Authenticate the MCC-only `rasterizer_blur` contract through its complete
+  46-byte evaluator and literal three-byte empty effect. All17 instructions
+  execute across64 parsed/deferred, short-word, thread and initial-flags cases.
+  Parsed calls read exactly two argument bytes and complete with a void zero;
+  deferred calls neither read arguments nor invoke the effect/completion.
+  Only the actual parser/completion boundaries are intercepted, with no
+  instruction patch or effect interception. The oracle's temporary owners are
+  removed. This does not enable an adapter or supply prototype/Xbox blur;
+  argumentful native HS scheduling remains open, and the zero-argument clock
+  getter hook must not be used for this call.
+  [MCC original contract](../build/test-results/workshop-goal-20261101/rasterizer-blur-mcc-original.json).
+- [x] Verify the argument-signature lifetime against complete unchanged
+  TU1.5 parser212010, primitive evaluator211CB0 and coercion212560. All42
+  parser invocations across28 literal/nested-frame cases preserve the
+  nonvolatile registers and FP/SIMD state. Literal retries succeed with the
+  previous signature page unreadable; the parser stores argument values,
+  progress and child-frame links rather than the signature pointer. Nested
+  child completion and the proposed native adapter remain separate open
+  gates. No instruction or dependency result is replaced; the oracle scratch
+  owner is removed.
+  [Original lifetime proof](../build/test-results/workshop-goal-20261101/hs-signature-lifetime-original.json).
+- [x] Exercise the opt-in MCC blur command adapter through both complete
+  native HS dispatchers. All28 literal/nested-clock compositions and their
+  deferred checkpoint retries pass, including actual LONG-to-SHORT coercion,
+  two-byte argument reads, VOID completion, salted identity and nonvolatile
+  FP/SIMD state. The existing168 clock-getter compositions also pass. The
+  first two probes exposed missing private-project dependencies; the third
+  exposed absent blur signature metadata. The authenticated declaration is
+  now recorded as an explicit native requirement. Default profiles still
+  decline this command; World/VM integration and broader qualification remain
+  open. All four probe owners are removed.
+  [Initial component acceptance](../build/test-results/workshop-goal-20261101/hs-command-component-4/report.json).
+- [x] Reject six independent GCC command faults: missing ownership, wrong
+  return declaration, command-as-getter capture, stale argument identity,
+  four-byte argument reads and a wrong parser signature. Both positive HS
+  suites and all six negative CTests pass; both generated consumers also
+  round-trip through the shared hook generator. This is frozen component
+  evidence only; default gameplay admission remains disabled.
+  [Fault controls](../build/test-results/workshop-goal-20261101/hs-command-controls-gcc/report.json).
+- [x] Repeat both positive HS suites and all six fault controls with Clang;
+  all eight CTests pass. Read the exact installed call records in every map
+  identified by the full installed inventory as requiring blur: Alpha Moon
+  has three calls and the two E3 variants have two each. All seven arguments
+  are authored SHORT literals with nonzero upper words; source map hashes
+  match the published cohort and remain unchanged. This inventory does not
+  establish native execution of those authored records or mission acceptance.
+  [Clang controls](../build/test-results/workshop-goal-20261101/hs-command-controls-clang/report.json),
+  [Installed call identities](../build/test-results/workshop-goal-20261101/hs-blur-installed-calls.json).
+- [x] Pass both native command/getter component suites with Clang
+  ASan/UBSan. The signature oracle, GCC/Clang fault-control owners and
+  sanitizer owner are removed; no compiler binary, raw bank or frame is
+  retained. Runtime command admission remains disabled.
+  [Sanitizer evidence](../build/test-results/workshop-goal-20261101/hs-command-sanitizers/report.json).
+- [x] Execute all seven exact installed blur call records through both native
+  HS dispatchers, including deferred checkpoint retries. All14 authored
+  compositions preserve original syntax bytes and consume the original low
+  SHORT words despite their nonzero upper words. The positive, installed,
+  getter and six fault-control GCC suites all pass. Retain only the5827-byte
+  required authored-record fixture; its sparse test banks and compiler owner
+  are removed. These are isolated authored-call tests, not full missions.
+  [Installed native calls](../build/test-results/workshop-goal-20261101/hs-command-installed-gcc/report.json).
+- [x] Pass all seven installed blur commands and checkpoint retries through
+  the C++ ScriptVm and typed MCC legacy-command service. Their exact SHORT
+  payloads and VOID zero completions match. Only the surrounding root sibling
+  link is terminated to make each command a standalone test entry; callee,
+  argument and salted identities stay authored. Earlier probes exposed a
+  missing object-list linker dependency and that explicit harness boundary.
+  Both native positive suites and installed native calls remain green. The
+  Simulation host is wired in source, but its actual integration target and
+  World admission still require full-build acceptance.
+  [C++ ScriptVm acceptance](../build/test-results/workshop-goal-20261101/hs-command-cpp-gcc-3/report.json).
+- [x] Pass the expanded four-suite native/authored-call/C++ VM/getter cohort
+  with Clang ASan/UBSan. Add the native command, installed-call, C++ Simulation
+  and existing clock regression gates to mandatory engine qualification;
+  all80 launcher-builder unit tests still pass. This requires five additional
+  CTests in the next delivery build; full engine acceptance remains open.
+  [Expanded sanitizer evidence](../build/test-results/workshop-goal-20261101/hs-command-cpp-sanitizers/report.json).
+- [x] Prepare a private full-engine command integration cohort from the
+  delivered7a93 source archive. Both dispatchers' original HS bodies match
+  the component proof exactly; only declared command changes and private
+  World/menu/probe admission are applied. Audit the archive payload size,
+  authenticate omitted precompiled inputs/licenses against the selected
+  package and freeze341 separate vendor inputs. Initial configuration
+  failures remain recorded; configuration now passes and the five consumer
+  CTests are compiling under the active owned build. No engine acceptance
+  or publication is claimed from preparation.
+  [Owned preparation](../build/test-results/workshop-goal-20261101/command-engine-3/preparation.json),
+  [Vendor inputs](../build/test-results/workshop-goal-20261101/command-engine-3/vendor-refresh.json).
+- [x] Detect the newer concurrently selected32273 runtime before any mod
+  publication. Its sealed source inventory differs from7a93 in six physics
+  files; authenticate all six against its retained source archive. Retain the
+  two associated gameplay/shape regression updates while preserving our two
+  stricter launcher-builder controls. The current consumer build remains
+  frozen7a93 evidence; refresh the complete six-file cohort after it finishes
+  and requalify before considering a delivery. No selector is overwritten.
+  [New selected cohort](../build/test-results/workshop-goal-20261101/command-engine-3/new-selected-source-reference.json).
+- [x] Pass all five full-source consumer CTests: native getters, command
+  scheduling, installed authored calls, actual Simulation host startup/
+  completion and clock initialization. The seven Simulation commands execute
+  and finish successfully. This is the frozen7a93-based integration cohort;
+  the newer selected physics refresh, real World command-services test and
+  complete delivery/installed-mod acceptance still remain open.
+  [Full-source consumers](../build/test-results/workshop-goal-20261101/command-engine-3/consumer-tests-4/report.json).
+- [x] Refresh the active owned cohort with all six authenticated physics
+  files from the newer selected32273 runtime and its two matching regression
+  tests. Preserve the newer launcher-builder controls, add the real World
+  command gate and retain the qualified reset component as standalone source.
+  All25 refreshed files receive current timestamps and pinned hashes; no
+  launcher selection changes. The refreshed cohort still needs execution
+  acceptance before any publication.
+  [Coherent refresh](../build/test-results/workshop-goal-20261101/command-engine-3/cohort-refresh.json).
+- [x] Execute the refreshed seven-test consumer cohort: six pass, including
+  all prior script consumers and the newer17-type physics regression. The
+  real World command gate fails on missing scalar-cast storage at502248
+  before it executes a command. Authenticate the original15376-byte cold
+  zero table and complete212470/2112B0 initialization bodies; remove that
+  oracle owner. This is an identified engine gap, not World acceptance;
+  production backing/lifecycle repair and the required World test remain open.
+  [World failure](../build/test-results/workshop-goal-20261101/command-engine-3/world-consumers-1/report.json),
+  [Original scalar storage](../build/test-results/workshop-goal-20261101/hs-scalar-original-inventory.json).
+- [x] Resolve the scalar-table lifecycle against the actual World route:
+  World already calls2129D0, whose UI owner runs2112B0 and212470. Its cold
+  provider backed only written cells, leaving other legitimate zero lookup
+  cells absent. Capture the complete unchanged40-site212470 constructor in
+  four original cases, both direction flags, all3844 table words and ordered
+  stores, caller stack, registers and FP/SIMD preservation. Retain the required
+  142468-byte reference and remove its oracle scratch. The full-table backing
+  repair and World test now await native execution; no extra initialization
+  call or delivered feature admission has been added.
+  [Original constructor](../build/test-results/workshop-goal-20261101/hs-scalar-original-constructor.json).
+- [x] Repair the existing UI startup owner's scalar backing to the full
+  authenticated502248..505E58 loader-zero range. All nine focused native
+  CTests pass: original UI startup, four whole-table constructor/ABI cases,
+  the real World production-table check and seven authored blur commands,
+  the previous native/C++ consumers and the17-type physics regression.
+  World uses its existing2129D0 ->2112B0 ->212470 lifecycle; the test does not
+  initialize the table or supply dependency results. All80 launcher-builder
+  checks also pass. Full build qualification, actual installed-map acceptance
+  and publication remain open.
+  [Native World acceptance](../build/test-results/workshop-goal-20261101/command-engine-3/world-consumers-3/report.json),
+  [Builder checks](../build/test-results/workshop-goal-20261101/hs-scalar-builder-controls.json).
+- [x] Enable the qualified legacy blur contract in the World, Mods admission
+  and native inspection callers. Independently prepare the actual installed
+  E3 main map through the normal production preparer, then inspect it with
+  the updated native probe: unresolved requirements drop from25 to24, with
+  only`rasterizer_blur` removed and none added. Original map/resource, probe
+  and selector hashes stay unchanged; the preparation/probe owner is removed.
+  This is real installed-content admission, not campaign execution or a new
+  published runtime. Full candidate qualification and all-mod regression
+  acceptance remain open.
+  [Installed E3 admission](../build/test-results/workshop-goal-20261101/hs-blur-e3-installed-admission.json).
+- [x] Build the complete frozen candidate with both launcher targets and
+  pass all84 required CTests against its staged production shader bank,
+  with zero failures or skips. This includes the new World/command/scalar
+  gates, loading GPU checks and existing native gameplay regressions. The
+  builder proceeds to packaged stock-map/local-player and frontend checks;
+  candidate retention, installed-mod regression and publication remain open.
+  [Candidate8 qualification suite](../build/test-results/workshop-goal-20261101/launcher-8/validation/report.json).
+- [x] Prepare qualified candidate`7d8dac7632ae45459da0efe3e94f2e49` after
+  all84 required CTests,14 packaged stock-map/player cases, four frontend
+  cases and its mandatory source/link checks pass without waivers. Retain
+  its3197763388-byte runtime/resource package for the requested feedback
+  build; executable SHA256 is
+  `bcd4b26634474cbd27e06da68e22ffe8a0d1dbdf813c9fdc864cdbec4e99d063`.
+  Both root launchers still select the prior32273 runtime. The candidate
+  now requires its packaged installed-mod sweep and comparison before
+  guarded publication; this does not complete mod support.
+  [Prepared candidate8](../build/test-results/workshop-goal-20261101/launcher-8/report.json).
+- [x] Preserve candidate8's exact code-only source reference at
+  `bin/engine-source-snapshots/workshop-blur-20261101-7d8dac7632ae45459da0efe3e94f2e49.tar.zst`.
+  Stream-verify all17711 archive entries and their actual396883167 logical
+  bytes, including the independently named external qualification helpers.
+  The retained archive is78641876 bytes, SHA256
+  `8bc36ed3dc23a7f0077bc144828ae4193067119959bb776d2def94d1ee5d28e0`.
+  Production inventory, source inputs and executable match before/after;
+  borrowed assets, vendor trees, builds and captures are excluded. Its
+  temporary archive owner is removed. The active engine/sweep owner remains
+  necessary until installed-mod acceptance and delivery finish.
+  [Exact candidate8 source](../build/test-results/workshop-goal-20261101/source-archive-candidate-8.json).
+- [x] Finish candidate8's exact packaged installed sweep:101 map files,
+  all96 declared missions inspected,35 simulations complete at least90 ticks,
+  35 previews submit four frames and zero gameplay renders pass. All previous
+  passing checks from the last published Workshop cohort are preserved, and
+  all map/resource, scratch, executable, source and3283-shader checks pass.
+  Five undeclared resource maps remain explicit. Removing the verified blur
+  contract reduces distinct script requirements59->58 and main E3's25->24;
+  full mission acceptance remains open. Sweep exit1 correctly preserves the
+  remaining failures. Candidate Mods presentation and guarded publication
+  are the next delivery gates.
+  [Packaged candidate8 sweep](../build/test-results/workshop-goal-20261101/installed-candidate-4/runtime/sweep.json),
+  [Strict comparison](../build/test-results/workshop-goal-20261101/installed-candidate-4-summary.json),
+  [Package/cohort integrity](../build/test-results/workshop-goal-20261101/installed-candidate-4/candidate-route.json).
+- [x] Capture and visually inspect candidate8's actual native Mods catalog
+  at its first/last selection and the32-mission Digtacular picker. All three
+  views submit four post-intro frames with legible labels, descriptions,
+  selection/scroll indicators and footer;10 packages and96 missions match
+  discovery. Candidate and selector hashes remain unchanged. Raw captures
+  remain only in the active owned build tree until its final cleanup.
+  [Native candidate8 Mods views](../build/test-results/workshop-goal-20261101/mods-native-menu-3.json).
+- [x] Publish qualified candidate8 through the guarded four-file transaction:
+  both root launchers and both selection records now choose7d8dac76. Both
+  public admission readers pass; selected cache/defaults, all six newer32273
+  physics source changes and the previous runtime are preserved. The initial
+  command-size and multiprocessing preflights failed before any root mutation;
+  corrected publication succeeds with no rollback failure. The temporary
+  build owner must now be removed, then both installed launcher routes and
+  the real Mods/E3 launch flow checked independently of that owner. This
+  feedback binary includes the cast-table/blur work; Root's subsequent
+  eight-argument metadata change is separate.
+  [Candidate8 publication](../build/test-results/workshop-goal-20261101/publication-candidate-8.json).
+- [x] Retire candidate8's completed source/build/sweep owner with its exact
+  coordinator quit request and verify removal:9030787627 regular bytes and
+  64341 files, including all three raw Mods captures, are gone. Preserve the
+  requested3197763388-byte runtime/resource package,78641876-byte exact source
+  archive, small required original references, prior selected runtimes and
+  original assets. Both installed launcher routes and the real UI flow must
+  now pass without that temporary tree.
+  [Candidate8 cleanup](../build/test-results/workshop-goal-20261101/candidate8-storage-cleanup.json).
+- [x] After build removal, use real X11 key input through the installed
+  root launcher: Mods -> E3 -> Play Campaign -> highlighted difficulty ->
+  genuine asynchronous preparation -> unavailable dialog. Visually verify
+  the delivered24-feature count and first`bitmap_predict`, then Continue ->
+  Back -> Explore Map. The real E3 preview renders322 frames and closes
+  normally through WM_DELETE_WINDOW. Runtime, selectors, installed map,
+  selected base and all prepared resource inputs remain unchanged. Its
+  separate owner, prepared caches and raw dialog capture are removed. This
+  verifies delivered admission/navigation/preview, not campaign playability.
+  [Installed candidate8 E3 flow](../build/test-results/workshop-goal-20261101/candidate8-root-e3-flow.json).
+- [x] Verify both actual installed root entry points after build removal:
+  `Halo2-Launcher` and`Halo2-Title-Launcher` each report7d8dac76, then launch
+  the native Mods screen and submit four frames after intro-clear observation.
+  Both use Root's resource owner; executable and selector hashes remain
+  unchanged. The separate route-check owner and captures are removed. The
+  requested feedback build is delivered through both normal launchers; all
+  remaining script/content/gameplay/mission/co-op/network gates stay open.
+  [Both installed candidate8 routes](../build/test-results/workshop-goal-20261101/candidate8-root-launcher-routes.json).
+- [x] Qualify the complete29-site scenery-start HS wrapper against32 unchanged
+  original reference cases. GCC and Clang pass the real wrapper plus seven
+  negative controls for the absent owner, graph register, start frame, hold,
+  loop, anchor and VOID completion. Additive original-code generation preserves
+  all13 existing module bodies exactly. The small7402-byte compressed fixture
+  is retained as a required regression input; compiler/oracle scratch is
+  removed. This component supplies declared parser/effect/completion ABI
+  returns and does not qualify animation effects or admit MCC185. Full HS
+  composition, actual MCC World animation/clock/pose, checkpoint/render and
+  delivery gates remain open. The owned frozen engine bootstrap build is
+  separate and still active.
+  [Native wrapper component](../build/test-results/workshop-goal-20261101/scenery-wrapper-1/report.json).
+- [x] Re-run the32-case scenery wrapper comparison with ASan/UBSan. The
+  current14-entry module regenerates exactly, all native cases pass, and its
+  isolated compiler/oracle owner is removed. No supplied-boundary component
+  result is promoted to the actual MCC animation effect or script admission.
+  [Sanitizer qualification](../build/test-results/workshop-goal-20261101/scenery-wrapper-sanitizers-1/report.json).
+- [x] Cross-check all32 scenery wrapper references on unchanged physical
+  i386 execution. Registers, flags including DF, SIMD/x87 status and all three
+  call interfaces match; only the physical harness's outer return address is
+  excluded from stack comparison. The original text/image remains exact and
+  its owned compiler/binary tree is removed. The scenery effect is explicitly
+  intercepted at this component boundary; actual animation acceptance remains
+  open.
+  [Physical original wrapper](../build/test-results/workshop-goal-20261101/scenery-wrapper-original-host-1.json).
+- [x] Preserve the concurrent selectedde12 physics/water source cohort while
+  the scenery engine probe builds privately against7d8. Independently verify
+  all14593 production files against the selected package, authenticate its
+  existing79887429-byte source archive, and restore the complete source in a
+  disposable owner. The archive carries a stale7d8 embedded manifest; it is
+  explicitly excluded as qualification evidence. The checked complete
+  selected-package inventory and whole-archive hash authenticate restoration.
+  Source preparation also checks that borrowed references preserve the sealed
+  production inventory. All archive/preparation scratch is removed, with no
+  duplicate archive, selector change or new runtime publication. The next
+  Workshop publication must retain all13 selected-source changes and rerun
+  its appropriate native/installed acceptance; the7d8 probe does not establish
+  de12 gameplay or full mission acceptance.
+  [Selected-source audit](../build/test-results/workshop-goal-20261101/source-archive-selected-de12.json),
+  [Actual restore](../build/test-results/workshop-goal-20261101/selected-de12-preparation-check-5/preparation.json).
+- [x] Check the intended stock MCC opening baseline through the actual
+  selectedde12 runtime. Campaign00a starts, completes one simulation tick,
+  records zero script faults and exits cleanly. Map, runtime and selector
+  hashes remain exact; its owned saves/output scratch is removed. This
+  establishes startup admission for the scenery consumer investigation only,
+  not full cinematic animation, rendering or mission acceptance.
+  [Actual stock startup](../build/test-results/workshop-goal-20261101/scenery-stock-startup-admission-1.json).
+- [x] Execute the actual native MCC scenery initialization consumer in the
+  frozen7d8 World. The authored opening tuple names`carrier_01`; its real
+  native object birth and10F710 start succeed,10F510 reports651 remaining
+  ticks and the object exposes one retained WORLD node. The CTest passes
+  without a skip or supplied engine result. This covers construction/start/
+  query only; actual HS dispatch, advancement, checkpoint/render consumption
+  and script admission remain open. The full build owner remains active for
+  those incremental checks; per-test scratch is removed.
+  [Native MCC initialization](../build/test-results/workshop-goal-20261101/scenery-engine-1/bootstrap-1/report.json),
+  [Actual consumer output](../build/test-results/workshop-goal-20261101/scenery-engine-1/bootstrap-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Traverse the complete actual native World HS dispatcher, deferred
+  argument parser, scenery-start wrapper,10F710 animation effect and VOID
+  completion using that MCC object/graph/name tuple. Both World initialization
+  and HS CTests pass with original parser/wrapper/completion store evidence,
+  retained animation state and no supplied dependency returns. The separate
+  registered wrapper-fixture test fails before execution because its frozen
+  Python expansion helper is absent; refresh that explicit test input and
+  rerun it before treating the combined suite as passing. Animation pacing,
+  checkpoint/render consumers and MCC185 admission remain open.
+  [Actual native World HS path](../build/test-results/workshop-goal-20261101/scenery-engine-1/world-hs-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Restore the missing frozen fixture helper and rerun the combined suite.
+  Initialization, complete actual World HS and the registered32-case wrapper
+  test all pass. The real scenery timer advances651→591 over60 source ticks,
+  with the native game clock advancing exactly once per tick. The lifecycle
+  gate remains red: the sampled WORLD node is unchanged, so checkpoint/replay
+  is not yet attempted. Determine whether this reflects the authored clip,
+  the observation/pose phase or a missing native consumer before changing any
+  engine behavior or declaring animation complete.
+  [Clock evidence and open pose gate](../build/test-results/workshop-goal-20261101/scenery-engine-1/world-lifecycle-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Correct the motion probe against authored carrier keys. Its first
+  changed translation key is209, preceded by an unchanged key at172;
+  rotation and scale also hold through the original60-tick sample. Both raw
+  WORLD and actual native model-builder palettes subsequently move. The
+  remaining failure is pacing:209 game ticks consume174 animation ticks.
+  Read-only instrumentation identifies the first stall at tick175, when
+  header flags are0x42 and body flags0x880900, with no PVS object override.
+  OriginalB8F40 requires header bits1 and2 and excludes bit8 before its
+  update call;0x42 fails that real source gate. No timer/activation byte is
+  forced and no script admission changes. Checkpoint/replay is still behind
+  the failing pacing assertion. Trace the actual camera/PVS/cinematic
+  visibility context before deciding whether the caller setup or an engine
+  owner is missing.
+  [Authored keys](../build/test-results/workshop-goal-20261101/scenery-engine-1/authored-clip-probe-2/evidence/Testing/Temporary/LastTest.log),
+  [Motion and pacing](../build/test-results/workshop-goal-20261101/scenery-engine-1/world-lifecycle-2/evidence/Testing/Temporary/LastTest.log),
+  [First activity divergence](../build/test-results/workshop-goal-20261101/scenery-engine-1/activity-probe-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Identify the actual native header writer with a read-only observation.
+  At tick174 original B9330 clears activity bits at B9356, called from
+  BA630 through BFF20/BE850/B9090. The following animation update stalls.
+  This identifies the executed deactivation path; it does not establish
+  whether authored camera/visibility context or an engine owner is missing.
+  No activity flag, timer or engine return is supplied.
+  [Native writer trace](../build/test-results/workshop-goal-20261101/scenery-header-writer-symbols-1.json).
+- [x] Merge all13 authenticated selectedde12 production changes into the
+  existing owned scenery source, preserving every declared Workshop overlay
+  and refreshing57 selected archived test inputs. Replace only the private
+  borrowed test-helper link with authenticated archived files; shared Root
+  helpers remain unchanged. The complete14598-file production inventory
+  matches selectedde12 plus the explicit overlays. The temporary archive
+  extraction is removed and the runtime/launcher selectors remain exact.
+  This is source preservation only; the merged native checks must run before
+  transferring the earlier7d8 consumer results to this cohort.
+  [Guarded source refresh](../build/test-results/workshop-goal-20261101/scenery-engine-1/selected-de12-refresh-1.json).
+- [x] Reproduce the native scenery consumer frontier after that coherent
+  selectedde12 merge. Bootstrap, complete native HS execution and the32-case
+  wrapper pass; both CPU lifecycle/model-consumer checks retain the exact
+  tick174 deactivation and subsequent animation stall. This rules out the
+  old7d8 source baseline as the explanation for the observed pacing failure.
+  Per-test scratch is removed; the incremental owner remains active.
+  [Current-cohort native consumers](../build/test-results/workshop-goal-20261101/scenery-engine-1/selected-de12-consumers-1/report.json).
+- [ ] Complete that source activity context and qualify native scenery
+  checkpoint/replay, real geometry/GPU consumption, appropriate active/hidden
+  and relative/nonrelative cases, MCC185 admission and coherent delivery.
+  Authenticated dependency candidates are original2ABEF0→BE180 for cinematic
+  visibility and2B2B20 for PVS-object override. BE180's complete18 sites toggle
+  only body+4 bit0x200000, using the low boolean byte and the actual object
+  table. Neither wrapper/effect source inspection nor a forced flag would
+  qualify those consumers. Preserve current native/world source ownership and
+  the selectedde12 cohort during further work.
+  [Original dependency audit](../build/test-results/workshop-goal-20261101/scenery-activation-original-1.json),
+  [Original visibility effect](../build/test-results/workshop-goal-20261101/scenery-visibility-effect-original-1.json).
+- [x] Read the actual MCC00a caller context. `x01_scene_01a` starts the
+  carrier relative to`anchor_x01a`, after its authored animated camera/FOV;
+  setup requests cinematic LOD, with no cinematic-visibility call in that
+  scene's syntax. Adding the real automatic anchor birth alone retains the
+  exact tick174 stall. Read-only bounds/cluster observations show a valid
+  cluster27 whose native PVS word is zero, ruling out an absent BSP cluster
+  and the anchor alone as sufficient explanations. The next probe executes
+  that same scene's preceding native camera actions, without supplying PVS
+  bits or animation results. Nonrelative MCC185 qualification stays separate.
+  [Authored caller context](../build/test-results/workshop-goal-20261101/scenery-engine-1/authored-context-probe-2/evidence/Testing/Temporary/LastTest.log),
+  [Actual relative anchor](../build/test-results/workshop-goal-20261101/scenery-engine-1/relative-anchor-probe-1/report.json),
+  [Native cluster/PVS observation](../build/test-results/workshop-goal-20261101/scenery-engine-1/cluster-pvs-probe-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Execute that actual authored camera/control/FOV setup through its
+  native owners. Original13B6F0 now produces cluster27's bit0x08000000;
+  relative and nonrelative scenery both consume209 exact game/animation
+  ticks, move their real model-builder WORLD palettes, and pass native
+  checkpoint restoration plus the repeated ten-tick future. The nonrelative
+  case traverses the full original HS dispatcher/parser/new wrapper/effect/
+  completion path. This identifies missing camera context in the old probe,
+  without any engine activation/timer correction or PVS override. Complete
+  animation end/hold/restart, clean regressions, actual geometry/GPU and
+  MCC185 admission/delivery remain open.
+  [Actual camera/PVS and both animation consumers](../build/test-results/workshop-goal-20261101/scenery-engine-1/authored-camera-consumers-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Remove all scenery debug observers/logs and temporary diagnostic
+  functions/modes. The clean seven-CTest cohort passes without skips:
+  native initialization, full HS, collision WORLD lifecycle, actual model
+  builder, relative animation, missing-camera inactivity control and the32
+  wrapper comparisons. Both active animation paths now run through all651
+  positive remaining ticks, final held poses, zero completion queries,
+  invalid object/graph/name returns, restart and full salted retirement.
+  Camera and scenery advance on the same native clock; native checkpoint
+  restoration and repeated ten-tick future remain exact. The separate
+  inactive control retains genuine tick174 deactivation rather than
+  weakening the active timing assertions. Every per-test scratch owner is
+  removed. No gameplay admission, geometry/GPU proof or runtime publication
+  follows from these CPU results alone.
+  [Clean native lifecycle cohort](../build/test-results/workshop-goal-20261101/scenery-engine-1/clean-lifecycle-1/report.json),
+  [Native lifecycle and controls](../build/test-results/workshop-goal-20261101/scenery-engine-1/clean-lifecycle-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Extend the real model-builder consumer through`SourceCampaignModel`
+  and its exact ordered section/LOD requests. Both nonrelative HS and authored
+  relative paths select16530 actual authored vertices; those vertices move
+  at the changed key and remain byte-exact across initial hold, checkpoint
+  replay, final hold and restart. All three affected geometry/control CTests
+  pass without skips. These are CPU geometry results using real resources
+  and native collectors; no submitted GPU frame or completed mission is
+  claimed. Original material preparation, shader selection and GPU submission
+  remain the next separate consumer gate before MCC185 admission.
+  [Actual authored geometry consumers](../build/test-results/workshop-goal-20261101/scenery-engine-1/authored-geometry-1/evidence/Testing/Temporary/LastTest.log).
+- [x] Re-run the final clean seven-check cohort with those real geometry
+  comparisons, then independently pin the exact source, unchanged selected
+  runtime and authored MCC map. All seven pass without skips; all per-test
+  scratch and temporary archive extraction are removed. The existing
+  incremental owner stays active for the GPU gate (2570568018 regular bytes,
+ 48919 files); no new large artifact is retained or launcher published.
+  MCC185 remains unadmitted, so E3 still has24 requirements in the latest
+  complete sweep.
+  [Native CPU/geometry acceptance and active storage](../build/test-results/workshop-goal-20261101/scenery-native-cpu-acceptance-1.json).
+- [x] Refresh the installed Workshop catalogue without modifying Steam
+  content. All10 packages and96 declared scenario/campaign identities match
+  the last complete sweep, with no scan errors or added/removed packages.
+  The separate catalogue scratch owner is removed. This checks current
+  discovery/metadata identity; content hashes and gameplay still require the
+  next coherent packaged sweep.
+  [Current catalogue comparison](../build/test-results/workshop-goal-20261101/catalog-current-comparison-1.json).
+- [x] Compile-check the new isolated native scenery GPU consumer against
+  the owned CMake flags and exact frozen headers. Syntax passes without
+  diagnostics and its separate scratch owner is removed. Real materials,
+  authored camera/light inputs, checkpoint images, frozen-pose/current-shader
+  and empty/retirement controls are implemented; the first native renderer/
+  shader build and both actual GPU CTests remain pending. No GPU acceptance
+  or script admission follows from this compiler check.
+  [Owned compiler check](../build/test-results/workshop-goal-20261101/scenery-gpu-syntax-1.json).
+- [x] Execute the real native renderer and shader bank against the authored
+  relative carrier scene. The strengthened control freezes only the initial
+  native pose while retaining current collector/coverage/shader selection.
+  At tick209,203912 pixels differ from both frozen geometry and the empty
+  owner. Twelve actual GPU submissions and70 owner draws pass full animation
+  completion, exact checkpoint-image replay, final hold/restart and empty
+  retirement, with zero uploaded executable vertex words and no Vulkan
+  diagnostics. Raw captures and both per-test owners are removed. The
+  nonrelative case reproducibly submits blank geometry in that relative
+  scene camera (0/0 motion/owner pixels); that separate view/input frontier
+  remains red and MCC185 remains unadmitted.
+  [Native GPU relative consumer and explicit nonrelative failure](../build/test-results/workshop-goal-20261101/scenery-engine-1/gpu-consumers-2/evidence/Testing/Temporary/LastTest.log).
+- [x] Qualify both nonrelative and relative native GPU variants in a valid
+  shared authored frame. Original B95D0 consumes the actual reference object's
+  native position/forward/up to initialize the nonrelative fixture; its
+  animation anchor remains NONE and the actual three-argument HS wrapper
+  executes. Both cases retain the authored camera/PVS and each passes12 GPU
+  submissions,70 independent owner draws,203912 frozen-pose/empty-owner pixel
+  differences, checkpoint image replay, full completion/hold/restart and
+  empty retirement, with zero executable vertex-word uploads and no Vulkan
+  diagnostics. Pipeline and driver caches now live inside each test owner.
+  The failed NONE/NONE camera experiment and blank-frame controls remain
+  recorded; no engine camera/activation/timer change or fabricated view was
+  used. Final full regression/admission checks remain required before the
+  MCC185 profile entry or a new build is published.
+  [Both actual native GPU consumers](../build/test-results/workshop-goal-20261101/scenery-engine-1/gpu-consumers-4/evidence/Testing/Temporary/LastTest.log),
+  [Original transform input authority](../build/test-results/workshop-goal-20261101/scenery-object-transform-original-1.json).
+- [x] Pass the final clean nine-check scenery cohort, including both actual
+  Vulkan consumers and the explicit post-HS assertion that the three-argument
+  start keeps its animation anchor NONE. All nine pass without skips; the
+  per-test owners and raw images are removed. No source camera, activation or
+  timing correction was needed. The active source/build owner remains in use
+  for metadata admission, regression checks and feedback-build qualification.
+  [Final native CPU/GPU cohort](../build/test-results/workshop-goal-20261101/scenery-engine-1/native-final-9-1/report.json).
+- [x] Add only the authenticated MCC185 -> Xbox184 declaration after that
+  consumer qualification, preserving all410 prior declarations and17 globals.
+  The regenerated profile now contains411 declarations. New projection tests
+  preserve all authored argument/node bytes and explicitly reject truncated
+  arguments, changed function identity and the unqualified neighboring
+  relative-loop builtin. These new checks and actual installed-map inspection
+  remain pending; the last complete installed sweep still reports58/E324.
+  No new build has been published.
+  [Guarded single-feature admission](../build/test-results/workshop-goal-20261101/scenery-engine-1/source-refresh-22.json).
+- [x] Pass all11 post-admission regressions: nine real CPU/GPU scenery cases
+  plus generated-profile and native projection checks, with no skips. Inspect
+  all three actual installed E3 variants against unchanged source/resource
+  hashes: normal and low-spec24->23, removing only`scenery_animation_start`;
+  Playground remains0 because it never required that declaration. The first
+  comparison incorrectly expected a removal in every variant; retain that
+  test-expectation failure and its correction. Every per-map scratch owner is
+  removed. Script readiness alone does not qualify Playground gameplay or
+  native AI. All nine scenery regressions are now included in the feedback
+  builder's mandatory target/filter cohort. Full installed/package/delivery
+  qualification still remains before any new selection.
+  [Post-admission regressions](../build/test-results/workshop-goal-20261101/scenery-engine-1/admission-regression-1/report.json),
+  [Actual installed E3 requirements](../build/test-results/workshop-goal-20261101/scenery-admission-e3-inspection-1.json).
+- [x] Check candidate9's complete production inventory against selectedde12:
+  all14593 selected source entries are preserved except exactly13 declared
+  Workshop wrapper, metadata, arity, regression and snapshot-tool changes;
+  the candidate has14598 production files. The first prepublication allow
+  list omitted the already-recorded snapshot preparer; authenticate its
+  original source-refresh1 hash before correcting that guard. No unrelated
+  source, asset, runtime, launcher or selection is replaced. Capture all four
+  current publication-file identities for a later guarded transaction; the
+  separate check owner is removed. Candidate compilation is complete and
+  full qualification is running; this is not publication or gameplay proof.
+  [Selected-source preservation](../build/test-results/workshop-goal-20261101/candidate9-selected-source-preservation.json).
+- [x] Pass the complete93-check candidate9 CTest cohort, including all nine
+  scenery regressions against the staged canonical shader bank. Independently
+  parse the fresh log:93 distinct passes, all nine required scenery names
+  present, no skipped tests or waivers. The separate verification owner is
+  removed. Packaged stock/player and frontend checks are still running; the
+  installed-mod sweep and actual delivery remain separate gates.
+  [Required candidate CTests](../build/test-results/workshop-goal-20261101/candidate9-required-ctests.json).
+- [x] Prepare candidate9 after all93 required tests,14 packaged stock/player
+  submitted-frame cases and four frontend checks pass, with zero waivers.
+  Runtime`1955e9ab58b24e68ac2ee36e2cc4ddb6` has executable SHA256
+  `e98ba5674284facd5aa5bf75fb88003fd91a42de8cd5214d132ab1e82d822a6c`.
+  Retain3197768822 bytes of requested candidate runtime/resources for the
+  installed-mod and delivery gates. Both Root launchers still selectde12;
+  this prepared candidate is not yet published. Start the complete installed
+  sweep in the same active owner; actual mod gameplay remains unqualified.
+  [Qualified candidate9](../build/test-results/workshop-goal-20261101/launcher-9/report.json).
+- [x] Preserve candidate9's exact qualified source as a new immutable reference:
+  `bin/engine-source-snapshots/workshop-scenery-20261101-1955e9ab58b24e68ac2ee36e2cc4ddb6.tar.zst`,
+  79995596 bytes, SHA256
+  `781a7440908e60576efd1af358818f855ae0f9dd4a9980919dbdef8662fa120a`.
+  Verify all17798 archive entries and410067723 logical bytes through a full
+  streamed roundtrip. The fresh manifest identifies this actual candidate;
+  the stale ancestor manifest is not reused. The separate archive owner and
+  staging copy are removed. The requested runtime/resources and this required
+  source reference remain explicitly retained; installed-mod execution and
+  publication are still pending.
+  [Exact source archive](../build/test-results/workshop-goal-20261101/source-archive-candidate-9.json).
+- [x] Inventory actual authored camera454/scenery185 callers across all40
+  prepared stock gameplay maps and all three installed E3 variants. All43
+  inputs parse with no errors and unchanged source hashes. Each normal/low
+  E3 variant has55 camera starts and18 scenery starts; the other41 inputs
+  have neither of these two nonrelative declarations. Preserve exact salted
+  caller/argument nodes, literal graph identities and original source text.
+  The first E3 scenery recipe is`dig_loading`/`dig_load`/`loading`; its literal
+  opcode61 requests type55, so actual authored name binding must be exercised
+  as well as the prior already-resolved object ABI fixture. The first camera
+  recipe is the mod's own camera graph/`camera_intro_logo`. These are content
+  facts for the next native consumer tests, not camera admission or animation
+  execution proof. The separate inventory owner is removed.
+  [Actual authored callers](../build/test-results/workshop-goal-20261101/authored-camera-scenery-callers-1.json).
+- [x] Attempt actual E3 native HS/name-binding execution using the exact
+  authored first scenery call and unchanged candidate9 libraries/headers.
+  Compilation and link pass, but native World construction correctly refuses
+  the still-unqualified`camera_set_animation` at syntax datum3974170990
+  before any scenery birth, cast or effect executes. Preserve this negative
+  result; it does not show a scenery failure or establish E3 execution.
+  No declaration gate, dependency return or authored script is bypassed.
+  All compiler, executable, prepared-map and probe scratch is removed.
+  [Actual E3 native admission frontier](../build/test-results/workshop-goal-20261101/scenery-authored-e3-hs-1.json).
+- [x] Complete candidate9's full installed regression sweep:10 packages,
+  101 files and96 declared missions;96 inspections,35 completed90-tick
+  simulations and35 four-frame previews pass, with no passing-check losses
+  or gains versus candidate8. All map identities/bytes, resource checks and
+  per-map cleanup match. Distinct script requirements fall58->57, removing
+  only`scenery_animation_start`; E3 normal/low each24->23. There remain179
+  material-template gaps, zero accepted mod gameplay renders and zero full
+  missions. Runtime/shader/source hashes stay exact, and the candidate is
+  still unpublished pending native-menu review and guarded delivery.
+  [Complete installed regression comparison](../build/test-results/workshop-goal-20261101/installed-candidate-5-summary.json).
+- [x] Close native object-name lookup before delivering the scenery
+  admission. A stronger stock-MCC HS fixture uses the actual authored
+  scenery_name opcode61 requested as scenery55, preserving all other source
+  inputs and real parser/effect boundaries. It reproducibly reaches the
+  original212560 cast tail at21258F and refuses missing ownerBD790, before
+  entering the scenery wrapper. The prior resolved-object fixture did not
+  cover this caller form. OriginalBD790 has10 sites, no callees, signed AX
+  bounds0..639 and a real salted-datum table behind4EABA0. Implement and
+  qualify its complete native ABI plus initialization/association consumer;
+  never substitute a host name search or supplied result. Candidate9 stays
+  unpublished despite its passing93/14/4 and complete installed regression
+  checks; all original/current runtimes and its frozen references remain.
+  [Actual native caller frontier](../build/test-results/workshop-goal-20261101/scenery-authored-name-cast-1.json),
+  [Original lookup audit](../build/test-results/workshop-goal-20261101/scenery-name-resolver-original-1.json).
+  The complete native lookup subsequently passes the real named-HS caller
+  together with its original-reference regression. A stronger named-HS case
+  also passes native birth, retirement, recreation with a different full
+  datum, checkpoint restoration of the original name/datum/animation, a
+  restored HS call and final retirement in1.88 seconds. All associations
+  come from actual native creation/deletion/checkpoint owners; no wanted
+  name-table slot or dependency result is supplied. Candidate9 predates
+  this fix and remains unpublished; a fresh full candidate is required.
+  [Native lookup and actual HS caller](../build/test-results/workshop-goal-20261101/scenery-engine-1/named-hs-consumer-1/report.json),
+  [Native named-object lifetime](../build/test-results/workshop-goal-20261101/scenery-engine-1/named-hs-lifetime-1/report.json),
+  [Guarded stronger caller refresh](../build/test-results/workshop-goal-20261101/scenery-engine-1/source-refresh-26.json).
+- [x] Add the permanent named-HS regression and require it in future builder
+  cohorts. Reproduce the same BD790 refusal through the official CMake worker
+  in1.10 seconds, confirming the one-off result. Generate the complete10-site
+  lookup as a separate original object-name owner, with no intercepted
+  callees or host name search. All112 unchanged-original cases pass GCC and
+  Clang, each with eight effective fault controls; preserve full GP/flags/RET,
+  ordered lazy reads, unchanged memory and three live x87 values/status plus
+  SIMD/control state. Retain the4938-byte original fixture and generated source;
+  all component build trees are removed. World routing, real table association
+  and caller execution remain unqualified; sanitizer/physical-original checks
+  are still required before routing.
+  [Official native caller failure](../build/test-results/workshop-goal-20261101/scenery-engine-1/named-hs-red-1/report.json),
+  [Complete lookup component](../build/test-results/workshop-goal-20261101/object-name-lookup-component-1/report.json).
+- [x] Re-run all112 lookup cases with Clang ASan/UBSan, then execute the
+  complete unchanged original28-byte routine on physical i386 for those
+  same112 cases. Both pass; the physical recorder checks all GP/flags/RET,
+  actual before/after defined FP/SIMD state and untouched code/data/stack
+  banks, with zero patched instructions or intercepted callees. All compiler,
+  executable and temporary-reference owners are removed. Route the qualified
+  ten-site lookup through its own native object-name module using a guarded
+  refresh; preserve unrelated dirty World/CMake work. The original cast
+  caller is complete212560, not the unaligned212580 candidate from the first
+  audit; that invalid candidate is explicitly rejected in the corrected
+  report. Actual World table association and named-HS execution remain the
+  next gate.
+  [Sanitized lookup](../build/test-results/workshop-goal-20261101/object-name-lookup-sanitizers-1/report.json),
+  [Physical unchanged original](../build/test-results/workshop-goal-20261101/object-name-lookup-original-host-1.json).
+- [x] Check scene-name capacity across every installed declared mission:
+  all96 have at most507 name rows, within originalBD790's640-entry range.
+  Read the four missing native-content descriptions directly from unchanged
+  authored scenario banks rather than treating missing counts as zero.
+  `convergence`/`solitude` still report missing source prop tags, and
+  `h2defense`/`moonbase` still report invalid navigation sector edge cycles.
+  Those content frontiers remain open; no donor repair or larger MCC
+  executable capacity is inferred. The separate inventory owner is removed.
+  [Installed namespace capacity and content frontiers](../build/test-results/workshop-goal-20261101/installed-object-name-capacity-1.json).
+- [x] Pass all13 native scenery/name/profile regressions after the lookup
+  integration, including both submitted GPU cases and the strengthened
+  authored-name lifecycle. No skips or supplied dependency returns occur.
+  [Complete focused cohort](../build/test-results/workshop-goal-20261101/scenery-engine-1/named-regressions-1/report.json).
+- [x] Preserve the newer selected0e55 physics/rendering delivery before
+  rebuilding Workshop. The old selectedde12 guard correctly refuses before
+  builder execution when the selector changes. Independently stream the
+  entire79949505-byte selected source archive, verify every one of14595
+  production pins, and merge all29 changed production files plus7 changed
+  tests into the private cohort. Overlay only the native name-lookup include
+  and dispatch into the newer World. The archive's13 borrowed reference
+  symlinks are audited and never extracted; its stale7d8 manifest is not used
+  as source/runtime authority. All selected source bytes are authenticated
+  against the actual package inventory, and the extracted merge staging is
+  removed. Root and its newly selected runtime remain untouched. The new
+  frozen cohort is14606 production files with inventory
+  `504718ef71d3fa822d2622f3c6c20c0e240ff13636f9a7a45dc51bc5675d3ffb`.
+  Full fresh candidate, incoming feature regressions and installed/launcher
+  qualification remain required before Workshop publication.
+  [Selected archive authentication](../build/test-results/workshop-goal-20261101/source-archive-selected0e55.json),
+  [Authenticated incoming tests](../build/test-results/workshop-goal-20261101/selected0e55-refresh-inputs.json),
+  [Guarded private merge](../build/test-results/workshop-goal-20261101/scenery-engine-1/source-refresh-27.json).
+- [x] Qualify the complete26-site original nonrelative camera HS wrapper
+  separately from the engine. All32 original-reference cases pass GCC and
+  Clang, each with nine effective fault controls, and Clang ASan/UBSan.
+  Physical unchanged i386 execution independently passes the same32 cases,
+  checking signed descriptor lookup, both implicit NONE anchors, deferred
+  parsing, VOID completion, full GP/flags/RET/ordinary banks and defined live
+  x87/SIMD state. The first physical harness fails its exact memory check
+  because signal frames use the source stack; an owned alternate signal
+  stack fixes that harness boundary without changing any original byte or
+  expected result. All component/compiler/physical owners are removed. Retain
+  only the20924-byte generated component and7968-byte compressed reference.
+  Root's standalone CTest registration is added for future integration; it
+  has not entered the current frozen candidate. World routing, actual native
+  camera/HS/frame consumers and MCC454 admission remain unqualified. E3
+  requirements stay23, and no campaign execution is inferred.
+  [GCC/Clang component and fault controls](../build/test-results/workshop-goal-20261101/camera-start-component-2/report.json),
+  [Sanitized component](../build/test-results/workshop-goal-20261101/camera-start-sanitizers-1/report.json),
+  [Physical unchanged wrapper](../build/test-results/workshop-goal-20261101/camera-start-original-host-2.json).
+- [x] Diagnose and correct the two installed missing-prop content frontiers.
+  Actual native inspection reproduces both failures. Convergence placement31
+  has palette index-1; Solitude placement0 selects palette1 whose definition
+  is NONE. Their raw/prepared placement and dependency identities are equal,
+  and every nonempty dependency resolves. Run complete unchanged original
+  C1120/D75A0 on those exact authored rows/palettes under automatic and runtime
+  callers: all four executions return NONE without a downstream constructor.
+  Add a real two-map content regression before the fix; both fail with the
+  reported missing-prop error. Change only the prop sandbox prepass's NONE
+  guard. Both then load, retain every authored prop ordinal, and still reject
+  nonempty wrong-class references: Convergence41 props/1 empty/40 nonempty,
+  Solitude1 prop/1 empty. The first test compile needs the strong TagHandle's
+  value field; its initial global vector-length assertion also needs to
+  account for later netgame equipment, while still checking every prop's
+  exact prepass ordinal. Preserve those harness diagnostics. All preparation,
+  compiler/library-copy and original-execution owners are removed. This fix
+  is Root-only until the next guarded frozen refresh; no gameplay or rendering
+  success, installed sweep gain or delivered runtime is inferred. The source
+  maps and original assets remain unchanged.
+  [Native failures and identical raw/prepared inputs](../build/test-results/workshop-goal-20261101/prop-content-frontier-1.json),
+  [Actual authored inputs through unchanged original](../build/test-results/workshop-goal-20261101/prop-content-original-empty-1.json),
+  [Regression before fix](../build/test-results/workshop-goal-20261101/prop-content-red-2/report.json),
+  [Real content regressions after fix](../build/test-results/workshop-goal-20261101/prop-content-green-2/report.json).
+- [x] Complete the first combined101-case native qualification run:100 pass,
+  including the real two-map prop regression and late-light GPU creation.
+  The material catalog case receives an empty original-XBE argument because
+  that CMake cache input was never bound; it fails before original data loads.
+  No failure is waived or runtime published. The failed candidate is removed
+  by its publication guard, and the original owner expires after its command
+  terminates. Retain the exact failure diagnostics and passing small reports.
+  Add hash-authenticated discovery/explicit selection of the owned English
+  TU1.5 image to the builder, with84 passing builder controls. Independently
+  recover the exact14607-file production cohort and19 pinned test overlays
+  from authenticated source archives/receipts, then change only that builder
+  binding and its tests. Three newer unrelated dirty Root tests are explicitly
+  excluded in favor of their selected archived versions. All temporary archive
+  normalization and overlay staging is removed. Focused catalog execution and
+  fresh complete qualification remain required before feedback delivery.
+  [Unwaived combined run](../build/test-results/workshop-goal-20261101/launcher-11/validation/report.json),
+  [Exact source recovery](../build/test-results/workshop-goal-20261101/recovery-engine-1/source-refresh-29.json).
+- [x] Distinguish completed inspections from actual BSP content reads in the
+  installed comparison. The recorded baseline has201 BSPs,196 loaded and
+  five failed reads. A controlled loss in one formerly loaded Alpha Moon BSP
+  makes the comparison fail even when all four top-level pass sets remain
+  unchanged. Original reports are untouched and both comparison owners are
+  removed. Future full sweeps must retain this separate content comparison.
+  [Recorded content baseline](../build/test-results/workshop-goal-20261101/candidate5-content-comparison-1.json),
+  [Effective content-loss control](../build/test-results/workshop-goal-20261101/content-comparison-loss-control.json).
+- [x] Inventory the remaining navigation failures directly from unchanged
+  authored maps. H2Defense has38619 links; Moonbase's two BSPs have49846
+  and49584. The current signed16-bit link traversal produces1998/3180/3091
+  sector failures, while a diagnostic unsigned traversal closes every ring.
+  This is a candidate cause, not an admitted interpretation or native behavior
+  proof. Preserve the complete original path-family audits and require the
+  actual link-field owner before changing metadata/runtime interpretation.
+  All raw-map and instruction-audit owners are removed; no navigation fix or
+  donor change is made from this inventory.
+  [Raw graph diagnostics](../build/test-results/workshop-goal-20261101/navigation-content-frontier-1.json),
+  [Original owner candidates](../build/test-results/workshop-goal-20261101/navigation-index-owner-candidates-1.json).
+- [x] Authenticate the navigation index widths through complete unchanged
+  original27BD30 (471 instruction sites). All24 declared boundary/neighbor
+  cases pass across both link orientations, including32768/65534/65535 link
+  indices, neighbor sector32768 and endpoint vertex65535. Actual27C3DA
+  zero-extends each next-link field; vertex and sector fields also zero-extend.
+  Only neighboring sectors explicitly interpretFFFF asNONE. No instructions,
+  calls or returned outcomes are substituted; graph bytes and nonvolatile
+  registers remain unchanged. This proves field interpretation, not complete
+  AI/pathfinding. The original-execution owner is removed. Actual Cache
+  regressions, the reader fix and installed-cohort acceptance remain open.
+  [Whole original index execution](../build/test-results/workshop-goal-20261101/navigation-original-unsigned-rings-1.json).
+- [x] Reproduce all three installed high-link failures through the real Cache
+  BSP reader, then use the authenticated unsigned field loads without changing
+  authored data or graph admission. H2Defense and both Moonbase BSPs fail red
+  with the original edge-cycle error, then pass all three CTests, retaining
+  4880/6238/6158 active polygons and exact sampled vertex bits/winding. Four
+  malformed graph controls per BSP remain rejected and restore every decoded
+  byte. Both component owners, copied libraries, prepared maps and builds are
+  removed. The permanent actual-content test is mandatory in the next builder.
+  Full composed candidate qualification, the all-installed sweep and delivery
+  remain open; no native AI or mission success is inferred.
+  [Failing actual content](../build/test-results/workshop-goal-20261101/navigation-content-red-1/report.json),
+  [Corrected actual content](../build/test-results/workshop-goal-20261101/navigation-content-green-1/report.json),
+  [Authored sample provenance](../build/test-results/workshop-goal-20261101/navigation-authored-samples-1.json).
+- [x] Add the complete original camera wrapper2B27B0 to the existing native
+  Workshop module, preserving all14 prior complete routine bodies exactly.
+  Its added body is byte-identical to the independently proved standalone
+  native wrapper. GCC, Clang and ClangASan/UBSan each pass the32-case camera
+  fixture, preceding scenery fixture and effective missing-dispatch control.
+  The first attempt omitted the two small fixture descriptors and failed
+  before execution; the corrected harness passes all9 CTests. Both owned
+  compiler contexts are removed. Only the qualified generated component is
+  copied into Root; the active frozen build remains unchanged. Actual native
+  HS/camera/frame composition and MCC454 admission remain open, so E3 still
+  has23 script requirements.
+  [Additive module qualification](../build/test-results/workshop-goal-20261101/camera-shared-2/report.json),
+  [Initial harness failure](../build/test-results/workshop-goal-20261101/camera-shared-1/report.json).
+- [x] Require the real navigation-content and shared-camera wrapper tests in
+  the feedback builder, retaining the navigation receipt. All84 builder
+  controls pass with effective checks for both mandatory targets/filters and
+  navigation retention; its disposable owner is removed. The next complete
+  candidate requires103 CTests without skips or waivers. Declare the19 exact
+  source overlays before refreshing the currently compiling frozen cohort;
+  its source and selected Root runtime remain unchanged at this checkpoint.
+  [Guarded overlay declaration](../build/test-results/workshop-goal-20261101/recovery-engine-1/source-overlay-plan-30.json).
+- [x] Pass the actual native world-light material catalog after binding the
+  hash-validated English TU1.5 reference. The frozen cold configure/build and
+  selected CTest finish successfully without skips; the catalog passes in
+  0.33seconds. This closes the prior missing-XBE test-input failure. The
+  same owned build now awaits its declared source refresh and full103-case
+  candidate qualification; no new runtime is published from this focused gate.
+  [Catalog acceptance](../build/test-results/workshop-goal-20261101/recovery-engine-1/light-catalog-1/report.json).
+- [x] Refresh the active source only after that catalog command is terminal.
+  All19 predeclared Root/target hashes and the complete prior production
+  inventory pass before mutation; every other production pin and all four
+  published launcher/selection identities remain exact. The resulting14615
+  production files have inventorySHA256
+  `ecc7cf51626b26188a1f5c08d413f93ed4f284b742c220431f653ec87862678a`.
+  This is a declared source refresh, not build or gameplay acceptance. Camera
+  remains unadmitted and the following full candidate requires103 CTests.
+  [Guarded source refresh](../build/test-results/workshop-goal-20261101/recovery-engine-1/source-refresh-30.json).
+- [x] Pass all103 required CTests in the composed candidate, including the
+  real navigation-content regression, shared camera wrapper and material
+  catalog. No test is skipped or waived. Packaging subsequently rejects the
+  unclassified standalone camera reference source before stock/frontend
+  qualification; the failed candidate is removed and Root remains unchanged.
+  This is test-suite acceptance only, not a qualified or delivered build.
+  [Composed103-case suite](../build/test-results/workshop-goal-20261101/launcher-12/validation/report.json),
+  [Recorded packaging refusal](../build/test-results/workshop-goal-20261101/launcher-12/report.json).
+- [x] Correct that reference-source classification while requiring the shared
+  Workshop module to remain linked into the actual engine. A new control
+  first reproduces the failure, then all85 builder controls pass; removing
+  the shared production link still rejects both sources. The actual completed
+  frozen link graph now passes with only the standalone source classified as
+  a reference component. This does not admit camera scripts or waive runtime
+  ownership. Completed control owners are removed; full candidate rerun and
+  delivery remain open.
+  [Actual graph qualification](../build/test-results/workshop-goal-20261101/camera-reference-wiring-1.json),
+  [Declared tooling refresh](../build/test-results/workshop-goal-20261101/recovery-engine-1/source-overlay-plan-31.json).
+- [x] Freeze that two-file tooling correction only after the failed worker
+  terminates, preserving every runtime/source pin outside the declared builder
+  and its test. The14615-file production inventory is now
+  `42a7a2c76607ec495223aa8387c221e99864b88ea03cb59b69bd0329d4567c2b`.
+  Root launcher/selection identities remain exact. The next candidate uses
+  this cohort and still requires all103 CTests, stock/frontend checks and
+  actual delivery; the failed candidate12 is never promoted.
+  [Guarded tooling refresh](../build/test-results/workshop-goal-20261101/recovery-engine-1/source-refresh-31.json).
+- [x] Qualify the complete navigation/shared-camera feedback candidate without
+  skips or waivers: all103 CTests,14 packaged stock/player cases and four
+  frontend cases pass. The actual runtime link audit passes with the shared
+  production wrapper linked and only its standalone reference separated.
+  Runtime`824185e7306d46cfa61015806277e63a` has executableSHA256
+  `c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551`;
+  its retained runtime/resources total3197873512bytes. It remains unpublished.
+  Exact source archival, the installed sweep, reviewed Mods presentation and
+  guarded Root delivery remain required. Camera is still unadmitted; E3
+  remains23 requirements and the full mod-support goal stays active.
+  [Complete candidate qualification](../build/test-results/workshop-goal-20261101/launcher-13/report.json).
+- [x] Retain and independently stream-verify the exact qualified code source
+  before the build owner closes. The fresh archive names runtime824185 and
+  verifies all17826 entries,410474113 logical bytes and14615 production pins.
+  It is79940377bytes withSHA256
+  `3076e049984bcd06de8b893e04bd950a78b5a04f8552c6d9ae11ac9abd4a58e3`.
+  Borrowed assets/vendor inputs and generated build products are excluded;
+  the three external qualification coordinators retain distinct provenance.
+  The retained source reference is
+  `bin/engine-source-snapshots/workshop-navigation-20261102-824185e7306d46cfa61015806277e63a.tar.zst`.
+  Installed-cohort and delivery acceptance remain open.
+  [Complete archive roundtrip](../build/test-results/workshop-goal-20261101/source-archive-candidate-13.json).
+- [x] Execute the real original452 HS caller through the qualified native
+  parser, shared wrapper2B27B0, actual camera effect16EDD0 and VOID completion,
+  using the installed MCC intro's own graph/name operands. Native startup and
+  restart succeed; six real registered observer frames cover zero/one/multiple
+  game ticks, positive subframe motion and exact sampler-to-command pose bits.
+  The native call balances its FPU stack. The first fixture incorrectly used
+  Xbox stock operands; the second/diagnostic attempts incorrectly demanded
+  SIMD preservation. Unchanged original16EE83..16EE9B explicitly writes
+  XMM0/XMM1, and16EEA5/16EEA9 balancesFLD/FISTP, so only that unsupported
+  assertion is corrected. No engine code, dependency return or source asset
+  is substituted. Borrowed library/source/runtime hashes remain unchanged;
+  all completed compiler/world owners are removed. This is actual stock MCC
+  HS/camera CPU composition, not MCC454 admission, E3, GPU or mission proof.
+  The qualified feedback cohort stays immutable and E3 remains23 requirements.
+  [Native camera consumer](../build/test-results/workshop-goal-20261101/camera-hs-consumer-4/consumer.json),
+  [Six-frame evidence](../build/test-results/workshop-goal-20261101/camera-hs-consumer-4/evidence/camera-hs.json),
+  [Original FP/SIMD writes](../build/test-results/workshop-goal-20261101/camera-fp-writes-original-1.json).
+- [x] Complete the fresh installed sweep on exact qualified runtime824185:
+  all10 packages,101 map files and96 declared missions retain their identities
+  and immutable source/resource/scratch receipts. All201 BSP content reads now
+  pass, improving196->201: Convergence, H2Defense, both Moonbase BSPs and
+  Solitude gain content loading. Convergence/Solitude also gain actual bounded
+  native simulation checks, raising35->37; all96 inspections and35 previews
+  remain, with no passing losses. The sweep's nonzero result still records
+  the real unfinished gates:57 distinct script requirements,179 material
+  template gaps and0 accepted mod gameplay renders/full missions. No missing
+  feature is waived, and reviewed UI/guarded publication remain pending.
+  [Full installed comparison](../build/test-results/workshop-goal-20261101/installed-candidate-6-summary.json).
+- [x] Visually review three actual960x720 native candidate captures after
+  the real source intro clears: first packageAlphaMoon, final packageThe
+  Digtacular Collection, and its32-mission picker at final missionTIMBERLAND.
+  Selected labels, authored descriptions, scrolled lists and navigation
+  footer remain readable; each capture proves four submitted frontend frames.
+  Only small commands/hashes/review notes remain. All generated PPM/PNG and
+  capture-specific driver/preferences storage are removed. This accepts these
+  menu views, not pixel parity, E3 gameplay or Root launcher delivery.
+  [Reviewed native menus](../build/test-results/workshop-goal-20261101/candidate13-menu-review/report.json).
+- [x] Publish qualified runtime824185 through the existing guarded four-file
+  Root transaction after exact source archival, all-installed comparison and
+  native menu review. Both gameplay and frontend selections now name executable
+  SHA256`c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551`;
+  the two Root launcher files are replaced atomically with ownership-aware
+  rollback protection. Existing runtime/reference packages remain unchanged.
+  Actual normal Root routing and E3 handoff after private build removal remain
+  required; publication alone does not qualify those paths or full mod gameplay.
+  [Guarded Root publication](../build/test-results/workshop-goal-20261101/candidate13-root-publication.json).
+- [x] Close the owned recovery/build coordinator after publication and verify
+  removal of its entire private source/build/vendor/compiler tree. The last
+  active observation was10317219742 regular bytes; that owner is now absent
+  and its journal is closed. Only the explicitly retained qualified runtime
+  (3197873512bytes), its79940377-byte exact code reference, small reports and
+  preexisting reference/runtime owners remain. Subsequent normal Root tests
+  use independent owned scratch, so they cannot rely on that private source.
+  [Closed coordinator journal](../build/test-results/workshop-goal-20261101/recovery-engine-1/session/session.json).
+- [x] Verify both actual normal Root launchers after private build removal.
+  Each actual`--launcher-info` selects824185; each ordinary`--launch-game`
+  route submits four visible Mods frames after the actual map intro clears,
+  with a nonblank native capture. Runtime/selection hashes remain unchanged.
+  The separate routing owner, captures, driver caches and preferences are
+  removed. Actual E3 Play/unavailable/Explore handoff remains the final named
+  delivery check; full mod gameplay remains open.
+  [Post-cleanup Root routes](../build/test-results/workshop-goal-20261101/candidate13-post-close-routing.json).
+- [x] Complete the real post-cleanup E3 handoff through the normal Root
+  launcher using ordinary UI input. Mods -> E3 -> Play Campaign -> difficulty
+  reaches the actual unavailable dialog; visual review confirms23 requirements
+  and first`bitmap_predict`. Continue -> Back -> Explore Map reaches ordinary
+  asynchronous preparation, renders255 actual preview frames and closes
+  normally with exit0. Runtime/selectors/Workshop source remain unchanged.
+  The final routing owner, screenshot, preparations, preferences and driver
+  caches are removed. The qualified feedback update is delivered through both
+  normal launchers. Full mod gameplay remains unqualified:57 script needs,
+  179 material-template gaps,0 accepted complete mod gameplay renders/missions
+  and the broader registry/content/AI/co-op/network gates stay open. Goalactive.
+  [Actual delivered E3 flow](../build/test-results/workshop-goal-20261101/candidate13-root-e3-flow.json).
+- [x] Restore the exact delivered824185 code reference into a fresh owned
+  camera investigation without overlays. All14615 production files retain
+  inventorySHA256`42a7a2c76607ec495223aa8387c221e99864b88ea03cb59b69bd0329d4567c2b`.
+  The preserved scenery GPU consumers are compiling through the official
+  worker in that active owner; preparation is not new build/test acceptance.
+  Root launchers, selected runtime and source assets remain unchanged.
+  [Exact camera cohort preparation](../build/test-results/workshop-goal-20261101/camera-engine-1/preparation.json).
+- [x] Qualify private MCC454 -> Xbox452 translation on both actual authored
+  E3 campaigns and camera-free Playground. All110 camera calls retain their
+  exact salts, function/argument records, graph/name operands and all other
+  projected bytes; only their parent opcode words change. Six CTests pass
+  across GCC, Clang and ClangASan/UBSan, with993 guard cases per private-profile
+  run including malformed arity, name, salt, link, cycle and extent controls,
+  plus rejection of still-unqualified`camera_pan`. The test uses the real
+  native ownership profile for already-qualified blur, rather than confusing
+  raw metadata requirements with the normal launch gate. Its initial fixture
+  exposed that distinction; no engine code or gate is weakened. The private
+  412-declaration profile reduces only these test inputs23->22; production
+  stays411 and delivered E3 stays23. The complete owned compiler/input tree
+  is removed; only bounded reports/source pins remain. Actual E3 native camera
+  effects, frame/render consumers and guarded production admission remain open.
+  [Authored camera projection](../build/test-results/workshop-goal-20261101/camera-projection-4/report.json),
+  [Private translation and993 controls](../build/test-results/workshop-goal-20261101/camera-projection-4/g++/evidence/camera-after.json).
+- [x] Load every actual authored E3 camera resource through the unchanged
+  native Cache library: normal and low-spec each resolve55 distinct graph/name
+  clips, retain exact metadata frame/node counts, and pass275 finite samples
+  plus repeated-load equality. All110 callers and550 samples pass;54 clips in
+  each variant show motion at the sampled frames. Actual clip lengths range
+  27..1200 frames. Playground correctly contains0 such calls. All three CTests
+  pass with ordinary package/shared-map preparation and no schema/admission
+  override. The initial compiler attempt lacked the header declaringNONE;
+  adding that test include fixes the harness without an engine change. Source
+  maps, frozen source and borrowed Cache archives remain unchanged. Completed
+  preparation/compiler owners are removed, retaining no large artifact.
+  This proves decoded resources only; actual native E3 HS/camera frames, GPU
+  and production admission remain open, and delivered E3 remains23 requirements.
+  [All authored camera resources](../build/test-results/workshop-goal-20261101/camera-content-2/content.json),
+  [Normal E3 resource samples](../build/test-results/workshop-goal-20261101/camera-content-2/evidence/earthcity_e3.json),
+  [Low-spec E3 resource samples](../build/test-results/workshop-goal-20261101/camera-content-2/evidence/earthcity_e3_potato.json).
+- [x] Qualify complete unchanged E3 canonical native metadata delivery while
+  the owned engine build continues. Both normal/low-spec CTests pass with
+  5269 tags,1504 sound definitions and their one authored BSP, preserving all
+  596 scripts,51 globals and24552 syntax nodes before explicit opcode
+  projection. No schema/ownership issue is reported; sound ownership transfers
+  exactly once, and every BSP image has complete backing. The native tag
+  reservations are37904384/37900288bytes. This test uses the entire original
+  script/global banks, with no camera-only fixture or readiness override.
+  Frozen Cache/library/source and Workshop map hashes remain exact, and the
+  completed preparation/compiler owner is removed. Native E3 HS execution,
+  observer/GPU consumers and production camera admission remain open; the
+  separately prepared native caller fixture has only passed a syntax check.
+  Root remains on the delivered23-requirement build.
+  [Complete native delivery](../build/test-results/workshop-goal-20261101/camera-e3-delivery-1/consumer.json),
+  [Normal E3 native metadata](../build/test-results/workshop-goal-20261101/camera-e3-delivery-1/evidence/earthcity_e3.json),
+  [Low-spec E3 native metadata](../build/test-results/workshop-goal-20261101/camera-e3-delivery-1/evidence/earthcity_e3_potato.json).
+- [x] Extend that delivery check from definition counts to complete byte
+  equality for every authored script bank. Both variants again pass:45178
+  string bytes,23840 script-definition bytes,2040 global-definition bytes and
+  491040 syntax bytes remain exact in the canonical publication. All source
+  assets, frozen providers and Root selections remain unchanged; both completed
+  delivery owners are removed. The current full native E3 caller test also
+  passes a syntax check against the exact frozen headers, with its helper
+  source parsed and pinned. It has not executed native HS/camera frames yet.
+  The same live engine worker continues; no production declaration is added.
+  [Complete script-bank byte proof](../build/test-results/workshop-goal-20261101/camera-e3-delivery-2/consumer.json),
+  [Native consumer preparation only](../build/test-results/workshop-goal-20261101/camera-e3-consumer-preparation.json).
+- [x] Execute the explicit camera-only input fixture through canonical
+  native delivery for both E3 variants. Both CTests pass:55 exact camera
+  callers project to original452, the full unmodified mission still refuses
+  its other22 requirements, native schema/ownership issues remain0, and every
+  temporary decoded scenario/script/global modification restores exactly.
+  Source files, frozen libraries and Root selections remain unchanged. The
+  completed fixture/compiler owner is removed. This validates the actual
+  controlled input before World construction; it does not execute native HS,
+  observers, GPU or complete mission flow and does not admit production camera.
+  [Camera fixture delivery and restoration](../build/test-results/workshop-goal-20261101/camera-e3-fixture-delivery-1/consumer.json).
+- [x] Pass both actual E3 native HS/observer consumers against the immutable
+  completed systems/physics providers. Each variant executes all55 authored
+  camera calls plus55 restarts through211B10 ->212010 ->2B27B0 ->16EDD0
+  ->211DA0, with real VOID completion, nonvolatile GP and balanced x87 checks.
+  Each submits330 native observer frames:165 zero-tick,110 one-tick and55
+  multiple-tick frames; sampler-to-camera-command pose bytes match exactly.
+  All55 camera shots resolve to genuine BSP0 clusters and52 move within this
+  bounded frame window. No camera, dependency result, cluster/PVS override or
+  source file is supplied. The explicit camera-only fixture restores its
+  decoded metadata exactly; the unmodified mission retains22 other script
+  requirements in the private profile. Workshop sources, frozen providers,
+  selected runtime and Root selectors remain unchanged; the completed caller/
+  compiler/world owner is removed. This is actual native E3 camera composition,
+  not GPU, complete actors/scripts/mission flow or production admission.
+  [Native E3 camera composition](../build/test-results/workshop-goal-20261101/camera-e3-hs-1/consumer.json),
+  [Normal330-frame native result](../build/test-results/workshop-goal-20261101/camera-e3-hs-1/evidence/earthcity_e3.json),
+  [Low-spec330-frame native result](../build/test-results/workshop-goal-20261101/camera-e3-hs-1/evidence/earthcity_e3_potato.json).
+- [x] Complete the cold preserved scenery GPU baseline in the same14615-file
+  frozen source cohort. Both actual nonrelative/relative scenery Vulkan
+  consumers pass; the official worker exits0 without a source refresh.
+  Its source/build remains active for the next camera GPU consumer, rather
+  than retaining a second copy. This does not qualify E3 rendering or change
+  production camera admission; delivered E3 remains23 requirements.
+  [Preserved GPU baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/base-gpu-1/report.json).
+- [x] Establish the actual E3 camera-to-renderer consumer and reproduce its
+  next native rendering refusal on both campaign variants. The initial
+  compiler attempt exposes only a quoted-path harness error; the second
+  attempt correctly refuses a premature texture-camera binding. The test now
+  uses live resident camera materials, the genuine original view constructor,
+  admitted PC presentation, actual renderer target18 allocation, original
+  texture-camera frame and real renderer submission path. Both cases then
+  stop at`street_border` LOD1, before any GPU frame can be qualified.
+  Diagnostic inspection identifies unconverted MCC template
+  `shaders\shader_templates\opaque\tex_bump_env_illum_3_channel`: all three
+  authored LODs retain their masks/thresholds but the shader has no admitted
+  native pass bank. No LOD, shader, PVS or readiness gate is skipped. All four
+  completed component/preparation/compiler/world owners are removed; the
+  shared main cohort stays active for the actual material fix. Production
+  stays411 declarations and delivered E3 stays23 requirements.
+  [Reproduced native renderer refusal](../build/test-results/workshop-goal-20261101/camera-e3-gpu-3/consumer.json),
+  [Actual authored material diagnostics](../build/test-results/workshop-goal-20261101/camera-e3-gpu-4/evidence/Testing/Temporary/LastTest.log).
+- [x] Locate existing original Xbox asset authority for that exact template:
+  39 native libraries contain231 material records and39 distinct template
+  payloads. The existing cooked-bank paired census contains0 rows for this
+  template, so those candidates are not an already-qualified projection.
+  Retain the actual reference-image hash without relabeling its version.
+  Root's native-shader loader also has unrelated texture-camera changes
+  outside the selected source; preserve them and do not copy the whole dirty
+  file into the frozen cohort. A native authored-data projection and its
+  source/consumer acceptance remain required.
+  [Bounded original-asset candidates](../build/test-results/workshop-goal-20261101/e3-env-illum-three-channel-authority-candidates.json).
+- [x] Capture fresh complete MCC/original Xbox material pairs for the exact
+  environment/three-channel template. The read-only census covers164 material
+  rows across39 stock maps and both E3 campaign variants;114 rows have original
+  pairs, and all164 share one complete normalized MCC compiler graph. Source
+  maps and native libraries remain unchanged. The26,956-byte compressed
+  metadata reference preserves original roots, all14 cooked banks, typed image
+  owners, overlay curves and the full compiler graph. Its raw owner is removed;
+  no native conversion or rendering admission is inferred.
+  [Complete paired census](../build/test-results/workshop-goal-20261101/env-illum-pairs-1-summary.json),
+  [Required compressed metadata](../build/test-results/workshop-goal-20261101/env-illum-pairs-1.json.xz).
+- [x] Check the main-data roles against every one of the114 original pairs.
+  Typed image banks and normalized overlay curves match exactly; complete
+  banks20,28,36,68,76,92,100 and108 match byte-for-byte. The14 pixel slots have
+  a unique cross-pair permutation: only slots8 and9 exchange places. Packed
+  banks44,52 and84 still require a complete source/native scheduling and
+  animation mapping; do not infer a projection from equal zero-valued slots.
+  Root and frozen MCC profiles match the authenticated411-declaration registry.
+  The role-audit owner is removed; production and delivered E3 remain unchanged.
+  [Paired role audit](../build/test-results/workshop-goal-20261101/env-illum-pairs-1-role-audit.json).
+- [x] Prove the remaining scheduling/animation conversion against complete
+  original records. All39 native variants have one identical normalized
+  template graph. MCC's two extra shadow implementations carry no distinct
+  authored animation; the60 native rows select from62 source rows. Pixel
+  animation destinations follow the complete source/native compiler remaps
+  and the proved main-slot permutation, including their original order.
+  Every one of114 controls matches all14 original banks after normalizing
+  typed image references and nested curve pointers. All164 authored material
+  rows, including both E3 variants, convert under the same metadata contract.
+  The proof owner is removed. This establishes data conversion only; the C++
+  adapter, malformed-input guards and actual renderer remain unqualified.
+  [Complete scheduling/animation proof](../build/test-results/workshop-goal-20261101/env-illum-projection-proof-2.json).
+- [x] Implement the C++ environment/three-channel adapter and qualify its
+  complete authored inputs before engine wiring. GCC, Clang and Clang with
+  ASan/UBSan each pass180 literal cases:164 authored rows,114 independent
+  original counterparts and39 exact template variants. Each run checks2548
+  complete banks,595 nested curves and1908 refusal controls, including every
+  byte of the complete source compiler graph. Three zero-sized shader aliases
+  preserve their actual same-address/group backing owners; missing, wrong-type,
+  neighboring and truncated owners are refused. Authored colors, vectors and
+  clock periods remain changeable. The missing-adapter red receipt is retained,
+  temporary diagnostics are removed and all completed owners are removed.
+  Frozen engine source, production script admission and selected runtime are
+  unchanged. Engine wiring and actual E3 rendering are the next gates.
+  [Complete C++ component qualification](../build/test-results/workshop-goal-20261101/env-illum-component-2/report.json),
+  [Sanitized bank/guard counts](../build/test-results/workshop-goal-20261101/env-illum-component-2/clang++-sanitizers/evidence/env-illum.json),
+  [Missing-conversion red test](../build/test-results/workshop-goal-20261101/env-illum-component-red-1/g++/evidence/Testing/Temporary/LastTest.log).
+- [x] Wire that qualified adapter into the existing native material loader,
+  with same-address/group alias ownership covering retained source allocations
+  after primary conversion. Add portable literal regression and generator
+  checks to CMake and mandatory future feedback-build qualification; all85
+  builder controls pass. Retain the required201,319-byte compressed metadata
+  fixture after verifying its5,215,467-byte raw roundtrip, then remove its raw
+  owner. Refresh only18 explicitly recorded files in the existing owned source
+  cohort, preserving Root's unrelated texture-camera loader changes. The new
+  production inventory has14625 files and SHA256
+  `64f01063bd9345738febf1a101fe8421d69c5040bcaa6273bd514dbe1a871389`.
+  The base archive stays sealed and unchanged; the new overlay is explicitly
+  unsealed pending engine qualification. Normal launcher selections are
+  unchanged. The refreshed component/generator and scenery GPU baseline are
+  running before the next actual E3 renderer test.
+  [Declared source refresh](../build/test-results/workshop-goal-20261101/camera-engine-1/material-source-refresh-1.json),
+  [Required portable metadata fixture](../tests/fixtures/mcc-native-env-illum-three-channel-v1.json).
+- [x] Build that exact refreshed native Cache and rerun its actual engine
+  baseline through the owned official worker. All four CTests pass: the new
+  complete portable material regression, generated-profile consistency, and
+  both nonrelative/relative scenery Vulkan consumers. The existing source/build
+  owner remains live for the next E3 test; no second engine tree is retained.
+  These results do not qualify E3 rendering or enable its camera declaration.
+  [Refreshed native baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/material-gpu-baseline-1/report.json).
+- [x] Rerun the actual E3 camera consumer with that exact rebuilt Cache and
+  verified18-file overlay. Both normal/low-spec cases move past the previous
+  `street_border` refusal and stop at the next unconverted material:
+  `scenarios\shaders\human\urban\pavers\paver_concrete` LOD1, template
+  `shaders\shader_templates\opaque\tex_bump_env_tiling_specular`.
+  Its three authored LODs still have no admitted native pass bank. No gate is
+  waived and no GPU frame is qualified. Caller/preparation/compiler scratch
+  is removed; the shared engine build remains active. Production camera
+  admission stays411 and selected E3 stays23 requirements. Continue paired
+  conversion for that next family before camera or complete mission claims.
+  [Actual next renderer boundary](../build/test-results/workshop-goal-20261101/e3-camera-render-boundary-2.json),
+  [Both native E3 cases](../build/test-results/workshop-goal-20261101/camera-e3-gpu-5/consumer.json).
+- [x] Capture the next two exact tiling-specular material families across all
+  39 available stock owners and both E3 variants. Each family has one complete
+  normalized MCC compiler graph and no read errors. Environment tiling has14
+  authored rows and two exact original pairs; illumination tiling has29 rows
+  and one exact original pair. Both have two authenticated original template
+  variants. Complete-bank comparison shows the next conversion requires more
+  than copying slots: environment tiling has five MCC pixel slots/twelve vector
+  slots versus seven/eight native slots, with missing and ambiguous copy-only
+  candidates. Preserve those unknowns while tracing original float-color
+  packing and complete compiler roles. No tiling projection is admitted; all
+  completed census owners are removed and only bounded metadata is retained.
+  [Environment tiling census](../build/test-results/workshop-goal-20261101/tex_bump_env_tiling_specular-pairs-1-summary.json),
+  [Illumination tiling census](../build/test-results/workshop-goal-20261101/tex_bump_env_illum_tiling_specular-pairs-1-summary.json),
+  [Unresolved role candidates](../build/test-results/workshop-goal-20261101/tiling-material-role-candidates-1.json).
+- [x] Decode both installed editable tiling templates and all11 referenced
+  passes with exact fieldset sizes, complete EOF traversal and immutable input
+  hashes. The named authoring fields identify parameter roles; shader-code
+  data is skipped and hashed rather than imported or executed. Independently
+  link every used UV vector through its compiled bitmap-property index and
+  component mask. This uniquely maps the four native transform slots to MCC
+  slots2,3,1,0, resolving equal-value ambiguity without selecting by defaults.
+  Pixel packing and the complete tiling projection remain unqualified.
+  [Authored metadata](../build/test-results/workshop-goal-20261101/tiling-h2ek-authored-roles-1.json),
+  [Compiled UV role linkage](../build/test-results/workshop-goal-20261101/tiling-UV-role-linkage-1.json).
+- [x] Locate the four original color packers in the authenticated TU1.5
+  image by their complete bodies and exact relocated scale operand, then
+  execute those unchanged134960/1349E0/134A50/134AD0 bodies. All14756
+  comparisons pass over3689 cases, including every vector in43 authored
+  materials, adjacent byte midpoints, denormals and invalid/out-of-domain
+  controls under explicit FPCW027F. All105 instruction sites execute; input
+  guards and nonvolatile registers remain intact. Eight environment-color/
+  brightness pixel checks reproduce both exact paired original materials.
+  This proves the measured packing operation without a guessed clamp; it
+  does not resolve every compiler parameter role or admit a tiling material.
+  [Original color-packing execution](../build/test-results/workshop-goal-20261101/tiling-color-pack-TU15-original-1.json),
+  [Complete body correspondence](../build/test-results/workshop-goal-20261101/tiling-color-pack-TU15-candidates-1.json).
+- [x] Extract named constant declarations from11 complete editable passes
+  and34 installed textual shader implementations, retaining82 explicit
+  register/component/parameter declarations and input hashes. Original-style
+  combiner bindings retain a stage number only in the unconditional prefix;
+  conditional branches are not flattened or guessed. The tiling zwrite
+  implementation declares only diffuse_color, independently distinguishing
+  that role from specular_color despite equal original default values.
+  No shader instructions are imported or retained by this metadata reader.
+  Its completed scratch owner is removed; complete native role linkage and
+  material projection still require their own acceptance.
+  [Named constant metadata](../build/test-results/workshop-goal-20261101/tiling-h2ek-constant-bindings-1.json).
+- [x] Resolve all environment-tiling main slots through those named compiler
+  bindings and bitmap-property/mask ownership. Native vector slots map to MCC
+  slots2,3,1,0,4,5,10,11; the two internal lightmap vectors have explicit named
+  consumers rather than being treated as unused. Native pixels retain the
+  diffuse/specular/glancing packed inputs and pack the four named environment
+  vector inputs through the separately proved RGB/alpha operations. All14
+  authored rows convert and all28 complete original control banks agree,
+  including normalized bitmap/frame identities and both template variants.
+  Nonzero midrange factors and authored animation remain refused. The
+  zero-factor contribution proof, native implementation and GPU acceptance
+  are still required; this data projection does not enable engine admission.
+  Its completed scratch owner is removed.
+  [Complete data proof](../build/test-results/workshop-goal-20261101/tiling-projection-proof-1.json),
+  [Derived metadata profile](../build/test-results/workshop-goal-20261101/tiling-native-profile-1.json).
+- [x] Prove the authored environment pass's midrange color contributes
+  nothing at factor zero for finite inputs. Bounded symbolic analysis covers
+  all59 arithmetic assignments and all three uses of the named factor/color
+  constants in the immutable installed source. The zero-factor intermediate
+  tint weight is zero and neither output channel depends on tint color;
+  the nonzero-factor control restores its color dependency. This is a
+  finite-input data-dependency proof, not native rendering equivalence.
+  Nonzero factors remain unsupported. Its scratch owner is removed.
+  [Zero-factor dependency proof](../build/test-results/workshop-goal-20261101/tiling-midrange-zero-proof-1.json).
+- [x] Compare the actual proposed projection's channel encoder with the
+  unchanged TU1.5 packers, rather than only testing an independent arithmetic
+  proposal. The same14756 original comparisons pass and14692 finite-input
+  comparisons also match this exact source module. Nonfinite authored vectors
+  are explicitly refused by the converter. Its owned scratch is removed.
+  This remains a data-component proof, not native C++ or GPU acceptance.
+  [Actual encoder original comparison](../build/test-results/workshop-goal-20261101/tiling-color-pack-TU15-original-4.json).
+- [x] Seal the complete environment-tiling profile after binding both the
+  exact encoder proof and zero-factor dependency proof. Every textual named
+  declaration and editable pass is re-decoded from its unchanged complete
+  installed file before role derivation; all14 source bank counts/extents
+  are checked. Both original template variants agree, all14 authored rows
+  convert and all28 complete paired original banks still match. Active
+  midrange tint remains rejected. The completed proof owner is removed.
+  No C++ adapter, renderer admission or new feedback build is claimed.
+  Next implement the authenticated projection in native C++, qualify its
+  complete content/ownership guards, then rerun the actual E3 GPU consumer.
+  [Sealed data projection](../build/test-results/workshop-goal-20261101/tiling-projection-proof-2.json),
+  [Sealed profile](../build/test-results/workshop-goal-20261101/tiling-native-profile-2.json).
+- [x] Stage that exact19227-byte metadata profile and its deterministic
+  native source generator in Root. The generated13750-byte include matches
+  `--check`; a changed whole-profile input is rejected. The generator pins
+  the complete sealed profile, including both original template identities
+  and all source/native remaps. These files are not yet compiled into a
+  native adapter or applied to the frozen engine cohort. Staging scratch is
+  removed; only small metadata/source/report files are retained.
+  [Source staging](../build/test-results/workshop-goal-20261101/tiling-source-profile-staging-1.json).
+- [x] Freeze a portable literal regression input for all14 tiling materials,
+  both original counterparts and both native template variants, retaining
+  complete authored roots/resources/banks and source-map pins. The same owned
+  export also captures3689 unchanged TU1.5 packing cases after all14756
+  original comparisons pass. The required37123-byte compressed metadata
+  fixture decodes to1177167 bytes; its raw owner and the initial failed export
+  owner are removed. No executable/shader program or map is copied into this
+  fixture. Native C++ and renderer acceptance remain open.
+  [Required portable metadata](../tests/fixtures/mcc-native-tiling-specular-v1.json).
+- [x] Implement the native C++ tiling projection and pass its first complete
+  owned compiler matrix: GCC, Clang and ClangASan/UBSan each pass the literal
+  material test and generator check. Every run covers14 authored materials,
+  two original controls/two native variants and29384 unchanged-original
+  packing comparisons across four host rounding modes. All64 nonfinite
+  packing inputs are refused; complete compiler metadata, resources and
+  authored root/bank controls remain active. The private compiler owner is
+  removed. Explicit synthetic alias-owner coverage, production integration
+  and actual E3 GPU acceptance remain open.
+  [Initial native component](../build/test-results/workshop-goal-20261101/tiling-component-1/report.json).
+- [x] Complete explicit alias-owner and host-rounding preservation coverage.
+  GCC, Clang and ClangASan/UBSan each pass both CTests with the actual14-row
+  fixture, a valid synthetic same-address typed alias, missing/providerless/
+  wrong-type/neighbor/truncated/conflicting backing refusals, all complete
+  compiler-byte controls and the29384 original packing comparisons. No
+  converter call changes the selected host rounding mode. The completed
+  compiler owner is removed. Production Cache wiring and actual E3 GPU
+  qualification remain the next separate acceptance gates.
+  [Final native component](../build/test-results/workshop-goal-20261101/tiling-component-2/report.json).
+- [x] Require both native tiling component/generator tests in the feedback
+  builder and retain their native result. All85 builder orchestration controls
+  pass, including explicit target/filter/receipt assertions; the disposable
+  builder-test owner is removed. This is orchestration coverage, not a new
+  native engine qualification. The next complete feedback cohort requires107
+  CTests. Production Cache wiring is staged in Root, while the isolated engine
+  still awaits its declared combined source overlay and actual GPU baseline.
+- [x] Apply the qualified tiling delta to that same owned engine cohort.
+  The22-file delta preserves all earlier environment changes in a combined
+  36-file receipt; reversing it reconstructs the exact original selected
+  sealed source inventory. Current production source has14639 files, inventory
+  SHA256`431049fc2e62fea3b3255e622788e66982543d5ec745dac4ea7d8e1d950b0252`.
+  Root files, unrelated loader changes, assets and both selections remain
+  unchanged by the refresh. The new native Cache/GPU baseline and actual
+  E3 renderer test are required before further camera or delivery claims.
+  [Combined overlay receipt](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-source-refresh-1.json),
+  [Current preparation](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-preparation-1.json).
+- [ ] Implement and qualify the complete authored three-channel environment/
+  illumination material conversion, then rerun the actual E3 camera GPU path
+  before production camera admission or a new qualified feedback build.
+- [x] Authenticate the next reported E3 requirement,`scenery_animation_start`:
+  MCC185 -> Xbox184, VOID(scenery55,animation_graph36,string_id11), original
+  evaluator2ACCF0 has29 sites and calls212010,10F710 and211DA0. Simulation
+  already handles the command through its existing cinematic bridge; the
+  134-site10F710 effect definition is in physics-live-support and has the
+  original instruction-site set. Do not duplicate either implementation.
+  Existing cinematic source tests use Xbox reference inputs, so native HS
+  composition and actual MCC animation/frame/checkpoint/render acceptance
+  remain required before admission. Audit scratch is removed.
+  [Scenery start authority/consumers](../build/test-results/workshop-goal-20261101/scenery-start-original-and-consumers.json).
+- [x] Trace the three prediction declarations through their authenticated
+  MCC wrappers and original TU1.5 evaluator/effect roots. Shader prediction
+  reaches the existing104-site171440 resource walker; bitmap prediction
+  reaches51-site2AA200 and its real12F800/12F910 cache requests; looping
+  sound prediction reaches25-site18D1D0 and128A20. These are resource effects
+  with outstanding consumer acceptance. Detached MCC helper blocks remain
+  explicitly untraced. All audit scratch is removed; none of these three
+  declarations is enabled by this inventory.
+  [Prediction contracts](../build/test-results/workshop-goal-20261101/prediction-contract-inventory.json),
+  [Original effect roots](../build/test-results/workshop-goal-20261101/prediction-effect-original.json).
+- [x] Audit all59 distinct requirements from the last complete installed
+  sweep against60 authenticated MCC declarations and signature-matching
+  original evaluators. Only three declarations have matching generated
+  evaluator definitions in the current source: the existing standalone
+  delayed-title, unit-control and jump components. Definition/site matches
+  and World route mentions are recorded separately from link/execution/effect
+  acceptance. Typed native owners and the separate MCC-only blur adapter are
+  outside this generated-evaluator inventory. Audit scratch is removed;
+  this does not qualify any additional command.
+  [Native evaluator inventory](../build/test-results/workshop-goal-20261101/script-native-owner-inventory.json).
+- [x] Capture both complete unchanged original evaluators for
+  `unit_set_actively_controlled` and `player_action_test_jump`. All53 instruction
+  sites execute across130 parsed/deferred, null/live-datum, low-byte Boolean,
+  unrelated-flag and action-bit inputs. Only HS parsing/completion boundaries
+  are intercepted; no effect is supplied. Retain the31931-byte compressed
+  required reference and bounded generation evidence; oracle scratch is
+  removed. The separate native proposal is not yet qualified or enabled.
+  [Original reference](../build/test-results/workshop-goal-20261101/unit-controls-original.json).
+- [x] Qualify the separate53-instruction unit-control/jump-test native
+  component against all130 original cases under GCC and Clang. Full ordinary
+  banks, private stacks, GP/flags/SIMD state, instruction paths, ordered semantic
+  accesses and parser/completion ABIs match. Both compilers reject the old
+  missing owner and five changed bit/field/Boolean-width implementations;
+  the positive suite also passes Clang ASan/UBSan. Two earlier negative-harness
+  errors are retained explicitly. All compiler/oracle scratch is removed.
+  Actual unit/input scheduling, script admission and consumption remain open;
+  this component is not part of the frozen launcher candidate or gameplay.
+  [Qualification and cleanup](../build/test-results/workshop-goal-20261101/unit-controls-acceptance.json).
+- [x] Independently cross-check those130 unit-control/jump-test references
+  with direct unchanged physical i386 execution. Complete GP/flags/SIMD/x87
+  status, the entire ordinary unit bank and parser/completion counts match;
+  host return-address stack bytes are explicitly outside this comparison.
+  No original instruction is patched or effect intercepted. Host source,
+  binary and raw output are removed with their owner; runtime admission
+  remains open.
+  [Physical original proof](../build/test-results/workshop-goal-20261101/unit-controls-original-host.json).
+- [x] Compose the two unit/input evaluators with the complete original HS
+  dispatcher, argument parser, scalar-table initialization and completion.
+  All55 unit/NONE/low-byte Boolean/action-bit compositions pass against the
+  active frozen engine archives. No dependency result is supplied: actual
+  212010 parses the unit/Boolean arguments, and211DA0 retires the real fixture
+  thread frame with the original return ABI. The first probe exposed an
+  incomplete test dispatch registry for exported parser212010; the explicit
+  parser route fixes that harness error. All source/archive hashes remain
+  unchanged and both compiler-probe owners are removed. Real World
+  registration, live input consumption and MCC signature admission remain open.
+  [Complete HS composition](../build/test-results/workshop-goal-20261101/unit-controls-hs-probe-2.json).
+- [x] Bound the next unit/input integration investigation to literal source
+  candidates: retain63 unchanged instruction windows and the complete
+  CCF40/CE440/D05A0 lifecycle bodies, with both source-audit owners removed.
+  The approximate decompiler index is not an owner proof: complete2B2930 is
+  a17-instruction time getter, and2FF9F4 is a stack-local false positive.
+  C++ script dispatch already handles jump with mask2; its training-state
+  equivalence to the live native action bank remains unqualified. Do not add
+  a duplicate C++ handler or reduce E3 requirements from this audit. Actual
+  native input/reset publication and unit lifecycle integration remain open.
+  [Bounded source findings and next gates](../build/test-results/workshop-goal-20261101/unit-controls-consumer-plan.json).
+- [x] Identify the actual sticky-action producer: complete18A920 has213
+  instructions and is called at original18987F inside complete1889D0. Both
+  bodies already exist in the native input collection module, and World
+  sampling already routes through original21E650. Retain their unchanged
+  source inventory and remove the oracle owner. This rules out duplicating
+  the producer; physical input-to-mod getter/reset agreement and normal app
+  scheduling still require their own acceptance.
+  [Existing action producer](../build/test-results/workshop-goal-20261101/unit-controls-action-producer-bodies.json).
+- [x] Authenticate the reset companion's exact MCC/Xbox declarations and
+  capture all eight unchanged original2B2D80 instructions across20 action/
+  armed/sentinel cases. It clears only the two words at action-bank+4/+8;
+  the surrounding64-byte bank, unit bank, stack, ABI and FP/SIMD evidence
+  are retained in a separate6627-byte required reference. Preserve the old
+  130-case fixture unchanged. Generate the additive reset body while proving
+  both existing evaluator bodies remain text-identical; native qualification
+  and input/World admission are still open. The opcode and initial body-boundary
+  guard failures are recorded in the generation evidence.
+  [Reset original](../build/test-results/workshop-goal-20261101/unit-controls-reset-original.json),
+  [Additive generation](../build/test-results/workshop-goal-20261101/unit-controls-reset-generation.json).
+- [x] Qualify the additive reset component under GCC and Clang: the old130
+  unit/jump cases and20 new reset cases all match their unchanged originals.
+  Both compilers reject the old missing owner, five existing implementation
+  faults and two new reset faults (wrong field and missing armed-word clear).
+  Independently cross-check all20 reset cases on unchanged physical i386
+  instructions, including the full action bank. No runtime admission follows
+  from this component proof; shared HS scheduling/input consumption remain open.
+  [Native reset qualification](../build/test-results/workshop-goal-20261101/unit-controls-reset-component/report.json),
+  [Physical reset proof](../build/test-results/workshop-goal-20261101/unit-controls-reset-original-host.json).
+- [x] Pass both the130-case unit/jump suite and20-case reset suite with
+  Clang ASan/UBSan. The enhanced physical verifier also rechecks all130 old
+  references successfully. The separate reset reference does not replace or
+  alter the old reference; the expanded HS composition and real input/World
+  integration remain separate gates.
+  [Reset sanitizer tests](../build/test-results/workshop-goal-20261101/unit-controls-reset-sanitizers/report.json),
+  [Physical verifier regression](../build/test-results/workshop-goal-20261101/unit-controls-reset-verifier-regression.json).
+- [x] Pass60 unit/jump/reset compositions through the complete original HS
+  dispatcher, parser, scalar initialization and completion. Reset uses its
+  genuine no-argument path, clears action/armed words and preserves suppression
+  and unit flags. All four existing native/authored/C++ blur/getter suites
+  also pass in that frozen component cohort. The owned compiler tree is
+  removed; no World admission or normal-app input agreement is claimed.
+  [Expanded HS composition](../build/test-results/workshop-goal-20261101/unit-controls-reset-hs-component/report.json).
+- [x] Trace the actual containment/headlong shape callback `AD710` and execute
+  all ten complete literal type getters across1280 poisoned GP/SIMD/FP inputs.
+  The observed getter returns10; no semantic memory is accessed or written,
+  and original FP/SIMD state is preserved. The permanent357-byte original TSV
+  first fails native qualification at this missing owner, then the focused
+  root CMake test passes after adding its exact native type value. Unknown
+  owner addresses still return no qualified type. Pair-creation routing and
+  the actual three regressed map runs remain open; an initial routing-only
+  probe advances elongation to a separate factory guard without accepting it.
+  [Original cases](../build/test-results/workshop-goal-20261101/shape-types-original.json),
+  [Red](../build/test-results/workshop-goal-20261101/shape-types-native-red/report.json),
+  [Green](../build/test-results/workshop-goal-20261101/shape-types-native-green/report.json).
+- [x] Import the complete concurrent base-lock component into the frozen
+  cohort after detecting its missing-header compile failure. Its unchanged
+  header matches the existing25-case physical-i386 reference and four mutation
+  controls. Both base-lock/type CTests pass in the rebuilt engine; the actual
+  Reformation dune and coagulation control now each complete91 native ticks
+  for a90-tick request, with unchanged source resources/runtime. Dune's cleanup
+  regression is resolved in this bounded probe. The other three maps pass the
+  earlier class guard but now identify missing agent factories:2F81F0 in
+  containment/headlong and2F1CC0 in elongation. Full mission/render acceptance
+  and publication remain open. Future launcher qualification requires the
+  base-lock and shape-type checks as well as its preceding67 checks.
+  [Coherent component import](../build/test-results/workshop-goal-20261101/base-lock-coherent-refresh.json),
+  [Engine and component checks](../build/test-results/workshop-goal-20261101/shape-class-engine-build-3/report.json),
+  [Actual map probes](../build/test-results/workshop-goal-20261101/shape-class-live-3.json).
+- [x] Compare complete native wrapped-agent factory2F1CC0 and constructor2F0DF0
+  against unchanged physical i386 execution in14 protected BEFORE contexts,
+  under both GCC and Clang. Declared wrapper inputs retain the genuine captured
+  child shapes. Real original allocation, both classifiers and selected child
+  construction execute independently on each side's mutable storage. All
+  ordered semantic reads/stores,16 child-payload bytes, service calls/results,
+  persistent captured bytes and exposed FP state match. The comparison caught
+  the factory's deliberate first/second reversal; the corrected implementation
+  and five mutation controls pass. No instruction is patched or recorded class,
+  pointer or mutable postimage supplied. This is bounded normal-path component
+  proof; exception ownership, production binding, actual Elongation simulation
+  and launcher qualification remain open. Both compiler builds and the oracle
+  owner are removed; no large reference or executable is retained.
+  [Original/native comparison](../build/test-results/workshop-goal-20261101/wrapped-agent-physical-3/report.json).
+- [x] Add permanent wrapped-agent ownership checks with genuine native child
+  construction and owned allocation. All13 normal/input/fault cases pass both
+  optimized CMake validation and Clang ASan/UBSan, including early argument
+  faults, constructor base cleanup, factory release and derived-publication
+  failure. Wire the bounded native pool/class/recursive-factory composition
+  into the private engine with separate16-byte child DATA per wrapper. Its
+  engine build and required component test pass. Actual Elongation now clears
+  the2F1CC0 guard and identifies its child classifierAE690 as the next missing
+  owner. It has not completed90 ticks; full mission/rendering/publication
+  remain open. Concurrent phantom-overlap source changes are preserved outside
+  this candidate. Disposable optimized/sanitizer builds are removed.
+  [Ownership tests](../build/test-results/workshop-goal-20261101/wrapped-agent-component-1/report.json),
+  [Sanitizers](../build/test-results/workshop-goal-20261101/wrapped-agent-sanitizers-1/report.json),
+  [Coherent refresh](../build/test-results/workshop-goal-20261101/wrapped-agent-coherent-refresh.json),
+  [Engine](../build/test-results/workshop-goal-20261101/wrapped-agent-engine-build-1/report.json).
+- [x] Execute the actual AE690 getter and all ten preceding getters across
+  1408 poisoned GP/SIMD/FP inputs. AE690's complete unchanged body returns21
+  with no semantic memory access. The permanent reference first fails for
+  missing native owner714384, then both shape-type and wrapper CTests pass
+  in the rebuilt engine after adding that exact owner. The required original
+  TSV is379 bytes; oracle scratch is removed. Actual Elongation then passes
+  both new owners and stops at child factory2F7190. Its complete original body,
+  genuine2E44D0 affine callee and two-state cleanup map are inventoried; their
+  whole native factory composition is not implemented or admitted. Dune and
+  Coagulation retain the preceding91-tick passes. All targeted source/resource
+  checks pass and per-map preparation is removed. Unknown class/factory owners
+  remain explicit refusals; no new runtime is published.
+  [Original](../build/test-results/workshop-goal-20261101/shape-types-original-2.json),
+  [Red](../build/test-results/workshop-goal-20261101/shape-types-native-red-2/report.json),
+  [Green](../build/test-results/workshop-goal-20261101/shape-types-native-green-2/report.json).
+  [Actual Elongation](../build/test-results/workshop-goal-20261101/wrapped-agent-live-2.json),
+  [Next factory inventory](../build/test-results/workshop-goal-20261101/elongation-child-factory-original.json).
+- [x] Implement complete transformed-child factory2F7190 with the existing
+  qualified2E44D0 affine owner. Fourteen protected BEFORE cases under each of
+  GCC/Clang match unchanged physical original allocation, both classifiers,
+  selected child construction, ordered scalar/vector reads and stores, all96
+  retained geometry bytes,16 child-payload bytes, persistent captured memory
+  and exposed FP state. The source input graph sits above active call stacks;
+  no original instruction or dependency effect is patched/intercepted. Five
+  meaningful mutants are rejected, including missing affine composition and
+  the wrong child-extra pointer. Both oracle/compiler owners are removed.
+  Permanent ownership/late-input tests, production binding and actual Elongation
+  execution are still open; the new factory is not yet enabled in gameplay.
+  [Physical comparison](../build/test-results/workshop-goal-20261101/transformed-agent-physical-1/report.json).
+- [x] Recheck the preceding2F1CC0/2F0DF0 implementation after sharing its
+  byte-publication helper with the new transformed factory. All14 physical
+  original cases and five mutants still pass under both compilers. Permanent
+  construction/ownership validation also passes13 preceding plus18 transformed
+  cases, including late user/context inputs, exact early dispatch retention,
+  copied metadata, actual native child creation and both unwind states.
+  The first synthetic affine fixture failed because its declared W lane was1
+  while its expected output required0; correcting that input yields the pass.
+  Its red receipt is preserved. Sanitized validation and actual map acceptance
+  remain open; completed physical/compiler/component owners are removed.
+  [Preceding original comparison](../build/test-results/workshop-goal-20261101/wrapped-agent-physical-4/report.json),
+  [Fixture red](../build/test-results/workshop-goal-20261101/transformed-agent-component-1/report.json),
+  [Ownership green](../build/test-results/workshop-goal-20261101/transformed-agent-component-2/report.json).
+- [x] Pass all31 wrapper/transformed-agent normal and ownership cases under
+  Clang ASan/UBSan with strict FP compilation. The native production binding
+  now retains a separate128-byte slot per recursive wrapper:16 payload bytes,
+  96 aligned copied/transformed bytes and bounded padding. Its allocator,
+  classifiers and selected child factories remain native qualified services;
+  unsupported owners still refuse. The frozen refresh preserves concurrent
+  phantom-overlap work outside this candidate and declares the actual geometry
+  library dependency. Engine rebuild/live Elongation acceptance remain open.
+  [Sanitizers](../build/test-results/workshop-goal-20261101/transformed-agent-sanitizers-1/report.json),
+  [Coherent refresh](../build/test-results/workshop-goal-20261101/transformed-agent-coherent-refresh.json).
+- [x] Rebuild the coherent native engine and pass both required wrapper/type
+  CTests. Actual installed Reformation Elongation now completes91 native ticks
+  for the90-tick request with no stderr error, resolving its observed simulation
+  regression. Dune also retains its91-tick pass in this probe. Original
+  resources/runtime remain unchanged and each completed preparation is removed.
+  Coagulation also completes91 ticks with no stderr error; rendering, full mission acceptance,
+  Containment/Headlong's collection factory and publication remain open.
+  [Engine](../build/test-results/workshop-goal-20261101/transformed-agent-engine-build-1/report.json),
+  [Actual map probe](../build/test-results/workshop-goal-20261101/transformed-agent-live-1.json).
+  [Combined verification and storage receipt](../build/test-results/workshop-goal-20261101/transformed-agent-acceptance.json).
+- [x] Implement complete collection factory2F81F0/constructor2F7D20 and compose
+  the qualified2E31E0 reserve path. All84 protected-input normal cases per
+  GCC/Clang match original scalar reads/stores, allocation/count/filter/child
+  calls, persistent captured memory, returned allocation and exposed FP state.
+  Cases include zero/negative counts, one/four inline children, five/nine
+  children with real growth, and both captured shape orders. Five mutants are
+  rejected. A first read-trace-only mismatch was corrected at the original
+  second-shape EAX load; its failed report is retained. These cases exercise
+  accepted children; a further source-group input cohort is running to cover
+  genuine filter rejection. No predicate or child result is supplied to native.
+  The actual filter owner observed is1CBE70, with complete source/callees now
+  inventoried. Permanent ownership checks, native filter implementation,
+  production binding and actual Containment/Headlong remain open.
+  [Original/native comparison](../build/test-results/workshop-goal-20261101/collection-agent-physical-2/report.json),
+  [Filter source](../build/test-results/workshop-goal-20261101/collection-filter-original.json).
+- [x] Extend the genuine collection comparison to112 cases per compiler,
+  preserving complete root payload fields and declaring shared nonzero group
+  inputs to exercise actual filter rejection. Both GCC/Clang pass all cases
+  and five mutants, including266 accepted and84 rejected children per compiler.
+  The permanent standalone component passes32 normal/ownership/input-change
+  cases with actual native child construction and native group filtering.
+  Both constructor unwind levels, array-before-base-before-object release,
+  inline/grown storage and source count rereads are covered. Completed oracle/
+  compiler/component owners are removed. The full native1CBE70 filter proposal
+  is retained separately for original special-body/predicate/motion comparison;
+  this component remains outside gameplay and is not published.
+  [Expanded physical comparison](../build/test-results/workshop-goal-20261101/collection-agent-physical-3/report.json),
+  [Ownership component](../build/test-results/workshop-goal-20261101/collection-agent-component-1/report.json).
+- [x] Pass the32 collection construction/ownership cases with Clang ASan/UBSan.
+  The standalone component includes the full native1CBE70 proposal and literal
+  3061F0/306220 count/resolver owners, but these tests exercise the group-filter
+  domain only. Full special-body parent traversal,21/23 unwrapping,185020
+  class predicate, user-data clamp/flag, motion7 rejection and2E98D0 matrix
+  comparison remain required before production admission. Their complete
+  original source and switch data are retained; no native filter branch is
+  admitted solely because these component tests pass. This work publishes no
+  engine candidate and changes no launcher selector. All completed owners are removed;
+  the former engine coordinator also expires at its20-minute idle limit during
+  isolated component work. Its process is terminal, journal is closed and owned
+  source/build are verified removed. Both installed runtime identities still
+  name29f4; concurrent gameplay-selection metadata is retained in the receipt.
+  Finish filter qualification before creating a new complete engine cohort.
+  [Sanitizers](../build/test-results/workshop-goal-20261101/collection-agent-sanitizers-1/report.json),
+  [Direct original callees](../build/test-results/workshop-goal-20261101/collection-filter-callees-original.json),
+  [Child resolver/predicate data](../build/test-results/workshop-goal-20261101/collection-filter-child-original.json).
+  [Component verification and storage receipt](../build/test-results/workshop-goal-20261101/collection-agent-component-acceptance.json).
+- [x] Execute complete original1CBE70/185020/2E98D0 and list3061F0/306220
+  against declared parent/shape/group/property/motion inputs without intercepting
+  any dependency. All381 cases match direct unchanged host-i386 execution for
+  complete GP/flags, FP/SIMD state and both ordinary banks. Every one of the131
+  filter instruction sites executes, including special-body resolution,
+  both unwraps, signed property clamp, motion7 and group rejection. All original
+  image bytes remain exact except the declared mutable global input48B860.
+  The expanded nonuniform-matrix reference retains101153 compressed bytes; oracle/compiler owners are
+  removed. Native read/store/return comparison, mutation/sanitizer checks and
+  production admission remain open.
+  [Host original proof](../build/test-results/workshop-goal-20261101/collection-filter-original-host-2.json).
+- [x] Compare the native filter/count/child owners against all381 host-verified
+  original cases. The first compiled comparison rejects missing constant
+  ownerA3850; all16 constant owners are then authenticated across2048 original
+  GP/SIMD/FP poisons before adding the exact five missing values. The next
+  comparison exposes the real1CBF79 prefetch: second.parent precedes
+  first-root.group. After correcting that native ordering, all381 exact
+  read/store/return/full-bank/FP cases pass. All four focused root CTests pass,
+  including preceding wrapper/collection ownership and finite getter tests.
+  Source group matrices now have independently varied rows. Mutation and
+  sanitizer qualification, production binding and actual maps remain open.
+  [Constant originals](../build/test-results/workshop-goal-20261101/shape-types-original-3.json),
+  [Missing-owner red](../build/test-results/workshop-goal-20261101/collection-filter-native-red-3/report.json),
+  [Access-order red](../build/test-results/workshop-goal-20261101/collection-filter-native-diagnostic-1/report.json),
+  [Native green](../build/test-results/workshop-goal-20261101/collection-filter-native-green-2/report.json).
+- [x] Pass the complete381-case native filter/leaf comparison and five
+  semantic mutants in a frozen-header cohort under GCC and Clang. Mutants
+  change motion7, the property flag, type21 unwrap, group row and child stride;
+  each fails against independent original evidence. All four focused root
+  checks also pass in the Clang sanitizer configuration. The native World
+  binding now supplies exact306220/class/motion services to the complete
+  filter and routes reversed factory2F81F0 through its separately qualified
+  constructor. Preserve the concurrent non-reversed2F8030/observer work and
+  shared512-byte recursion slots, including256-byte child resolver backing.
+  New engine qualification requires both collection tests. Actual linked
+  gameplay, Containment/Headlong and publication remain open; no runtime is
+  promoted by component evidence.
+  [Frozen compiler/mutant cohort](../build/test-results/workshop-goal-20261101/collection-filter-component-acceptance-3/report.json),
+  [Sanitizer configuration](../build/test-results/workshop-goal-20261101/collection-filter-sanitizers-1/report.json).
+- [x] Exercise the completed native collection/filter binding in the fresh
+  frozen engine SHA256 `6f8f8e83666a504c9c466b6e287c8c7bd5068c090ac46e404b9db6f5d90f030a`.
+  Actual installed Reformation containment now completes91 ticks for the90-tick
+  request; elongation, dune and coagulation controls also pass91 ticks.
+  Headlong passes the preceding collection-factory/filter guard but reaches
+  another unqualified factory2F75F0. All five source/resource checks and per-map
+  scratch removals pass, the outer probe owner is removed, and the executable
+  remains unchanged. Keep Headlong, full rendering/mission acceptance and
+  launcher publication open. The original88-instruction next factory is
+  inventoried without supplying any successful outcome.
+  [Five-map native probe](../build/test-results/workshop-goal-20261101/collection-filter-live-1.json),
+  [Next original owner](../build/test-results/workshop-goal-20261101/headlong-next-factory-original.json).
+- [x] Compare complete companion factory2F75F0 against unchanged physical
+  i386 execution in14 protected contexts under GCC and Clang. The second
+  payload is transformed and becomes the first child-factory argument; its
+  derived parent vtable is41CC84. Actual allocation, classifications, selected
+  child construction and2E44D0 composition run independently on current
+  storage. Ordinary banks, ordered reads/stores, service ABIs/results, child
+  payload/geometry and FP state match; both compilers reject five meaningful
+  changes. Its literal handler shares FuncInfo46BA6C and the same two unwind
+  actions as2F7190. Native fault/ownership checks, World binding and Headlong
+  rerun remain open; this proposal is not in the active candidate.
+  [Physical comparison](../build/test-results/workshop-goal-20261101/reversed-transformed-agent-physical-1/report.json),
+  [Literal unwind owners](../build/test-results/workshop-goal-20261101/headlong-next-factory-unwind.json).
+- [x] Pass the permanent51-case wrapper/transform ownership suite, including
+  20 new2F75F0 normal, late-input, allocator/input/store/class/factory fault and
+  final-derived-store/observer cases. Both the normal root CMake build and
+  Clang ASan/UBSan pass. Its genuine16-byte parent and64-byte child use the
+  existing native allocation/constructor owners; shared FuncInfo46BA6C retains
+  the actual state1 base cleanup before state0 allocation release. All physical,
+  compiler, sanitizer and metadata scratch owners are removed. Production
+  binding and the actual Headlong rerun remain open.
+  [Component acceptance and cleanup](../build/test-results/workshop-goal-20261101/reversed-transformed-acceptance.json).
+- [x] Diagnose the remaining launcher3 audio failure at the exact iterator
+  boundary: the frozen native17DCE0 owner omitted30 original instruction
+  callbacks while retaining the correct effects. Import the already-qualified
+  current native owner and its direct/compiled-caller trace checks. The whole
+  original loop-location test, direct iterator and all three compiled caller
+  modules now pass alongside the preceding wrapper test (6/6). The borrowed
+  fixture remains unchanged and is pinned explicitly; an initial copy attempt
+  stopped at its shared alias before the Headlong source refresh, which is
+  recorded separately. This is a focused gate, not full launcher qualification.
+  [Exact mismatch](../build/test-results/workshop-goal-20261101/loop-audio-diagnostic-1/report.json),
+  [Six passing checks](../build/test-results/workshop-goal-20261101/headlong-and-iterator-engine-1/report.json),
+  [Completed declared cohort refresh](../build/test-results/workshop-goal-20261101/headlong-and-iterator-coherent-refresh.json).
+- [x] Build the completed Headlong/iterator cohort in the same active source
+  owner. The engine link includes native2F75F0 and its World route; the updated
+  51-case wrapper/transform ownership test and whole original loop-audio test
+  both pass. This is an incremental native build and focused acceptance;
+  actual installed Headlong, full launcher qualification and publication
+  remain open.
+  [Engine and focused checks](../build/test-results/workshop-goal-20261101/headlong-and-iterator-engine-2/report.json).
+- [x] Recheck actual installed containment, headlong, elongation, dune and
+  coagulation on the updated private engine SHA256
+  `4c6ff6ec684d3fa071a788fb976ca4c32666537364fb8f46eb2902d414c4c12a`.
+  All five complete91 native ticks for90-tick requests, with unchanged map,
+  resource and executable hashes and removed per-map scratch. This resolves
+  the bounded Headlong creation regression. Full gameplay/rendering, the
+  all-installed rerun and qualified launcher publication remain open.
+  [Five passing native maps](../build/test-results/workshop-goal-20261101/collection-filter-live-2.json).
+- [x] Pass all76 required CTests in launcher4, then retain the real packaging
+  refusal at the source-link audit. Ten existing standalone title/physics
+  components lacked explicit boundaries in both policy versions; none was an
+  accidentally missing production link. Declare those exact component roles,
+  preserve their unregistered/isolated status and pass the actual engine graph.
+  All78 launcher-builder tests pass, including the new known-component versus
+  unknown-source negative control. No component is relabeled as runtime code
+  and no failed gameplay check is waived. Freeze the three delivery/audit
+  files before the next complete qualification. Publication remains open.
+  [76 passing CTests and packaging refusal](../build/test-results/workshop-goal-20261101/launcher-4/report.json),
+  [Strict role audit](../build/test-results/workshop-goal-20261101/component-boundary-audit.json),
+  [Declared delivery refresh](../build/test-results/workshop-goal-20261101/delivery-audit-cohort-refresh.json).
+- [x] Qualify the corrected frozen launcher5 cohort: all76 required CTests,
+  the strict source-link audit, all14 packaged stock-map/local-player frame
+  cases and all four frontend cases pass without a failure waiver. The sealed
+  3283-module shader package belongs to runtime
+  `ed341f3c8dc347739be7a050f1fbde58`, executable SHA256
+  `371dc8d5d5b4b4be9ae7ef8f1af5f0bcda9ac7a7320e616ecd43225a3e1181b6`.
+  Retain its3,197,968,440 bytes of qualified runtime/resources for the requested
+  feedback build. Both root selections remain unchanged pending the full
+  installed-mod comparison; this is prepared-candidate qualification, not
+  complete mod acceptance or publication.
+  [Qualified candidate](../build/test-results/workshop-goal-20261101/launcher-5/report.json).
+- [x] Detect the concurrent launcher advancement before publication and compare
+  against its authenticated exact source archive. Retain bounded diffs for
+  all35 changed/new production or fixture inputs that differ from the mod
+  candidate. The renderer still equals the earlier29f source and would lose
+  the newly qualified water-edge alpha ordering; the selected native list
+  module also has an additional reversed entry. Both root selectors and all
+  installed runtime resources remain untouched. This is a preservation audit;
+  the required merge and successor qualification remain open.
+  [Exact-source comparison](../build/test-results/workshop-goal-20261101/selected-preservation-review/report.json),
+  [Concurrent selection receipt](../build/test-results/workshop-goal-20261101/concurrent-selected-runtime.json).
+- [x] Tighten the all-installed simulation gate to require the final native
+  progress record to reach the requested90 ticks. An early clean exit, an
+  unrelated tick diagnostic, a failing exit or a script fault in either
+  output stream cannot pass. All seven regression tests and the registered
+  root CTest pass; its private configure/test tree is removed. The active
+  frozen sweep retains its prior helper unchanged, so apply this strict rule
+  again when computing its comparison totals. This corrects evidence
+  admission and does not change gameplay or make an early mission complete.
+  [CTest and cleanup](../build/test-results/workshop-goal-20261101/sweep-acceptance-1/report.json).
+- [x] Complete the exact packaged launcher5 all-installed sweep: all10
+  packages/101 map files are retained, including all96 declared missions and
+  five undeclared resource entries. All96 native inspections succeed;35
+  missions reach at least90 native ticks under the stricter final-record rule,
+  35 submit four preview frames and none submits four gameplay frames. The
+  four simulation regressions against the earlier candidate are recovered;
+  there are no passing-check losses against either it or the earlier
+  published Workshop baseline, and previews retain16 gains over that baseline.
+  Every declared map/resource source and per-map scratch check passes; the
+  packaged executable, source cohort and3283-module shader bank are unchanged.
+  Current a629 Zanzibar selection has no full installed-mod baseline in this
+  comparison and remains selected pending the preservation merge. No mission
+  is fully qualified and the native resource-reader sweep is not repeated.
+  [Complete packaged sweep](../build/test-results/workshop-goal-20261101/installed-candidate-2/runtime/sweep.json),
+  [Strict totals, per-package gaps and comparisons](../build/test-results/workshop-goal-20261101/installed-candidate-2-summary.json),
+  [Package integrity](../build/test-results/workshop-goal-20261101/installed-candidate-2/candidate-route.json).
+- [x] Refresh only the owned successor source from the authenticated a629
+  archive: restore31 selected networking/water/list inputs and remove13
+  unused private Rust additions, preserving the qualified mod/contact/iterator
+  changes. Add the stricter sweep helper, its pinned regression file and
+  required CTest. All47 production-inventory changes match the declared list;
+  the copied test is pinned separately because production inventories exclude
+  tests. The initial final-count assertion included that test incorrectly and
+  is retained as a bookkeeping failure; independent verification confirms all
+  intended bytes without retrying mutations. Root sources, both selections,
+  original assets and both installed runtimes remain preserved. The successor
+  still requires a complete77-check qualification and installed-mod rerun.
+  [Declared preservation refresh](../build/test-results/workshop-goal-20261101/selected-preservation-refresh.json).
+- [x] Close the sweep's base-cache selection gap in its external coordinator.
+  The preceding complete sweeps used the explicit v7 baseline; normal launchers
+  and launcher5/6 candidates choose v9. Resolve the qualified candidate through
+  the actual sealed selection admission reader instead of a fixed cache path.
+  The real launcher5 package admits v9; changed runtime and executable-hash
+  qualifications are both rejected. All input/selector hashes remain unchanged
+  and the admission probe owner is removed. Keep the running launcher6 frozen
+  source untouched; its next full sweep must use the pinned external helper
+  and its sealed cache record. This reader check does not repeat96 runtime cases.
+  [Actual admission and controls](../build/test-results/workshop-goal-20261101/candidate-base-cache-admission-1.json).
+- [x] Retain launcher6's real compilation failure: the later zoom-audio
+  journal delivery still referenced five missing state members after the
+  selected multiplayer/wire cohort was restored. Keep that entire selected
+  state/wire route coherent and explicitly retain the later delivery source
+  as an unadmitted component in this private successor. Native iterator/reset
+  owners and their required tests stay linked. No Root weapon/network source
+  is changed. All78 builder policy tests pass and their owner is removed;
+  the failed unreferenced candidate is removed. Complete successor engine
+  qualification, installed-mod delivery and the newer zoom-journal route
+  remain separate open work.
+  [Compilation refusal](../build/test-results/workshop-goal-20261101/launcher-6/report.json),
+  [Declared boundary and78 policy tests](../build/test-results/workshop-goal-20261101/selected-zoom-boundary-refresh.json).
+- [x] Pass all77 required CTests on the corrected selected-protocol launcher7
+  cohort, including the strict90-tick sweep acceptance rule, original
+  loop-audio/iterator callers, actual SMG/Warthog replay, split-screen startup,
+  grenade residency and both loading aspects. The strict source-link audit
+  also passes. Packaged stock/frontend checks are active; the sealed-package
+  v9 installed-mod sweep and guarded publication remain open.
+  [77 passing checks](../build/test-results/workshop-goal-20261101/launcher-7/validation/report.json).
+- [x] Seal the selected-protocol successor after all77 required checks,
+  strict source wiring, all14 packaged stock/local-player frame cases and
+  all four frontend cases pass without waivers. Prepared runtime
+  `7a93ace1fe284d21b55c9a2deb6a3bc4` has executable SHA256
+  `890eef032166abad061eaab0642f2074cddc8a88f53fd1c84e188b8f7b700da5`
+  and its exact3283-module shader bank. Retain3,197,703,568 bytes of candidate
+  runtime/resources for the requested delivery investigation. Root selections
+  remain on a629; run the complete installed cohort through the candidate's
+  sealed v9 cache before publishing. No mission/gameplay gate is completed by
+  these stock/frontend checks.
+  [Sealed successor](../build/test-results/workshop-goal-20261101/launcher-7/report.json).
+- [x] Render and visually inspect the exact packaged successor's first/last
+  Mods catalog pages and Digtacular mission list through the launcher resource
+  binding. All three submit four post-intro frames and reach actual screen60;
+  the catalog scrolls to the tenth installed package and authored mission
+  titles/descriptions appear. Runtime/metadata hashes remain unchanged and all
+  disposable profiles/captures are removed. The initial probe used the package
+  directory as the tool root and showed an Unavailable dialog; retain that
+  harness failure and require the final Mods route in the permanent optional
+  runtime smoke, so nonuniform error-dialog pixels cannot pass as a catalog.
+  This is packaged menu/scroll evidence, not launcher delivery or gameplay.
+  [Actual catalog and mission menus](../build/test-results/workshop-goal-20261101/mods-native-menu-2.json),
+  [Resource-binding negative case](../build/test-results/workshop-goal-20261101/mods-native-menu-1.json).
+- [x] Complete the successor's full installed sweep through its actual sealed
+  v9 cache and pinned external coordinator. All10 packages/101 files remain
+  explicit;96 declared missions inspect,35 reach at least90 native ticks,
+  35 submit four preview frames, and none submits four gameplay frames. There
+  are no passing-check losses against launcher5's full sweep or the earlier
+  published Workshop baseline; the latter still has16 fewer preview passes.
+  All declared source/resource hashes, per-map scratch removals, executable,
+  frozen source cohort and exact3283-module shader bank remain unchanged.
+  Five undeclared resource maps and every remaining failure stay recorded.
+  No mission is fully qualified; guarded publication is the next delivery gate.
+  [v9 full sweep](../build/test-results/workshop-goal-20261101/installed-candidate-3/runtime/sweep.json),
+  [Strict totals and comparisons](../build/test-results/workshop-goal-20261101/installed-candidate-3-summary.json),
+  [Sealed-cache/package integrity](../build/test-results/workshop-goal-20261101/installed-candidate-3/candidate-route.json).
+- [x] Preserve the qualified successor's exact code-only source cohort as a
+  required reference, because its deliberate selected-source edits are absent
+  from the concurrent checkout. Stream-verify all16,965 archived files against
+  their hashes, including separately identified copied test sources and the
+  external v9 coordinator. The67,038,401-byte archive is retained at
+  `bin/engine-source-snapshots/workshop-20261101-7a93ace1fe284d21b55c9a2deb6a3bc4.tar.zst`;
+  its temporary owner is removed. Borrowed assets, build products, raw banks
+  and captures are excluded. This preserves source provenance, not additional
+  gameplay acceptance.
+  [Source snapshot and cleanup](../build/test-results/workshop-goal-20261101/source-archive-candidate-7.json).
+- [x] Publish qualified successor7a93 through the existing guarded transaction:
+  both root launcher executables and both selection records are replaced only
+  while their exact prior identities still match. Both public admission
+  readers select the new package; selected cache/defaults and all31 preserved
+  a629 networking/water/list source inputs remain unchanged. The previous
+  runtime is preserved and the publication has no rollback failure. Actual
+  launcher-route testing after private build removal remains open. Full mod
+  support and main E3's25 requirements remain unqualified.
+  [Guarded publication](../build/test-results/workshop-goal-20261101/publication.json).
+- [x] Verify both actual installed root launchers after the source/build owner
+  is removed: launcher-info reports the new gameplay/frontend package and
+  correct resource root; each submits four post-intro Mods frames on screen60.
+  The additional menu-action Explore test correctly refuses to leave its
+  frontend-only capture scope. Replace that attempt with real key input on an
+  isolated X11 display through the installed launcher: normal Mods/E3/Explore
+  choices invoke asynchronous preparation from the selected v9 cache, reach
+  the actual E3 preview window, render293 frames and exit cleanly after the
+  normal window-manager close. Installed map/resource, executable and selector
+  hashes stay unchanged, and both probe owners/prepared caches are removed.
+  This qualifies menu/preview delivery; E3 campaign execution remains blocked.
+  [Both installed routes and preserved harness refusal](../build/test-results/workshop-goal-20261101/installed-launcher-routes-1.json),
+  [Actual unbounded E3 handoff](../build/test-results/workshop-goal-20261101/installed-e3-menu-handoff-1.json).
+- [x] Remove the superseded never-selected launcher5 runtime/resources only
+  after verifying its exact executable, both current selectors and absence
+  of active processes using that package. Preserve bounded qualification,
+  inventory and shader metadata, all previously selected runtimes, the new
+  qualified package and its exact source archive. The retired package
+  qualification reported3,197,968,440 bytes. No raw capture or private compiler/build owner
+  is retained for this completed delivery investigation.
+  [Owned package retirement](../build/test-results/workshop-goal-20261101/retired-candidate-5.json).
+- [x] Restrict the later zoom-delivery component boundary to the explicitly
+  marked selected-protocol cohort. An ordinary production source declaration
+  with a missing link still fails, while linked delivery remains runtime code.
+  All80 builder policy tests pass, the actual archived private CMake input
+  satisfies the boundary, and the ordinary checkout still requires its
+  production link. All policy-probe owners are removed; the installed engine
+  and immutable source archive remain unchanged.
+  [Strict conditional boundary](../build/test-results/workshop-goal-20261101/zoom-boundary-policy-acceptance.json).
+- [x] Close the feedback-build delivery investigation with all13 named
+  completed build/probe owners removed. Retain only the selected runtime and
+  resources (3,198,020,965 actual logical bytes after final sealing), its
+  67,038,401-byte exact source reference, required original/component inputs
+  and bounded reports. Prior selected runtimes and unrelated active work remain
+  preserved. The full mod-support goal stays active: main E3 still needs25
+  script features, inspection records59 script requirements and179 material
+  templates with gaps, and no mission passes the gameplay-render gate.
+  [Delivery acceptance and remaining scope](../build/test-results/workshop-goal-20261101/delivery-acceptance.json),
+  [Storage verification](../build/test-results/workshop-goal-20261101/delivery-storage.json).
+
+- [x] Repeat the authenticated declaration/resource inventory across all101
+  maps in all10 installed Halo2 packages.409 existing declarations authenticate;
+  60 distinct declarations still need native evaluator proof/adapters,47 with
+  a same-signature TU1.5 candidate. This is an inventory, not behavior proof.
+  [Inventory](../build/test-results/workshop-complete-20261031/all-installed-static.json).
+- [x] Exercise the production preparation path for every declared installed
+  map, inspect every prepared map's shader metadata/all BSP content readers,
+  then attempt90 simulation ticks, four Original gameplay frames and four
+  preview frames. The baseline covers101 map files:35 reach native checks and
+  fail at least one;61 stop in preparation; five are not declared menu missions.
+  Preparation blockers are32 package-owned shared-file cases,28 inherited-tag
+  cases and one valid low-spec filename/internal-scenario alias rejected by
+  the producer. All ten packages retain explicit results; no failure is waived.
+  The runtime hash stays unchanged, each per-map scratch owner is removed,
+  and full mission gameplay remains unqualified. Required scripts/material
+  inventories do not prove branches hidden behind an earlier runtime failure.
+  [Baseline](../build/test-results/workshop-complete-20261031/installed-baseline/sweep.json).
+- [x] Restore original empty-placement rejection semantics in script creation.
+ 48 unchanged C1120/D75A0 cases return NONE without a constructor call. The
+ ScriptVm/Simulation/SceneObjects containing-creation regression fails against
+ the old implementation and passes with the narrow factory fix; direct invalid
+ placement remains an error. Actual Playground progression is still open.
+ [Original cases](../build/test-results/workshop-complete-20261031/empty-creation-original.json),
+ [Red](../build/test-results/workshop-complete-20261031/empty-creation-red/report.json),
+ [Green](../build/test-results/workshop-complete-20261031/empty-creation-green/report.json).
+- [x] Accept metadata-authorized cache filename aliases without changing the
+  authored internal scenario or source map bytes. The alias regression fails
+  first, then all13 discovery/preparation tests pass. Actual E3 low-spec
+  preparation and owner reuse succeed, retain the original `earthcity_e3`
+  internal scenario name, preserve the installed source hash, and submit four
+  Original preview frames through the existing qualified runtime. Campaign
+  script requirements remain explicit.
+  [Regression](../build/test-results/workshop-complete-20261031/cache-alias-green.log),
+  [Actual low-spec cache](../build/test-results/workshop-complete-20261031/cache-alias-actual.json).
+- [x] Implement prepared inherited tag/resource ownership for Reformation/Rampancy
+  and package-owned shared resources for Digtacular, with per-resource provenance.
+  Full package inspection finds matching shared maps and DATs under each
+  package's `halo2/h2_maps_win64_dx11`; all inherited slots in the sampled
+  Digtacular/Reformation/Rampancy maps match their own shared map exactly.
+  The current base shared map collides and must not replace those owners.
+  New preparation passes15 discovery/resource-selection fixtures. Digtacular's
+  authored engine bank takes precedence over auxiliary map-folder DATs; the
+  wrong bank reproduces1002 resource errors. Native cache readers retain exact
+  directory ownership for textures, audio and facial geometry. Production
+  preparation/reuse and native bitmap/all-first-audio/facial inspections pass
+  for Digtacular03_ascension (1762/2269/51), Reformation lockout (1867/2270/51)
+  and Rampancy abyss (1858/2275/51), with zero resource errors. Native MCC cache
+  and discovery CTests pass. These are resource component checks; all-map
+  resource, simulation and submitted-frame reruns remain required below.
+  [Package owners](../build/test-results/workshop-complete-20261031/shared-owner-layout.json),
+  [Native red](../build/test-results/workshop-complete-20261031/shared-resource-probe-red.json),
+  [Resource inspections](../build/test-results/workshop-complete-20261031/shared-resource-probe-candidate.json),
+  [CTest](../build/test-results/workshop-complete-20261031/shared-resource-native-build/report.json).
+- [x] Repeat the entire installed-map cohort on the published native runtime:
+  all101 root files are inventoried and all96 declared missions attempt native
+  inspection,90 simulation ticks, four Original gameplay frames and four
+  preview frames. All96 prepare/inspect;35 pass the bounded simulation check,
+  19 submit four preview frames, and zero pass gameplay rendering. Every map
+  retains at least one actual failed runtime check. All original map/resource
+  hashes and the runtime hash stay unchanged; each per-map owner and the
+  outer runtime-sweep scratch are removed. Preparation hashing uses a bounded
+  file-identity cache; original map/runtime before-after hashes and original
+  resource hashes after each case remain direct uncached SHA256 reads.
+  [Full runtime sweep](../build/test-results/workshop-complete-20261031/installed-runtime-1/sweep.json),
+  [Hash-cache contract/controls](../build/test-results/workshop-complete-20261031/installed-runtime-1/preparation-hash-cache.json).
+  [All68 observed failure categories and package totals](../build/test-results/workshop-complete-20261031/installed-runtime-summary.json)
+  retain the actual causes.77 preview failures reach seven authored sky
+  template families, including29 `sky_two_alpha_clouds` and38
+  `sky_one_alpha_env` cases. [Full reached sky inventory](../build/test-results/workshop-complete-20261031/observed-sky-materials.json).
+- [ ] Complete actual mod gameplay/rendering acceptance. No installed mission
+  passes every bounded runtime check yet. In addition to script/AI/sky gates,
+  the sweep reaches unresolved BSP shader LOD passes, null native unit backing
+  at11EF70, source prop-tag ownership failures and invalid navigation edge
+  cycles. Source prop/navigation failures and authored multiplayer settings
+  need their own original/native operand and live-flow proof.
+- [x] Run the expanded required engine CTest qualification on the frozen mod
+  cohort:62 tests pass, with no skips or failure waivers, including both AI
+  scalar suites, complete cold-data composition and the installed Forge/E3
+  content regressions. Packaged13-case submitted-frame smoke, frontend checks,
+  publication and all-mod runtime acceptance remain separate gates below.
+  [Qualification](../build/test-results/workshop-complete-20261031/launcher-2/validation/report.json).
+- [x] Publish the updated mod cohort through both normal root launchers after
+  all62 required CTests,13 packaged stock-map/player submitted-frame smokes
+  and four frontend startup captures pass without waivers. Selected runtime:
+  `bin/engine-builds/0daad7b0c12346cc8ab3ce28ef52feab/halo2_native`, SHA256
+  `199b52313e5d2aa430c2a025836a846bd3abbddce27487b7eaae3375528663c1`.
+  The payload receipt records3195077744 bytes; after final qualification and
+  inventory manifests the retained directory is3195374609 logical bytes and
+  3214630912 allocated bytes. Both root launcher readbacks select this runtime
+  for gameplay/frontend; previous
+  selected runtimes are preserved. Actual installed-mod runtime acceptance and
+  later mission branches remain open.
+  [Published build](../build/test-results/workshop-complete-20261031/launcher-2/report.json),
+  [Artifact/readback receipt](../build/test-results/workshop-complete-20261031/publication-artifacts.json).
+- [x] Verify the installed Mods catalog through the normal root launcher after
+  removing the private frozen source/build owner. Four submitted frontend frames
+  reach screen60; visual review confirms package titles, Alpha Moon description
+  and scrolling, without a stale multiplayer pane. Both launcher readbacks still
+  select the qualified runtime. Temporary captures are removed.
+  [Installed catalog](../build/test-results/workshop-complete-20261031/delivered-mods.json).
+- [x] Close the sweep's owned storage lifecycle: remove the private frozen
+  source/build owner, all per-map and outer sweep owners, and installed-menu
+  captures. Retain only bounded evidence, the delivered runtime directory
+  (3195374609 logical bytes;3214630912 allocated bytes) and the required99512-byte
+  original AI scalar fixture. Original assets, previous runtimes and unrelated
+  active work remain preserved.
+  [Verified cleanup](../build/test-results/workshop-complete-20261031/final-cleanup.json).
+- [x] Repeat native preparation/content/resource inspection for all96 declared
+  missions in all10 installed packages (all101 root map files inventoried).
+  All96 prepare successfully and all201 BSP content readers succeed. Native
+  readers accept203463 bitmap frames,270794 first audio permutations and76215
+  facial blocks, with zero resource errors; this does not test PCM playback,
+  GPU material behavior or later script branches. All source map/resource
+  hashes remain unchanged; every per-map owner and the sweep's outer scratch
+  are removed. The five undeclared files are three Reformation shared-resource
+  maps and Digtacular's martian/overboard caches. Script/material inventory gaps
+  remain explicit in every row; the sweep deliberately returns non-success
+  for those gaps, without describing them as resource-reader failures.
+  [Complete resource sweep](../build/test-results/workshop-complete-20261031/installed-resources-1/sweep.json).
+- [x] Admit Forge's authored deduplicated model-child bank through its actual
+  resident cache allocation. A new whole-content regression fails on the exact
+  payload-boundary diagnostic, then passes with the cache-owned child-bank
+  read. The literal tag view still rejects cross-allocation reads, and the
+  production content reader constructs authored vehicle attachments. Actual
+  Forge native simulation/rendering remain separate open checks.
+  [Resident owners](../build/test-results/workshop-complete-20261031/forge-model-child-owners.json),
+  [Red](../build/test-results/workshop-complete-20261031/forge-content-red/report.json),
+  [Green](../build/test-results/workshop-complete-20261031/forge-content-green/report.json).
+- [ ] Resolve the observed sky-kernel/material, facial DAT, source tag-pointer,
+  player-start selection and native-world state faults; rerun affected maps.
+  The updated actual preview diagnostics identify `sky_two_alpha_clouds`
+  (AlphaMoon/EarthArk/E32004) and `sky_one_alpha_env` (Forge/Grifball) as
+  reached unsupported sky template families. Forge now passes content loading
+  and exposes a separate missing campaign player-start gate. Neither family
+  is replaced with a stock material or an invented kernel.
+  [Observed sky materials](../build/test-results/workshop-complete-20261031/observed-sky-materials-partial.json).
+- [x] Restore the missing original AI aiming scalar constructors as a component.
+  Seven unchanged CRT callbacks (23 instructions) produce eight writable
+  geometry/aiming scalars from authenticated immutable operands.84 original
+  captures cover defaults, signed zero, NaN payloads and infinities with two
+  poisoned destinations/register states. The new native test first fails with
+  `Unowned original AI scalar initializer`, then both old and extended suites
+  pass exact registers/SIMD/flags, instruction/store paths, real RET, missing
+  input boundaries and checkpoint restore. Existing original fixtures remain
+  byte-identical. Whole-World initialization and actual Playground900 ticks
+  remain open until the updated runtime is qualified and exercised.
+  [Original84 cases](../build/test-results/workshop-complete-20261031/ai-aim-original.json),
+  [Red](../build/test-results/workshop-complete-20261031/ai-aim-red/report.json),
+  [Green](../build/test-results/workshop-complete-20261031/ai-aim-green/report.json).
+- [ ] Complete Playground's real native AI placement/frame path. The intact
+  updated build starts and reaches tick27 in both90/900-tick attempts, passing
+  the previous empty-placement and missing56E098/56E09C backing failures.
+  Actual `ai_place` now stops at272825->273290, and the frame stops at
+  269D9D->267A60.267A60 has a complete generated body but is not exported by
+  the AI module's public entry predicate for dynamic callbacks;273290 has no
+  registered live owner. `unit_impervious` also reports a non-live unit after
+  those placement failures and needs revalidation once placement succeeds.
+  No missing callback or invalid unit is replaced with a successful result.
+  Two earlier harness attempts failed before loading the mod (missing EOS
+  companions in an executable-only copy, then an unsupported helper CLI flag);
+  neither is counted as engine acceptance.
+  [Actual updated runtime](../build/test-results/workshop-complete-20261031/playground-updated-simulation-3.json).
+- [ ] Close the remaining script adapters/effects and all later campaign,
+  combat, cinematics, audio, variants and network/content agreement gates.
+- [x] Inventory authored level-data descriptors in all56 installed multiplayer
+  missions against their unchanged source hashes. Exactly13 have no Level Data
+  row, and all13 match the previous native11F07B null-descriptor failure;
+  jetty and missile_beach instead have an empty nested multiplayer descriptor.
+  The authenticated original instruction stream dereferences these descriptors
+  before checking its two stock-map fixup IDs. This identifies the input
+  boundary; no level ID, descriptor or successful runtime result is invented.
+  Metadata compatibility and affected-map reruns remain open. The diagnostic
+  scratch is removed; only the bounded read-only inventory is retained.
+  [Metadata/fault evidence](../build/test-results/workshop-goal-20261101/multiplayer-level-metadata.json).
+- [ ] Route authored Workshop mission settings beyond title/scenario/type:
+  all56 multiplayer descriptors include `MaximumTeamsByGameCategory` and
+  `MapDefaultPrimaryWeapon`/Forge defaults. Grifball explicitly requests the
+  gravity hammer; E32004 requests the battle rifle. The Mods bridge currently
+  does not consume these fields; matching tag defaults must not be assumed.
+  All96 declared missions also include image/film/insertion metadata;40 have
+  campaign metagame fields. All installed insertion lists are empty, so this
+  inventory supplies no live insertion-selection acceptance. Scoring, custom
+  imagery, saved-film policy and authored multiplayer settings remain open.
+  [Mission metadata](../build/test-results/workshop-complete-20261031/mission-metadata-feature-inventory.json).
+- [ ] Preserve/admit authored Workshop fonts. AlphaMoon ships a modified
+  Conduit9 font and table under `halo2/h2_fonts`; current preparation copies
+  the base table and drops that file. A real private-preparation probe fails
+  both exact-copy checks. The native font owner also admits a finite stock
+  filename/fingerprint set, so copying alone does not qualify custom glyphs,
+  layout or rendering. [Actual failure](../build/test-results/workshop-complete-20261031/alpha-fonts-red.json).
+
+
+- [x] Detect installed MCC Halo 2 Workshop subscriptions through configured Steam
+  libraries and local metadata. Twelve bounded fixtures pass for external libraries,
+  duplicate roots, campaign/multiplayer descriptors, invalid metadata/paths,
+  symlinks, absent maps, Windows-authored case, mixed campaign/multiplayer content,
+  and preserving existing output. The local E3 item exposes
+  its main, playground, and low-spec missions; non-Halo-2 items are filtered.
+- [x] Bind the explicit Workshop producer's authored-gameplay policy without
+  changing ordinary stock/custom owners. The native owner contract passes.
+  Compressed E3 preparation and reuse also pass with unchanged embedded bitmap
+  bytes; all copies belonged to removed scratch.
+  [Owner contract](../build/test-results/workshop-20261030/owner-contract/report.json),
+  [compressed owner](../build/test-results/workshop-20261030/compressed-owner.json).
+- [x] Qualify the source Mods menu, preparation/error recovery and authored
+  object preservation. Frozen-build menu/cache tests pass. Actual native Vulkan
+  captures visibly confirm the installed-mod catalog, correct focused metadata,
+  E3 mission list and launch actions; remove inherited Slayer help/artwork.
+  The bounded Original map preview also submits four frames; material gaps remain.
+  [Menu](../build/test-results/workshop-20261030/steam_workshop_menu-frozen-final.log),
+  [cache](../build/test-results/workshop-20261030/steam_workshop_cache-frozen-final.log),
+  [catalog capture](../build/test-results/workshop-20261030/visible-mods-fixed.json),
+  [E3 pages](../build/test-results/workshop-20261030/visible-e3-pages.json).
+- [x] Verify the real E3 prepared-cache service and reuse: all67 authored
+  weapon/projectile/biped/vehicle definitions retain their source data after
+  unit-physics layout normalization. The initial native checker reported31 missing
+  script features before gameplay; Cache size/alignment remain656/8.
+  [Cache service](../build/test-results/workshop-20261030/qualified-1-1/report.json),
+  [authored-data evidence](../build/test-results/workshop-20261030/authored-data.json),
+  [layout](../build/test-results/workshop-20261030/cache-layout.json).
+- [x] Implement three authored bloom controls, cinematic object collision and
+  two authenticated null-backed globals.36 HS setter cases,64 complete bloom
+  CPU-program/pass/blend comparisons and32 collision flag/callback cases pass,
+  including the actual collision-query flag consumer. All five focused CTests
+  pass, including existing cinematic bloom and script-layout regressions.
+  Limits remain actual full-scene collision, GPU/framebuffer parity and full
+  campaign behavior. [Effects](../build/test-results/workshop-20261030/script-effects-final/report.json),
+  [source/scope](../build/test-results/workshop-20261030/script-effects-final/source-and-scope.json).
+- [x] Audit101 maps across all10 installed Halo2 Workshop packages. Record
+  unowned declarations separately from proven native clock ownership and
+  signature-only candidates. Remaining areas include package shared resources,
+  AI/vehicle/command actions, animation and sound overloads, navigation points,
+  custom materials/variants and online content agreement.
+  [Audit](../build/test-results/workshop-20261030/all-mods-compatibility.json).
+- [x] Qualify the native `unit_set_enterable_by_player` effect and evaluator:
+  32 unit-flag cases,8 HS argument/completion cases and4 complete original seat
+  selection cases pass, including the player-only bit12 gate and AI exemption.
+  Recursive seat enumeration is executed without substitutions; authored seat
+  flags bound these cases before geometry/animation admission. This proves the
+  script effect/consumer, not successful seat entry or Playground startup.
+  The campaign-host handler is wired; actual startup remains to be tested.
+  [Native cases](../build/test-results/workshop-20261030/ai-unit-2/tests.log),
+  [MCC effect identity](../build/test-results/workshop-20261030/ai-unit-mcc-effects.json).
+- [x] Qualify `ai_force_active`:72 complete native squad/group effects,12 HS
+  evaluator cases and8 whole squad-activation frames match unchanged TU1.5
+  execution, including real awareness/activation/deactivation helpers with empty
+  actor lists. Direct references, nested groups, disabled AI, NONE and low-byte
+  boolean semantics are covered. The host invokes the retained native effect;
+  the reduced salted MCC319 call maps to TU317 and passes admission. All11
+  focused component/cache/menu/script checks pass. Full populated-scene AI and
+  E3 campaign progression remain open.
+  [Components](../build/test-results/workshop-20261031/components-1/report.json).
+- [x] Implement the next observed Playground host gap, `object_cannot_die`.
+  Its real inlined native evaluator matches64 original HS/flag cases, including
+  NONE, unavailable arguments, low-byte booleans and unrelated flag preservation.
+  The committed cannot-die bit reaches the engine's actual body-damage clamp.
+  A validated retained-world host setter uses the same vitality byte; full
+  scene damage/death-callback acceptance remains open.
+- [x] Fix required rasterizer-global vertex closure in private Workshop
+  preparations. The actual E3 cache test first failed on a missing global
+  program, matching the decal-renderer startup failure. It now resolves every
+  global native vertex reference and loads the unchanged212-byte decal program.
+  No authored material instances or existing native shader programs are changed.
+  All11 focused regressions pass again.
+  [Red](../build/test-results/workshop-20261031/vertex-red-2/tests.log),
+  [Green](../build/test-results/workshop-20261031/components-2/report.json).
+- [x] Add the exact retained native `tex_bump_dprs_env_illum` variant and
+  its unanimated MCC cooked-layout projection. The SMG grip regression first
+  failed with no native passes; it now loads passes while all six authored
+  bitmap/constant/property banks remain byte-identical. Three LODs and the
+  original native pass/range/implementation layout are pinned; animated or
+  mismatched data stays unsupported. GPU/visual acceptance remains open.
+  [Shape/owner](../build/test-results/workshop-20261031/dprs-env-illum-shape.json),
+  [Red](../build/test-results/workshop-20261031/material-red/tests.log),
+  [Green](../build/test-results/workshop-20261031/material-green-1/report.json).
+- [x] Project the verified unanimated `one_alpha_env` tuple without replacing
+  authored textures or values. A same-template paired MCC/original material
+  proves pixel ordering `[0,2,1,3]` and identical bitmap-slot semantics. The
+  actual mod decal now loads native passes; bitmap/vector/property banks stay
+  byte-identical and pixel words undergo only that lossless permutation.
+  Changed authored pixels/native payloads are rejected, and existing transparent
+  projection regressions pass. General one-alpha variants and visual parity
+  remain open. [Pair](../build/test-results/workshop-20261031/one-alpha-paired-proof.json),
+  [Guards](../build/test-results/workshop-20261031/material-guards/report.json).
+- [x] Implement the observed `ai_actors` host gap using retained native
+  squad/group/actor/starting-location banks and the existing salted HS list
+  owner.144 whole original effect/evaluator captures cover NONE, disabled AI,
+  allocation failure, nested groups, direct actors, missing locations and swarm
+  chains.96 native effect cases preserve exact members, counts and prepend
+  order; all four existing AI count/fraction regressions also pass. A subsequent
+  actual Playground run passes `ai_actors` and reaches a separate cinematic-LOD
+  presentation-owner bug. Full scene AI and progression remain open.
+  [Components](../build/test-results/workshop-20261031/ai-actors-2/tests.log),
+  [Runtime](../build/test-results/workshop-20261031/playground-simulation-6.json).
+- [x] Keep campaign `object_cinematic_lod` with its actual retained object
+  owner, including actors returned by `ai_actors`. The actual Playground run
+  gets past its prior stale-placement lookup and reaches a distinct
+  `object_create_anew_containing` placement-without-definition failure. The
+  90-tick probe remains failed; this is bounded route evidence only.
+  [Runtime](../build/test-results/workshop-20261031/playground-simulation-7.json).
+- [x] Add campaign model-material preflight after script admission. It reads
+  the actual placed models' material tables and detects cooked materials with
+  no native passes. The real-cache regression first missed the renderer's
+  `window_skylight` blocker; it now reports it and gives material gaps their own
+  menu message. Explore Map remains available. This is a necessary initial
+  material gate, not complete renderer, script-host or gameplay qualification.
+  [Red](../build/test-results/workshop-20261031/material-preflight-red/tests.log),
+  [Green](../build/test-results/workshop-20261031/material-preflight-green-2/tests.log).
+- [ ] Complete E3 campaign/native script, material, audio, online, and launcher
+  acceptance. Main E3 has25 remaining native script requirements. Playground
+  now passes the unit-entry, cannot-die and `ai_actors` calls; its longer run
+  exposes `object_cinematic_lod` incorrectly looking up native AI handles in
+  the placement presentation bank. Its correction passes that call; the next
+  observed script fault is `object_create_anew_containing` on a placement with
+  no definition. The90-tick runtime check still fails and stays recorded.
+  The run also fails at native root1D0670/site2A1653 because backing56E098 is
+  unavailable. Do not invent initialization from the offline zero bytes.
+  Global vertex closure, SMG grip and plasma-decal conversion now pass;
+  Original rendering reaches unresolved `window_skylight`, alongside other
+  explicitly reported model/material gaps. Preview remains bounded evidence.
+  Neither mission is qualified as playable.
+  [Latest simulation](../build/test-results/workshop-20261031/playground-simulation-6.json),
+  [Latest renderer](../build/test-results/workshop-20261031/playground-render-5.json).
+  These are engine compatibility gaps, not a missing Workshop directory.
+  [Initial runtime evidence](../build/test-results/workshop-20261030/e3-before-runtime.json).
+- [x] Publish qualified build15970265dcc6444c8c7f4f643c3749de for user feedback.
+  All55 required CTests,13 map/local-player submitted-frame smokes and four
+  frontend startup captures pass; no failing smoke case is waived. Both root
+  launchers read back the new gameplay/frontend selection. E3 campaign and
+  playground play remain unqualified and their known script/host gaps stay in
+  preparation diagnostics. Retained runtime/resources:3,194,914,170 logical bytes
+  at `bin/engine-builds/15970265dcc6444c8c7f4f643c3749de`; temporary builds/captures
+  are removed by the owner.
+  [Build](../build/test-results/workshop-20261030/launcher-final-3/report.json),
+  [launcher](../build/test-results/workshop-20261030/launcher-readback.log),
+  [title launcher](../build/test-results/workshop-20261030/title-launcher-readback.log).
+- [x] Publish follow-up feedback build1f04e6a955854e238689fbd26d53dfa8.
+  All59 required CTests pass with no skips, all13 packaged map/player
+  submitted-frame cases pass, and all four frontend startup captures pass.
+  Both root launchers read back this exact gameplay/frontend selection. After
+  removing the private source/build tree, the normal installed launcher renders
+  the Mods catalog and all three E3 mission entries; both captures were visually
+  reviewed. Full E3 gameplay remains unavailable through the compatibility
+  gates above; failed direct-play investigations are retained as failures.
+  The prior feedback runtime is preserved. Explicitly retained new runtime and
+  resources:3,195,039,802 logical bytes,2,079,563,776 allocated bytes. Private
+  source/build/map/capture copies are removed.
+  [Qualification](../build/test-results/workshop-20261031/launcher-1/report.json),
+  [installed pages](../build/test-results/workshop-20261031/delivered-mods.json),
+  [launcher](../build/test-results/workshop-20261031/launcher-readback.log),
+  [title launcher](../build/test-results/workshop-20261031/title-launcher-readback.log),
+  [cleanup](../build/test-results/workshop-20261031/cleanup.json).
+
+## October29 menu focus stability
+
+- [x] Reproduce and fix menu lists moving when focus changes. Persistent
+  selectors now retain their primary list definition while artwork/help panes
+  change. MCC hover emphasis uses the resting row anchor for both artwork and
+  pointer targets. Long menus retain their visible row window until navigation
+  crosses an edge. The actual-MCC regression first failed on Easy → Legendary,
+  a 10-pixel hover translation, and a 20-pixel shift after scrolling the profile
+  menu. The completed Release fix passes 992 hover cases across 31 screens,
+  40 screen/context layouts and four resolutions, including 2550×1358. This
+  includes 196 hover cases after scrolling in 11 layouts. The full MCC submenu
+  suite passes 292,067 checks, including Graphics Mode choices, persistence and
+  unavailable-mode rejection. Final native qualification and publication also
+  pass as recorded below. All owned build and capture scratch was removed.
+  [Initial reproductions and coverage](../build/test-results/ui-selection-shift-20261029/component-validation.json),
+  [scrolled-hover reproduction](../build/test-results/ui-selection-shift-20261029/scroll-red/reproduction.json),
+  [Release component qualification](../build/test-results/ui-selection-shift-20261029/scroll-final/component/report.json).
+- [x] Qualify and publish a fresh launcher runtime containing the shared UI fix.
+  Runtime `55ec65471e384c9c96b4aed919334468` is published and selected by both
+  launchers. It passes all 31 required checks, 13 map/player smoke cases and four
+  frontend startup cases. Both actual launcher readers and native executable
+  loading pass after build cleanup. The required installed runtime/resources
+  are retained (3,188,963,921 bytes, 2.97GiB); no large diagnostic artifacts remain.
+  [Final delivery, source scope and cleanup](../build/test-results/ui-selection-shift-20261029/delivery.json).
+  The optimized working-tree candidate passes the two UI regressions and26/31
+  required checks, but five gameplay starts reject an unrelated native default
+  camera initializer caller at380E00. Its unselected candidate and scratch were
+  removed. An isolated UI-only build now starts from qualified runtime
+  `102cfdd654364b7b80b72ad4fb848c2f`; all production source inputs were checked
+  against that runtime's recorded hashes before applying the painter change.
+  That UI-only candidate passes all native startup/grenade checks and both UI
+  regressions (30/31 total), but its launcher promotion tests picked up later
+  audio-tooling expectations. It was removed without publication. The retry
+  pins the complete original build tool and its matching promotion tests before
+  adding the two UI checks. Its build succeeded, and the additional scrolled
+  hover regression exposed the second movement path. That qualification was
+  interrupted after retaining the independent failing real-painter reproduction.
+  The declared state/painter refresh now passes both UI suites; final native
+  qualification reuses the same live owned build and passes all 31 required
+  checks. Six 2550×1358 native captures were reviewed: Easy/Legendary anchors,
+  the visible Graphics Mode picker and applied pStencil value, and the retained
+  scrolled profile list. Map smoke/publication passes, and the captured executable
+  SHA matches the installed executable. Capture and build scratch was removed.
+  Production changes remain UI-only.
+  In-progress camera and other gameplay changes remain outside this UI build.
+  [First native attempt](../build/test-results/ui-selection-shift-20261029/runtime/report.json),
+  [First UI-only result](../build/test-results/ui-selection-shift-20261029/ui-only-delivery/runtime/report.json),
+  [pinned UI-only baseline and tooling](../build/test-results/ui-selection-shift-20261029/ui-only-delivery-pinned/baseline.json),
+  [declared scrolling fix](../build/test-results/ui-selection-shift-20261029/scroll-final/refresh.json),
+  [native gate](../build/test-results/ui-selection-shift-20261029/scroll-final/runtime/validation/report.json),
+  [native visual review](../build/test-results/ui-selection-shift-20261029/native-ui-captures.json).
+
+## October29 split-screen pause exits
+
+- [x] Verify the local offline split-screen pause actions **End Match** and
+  **Exit To Desktop**, each with Cancel selected in its confirmation dialog.
+  End Match requests the actual game-over owner and leaves results, the ending
+  countdown and return navigation with the session lifecycle. Exit To Desktop
+  uses the application shutdown path and releases mouse capture. All five
+  focused Release checks pass: menu navigation/confirmation/pointer targets,
+  actual MCC SDL/Vulkan pause windows (single-view, ONLINE and split-screen),
+  and two local native rounds ended before their authored time limit, with
+  finalized results and the ordinary postgame/lobby/restart lifecycle.
+  The frozen retry includes one declared refresh of the camera owner's
+  completed bootstrap-caller fix. Initial link/startup failures remain in the
+  evidence. Both owned source/build trees were removed; no large artifacts
+  were retained. This task did not rebuild or promote a launcher runtime.
+  [Validation, source hashes, refresh and cleanup](../build/test-results/split-screen-pause-actions-20261029/validation.json),
+  [five passing checks](../build/test-results/split-screen-pause-actions-20261029/frozen/run-2/tests.log).
+
+## October29 Graphics Mode submenu
+
+- [x] Verify the explicit **Graphics Mode** picker with imported MCC content. The shared
+  Settings/pause factory now lists **Original**, **pStencil**, and **Path Tracing**,
+  focuses and names the current mode, applies/saves a selected choice, and
+  cancels with Back. Rejected modes preserve the active and saved choice.
+  The full MCC submenu suite now passes292,067 checks, including the corrected
+  unavailable-mode error-dialog path. Graphics Mode hover geometry also passes
+  the cross-menu stability check. All component scratch was removed.
+  [Current MCC component qualification](../build/test-results/ui-selection-shift-20261029/component-validation.json).
+- [x] Review the native Settings picker at 2550×1358: all three named modes and
+  the current mode are visible, and selecting pStencil returns to Video Options
+  with pStencil displayed. The captured executable passed all 31 native runtime
+  guards and is published as `55ec65471e384c9c96b4aed919334468`; both launchers
+  select it. The six capture files and the owned build were removed after inspection.
+  [Native menu review](../build/test-results/ui-selection-shift-20261029/native-ui-captures.json).
+- [ ] Complete broader live pause/GPU gameplay-mode acceptance. The earlier
+  renderer attempt stopped at campaign camera/view-rectangle linker failures;
+  the current native Settings capture does not establish those broader checks.
+  [Earlier validation limits](../build/test-results/graphics-mode-submenu-20261029/validation.json).
+
+## October29 sustained SMG vehicle-fire audio crash
+
+- [x] Trace the reported old9101 Coagulation crash to the actual native
+  `18FA45 -> 17E160` effect-instance looping-sound location resolver. The user
+  was continuously firing an SMG at a Warthog. The direct audio-callee census
+  also found missing `230B10`, the related physics/object spatial source.
+  [Reported interaction and log identity](../build/test-results/effect-loop-location-20261029/reported-crash.json).
+- [x] Generate both complete authenticated TU1.5 bodies with their real
+  dependencies, preserving all previously qualified bodies. Six effect-location
+  and16 physics/object-source cases match the original instruction traces,
+  ordered writes and full host-x86 register/floating-point exits (apart from
+  Linux's IF flag), plus6,054,328 non-stack bytes per case. No substituted game
+  services, patched source instructions or invented spatial outputs are used.
+  These are declared-operand component checks, not native birth or GPU proof.
+  [Effect cases](../build/test-results/effect-loop-location-20261029/component.json),
+  [physics/object cases](../build/test-results/effect-loop-location-20261029/mode2-component.json).
+  All78/212 original instruction PCs in the226/802-byte bodies are exercised.
+  The direct `18F9B0` census now resolves all16 call sites. The private archive
+  copies, executables and raw oracle banks were removed after verification.
+  [Coverage and cleanup](../build/test-results/effect-loop-location-20261029/cleanup-and-summary.json).
+- [ ] Reproduce the actual sustained SMG/Warthog interaction with audio enabled,
+  require real impact/effect/emitter progression, and qualify/publish the exact
+  corrected executable. Existing muted frame tests do not establish this gate.
+
+## October29 grenade shadow residency
+
+- [x] Reproduce the reported single-view Original crash with an actual grenade
+  input. The selected `9101fc561cbe41539e3c5fb3db5b32bd` runtime admits a frag
+  at tick23 on MCC Coagulation and then rejects its missing shadow section.
+  The same view without a throw completes tick160 with Generate/Apply draws.
+  [Exact failing input](../build/test-results/grenade-shadow-residency-20261029/permanent-red/report.json),
+  [neutral control](../build/test-results/grenade-shadow-residency-20261029/installed-neutral/report.json).
+- [x] Verify the prepared grenade/projectile/dynamic model catalogs against
+  authored MCC metadata, preserving full-salt and scene lifetime guards.
+  The grenade and rocket/Ghost fixtures pass on MCC Coagulation; dynamic scene
+  handoff passes on MCC Zanzibar with the authenticated TU1.5 executable used
+  only as an offline operand reference. Resident-cache ownership controls pass.
+  [Catalog results](../build/test-results/grenade-shadow-residency-20261029/cpu-fixtures/acceptance.json),
+  [correct TU1.5 handoff](../build/test-results/grenade-shadow-residency-20261029/cpu-handoff-tu15/report.json).
+  The earlier handoff attempt remains recorded as failed because its supplied
+  executable was not TU1.5; it is not accepted as a passing control.
+- [x] Exercise actual native frag and plasma births through ordinary shadow
+  rendering after adding the successfully prepared scene banks to preload.
+  Both cases complete159 frames/tick160, admitted salted grenade snapshots,
+  detonation and actual Generate/Apply submissions with complete1280x720
+  captures. These are private executable checks, not installed acceptance.
+  [Frag](../build/test-results/grenade-shadow-residency-20261029/fixed-frag/report.json),
+  [plasma](../build/test-results/grenade-shadow-residency-20261029/fixed-plasma/report.json).
+- [x] Require neutral, frag, plasma and Zanzibar receiver checks in launcher
+  qualification, alongside the existing startup and Friends gates. All71
+  publication-policy controls pass, including missing/failed/wrong-executable
+  receipts, unexpected grenades and absent actual shadow submissions.
+  [Policy controls](../build/test-results/shadow-receiver-policy-20261029/report.json).
+  This is policy validation; each final executable must still run the real cases.
+- [x] Preserve the parallel Friends footer fix in the combined source cohort.
+  Both ONLINE identity and the39-case aspect/device/resize regression pass;
+  13 actual GPU frames pass and two independent visual reviews confirm the
+  footer anchor. The79,770,198-byte raw frame bank was removed after review.
+  [Combined CPU](../build/test-results/grenade-shadow-residency-20261029/combined-ui/report.json),
+  [GPU and removal receipt](../build/test-results/grenade-shadow-residency-20261029/combined-footer-gpu/report.json).
+- [x] Close authored scenario-object and recursive model-child resource roots.
+  All25 prepared MCC multiplayer maps pass BSP0 CPU preparation:881 authored
+  model occurrences,2,903 Generate and3,819 Apply materials. The native common
+  `C0790` child callback applies to all object classes; all authored variants,
+  full salted owners, invisible intermediate owners and cycles are covered by
+  bounded dependency traversal. Actual additional child modes are present on
+  Street Sweeper and Triplicate. This matrix covers authored object/weapon/player
+  roots; dynamic scene catalogs and native births have their separate checks.
+  [All-map preparation and controls](../build/test-results/grenade-shadow-residency-20261029/all-map-authored-shadow/report.json).
+- [x] Correct the adjacent Zanzibar BSP preload failure using the actual native
+  phase owner. `168900(root,0,0)` clears BSP caster bit`0x2000` at`168A39/168A69`;
+  those shaders only need Apply4. Rooted model shaders retain Generate0.
+  Zanzibar BSP-only preparation now has0 Generate/39 Apply materials; authored
+  model roots retain146 Generate/181 Apply. Directly preparing the unresident
+  granite-bump caster material still rejects it. No bitmap fallback was added.
+  [Causal failure](../build/test-results/grenade-shadow-residency-20261029/all-map-authored-shadow/red-before-bsp-phase-fix.json),
+  [passing controls](../build/test-results/grenade-shadow-residency-20261029/all-map-authored-shadow/report.json).
+- [x] Qualify and publish the frozen grenade/shadow/Friends cohort with the four
+  native regression cases. Runtime`102cfdd654364b7b80b72ad4fb848c2f`, executable
+  SHA`185376d48ad3f22ff001ca438accb1bcbccd8bf33b3fddf9db4c53582fd3a3a6`,
+  passes all29 CTests,13 actual map/player checks (including Waterworks and
+  two/four-player Coagulation), and4 frontend cases. Both ROOT launchers and
+  selections now use it; strict current readers and both actual launcher-info
+  routes pass. The old9101 runtime is preserved. Retained runtime/resources:
+  3,151,874,255 bytes. This installed cohort excludes the later SMG audio,
+  Street Sweeper template and unrelated pending ROOT list/focus changes.
+  [Qualified build](../build/test-results/grenade-shadow-residency-20261029/final-engine-2/report.json),
+  [guarded publication](../build/test-results/grenade-shadow-residency-20261029/final-engine-2/publication.json),
+  [independent installed review](../build/test-results/friends-bottom-left-20261029/acceptance.json).
+  The first candidate passed all29 CTests and12/13 required map/player checks,
+  but was withdrawn before publication when Waterworks exposed two dynamic
+  stalactite models forwarding a variant block into a third resident `hlmt`.
+  The new traversal's local-payload assumption was corrected by unique
+  authenticated resident-backing resolution before the passing second candidate.
+  [Withheld candidate](../build/test-results/grenade-shadow-residency-20261029/final-engine/report.json),
+  [exact forwarding evidence](../build/test-results/grenade-shadow-residency-20261029/full-bank-shadow-waterworks-resident-blocks/report.json).
+- [x] Validate the later complete production-bank source closure across25 maps:
+  actual successful dynamic/grenade/projectile banks plus authored/child roots,
+  2,466 model occurrences,4,455 Generate and5,369 Apply materials. Waterworks
+  retains wrong-group rejection, exact restoration and same-cache recovery;
+  Zanzibar still rejects its genuinely invalid direct caster material.
+  Street Sweeper's used plasma-decal rows now qualify their own complete PC
+  template data against already resident byte-identical pass/vertex programs;
+  no shader program/library import or fallback was added. Three focused CTests
+  pass, including byte-complete corruption controls. These later converter
+  changes are source/component proof and are not yet in installed102cfdd.
+  [Source delivery and hashes](../build/test-results/grenade-shadow-residency-20261029/resident-template-delivery.json),
+  [full production-bank matrix](../build/test-results/grenade-shadow-residency-20261029/full-bank-shadow-all-multiplayer-resident-template-final/report.json).
+
+## October29 launcher startup performance
+
+- [x] Install our Xbox/PlayStation prompt banks during fresh setup, reuse,
+  cache selection and Repair. Current rendering routes button, shared-symbol
+  and keyboard-keycap pixels through our banks, retaining MCC ordinary text
+  and logical metrics. New frontend receipts require both banks. Campaign
+  loading pins the authentic 1024×128 Vista/H2EK logo, including native
+  rejection of a self-consistent lower-resolution replacement. See
+  [setup policy](ASSET_SETUP.md) and the
+  [scoped validation](../build/test-results/owned-prompts-hd-logo-20261029/validation.json).
+  The isolated Linux build passes its prompt/loading tests, qualification
+  suite,13 map/player frame checks and four menu captures. Its publication
+  preserved a Linux runtime selected concurrently by another task.
+
+- [x] Detect missing MCC Halo 2 campaign/multiplayer DLC and H2EK during
+  graphical onboarding, with **Download from Steam** routed to the installed
+  client for missing app IDs only. Monitor actual files/Steam installation
+  state afterward; explain archive-only H2EK extraction instead of requesting
+  another download. Shared library discovery covers external libraries,
+  Windows registry paths, Flatpak and Proton host paths. Existing import/hash
+  admission remains in place. See [setup](ASSET_SETUP.md#install-missing-steam-content)
+  and [focused checks](../build/test-results/steam-onboarding-20261029/cmake/report.json).
+
+- [x] Expose **Repair** whenever launcher readiness fails. The shared Linux and
+  Windows UI owns a cancellable verification/repair child, displays measured
+  progress, reports failures, and rechecks readiness without automatically
+  launching. Windows Repair verifies the package before genuinely qualifying
+  an unqualified menu executable. The installed Windows package passes title,
+  main-menu and sign-in screen captures through GE-Proton11-7, then changes
+  from missing validation to ready. Optional movies remain optional when absent;
+  loading checks match the exact executable's implemented presentation family.
+  Canonical UTF-8/LF capability bytes fix Windows readmission. This is bounded
+  frontend qualification, not real sign-in or gameplay acceptance.
+  [Repair evidence](../build/test-results/launcher-repair-proton-20261029/repair-proton.json),
+  [implementation and limits](LAUNCHER_STARTUP_PERFORMANCE.md).
+
+- [x] Show measured onboarding percentages and a matching visible fill for
+  each named task. Bound/framed UTF-8 counters cover copying and destination
+  readback, cache verification, map inspection/conversion, artwork, presentation,
+  cache publication and selection. Use up to four copy/verification threads;
+  preserve all source identity checks, independent destination hashes and
+  cleanup before removing a failed stage. Skip known incompatible presentation
+  families before their unnecessary full-tree hash. The1GiB verified-copy
+  benchmark drops from0.996s to0.502s (49.6%); no full31GB import timing is
+  claimed. Linux checks pass139 cases with one skip;23 Windows progress/copy
+  checks pass under Wine, including visible-pixel controls. The local Windows
+  package receives the11-file UI/onboarding resource cohort with its manifest
+  refreshed; game engines, shaders and selected MCC caches remain preserved.
+  [Validation and benchmark](../build/test-results/onboarding-progress-20261029/validation.json),
+  [Windows package delivery](../build/test-results/onboarding-progress-20261029/delivery.json).
+
+- [x] Apply the website-inspired **Forever Launcher** presentation to Linux
+  and the existing Windows package: website Arial/letter spacing, identical
+  authored ring vectors, Play and compact readiness; no Halo wordmark or
+  tagline panels. Linux and Windows Tk controls pass seven checks each
+  (Windows under Wine),29 setup checks pass with one skip, and three Windows
+  packaging checks pass. Actual Linux home appears in0.103s and enables Play
+  after2.588s in one check. Both selected engines/shader banks are preserved.
+  Windows physical-desktop and gameplay acceptance remain separate.
+  [UI validation and previews](../build/test-results/launcher-redesign-20261029/validation.json),
+  [Windows resource refresh](../build/test-results/launcher-redesign-20261029/delivery.json).
+
+- [x] Open the launcher while readiness runs on a background thread; audit large
+  shader banks with at most four CPU processes. Decode each shader once and
+  audit the selected frontend owner once per admission. Ordinary Play skips
+  unrelated multiplayer admission and repeats frontend admission after Play.
+  All byte hashes, executable/stage contracts and file identity checks remain
+  enforced. Ten compiled launcher/selection/UI checks,32 AOT controls and11
+  renderer audit controls pass; serial/parallel production-bank results match.
+  Both ROOT launchers are rebuilt and installed; the selected runtime
+  `4bf0c86b3c41485193b431cf4f7da756` is preserved. This verifies local Linux
+  startup performance, not new gameplay or cross-platform acceptance.
+  [Delivery and source hashes](../build/test-results/launcher-startup-20261029/delivery.json),
+  [Launcher checks](../build/test-results/launcher-startup-20261029/cmake/report.json),
+  [CPU worker comparison](../build/test-results/launcher-startup-20261029/shader-workers.json),
+  [Startup measurements](LAUNCHER_STARTUP_PERFORMANCE.md).
 
 ## October28 particle resource crash correction
 
@@ -107,8 +2736,10 @@ faithful Vulkan kernels; imported PC pass metadata qualifies their interfaces.
   credits, authored prompt-atlas and original loading-tone exceptions. Preserve
   those files and dated evidence as references; normal MCC setup, reuse,
   packaging and runtime selection must not require, copy or select those banks.
-- Use authenticated native MCC prompt glyphs with their actual metrics and
-  geometry, and the MCC V3 loading bank. Unassigned MCC movie roles and other
+- Use our Xbox/PlayStation and keycap rasters, retaining MCC fonts for ordinary
+  text and logical metrics. Prefer the authenticated H2EK loading bank and its
+  high-definition Vista logo; retain MCC V3 as the legacy kit-free fallback.
+  Unassigned MCC movie roles and other
   missing asset owners remain open delivery gates; do not substitute unrelated
   artwork/media or infer full provenance from a cache path or component pass.
 - Reconstruct Xbox hardware or startup initializers only for demonstrated
@@ -2479,10 +5110,11 @@ fonts, artwork and identifiers. Keep the MCC cache and existing shaders selected
   cache repair, distribution and visible rendering remain separate gates.
   [Prompt importer handoff](../.local/mcc-frontend-custom-prompts-20261019/handoff-v1.json),
   [Actual private bank copy](../.local/mcc-frontend-custom-prompts-20261019/validation-real-bank-v1.json).
-- [ ] Verify the native MCC prompt glyphs in actual title/menus and gameplay
-  HUD screens, preserving their authenticated pixels, metrics, geometry and
-  active keyboard/controller bindings. Qualify the delivered widescreen route;
-  historical custom-atlas captures do not establish the changed glyphs' appearance.
+- [ ] Complete broad title/menu/gameplay HUD acceptance of our prompt artwork,
+  retaining authenticated MCC text metrics and active keyboard/controller
+  bindings. October29 covers331 bindings, mixed-player CPU draws and bounded
+  loading/menu captures; physical controller and full gameplay coverage remain
+  separate from these focused checks.
 - [x] Qualify actual MCC glyph ownership before applying the earlier redraws.
   All331 selector/name/codepoint/source-record bindings match MCC. Of those,
   178 have different raw dimensions across eight selectors; for example,
@@ -8262,6 +10894,21 @@ a private copy preempted the complete owner. See
 [weapon checklist](WEAPONS_TU15_GOAL_CHECKLIST.md). All63 weapons remain open.
 
 
+### Zanzibar ocean, Ghost/wheel crash and CPU performance (2026-10-31)
+
+- [x] Reproduce the repeating ocean triangles with the selected MCC runtime; the actual imported water triangle stream was regrouped as Xbox quads. The production-loader probe fails before the correction and passes afterward for all five infinite-water maps (13,440 nondegenerate, correctly wound triangles). Preserve the original Xbox quad expansion and existing water shaders.
+- [x] Prove the two complete native PRT/PRT-lightmap class0 position programs have the exact accepted ordered position dependency, with indexed reads confined to lighting. All 11 model/world position tests pass, including changed-token controls; ordinary BSP admission retains its existing scope.
+- [x] Measure the selected runtime at Zanzibar: 135.60 ms mean frame interval versus 2.75 ms mean GPU time in the retained 90-frame single-view sample. Sampling identifies repeated texture hashing and scenery preparation as CPU costs; source changes reuse mutation-aware texture fingerprints and byte-identical completed scenery node banks.
+- [x] Pass the coherent ten-check frozen cohort for original/MCC water, texture fingerprints, scenery pose/history, model/world depth, ordered position and collision layers/BVH. Cache triangle bounds/centers once per BVH rebuild while preserving every node word, partition/tie order and tested ray result against the original builder, including actual MCC Zanzibar geometry.
+- [x] Compare the same fixed executable at 1280×720 with its original-cost reference controls: 116.12 ms versus 78.77 ms mean frame interval, with identical frame SHA-256 `8bf8387398fb51dfedd8b5373977fbdab2e9893cca96044388d4a5ddeeec96eb`. An earlier matched pair measured 96.08 ms versus 61.99 ms. Concurrent compilers affect absolute timing; these finite replays establish reduced CPU work, not 60 FPS or complete map-performance acceptance.
+- [x] Reproduce the exact reported WORLD-program error on `scenarios\\objects\\multi\\zanzibar\\shaders\\metal_wheel` by restoring only the original admission predicate in the owned build. Restore the corrected source byte-for-byte and pass the actual one-view SDL Ghost route: map-authored spawn, boarding, steering through surveyed BSP clearance, 4.94 m minimum horizontal wheel distance, 144,072 actual wheel receiver vertices, normal exit and camera restoration across 1,218 observed native ticks. Fixed render cadence makes the input replay repeatable; no physics result or object position is supplied.
+- [x] Recheck all ten focused regressions in the rebuilt cohort. Its high-load matched pair retains the same exact frame hash: 291.17 ms versus 281.59 ms mean frame interval, with geometry binding/texture validation falling from 55.72 ms to 16.22 ms. These noisy absolute timings do not supersede the earlier cohort's bounded results or establish a delivered FPS target.
+- [x] Preserve the newer qualified `0daad7b0c12346cc8ab3ce28ef52feab` runtime's seven-callback/eight-scalar startup fix before replacing its selection. Every preserved production/tool file matches that installed inventory; the physics change is exactly the verified `_cinit` range extension. Both original scalar execution tests pass. The superseded candidate was canceled and removed, and unrelated working-tree physics changes remain intact.
+- [x] Publish and verify `29f4db427b1d44ea94a4449388ef6ff1`: 62 qualification CTests, 13 packaged multiplayer cases and four startup screens pass; both installed launcher-info routes select the same qualified engine. The packaged Zanzibar beach capture removes the repeating triangular gaps. Its final matched 1280×720/120-tick replay improves 123.30 ms to 86.38 ms mean frame interval (29.94% reduction), with identical final-frame bytes. Whole-map/60 FPS acceptance remains open.
+- [x] Close the owned investigation: both disposable source/build owners, captures, private driver caches, probe owners and 14 temporary helpers are removed. Preserve both prior installed runtimes and original/reference assets. Retain the qualified runtime/resources (about 3.0 GiB) and small bounded reports/source hashes. [Final acceptance and storage receipt](../build/test-results/zanzibar-20261031/acceptance.json).
+
+Evidence: `build/test-results/zanzibar-20261031/` (baseline timings, CPU samples, failing loader probe and exact model-position proof). The selected runtime and original assets remain preserved while qualification is in progress.
+
 ### LAN/split-screen custom-mode settings and launch milestone (2026-10-28)
 
 - [x] Verify Fiesta, Infection and Bomb Defusal normal menu settings/Starts with fixed defining rules, ordered native extensions and complete source settings; copied/reopened variants, native Defusal timer constraints, real local team selection and pointer reachability. The pinned cohort passes 11/11 focused CTests, including 429 metadata checks and 564 custom edited Starts per original/MCC catalog. All 92 stock parameters still pass 4,146 edited Starts per catalog.
@@ -8278,14 +10925,16 @@ Evidence: [custom-mode acceptance](../build/test-results/custom-mode-cohort-2026
 ### Split-screen tick-zero shadow startup crash (2026-10-28)
 
 - [x] Reproduce the exact installed-runtime 640×480 reference-guard error through the real MCC Split Screen profile/lobby/countdown/native handoff at 1280×720, with zero gameplay frames; confirm the missing nonzero-reference check in the installed binary and lock down the permanent regression.
-- [ ] Qualify and select a fresh immutable runtime containing the source correction, requiring that actual unbounded menu Start to submit frames and exit cleanly, plus launcher/loading/frontend and ordinary local multiplayer checks.
+- [x] Qualify and select a fresh immutable runtime containing the source correction, requiring that actual unbounded menu Start to submit frames and exit cleanly, plus launcher/loading/frontend and ordinary local multiplayer checks. October 29 delivery passes 24/24 CTests, 13 packaged multiplayer cases and four frontend checks; the actual 1280×720 menu Start submits 111 frames. Both installed launchers resolve the new runtime, and installed-launcher two/four-view matches at 1280×720 pass.
 
-[Diagnosis and regression scope](SPLITSCREEN_STARTUP_SHADOW_REFERENCE.md). Installed runtime `4bf0c86b3c41485193b431cf4f7da756` remains unchanged while delivery is pending. Private profiles/caches are disposable; no capture retention is requested.
+[Diagnosis and regression scope](SPLITSCREEN_STARTUP_SHADOW_REFERENCE.md). Selected runtime is now `9101fc561cbe41539e3c5fb3db5b32bd`; the previous `4bf0c86b3c41485193b431cf4f7da756` runtime and existing launcher binaries are preserved. [Installed delivery](../build/test-results/splitscreen-shadow-startup-20261028/installed-delivery.json). Private profiles/caches and owned builds/probes are removed; no captures are retained. Full shadow-matrix qualification below remains open.
 
 
 ### Native player shadows across offline, System Link and ONLINE (2026-10-28)
 
 - [ ] Accept the current coherent Original/pStencil/Path Tracing matrix, including real raw-LAN and ONLINE host/joined native ownership, completed local-player GPU receipts, independent gameplay cadence and historical WORLD/depth consistency. The transport, recipient native owner, typed native timeline, scene/effects isolation and model-depth implementation are integrated; final linked/runtime evidence is pending. Preserve native fixed-shadow disabling for two to four local views.
-- [ ] Complete the all-25 prepared-MCC-map full archive/native restore census under the actual production shadow caps and verify disposable owner cleanup. The earlier offline 35-check and pixel controls remain bounded evidence for their earlier pinned source, not acceptance of these new changes.
+- [x] Verify bounded archive/import capacity on all 25 prepared MCC multiplayer maps under the actual production shadow caps: single local player, actual native tick-30 Slayer state, exact complete named-field roundtrip, strict independent same-view native prepare/commit and complete imported bank equality. [Census verification and cleanup](../build/test-results/player-shadows-finish-20261028/mcc-shadow-archive-census-final-summary.json) records all 25 passes, maxima, unchanged linked inputs and removed nested scratch. Maximum roster/live state, all-map network/GPU acceptance, candidate delivery and outer coordinator closeout remain open. The earlier offline 35-check and pixel controls retain their earlier pinned scope.
+- [x] Verify the current offline native fixed-shadow split policy at Original 640×480, tick 90, for two, three and four actual local views: distinct living unit identities, native feature disabled in every view, zero submitted fixed-shadow roots and zero Generate/Apply draws, with Vulkan validation and visible captures. Candidate selection may remain nonzero before the disabled route. These three [v5 smokes](../build/test-results/player-shadows-finish-20261028/final-void-split-v5/report.json) do not qualify other graphics modes or connected role rebinding.
+- [x] Run the four v5 native Lockout void-fall/controlled-fraction checks, including validation-on/off and death-camera frames, with their body/eye interpolation and repeated-same-tick assertions. All passed in the [same bounded cohort](../build/test-results/player-shadows-finish-20261028/final-void-split-v5/report.json). They did not reproduce the reported rubberbanding and establish no corrective behavior change or broader feet/leg exposure acceptance; see [body evidence boundaries](FIRST_PERSON_BODY_TU15.md).
 
 See [native player shadow status](PLAYER_SHADOWS_NATIVE.md). No launcher promotion is part of this work; the selected runtime and unrelated installed work remain unchanged.

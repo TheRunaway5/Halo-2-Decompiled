@@ -1,0 +1,10 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_presentation_rust_tests"
+  ],
+  "filter": "^frontend_presentation_cpp_rust$",
+  "refresh": [
+    "rust/online_protocol_bridge/src/matchmaking_frontend_presentation.hpp"
+  ]
+}

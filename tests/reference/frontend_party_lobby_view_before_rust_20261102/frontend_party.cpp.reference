@@ -1,0 +1,198 @@
+#include "halo2/frontend.hpp"
+#include "halo2/frontend_matchmaking_party.hpp"
+#include "halo2/frontend_lobby_game.hpp"
+#include "ui/mcc_frontend_string_ids.hpp"
+#include "ui/frontend_og_matchmaking_layout.hpp"
+#include <algorithm>
+
+namespace halo2 {
+namespace {
+constexpr unsigned invite_context=45;
+}
+
+std::vector<FrontendUiSound> MenuState::take_ui_sounds() {
+  auto sounds=std::move(pending_ui_sounds_);pending_ui_sounds_.clear();return sounds;
+}
+std::optional<FrontendInviteNotice> MenuState::invite_notice() const {
+  return frontend_party_notice_rust(account_,signed_in_,party_flow_.dismissed(),launch.has_value(),unsigned(matchmaking_.status));
+}
+bool MenuState::act_invite_notice(bool accept) {
+  return party_flow_drive(FrontendPartyFlowAction::Notice,accept?1:0);
+}
+std::vector<OnlinePartyMember> MenuState::online_party_members() const {
+  FrontendPartyIo io;
+  io.primary_appearance=[&]{return appearance_for_profile(signed_in_);};
+  io.local_players=[&]{
+    std::vector<FrontendPartySeat> out;
+    for(const auto &p:local_players())out.push_back({p.controller,p.name,p.appearance});
+    return out;
+  };
+  io.authorization=[&](std::uint32_t controller)->std::optional<bool> {
+    const auto &login=local_discord_logins_[controller];
+    if(!login)return {};
+    return login->authorization().has_value();
+  };
+  return frontend_party_members_rust(account_.party,io);
+}
+bool MenuState::online_party_screen(const MenuFrame &f) const {
+  return frontend_party_flow_screen(mode_,f.screen,f.context);
+}
+bool MenuState::party_invite_picker() const {return frontend_party_flow_picker(frame().screen,frame().context);}
+bool MenuState::switch_invite_tab(int direction) {
+  return party_flow_drive(FrontendPartyFlowAction::SwitchTab,direction);
+}
+void MenuState::populate_online_party(MenuFrame &f) const {
+  f.description.clear();
+  if(f.screen==31 && f.context==invite_context) {
+    f.title="INVITE TO PARTY";
+    if(party_flow_.tab()==0) {
+      f.description=account_.friends_message;
+      for(unsigned i=0;i<account_.friends.size();++i) {
+        const auto &p=account_.friends[i];
+        if(p.state=="friend")f.entries.push_back({p.name+(p.presence=="playing"?" - In match":p.presence=="offline"?" - Offline":" - ONLINE"),-36,int(i)});
+      }
+      if(f.entries.empty())f.entries.push_back({"No friends added yet",-82,0});
+    } else {
+      f.description=account_.clan?"Select an online clan member to invite.":"Join a clan to invite its members.";
+      if(account_.clan)for(unsigned i=0;i<account_.clan->members.size();++i) {
+        const auto &p=account_.clan->members[i];
+        if(!p.self && (p.presence==OnlineClanPresence::Online || p.presence==OnlineClanPresence::Playing))
+          f.entries.push_back({p.name+(p.presence==OnlineClanPresence::Playing?" - In match":""),-37,int(i)});
+      }
+      if(f.entries.empty())f.entries.push_back({"No available online clan members",-82,0});
+    }
+    f.entries.push_back({"Invite by Friend Tag",167,9});
+    f.entries.push_back({"Back",-5,0});return;
+  }
+  if(f.screen==14) {
+    const auto &screen=content_.screen(14);
+    const auto &pane=screen.panes.at(2);
+    const bool original=detail::mcc_frontend_content(content_);
+    f.title=original?detail::og_matchmaking_layout::original_string(14,
+        detail::og_matchmaking_layout::data().at("original").at("screens").at("14").at("header")):content_.localized(screen,screen.header);
+    if(account_.party) {
+      if(pane.buttons.size()<2)throw FormatError("Matchmaking lobby has no authored Start/Game Setup buttons");
+      //250FB3 choice1 opens the original squad-settings screen23. Its
+      // matchmaking row then reaches the authenticated playlist adapter.
+      const auto label=[&](unsigned i){return original?detail::og_matchmaking_layout::original_string(14,
+          detail::og_matchmaking_layout::data().at("original").at("screens").at("14").at("panes").at(2).at("buttons").at(i).at("text").at("string")):
+          content_.localized(screen,pane.buttons[i].text.string);};
+      f.entries={{label(0),-17,0},{label(1),23,0}};
+    } else f.entries={{"Create Party",-33,0},{"Party Invitations",26,2}};
+  } else if(f.screen==26) {
+    f.title="ONLINE";
+    if(account_.party) {
+      const auto members=online_party_members();
+      for(unsigned i=0;i<members.size();++i)
+        f.entries.push_back({members[i].name,members[i].local_controller==-2?-82:31,int(i)});
+      for(unsigned i=0;i<account_.party->outgoing.size();++i)
+        f.entries.push_back({"Invited: "+account_.party->outgoing[i].name,31,int(2000+i)});
+    } else f.entries.push_back({"Create Party",-33,0});
+    for(unsigned i=0;i<account_.party_invitations.size();++i)
+      f.entries.push_back({"Invite: "+account_.party_invitations[i].name,31,int(1000+i)});
+  } else if(f.screen==216) {
+    f.title="PARTY OPTIONS";
+    if(!account_.party){f.entries={{"Create Party",-33,0},{"Party Invitations",26,0}};return;}
+    f.entries.push_back({"Playlists",219,0});
+    if(account_.party->leader) {
+      f.entries.push_back({"Invite Player",31,int(invite_context)});
+      if(account_.clan && account_.clan->role>=1)f.entries.push_back({"Invite Clan To Party",-33,1});
+    }
+    f.entries.push_back({"Party Members",26,0});
+    if(online_voice_) {
+      f.entries.push_back({voice_party_ && (voice_.joined || voice_.connecting)?"Leave Party Voice":"Join Party Voice",-34,0});
+      if(voice_party_ && voice_.joined)f.entries.push_back({voice_.microphone_muted?"Unmute Microphone":"Mute Microphone",-34,1});
+    }
+    f.entries.push_back({"Stop Searching",-33,6});
+    f.entries.push_back({"Leave Party",-33,5});
+  } else if(f.screen==31) {
+    f.title="PARTY";
+    const auto target=party_flow_.target();
+    const auto kind=party_flow_.kind();
+    if(kind==1) {
+      const auto it=std::find_if(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==target;});
+      if(it!=account_.party_invitations.end()){f.title=it->name;f.entries={{"Accept Party Invite",-33,2},{"Decline Party Invite",-33,3},{"Block Future Invites",-33,4}};}
+    } else if(kind==2 && account_.party) {
+      const auto it=std::find_if(account_.party->outgoing.begin(),account_.party->outgoing.end(),[&](const auto &i){return i.id==target;});
+      if(it!=account_.party->outgoing.end()){f.title=it->name;f.entries={{"Cancel Party Invite",-33,7}};}
+    } else if(account_.party) {
+      const auto it=std::find_if(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==target;});
+      if(it!=account_.party->members.end()) {
+        f.title=it->name;
+        if(it->self)f.entries={{"Playlists",219,0},{"Leave Party",-33,5}};
+        else if(account_.party->leader)f.entries={{"Make Party Leader",-33,8},{"Remove From Party",-33,9}};
+        if(!it->self && voice_party_ && voice_.joined) {
+          const bool muted=std::find(voice_.muted.begin(),voice_.muted.end(),it->handle)!=voice_.muted.end();
+          f.entries.push_back({muted?"Unmute Voice":"Mute Voice",-34,2});
+        }
+      }
+    }
+    if(f.entries.empty())f.entries.push_back({"Back",-5,0});
+  }
+}
+std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
+  if(f.screen==31 && f.context==invite_context)return i==0?f.description:std::string{};
+  if(f.screen==14) {
+    const auto &screen=content_.screen(14);const auto &pane=screen.panes.at(2);
+    const bool original=detail::mcc_frontend_content(content_);
+    const auto localized=[&](std::uint32_t sid){return original?detail::og_matchmaking_layout::original_string(14,sid):detail::frontend_compiled_localized(content_,screen,sid);};
+    const auto authored=[&](unsigned index){return original?detail::og_matchmaking_layout::original_text(14,2,index):content_.localized(screen,pane.texts.at(index).string);};
+    if(i==0 && online_lobby_.seconds()>=0) {
+      const auto view=lobby_view();
+      if(view) {
+        const auto policy=frontend_lobby_presentation(view->input);
+        if(policy.status_string)return expand(localized(*policy.status_string));
+      }
+    }
+    if(i==0 && online_lobby_.matchmaking() && account_.party && !account_.party->countdown_supported &&
+        !matchmaking_search_.selected().empty())return online_lobby_start_error();
+    if(i==0)return account_.party_message; // Real service errors; no invented authored idle/voice status.
+    if(i==1 || i==2 || i==3 || i==48)return expand(authored(i));
+    if(i==10) {
+      if(const auto view=lobby_view())if(const auto id=frontend_lobby_presentation(view->input).privacy_string)return localized(*id);
+      return {};
+    }
+    if(i==43 && account_.party)for(const auto &m:account_.party->members)if(m.leader) {
+      auto text=authored(i);
+      if(const auto token=text.find("\xee\x90\x96");token!=std::string::npos)text.replace(token,3,m.name);
+      return text;
+    }
+    if(i==44 && account_.party)return expand(authored(i));
+    if(i==45 && has_online_prior_stats()) {
+      return authored(45);
+    }
+    if(i==47) {
+      const auto view=lobby_view();
+      if(view) {
+        const auto help=frontend_lobby_help(2,view->protocol,view->machines,view->input.party_privacy,6);
+        if(help.visible)return localized(help.string_id);
+      }
+    }
+    return {};
+  }
+  if(f.screen==26) {
+    const auto &s=content_.screens.at(26);const auto &pane=s.panes.at(2);
+    if(i==0)return "PARTY";
+    if(i==1 || i==3)return content_.localized(s,pane.texts.at(i).string);
+    if(i==2)return account_.party?"Party members":"Party invitations";
+    if(i==4)return account_.party?std::to_string(online_party_members().size()):"";
+    if(i==6)return voice_party_ && voice_.joined?(voice_.microphone_muted?"MUTE":"VOICE"):"";
+    return {};
+  }
+  return i==0?account_.party_message.empty()?account_.message:account_.party_message:"";
+}
+void MenuState::update_online_privacy() {
+  party_flow_drive(FrontendPartyFlowAction::ObservePrivacy);
+}
+std::string MenuState::online_party_column(const MenuFrame &f,unsigned row,unsigned column) const {
+  // Preserve the source caller's profile/local-seat reads before cell guards.
+  const auto members=online_party_members();
+  return frontend_party_column_rust(members,voice_,voice_party_,f.screen,row,column);
+}
+
+
+
+bool MenuState::accept_online_party() {
+  return party_flow_drive(FrontendPartyFlowAction::Accept);
+}
+} // namespace halo2

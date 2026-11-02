@@ -57,17 +57,12 @@ int main(int argc, char** argv) try {
     }
     if (!active) return;
     ++requests;
-    const std::set<std::uint32_t> instructions(trace.begin(), trace.end());
-    // 178E6F passed the allocation gate, 179063 ran the initial update,
-    // and 179083..17908A returned NONE after the original retirement check.
-    need(instructions.contains(0x178e75u) && instructions.contains(0x179063u) &&
-         instructions.contains(0x17907au) && instructions.contains(0x179085u),
-         "Native SMG did not complete its actual born-then-retired factory path");
+    need(trace.empty(), "State-only observation unexpectedly enabled instruction tracing");
     need(abi.gp[0] == null_datum, "Original retired effect return was changed");
     ++retired;
     active.reset();
-  });
-  native.tu15_world().observe_physics_stores([&](auto, const auto& store) {
+  },false);
+  native.tu15_world().observe_physics_stores_read_only([&](auto, const auto& store) {
     if (!active || store.instruction != 0x17b0a9u || store.written.size() != 4) return;
     const auto body = store.address - 0x108u;
     const auto pool = word(0x4f720cu), rows = word(pool + 0x44u);

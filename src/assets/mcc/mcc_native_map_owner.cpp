@@ -271,6 +271,9 @@ std::optional<MccNativeMapBinding> resolve_mcc_native_map_binding(
         binding.input_sha256 = text(row, "input_sha256");
         binding.input_bytes = extent(row, "input_bytes");
         binding.custom_authoring = text(row.at("compatibility_authority"), "scope") == "explicit-custom-owner";
+        binding.preserve_mcc_authoring = binding.custom_authoring &&
+            text(row.at("compatibility_authority"), "producer") == "steam_workshop.py" &&
+            text(row.at("compatibility_authority"), "profile") == "H2_WORKSHOP_PREPARATION_V1";
         binding.shared_directory = shared;
         binding.role = text(row, "cache_role") == "resources" ? MccCacheRole::Resources : MccCacheRole::Scenario;
         const auto mode = text(row, "native_mode");

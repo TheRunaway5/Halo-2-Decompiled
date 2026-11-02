@@ -1,0 +1,62 @@
+[
+  {
+    "path": "cmake/NativeWeaponEffectsTu15.cmake",
+    "frozen": "23fa7b5ff4c82c1f24171a88a5c4370812f44114d7594c830cfdc9d3a30fa294",
+    "current": "5661312f90d571d62beb9c837d8a1043dffeb49a0ea68e949bf841c7a30fa558"
+  },
+  {
+    "path": "include/halo2/native_weapon_effect_dispatch_tu15.hpp",
+    "frozen": "8e7e1f6fac4b950d7ee0a0985fee90edc8808e1a1758d0b9dc90d1ed13568c0e",
+    "current": "79e038c4186935d8a734e2289d338e7c16e6b8de68c0e03d25f16420a1e47d2c"
+  },
+  {
+    "path": "src/gameplay/units/death_cycle_runtime_tu15_generated.cpp",
+    "frozen": "96725d979b2279e6658006a5a4895d0a36af9dca0ac998824a730425a3f306f5",
+    "current": "ba0c6d56f7d9163aca3da7717cde84dd478985d1cca644cea73fd510dd829330"
+  },
+  {
+    "path": "src/physics/physics_live_support_tu15_generated.cpp",
+    "frozen": "76d29a6199e867658350ad0fe9735282e9d7c6ea57443b69677cd6558fe69310",
+    "current": "252ff0d658b9882e193c90d9315d5086086810b88367b8c40dc293e0ecf6aea6"
+  },
+  {
+    "path": "tests/destruction_runtime_tu15_tests.cpp",
+    "frozen": "71960558d7f4be4ff8ac37da11cbfde9d97a1e8b033d55737fc4d10a50c608bd",
+    "current": "45e599839bd75642aad7156ba9934b6d9892820a9d659db7a8544d807bff359f"
+  },
+  {
+    "path": "tests/fixtures/weapon_effect_state_tu15_original.json",
+    "frozen": "42d61899d2e3a6112c0616bd41847a2f48354804db440800e1e1f2ecd33a6719",
+    "current": "02eb027f47536642c64d183f9ff0bfda11833e4d2f3ae841d3357b4737573be1"
+  },
+  {
+    "path": "tools/generate_death_cycle_runtime_tu15.py",
+    "frozen": "0bdc20d46269454e48559a301a1d7de61309a3ad424b29bd260ab69556425f80",
+    "current": "5c44b628f681a04056b8d4aaf394082b8802b17e09783a9f243ce5c17d5eaf37"
+  },
+  {
+    "path": "tools/generate_physics_live_support_tu15.py",
+    "frozen": "e6fec67d60ca95291fec7a8ff7a2bdb03d5102c3d7703f7dd34b7395e942aea7",
+    "current": "62fe190d3400e1273764931318e762cd42198b3c66c8bf5a4ede877023ca3890"
+  },
+  {
+    "path": "tools/oracle_weapon_effect_state_tu15.py",
+    "frozen": "bc36707a2b9889c0b92ea1e24be21810a0ca759586a68686c892ad8df2494594",
+    "current": "05fcf615c28640051d35127040e042dbba75ec2351f30fc91a3c2b07157d0f85"
+  },
+  {
+    "path": "tools/test_workshop_candidate_sweep.py",
+    "frozen": "a07cf99c44000bdcccd79032c7f6238de7b00a59dabb30a95b1b793232f980b6",
+    "current": "924d32aef54e652d0af3c765cc226cbb5d0b84a39c13f2b54b87315028bd6760"
+  },
+  {
+    "path": "tools/validate_native_weapon_effects_tu15.py",
+    "frozen": "4a5484be7dea0751900fe0b4a3ea09d4e20daea16a09f900eef13f1c7b20ebc4",
+    "current": "0935d1571f531bea9acedd26f479761d18265c5e8a5f5220e56e322e45a3c980"
+  },
+  {
+    "path": "tools/validate_weapon_material_snapshot_tu15.py",
+    "frozen": "c973e152bbd6cbe096607b5ea2d10c56a5c4e40b35677abebfdbb4fea1f3cb94",
+    "current": "6a4420efdc971a52fe201e61567801fe4531915bb536cb61c78395a7a440b6e0"
+  }
+]

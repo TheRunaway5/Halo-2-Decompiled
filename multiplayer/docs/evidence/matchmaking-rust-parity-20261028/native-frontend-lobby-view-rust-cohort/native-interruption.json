@@ -1,0 +1,14 @@
+{
+  "status": "interrupted",
+  "exit_code": 143,
+  "signal": "SIGTERM",
+  "cause": "Not established by available diagnostics",
+  "source_build_passed": true,
+  "full_tests_completed": false,
+  "old_scratch_removed": true,
+  "old_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-lobby-view-native-20261102/halo2-test-w718i73m",
+  "partial_report": "native/iteration-3/report.json",
+  "queued_fourth_request_not_executed": true,
+  "retained_large_artifacts": [],
+  "retained_last_test_log_is_previous_iteration": true
+}

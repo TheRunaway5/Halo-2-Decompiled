@@ -40,6 +40,12 @@ private:
     std::vector<ReceiverOwner> receivers_;
     std::size_t model_vertices_{};
 };
+// Split ordinary color selections into the exact authored part/class runs
+// represented by this frame's actual Apply plan. Other color parts remain
+// ordinary draws; one receiving part does not promote an entire model.
+std::vector<SourceModelDepthSelection> source_model_depth_apply_selections_tu15(
+    std::span<const SourceModelDepthSelection>,const SourceShadowRawPlan&);
+
 SourceModelDepthInput source_model_depth_input_tu15(const SourceWorldDepthInput&,
     const RendererTargets::Use&,std::span<const Vertex>,std::span<const SourceModelDepthSelection>,
     std::span<const SourceShadowRawDraw* const>,std::span<const Material>);

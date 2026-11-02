@@ -1,0 +1,38 @@
+{
+  "schema": "H2_RUST_SERVICE_PARTY_NATIVE_INPUTS_V1",
+  "before_sha256": "f52f29604ca82ff14f96e277c09fbbdf6f0af28200bf1edc449156b5fc724459",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4356,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-l_7ijn4w/native-source",
+  "copied_files": 4356,
+  "copied_source_bytes": 166971707,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "source_control": "Owned CMake/Rust/backend/C++/headers and selected tooling/tests; unbuilt tests/tools and external/original references borrowed read-only.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-party/halo2-test-l_7ijn4w",
+  "retained_large_artifacts": [],
+  "returncode": 8,
+  "after_sha256": "f52f29604ca82ff14f96e277c09fbbdf6f0af28200bf1edc449156b5fc724459",
+  "changed": [],
+  "current_source_drift": [
+    "CMakeLists.txt",
+    "include/halo2/frontend.hpp",
+    "src/app/main.cpp",
+    "src/rendering/mcc_native_shaders.cpp",
+    "src/rendering/renderer/renderer.cpp",
+    "src/ui/frontend.cpp",
+    "src/ui/frontend_state.cpp"
+  ]
+}

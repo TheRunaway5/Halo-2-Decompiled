@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-backend/halo2-test-i2p_jq0s",
+  "cohorts": {},
+  "retained_large_artifacts": [],
+  "compiler_jobs": 2,
+  "offline": true,
+  "pre_refresh_full_cohort": {
+    "passed": true,
+    "rust_checks": 324,
+    "backend_checks": 580,
+    "source_files": 307,
+    "root_drift_after_freeze": [
+      "rust/online_protocol/src/matchmaking_client.rs",
+      "rust/online_protocol/tests/matchmaking_client_controller.rs"
+    ],
+    "scratch_removed": true,
+    "reason_final_cohort_required": "Explicit native-input admission facts and runtime capability ownership were added after this freeze; these passing functional checks do not qualify the final source."
+  }
+}

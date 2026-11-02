@@ -1,0 +1,21 @@
+{
+  "source": "tests/native_session_api_tests.cpp",
+  "before_sha256": "190c071459e767d535b15e4d0161238f76e0f0e80c18a530ba66a66d58be1301",
+  "after_sha256": "821e7ea24266103485fd735f38015e957ea5b4ae8a77699bc8f025cfa29792cf",
+  "changes": [
+    {
+      "before": "native_session_datagram(*impl.controller->state,host,0,p)",
+      "after": "native_session_datagram(*impl.controller->state,host,0,{p.data(),p.size()})"
+    },
+    {
+      "before": "native_session_datagram(*impl.controller->state,host,0,prefs)",
+      "after": "native_session_datagram(*impl.controller->state,host,0,{prefs.data(),prefs.size()})"
+    },
+    {
+      "before": "native_session_datagram(*impl.controller->state,1,0,p)",
+      "after": "native_session_datagram(*impl.controller->state,1,0,{p.data(),p.size()})"
+    }
+  ],
+  "cause": "Configured CXX 1.0.205 Slice container constructor is explicit; fixture calls must supply pointer and size",
+  "guard_or_production_policy_changed": false
+}

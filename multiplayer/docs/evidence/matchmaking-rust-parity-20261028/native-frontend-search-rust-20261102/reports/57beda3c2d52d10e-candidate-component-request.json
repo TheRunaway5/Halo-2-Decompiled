@@ -1,0 +1,8 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_search_rust_tests",
+    "frontend_matchmaking_lobby_rust_tests"
+  ],
+  "filter": "^(frontend_search_cpp_rust|frontend_lobby_cpp_rust|online_protocol_rust_build_helper)$"
+}

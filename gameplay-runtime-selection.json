@@ -1,14 +1,14 @@
 {
-  "cache": "assets/imported/mcc-sky-water-tu15-20261025-v7",
+  "cache": "assets/imported/mcc-zanzibar-tu15-20261101-v9",
   "default_map": "coagulation.map",
   "eos_worker": {
-    "bytes": 1944200,
+    "bytes": 2072744,
     "name": "eos_sdk_worker",
     "schema": "H2_EOS_SDK_WORKER_V1",
-    "sha256": "a78ff46bd5d3639d8c33d2cf5160bd9dcca08e9d7068498fb9195a4b03a9c087"
+    "sha256": "dd5b6dcba17ee52dabe83420e82a2988efbdf806175752895b48d8826c35aafc"
   },
-  "inventory": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/runtime-files.json",
-  "inventory_sha256": "6521a74c157801081aed0d8c443680971a1a36ff5165db8eb1b08f7368c21352",
+  "inventory": "bin/engine-builds/824185e7306d46cfa61015806277e63a/runtime-files.json",
+  "inventory_sha256": "0671235135472690988e9429c5468289277bcfafa6d034ba622f17bf717b1b60",
   "local_players": 2,
   "maps": {
     "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
@@ -21,12 +21,13 @@
     "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
     "lockout.map": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
     "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
-    "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044"
+    "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044",
+    "zanzibar.map": "01311e3a20af3ad4638471bd68ff505f64525397950d92bb2417697da41c67d3"
   },
-  "qualification": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/qualification.json",
-  "qualification_sha256": "e79a2273551572bbb5bab0424baae313f744fff54c44532d10cbcfc8b2745821",
-  "runtime": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/halo2_native",
-  "runtime_sha256": "c4cf078db68795d25668e12241d7eeb345e0382a5bbc097d0688d2e76b0b5b49",
+  "qualification": "bin/engine-builds/824185e7306d46cfa61015806277e63a/qualification.json",
+  "qualification_sha256": "801e2b830cbcf7439dfceb19c11c881a846bc17382cc3c41a036546e6a91da47",
+  "runtime": "bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+  "runtime_sha256": "c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551",
   "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
   "video_driver": "x11"
 }

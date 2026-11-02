@@ -77,6 +77,8 @@ class LoadingAmbience(unittest.TestCase):
         self.root = Path(self.temp.name) / 'port'
         self.kit = Path(self.temp.name) / 'kit'
         self.policy = fixture(self.root, self.kit)
+        from test_controller_prompt_assets import controller_prompt_fixture
+        controller_prompt_fixture(self.root)
         self.cache = self.root / 'assets/imported/cache'
         self.cache.mkdir(parents=True)
         self.provenance = self.cache / 'provenance.json'

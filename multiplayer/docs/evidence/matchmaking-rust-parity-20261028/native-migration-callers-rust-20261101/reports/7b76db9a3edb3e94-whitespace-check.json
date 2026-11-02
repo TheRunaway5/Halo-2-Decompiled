@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "command": [
+    "git",
+    "diff",
+    "--check",
+    "--",
+    "src/network/online_match_session.cpp",
+    "rust/online_protocol/src/matchmaking_native_migration.rs",
+    "rust/online_protocol/tests/matchmaking_native_migration.rs",
+    "rust/online_protocol/src/lib.rs",
+    "rust/online_protocol_bridge/src/matchmaking_native_migration.rs",
+    "rust/online_protocol_bridge/src/matchmaking_native_migration.hpp",
+    "rust/online_protocol_bridge/src/host_agreement.rs",
+    "rust/online_protocol_bridge/src/lib.rs",
+    "rust/online_protocol_bridge/build.rs",
+    "cmake/OnlinePeers.cmake",
+    "cmake/OnlineProtocolRust.cmake",
+    "tools/build_online_protocol_rust.py",
+    "tests/test_build_online_protocol_rust.py",
+    "tests/native_migration_callers_tests.cpp",
+    "tests/test_native_migration_callers.py",
+    "tests/reference/native_migration_callers_before_rust_20261101.inc",
+    "tests/reference/native_migration_callers_before_rust_20261101.json",
+    "include/halo2/online_match_session.hpp",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json",
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md",
+    "rust/online_protocol/README.md",
+    "rust/online_protocol_bridge/README.md"
+  ],
+  "new_source_trailing_whitespace_check": true
+}

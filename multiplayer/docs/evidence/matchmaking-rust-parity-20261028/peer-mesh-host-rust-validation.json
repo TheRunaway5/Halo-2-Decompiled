@@ -1,0 +1,2026 @@
+{
+  "schema": "H2_RUST_PEER_MESH_HOST_VALIDATION_V1",
+  "created_at_utc": "2026-11-01T15:03:42.894457+00:00",
+  "component_passed": true,
+  "scope": "Complete modern H2QO measurement/codec/scheduling/freshness/ranking owner and actual migration-candidate caller now Rust. Preserved C++ is a test-only reference, not original Xbox XNet. Native network and session fixture checks do not prove a played world, genuine provider, original service or delivered acceptance.",
+  "source_pins": {
+    "src/network/peer_mesh_quality.cpp": "154eb33d60cade638b899b349995b8531887d52c833ea3071a356e500779f064",
+    "include/halo2/peer_mesh_quality.hpp": "1ab3c437f24f0bcc3dab3dd65670797fe6e5915429889a13390b7e271846de8a",
+    "src/network/online_match_session.cpp": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+    "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+    "rust/online_protocol_bridge/src/peer_mesh_quality.rs": "5df613f6c61e58b2f4e1eae38fb62439e32082e30eee4306e3e91958ef64b138",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+    "rust/online_protocol_bridge/src/lib.rs": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+    "cmake/OnlinePeers.cmake": "fd6294c7531b79668dfe032cd36c941dd99181e109388660c7c4f7dbb2ef17fd"
+  },
+  "rust_source_manifest": {
+    "rust/online_protocol/Cargo.toml": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+    "rust/online_protocol/Cargo.lock": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+    "rust/online_protocol/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+    "rust/online_protocol/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+    "rust/online_protocol/README.md": "38850ba143016c94ab0b84116dff1df830699f7fa26c5ad1e7b2ea52f9c078c7",
+    "rust/online_protocol_bridge/Cargo.toml": "acd2f6d60bb5b29ae5f08f99ce8d19d806c54176092eaca89edaef0aef168640",
+    "rust/online_protocol_bridge/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+    "rust/online_protocol_bridge/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+    "rust/online_protocol_bridge/build.rs": "6eeebef748538d2c735a29c3433677b6324cfdf062f118f69fee3ae5dc3908f4",
+    "rust/online_protocol_bridge/Cargo.lock": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+    "rust/online_protocol_bridge/README.md": "12cde29c24c50cbf82b07621edef0c5db962dfa0df75a39255b720417ae8ab9a",
+    "rust/matchmaking_service/Cargo.toml": "27ba26970fdbd7ecc0c3f2abd55c3742723f8bd948e8089a8ecbf7d1a01c6cf3",
+    "rust/matchmaking_service/rust-toolchain.toml": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+    "rust/matchmaking_service/Cargo.lock": "1e7ab09c6da07493fc678c1216222bf0cbb31caa75495da01a734118b9afcf77",
+    "rust/matchmaking_service/README.md": "295a6371a44b404348970df846c458154a718523c2fc0c45b6e7cd025113f396",
+    "rust/matchmaking_service/src/main.rs": "9b514042e27efefffe63d17f5612387685128571c4c32a6e649f6a0a5fe9bd15",
+    "rust/matchmaking_service/src/database.rs": "bcd6316b30e2dc02b612ad6ddbd890b1b1921f9fc77944f95695edc606161f55",
+    "rust/matchmaking_service/src/authentication.rs": "65506fae095042a95d97b264ec447c467de4b9d92c90ab9be9c0da19f9e178f9",
+    "rust/matchmaking_service/src/runtime.rs": "e1b3cf09586ec7ce7685c14e3dfded7bc178f3a7c12cd526f89a1d6a728ff1d5",
+    "rust/matchmaking_service/src/admission.rs": "9f1a014032c38678ec248d30ab1641bf6cb3bef78c4bdd1b80a34c909688ccaf",
+    "rust/matchmaking_service/src/http.rs": "19d7d7bdb1c42c8854342bbef5e987acc3828d974de6c32ce4c51b4c3e11573d",
+    "rust/matchmaking_service/src/matchmaking.rs": "8169d1c220f80df31c93638247d7ab39754a61ed087822d43980a0063e9d32b0",
+    "rust/matchmaking_service/src/search_qos.rs": "70dbf7d160965e11556523a142def77028afb09fecfdbfba34681ac16efa4563",
+    "rust/matchmaking_service/src/websocket.rs": "077ecb09d4966fce8b2f8a35e65e0b296d843435fe225f81ea6e1a5c8b02ac06",
+    "rust/matchmaking_service/src/room_io.rs": "62dc806f1e7890c9798bb906429502c531935cc9e1badcafd9a9d7e2dbb95f31",
+    "rust/matchmaking_service/src/rooms.rs": "05a1b84701e4d3b61ca9e62bf1c8fd64d6de61f78c9a56620461e6d3231102dc",
+    "rust/matchmaking_service/src/room_websocket.rs": "f07b961b02b67e70304f0ddf64c7c4ffcd1f6c772ce609e02b98e3806fda9ff8",
+    "rust/matchmaking_service/src/eos_identity.rs": "1bc0942ec37d5981257e28077827663f517fca2df51f2686f64215ec1ce04e89",
+    "rust/matchmaking_service/src/eos_verifier.rs": "ad47c4708083da980085cf1ccf64be623ce96fbde439262d39c85959acfcb8e3",
+    "rust/matchmaking_service/src/eos_binding.rs": "5db1ad108c4ed121affdb05f06031322e89313dabc8b2414413107ffc397268b",
+    "rust/matchmaking_service/src/eos_http.rs": "be807583142bb90b1e2a46c5765c0b6b3bec2521767bcfc125b492d196e9dab0",
+    "rust/matchmaking_service/src/steam_login.rs": "509c5dca7b38c8764f12e9d89130cb99aad4baf5d3a4819e41cf0cf59c7b89cf",
+    "rust/matchmaking_service/src/steam_provider.rs": "15500cb52b421861e9838a2574b26d375ff54770e2292b6a0bc13ec764c0597a",
+    "rust/matchmaking_service/src/steam_sessions.rs": "1938ddcfdb3abae6cfe59c2ab1ab188d747474ef4f665ab983373f24ce266a44",
+    "rust/matchmaking_service/src/steam_http.rs": "937bcef1ab3364206ac93ba0a4fe9b42828bf5ab29f286288a441be2679b9f74",
+    "rust/matchmaking_service/src/social.rs": "38852fca71a021b48c3cb1e1719cbf157380942365825785d726fac98815f567",
+    "rust/matchmaking_service/src/steam_friends.rs": "21bfd5da403a642ad7ffd616c9794ea9c8b8ab30f02ec4a57d6bb76af9026c6b",
+    "rust/matchmaking_service/src/steam_friends_provider.rs": "b2d40810b558962f79c669bd440ee93ca16db18112e04acf4729ffb630361454",
+    "rust/matchmaking_service/src/connection_budget.rs": "02510158f4603341a7c7c409d3219ef6ace2645fce67b7ee43da82e7881c347e",
+    "rust/matchmaking_service/src/steam_friends_http.rs": "d50c8ee47eb10a8065bfb37459c9045ac9646b8c3258d7696b1cf7b36109b1f4",
+    "rust/matchmaking_service/src/friend_cloud.rs": "a374205c249bc252010dbd2f0997165b1fcda837a2d1557ef9045c0b84dbbc8c",
+    "rust/matchmaking_service/src/friend_cloud_runtime.rs": "938aa697d552208a5be7c273aff091a7ae629faa5643d3f5ec405ce619a60b1b",
+    "rust/matchmaking_service/src/social_voice.rs": "06b92dacd54dbb5057ad339eb105386de74c89154ade7c329c4efd9956fc2b50",
+    "rust/matchmaking_service/src/social_voice_http.rs": "30635871394b5ca1bf10b81f65d7881f8504e9f207194f65571bcb3c9b385c07",
+    "rust/matchmaking_service/src/registration_clock_tests.rs": "5c900f87786aa7540c721fab285f30d380138be14fc38b4de8e4dc8ee419dfee",
+    "rust/matchmaking_service/src/variant_catalog_tests.rs": "111cd75a1548e3e31e9092e3d88b9fe03d2f2a45c77b1da044b8273327d8a783",
+    "rust/online_protocol_bridge/src/lib.rs": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+    "rust/online_protocol_bridge/src/eos_sdk.hpp": "85ccbd3cce12d58d2cc9650307362230c5eb82a08ee2a1567b5c1dfe7ecc9300",
+    "rust/online_protocol_bridge/src/eos_sdk.cpp": "96b44de2711f02ea7c2d028e3b9e63d3fdccf4f48c3fb21bd7663994ec43a58e",
+    "rust/online_protocol_bridge/src/eos_transport.rs": "3b7617063ec2534e20596b3f2104af7b192f80f09987bbc7f713959fc87f27c5",
+    "rust/online_protocol_bridge/src/eos_config.rs": "d45036160724ff92b085f91c61cd9b3e3ea0dcfc6cb6a41becdaa5a679afd107",
+    "rust/online_protocol_bridge/src/steam_credentials.rs": "a0577954a1d13d7b9ade25c84ed2fef0ea9999cd3d5e7ead7afbd3ec57b4903f",
+    "rust/online_protocol_bridge/src/host_agreement.rs": "9f61f7dc9aa7d85c6f3efd2fcf5898b9ffd16aaf40dc2f7e241f58470aef99e8",
+    "rust/online_protocol_bridge/src/common_cut.rs": "df213918fd379c31f67f8b58ea7f8ffb64cde1454104eacff4178879d7bf8f99",
+    "rust/online_protocol_bridge/src/survivor_selection.rs": "8ccec86daab8833de772b7f0a96b2dc64d8010f3454183a1bcdccbae834931f1",
+    "rust/online_protocol_bridge/src/migration_driver.rs": "50b419b7bb90de1a7c30d4ad446f5a0ccabca383b5eca28efdc12635d814f4cd",
+    "rust/online_protocol_bridge/src/lan_auth.rs": "ff1995cd363dab575832698d2f4b557941ce731a8b638ebaf79543c96f549e31",
+    "rust/online_protocol_bridge/src/eos_auth_http.rs": "fd1841205b9de837a51255eb3f2376e05351009ee7a14f1a5719c299df61d547",
+    "rust/online_protocol_bridge/src/eos_sdk_ipc.rs": "707784be81f4bed4428d3635d2c29dab6081728e39535e1b514abf33eb2f2cba",
+    "rust/online_protocol_bridge/src/eos_sdk_proxy.rs": "a7a678b8d8741853bf9fe75877331e927c36b28324c94d6bf75c23dae55d426a",
+    "rust/online_protocol_bridge/src/netcode.rs": "3c756f677b367759f17ce9682658f3579ead1ab64adbb669bbe8cf390354fd81",
+    "rust/online_protocol_bridge/src/matchmaking_readiness.rs": "12348c59f21c2052b1b00da2854062713fa7d3a4f75e34a2649507d14c0d271b",
+    "rust/online_protocol_bridge/src/matchmaking_client.hpp": "815601da339b4f660101f374e94bbce003c0fc204817e1c691a3590eb11a3a44",
+    "rust/online_protocol_bridge/src/matchmaking_client.rs": "858ff7c7a1b300f7f7a667db5a0637a5a33ea8301ddc6166013375b8ce04dc49",
+    "rust/online_protocol_bridge/src/matchmaking_native_qos.hpp": "5227724ffe8e222c8345870cc977442ffd188a402aafd901ab3759e83fe001f9",
+    "rust/online_protocol_bridge/src/matchmaking_native_qos.rs": "d2d4022c48cfa216bf4259af18119bd1fbb19e437e660ff7355285f36b086cb5",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.hpp": "eb9504d271a2288c3c9eaf8328a893e95e43cd1295fb7b1755d3b56f1b0600d5",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+    "rust/online_protocol_bridge/src/peer_mesh_quality.rs": "5df613f6c61e58b2f4e1eae38fb62439e32082e30eee4306e3e91958ef64b138",
+    "rust/online_protocol_bridge/src/bin/eos_sdk_worker.rs": "cebf5abadc7b7ce49fce1e731a2fcf5896265ca20c59e8deec7c675ef3c9dd01",
+    "rust/online_protocol/src/lib.rs": "787f3bd0d66b91f781942af40e360b5d831eb5a229f38f7d04ecb5041e30dd5f",
+    "rust/online_protocol/src/native_requests.rs": "8ddc00433afb4ece7e8bf3e2ba2904339ae25330a110ed236e5c367e0d2f8cfa",
+    "rust/online_protocol/src/authority_archive.rs": "691b4bf8fe5a7f5715efdc91d1a912931a9da99f9ac6eda7bffe10698029d59a",
+    "rust/online_protocol/src/eos_wire.rs": "5154a76798a1e83c16aafbc03509004ae6ce125bf81cca746980524d55da8bc8",
+    "rust/online_protocol/src/migration_preparation.rs": "1a5ad045c7cc48231f0f1a3180b56f750dca74831e7d83a7fa6392f14e982abe",
+    "rust/online_protocol/src/peer_pacing.rs": "01e9173cd4204273cd47b195864fea9b3f7d8246e235824d4daf6c24b73f5d39",
+    "rust/online_protocol/src/host_agreement.rs": "3856a8d008bb24e51b6f4f4116ccf5e6e7c1057670bf80b80e94ad3ab9af4261",
+    "rust/online_protocol/src/common_cut.rs": "eeae0747328e32d6aa8312dee2c04e4f4a23b2e72d2590d3e1abc66fd2dd6035",
+    "rust/online_protocol/src/survivor_selection.rs": "aa8cdf1218694fd5039f1f69569692b1c53aa43feb98e0663fdc4a50a8c15e97",
+    "rust/online_protocol/src/prospective_role.rs": "4cb7efdd20d8f075c76c6d0b7d7257004471088b807d46ca92cccc2e1dd8e685",
+    "rust/online_protocol/src/migration_driver.rs": "5ba6ef71f097e776ab728a528e9da50a13208ecde815bed43af4bb21d664c340",
+    "rust/online_protocol/src/eos_account_auth.rs": "11586f175fa16b8d6c39f97e0177676759a1bec028681606e4734fdbd44b5b91",
+    "rust/online_protocol/src/lan_auth.rs": "883cf24371221d496fb07c9b53dc8872029a658550baa0a52f21451827373fa8",
+    "rust/online_protocol/src/security_policy.rs": "3e95d883dffd98c903006d3081740ddf0d6e74944332ae21a51aa143f85ae8eb",
+    "rust/online_protocol/src/eos_outgoing.rs": "292c42cba1767905a1e2c96a5866ec6abcf846a4fedd22294da87962f0daa873",
+    "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+    "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+    "rust/online_protocol/src/matchmaking_readiness.rs": "b8b2ccb062d8eb7956b1714f177a8dc09045fd4e0944d667aefd5569cebd4bf3",
+    "rust/online_protocol/src/party_privacy.rs": "56315211b71cbac524f61a47978b9d6476cc9b825c6b27326817887a538f5e92",
+    "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+    "rust/online_protocol/src/hopper_selection.rs": "dfc47195ced2500f0a928eee3bddbb72f255a87e55beee8ee34351aca90183e9",
+    "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+    "rust/online_protocol/src/session_candidates.rs": "522251ae3f0e6cd449f678ceccb527efae2b85e0e432037e340b4673d053243f",
+    "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+    "rust/online_protocol/src/matchmaking_model.rs": "34816e466596abaaf511743abc3c6dae61f3893f683b12de2efacb243609280b",
+    "rust/online_protocol/src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+    "rust/online_protocol/src/matchmaking_gatherings.rs": "96093a2c7e2f1d99d2d64862d11b1a5726a950d4d5ce6d8e6fa31c6f9326bc00",
+    "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+    "rust/online_protocol/src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+    "rust/online_protocol/src/matchmaking_persistence.rs": "56217497815fed7f80fe945a75e1aa6ca8b62c744a2d53cccca3856206612c38",
+    "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+    "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+    "rust/online_protocol/src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+    "rust/online_protocol/src/matchmaking_parties.rs": "74df6958e49eb5900a01888f39acf5d0f7fe21a52c7e1c4b3012cd2324e40ef4",
+    "rust/online_protocol/src/matchmaking_party_countdowns.rs": "9d899eb34296fa30a00aea749f89ff32af93f2321bed36800d6177393d95b91c",
+    "rust/online_protocol/src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+    "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+    "rust/online_protocol/src/matchmaking_room_setup.rs": "2044f332e43d0701d6d8f54090e6cc73cbdb1203c3b68dca6e93432a2a4e4671",
+    "rust/online_protocol/src/matchmaking_continuity.rs": "bd444109d876b1ceb3e982fc609c26152f88cd0d8efc7f1a8dd915ff920b2758",
+    "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "d9a9bbc75a2261d05b579194d897d3fb245b58eaaa0a9c4c820b792bc33b597c",
+    "rust/online_protocol/src/matchmaking_room_wire.rs": "51ab682a1b6d8f0e3e8dc8b115e9b63816f4a4f1f9b47e33e393924db59cd5ab",
+    "rust/online_protocol/src/matchmaking_packet_budget.rs": "96646f99f08e997ce0c6823b68ed2dfd29c83dee282fe75574fe8098adc52ad2",
+    "rust/online_protocol/src/matchmaking_room_packets.rs": "34f885da19331846424b7f99c7121ff28e5744f624c58f240a1ab6df66e440cf",
+    "rust/online_protocol/src/matchmaking_room_control.rs": "45184c06e788162c541356d51b176f5e9a039e29f4fd49fc4890bd21aac90eb8",
+    "rust/online_protocol/src/matchmaking_search_qos.rs": "f2d222201f29d3a77b0666e6ab8dee64f65a19d655ba7979dc0190b058568a5e",
+    "rust/online_protocol/src/matchmaking_party_directory.rs": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+    "rust/online_protocol/src/matchmaking_accounts.rs": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+    "rust/online_protocol/src/matchmaking_clan_directory.rs": "9f4638f0cb7638df1cacb74476d9fe52a4365e4a68138bd0e5226b8c3db42f51",
+    "rust/online_protocol/src/matchmaking_public_history.rs": "8e60a14e8728d911523aadbe84a92ca985f69ed9834975673a6974be44279e94",
+    "rust/online_protocol/src/matchmaking_profiles.rs": "325f7e71df4c6a7d1ed99dc68cd6809b4755d6c385e3dfc32075e2d762c7c2e1",
+    "rust/online_protocol/src/matchmaking_profile_directory.rs": "f61a14ca95a1bc3e5d4b560ab047332010aef60dbdff434875679c2f272f4be2",
+    "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+    "rust/online_protocol/src/matchmaking_unicode.rs": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+    "rust/online_protocol/src/matchmaking_unicode_fold_table.rs": "ea8126a271bdf120ce1cddae5a64a421ecf7c7c499ff89a6213b562055c62537",
+    "rust/online_protocol/src/matchmaking_friend_cache.rs": "de20a771ea36803ac96eb666a677cf8e55a623cf06e52b26dd5dd8f07212109a",
+    "rust/online_protocol/src/matchmaking_friend_directory.rs": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+    "rust/online_protocol/src/matchmaking_friend_cloud.rs": "1b6144e6e68c30dfeb245324428c80c04cb9d6a7e929a79036f2f8123c4ce32f",
+    "rust/online_protocol/src/matchmaking_voice_directory.rs": "b9ea5a1dd8f00beb9bb45ae80885195922c417e7153c062d02800426e39a982c",
+    "rust/online_protocol/src/matchmaking_social_voice.rs": "f42501c569ecb7fa717e1905a6d38309468ff63e2d571ba735001032676c652d",
+    "rust/online_protocol/src/matchmaking_steam_cache.rs": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+    "rust/online_protocol/src/matchmaking_steam_request.rs": "57263fc4f3c7f7079acf72c0e1c91b75ceb0bec720d8ec5e6c1a64b49c9f2879",
+    "rust/online_protocol/src/matchmaking_identity_directory.rs": "84939f5ed108f78ab656c42e6af65274ea26a3459e86874e010a825074a30073",
+    "rust/online_protocol/src/matchmaking_owners.rs": "3e659557279f44a339bdb61035cdf333472ab7b07fa342021a37ed83ed30e677",
+    "rust/online_protocol/src/matchmaking_room_service.rs": "6fa1c1d0330b3049646c9924f4278c2c63b193b207235f53286363836c4ceff3",
+    "rust/online_protocol/src/matchmaking_variant.rs": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b",
+    "rust/online_protocol/src/matchmaking_client.rs": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+    "rust/online_protocol/src/matchmaking_origin.rs": "c2e50bc3391e177096e328e4663ce7a5b9da284604be5a296ea0f14e19b2f9d3",
+    "rust/online_protocol/src/matchmaking_native_qos.rs": "c61846b071c5e4d85ee2b3f518b84f0d2e81322867d7dd1302de6f5436635c6d",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+    "rust/online_protocol/src/matchmaking_native_socket.rs": "818ecdb2376800c1da6c85ab7e71562dd5c745ca0cdcf782a4dba1662715a587",
+    "rust/online_protocol/src/matchmaking_native_control.rs": "ba6f23c095c4fcc5c1244a7a7b7175f7dff5c0dd47b650c418f9111df094e582",
+    "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+    "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+    "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+    "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+    "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+    "rust/online_protocol/tests/matchmaking_coordinator.rs": "82ae3a3cf740f5b9824504d2afb645767e16dd4cb8e1a9b2be002e58a546bab7",
+    "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+    "rust/online_protocol/tests/matchmaking_results.rs": "166e932749344d6525975aca83bb0d4c1a9712768be7f910a7ee2b7db09bebf0",
+    "rust/online_protocol/tests/matchmaking_skill_original.rs": "a7e0fcdfe55ff4b298612a227692ddc74cbf51a05be9fdea626e66c2ae84cc1c",
+    "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+    "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+    "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+    "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+    "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+    "rust/online_protocol/tests/matchmaking_room_setup.rs": "bfad18614680a2007d5eae6a6c330770c079e2d1fc00f592c1bdbc245edf4c55",
+    "rust/online_protocol/tests/matchmaking_continuity.rs": "da577d56b818f02fc926c9082ad89a0bd19eda413cb4a33ea75c687a0740fac7",
+    "rust/online_protocol/tests/matchmaking_assignment_tu15.rs": "67f8a5eebdc52dd5554d9ecf7a5f5bb1345c2d28692f1e53f8174f1be76881ad",
+    "rust/online_protocol/tests/matchmaking_native_readiness.rs": "33d98ddcad387d01c54cecb0303764ff61a175bdb781ff29080145ca6bb0e9a9",
+    "rust/online_protocol/tests/matchmaking_variant_admission.rs": "9ed44b8e97af2da2ec8b9f95670ca2c4657cc3058aebee070c42d9b3fbbac501",
+    "rust/online_protocol/tests/matchmaking_client_controller.rs": "5f82077ed889d21b49a29a7884d03283d27e8b1333618178bc438fe127c0d289",
+    "rust/online_protocol/tests/matchmaking_native_qos_worker.rs": "91e24aa880e59d0e9ba90128aa13e79aa2500134bd4bc52168d27ec79f6c0650",
+    "rust/online_protocol/tests/matchmaking_native_session.rs": "eca0044aa26618b0c9607f382763cfecd3680eb4b53c44855cda929a22622cd8",
+    "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+    "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+    "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+    "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+    "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+    "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+    "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+    "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+    "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+    "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+    "rust/online_protocol/data/unicode16/CaseFolding.txt": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+    "rust/online_protocol/data/unicode16/LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+    "rust/online_protocol/data/unicode16/provenance.json": "68995ccbb6629c3d789dec9f4ea9b30976db42f4d12b92a570ab98bb0cda3f3e",
+    "rust/online_protocol/src/netcode/range.rs": "490b50be09203a24750edbdb470d94d3728fc0c49e820bad53bf3b08fc7044a9",
+    "rust/online_protocol/src/netcode/pose.rs": "4b91e33bc013b305e25b92b56ff36d8f4d739af38bcc2cdfd7b5b2ed7d913ed1",
+    "rust/online_protocol/src/netcode/bandwidth.rs": "efff209143ca9e8bd9484c0daff7bdaa108cf5b81c5ae73d954ae24f5dd4a1f5",
+    "rust/online_protocol/src/netcode/mod.rs": "65791ed28c6fb25a0efc42d3c74f9f8b190ecc3d6550de0dc21b200f7c58705c",
+    "rust/online_protocol/src/netcode/generic.rs": "06c961f78e717dd49dab8d0a9a853909d16cecdbabb9f2280b9a4fdaba577fd4",
+    "rust/online_protocol/src/netcode/stream.rs": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c"
+  },
+  "reference": {
+    "scope": "Read-only modern H2QO C++ before Rust migration; not recovered original XNet or original host election.",
+    "source": "src/network/peer_mesh_quality.cpp",
+    "sha256": "9aa494b43b13c22bb3cb5fd06ba85c38e8540e328419557c45282dbe5a2e5fe8",
+    "bytes": 11577,
+    "captured_at_utc": "2026-11-01T12:57:15.517704+00:00",
+    "production_use": false,
+    "header": {
+      "source": "include/halo2/peer_mesh_quality.hpp",
+      "reference": "tests/reference/peer_mesh_quality_before_rust_20261101/halo2/peer_mesh_quality.hpp",
+      "sha256": "1f79b0aea72fc8456f3b7bc3ee76d324feed77fe85804681ef3eae8e11151065",
+      "bytes": 2327
+    }
+  },
+  "rust_owns": [
+    "bounded ping/upload/receipt/report wire protocol and all measurement state",
+    "exact directed receipt accounting, duplicate suppression and offered-application-byte upload/loss/RTT",
+    "report freshness, bounded queue/poll scheduling, sequence exhaustion and clock rewind behavior",
+    "reciprocal fixed-membership full/survivor scoring and loss/upload/RTT/peer ordering",
+    "migration candidate choice from the current actual fixed-survivor Ready/quality/selection observations"
+  ],
+  "cpp_retains": [
+    "original mutex and unrelated-packet fast routing through a pure Rust predicate",
+    "typed field conversion, actual socket/resource observations and actual native world/device ownership"
+  ],
+  "rust_counts": {
+    "online_protocol": 372,
+    "online_protocol_bridge": 57,
+    "matchmaking_service": 20
+  },
+  "rust_total": 449,
+  "new_rust_controls": {
+    "mesh": 8,
+    "bridge": 1,
+    "candidate_caller": 3
+  },
+  "native_runs": [
+    {
+      "iteration": 1,
+      "tests": [
+        "peer_survivor_selection_normal_session",
+        "peer_survivor_selection_mixed_session",
+        "peer_survivor_selection_abort_session",
+        "peer_survivor_selection_preparation_session",
+        "peer_host_native_session",
+        "peer_host_aborted_cut",
+        "peer_host_measured_migration",
+        "peer_host_audio_session",
+        "peer_mesh_quality",
+        "peer_mesh_quality_cpp_rust_replay",
+        "peer_mesh_quality_direct_udp",
+        "peer_mesh_quality_native_session",
+        "online_continuity_native_transport",
+        "online_continuity_legacy_transport"
+      ],
+      "seconds": 162.99,
+      "replay": {
+        "passed": true,
+        "scope": "Compare actual public API reads from preserved C++ and Rust mesh owners.\n\nThe deterministic network/clock is a declared test fixture. This proves the\nexisting replacement H2QO contract, not original XNet or a played world.",
+        "reference": {
+          "scope": "Read-only modern H2QO C++ before Rust migration; not recovered original XNet or original host election.",
+          "source": "src/network/peer_mesh_quality.cpp",
+          "sha256": "9aa494b43b13c22bb3cb5fd06ba85c38e8540e328419557c45282dbe5a2e5fe8",
+          "bytes": 11577,
+          "captured_at_utc": "2026-11-01T12:57:15.517704+00:00",
+          "production_use": false,
+          "header": {
+            "source": "include/halo2/peer_mesh_quality.hpp",
+            "reference": "tests/reference/peer_mesh_quality_before_rust_20261101/halo2/peer_mesh_quality.hpp",
+            "sha256": "1f79b0aea72fc8456f3b7bc3ee76d324feed77fe85804681ef3eae8e11151065",
+            "bytes": 2327
+          }
+        },
+        "binaries": {
+          "cpp": "4945763c2396c4653ed0521c9cf90f189144f966eadfe8f384f6fe49c045bb86",
+          "rust": "8c5885c7f1206f235e73618a478f8a3483507df42013175e581fa93cedd8de6e"
+        },
+        "played_world": false,
+        "original_xnet": false,
+        "retained_large_artifacts": [],
+        "commands": 104760,
+        "packet_outputs": 9018,
+        "receives": 10968,
+        "state_reads": 582,
+        "corpus_and_observations_sha256": "ee46642699f0ad66267f28daa79eca00981aa24f09c7c3066dc2e3ae2c25c4e8",
+        "sdk_diagnostics": [
+          "Shutdown handler: initialize."
+        ],
+        "native_exit_codes": [
+          0,
+          0
+        ]
+      },
+      "refreshed": [],
+      "binaries": {
+        "peer_mesh_quality_tests": {
+          "sha256": "0d7c2a8876d9fa136b7555c74e1f2cd0757870638bb6cd4d9b250e222832102a",
+          "bytes": 24406896
+        },
+        "peer_mesh_quality_cpp_reference": {
+          "sha256": "4945763c2396c4653ed0521c9cf90f189144f966eadfe8f384f6fe49c045bb86",
+          "bytes": 230016
+        },
+        "peer_mesh_quality_rust_replay": {
+          "sha256": "8c5885c7f1206f235e73618a478f8a3483507df42013175e581fa93cedd8de6e",
+          "bytes": 24540168
+        },
+        "peer_mesh_quality_direct_tests": {
+          "sha256": "8b1ec3a31c9fe616df63ba37c3e9d8a683dfae9ed25ef47c9eec342579e6accc",
+          "bytes": 26974464
+        },
+        "peer_mesh_quality_session_tests": {
+          "sha256": "68c2d9d90c12ad3dfd294dd76e8571ced59ee599ccc2cc416ca9ec1b59b53e6e",
+          "bytes": 28148520
+        },
+        "peer_host_session_tests": {
+          "sha256": "ded76d5e3802109b36dc83461d5a96a2d33bf1cbecc396877bb46d5bd8c6cb64",
+          "bytes": 28220272
+        },
+        "peer_survivor_session_tests": {
+          "sha256": "a232f58d0742b69c74416deea908b5bc05c0dccd54c26f3e27dfdef78f0ab6c5",
+          "bytes": 28144168
+        },
+        "online_continuity_transport_tests": {
+          "sha256": "be36e3b5259f96ee767d09ff3421ee91c2b4e0920c643dc34e3361625ed2a9f5",
+          "bytes": 28080664
+        },
+        "rust_service_room_probe": {
+          "sha256": "9e279c1a94f314ed7108b5977379a1d5193cd35c3c10696b8f379bfc9c950495",
+          "bytes": 28123824
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "tests": [
+        "peer_survivor_selection_normal_session",
+        "peer_survivor_selection_mixed_session",
+        "peer_survivor_selection_abort_session",
+        "peer_survivor_selection_preparation_session",
+        "peer_host_native_session",
+        "peer_host_aborted_cut",
+        "peer_host_measured_migration",
+        "peer_host_audio_session",
+        "peer_mesh_quality",
+        "peer_mesh_quality_cpp_rust_replay",
+        "peer_mesh_quality_direct_udp",
+        "peer_mesh_quality_native_session",
+        "online_continuity_native_transport",
+        "online_continuity_legacy_transport"
+      ],
+      "seconds": 164.42,
+      "replay": {
+        "passed": true,
+        "scope": "Compare actual public API reads from preserved C++ and Rust mesh owners.\n\nThe deterministic network/clock is a declared test fixture. This proves the\nexisting replacement H2QO contract, not original XNet or a played world.",
+        "reference": {
+          "scope": "Read-only modern H2QO C++ before Rust migration; not recovered original XNet or original host election.",
+          "source": "src/network/peer_mesh_quality.cpp",
+          "sha256": "9aa494b43b13c22bb3cb5fd06ba85c38e8540e328419557c45282dbe5a2e5fe8",
+          "bytes": 11577,
+          "captured_at_utc": "2026-11-01T12:57:15.517704+00:00",
+          "production_use": false,
+          "header": {
+            "source": "include/halo2/peer_mesh_quality.hpp",
+            "reference": "tests/reference/peer_mesh_quality_before_rust_20261101/halo2/peer_mesh_quality.hpp",
+            "sha256": "1f79b0aea72fc8456f3b7bc3ee76d324feed77fe85804681ef3eae8e11151065",
+            "bytes": 2327
+          }
+        },
+        "binaries": {
+          "cpp": "4945763c2396c4653ed0521c9cf90f189144f966eadfe8f384f6fe49c045bb86",
+          "rust": "d712c5eb3a7550eaf8f278041703cfd74b3b24ffc6919dcbc44abb77e1a878f7"
+        },
+        "played_world": false,
+        "original_xnet": false,
+        "retained_large_artifacts": [],
+        "commands": 104760,
+        "packet_outputs": 9018,
+        "receives": 10968,
+        "state_reads": 582,
+        "corpus_and_observations_sha256": "ee46642699f0ad66267f28daa79eca00981aa24f09c7c3066dc2e3ae2c25c4e8",
+        "sdk_diagnostics": [
+          "Shutdown handler: initialize."
+        ],
+        "native_exit_codes": [
+          0,
+          0
+        ]
+      },
+      "refreshed": [
+        {
+          "path": "src/network/peer_mesh_quality.cpp",
+          "before": "2bf73611941ddc5728e006e4b0c7662e6defaea5f8262bbd46663ec4bcec3f3f",
+          "after": "154eb33d60cade638b899b349995b8531887d52c833ea3071a356e500779f064"
+        }
+      ],
+      "binaries": {
+        "peer_mesh_quality_tests": {
+          "sha256": "45b1cade1e3c7ccf1bbe49096214aff31d2b3954e42de87fdaed0ed5f22f5785",
+          "bytes": 24406728
+        },
+        "peer_mesh_quality_cpp_reference": {
+          "sha256": "4945763c2396c4653ed0521c9cf90f189144f966eadfe8f384f6fe49c045bb86",
+          "bytes": 230016
+        },
+        "peer_mesh_quality_rust_replay": {
+          "sha256": "d712c5eb3a7550eaf8f278041703cfd74b3b24ffc6919dcbc44abb77e1a878f7",
+          "bytes": 24540000
+        },
+        "peer_mesh_quality_direct_tests": {
+          "sha256": "0c50319cd6a694a02e0356bb08bc47cac30dff5c9a9b1a3fde744eb91c730ee2",
+          "bytes": 26974464
+        },
+        "peer_mesh_quality_session_tests": {
+          "sha256": "6bb79df3590b69c730d8364717cda8cc400be6b009994d6f34063eb3487ad68f",
+          "bytes": 28148520
+        },
+        "peer_host_session_tests": {
+          "sha256": "2c32b60432a3feb8da811cccf2d423e41204b0d9dc3a0c654961e826aeab3fa5",
+          "bytes": 28220272
+        },
+        "peer_survivor_session_tests": {
+          "sha256": "c74bd6ec408a343290bb670b62bbe4c81ff56088b0498bd3b26c75ff8e10bd53",
+          "bytes": 28144168
+        },
+        "online_continuity_transport_tests": {
+          "sha256": "5c91e6b404259703e5a6e91d7e9c27b8f151fc6185d27c4b9d7ab9bddd7b5525",
+          "bytes": 28080664
+        },
+        "rust_service_room_probe": {
+          "sha256": "34aeefaed2ff09415eebe42d48aae77f9f2b318edca2b0e717be1123ece122bb",
+          "bytes": 28123824
+        }
+      }
+    }
+  ],
+  "native_unique_tests": 14,
+  "native_executions": 28,
+  "native_seconds": 327.40999999999997,
+  "frozen_native_files": 18337,
+  "frozen_source_drift": [
+    "CMakeLists.txt",
+    "cmake/NativeWeaponEffectsTu15.cmake",
+    "include/halo2/mcc_native_world_animated.hpp",
+    "include/halo2/native_weapon_effect_dispatch_tu15.hpp",
+    "src/gameplay/units/source_damage_delivery_runtime_generated.cpp",
+    "src/gameplay/units/source_vitality_runtime_generated.cpp",
+    "src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp",
+    "src/rendering/mcc_native_world_animated.cpp",
+    "tests/destruction_sound_payload_probe.cpp",
+    "tests/fixtures/weapon_effect_request_tu15_original.json",
+    "tests/native_weapon_effect_request_tu15_tests.cpp",
+    "tests/native_weapon_zoom_audio_tu15_tests.cpp",
+    "tests/steam_workshop_cache_tests.cpp",
+    "tools/audit_destruction_sound_payloads_tu15.py",
+    "tools/build_launcher_engine.py",
+    "tools/export_mcc_native_sky_fixture.py",
+    "tools/generate_source_damage_delivery_runtime.py",
+    "tools/generate_source_vitality_runtime.py",
+    "tools/oracle_weapon_effect_request_tu15.py",
+    "tools/validate_weapon_material_snapshot_tu15.py"
+  ],
+  "same_rust_policy_sources_across_native_iterations": true,
+  "declared_adapter_refresh": "One C++ IO-only refresh restores the original mutex type and checks unrelated packet classification before acquiring it. Both complete native suites and identical replay digests pass.",
+  "link_audit": {
+    "passed": true,
+    "scope": "Actual compiled production mesh adapter references all8 Rust entries, with no C++ packet parser or ranking owner. Actual Session object references the Rust migration-candidate caller. Synchronization and typed field/resource IO remain C++.",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-link/halo2-test-wnhybb55",
+    "object_sha256": {
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o": "123ed9d22cb6233fd1c27c8cad9647752e72948f177fa74d545fb72ca6e50339",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o": "9959d95345613f29f8d39059ae00c96133c30a567f85a939c7abec2d884aa0ba"
+    },
+    "objects_unchanged": true,
+    "rust_mesh_entry_references": [
+      "new_peer_mesh_quality",
+      "peer_mesh_quality_candidates",
+      "peer_mesh_quality_context",
+      "peer_mesh_quality_is_packet",
+      "peer_mesh_quality_local",
+      "peer_mesh_quality_matrix",
+      "peer_mesh_quality_poll",
+      "peer_mesh_quality_receive"
+    ],
+    "native_session_candidate_entry": true,
+    "source_pins": {
+      "src/network/peer_mesh_quality.cpp": "154eb33d60cade638b899b349995b8531887d52c833ea3071a356e500779f064",
+      "include/halo2/peer_mesh_quality.hpp": "1ab3c437f24f0bcc3dab3dd65670797fe6e5915429889a13390b7e271846de8a",
+      "src/network/online_match_session.cpp": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+      "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+      "rust/online_protocol/src/matchmaking_native_session.rs": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+      "rust/online_protocol_bridge/src/peer_mesh_quality.rs": "5df613f6c61e58b2f4e1eae38fb62439e32082e30eee4306e3e91958ef64b138",
+      "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+      "rust/online_protocol_bridge/src/lib.rs": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+      "cmake/OnlinePeers.cmake": "fd6294c7531b79668dfe032cd36c941dd99181e109388660c7c4f7dbb2ef17fd"
+    },
+    "compile_commands": [
+      {
+        "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+        "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/online-protocol/Release/include -O3 -DNDEBUG -std=c++20 -o CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/peer_mesh_quality.cpp",
+        "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/peer_mesh_quality.cpp",
+        "output": "CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o"
+      },
+      {
+        "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+        "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -DWITH_GZFILEOP -o CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/online_match_session.cpp",
+        "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/online_match_session.cpp",
+        "output": "CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+      },
+      {
+        "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+        "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/reference/peer_mesh_quality_before_rust_20261101 -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -O3 -DNDEBUG -std=c++20 -o CMakeFiles/peer_mesh_quality_cpp_reference.dir/tests/peer_mesh_quality_replay.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+        "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+        "output": "CMakeFiles/peer_mesh_quality_cpp_reference.dir/tests/peer_mesh_quality_replay.cpp.o"
+      },
+      {
+        "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+        "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -O3 -DNDEBUG -std=c++20 -o CMakeFiles/peer_mesh_quality_rust_replay.dir/tests/peer_mesh_quality_replay.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+        "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+        "output": "CMakeFiles/peer_mesh_quality_rust_replay.dir/tests/peer_mesh_quality_replay.cpp.o"
+      }
+    ],
+    "retained_large_artifacts": []
+  },
+  "native_rust_service_room": {
+    "passed": true,
+    "scope": "Native Rust-controlled room against Rust HTTP/SQLite, real10s start and synthetic datagrams/PCR; private provider grants, no original Live or played world.",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-room/halo2-test-j2ikf3xn",
+    "source_pins": {
+      "tools/rust_service_room_controls.py": "044bf2062629afaefda9707036330a8f0960cf3866527a98e94d358fb3989a72",
+      "tools/test_rust_matchmaking_service.py": "e9b7f378e940896c95a535679ec654d50c808a899b5526847a410b341d8474a1",
+      "multiplayer/master_server/examples/matchmaking-online.json": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+      "rust/online_protocol/Cargo.toml": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+      "rust/online_protocol/Cargo.lock": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+      "rust/online_protocol/rust-toolchain.toml": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "rust/online_protocol/.gitignore": "32612892f1c9e15fe772b8034945f8072b83e025153aef597e45d5eccbe98c43",
+      "rust/online_protocol/README.md": "38850ba143016c94ab0b84116dff1df830699f7fa26c5ad1e7b2ea52f9c078c7",
+      "rust/matchmaking_service/Cargo.toml": "27ba26970fdbd7ecc0c3f2abd55c3742723f8bd948e8089a8ecbf7d1a01c6cf3",
+      "rust/matchmaking_service/rust-toolchain.toml": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+      "rust/matchmaking_service/Cargo.lock": "1e7ab09c6da07493fc678c1216222bf0cbb31caa75495da01a734118b9afcf77",
+      "rust/matchmaking_service/README.md": "295a6371a44b404348970df846c458154a718523c2fc0c45b6e7cd025113f396",
+      "rust/matchmaking_service/src/main.rs": "9b514042e27efefffe63d17f5612387685128571c4c32a6e649f6a0a5fe9bd15",
+      "rust/matchmaking_service/src/database.rs": "bcd6316b30e2dc02b612ad6ddbd890b1b1921f9fc77944f95695edc606161f55",
+      "rust/matchmaking_service/src/authentication.rs": "65506fae095042a95d97b264ec447c467de4b9d92c90ab9be9c0da19f9e178f9",
+      "rust/matchmaking_service/src/runtime.rs": "e1b3cf09586ec7ce7685c14e3dfded7bc178f3a7c12cd526f89a1d6a728ff1d5",
+      "rust/matchmaking_service/src/admission.rs": "9f1a014032c38678ec248d30ab1641bf6cb3bef78c4bdd1b80a34c909688ccaf",
+      "rust/matchmaking_service/src/http.rs": "19d7d7bdb1c42c8854342bbef5e987acc3828d974de6c32ce4c51b4c3e11573d",
+      "rust/matchmaking_service/src/matchmaking.rs": "8169d1c220f80df31c93638247d7ab39754a61ed087822d43980a0063e9d32b0",
+      "rust/matchmaking_service/src/search_qos.rs": "70dbf7d160965e11556523a142def77028afb09fecfdbfba34681ac16efa4563",
+      "rust/matchmaking_service/src/websocket.rs": "077ecb09d4966fce8b2f8a35e65e0b296d843435fe225f81ea6e1a5c8b02ac06",
+      "rust/matchmaking_service/src/room_io.rs": "62dc806f1e7890c9798bb906429502c531935cc9e1badcafd9a9d7e2dbb95f31",
+      "rust/matchmaking_service/src/rooms.rs": "05a1b84701e4d3b61ca9e62bf1c8fd64d6de61f78c9a56620461e6d3231102dc",
+      "rust/matchmaking_service/src/room_websocket.rs": "f07b961b02b67e70304f0ddf64c7c4ffcd1f6c772ce609e02b98e3806fda9ff8",
+      "rust/matchmaking_service/src/eos_identity.rs": "1bc0942ec37d5981257e28077827663f517fca2df51f2686f64215ec1ce04e89",
+      "rust/matchmaking_service/src/eos_verifier.rs": "ad47c4708083da980085cf1ccf64be623ce96fbde439262d39c85959acfcb8e3",
+      "rust/matchmaking_service/src/eos_binding.rs": "5db1ad108c4ed121affdb05f06031322e89313dabc8b2414413107ffc397268b",
+      "rust/matchmaking_service/src/eos_http.rs": "be807583142bb90b1e2a46c5765c0b6b3bec2521767bcfc125b492d196e9dab0",
+      "rust/matchmaking_service/src/steam_login.rs": "509c5dca7b38c8764f12e9d89130cb99aad4baf5d3a4819e41cf0cf59c7b89cf",
+      "rust/matchmaking_service/src/steam_provider.rs": "15500cb52b421861e9838a2574b26d375ff54770e2292b6a0bc13ec764c0597a",
+      "rust/matchmaking_service/src/steam_sessions.rs": "1938ddcfdb3abae6cfe59c2ab1ab188d747474ef4f665ab983373f24ce266a44",
+      "rust/matchmaking_service/src/steam_http.rs": "937bcef1ab3364206ac93ba0a4fe9b42828bf5ab29f286288a441be2679b9f74",
+      "rust/matchmaking_service/src/social.rs": "38852fca71a021b48c3cb1e1719cbf157380942365825785d726fac98815f567",
+      "rust/matchmaking_service/src/steam_friends.rs": "21bfd5da403a642ad7ffd616c9794ea9c8b8ab30f02ec4a57d6bb76af9026c6b",
+      "rust/matchmaking_service/src/steam_friends_provider.rs": "b2d40810b558962f79c669bd440ee93ca16db18112e04acf4729ffb630361454",
+      "rust/matchmaking_service/src/connection_budget.rs": "02510158f4603341a7c7c409d3219ef6ace2645fce67b7ee43da82e7881c347e",
+      "rust/matchmaking_service/src/steam_friends_http.rs": "d50c8ee47eb10a8065bfb37459c9045ac9646b8c3258d7696b1cf7b36109b1f4",
+      "rust/matchmaking_service/src/friend_cloud.rs": "a374205c249bc252010dbd2f0997165b1fcda837a2d1557ef9045c0b84dbbc8c",
+      "rust/matchmaking_service/src/friend_cloud_runtime.rs": "938aa697d552208a5be7c273aff091a7ae629faa5643d3f5ec405ce619a60b1b",
+      "rust/matchmaking_service/src/social_voice.rs": "06b92dacd54dbb5057ad339eb105386de74c89154ade7c329c4efd9956fc2b50",
+      "rust/matchmaking_service/src/social_voice_http.rs": "30635871394b5ca1bf10b81f65d7881f8504e9f207194f65571bcb3c9b385c07",
+      "rust/matchmaking_service/src/registration_clock_tests.rs": "5c900f87786aa7540c721fab285f30d380138be14fc38b4de8e4dc8ee419dfee",
+      "rust/matchmaking_service/src/variant_catalog_tests.rs": "111cd75a1548e3e31e9092e3d88b9fe03d2f2a45c77b1da044b8273327d8a783",
+      "rust/online_protocol/src/lib.rs": "787f3bd0d66b91f781942af40e360b5d831eb5a229f38f7d04ecb5041e30dd5f",
+      "rust/online_protocol/src/native_requests.rs": "8ddc00433afb4ece7e8bf3e2ba2904339ae25330a110ed236e5c367e0d2f8cfa",
+      "rust/online_protocol/src/authority_archive.rs": "691b4bf8fe5a7f5715efdc91d1a912931a9da99f9ac6eda7bffe10698029d59a",
+      "rust/online_protocol/src/eos_wire.rs": "5154a76798a1e83c16aafbc03509004ae6ce125bf81cca746980524d55da8bc8",
+      "rust/online_protocol/src/migration_preparation.rs": "1a5ad045c7cc48231f0f1a3180b56f750dca74831e7d83a7fa6392f14e982abe",
+      "rust/online_protocol/src/peer_pacing.rs": "01e9173cd4204273cd47b195864fea9b3f7d8246e235824d4daf6c24b73f5d39",
+      "rust/online_protocol/src/host_agreement.rs": "3856a8d008bb24e51b6f4f4116ccf5e6e7c1057670bf80b80e94ad3ab9af4261",
+      "rust/online_protocol/src/common_cut.rs": "eeae0747328e32d6aa8312dee2c04e4f4a23b2e72d2590d3e1abc66fd2dd6035",
+      "rust/online_protocol/src/survivor_selection.rs": "aa8cdf1218694fd5039f1f69569692b1c53aa43feb98e0663fdc4a50a8c15e97",
+      "rust/online_protocol/src/prospective_role.rs": "4cb7efdd20d8f075c76c6d0b7d7257004471088b807d46ca92cccc2e1dd8e685",
+      "rust/online_protocol/src/migration_driver.rs": "5ba6ef71f097e776ab728a528e9da50a13208ecde815bed43af4bb21d664c340",
+      "rust/online_protocol/src/eos_account_auth.rs": "11586f175fa16b8d6c39f97e0177676759a1bec028681606e4734fdbd44b5b91",
+      "rust/online_protocol/src/lan_auth.rs": "883cf24371221d496fb07c9b53dc8872029a658550baa0a52f21451827373fa8",
+      "rust/online_protocol/src/security_policy.rs": "3e95d883dffd98c903006d3081740ddf0d6e74944332ae21a51aa143f85ae8eb",
+      "rust/online_protocol/src/eos_outgoing.rs": "292c42cba1767905a1e2c96a5866ec6abcf846a4fedd22294da87962f0daa873",
+      "rust/online_protocol/src/team_balance.rs": "2ed0b864067cf40e0eefe124301b16ed29f171cb148b9e6f09259fdfb8508db7",
+      "rust/online_protocol/src/party_countdown.rs": "4b32f0c2935ac3df45f5a383702ea05284bb3c635e249d2eec2c71671f3ed951",
+      "rust/online_protocol/src/matchmaking_readiness.rs": "b8b2ccb062d8eb7956b1714f177a8dc09045fd4e0944d667aefd5569cebd4bf3",
+      "rust/online_protocol/src/party_privacy.rs": "56315211b71cbac524f61a47978b9d6476cc9b825c6b27326817887a538f5e92",
+      "rust/online_protocol/src/team_assignment.rs": "c890558e18be9e385d31553305043e4d199126ca55a36af66d9ca877037c32fc",
+      "rust/online_protocol/src/hopper_selection.rs": "dfc47195ced2500f0a928eee3bddbb72f255a87e55beee8ee34351aca90183e9",
+      "rust/online_protocol/src/matchmaking_ratings.rs": "480c484c676a884ead5accb9baa59ed099d977dc49d1d5865b5dc1151082e2e9",
+      "rust/online_protocol/src/session_candidates.rs": "522251ae3f0e6cd449f678ceccb527efae2b85e0e432037e340b4673d053243f",
+      "rust/online_protocol/src/search_lifecycle.rs": "12d9b97b8eccc957c0025c5a0a26ddbedb8b4dc7d9986176f34a34b7bec35a53",
+      "rust/online_protocol/src/matchmaking_model.rs": "34816e466596abaaf511743abc3c6dae61f3893f683b12de2efacb243609280b",
+      "rust/online_protocol/src/matchmaking_coordinator.rs": "2e829fafd95ea4d0a9773fc08d967c2887ea010f1fa8767090f773f8238ba091",
+      "rust/online_protocol/src/matchmaking_gatherings.rs": "96093a2c7e2f1d99d2d64862d11b1a5726a950d4d5ce6d8e6fa31c6f9326bc00",
+      "rust/online_protocol/src/matchmaking_skill.rs": "bbd2e9c5459e0b5f83d11348ad9a3c24ff2d345cbd3014da811265ffadae2070",
+      "rust/online_protocol/src/matchmaking_results.rs": "3bf7ea6e93d48559961cd9d86cff562aff460d82ce8eaf10d9558004de005a2d",
+      "rust/online_protocol/src/matchmaking_persistence.rs": "56217497815fed7f80fe945a75e1aa6ca8b62c744a2d53cccca3856206612c38",
+      "rust/online_protocol/src/matchmaking_json.rs": "9fa03a6a053005a201d7daa90b6afa95681fb977622d7cea823e128f1dc7c998",
+      "rust/online_protocol/src/matchmaking_catalog.rs": "71cc6d801ee5d816d51073e70fddda6728a502d1d8731db6a7d101bd5f224d0c",
+      "rust/online_protocol/src/matchmaking_sessions.rs": "abd1ea692fc1834de5557029d621118612aef79e5dce5522707f23e3c77b9653",
+      "rust/online_protocol/src/matchmaking_parties.rs": "74df6958e49eb5900a01888f39acf5d0f7fe21a52c7e1c4b3012cd2324e40ef4",
+      "rust/online_protocol/src/matchmaking_party_countdowns.rs": "9d899eb34296fa30a00aea749f89ff32af93f2321bed36800d6177393d95b91c",
+      "rust/online_protocol/src/matchmaking_queue_api.rs": "1c4d316c391c1c9f9aa691331e9ed2a3b27574db4807751d6ab803c8b479fa52",
+      "rust/online_protocol/src/matchmaking_start.rs": "f0533cff4ede1eb36af8e2ab2b4a791954c6094e7c2ca97f7e23bfcfe64d7d84",
+      "rust/online_protocol/src/matchmaking_room_setup.rs": "2044f332e43d0701d6d8f54090e6cc73cbdb1203c3b68dca6e93432a2a4e4671",
+      "rust/online_protocol/src/matchmaking_continuity.rs": "bd444109d876b1ceb3e982fc609c26152f88cd0d8efc7f1a8dd915ff920b2758",
+      "rust/online_protocol/src/matchmaking_room_lifecycle.rs": "d9a9bbc75a2261d05b579194d897d3fb245b58eaaa0a9c4c820b792bc33b597c",
+      "rust/online_protocol/src/matchmaking_room_wire.rs": "51ab682a1b6d8f0e3e8dc8b115e9b63816f4a4f1f9b47e33e393924db59cd5ab",
+      "rust/online_protocol/src/matchmaking_packet_budget.rs": "96646f99f08e997ce0c6823b68ed2dfd29c83dee282fe75574fe8098adc52ad2",
+      "rust/online_protocol/src/matchmaking_room_packets.rs": "34f885da19331846424b7f99c7121ff28e5744f624c58f240a1ab6df66e440cf",
+      "rust/online_protocol/src/matchmaking_room_control.rs": "45184c06e788162c541356d51b176f5e9a039e29f4fd49fc4890bd21aac90eb8",
+      "rust/online_protocol/src/matchmaking_search_qos.rs": "f2d222201f29d3a77b0666e6ab8dee64f65a19d655ba7979dc0190b058568a5e",
+      "rust/online_protocol/src/matchmaking_party_directory.rs": "8676861190e3da3ce327dc0778a3a26dde403dac051e41203304641c79cfc3a9",
+      "rust/online_protocol/src/matchmaking_accounts.rs": "bf2a55803570c0302fd30c71adce319207f1a56cd4db84d2c41056f93e6d5966",
+      "rust/online_protocol/src/matchmaking_clan_directory.rs": "9f4638f0cb7638df1cacb74476d9fe52a4365e4a68138bd0e5226b8c3db42f51",
+      "rust/online_protocol/src/matchmaking_public_history.rs": "8e60a14e8728d911523aadbe84a92ca985f69ed9834975673a6974be44279e94",
+      "rust/online_protocol/src/matchmaking_profiles.rs": "325f7e71df4c6a7d1ed99dc68cd6809b4755d6c385e3dfc32075e2d762c7c2e1",
+      "rust/online_protocol/src/matchmaking_profile_directory.rs": "f61a14ca95a1bc3e5d4b560ab047332010aef60dbdff434875679c2f272f4be2",
+      "rust/online_protocol/src/matchmaking_presence.rs": "1a751ba65abd293d23ee401d0256696d83e18b206656a575549f1c0c0e2e047f",
+      "rust/online_protocol/src/matchmaking_unicode.rs": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+      "rust/online_protocol/src/matchmaking_unicode_fold_table.rs": "ea8126a271bdf120ce1cddae5a64a421ecf7c7c499ff89a6213b562055c62537",
+      "rust/online_protocol/src/matchmaking_friend_cache.rs": "de20a771ea36803ac96eb666a677cf8e55a623cf06e52b26dd5dd8f07212109a",
+      "rust/online_protocol/src/matchmaking_friend_directory.rs": "055ce0e8395ef1780fcf48b19f44efbde04f65096793972135d815266a633c72",
+      "rust/online_protocol/src/matchmaking_friend_cloud.rs": "1b6144e6e68c30dfeb245324428c80c04cb9d6a7e929a79036f2f8123c4ce32f",
+      "rust/online_protocol/src/matchmaking_voice_directory.rs": "b9ea5a1dd8f00beb9bb45ae80885195922c417e7153c062d02800426e39a982c",
+      "rust/online_protocol/src/matchmaking_social_voice.rs": "f42501c569ecb7fa717e1905a6d38309468ff63e2d571ba735001032676c652d",
+      "rust/online_protocol/src/matchmaking_steam_cache.rs": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+      "rust/online_protocol/src/matchmaking_steam_request.rs": "57263fc4f3c7f7079acf72c0e1c91b75ceb0bec720d8ec5e6c1a64b49c9f2879",
+      "rust/online_protocol/src/matchmaking_identity_directory.rs": "84939f5ed108f78ab656c42e6af65274ea26a3459e86874e010a825074a30073",
+      "rust/online_protocol/src/matchmaking_owners.rs": "3e659557279f44a339bdb61035cdf333472ab7b07fa342021a37ed83ed30e677",
+      "rust/online_protocol/src/matchmaking_room_service.rs": "6fa1c1d0330b3049646c9924f4278c2c63b193b207235f53286363836c4ceff3",
+      "rust/online_protocol/src/matchmaking_variant.rs": "8ddfe7cb0e0bf6bfe4d5008bc40bf6645d26f64fe5dd98cf184bf1ed1039ea7b",
+      "rust/online_protocol/src/matchmaking_client.rs": "7e46389f9f2718ae755132e9a041665f9ffa2c0349bb8c27d379ca40d6cb5280",
+      "rust/online_protocol/src/matchmaking_origin.rs": "c2e50bc3391e177096e328e4663ce7a5b9da284604be5a296ea0f14e19b2f9d3",
+      "rust/online_protocol/src/matchmaking_native_qos.rs": "c61846b071c5e4d85ee2b3f518b84f0d2e81322867d7dd1302de6f5436635c6d",
+      "rust/online_protocol/src/matchmaking_native_session.rs": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+      "rust/online_protocol/src/matchmaking_native_socket.rs": "818ecdb2376800c1da6c85ab7e71562dd5c745ca0cdcf782a4dba1662715a587",
+      "rust/online_protocol/src/matchmaking_native_control.rs": "ba6f23c095c4fcc5c1244a7a7b7175f7dff5c0dd47b650c418f9111df094e582",
+      "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+      "rust/online_protocol/tests/team_assignment_original.rs": "01943b7ff2c367e0edb07f6702243d427e74810a1880586c86c9d5ac667fb3e7",
+      "rust/online_protocol/tests/matchmaking_ratings_original.rs": "c34e827ea8c5b861a4b2486dfaf4291d5456f9b556bec2b0217e77b07b5b65a1",
+      "rust/online_protocol/tests/session_candidates_original.rs": "e994c33307e525862f99faefb374a31c721d4927d3a413240faaf7c9b37e7185",
+      "rust/online_protocol/tests/search_lifecycle_original.rs": "649a71287b5d2314c8e46471cc8cd64e01bf8670b84c545638cb5ace9e223c54",
+      "rust/online_protocol/tests/matchmaking_coordinator.rs": "82ae3a3cf740f5b9824504d2afb645767e16dd4cb8e1a9b2be002e58a546bab7",
+      "rust/online_protocol/tests/gathering_owner.rs": "c44d9a0eb4708e5f5da6e8185a85a00901dcbed0397b5999e14455c5d3f34278",
+      "rust/online_protocol/tests/matchmaking_results.rs": "166e932749344d6525975aca83bb0d4c1a9712768be7f910a7ee2b7db09bebf0",
+      "rust/online_protocol/tests/matchmaking_skill_original.rs": "a7e0fcdfe55ff4b298612a227692ddc74cbf51a05be9fdea626e66c2ae84cc1c",
+      "rust/online_protocol/tests/matchmaking_catalog.rs": "18ae7a18946c26fd522c306c51a6d841858d5da21632c7e54fe698a5d469934d",
+      "rust/online_protocol/tests/matchmaking_sessions.rs": "00c601029732ec7423128fec53178bc5d389d1633b40a103a70dadc806542404",
+      "rust/online_protocol/tests/matchmaking_parties.rs": "918503665c7c814cc7bb7936b5084cac05a2ef215f63f1bb2e4d7e94e8b5961f",
+      "rust/online_protocol/tests/party_countdown_original.rs": "0181ccddd5ce9ff740f8a5d607597fb71d26125db8fc9eff4ca68d27fc90c4cf",
+      "rust/online_protocol/tests/matchmaking_queue_api.rs": "a90d59814f08de3747903185bef5f68192a9983cfb50ea1d481a1317c62ba9fe",
+      "rust/online_protocol/tests/matchmaking_room_setup.rs": "bfad18614680a2007d5eae6a6c330770c079e2d1fc00f592c1bdbc245edf4c55",
+      "rust/online_protocol/tests/matchmaking_continuity.rs": "da577d56b818f02fc926c9082ad89a0bd19eda413cb4a33ea75c687a0740fac7",
+      "rust/online_protocol/tests/matchmaking_assignment_tu15.rs": "67f8a5eebdc52dd5554d9ecf7a5f5bb1345c2d28692f1e53f8174f1be76881ad",
+      "rust/online_protocol/tests/matchmaking_native_readiness.rs": "33d98ddcad387d01c54cecb0303764ff61a175bdb781ff29080145ca6bb0e9a9",
+      "rust/online_protocol/tests/matchmaking_variant_admission.rs": "9ed44b8e97af2da2ec8b9f95670ca2c4657cc3058aebee070c42d9b3fbbac501",
+      "rust/online_protocol/tests/matchmaking_client_controller.rs": "5f82077ed889d21b49a29a7884d03283d27e8b1333618178bc438fe127c0d289",
+      "rust/online_protocol/tests/matchmaking_native_qos_worker.rs": "91e24aa880e59d0e9ba90128aa13e79aa2500134bd4bc52168d27ec79f6c0650",
+      "rust/online_protocol/tests/matchmaking_native_session.rs": "eca0044aa26618b0c9607f382763cfecd3680eb4b53c44855cda929a22622cd8",
+      "rust/online_protocol/data/retail_gathering.json": "96dddab690fe3a008fd7eb9d38c6c04634b44a115d5baf1b3fef07da44cd8198",
+      "rust/online_protocol/data/retail-launch-2004-rank.json": "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd",
+      "rust/online_protocol/data/title-update-1.5-rank.json": "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f",
+      "rust/online_protocol/data/tu15-result-presets.json": "70153f1eedc392124623d8f42ee775be2305b95a34d563dbcf9ab80c503f30db",
+      "rust/online_protocol/data/skill-player.sql": "aa8c9e7b78cadca35c39d1c4a5fe0cf40436fb80780d4876faf6472f2a5a948f",
+      "rust/online_protocol/data/skill-clan.sql": "d52871e54d1262bb95162efd7480d6292f0efec08c4d4afeced2dd9b9f852084",
+      "rust/online_protocol/data/results.sql": "576b3ebb7a1363eb2d1a2de126616001dc56d9fd054a62431a1c909413aa0015",
+      "rust/online_protocol/data/results-consensus.sql": "8b7aaef1ff64a16710137e544e918077c35af094f1210deeeccb24a07ee3203d",
+      "rust/online_protocol/data/history.sql": "ea64e150c6621d95ed55f977225f342ebd2b0046f937455c7a1600720cb2f3fb",
+      "rust/online_protocol/data/results-options.sql": "8ddb5cc5542a2d88db47fa4139bc093fdd11b1f34472a534de410326742bd141",
+      "rust/online_protocol/data/unicode16/CaseFolding.txt": "6f1f9c588eb4a5c718d9e8f93b782685e5c7fec872cf05e8e6878053599e09bb",
+      "rust/online_protocol/data/unicode16/LICENSE.txt": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "rust/online_protocol/data/unicode16/provenance.json": "68995ccbb6629c3d789dec9f4ea9b30976db42f4d12b92a570ab98bb0cda3f3e",
+      "rust/online_protocol/src/netcode/range.rs": "490b50be09203a24750edbdb470d94d3728fc0c49e820bad53bf3b08fc7044a9",
+      "rust/online_protocol/src/netcode/pose.rs": "4b91e33bc013b305e25b92b56ff36d8f4d739af38bcc2cdfd7b5b2ed7d913ed1",
+      "rust/online_protocol/src/netcode/bandwidth.rs": "efff209143ca9e8bd9484c0daff7bdaa108cf5b81c5ae73d954ae24f5dd4a1f5",
+      "rust/online_protocol/src/netcode/mod.rs": "65791ed28c6fb25a0efc42d3c74f9f8b190ecc3d6550de0dc21b200f7c58705c",
+      "rust/online_protocol/src/netcode/generic.rs": "06c961f78e717dd49dab8d0a9a853909d16cecdbabb9f2280b9a4fdaba577fd4",
+      "rust/online_protocol/src/netcode/stream.rs": "6c90509130c7a46cbe33a71ade98e2f6b13f7be2d81b0eda57066c6d1ac8462c"
+    },
+    "native": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/rust_service_room_probe",
+      "sha256": "34aeefaed2ff09415eebe42d48aae77f9f2b318edca2b0e717be1123ece122bb",
+      "borrowed_read_only": true
+    },
+    "commands": [
+      {
+        "argv": [
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--manifest-path",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-room/halo2-test-j2ikf3xn/source/rust/matchmaking_service/Cargo.toml"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "retained_large_artifacts": [],
+    "service_binary": {
+      "sha256": "5ab6aba533a10c5461dca6749c50a3bbf2cf44bb9219705703cbb71d8b62c737",
+      "bytes": 11456592
+    },
+    "rooms": {
+      "checks": [
+        "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+      ],
+      "relay": {
+        "checks": [
+          "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+          "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+          "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+          "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+          "real anonymous population follows loading/running/postgame room owners and the transient guest, retaining active playing seats after frontend logout",
+          "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+        ],
+        "observed": {
+          "start_countdown_ms": 9999,
+          "real_start_elapsed_seconds": 9.997524367005099,
+          "physical_connections": 2,
+          "logical_seats": 3,
+          "persistent_xp_total": 100
+        },
+        "fixture": {
+          "compatibility": "halo2-native-queue-v10",
+          "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+          "declared": true,
+          "original_profile": false,
+          "real_gameplay": false
+        },
+        "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+      },
+      "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate.",
+      "direct": {
+        "checks": [
+          "actual signal route drains a buffered candidate, validates physical peer reports and reaches running through the real ten-second gate; test RTT claims come from real local UDP exchanges",
+          "live direct socket replacement closes the old generation with its native reason; its late detach cannot remove the replacement, and frontend logout leaves the transferred bearer valid",
+          "explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room"
+        ],
+        "observed": {
+          "physical_connections": 2,
+          "udp_probe_exchanges": 6,
+          "client_reported_rtt_ms": [
+            1,
+            1
+          ],
+          "replaced_close_code": 1001
+        },
+        "scope": "Actual Rust direct signaling/clock/generation/departure IO on a declared v12 legacy fixture, private grants and real local UDP client RTT probes. No native peer/gameplay/world promotion, original XNet or delivered acceptance."
+      },
+      "content_failure": {
+        "checks": [
+          "actual loading-content rejection requires the current grant/room, closes the real streams, preserves actor/other-party failure codes after teardown and fences stale receipts after requeue"
+        ],
+        "scope": "Real Rust HTTP/room-close/failure IO on a declared legacy fixture; no rendered map-load or played-world acceptance."
+      },
+      "native": {
+        "passed": true,
+        "observed": {
+          "input_bytes": 27,
+          "players": 2,
+          "protocol": 123,
+          "real_start_timer": true,
+          "result_recorded": true,
+          "snapshot_bytes": 1400
+        },
+        "scope": "Actual native OnlineMatchSession clients, real Rust loading/start, datagram relay and unanimous PCR/XP commit; declared legacy profile, synthetic datagrams/PCR/fingerprint and fixture provider grants. No native world/rendered game or delivered acceptance."
+      }
+    },
+    "coherent": true
+  },
+  "audit_diagnostic": "Initial symbol-count expectation was9; schema inspection and nm confirm the exact8 declared mesh entries. No production or native test failed.",
+  "remaining": [
+    "C++ direct-peer worker scheduling/poll budgets and retained agreement rotation",
+    "C++ native capability/resource admission and readiness/publication orchestration",
+    "Actual native world/objective/role/clock/identity and device ownership remains with genuine owners; no Rust metadata creates Ready or a world",
+    "Original historical/service recovery, genuine providers and positive EOS/native worlds, all required natural outcomes/topologies, physical installed input and complete delivered G01-G12 acceptance"
+  ],
+  "all_cpp_matchmaking_policy_removed": false,
+  "new_original_executable_calls": 0,
+  "full_original_live_wire_recovered": false,
+  "historical_service_configuration_recovered": false,
+  "played_world": false,
+  "positive_genuine_steam": false,
+  "positive_genuine_eos": false,
+  "physical_installed_input": false,
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "full_native_flow_qualified": false,
+  "original_whole_system_parity": false,
+  "full_matchmaking_ready": false,
+  "full_goal_complete": false,
+  "goal_criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "inventory_before_after_sha256": "808e2052425702187afbbb8222035ff3bfe66c7674652542548e1f430a207eff",
+  "all_twelve_gaps_fifty_three_ids_and_g01_g12_preserved": true,
+  "retained_reports": {
+    "build/test-results/peer-mesh-rust-preflight-20261101/check.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d882a4932be7aa34-check.log",
+      "sha256": "d882a4932be7aa349d662dd1727d959842e4f3ec2a115bba8f6940490dc66981",
+      "bytes": 47501
+    },
+    "build/test-results/peer-mesh-rust-preflight-20261101/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e5e68bb3ac2a97c0-report.json",
+      "sha256": "e5e68bb3ac2a97c01c96d51479a57f2016cc81144589db7208afcbf4eaab666e",
+      "bytes": 18840
+    },
+    "build/test-results/peer-mesh-host-rust-20261101/before-online_match_session.cpp.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/eb501209d336ea06-before-online_match_session.cpp.txt",
+      "sha256": "eb501209d336ea06dea7a3d92de500f972e4aceb4f617bb246f4ee04808e89fc",
+      "bytes": 66436
+    },
+    "build/test-results/peer-mesh-host-rust-20261101/before-session-source.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a5fbc2da91385627-before-session-source.json",
+      "sha256": "a5fbc2da913856270030b3df14c2330a543f775dfecb11b0376348e7fe3db733",
+      "bytes": 172
+    },
+    "build/test-results/peer-mesh-host-rust-20261101/checkpoint.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e01d8634fc91302c-checkpoint.json",
+      "sha256": "e01d8634fc91302cb780f46a99e4d0321851eaeed7a9cd069e5c853d489850eb",
+      "bytes": 1154
+    },
+    "build/test-results/peer-mesh-host-full-rust-20261101/matchmaking_service.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/1951e3968d7df69b-matchmaking_service.log",
+      "sha256": "1951e3968d7df69be9c1fed26302a812e8ebf01f1df5ffb67e12f581c6429a7b",
+      "bytes": 4887
+    },
+    "build/test-results/peer-mesh-host-full-rust-20261101/online_protocol.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d6c39817b18575fe-online_protocol.log",
+      "sha256": "d6c39817b18575fe20e9b2c52ccd8adbf7e48c5161ec7871de329acd00b944af",
+      "bytes": 41478
+    },
+    "build/test-results/peer-mesh-host-full-rust-20261101/online_protocol_bridge.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8b4e62dd48ff00d6-online_protocol_bridge.log",
+      "sha256": "8b4e62dd48ff00d68607d1466c97c883c6625ef49533e1f9c50bfe1ec45e56da",
+      "bytes": 53869
+    },
+    "build/test-results/peer-mesh-host-full-rust-20261101/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7b95fd4165d54e03-report.json",
+      "sha256": "7b95fd4165d54e036de659bc56a5c4311f6b551f9e6c2e29f0d7d00fb5deaf1e",
+      "bytes": 23865
+    },
+    "build/test-results/peer-mesh-host-native-20261101/coordinator.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/25d9ed646a3d80a2-coordinator.log",
+      "sha256": "25d9ed646a3d80a2164129e7be9a9ac2c6c16b5d7dcf73a8787a17f768e792b4",
+      "bytes": 511
+    },
+    "build/test-results/peer-mesh-host-native-20261101/coordinator.py.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/121c759d0e6c0eba-coordinator.py.txt",
+      "sha256": "121c759d0e6c0ebadc564c7705d707d858a5924a7a02b2671d21fb41f7dd3d1c",
+      "bytes": 7770
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/459bc3ef15db8c83-final-source-pins-0.json",
+      "sha256": "459bc3ef15db8c833f84b8f893b314ff1774a496bcf6a3e2f02618f90f19c046",
+      "bytes": 43860
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/c478f31d33a46217-final-source-pins-1.json",
+      "sha256": "c478f31d33a4621737b5867c4eeb5b783402e45fea81e74b9348cb1367b3f08c",
+      "bytes": 46725
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/58d97c9afbfb87da-final-source-pins-10.json",
+      "sha256": "58d97c9afbfb87da9f0566c7bbc22b067b86af9f779a02db00286e7518ea93c8",
+      "bytes": 48137
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7dc4f43084b1a0ab-final-source-pins-11.json",
+      "sha256": "7dc4f43084b1a0ab474db3f3787276e51f8481ed463c5e8d61f02d536127b984",
+      "bytes": 48673
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7c6dd122decab111-final-source-pins-12.json",
+      "sha256": "7c6dd122decab111e9f661a3038b6cfd113a8bb6c39a1343fc4635e505b1a76c",
+      "bytes": 44923
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/515175a63397e3f2-final-source-pins-13.json",
+      "sha256": "515175a63397e3f2db951315caa01554809cdff3e14e5b600a74e843d104a0cc",
+      "bytes": 52010
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bf0195c9e5781da0-final-source-pins-14.json",
+      "sha256": "bf0195c9e5781da03f49ee24ef9d61e00a10b24cf522e0ff4fe917b609163b31",
+      "bytes": 54003
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f32d54006e787d41-final-source-pins-15.json",
+      "sha256": "f32d54006e787d41254e04e4c9be68cbe86c9579b793565c06e340f008c8dafc",
+      "bytes": 58471
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/633fb9532d94d4f7-final-source-pins-16.json",
+      "sha256": "633fb9532d94d4f70453dcbc1232f028c6c2262fb6b4fcecc8a122e8349de822",
+      "bytes": 51845
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d84087001aaca521-final-source-pins-17.json",
+      "sha256": "d84087001aaca521eb515d73745ef740c620a800431df93b59d184745583b534",
+      "bytes": 54410
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bfed6ad0efa12f57-final-source-pins-18.json",
+      "sha256": "bfed6ad0efa12f57f16e450df5a5760761e10f49cde83c80aed0875a09fc0fc0",
+      "bytes": 52621
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/9e1a7927fab84c8e-final-source-pins-19.json",
+      "sha256": "9e1a7927fab84c8e5605ef2458f95757fd949119a232557fcd85438175f7f6d9",
+      "bytes": 45221
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6873977066755753-final-source-pins-2.json",
+      "sha256": "6873977066755753b1da040560f2690dbf0aef3dd0686508874dd773bbd3c88d",
+      "bytes": 47734
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a543682f5f8a9f51-final-source-pins-20.json",
+      "sha256": "a543682f5f8a9f51be5842f315d768aeeefe4e129e88aba78dedc81b7a8714fc",
+      "bytes": 47454
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7bfcd08a8e6dc782-final-source-pins-21.json",
+      "sha256": "7bfcd08a8e6dc782de2fd61092ea336fe3bf1ef6b040db87a9e61555101ea48e",
+      "bytes": 46832
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7543d820af143431-final-source-pins-22.json",
+      "sha256": "7543d820af14343106036f374f58ecf3559411165a65f2c0210f2f018a1d413d",
+      "bytes": 44983
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/aa64dd441a1868c3-final-source-pins-23.json",
+      "sha256": "aa64dd441a1868c3f4d44c0f8962f6ab1c5a2513524dfccad5ea2d791c08e131",
+      "bytes": 46089
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/285d65998b53d20d-final-source-pins-24.json",
+      "sha256": "285d65998b53d20d24120f2f9ee50169b40d3dffbd340abdece382b933ee3f1f",
+      "bytes": 44367
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/56920594f3ac6aca-final-source-pins-25.json",
+      "sha256": "56920594f3ac6acad7d47660bccefb7018347c488b754b034a30910b267af418",
+      "bytes": 46013
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/51249ab27706da16-final-source-pins-26.json",
+      "sha256": "51249ab27706da162366bccdbcfee4db5962617a7a05fb20901b4bece489fd96",
+      "bytes": 45971
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/25b038a633f46585-final-source-pins-27.json",
+      "sha256": "25b038a633f465855b6c2037c58ed69db84530675f2d9fc264d16ef7448feb0c",
+      "bytes": 46901
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed4e954c0eac0610-final-source-pins-28.json",
+      "sha256": "ed4e954c0eac0610d7f008067d7c8f0542ac93a7bdbc2604a242d069105f99e5",
+      "bytes": 45886
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/89b202b5b4a33819-final-source-pins-29.json",
+      "sha256": "89b202b5b4a33819f45d7a34c2951fc1fde5ff18d00c9373af1719cc1ffb66b9",
+      "bytes": 47659
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/850e930e81d5f071-final-source-pins-3.json",
+      "sha256": "850e930e81d5f071a3b144ca26b0be41f7fbe671854446c1e369c67204432836",
+      "bytes": 46240
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/40c56cb0aa66a1b8-final-source-pins-30.json",
+      "sha256": "40c56cb0aa66a1b89117c16a410fb98a8b5fa3cb87dbaffc3e4fc9203ecc1b01",
+      "bytes": 47033
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8cb9ac4ef212cbd4-final-source-pins-31.json",
+      "sha256": "8cb9ac4ef212cbd4e6090b71d190cf832c69638555707871d74d6768d63b98ad",
+      "bytes": 45855
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f7393127af4c9a40-final-source-pins-32.json",
+      "sha256": "f7393127af4c9a4032c79049996662cee7f638449170ad049a03d32bd4f0d13b",
+      "bytes": 48111
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/482bd664e8365619-final-source-pins-33.json",
+      "sha256": "482bd664e8365619b73ca56a328ad3dd818ca510421bb86e51c0e5adc00e03e2",
+      "bytes": 59274
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac4e0b4017b54cf8-final-source-pins-34.json",
+      "sha256": "ac4e0b4017b54cf880162a23f0f90db7747f353351fec82806c490c4796a39d1",
+      "bytes": 62884
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac0d0c3c95220797-final-source-pins-35.json",
+      "sha256": "ac0d0c3c952207970daedbb9da36a38bf0f26ba664c58e6e490c4619d8dbb768",
+      "bytes": 67533
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0c01bc45f563d4ab-final-source-pins-36.json",
+      "sha256": "0c01bc45f563d4ab72cbb6c4e7053a765e71c63ee8355ceb172816010be2e724",
+      "bytes": 94285
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/53db2fde6a9f3140-final-source-pins-37.json",
+      "sha256": "53db2fde6a9f314043db47fb42b034b0c4a563207df3d0944cb77e7eed7b8994",
+      "bytes": 80892
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed7505d869977b7f-final-source-pins-38.json",
+      "sha256": "ed7505d869977b7ff75ef61b455cee5227c1292094ba6d5eff922766140e8ece",
+      "bytes": 56928
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8b49adb0404739cc-final-source-pins-39.json",
+      "sha256": "8b49adb0404739cc14dbe300ee8cd8b51efddb6cb6e08957438ef322ee4ae146",
+      "bytes": 51893
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ee7ef69097b056b1-final-source-pins-4.json",
+      "sha256": "ee7ef69097b056b195513000b4de852d2a115a46599842e78762ad0766511d47",
+      "bytes": 47608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2db7ded370924fa3-final-source-pins-40.json",
+      "sha256": "2db7ded370924fa3bca3a2c9a44e93941b585f521f0bda5246275cb70c7e6583",
+      "bytes": 51605
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0d9227736d91530c-final-source-pins-41.json",
+      "sha256": "0d9227736d91530c93ddf629c96328499e84e8da4ed8c034e47addc18412604e",
+      "bytes": 53011
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0b791bdaeadf2abf-final-source-pins-42.json",
+      "sha256": "0b791bdaeadf2abf65c38ed036ef1341ffca8d274ea342464f43315ce9f4045c",
+      "bytes": 58509
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3dc5368f79177ef4-final-source-pins-43.json",
+      "sha256": "3dc5368f79177ef43e6e33de955414927161110550152d33276768ca858752d2",
+      "bytes": 47514
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/17e396b765072282-final-source-pins-44.json",
+      "sha256": "17e396b7650722827c467ade9fa4c6d00ebac8dda6073f4016e0a0a7d0d67344",
+      "bytes": 49498
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/60ebbe9707d8ed9c-final-source-pins-45.json",
+      "sha256": "60ebbe9707d8ed9c9c69717a7a0d4a79b6cea687e30c915135734c36d47be1a5",
+      "bytes": 38987
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3f7e5ca39fd7db74-final-source-pins-5.json",
+      "sha256": "3f7e5ca39fd7db74cb2b60e39035ef76dc76f1e016ab56a92ac7c499062385e5",
+      "bytes": 47602
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e12418f7d9d06dbc-final-source-pins-6.json",
+      "sha256": "e12418f7d9d06dbcc1c06d9d811e73acc59796ba89c39ad5be78eb549440c790",
+      "bytes": 57155
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a4c426b540ae50ae-final-source-pins-7.json",
+      "sha256": "a4c426b540ae50aeb2e668bb6a21f6f819622996f4c09a0d27e792503c1ed562",
+      "bytes": 48401
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/de79065745de2c69-final-source-pins-8.json",
+      "sha256": "de79065745de2c69f1b8c6a385904a857e40b745afb2e67c7d0ef4c659d0c7c2",
+      "bytes": 50652
+    },
+    "build/test-results/peer-mesh-host-native-20261101/final-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8e8ff83fa7549558-final-source-pins-9.json",
+      "sha256": "8e8ff83fa75495588c09ac94f925406832604b2ba0e1fa5dc96ec968b1cd2f4f",
+      "bytes": 48470
+    },
+    "build/test-results/peer-mesh-host-native-20261101/frozen-cmake.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/28438ea541355cdc-frozen-cmake.txt",
+      "sha256": "28438ea541355cdcb8e0820b3660b946615cccce1b5aa8a70653301d48276f8b",
+      "bytes": 971168
+    },
+    "build/test-results/peer-mesh-host-native-20261101/inputs.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d4829827d30df0b9-inputs.json",
+      "sha256": "d4829827d30df0b9272bdccedd060531e391c94311f088a5b554a58426502bdd",
+      "bytes": 4496
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/cf3a9a9c09d19924-build.log",
+      "sha256": "cf3a9a9c09d199249ac8b066a89ede9449a922b31bb710f291489a1f6e91bcdf",
+      "bytes": 41606
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/configure.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7f0918652190c324-configure.log",
+      "sha256": "7f0918652190c32494614d0fac11c49f01432d189353538f3ccc82b3a5a41980",
+      "bytes": 4644
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/evidence/Testing/Temporary/LastTest.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e18ebcda87db1ef1-LastTest.log",
+      "sha256": "e18ebcda87db1ef1631851e91339799b38c52e2966ec2fa190771ef21a8e5b31",
+      "bytes": 25608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/evidence/online-protocol/Release/build-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6ef21da24acfd9cb-build-report.json",
+      "sha256": "6ef21da24acfd9cb9edf8177737e8881591ad1ced68b77cd3110cd27e0955e21",
+      "bytes": 2204
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/evidence/test-artifacts/peer-mesh-cpp-rust.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/202f0d393ac476f6-peer-mesh-cpp-rust.json",
+      "sha256": "202f0d393ac476f688475b6e99ed6d6d7a32430d6299a27f45b851e0a22b0f0f",
+      "bytes": 1496
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a856e77bcd05d06b-report.json",
+      "sha256": "a856e77bcd05d06bf94a480803c079bcb0a5bc48393a0a0ed359c68929054eab",
+      "bytes": 4411
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1/tests.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/b79da3443760e7ed-tests.log",
+      "sha256": "b79da3443760e7ede7ae5455a3d040f900d61428ff3e9a54efa55fe1ef63d46f",
+      "bytes": 2099
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/43f2722212980fad-iteration-1-report.json",
+      "sha256": "43f2722212980fad5567ba0d1a1a1d2fefe587ca7c4402e808aedd31f14936da",
+      "bytes": 10142
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-runner.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/51948358730a7b95-iteration-1-runner.log",
+      "sha256": "51948358730a7b955dd701bba190d698cc174887dc711df9ea228a67eea375e0",
+      "bytes": 49865
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/459bc3ef15db8c83-final-source-pins-0.json",
+      "sha256": "459bc3ef15db8c833f84b8f893b314ff1774a496bcf6a3e2f02618f90f19c046",
+      "bytes": 43860
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/c478f31d33a46217-final-source-pins-1.json",
+      "sha256": "c478f31d33a4621737b5867c4eeb5b783402e45fea81e74b9348cb1367b3f08c",
+      "bytes": 46725
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/58d97c9afbfb87da-final-source-pins-10.json",
+      "sha256": "58d97c9afbfb87da9f0566c7bbc22b067b86af9f779a02db00286e7518ea93c8",
+      "bytes": 48137
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7dc4f43084b1a0ab-final-source-pins-11.json",
+      "sha256": "7dc4f43084b1a0ab474db3f3787276e51f8481ed463c5e8d61f02d536127b984",
+      "bytes": 48673
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7c6dd122decab111-final-source-pins-12.json",
+      "sha256": "7c6dd122decab111e9f661a3038b6cfd113a8bb6c39a1343fc4635e505b1a76c",
+      "bytes": 44923
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/515175a63397e3f2-final-source-pins-13.json",
+      "sha256": "515175a63397e3f2db951315caa01554809cdff3e14e5b600a74e843d104a0cc",
+      "bytes": 52010
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bf0195c9e5781da0-final-source-pins-14.json",
+      "sha256": "bf0195c9e5781da03f49ee24ef9d61e00a10b24cf522e0ff4fe917b609163b31",
+      "bytes": 54003
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f32d54006e787d41-final-source-pins-15.json",
+      "sha256": "f32d54006e787d41254e04e4c9be68cbe86c9579b793565c06e340f008c8dafc",
+      "bytes": 58471
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/633fb9532d94d4f7-final-source-pins-16.json",
+      "sha256": "633fb9532d94d4f70453dcbc1232f028c6c2262fb6b4fcecc8a122e8349de822",
+      "bytes": 51845
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d84087001aaca521-final-source-pins-17.json",
+      "sha256": "d84087001aaca521eb515d73745ef740c620a800431df93b59d184745583b534",
+      "bytes": 54410
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bfed6ad0efa12f57-final-source-pins-18.json",
+      "sha256": "bfed6ad0efa12f57f16e450df5a5760761e10f49cde83c80aed0875a09fc0fc0",
+      "bytes": 52621
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/9e1a7927fab84c8e-final-source-pins-19.json",
+      "sha256": "9e1a7927fab84c8e5605ef2458f95757fd949119a232557fcd85438175f7f6d9",
+      "bytes": 45221
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6873977066755753-final-source-pins-2.json",
+      "sha256": "6873977066755753b1da040560f2690dbf0aef3dd0686508874dd773bbd3c88d",
+      "bytes": 47734
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a543682f5f8a9f51-final-source-pins-20.json",
+      "sha256": "a543682f5f8a9f51be5842f315d768aeeefe4e129e88aba78dedc81b7a8714fc",
+      "bytes": 47454
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7bfcd08a8e6dc782-final-source-pins-21.json",
+      "sha256": "7bfcd08a8e6dc782de2fd61092ea336fe3bf1ef6b040db87a9e61555101ea48e",
+      "bytes": 46832
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7543d820af143431-final-source-pins-22.json",
+      "sha256": "7543d820af14343106036f374f58ecf3559411165a65f2c0210f2f018a1d413d",
+      "bytes": 44983
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/aa64dd441a1868c3-final-source-pins-23.json",
+      "sha256": "aa64dd441a1868c3f4d44c0f8962f6ab1c5a2513524dfccad5ea2d791c08e131",
+      "bytes": 46089
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/285d65998b53d20d-final-source-pins-24.json",
+      "sha256": "285d65998b53d20d24120f2f9ee50169b40d3dffbd340abdece382b933ee3f1f",
+      "bytes": 44367
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/56920594f3ac6aca-final-source-pins-25.json",
+      "sha256": "56920594f3ac6acad7d47660bccefb7018347c488b754b034a30910b267af418",
+      "bytes": 46013
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/51249ab27706da16-final-source-pins-26.json",
+      "sha256": "51249ab27706da162366bccdbcfee4db5962617a7a05fb20901b4bece489fd96",
+      "bytes": 45971
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/25b038a633f46585-final-source-pins-27.json",
+      "sha256": "25b038a633f465855b6c2037c58ed69db84530675f2d9fc264d16ef7448feb0c",
+      "bytes": 46901
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed4e954c0eac0610-final-source-pins-28.json",
+      "sha256": "ed4e954c0eac0610d7f008067d7c8f0542ac93a7bdbc2604a242d069105f99e5",
+      "bytes": 45886
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/89b202b5b4a33819-final-source-pins-29.json",
+      "sha256": "89b202b5b4a33819f45d7a34c2951fc1fde5ff18d00c9373af1719cc1ffb66b9",
+      "bytes": 47659
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/850e930e81d5f071-final-source-pins-3.json",
+      "sha256": "850e930e81d5f071a3b144ca26b0be41f7fbe671854446c1e369c67204432836",
+      "bytes": 46240
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/40c56cb0aa66a1b8-final-source-pins-30.json",
+      "sha256": "40c56cb0aa66a1b89117c16a410fb98a8b5fa3cb87dbaffc3e4fc9203ecc1b01",
+      "bytes": 47033
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8cb9ac4ef212cbd4-final-source-pins-31.json",
+      "sha256": "8cb9ac4ef212cbd4e6090b71d190cf832c69638555707871d74d6768d63b98ad",
+      "bytes": 45855
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f7393127af4c9a40-final-source-pins-32.json",
+      "sha256": "f7393127af4c9a4032c79049996662cee7f638449170ad049a03d32bd4f0d13b",
+      "bytes": 48111
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/482bd664e8365619-final-source-pins-33.json",
+      "sha256": "482bd664e8365619b73ca56a328ad3dd818ca510421bb86e51c0e5adc00e03e2",
+      "bytes": 59274
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac4e0b4017b54cf8-final-source-pins-34.json",
+      "sha256": "ac4e0b4017b54cf880162a23f0f90db7747f353351fec82806c490c4796a39d1",
+      "bytes": 62884
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac0d0c3c95220797-final-source-pins-35.json",
+      "sha256": "ac0d0c3c952207970daedbb9da36a38bf0f26ba664c58e6e490c4619d8dbb768",
+      "bytes": 67533
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0c01bc45f563d4ab-final-source-pins-36.json",
+      "sha256": "0c01bc45f563d4ab72cbb6c4e7053a765e71c63ee8355ceb172816010be2e724",
+      "bytes": 94285
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/53db2fde6a9f3140-final-source-pins-37.json",
+      "sha256": "53db2fde6a9f314043db47fb42b034b0c4a563207df3d0944cb77e7eed7b8994",
+      "bytes": 80892
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed7505d869977b7f-final-source-pins-38.json",
+      "sha256": "ed7505d869977b7ff75ef61b455cee5227c1292094ba6d5eff922766140e8ece",
+      "bytes": 56928
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8b49adb0404739cc-final-source-pins-39.json",
+      "sha256": "8b49adb0404739cc14dbe300ee8cd8b51efddb6cb6e08957438ef322ee4ae146",
+      "bytes": 51893
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ee7ef69097b056b1-final-source-pins-4.json",
+      "sha256": "ee7ef69097b056b195513000b4de852d2a115a46599842e78762ad0766511d47",
+      "bytes": 47608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2db7ded370924fa3-final-source-pins-40.json",
+      "sha256": "2db7ded370924fa3bca3a2c9a44e93941b585f521f0bda5246275cb70c7e6583",
+      "bytes": 51605
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0d9227736d91530c-final-source-pins-41.json",
+      "sha256": "0d9227736d91530c93ddf629c96328499e84e8da4ed8c034e47addc18412604e",
+      "bytes": 53011
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0b791bdaeadf2abf-final-source-pins-42.json",
+      "sha256": "0b791bdaeadf2abf65c38ed036ef1341ffca8d274ea342464f43315ce9f4045c",
+      "bytes": 58509
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3dc5368f79177ef4-final-source-pins-43.json",
+      "sha256": "3dc5368f79177ef43e6e33de955414927161110550152d33276768ca858752d2",
+      "bytes": 47514
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/17e396b765072282-final-source-pins-44.json",
+      "sha256": "17e396b7650722827c467ade9fa4c6d00ebac8dda6073f4016e0a0a7d0d67344",
+      "bytes": 49498
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/60ebbe9707d8ed9c-final-source-pins-45.json",
+      "sha256": "60ebbe9707d8ed9c9c69717a7a0d4a79b6cea687e30c915135734c36d47be1a5",
+      "bytes": 38987
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3f7e5ca39fd7db74-final-source-pins-5.json",
+      "sha256": "3f7e5ca39fd7db74cb2b60e39035ef76dc76f1e016ab56a92ac7c499062385e5",
+      "bytes": 47602
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e12418f7d9d06dbc-final-source-pins-6.json",
+      "sha256": "e12418f7d9d06dbcc1c06d9d811e73acc59796ba89c39ad5be78eb549440c790",
+      "bytes": 57155
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a4c426b540ae50ae-final-source-pins-7.json",
+      "sha256": "a4c426b540ae50aeb2e668bb6a21f6f819622996f4c09a0d27e792503c1ed562",
+      "bytes": 48401
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/de79065745de2c69-final-source-pins-8.json",
+      "sha256": "de79065745de2c69f1b8c6a385904a857e40b745afb2e67c7d0ef4c659d0c7c2",
+      "bytes": 50652
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-1-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/07895e1924922310-iteration-1-source-pins-9.json",
+      "sha256": "07895e19249223104427214bb2aea6b98688731fe78f1573b0f962f039cfd44a",
+      "bytes": 48470
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3de83a2e299c502b-build.log",
+      "sha256": "3de83a2e299c502b0a4bea0a6060c6e64a0f4ec23d562a55eb2c520b83ea7120",
+      "bytes": 5736
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/configure.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6df042b0d0341f3b-configure.log",
+      "sha256": "6df042b0d0341f3b118d9a5615f46309f8aa8a62fced4e43375562dba197d750",
+      "bytes": 929
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/Testing/Temporary/LastTest.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ddd7ff007adcc4db-LastTest.log",
+      "sha256": "ddd7ff007adcc4db2d1c0218b93998cafc927560ddb6a1ae3d2d4fea6ad94122",
+      "bytes": 25608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/online-protocol/Release/build-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6ef21da24acfd9cb-build-report.json",
+      "sha256": "6ef21da24acfd9cb9edf8177737e8881591ad1ced68b77cd3110cd27e0955e21",
+      "bytes": 2204
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/evidence/test-artifacts/peer-mesh-cpp-rust.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/93f023d1fdb57c85-peer-mesh-cpp-rust.json",
+      "sha256": "93f023d1fdb57c854e6c53f70ed5468ed841a72b4d72abb7e2b47e078df10c2f",
+      "bytes": 1496
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ead00e94094eb8a9-report.json",
+      "sha256": "ead00e94094eb8a95d3d7642710c6c87ef9cc9518eae84f5c6b98187195f51e0",
+      "bytes": 4411
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2/tests.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/1fd9ec701f696b24-tests.log",
+      "sha256": "1fd9ec701f696b2463109827a071823e249b49bf138c239478dbe81cbfb671ff",
+      "bytes": 2099
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0e1bb0af93d8d44b-iteration-2-report.json",
+      "sha256": "0e1bb0af93d8d44b6eee0c321c7967c3978b56dbf237ff19103931060d9a230f",
+      "bytes": 10374
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-runner.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d8d39fd2e3f15049-iteration-2-runner.log",
+      "sha256": "d8d39fd2e3f15049f9afa5cd0fc60e3e9edcf36b04e9050c1e5a5a3f3a512ded",
+      "bytes": 10280
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/459bc3ef15db8c83-final-source-pins-0.json",
+      "sha256": "459bc3ef15db8c833f84b8f893b314ff1774a496bcf6a3e2f02618f90f19c046",
+      "bytes": 43860
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/c478f31d33a46217-final-source-pins-1.json",
+      "sha256": "c478f31d33a4621737b5867c4eeb5b783402e45fea81e74b9348cb1367b3f08c",
+      "bytes": 46725
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/58d97c9afbfb87da-final-source-pins-10.json",
+      "sha256": "58d97c9afbfb87da9f0566c7bbc22b067b86af9f779a02db00286e7518ea93c8",
+      "bytes": 48137
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7dc4f43084b1a0ab-final-source-pins-11.json",
+      "sha256": "7dc4f43084b1a0ab474db3f3787276e51f8481ed463c5e8d61f02d536127b984",
+      "bytes": 48673
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7c6dd122decab111-final-source-pins-12.json",
+      "sha256": "7c6dd122decab111e9f661a3038b6cfd113a8bb6c39a1343fc4635e505b1a76c",
+      "bytes": 44923
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/515175a63397e3f2-final-source-pins-13.json",
+      "sha256": "515175a63397e3f2db951315caa01554809cdff3e14e5b600a74e843d104a0cc",
+      "bytes": 52010
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bf0195c9e5781da0-final-source-pins-14.json",
+      "sha256": "bf0195c9e5781da03f49ee24ef9d61e00a10b24cf522e0ff4fe917b609163b31",
+      "bytes": 54003
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f32d54006e787d41-final-source-pins-15.json",
+      "sha256": "f32d54006e787d41254e04e4c9be68cbe86c9579b793565c06e340f008c8dafc",
+      "bytes": 58471
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/633fb9532d94d4f7-final-source-pins-16.json",
+      "sha256": "633fb9532d94d4f70453dcbc1232f028c6c2262fb6b4fcecc8a122e8349de822",
+      "bytes": 51845
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d84087001aaca521-final-source-pins-17.json",
+      "sha256": "d84087001aaca521eb515d73745ef740c620a800431df93b59d184745583b534",
+      "bytes": 54410
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bfed6ad0efa12f57-final-source-pins-18.json",
+      "sha256": "bfed6ad0efa12f57f16e450df5a5760761e10f49cde83c80aed0875a09fc0fc0",
+      "bytes": 52621
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/9e1a7927fab84c8e-final-source-pins-19.json",
+      "sha256": "9e1a7927fab84c8e5605ef2458f95757fd949119a232557fcd85438175f7f6d9",
+      "bytes": 45221
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6873977066755753-final-source-pins-2.json",
+      "sha256": "6873977066755753b1da040560f2690dbf0aef3dd0686508874dd773bbd3c88d",
+      "bytes": 47734
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a543682f5f8a9f51-final-source-pins-20.json",
+      "sha256": "a543682f5f8a9f51be5842f315d768aeeefe4e129e88aba78dedc81b7a8714fc",
+      "bytes": 47454
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7bfcd08a8e6dc782-final-source-pins-21.json",
+      "sha256": "7bfcd08a8e6dc782de2fd61092ea336fe3bf1ef6b040db87a9e61555101ea48e",
+      "bytes": 46832
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7543d820af143431-final-source-pins-22.json",
+      "sha256": "7543d820af14343106036f374f58ecf3559411165a65f2c0210f2f018a1d413d",
+      "bytes": 44983
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/aa64dd441a1868c3-final-source-pins-23.json",
+      "sha256": "aa64dd441a1868c3f4d44c0f8962f6ab1c5a2513524dfccad5ea2d791c08e131",
+      "bytes": 46089
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/285d65998b53d20d-final-source-pins-24.json",
+      "sha256": "285d65998b53d20d24120f2f9ee50169b40d3dffbd340abdece382b933ee3f1f",
+      "bytes": 44367
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/56920594f3ac6aca-final-source-pins-25.json",
+      "sha256": "56920594f3ac6acad7d47660bccefb7018347c488b754b034a30910b267af418",
+      "bytes": 46013
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/51249ab27706da16-final-source-pins-26.json",
+      "sha256": "51249ab27706da162366bccdbcfee4db5962617a7a05fb20901b4bece489fd96",
+      "bytes": 45971
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/25b038a633f46585-final-source-pins-27.json",
+      "sha256": "25b038a633f465855b6c2037c58ed69db84530675f2d9fc264d16ef7448feb0c",
+      "bytes": 46901
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed4e954c0eac0610-final-source-pins-28.json",
+      "sha256": "ed4e954c0eac0610d7f008067d7c8f0542ac93a7bdbc2604a242d069105f99e5",
+      "bytes": 45886
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/89b202b5b4a33819-final-source-pins-29.json",
+      "sha256": "89b202b5b4a33819f45d7a34c2951fc1fde5ff18d00c9373af1719cc1ffb66b9",
+      "bytes": 47659
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/850e930e81d5f071-final-source-pins-3.json",
+      "sha256": "850e930e81d5f071a3b144ca26b0be41f7fbe671854446c1e369c67204432836",
+      "bytes": 46240
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/40c56cb0aa66a1b8-final-source-pins-30.json",
+      "sha256": "40c56cb0aa66a1b89117c16a410fb98a8b5fa3cb87dbaffc3e4fc9203ecc1b01",
+      "bytes": 47033
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8cb9ac4ef212cbd4-final-source-pins-31.json",
+      "sha256": "8cb9ac4ef212cbd4e6090b71d190cf832c69638555707871d74d6768d63b98ad",
+      "bytes": 45855
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f7393127af4c9a40-final-source-pins-32.json",
+      "sha256": "f7393127af4c9a4032c79049996662cee7f638449170ad049a03d32bd4f0d13b",
+      "bytes": 48111
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/482bd664e8365619-final-source-pins-33.json",
+      "sha256": "482bd664e8365619b73ca56a328ad3dd818ca510421bb86e51c0e5adc00e03e2",
+      "bytes": 59274
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac4e0b4017b54cf8-final-source-pins-34.json",
+      "sha256": "ac4e0b4017b54cf880162a23f0f90db7747f353351fec82806c490c4796a39d1",
+      "bytes": 62884
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac0d0c3c95220797-final-source-pins-35.json",
+      "sha256": "ac0d0c3c952207970daedbb9da36a38bf0f26ba664c58e6e490c4619d8dbb768",
+      "bytes": 67533
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0c01bc45f563d4ab-final-source-pins-36.json",
+      "sha256": "0c01bc45f563d4ab72cbb6c4e7053a765e71c63ee8355ceb172816010be2e724",
+      "bytes": 94285
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/53db2fde6a9f3140-final-source-pins-37.json",
+      "sha256": "53db2fde6a9f314043db47fb42b034b0c4a563207df3d0944cb77e7eed7b8994",
+      "bytes": 80892
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed7505d869977b7f-final-source-pins-38.json",
+      "sha256": "ed7505d869977b7ff75ef61b455cee5227c1292094ba6d5eff922766140e8ece",
+      "bytes": 56928
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8b49adb0404739cc-final-source-pins-39.json",
+      "sha256": "8b49adb0404739cc14dbe300ee8cd8b51efddb6cb6e08957438ef322ee4ae146",
+      "bytes": 51893
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ee7ef69097b056b1-final-source-pins-4.json",
+      "sha256": "ee7ef69097b056b195513000b4de852d2a115a46599842e78762ad0766511d47",
+      "bytes": 47608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2db7ded370924fa3-final-source-pins-40.json",
+      "sha256": "2db7ded370924fa3bca3a2c9a44e93941b585f521f0bda5246275cb70c7e6583",
+      "bytes": 51605
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0d9227736d91530c-final-source-pins-41.json",
+      "sha256": "0d9227736d91530c93ddf629c96328499e84e8da4ed8c034e47addc18412604e",
+      "bytes": 53011
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0b791bdaeadf2abf-final-source-pins-42.json",
+      "sha256": "0b791bdaeadf2abf65c38ed036ef1341ffca8d274ea342464f43315ce9f4045c",
+      "bytes": 58509
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3dc5368f79177ef4-final-source-pins-43.json",
+      "sha256": "3dc5368f79177ef43e6e33de955414927161110550152d33276768ca858752d2",
+      "bytes": 47514
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/17e396b765072282-final-source-pins-44.json",
+      "sha256": "17e396b7650722827c467ade9fa4c6d00ebac8dda6073f4016e0a0a7d0d67344",
+      "bytes": 49498
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/60ebbe9707d8ed9c-final-source-pins-45.json",
+      "sha256": "60ebbe9707d8ed9c9c69717a7a0d4a79b6cea687e30c915135734c36d47be1a5",
+      "bytes": 38987
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3f7e5ca39fd7db74-final-source-pins-5.json",
+      "sha256": "3f7e5ca39fd7db74cb2b60e39035ef76dc76f1e016ab56a92ac7c499062385e5",
+      "bytes": 47602
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e12418f7d9d06dbc-final-source-pins-6.json",
+      "sha256": "e12418f7d9d06dbcc1c06d9d811e73acc59796ba89c39ad5be78eb549440c790",
+      "bytes": 57155
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a4c426b540ae50ae-final-source-pins-7.json",
+      "sha256": "a4c426b540ae50aeb2e668bb6a21f6f819622996f4c09a0d27e792503c1ed562",
+      "bytes": 48401
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/de79065745de2c69-final-source-pins-8.json",
+      "sha256": "de79065745de2c69f1b8c6a385904a857e40b745afb2e67c7d0ef4c659d0c7c2",
+      "bytes": 50652
+    },
+    "build/test-results/peer-mesh-host-native-20261101/iteration-2-source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8e8ff83fa7549558-final-source-pins-9.json",
+      "sha256": "8e8ff83fa75495588c09ac94f925406832604b2ba0e1fa5dc96ec968b1cd2f4f",
+      "bytes": 48470
+    },
+    "build/test-results/peer-mesh-host-native-20261101/launch.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f22301bcad7997fc-launch.json",
+      "sha256": "f22301bcad7997fc1911cebe61e3a97c7ca59a3943e5882b39d342031c6d6577",
+      "bytes": 70
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-0.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/459bc3ef15db8c83-final-source-pins-0.json",
+      "sha256": "459bc3ef15db8c833f84b8f893b314ff1774a496bcf6a3e2f02618f90f19c046",
+      "bytes": 43860
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-1.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/c478f31d33a46217-final-source-pins-1.json",
+      "sha256": "c478f31d33a4621737b5867c4eeb5b783402e45fea81e74b9348cb1367b3f08c",
+      "bytes": 46725
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-10.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/58d97c9afbfb87da-final-source-pins-10.json",
+      "sha256": "58d97c9afbfb87da9f0566c7bbc22b067b86af9f779a02db00286e7518ea93c8",
+      "bytes": 48137
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-11.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7dc4f43084b1a0ab-final-source-pins-11.json",
+      "sha256": "7dc4f43084b1a0ab474db3f3787276e51f8481ed463c5e8d61f02d536127b984",
+      "bytes": 48673
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-12.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7c6dd122decab111-final-source-pins-12.json",
+      "sha256": "7c6dd122decab111e9f661a3038b6cfd113a8bb6c39a1343fc4635e505b1a76c",
+      "bytes": 44923
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-13.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/515175a63397e3f2-final-source-pins-13.json",
+      "sha256": "515175a63397e3f2db951315caa01554809cdff3e14e5b600a74e843d104a0cc",
+      "bytes": 52010
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-14.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bf0195c9e5781da0-final-source-pins-14.json",
+      "sha256": "bf0195c9e5781da03f49ee24ef9d61e00a10b24cf522e0ff4fe917b609163b31",
+      "bytes": 54003
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-15.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f32d54006e787d41-final-source-pins-15.json",
+      "sha256": "f32d54006e787d41254e04e4c9be68cbe86c9579b793565c06e340f008c8dafc",
+      "bytes": 58471
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-16.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/633fb9532d94d4f7-final-source-pins-16.json",
+      "sha256": "633fb9532d94d4f70453dcbc1232f028c6c2262fb6b4fcecc8a122e8349de822",
+      "bytes": 51845
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-17.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d84087001aaca521-final-source-pins-17.json",
+      "sha256": "d84087001aaca521eb515d73745ef740c620a800431df93b59d184745583b534",
+      "bytes": 54410
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-18.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bfed6ad0efa12f57-final-source-pins-18.json",
+      "sha256": "bfed6ad0efa12f57f16e450df5a5760761e10f49cde83c80aed0875a09fc0fc0",
+      "bytes": 52621
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-19.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/9e1a7927fab84c8e-final-source-pins-19.json",
+      "sha256": "9e1a7927fab84c8e5605ef2458f95757fd949119a232557fcd85438175f7f6d9",
+      "bytes": 45221
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-2.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/6873977066755753-final-source-pins-2.json",
+      "sha256": "6873977066755753b1da040560f2690dbf0aef3dd0686508874dd773bbd3c88d",
+      "bytes": 47734
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-20.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a543682f5f8a9f51-final-source-pins-20.json",
+      "sha256": "a543682f5f8a9f51be5842f315d768aeeefe4e129e88aba78dedc81b7a8714fc",
+      "bytes": 47454
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-21.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7bfcd08a8e6dc782-final-source-pins-21.json",
+      "sha256": "7bfcd08a8e6dc782de2fd61092ea336fe3bf1ef6b040db87a9e61555101ea48e",
+      "bytes": 46832
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-22.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/7543d820af143431-final-source-pins-22.json",
+      "sha256": "7543d820af14343106036f374f58ecf3559411165a65f2c0210f2f018a1d413d",
+      "bytes": 44983
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-23.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/aa64dd441a1868c3-final-source-pins-23.json",
+      "sha256": "aa64dd441a1868c3f4d44c0f8962f6ab1c5a2513524dfccad5ea2d791c08e131",
+      "bytes": 46089
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-24.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/285d65998b53d20d-final-source-pins-24.json",
+      "sha256": "285d65998b53d20d24120f2f9ee50169b40d3dffbd340abdece382b933ee3f1f",
+      "bytes": 44367
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-25.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/56920594f3ac6aca-final-source-pins-25.json",
+      "sha256": "56920594f3ac6acad7d47660bccefb7018347c488b754b034a30910b267af418",
+      "bytes": 46013
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-26.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/51249ab27706da16-final-source-pins-26.json",
+      "sha256": "51249ab27706da162366bccdbcfee4db5962617a7a05fb20901b4bece489fd96",
+      "bytes": 45971
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-27.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/25b038a633f46585-final-source-pins-27.json",
+      "sha256": "25b038a633f465855b6c2037c58ed69db84530675f2d9fc264d16ef7448feb0c",
+      "bytes": 46901
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-28.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed4e954c0eac0610-final-source-pins-28.json",
+      "sha256": "ed4e954c0eac0610d7f008067d7c8f0542ac93a7bdbc2604a242d069105f99e5",
+      "bytes": 45886
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-29.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/89b202b5b4a33819-final-source-pins-29.json",
+      "sha256": "89b202b5b4a33819f45d7a34c2951fc1fde5ff18d00c9373af1719cc1ffb66b9",
+      "bytes": 47659
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-3.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/850e930e81d5f071-final-source-pins-3.json",
+      "sha256": "850e930e81d5f071a3b144ca26b0be41f7fbe671854446c1e369c67204432836",
+      "bytes": 46240
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-30.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/40c56cb0aa66a1b8-final-source-pins-30.json",
+      "sha256": "40c56cb0aa66a1b89117c16a410fb98a8b5fa3cb87dbaffc3e4fc9203ecc1b01",
+      "bytes": 47033
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-31.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8cb9ac4ef212cbd4-final-source-pins-31.json",
+      "sha256": "8cb9ac4ef212cbd4e6090b71d190cf832c69638555707871d74d6768d63b98ad",
+      "bytes": 45855
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-32.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/f7393127af4c9a40-final-source-pins-32.json",
+      "sha256": "f7393127af4c9a4032c79049996662cee7f638449170ad049a03d32bd4f0d13b",
+      "bytes": 48111
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-33.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/482bd664e8365619-final-source-pins-33.json",
+      "sha256": "482bd664e8365619b73ca56a328ad3dd818ca510421bb86e51c0e5adc00e03e2",
+      "bytes": 59274
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-34.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac4e0b4017b54cf8-final-source-pins-34.json",
+      "sha256": "ac4e0b4017b54cf880162a23f0f90db7747f353351fec82806c490c4796a39d1",
+      "bytes": 62884
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-35.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ac0d0c3c95220797-final-source-pins-35.json",
+      "sha256": "ac0d0c3c952207970daedbb9da36a38bf0f26ba664c58e6e490c4619d8dbb768",
+      "bytes": 67533
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-36.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0c01bc45f563d4ab-final-source-pins-36.json",
+      "sha256": "0c01bc45f563d4ab72cbb6c4e7053a765e71c63ee8355ceb172816010be2e724",
+      "bytes": 94285
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-37.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/53db2fde6a9f3140-final-source-pins-37.json",
+      "sha256": "53db2fde6a9f314043db47fb42b034b0c4a563207df3d0944cb77e7eed7b8994",
+      "bytes": 80892
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-38.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ed7505d869977b7f-final-source-pins-38.json",
+      "sha256": "ed7505d869977b7ff75ef61b455cee5227c1292094ba6d5eff922766140e8ece",
+      "bytes": 56928
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-39.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8b49adb0404739cc-final-source-pins-39.json",
+      "sha256": "8b49adb0404739cc14dbe300ee8cd8b51efddb6cb6e08957438ef322ee4ae146",
+      "bytes": 51893
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-4.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/ee7ef69097b056b1-final-source-pins-4.json",
+      "sha256": "ee7ef69097b056b195513000b4de852d2a115a46599842e78762ad0766511d47",
+      "bytes": 47608
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-40.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2db7ded370924fa3-final-source-pins-40.json",
+      "sha256": "2db7ded370924fa3bca3a2c9a44e93941b585f521f0bda5246275cb70c7e6583",
+      "bytes": 51605
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-41.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0d9227736d91530c-final-source-pins-41.json",
+      "sha256": "0d9227736d91530c93ddf629c96328499e84e8da4ed8c034e47addc18412604e",
+      "bytes": 53011
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-42.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/0b791bdaeadf2abf-final-source-pins-42.json",
+      "sha256": "0b791bdaeadf2abf65c38ed036ef1341ffca8d274ea342464f43315ce9f4045c",
+      "bytes": 58509
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-43.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3dc5368f79177ef4-final-source-pins-43.json",
+      "sha256": "3dc5368f79177ef43e6e33de955414927161110550152d33276768ca858752d2",
+      "bytes": 47514
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-44.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/17e396b765072282-final-source-pins-44.json",
+      "sha256": "17e396b7650722827c467ade9fa4c6d00ebac8dda6073f4016e0a0a7d0d67344",
+      "bytes": 49498
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-45.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/60ebbe9707d8ed9c-final-source-pins-45.json",
+      "sha256": "60ebbe9707d8ed9c9c69717a7a0d4a79b6cea687e30c915135734c36d47be1a5",
+      "bytes": 38987
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-5.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/3f7e5ca39fd7db74-final-source-pins-5.json",
+      "sha256": "3f7e5ca39fd7db74cb2b60e39035ef76dc76f1e016ab56a92ac7c499062385e5",
+      "bytes": 47602
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-6.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/e12418f7d9d06dbc-final-source-pins-6.json",
+      "sha256": "e12418f7d9d06dbcc1c06d9d811e73acc59796ba89c39ad5be78eb549440c790",
+      "bytes": 57155
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-7.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/a4c426b540ae50ae-final-source-pins-7.json",
+      "sha256": "a4c426b540ae50aeb2e668bb6a21f6f819622996f4c09a0d27e792503c1ed562",
+      "bytes": 48401
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-8.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/de79065745de2c69-final-source-pins-8.json",
+      "sha256": "de79065745de2c69f1b8c6a385904a857e40b745afb2e67c7d0ef4c659d0c7c2",
+      "bytes": 50652
+    },
+    "build/test-results/peer-mesh-host-native-20261101/source-pins-9.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/07895e1924922310-iteration-1-source-pins-9.json",
+      "sha256": "07895e19249223104427214bb2aea6b98688731fe78f1573b0f962f039cfd44a",
+      "bytes": 48470
+    },
+    "build/test-results/peer-mesh-host-room-20261101/build.log": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2e3d354200b125ac-build.log",
+      "sha256": "2e3d354200b125aca276dd7cfa81fd4a71346fc9c0141ae0c26bfa8341fd1a68",
+      "bytes": 3906
+    },
+    "build/test-results/peer-mesh-host-room-20261101/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/595cca5bd5343089-report.json",
+      "sha256": "595cca5bd5343089d71976041757ec3e5b9e9186ee76ba7e0d9e72ff7f1b7ecc",
+      "bytes": 24329
+    },
+    "build/test-results/peer-mesh-host-link-audit-20261101/audit-initial-count-diagnostic.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/b6e5e9ac1557a020-audit-initial-count-diagnostic.json",
+      "sha256": "b6e5e9ac1557a0205a83b1a3a82fc48aad3b16bcb0baf48e001e29d1b9acb14f",
+      "bytes": 299
+    },
+    "build/test-results/peer-mesh-host-link-audit-20261101/mesh-undefined-symbols.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/2d46489e24eb9f28-mesh-undefined-symbols.txt",
+      "sha256": "2d46489e24eb9f285e8a0cf3aef9800f5815c6735ee0dd9785d6ee91ae54e3e7",
+      "bytes": 3246
+    },
+    "build/test-results/peer-mesh-host-link-audit-20261101/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/b7225e8fbdfa6280-report.json",
+      "sha256": "b7225e8fbdfa6280d667ed199b7a7fc6eacd5b144ebd643ca66eab4a644b823a",
+      "bytes": 6732
+    },
+    "build/test-results/peer-mesh-host-link-audit-20261101/session-undefined-symbols.txt": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/823b6c5827928d21-session-undefined-symbols.txt",
+      "sha256": "823b6c5827928d2196d56750024a014dca7c19a54e750143e9bcc8cf3559b53c",
+      "bytes": 25914
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-aborted-cut/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/fa74a0169017dc2d-results.json",
+      "sha256": "fa74a0169017dc2d971af3db9e7c861775b75362ac77ca8626c8f378a85f4c55",
+      "bytes": 272
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-audio/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/413409b2c8549e45-results.json",
+      "sha256": "413409b2c8549e45f95a3a5cf067416a8fde3d2d8ae4bef71ea77112dad13456",
+      "bytes": 3914
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-measured/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/1c82c560dba256a9-results.json",
+      "sha256": "1c82c560dba256a98e069bae7abe0245fc79babb40d114384c8243f86ac75747",
+      "bytes": 1669
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-abort/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/b5e5fb643d9aba9f-results.json",
+      "sha256": "b5e5fb643d9aba9f1b545bfdce7703585df9b3d5c28a7e3c44a1bc8b58b4aef7",
+      "bytes": 218
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-mixed/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/34937a45738ceb94-results.json",
+      "sha256": "34937a45738ceb9413e11b3c7c865553d886703c0dc1afda9a1269ac0f5b28de",
+      "bytes": 218
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-normal/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/8ea16f77b3b1ace5-results.json",
+      "sha256": "8ea16f77b3b1ace5a8f19abb0ba6ef676ae130cc1efc6be5bbc07dd4b5ebfcba",
+      "bytes": 219
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/build/test-artifacts/peer-selection-preparation/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/bfc9583a6daae78d-results.json",
+      "sha256": "bfc9583a6daae78d105e1f82a5843ef7f504fcd11760282ebd0837c3e03f58e3",
+      "bytes": 170
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/native-source/.local/peer-session-migration-20261018/session/results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/dda8dcb0da2d010d-results.json",
+      "sha256": "dda8dcb0da2d010dcce42305750ba850fe74453901f47caf6e3aee1dac96fd45",
+      "bytes": 1572
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/native-source/.local/player-host-continuity-20261015/peer-quality/native-session-results.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/d96800f8531fc61f-native-session-results.json",
+      "sha256": "d96800f8531fc61f54c92c0c7f44449ac9055276f9fc52c1df114b6a49799aa8",
+      "bytes": 1374
+    },
+    "build/test-results/peer-mesh-host-native-results-20261101/report.json": {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/peer-mesh-host-rust-20261101/reports/4b250e532bba1cb3-report.json",
+      "sha256": "4b250e532bba1cb31d97969c27ee90758b76d70deb4fb88423711bfc1054d8da",
+      "bytes": 4556
+    }
+  },
+  "retained_unique_report_files": 94,
+  "retained_unique_report_bytes": 3943031,
+  "cleanup": {
+    "owned_scratch_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-full-rust/halo2-test-7ktbzrj2",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-link/halo2-test-wnhybb55",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-results/halo2-test-4wp7e42_",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-room/halo2-test-j2ikf3xn",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-rust-preflight/halo2-test-cvlunih0",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-evidence/halo2-test-ulobrrtw"
+    ],
+    "all_recorded_test_scratch_removed": true,
+    "owned_unit": {
+      "name": "halo2-peer-mesh-host-rust-20261101.service",
+      "LoadState": "not-found",
+      "ActiveState": "inactive",
+      "MainPID": "0"
+    },
+    "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-evidence/halo2-test-ulobrrtw",
+    "report_writer_cleanup_pending": false,
+    "duplicate_report_cleanup_pending": false,
+    "retained_large_artifacts": [],
+    "duplicate_report_folders_removed": [
+      "build/test-results/peer-mesh-host-full-rust-20261101",
+      "build/test-results/peer-mesh-host-link-audit-20261101",
+      "build/test-results/peer-mesh-host-native-20261101",
+      "build/test-results/peer-mesh-host-native-results-20261101",
+      "build/test-results/peer-mesh-host-room-20261101",
+      "build/test-results/peer-mesh-host-rust-20261101",
+      "build/test-results/peer-mesh-rust-preflight-20261101"
+    ],
+    "duplicate_report_files_removed": 232,
+    "empty_owned_scratch_parents_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-rust-preflight",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-full-rust",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-room",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-link",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-results",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-evidence"
+    ]
+  },
+  "post_qualification_documentation": {
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": "d4f7624405cb69c288d0d2ca7bdde9b1f167eb817902c3677c994ce708f290cf",
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": "f4257e8994346918531deec46d5f7408f0dcf421af43dcd22a86c55b59a6d9fa",
+    "multiplayer/master_server/README.md": "fd2613be75021220fb3cb607c8d6c4ec452f680a35a54b3376547304a166d40c"
+  },
+  "final_verification": {
+    "all_retained_report_hashes_verified": true,
+    "all_implementation_source_pins_current": true,
+    "all_rust_suite_pins_current": true,
+    "real_room_used_the_final_native_binary": true,
+    "all_native_runs_passed": true,
+    "identical_cpp_rust_replay_digest_across_adapter_refresh": true,
+    "goal_requirements_unchanged": true,
+    "all_owned_scratch_removed": true,
+    "owned_unit_stopped": true,
+    "selected_runtime_unchanged": true,
+    "goal_remains_active": true
+  }
+}

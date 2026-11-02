@@ -32,7 +32,7 @@ def directory(path):
     raise FormatError("Select the MCC installation, halo2, or h2_maps_win64_dx11 directory")
 
 
-def discover(*, home=None, environment=None, extra_libraries=()):
+def discover(*, home=None, environment=None, extra_libraries=(), include_store=True):
     """Search Steam's configured libraries, including mounted external libraries.
 
     No whole-disk crawl, Proton prefix recursion, network drive scan or registry
@@ -41,44 +41,13 @@ def discover(*, home=None, environment=None, extra_libraries=()):
     home = Path.home() if home is None else Path(home)
     env = os.environ if environment is None else environment
     direct = [Path(env[k]) for k in ("HALO2_MCC_ROOT",) if env.get(k)]
-    libraries = [home / ".local/share/Steam", home / ".steam/steam",
-                 home / ".steam/root", home / ".var/app/com.valvesoftware.Steam/.local/share/Steam",
-                 home / "Library/Application Support/Steam", *map(Path, extra_libraries)]
-    for key in ("PROGRAMFILES(X86)", "ProgramFiles(x86)", "PROGRAMFILES", "ProgramFiles", "LOCALAPPDATA"):
-        if env.get(key):
-            libraries.append(Path(env[key]) / "Steam")
-    if os.name == "nt":
-        import winreg
-        for hive, key, value in ((winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
-                                 (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath")):
-            try:
-                with winreg.OpenKey(hive, key) as registry:
-                    libraries.append(Path(winreg.QueryValueEx(registry, value)[0]))
-            except OSError:
-                pass
-        for drive in "CDEFGHIJKLMNOPQRSTUVWXYZ":
-            direct.extend((Path(drive + ":/XboxGames/Halo The Master Chief Collection/Content"),
-                           Path(drive + ":/XboxGames/Halo The Master Chief Collection")))
-    visited = set()
-    for library in libraries:
-        canonical = library.expanduser().resolve()
-        if canonical in visited:
-            continue
-        visited.add(canonical)
-        for config in (canonical / "steamapps/libraryfolders.vdf", canonical / "config/libraryfolders.vdf"):
-            if config.is_file() and config.stat().st_size <= 1024 * 1024:
-                contents = config.read_text(encoding="utf-8", errors="replace")
-                # Current path keys and legacy numbered library entries.
-                paths = re.findall(r'"(?:path|[0-9]+)"\s+"([^"\r\n]+)"', contents)
-                libraries.extend(Path(p.replace("\\\\", "\\")) for p in paths)
-        # The manifest supplies nonstandard installation directory names.
-        manifest = canonical / "steamapps/appmanifest_976730.acf"
-        names = ["Halo The Master Chief Collection"]
-        if manifest.is_file() and manifest.stat().st_size <= 1024 * 1024:
-            match = re.search(r'"installdir"\s+"([^"\r\n]+)"', manifest.read_text(encoding="utf-8", errors="replace"))
-            if match and Path(match[1]).name == match[1] and match[1] not in (".", "..") and "\\" not in match[1]:
-                names.insert(0, match[1])
-        direct.extend(canonical / "steamapps/common" / name for name in names)
+    from steam_client import libraries, app_directories, MCC
+    for library in libraries(home=home, environment=env, extra_libraries=extra_libraries):
+        direct.extend(app_directories(library, MCC, 'Halo The Master Chief Collection'))
+    if os.name == 'nt' and include_store and not env.get('STEAM_COMPAT_CLIENT_INSTALL_PATH'):
+        for drive in 'CDEFGHIJKLMNOPQRSTUVWXYZ':
+            direct.extend((Path(drive+':/XboxGames/Halo The Master Chief Collection/Content'),
+                           Path(drive+':/XboxGames/Halo The Master Chief Collection')))
     for candidate in direct:
         try:
             return directory(candidate)

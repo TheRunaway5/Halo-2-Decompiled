@@ -1,0 +1,358 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/cargo/release/halo2-matchmaking-service",
+    "bytes": 11466840,
+    "sha256": "48c63b8599cca5057a7b1cedd68ee75e7721ecbfc86371c90d7dcc082c3c5798",
+    "retained": false
+  },
+  "native_client": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/rust_service_account_probe",
+    "sha256": "b43681a5c6945ead462baa8acc13594dc37bbae0884ca2956f968eb5f807a2ed",
+    "borrowed_read_only": true
+  },
+  "checks": [
+    "real Rust executable and HTTP listener; full matchmaking readiness remains false",
+    "strict duplicate/field/body/encoding checks and expired/wrong-kind grants leave no players",
+    "incomplete headers/body expire at the real HTTP parser/reader; request capacity is released",
+    "private Steam grant SQL, native account reservation/publication, canonical profile and public history identity",
+    "real clan create/invite/accept, command replay/conflict, native presence and private identifiers",
+    "actual deferred SQL COMMIT failure rolls back profile and native cache plan; retry succeeds",
+    "Rust public history/profile SQL and duplicate-query rejection",
+    "native account logout retires its grant",
+    "real native account/profile/clan client over Rust HTTP; only provider handoff is a fixture",
+    "Rust process restart retains canonical/profile/clan/tag data and does not revive old native grants",
+    "revoked persisted Steam credential cannot create a new account grant",
+    "unported matchmaking capabilities fail explicitly and never advertise full readiness"
+  ],
+  "native_matchmaking_client": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/rust_service_matchmaking_probe",
+    "sha256": "4e1b066d095d775ae54341c15445e253af589300a5faf8ed91329a7bfdfb4c67",
+    "borrowed_read_only": true
+  },
+  "matchmaking_checks": [
+    "session parser and verified couch preflight reject forged/duplicate inputs before canonical writes",
+    "actual 14-row catalog over Rust HTTP: v12 admits zero; v16 admits all twelve non-clan playlists",
+    "real queue API/SQL/gathering continuation rolls back ticket and rank writes on failed COMMIT, retries once, waits for actual QoS and cancels without fabricated matches",
+    "accepted-party create/invite/accept follows the same Rust queue source and hides private identities",
+    "real shared pregame countdown requires remote consent, enforces leader authority, replays once and ticks without request clocks",
+    "actual failed session COMMIT restores the prior native grant, accepted-party version, consent and active countdown",
+    "failed countdown COMMIT preserves publication and request retry cancels exactly once",
+    "four-seat canonical transaction rolls back new signed locals on failed COMMIT; guests remain transient, renewal preserves the grant and duplicate physical seating is rejected",
+    "actual session retirement clears shared countdown and stale consent through Rust directory effects",
+    "real Rust restart keeps accepted membership and canonical identities, while retiring session grants and countdown state",
+    "high-frequency countdown reads use the separate native countdown allowance and preserve ordinary social request capacity",
+    "actual native matchmaking client reads all fourteen Rust HTTP playlists with the observed v12/v16 eligibility differential; the native party client sends Start/cancel and observes Rust countdown; only provider handoff is a fixture",
+    "room descriptors reject an account-only grant; unported EOS issuance stays unavailable and full readiness stays false"
+  ],
+  "native_qos_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/rust_service_qos_probe",
+    "sha256": "ecfc704ae9310d16687f5700af570df51daec95fac2b7ecc57ea760d6647a255",
+    "borrowed_read_only": true
+  },
+  "qos": {
+    "checks": [
+      "real search upgrade requires a matchmaking grant and rejects duplicate live physical connections",
+      "actual WebSocket parser/native controls reject duplicate JSON, invented controls, oversized messages, binary and unmasked frames",
+      "real session replacement closes the old socket and its late detach cannot retire the replacement",
+      "native application heartbeat expires a silent socket while an answering upgraded connection survives beyond the HTTP30s deadline",
+      "actual physical socket echoes produce native relay measurements and a real authored Lab proposal with two owners and a transient guest",
+      "socket-backed search cancellation/revocation retains grant fencing and never advertises full room/gameplay readiness",
+      "real Rust restart cannot revive an old search WebSocket grant"
+    ],
+    "observed": {
+      "pings": 10,
+      "probes": 6
+    },
+    "scope": "Real modern relay-cycle socket IO on the authored Lab profile; no original XNet, rendered/played-world, real provider grant or delivery acceptance.",
+    "native": {
+      "passed": true,
+      "proposal_players": 2,
+      "scope": "Actual native OnlineSearchQos clients against Rust WebSockets and queue decisions; fixture provider grants only; no room/gameplay acceptance."
+    }
+  },
+  "native_room_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/rust_service_room_probe",
+    "sha256": "d8882b94f0a922de281dfe7d62928362ac8604d762b3d0ca9438b3da4a401ee9",
+    "borrowed_read_only": true
+  },
+  "rooms": {
+    "checks": [
+      "real source-catalog v16 queue proposals produce stable private Rust room credentials, opaque roster identities and EOS descriptors without a Python coordinator"
+    ],
+    "relay": {
+      "checks": [
+        "real failed room-admission COMMIT rolls back all provisional result/setup credentials and retries the same admitted roster once; guests stay transient",
+        "actual room challenges select a host, publish a shared unshortened ten-second loading countdown and bind live room observations into queue/session admission",
+        "real binary relay enforces native sender/target roles, forwards the complete1400-byte snapshot and preserves a transferred room bearer after frontend logout",
+        "actual Rust socket report/unanimous confirmation retains review on failed COMMIT, publishes nothing early and retries the write once; admitted legacy variant, hidden XP, public PCR and guest exclusion persist exactly once",
+        "real anonymous population follows loading/running/postgame room owners and the transient guest, retaining active playing seats after frontend logout",
+        "postgame room ownership allows an independently renewed frontend session and ordinary requeue without duplicating the committed result"
+      ],
+      "observed": {
+        "start_countdown_ms": 9995,
+        "real_start_elapsed_seconds": 10.043458492000354,
+        "physical_connections": 2,
+        "logical_seats": 3,
+        "persistent_xp_total": 100
+      },
+      "fixture": {
+        "compatibility": "halo2-native-queue-v10",
+        "catalog_sha256": "899ba0a8e74ca2d666e82fa88e5bdce2d7cfdeca9c2898068a3e09d62392c11a",
+        "declared": true,
+        "original_profile": false,
+        "real_gameplay": false
+      },
+      "scope": "Real Rust HTTP/SQLite/WebSocket relay and PCR fixture, real ten-second start; synthetic datagrams/results and private provider grants. No played-game, original or delivered acceptance."
+    },
+    "scope": "Actual Rust HTTP/SQLite/room admission on the source catalog and declared relay fixture; private provider fixtures. Played-world/EOS provider and original/native/delivered acceptance remain separate.",
+    "direct": {
+      "checks": [
+        "actual signal route drains a buffered candidate, validates physical peer reports and reaches running through the real ten-second gate; test RTT claims come from real local UDP exchanges",
+        "live direct socket replacement closes the old generation with its native reason; its late detach cannot remove the replacement, and frontend logout leaves the transferred bearer valid",
+        "explicit direct departure publishes the frozen departed-player mask to the survivor without inventing a result or closing its room"
+      ],
+      "observed": {
+        "physical_connections": 2,
+        "udp_probe_exchanges": 6,
+        "client_reported_rtt_ms": [
+          1,
+          1
+        ],
+        "replaced_close_code": 1001
+      },
+      "scope": "Actual Rust direct signaling/clock/generation/departure IO on a declared v12 legacy fixture, private grants and real local UDP client RTT probes. No native peer/gameplay/world promotion, original XNet or delivered acceptance."
+    },
+    "content_failure": {
+      "checks": [
+        "actual loading-content rejection requires the current grant/room, closes the real streams, preserves actor/other-party failure codes after teardown and fences stale receipts after requeue"
+      ],
+      "scope": "Real Rust HTTP/room-close/failure IO on a declared legacy fixture; no rendered map-load or played-world acceptance."
+    },
+    "native": {
+      "passed": true,
+      "observed": {
+        "input_bytes": 27,
+        "players": 2,
+        "protocol": 123,
+        "real_start_timer": true,
+        "result_recorded": true,
+        "snapshot_bytes": 1400
+      },
+      "scope": "Actual native OnlineMatchSession clients, real Rust loading/start, datagram relay and unanimous PCR/XP commit; declared legacy profile, synthetic datagrams/PCR/fingerprint and fixture provider grants. No native world/rendered game or delivered acceptance."
+    }
+  },
+  "eos": {
+    "checks": [
+      "actual Rust JWKS route, configured signing identity and private persistent key",
+      "actual RS256 signature verifies against the public JWK; canonical account/name, issuer/audience and full120-second lifetime are bound without caller identity",
+      "SDK-receipt account check, immutable unique PUID binding, actual failed COMMIT rollback and exactly-once outbox revision/retry",
+      "revocation during actual body upload is rechecked before SDK IO and cannot persist a link",
+      "actual three-second SDK IO survives a distinct two-second queue timeout; duplicate in-flight principal is rejected without consuming another reply",
+      "account revocation while the actual worker owns a proof is rechecked after SDK IO and persists no identity",
+      "duplicate JSON from the actual worker retires/reaps that exact stream and a fresh process verifies the next account",
+      "real twenty-second verifier deadline kills/reaps its owned child; no stale reply reaches the following request",
+      "source-v16 full-options room grants issue real signed EOS tokens independent of account sessions; malformed hints never reach the verifier",
+      "failed room-proof COMMIT rolls back canonical and native proof publication; retry binds only SDK-verified PUIDs to real signal sockets and rejects forged identities",
+      "a forged peer identity is rejected and closes the actual room; SDK IO cannot publish a late proof after that teardown",
+      "actual SIGTERM during owned SDK IO cancels and reaps the exact verifier child before process exit, without linking the pending identity",
+      "real Rust process restart retains the signing key, canonical PUID and revision while retiring old capabilities; full readiness remains false"
+    ],
+    "provider": {
+      "queue_timeout_seconds": 2,
+      "owned_timeout_seconds": 20.00611387900426,
+      "retired_worker_pids": [
+        1930362,
+        1930509
+      ],
+      "real_sdk": false
+    },
+    "rooms": {
+      "compatibility": "halo2-native-queue-v16",
+      "physical_owners": 2,
+      "logical_seats": 3,
+      "real_signed_tokens": true,
+      "real_signal_sockets": true,
+      "real_sdk": false,
+      "played_world": false
+    },
+    "shutdown": {
+      "elapsed_seconds": 0.009700375987449661,
+      "worker_pid": 1931742,
+      "child_reaped": true,
+      "service_exit_code": 0
+    },
+    "public_key_kid": "bf94b0394886f47a4362921b4594033c",
+    "scope": "Real Rust EOS HTTP, RSA cryptography, SQL and owned worker IO; private SDK receipt/provider fixtures only. No real Epic authorization, native peer world, original or delivered acceptance."
+  },
+  "native_steam_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/online_login_probe",
+    "sha256": "1378808b5ab514fcff79359fa456e08437e365e6279f6a943bfd0f02b0a064de",
+    "borrowed_read_only": true
+  },
+  "steam": {
+    "qualified": true,
+    "checks": [
+      "real Rust native URL/device/PKCE and browser-cookie/code authorization, escaped confirmation HTML, wrong-origin/proof rejection and one-time handoff",
+      "actual failed credential COMMIT rolls back active/remembered/mapping writes and preserves confirmed pending state; retry publishes once",
+      "Rust-issued Steam grant creates the existing canonical account/clan/profile namespace; saved renewal credentials cannot authorize account APIs",
+      "renewal preserves the fixed thirty-day expiry without upstream IO; failed forget COMMIT rolls back, retry revokes only its issued sessions and is idempotent",
+      "real Rust dual-provider linking uses the shared canonical owner: wrong application is rejected, failed COMMIT retains both identities/grants, retry preserves the existing clan and revokes only the adopted bare account",
+      "Steam credential revocation during actual Discord provider IO is revalidated before canonical linking and creates no alias",
+      "actual BEGIN IMMEDIATE wait crosses Steam expiry and rejects the late canonical transaction without writing an alias",
+      "wrong destination/identity/signed fields, duplicate query and invalid/stale nonce are rejected before provider IO; five wrong game codes retire confirmation",
+      "independent fixture HMAC rejects a modified signed Steam identity before any credential is issued",
+      "actual curl boundary disables ambient proxy/redirects, verifies TLS, bounds and parses replies, rejects compression/duplicate fields/oversize and checks profile identity",
+      "failed nonce COMMIT leaves no replay record or browser authorization publication",
+      "provider cancellation remains a proof-bound declined pending state without credential writes",
+      "real trusted-proxy source/prefix occupancy caps4/8 preserve fresh sources; rejected occupancy leaves the independent sixteen-start global burst intact",
+      "real Rust process restart retains valid remembered grants and revocations while dropping private pending browser flows",
+      "actual native SteamLogin/browser proof/code/poll and OnlineAccount/clan/sign-out use real Rust HTTP; only upstream Steam verification/profile IO is a fixture"
+    ],
+    "observed": {
+      "subject_b": "76561197960287931",
+      "nonce_rows": 5,
+      "provider_calls": 32
+    },
+    "capacity": {
+      "per_source": 4,
+      "per_prefix": 8,
+      "accepted_global": 16,
+      "forwarded_sources_are_private_proxy_fixtures": true
+    },
+    "restart": {
+      "persisted_refresh": true,
+      "revocation_persisted": true
+    },
+    "native": {
+      "passed": true,
+      "scope": "Real native Steam/account clients over Rust HTTP, independent upstream fixture; no real Steam grant or played-game/delivered acceptance."
+    },
+    "fixture": {
+      "compiler": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/steam/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "sha256": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+      "default_production_binary": true,
+      "policy_in_rust": true,
+      "upstream_interposed": true
+    },
+    "real_steam": false,
+    "scope": "Actual Rust browser/device/SQL/renewal HTTP with fixed-provider curl IO replaced by an independent private HMAC fixture; no real Steam grant, original or delivered/gameplay acceptance."
+  },
+  "native_social_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/rust_service_social_probe",
+    "sha256": "262fdf9a51a97212e70fc40d32576162c86ed08f40412c37a7a10a4d265a04a4",
+    "borrowed_read_only": true
+  },
+  "social": {
+    "qualified": true,
+    "checks": [
+      "real Rust friends authentication and anonymous population routes",
+      "real account observations and anonymous identity-free counts; native Unicode tags and nonfriend presence privacy; duplicate/forged inputs rejected",
+      "actual sender/recipient consent, request replay/conflict, no automatic acceptance and accepted-friend presence",
+      "real friend party privacy/context and invitation policy; failed block COMMIT restores relationship/cache epoch/invites, retry revokes both directions without auto-accepting on unblock",
+      "actual cancel, decline, remove and canonical rename preserve the public identifier/tag discriminator",
+      "revocation during actual body upload is rechecked before friend SQL, with no provisional relationship",
+      "private 250-row SQL roster crosses the actual 128-row continuation, preserves all unique private public projections and rejects the next friendship at capacity",
+      "actual account/matching-owner deduplication, transient guest and queued playlist counts, cancellation and anonymous response privacy",
+      "real process restart retains friendships/tags and retires presence/account grants without reviving pending capabilities",
+      "actual unshortened thirty-second activity window expires despite repeated anonymous population reads; using the still-valid account grant restores observed activity",
+      "real native friend search/request/recipient acceptance, private presence, party context/join and bilateral block over Rust HTTP"
+    ],
+    "native": {
+      "passed": true,
+      "scope": "Actual native OnlineAccount friend commands/views and party join against Rust HTTP; private provider handoff, no played world or real Steam grant."
+    },
+    "real_provider": false,
+    "native_played_world": false,
+    "scope": "Real Rust HTTP/SQLite; private provider fixtures, no original or delivered acceptance."
+  },
+  "steam_friends": {
+    "qualified": true,
+    "checks": [
+      "actual Rust Steam lookup, canonical registration/observed presence, private cache hit and fixed curl security options",
+      "actual sealed Steam invitation proof, forged-claim rejection, deferred COMMIT rollback/retry, command replay and native privacy projection",
+      "private upstream relationships cannot be replaced by public identities or cached invitation proof",
+      "actual curl/JSON boundary rejects duplicate keys, compressed/redirected/oversized/unavailable responses and malformed profile rows",
+      "actual provider IO holds neither runtime mutex nor SQL; account revocation during IO rejects the late reply",
+      "current canonical Steam link is rechecked after actual provider IO before any projection or invitation",
+      "actual thousand-row response exceeds the former256KiB native limit, preserves deterministic first1000 selection and ten exact100-ID provider batches",
+      "real33-second eleven-call lookup survives the former30-second HTTP connection cutoff; native75-second owner deadline remains unchanged",
+      "actual native Steam browser/account clients admit the complete bounded thousand-friend response from Rust",
+      "actual native SteamLogin/browser proof/code/poll and OnlineAccount/clan/sign-out use real Rust HTTP; only upstream Steam verification/profile IO is a fixture",
+      "actual unshortened60-second cache expiry observes a new private upstream rather than retaining stale invitation authority"
+    ],
+    "rows": 1000,
+    "public_reply_bytes": 332044,
+    "real_long_lookup_seconds": 33.07414903699828,
+    "real_cache_expiry_seconds": 61.01781387400115,
+    "fixture": {
+      "compiler": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-i7okx2jf/steam-friends/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "sha256": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+      "default_binary": true,
+      "upstream_interposed": true
+    },
+    "real_steam": false,
+    "native_played_world": false,
+    "native": {
+      "passed": true,
+      "scope": "Real native Steam/account clients over Rust HTTP, independent upstream fixture; no real Steam grant or played-game/delivered acceptance."
+    },
+    "native_slow_lookup_qualification": false,
+    "native_existing_http_timeout_seconds": 3
+  }
+}

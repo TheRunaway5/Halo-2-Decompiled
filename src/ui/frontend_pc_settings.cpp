@@ -135,6 +135,10 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     // The native runtime has no durable campaign-save owner.
     add(0x2ed,-103);
     if(context==online_game_pause_context)f.entries.back().label="Leave Match";
+    if(context==splitscreen_game_pause_context) {
+      f.entries.back()={"End Match",-116,0};
+      f.entries.push_back({"Exit To Desktop",-117,0});
+    }
     break;
   case 259:
     add(0x2ef,vista_menu(200));add(0x7c2,vista_menu(260));
@@ -261,7 +265,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     f.selected = 1;
     break;
   case 256:
-    f.entries.push_back({"Graphics Mode",-2,2});
+    f.entries.push_back({"Graphics Mode",int(vista_menu(271)),int(video_graphics_mode_context)});
     // PC 6487D3 jump table: eight source rows, including LOD.
     f.entries.push_back({"Fullscreen Mode",int(vista_menu(271)),0});
     add(0x897, vista_menu(269));
@@ -294,6 +298,15 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     }
     break;
   case 271:
+    if(context==video_graphics_mode_context) {
+      f.title="GRAPHICS MODE";
+      for(const auto mode:{pstencil::GraphicsMode::Original,pstencil::GraphicsMode::pStencil,
+                           pstencil::GraphicsMode::PathTracing})
+        f.entries.push_back({pstencil::graphics_mode_name(mode),-2,int(mode)});
+      f.selected=unsigned(pc_display_.graphics_mode);
+      f.description=std::string("Current mode: ")+pstencil::graphics_mode_name(pc_display_.graphics_mode)+".";
+      break;
+    }
     f.title="FULLSCREEN MODE";
     f.entries.push_back({"Windowed",-2,int(FullscreenMode::Windowed)});
     f.entries.push_back({"Fullscreen",-2,int(FullscreenMode::Fullscreen)});
@@ -544,17 +557,8 @@ void MenuState::accept_pc() {
     if(e.value==0)value.crt_filter=!value.crt_filter;
     else if(e.value==1)value.two_player_split=value.two_player_split==TwoPlayerSplit::Horizontal?
         TwoPlayerSplit::Vertical:TwoPlayerSplit::Horizontal;
-    else if(e.value==2)value.graphics_mode=pstencil::GraphicsMode(
-        (unsigned(value.graphics_mode)+1)%(unsigned(pstencil::GraphicsMode::PathTracing)+1));
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
     if(const auto error=pc_display_adapter_(value);!error.empty()) {
-      // An unavailable optional mode must not trap this cyclic control on
-      // pStencil. Original is the next supported choice; report the failed
-      // Path Tracing request after applying that fallback transactionally.
-      if(e.value==2 && value.graphics_mode==pstencil::GraphicsMode::PathTracing) {
-        value.graphics_mode=pstencil::GraphicsMode::Original;
-        if(pc_display_adapter_(value).empty()){pc_display_=value;save();++revision;}
-      }
       unavailable(error);return;
     }
     pc_display_=value;
@@ -562,9 +566,11 @@ void MenuState::accept_pc() {
     save();++revision;return;
   }
   if (id==272 || id==273 || id==274 || id==290 || id==285 ||
+      (id==271 && f.context==video_graphics_mode_context) ||
       (id==269 && f.context==1) || id==263 || id==242 || id==267 ||
       ((id==276 || id==268) && e.value==0)) {
     auto v=pc_display_;
+    if(id==271)v.graphics_mode=pstencil::GraphicsMode(e.value);
     if(id==272) {
       if(f.context==video_fov_context)v.field_of_view=e.value;
       else if(f.context==video_vehicle_fov_context)v.vehicle_field_of_view=e.value;

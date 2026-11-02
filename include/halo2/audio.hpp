@@ -14,6 +14,14 @@ struct PcmSound {
   unsigned sound_class = sound_class_count;
   struct ClassSpan { std::size_t end_frame; unsigned sound_class; };
   std::vector<ClassSpan> class_spans;
+  // Cumulative owned input bytes and actual emitted 48-kHz frames at each
+  // resource boundary. Decoder/resampler state spans chunks; final flush
+  // belongs to the last chunk. Empty means no mapping is available.
+  struct ChunkBoundary {
+    std::size_t encoded_end, end_frame;
+    friend bool operator==(const ChunkBoundary&,const ChunkBoundary&)=default;
+  };
+  std::vector<ChunkBoundary> chunk_boundaries;
   std::size_t frames() const { return stereo.size() / 2; }
   unsigned class_at(std::size_t) const;
 };

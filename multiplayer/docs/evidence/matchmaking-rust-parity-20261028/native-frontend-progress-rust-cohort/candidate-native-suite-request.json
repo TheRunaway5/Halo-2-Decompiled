@@ -1,0 +1,17 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_progress_rust_tests",
+    "native_frontend_search_rust_tests",
+    "frontend_matchmaking_lobby_rust_tests",
+    "frontend_online_lobby_buttons_tests",
+    "frontend_online_tests",
+    "frontend_lobby_policy_tests",
+    "party_countdown_kernel_tests"
+  ],
+  "filter": "^(frontend_(progress|search|lobby)_cpp_rust|frontend_online_lobby_(buttons|legacy_countdown|blocked_playlist|complete_playlist)|rust_frontend_lobby_(blocked|complete|rendered)|original_party_countdown_kernels|retail_frontend_lobby_policy|frontend_matchmaking_http|frontend_matchmaking_gathering_http|frontend_clans_http|frontend_parties_http)$",
+  "refresh": [
+    "tools/oracle_tu15_matchmaking_progress_sort.py",
+    "tools/oracle_tu15_matchmaking_progress_input.py"
+  ]
+}

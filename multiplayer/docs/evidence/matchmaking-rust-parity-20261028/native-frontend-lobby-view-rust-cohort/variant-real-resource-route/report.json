@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "exit_code": 1,
+  "command": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-lobby-view-native-20261102/halo2-test-w718i73m/build/variant_write_order_tests",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-lobby-view-native-20261102/halo2-test-w718i73m/native-source/tests/fixtures/variant_write_order_original.tsv",
+    "/home/eric/Developer/Halo-2-Decompiled/assets/disc/maps"
+  ],
+  "binary_sha256": "580d8f0b09f440ee76c2a195f04caf26e5777f35deb99c9574e6e47472d3a694",
+  "fixture_sha256": "68eb0273b2be15f1c8ed3f22de1180035c6fc716dede3762fa908188d71434cc",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-variant-resource-20261102/halo2-test-4s50ym4v",
+  "resource_guard_changed": false,
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,181 @@
+{
+  "schema": "H2_LINUX_PLAYLIST_BUTTONS_VALIDATION_V1",
+  "updated_utc": "2026-10-29T17:37:06.370845+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "passed": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "root_cause": "Selected Linux runtime lacked eos-client.env and advertisedv12; every live catalog row requiredv16.",
+  "red": {
+    "report": "playlist-buttons-red-report.json",
+    "log": "playlist-buttons-red-actual-menu-loop.log",
+    "symptom": "Choosing an ineligible matchmaking playlist silently did nothing"
+  },
+  "configuration_differential": {
+    "report": "playlist-buttons-green-configuration-differential.json",
+    "catalog_sha256": "3be11cfe6101ad61d4d949cae438d01130e9b18ee52fe386703724acede2e670",
+    "no_configuration": {
+      "protocol": "halo2-native-queue-v12",
+      "eligible": 0
+    },
+    "packaged_configuration": {
+      "protocol": "halo2-native-queue-v16",
+      "eligible": 12
+    },
+    "map_inventory": "The selected MCC cache; identical between cases",
+    "clan_eligibility_preserved": true
+  },
+  "source_fix": "Blocked selection displays a visible error and retains the picker; captions include client compatibility. Engine rebuilds inherit selected packaged EOS settings or the existing local setup; explicit input has priority.",
+  "ui_regressions": {
+    "report": "playlist-buttons-green-report.json",
+    "blocked": "Actual authenticated MenuState Start and Choose Playlist reject visibly, preserve picker and never queue",
+    "complete": "Actual Rust environment advertisesv16, complete-settings catalog admits consent/selection, shared countdown starts, search queues once and cancel removes it",
+    "clock": "Real service clock; existing original button semantics allow countdown shortening in this fixture",
+    "dependency_scope": "Recompiled actual UI handlers/regression with read-only existing static dependencies; not a coherent new native package",
+    "mcc_ui_cache": "assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+    "rendered_or_physical_input_acceptance": false
+  },
+  "build_policy": {
+    "passed": true,
+    "tests": 69,
+    "seconds": 7.168,
+    "command": "python3 tools/run_test.py --scratch-root .local/test-scratch/playlist-buttons -- python3 -B -m unittest discover -s tests -p test_build_launcher_engine.py",
+    "scope": "Synthetic build/promotion/configuration selection policies; not gameplay or native package acceptance"
+  },
+  "delivered_configuration": {
+    "schema": "H2_SELECTED_RUNTIME_ONLINE_CONFIGURATION_REPAIR_V1",
+    "passed": true,
+    "runtime": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/halo2_native",
+    "runtime_sha256": "c4cf078db68795d25668e12241d7eeb345e0382a5bbc097d0688d2e76b0b5b49",
+    "binary_unchanged": true,
+    "selection_unchanged": true,
+    "added_configuration": "bin/engine-builds/4bf0c86b3c41485193b431cf4f7da756/eos-client.env",
+    "configuration_sha256": "b02a15cc5c7dee8fc05077f98ee18e8843641e22f31fa7de03c44c0d32b460f0",
+    "configuration_bytes": 378,
+    "source": "existing private shared game client setup; values withheld",
+    "process_restarted": false,
+    "restart_required": true,
+    "production_service_changed": false,
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-ox8ymysd",
+    "retained_large_artifacts": []
+  },
+  "updated_ui_binary_installed": false,
+  "production_service_changed": false,
+  "user_reopened_game_confirmation": "Pending; async verification question sent, no success assumed",
+  "source_pins": {
+    "tools/build_launcher_engine.py": "32bbafe06effe107604d42d92ab2c2fe35e79cb55cc80fbcab608b51ae3bcfee",
+    "tests/test_build_launcher_engine.py": "422e8e0396340bbefb78e003ac1ee6f9d9952e61535b0c66fb9ffc1790fa6d82",
+    "src/ui/frontend_state.cpp": "cb34590fdeea927742dfe6fa12f1322d143435be63eb670c1818d5477221addf",
+    "src/ui/frontend_matchmaking.cpp": "faaeb5ae03a510be5b97ad370888b9cda910e5f86752bace6930721a6de870c6",
+    "tests/frontend_online_lobby_buttons_tests.cpp": "9da5562757ba60a9d48cfc1390a16a6471ac0b238dad34757f1a521e2e7ee937",
+    "tests/frontend_matchmaking_http_test.py": "a9952be8045760069f28ccb93eb867f84f571d07279f3adee9eac5c43a46eea2",
+    "CMakeLists.txt": "36cb04097d395b6458d2f8db6db9eae2a2f15356ae963d03c61f5bd403c9a0fd"
+  },
+  "goal_criteria": {
+    "unchanged": true,
+    "sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+    "all_twelve_gap_criteria_and_53_algorithms_and_G01_G12_retained": true
+  },
+  "storage": {
+    "scratch_checked_removed": [
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-jcbcea5q",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-5vfgsgtd",
+      "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-ox8ymysd"
+    ],
+    "owned_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons",
+    "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/playlist-buttons/halo2-test-izpcjiwv",
+    "report_helper_removed": true,
+    "retained_small_reports": [
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-compile-buttons.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-compile-state.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-link.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-rust-production-abi.log",
+        "bytes": 1385,
+        "sha256": "06085f3291abb78f6c7decad5936097b7c861130c1e7da6b3d4f0525a8f56455"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-actual-menu-loop.log",
+        "bytes": 1705,
+        "sha256": "c2e1e37cb114a5bdc07a9187d23e3bbdb4a9728798f041e092565d875db8111a"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-red-report.json",
+        "bytes": 30898,
+        "sha256": "52ff143599ef7fade8c1e82718fec0d06c1209373cddbf50e9174830b64d9690"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-compile-buttons.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-compile-state.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-compile-matchmaking.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-link.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-rust-production-abi.log",
+        "bytes": 1385,
+        "sha256": "c5d93acf9c561aca8b6cd3ef8024ec66898a18d3f4343b1aff437943d2094385"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-configuration-differential.json",
+        "bytes": 2688,
+        "sha256": "54cd450d1f06c379c5d7e6c94a26eefa79eb8357b057918b5c2744067b4b205e"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-actual-menu-loop.log",
+        "bytes": 254,
+        "sha256": "2edf022795e0212a8697b152621405462bd2050b9dde8461f19ade25bed3f45b"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-actual-complete-playlist-countdown.log",
+        "bytes": 341,
+        "sha256": "0d9589c7100c889d763a3165921e01bbe6170c4fdcc00de3b1eacc7ce55b1cc4"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-green-report.json",
+        "bytes": 32220,
+        "sha256": "e9ef0c2f6ef092c84475abfcf4f0c14297b9e993145c3af7e7573dccb329d1f5"
+      },
+      {
+        "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/playlist-buttons-runtime-configuration-repair.json",
+        "bytes": 849,
+        "sha256": "4b632be959e7516f31a5a59b1beae8caf6284ce913629f948bb8a19797410b28"
+      }
+    ],
+    "retained_report_bytes": 71725,
+    "retained_large_artifacts": [],
+    "added_application_settings_bytes": 378,
+    "borrowed_static_inputs_unchanged": true,
+    "owned_parent_verified_empty": true
+  },
+  "limits": [
+    "No whole-goal or original Xbox parity claim",
+    "No played match, coherent native replacement, rendered/physical input or production activation proof",
+    "The selected binary and existing runtime artifacts were preserved; only the missing shared application settings were added"
+  ]
+}

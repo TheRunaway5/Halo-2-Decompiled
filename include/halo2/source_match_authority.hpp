@@ -67,6 +67,9 @@ public:
     bool for_owner(const SourceMatchAuthority &)const noexcept;
     void retain_live_multiplayer_render_history();
     void retain_live_multiplayer_render_history_from(const SourceMatchAuthority &);
+    // Explicit same-tick particle continuation; other effect subowners are
+    // outside this operation. Source must be a distinct completed executor.
+    void retain_native_particle_history_from(const SourceMatchAuthority &);
   private:
     friend class SourceMatchAuthority;
     Prepared();

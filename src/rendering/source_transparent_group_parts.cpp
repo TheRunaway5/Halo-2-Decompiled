@@ -1,12 +1,29 @@
 #include "halo2/source_transparent_group_parts.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
+#include "halo2/source_shadow_raw_draw.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
 
 namespace halo2 {
+void validate_source_transparent_group_pass_owner(const Cache &cache,const MenuWorldSourcePass &pass,
+    std::uint32_t address,const SourceTransparentGroupNativePassOwner &native_owner) {
+    if(&pass.cache_owner()!=&cache)
+        throw FormatError("transparent group pass has a foreign Cache owner");
+    if(native_owner) {
+        const auto owner=native_owner(pass);
+        if(!owner.matches(pass,address))
+            throw FormatError("transparent group descriptor changed its actual resident implementation owner");
+        return;
+    }
+    if(cache.is_mcc())
+        throw FormatError("MCC transparent group requires its current native pass owner");
+    if(pass.implementation_address()!=address)
+        throw FormatError("transparent group descriptor changed its actual implementation address");
+}
 SourceTransparentGroupParts SourceTransparentGroupPartBindings::resolve(
-    const SourceLiveTransparentGroupTu15 &group,std::span<const SourceLiveModelBaseDrawTu15> units) {
+    const SourceLiveTransparentGroupTu15 &group,std::span<const SourceLiveModelBaseDrawTu15> units,
+    const SourceTransparentGroupNativePassOwner &native_owner) {
     std::array<std::uint32_t,2> payload;
     std::memcpy(payload.data(),group.queue_command.payload.data(),sizeof(payload));
     if(group.queue_command.callback!=0x423b0u || payload!=std::array{group.section,group.flags} ||
@@ -19,7 +36,11 @@ SourceTransparentGroupParts SourceTransparentGroupPartBindings::resolve(
     constexpr std::array order{1u,3u,8u,7u,2u,16u,15u,21u};
     unsigned next_layer=0;SourceTransparentGroupParts result;
     for(const auto &layer:group.ordered_layers) {
-        while(next_layer<order.size() && order[next_layer]!=layer.layer)++next_layer;
+        while(next_layer<order.size() && order[next_layer]!=layer.layer) {
+            if(group.layers&(1u<<order[next_layer]))
+                throw FormatError("transparent group dropped an admitted original layer");
+            ++next_layer;
+        }
         if(next_layer==order.size() || !(group.layers&(1u<<layer.layer)))
             throw FormatError("transparent group lost its admitted original layer order");
         ++next_layer;
@@ -66,8 +87,7 @@ SourceTransparentGroupParts SourceTransparentGroupPartBindings::resolve(
             if(selected==passes_.end())selected=passes_.emplace(key,std::make_shared<const MenuWorldSourcePass>(
                 load_menu_world_source_pass(cache_,c[2],{lod,layer.layer,pass,implementation}))).first;
             const auto &metadata=*selected->second;
-            if(metadata.implementation_address()!=d[4])
-                throw FormatError("transparent group descriptor changed its actual implementation address");
+            validate_source_transparent_group_pass_owner(cache_,metadata,d[4],native_owner);
             const bool transparent=original.u16(0)==4 || original.u16(0)==5;
             const auto class_key=std::tuple{u[1],unsigned(u[3]>>9&511u),metadata.vertex_shader(),transparent};
             auto compiled=classes_.find(class_key);
@@ -86,6 +106,8 @@ SourceTransparentGroupParts SourceTransparentGroupPartBindings::resolve(
             if(std::ranges::find(result.owners,base.object)==result.owners.end())result.owners.push_back(base.object);
         }
     }
+    for(;next_layer<order.size();++next_layer)if(group.layers&(1u<<order[next_layer]))
+        throw FormatError("transparent group dropped an admitted original layer");
     return result;
 }
 }

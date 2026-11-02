@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "cases": 2828,
+  "native_io_observations": 2763,
+  "frame_snapshots_at_reads": 2763,
+  "same_controller_reentry_observations": 2763,
+  "fault_controls": 78,
+  "preserved_native_exception_identity": 78,
+  "differences": [],
+  "native_sha256": "1f43ce04c4e14e350414c50e13e638cd05a313524a43d55802c2e43640d7ce83",
+  "scope": "Captured modern party menus/text versus the actual Rust/CXX view owner.\n\nReal native frame/account/member types and the literal native adapter operate\nover controlled cached facts, resource reads, view queries and exceptions.\nFrame snapshots at every observable read preserve partial-mutation evidence.\nOriginal Live/locale/identity producers and installed input are separate gates.\n"
+}

@@ -109,6 +109,7 @@ enum Step {
     Start(String),
     Appearance(Vec<String>),
 }
+#[derive(Clone)]
 struct Pending {
     expires: f64,
     work: Work,
@@ -122,7 +123,7 @@ struct Admission {
     closed: bool,
     expires: f64,
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     pending: HashMap<String, Pending>,
     rooms: Vec<Admission>,

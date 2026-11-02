@@ -1,0 +1,42 @@
+{
+  "scope": "Inspection pointers, not a complete residual ownership audit",
+  "owners": [
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "sha256": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf"
+    },
+    {
+      "path": "src/ui/frontend_friends.cpp",
+      "sha256": "c135aabe9fe9d4daaf32e31e18452e2a15ffe0a1e96ebcf8150dafed77c059c7"
+    },
+    {
+      "path": "src/ui/frontend_clans.cpp",
+      "sha256": "c2e8e61381d3f651cf3d0a12541acb9701a47e07467e6d3cfc0bb88f5432477a"
+    },
+    {
+      "path": "src/ui/frontend_matchmaking.cpp",
+      "sha256": "ef5f06fa29c05ac6703d6ea52897ad8efb67c628196457798d4013bc8457d3fc"
+    }
+  ],
+  "remaining": [
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "owner": "MenuState::lobby_view",
+      "line": 2546,
+      "policy": "ONLINE lobby status/permission facts, countdown requester mapping, party capacity, native roster row and speaker composition"
+    },
+    {
+      "path": "src/ui/frontend_state.cpp",
+      "owner": "MenuState::has_online_prior_stats",
+      "line": 1137,
+      "policy": "Native postgame retained-statistics presence and review route"
+    },
+    {
+      "path": "src/ui/frontend_friends.cpp",
+      "owner": "MenuState::update_online_friend_join",
+      "line": 41,
+      "policy": "Native command serial, accepted party and friend join continuation"
+    }
+  ],
+  "full_goal_complete": false
+}

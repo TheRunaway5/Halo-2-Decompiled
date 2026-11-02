@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Seal native282C10 Frame proof and explicitly bounded remaining cleanup."""
+import hashlib,json
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def save(p,x):p.write_text(json.dumps(x,indent=2,sort_keys=True)+'\n')
+def main():
+ stage=ROOT/'analysis/physics/native-dirty-island-frame-stage-v3-20261102';p=stage/'source-pins.json';pins=json.loads(p.read_text());assert all(sha(stage/'staged'/name)==v for name,v in pins['staged_hashes'].items());names=['native-dirty-island-objects-tu15-20261102-v2','native-dirty-island-objects-composed-tu15-20261102-v3','native-dirty-island-binding-tu15-20261102-first','native-dirty-island-frame-model-20261102-first','native-dirty-island-frame-counters-20261102-first'];proofs={}
+ for name in names:
+  path=ROOT/'analysis/physics'/name/'report.json';r=json.loads(path.read_text());assert r['passed'];proofs[str(path.relative_to(ROOT))]=sha(path)
+ frame=json.loads((ROOT/'analysis/physics'/names[3]/'report.json').read_text());assert all(pins['staged_hashes'][name]==value for name,value in frame['frozen_source_hashes'].items()if name in pins['staged_hashes'])
+ counters=json.loads((ROOT/'analysis/physics'/names[4]/'report.json').read_text());assert counters['source_hashes']==pins['staged_hashes'];assert counters['aggregate_counters']==len(pins['fields'])
+ trigger=ROOT/'analysis/physics/native-dirty-island-source-trigger-v2-20261102/report.json';assert json.loads(trigger.read_text())['verified'];proofs[str(trigger.relative_to(ROOT))]=sha(trigger)
+ owners=[]
+ for name in names[2:]:
+  path=ROOT/'analysis/physics'/name/'report.json';r=json.loads(path.read_text());assert not Path(r['owned_scratch']).exists();owners.append(dict(owned_scratch=r['owned_scratch'],allocated_bytes_before_cleanup=r['temporary_allocated_bytes_before_cleanup'],removed_verified=True,report=str(path.relative_to(ROOT))))
+ save(stage/'cleanup-verification.json',dict(verified=True,completed_owners=owners,total_parent_allocation_bytes_removed=sum(o['allocated_bytes_before_cleanup']for o in owners),retained_large_artifacts=[],protected_reference_inputs_preserved=True,not_a_global_free_space_measurement=True))
+ pins.update(qualified=True,root_reviewed=False,peer_review_pending=True,production_applied=False,live_qualified=False,qualification_reports=proofs,frame_model_cpp_count=9,frame_model_compilers=['g++','clang++'],native_only_builder_profiles_per_compiler=207,native_only_builder_full_returns_per_compiler=72,native_only_builder_genuine_deeper_entry_prefixes_per_compiler=18,physical_parent_sites_executed=246,total_parent_sites=276,flat_scalar_fields=len(pins['fields']),flat_owner_maps=1,serializers=2,positive_phase_gate='HALO2_REQUIRE_NATIVE_DIRTY_ISLAND_OBJECTS',optional_positive_cleanup_gate='HALO2_REQUIRE_NATIVE_DIRTY_ISLAND_CLEANUP',qualified_runtime_input='Observed1475/01 directFramepost_step boundary: all669normal/2105frag calls, sampled641pending-skips/no dirty admission. No actualdirty BEFORE manufactured or inferred. Actual nativeFrame/fulloriginal comparison follows production overlay.',unknown_policy='Sole native-only helper owns no executor/GP/servicefallback. Selected missing parent or component-state owner increments explicit map and throws before any old owner execution; refusedowners never enter executed residual census.',remaining=['Actual nativepost_step positivephase/camera/strictfullframe qualification','Actual Source fallback/default allocation delta and positive dirty cleanup remain unexercised; optional positivecleanupgate must not be claimed from pending skips','Thirty unexecuted parent sites/deeper returned lifetime/GC/allocator/creation profiles remain explicit native requirements','Other generated/internal282C10 caller conversion and wholeTU1.5 parity remain open','Three invalid preinstruction RMW write-fault profiles excluded explicitly; originalfailedreport retained, true faultphase proof remains separate'])
+ save(p,pins);print(dict(qualified=True,manifest_sha256=sha(p),flat_scalar_fields=len(pins['fields']),removed_parent_bytes=sum(o['allocated_bytes_before_cleanup']for o in owners)))
+if __name__=='__main__':main()

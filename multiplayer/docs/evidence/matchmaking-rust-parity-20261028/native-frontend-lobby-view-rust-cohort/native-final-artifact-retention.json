@@ -1,0 +1,40 @@
+{
+  "reports": [
+    {
+      "path": "frontend-lobby-policy.json",
+      "sha256": "a8e1bcee23829e4a5fd78798eb206db838f92ad45605f89177ee478cab7eddea",
+      "bytes": 626
+    },
+    {
+      "path": "frontend-lobby-view-policy.json",
+      "sha256": "3c40003228e97b3f5614c1e5149ac1b355e2200ac1f6f1eb82fdee0dd31cc44b",
+      "bytes": 597
+    },
+    {
+      "path": "frontend-party-flow.json",
+      "sha256": "f0c15e71f4cdafd38a425e96808df0ffada41d345ac731551562f357e1bf5fc8",
+      "bytes": 886
+    },
+    {
+      "path": "frontend-party-policy.json",
+      "sha256": "fc64e7647837abdc4bbb0324392e87dfcff66a4dc95cba073c77fa4740726757",
+      "bytes": 666
+    },
+    {
+      "path": "frontend-presentation-policy.json",
+      "sha256": "f0749ff217c1dda5683e5932f9685c5390cd8a990b5366b6f322ee13d9450747",
+      "bytes": 599
+    },
+    {
+      "path": "frontend-progress-policy.json",
+      "sha256": "7f16cc6bfc158ea8b4375c6e1c5af7686e459b5e1a540708e252923cfb328c9a",
+      "bytes": 635
+    },
+    {
+      "path": "frontend-search-policy.json",
+      "sha256": "1ed6fd851a2b817a86d8372dd087918cf55500d90b3e678fe10133e3c3880862",
+      "bytes": 726
+    }
+  ],
+  "retained_large_artifacts": []
+}

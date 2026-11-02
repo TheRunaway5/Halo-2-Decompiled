@@ -342,8 +342,12 @@ class MatchTransportTests(unittest.IsolatedAsyncioTestCase):
         await sockets[c].send_bytes(bytes([host])+packet)
         await asyncio.sleep(.05)
         self.assertFalse(sockets[1-h].closed)
-        self.assertEqual((await self.enqueue(headers[h])).status, 201)
         self.assertEqual((await self.enqueue(headers[1-h])).status, 201)
+        from multiplayer.master_server.player_presence import population
+        counts = population(self.api.directory)
+        self.assertEqual(counts['queued']['users'], 1)
+        self.assertEqual(counts['postgame']['users'], 0)
+        self.assertEqual((await self.enqueue(headers[h])).status, 201)
         self.assertEqual(len(set(p["identity"] for p in descriptors[0]["players"])), 2)
 
     async def test_disagreed_report_cannot_enter_persistent_results(self):

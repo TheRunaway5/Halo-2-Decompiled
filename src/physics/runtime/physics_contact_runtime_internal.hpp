@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/physics_contact_runtime.hpp"
 #include "physics/runtime/physics_solver_internal.hpp"
+#include "physics/runtime/native_tu15_normalize_vector_bridge.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -199,6 +200,8 @@ struct State {
         return a;
     }
     void required(std::uint32_t site,std::uint32_t target,bool tail) {
+        if(target==0x30bd0u && image==SourcePhysicsContactImage::TitleUpdate15 &&
+           native_tu15_normalize_vector_try(*this,NativeTu15NormalizeProfile::ImageSelected))return;
         if(!services.required_owner)throw std::runtime_error("Required original contact runtime callee unavailable");
         auto a=save();
         try {services.required_owner(memory,{site,target,tail},a,observe);}

@@ -12,6 +12,8 @@ import os
 from pathlib import Path
 import re
 import struct
+from collections import deque
+from contextlib import ExitStack
 
 from file_identity import descriptor_identity, path_identity
 
@@ -58,7 +60,7 @@ PATH_TRACING_TEMPORAL_FRAGMENTS = frozenset({"path_tracing/world.frag.spv", "pat
 PATH_TRACING_SURFACE_MARKER = b"Path Tracing authored surface shaders are unavailable in this runtime.\0"
 PATH_TRACING_SURFACE_FRAGMENTS = PATH_TRACING_TEMPORAL_FRAGMENTS | PATH_TRACING_VISIBILITY_FILES
 _GENERATED_PATH = re.compile(
-    r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility|-source-depth)?\.vert|f-[0-9a-f]{64}\.frag)"
+    r"(?:native_world/(?:v-[0-9a-f]{64}(?:-normal|-normal-utility|-source-depth|-path-tracing-source-depth)?\.vert|f-[0-9a-f]{64}\.frag)"
     r"|native-fragments/[a-z][a-z0-9-]*/[0-9a-f]{64}\.frag)\.spv")
 
 
@@ -183,7 +185,7 @@ def _path_tracing_surface_abi(ops):
 
 def native_module_contract(raw, name):
     """Recheck executable reads and the actual Vulkan stage, not report flags."""
-    from audit_native_renderer_kernels import audit_spirv, instructions
+    from audit_native_renderer_kernels import audit_instructions, instructions
     stage = {'.vert.spv': 0, '.geom.spv': 3, '.frag.spv': 4, '.comp.spv': 5}
     models = [model for suffix, model in stage.items() if name.endswith(suffix)]
     if len(models) != 1:
@@ -198,7 +200,7 @@ def native_module_contract(raw, name):
             entry_points.append((arguments[0], entry))
     if entry_points != [(models[0], b'main')]:
         raise ValueError("Native shader execution model differs from its production stage")
-    result = audit_spirv(raw)
+    result = audit_instructions(ops)
     if result['passed'] is not True:
         raise ValueError("Native shader contains executable instruction-bank reads")
     contract = dict(result, execution_model=models[0], entry_point='main')
@@ -234,7 +236,12 @@ def _bound_shader_requirements(executable):
     return paths, path_tracing, visibility, lighting, temporal, surface
 
 
-def validate_native_package(directory, *, expected_sha256=None, executable):
+def _module_contract_job(raw, name):
+    # Spawned workers import this module without inheriting a Tk/renderer thread.
+    return native_module_contract(raw, name)
+
+
+def validate_native_package(directory, *, expected_sha256=None, executable, workers=None):
     """Authenticate the exact package and its complete executable-bound catalogs.
 
     This complements source-origin closure at staging. Its SPIR-V check covers
@@ -257,8 +264,21 @@ def validate_native_package(directory, *, expected_sha256=None, executable):
     if (not isinstance(rows, list) or not rows or len(rows) > 20000 or
             type(report.get('module_count')) is not int or report['module_count'] != len(rows)):
         raise ValueError("Native shader package has an invalid complete module count")
+    if workers is None:
+        available = getattr(os, 'process_cpu_count', os.cpu_count)() or 1
+        workers = min(4, max(1, available - 1)) if len(rows) >= 128 else 1
+    if type(workers) is not int or not 1 <= workers <= 4:
+        raise ValueError('Native shader audit requires one to four workers')
     files, generated, identities, contracts = {}, set(), {}, {}
-    for row in rows:
+    pending = deque()
+
+    def completed():
+        name, declared, job = pending.popleft()
+        contracts[name] = job.result()
+        if declared != contracts[name]:
+            raise ValueError("Native shader package falsified its executable contract")
+
+    def validate_module(row):
         name = row.get('path')
         if not isinstance(name, str) or name in files:
             raise ValueError("Native shader package duplicates a module owner")
@@ -278,10 +298,28 @@ def validate_native_package(directory, *, expected_sha256=None, executable):
         identities[path] = identity
         if len(data) != size or hashlib.sha256(data).hexdigest() != pin:
             raise ValueError("Native shader bytes differ from their package identity")
-        contracts[name] = native_module_contract(data, name)
-        if row.get('native_contract') != contracts[name]:
-            raise ValueError("Native shader package falsified its executable contract")
+        if pool is None:
+            contracts[name] = native_module_contract(data, name)
+            if row.get('native_contract') != contracts[name]:
+                raise ValueError("Native shader package falsified its executable contract")
+        else:
+            pending.append((name, row.get('native_contract'), pool.submit(_module_contract_job, data, name)))
+            # Bound outstanding byte payloads and preserve deterministic errors.
+            if len(pending) >= 2 * workers:
+                completed()
         files[name] = pin
+
+    with ExitStack() as stack:
+        pool = None
+        if workers > 1:
+            import multiprocessing
+            from concurrent.futures import ProcessPoolExecutor
+            pool = stack.enter_context(ProcessPoolExecutor(
+                max_workers=workers, mp_context=multiprocessing.get_context('spawn')))
+        for row in rows:
+            validate_module(row)
+        while pending:
+            completed()
     bound_generated, path_tracing, visibility, lighting, temporal, surface = _bound_shader_requirements(executable)
     fixed = AOT_BASE_FIXED_FILES
     if path_tracing or visibility or lighting or temporal or surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
@@ -315,6 +353,7 @@ def validate_native_package(directory, *, expected_sha256=None, executable):
         raise ValueError("Native shader package inventory changed")
     return dict(profile=AOT_PROFILE, files=files, module_count=len(rows),
                 package=dict(path=AOT_PACKAGE_NAME, sha256=package_pin))
+
 
 
 def shader_capability(directory, executable):

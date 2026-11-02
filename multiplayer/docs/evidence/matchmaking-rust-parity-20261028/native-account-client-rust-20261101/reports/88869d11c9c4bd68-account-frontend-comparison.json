@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "functional_passed": false,
+  "scope": "Modern C++/Rust account controller differential; shared menu failures remain open",
+  "cases": [
+    {
+      "case": "matchmaking",
+      "same_observation": true,
+      "functional_passed": false,
+      "observations": [
+        {
+          "owner": "cpp",
+          "exit_code": 1,
+          "signal": "Nonmember clan details lost the membership requirement",
+          "stdout_bytes": 1448,
+          "stdout_sha256": "f5ef97f743a30164d4924b444fb37c93dae790d50365b21ef70637b6576b41d0",
+          "diagnostic": "Nonmember clan details lost the membership requirement\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_matchmaking_http_test.py\", line 316, in <module>\n    sys.exit(asyncio.run(main()))\n             ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/n"
+        },
+        {
+          "owner": "rust",
+          "exit_code": 1,
+          "signal": "Nonmember clan details lost the membership requirement",
+          "stdout_bytes": 1448,
+          "stdout_sha256": "f5ef97f743a30164d4924b444fb37c93dae790d50365b21ef70637b6576b41d0",
+          "diagnostic": "Nonmember clan details lost the membership requirement\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_matchmaking_http_test.py\", line 316, in <module>\n    sys.exit(asyncio.run(main()))\n             ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/n"
+        }
+      ]
+    },
+    {
+      "case": "gathering",
+      "same_observation": true,
+      "functional_passed": false,
+      "observations": [
+        {
+          "owner": "cpp",
+          "exit_code": 1,
+          "signal": "Matched/empty slot artwork is not an admitted source page",
+          "stdout_bytes": 1451,
+          "stdout_sha256": "a833456a764ca61c374251e9acde30a51df3ed2fe12fd4524e11002297b935e5",
+          "diagnostic": "Matched/empty slot artwork is not an admitted source page\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_matchmaking_http_test.py\", line 316, in <module>\n    sys.exit(asyncio.run(main()))\n             ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385"
+        },
+        {
+          "owner": "rust",
+          "exit_code": 1,
+          "signal": "Matched/empty slot artwork is not an admitted source page",
+          "stdout_bytes": 1451,
+          "stdout_sha256": "a833456a764ca61c374251e9acde30a51df3ed2fe12fd4524e11002297b935e5",
+          "diagnostic": "Matched/empty slot artwork is not an admitted source page\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_matchmaking_http_test.py\", line 316, in <module>\n    sys.exit(asyncio.run(main()))\n             ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385"
+        }
+      ]
+    },
+    {
+      "case": "clans",
+      "same_observation": true,
+      "functional_passed": false,
+      "observations": [
+        {
+          "owner": "cpp",
+          "exit_code": 1,
+          "signal": "ONLINE bitmaps missing selected imported sampling:",
+          "stdout_bytes": 1276,
+          "stdout_sha256": "bde17a9aa078cb3773f2fb7dfb671f3d2d7469b9688356ce7ad44c88fad88401",
+          "diagnostic": "ONLINE bitmaps missing selected imported sampling:\nui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu\nShutdown handler: initialize.\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_clans_http_test.py\", line 94, in <module>\n    if __name__==\"__main__\":sys.exit(asyncio.run(main()))\n                                     ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_clans_http_test.py\", line 81, in main\n    assert process.returncode in (0,77),\"Native clan flow failed\"\n    "
+        },
+        {
+          "owner": "rust",
+          "exit_code": 1,
+          "signal": "ONLINE bitmaps missing selected imported sampling:",
+          "stdout_bytes": 1276,
+          "stdout_sha256": "bde17a9aa078cb3773f2fb7dfb671f3d2d7469b9688356ce7ad44c88fad88401",
+          "diagnostic": "ONLINE bitmaps missing selected imported sampling:\nui\\screens\\game_shell\\xbox_live\\xbox_live_main_menu\\xbox_live_menu\nShutdown handler: initialize.\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_clans_http_test.py\", line 94, in <module>\n    if __name__==\"__main__\":sys.exit(asyncio.run(main()))\n                                     ~~~~~~~~~~~^^^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 205, in run\n    return runner.run(main)\n           ~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/runners.py\", line 128, in run\n    return self._loop.run_until_complete(task)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/usr/lib/python3.14/asyncio/base_events.py\", line 720, in run_until_complete\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_clans_http_test.py\", line 81, in main\n    assert process.returncode in (0,77),\"Native clan flow failed\"\n    "
+        }
+      ]
+    },
+    {
+      "case": "parties",
+      "same_observation": true,
+      "functional_passed": false,
+      "observations": [
+        {
+          "owner": "cpp",
+          "exit_code": 1,
+          "signal": "ONLINE bitmaps missing selected imported sampling:",
+          "stdout_bytes": 2058,
+          "stdout_sha256": "0fcb4cf3f3ee6d83b123db5b51ab8a2a3478123b70e18dc228df055802d77c09",
+          "diagnostic": "ONLINE bitmaps missing selected imported sampling:\nui\\screens\\game_shell\\pregame_lobby\\button#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\divider#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\game_settings#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\item_background#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\lobby_display#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\matchmaking#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\matchmaking2#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\name_field#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\settings_framing#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\speaker#tu15-logical-mcc\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_parties_http_te"
+        },
+        {
+          "owner": "rust",
+          "exit_code": 1,
+          "signal": "ONLINE bitmaps missing selected imported sampling:",
+          "stdout_bytes": 2058,
+          "stdout_sha256": "0fcb4cf3f3ee6d83b123db5b51ab8a2a3478123b70e18dc228df055802d77c09",
+          "diagnostic": "ONLINE bitmaps missing selected imported sampling:\nui\\screens\\game_shell\\pregame_lobby\\button#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\divider#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\game_settings#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\item_background#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\lobby_display#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\matchmaking#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\matchmaking2#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\name_field#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\settings_framing#tu15-logical-mcc\nui\\screens\\game_shell\\pregame_lobby\\speaker#tu15-logical-mcc\nShutdown handler: initialize.\nONLINE hover row=0 visible_rows=5 vertices=2052\nONLINE hover row=1 visible_rows=5 vertices=2052\nONLINE hover row=2 visible_rows=5 vertices=2052\nONLINE hover row=3 visible_rows=5 vertices=2046\nONLINE hover row=4 visible_rows=5 vertices=2052\nShutdown handler: cleanup.\nTraceback (most recent call last):\n  File \"/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/native-source/tests/frontend_parties_http_te"
+        }
+      ]
+    }
+  ]
+}

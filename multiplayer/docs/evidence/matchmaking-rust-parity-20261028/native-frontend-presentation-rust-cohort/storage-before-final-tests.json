@@ -1,0 +1,9 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-native-20261102/halo2-test-eigfxr6n",
+  "owned_regular_files": 63514,
+  "sum_regular_file_bytes": 6191625274,
+  "sum_allocated_file_bytes": 6362009600,
+  "symlinked_borrowed_inputs_excluded": true,
+  "measurement": "Before final test completion; exact final measurement follows before owner exit",
+  "retained_large_artifacts": []
+}

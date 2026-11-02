@@ -55,6 +55,8 @@ class VanillaOnboarding(unittest.TestCase):
 
     def test_fresh_vanilla_install_and_missing_asset_repair(self):
         entry = prepare(self.root, self.cache, progress=lambda _: None)
+        self.assertEqual(entry['pixel_source'], 'port-authored')
+        self.assertFalse(entry['mcc_button_glyphs_used'])
         self.assertEqual(len(entry['files']), 18)
         self.assertTrue(all((self.cache / name).is_file() for name in entry['files']))
         self.assertFalse(list(self.cache.rglob('*.svg')))

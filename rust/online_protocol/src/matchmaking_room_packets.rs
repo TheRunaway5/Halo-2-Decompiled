@@ -7,10 +7,12 @@ use crate::matchmaking_packet_budget::Stream;
 use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+#[derive(Clone)]
 struct VoiceKey {
     signing: Option<SigningKey>,
     verifying: VerifyingKey,
 }
+#[derive(Clone)]
 pub(super) struct Packets {
     keys: BTreeMap<String, VoiceKey>,
 }

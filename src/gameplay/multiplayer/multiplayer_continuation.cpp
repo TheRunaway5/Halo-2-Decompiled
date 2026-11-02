@@ -87,6 +87,9 @@ void validate(const Saved &s,const DatumPool &pool,unsigned maximum,const LevelC
     std::uint32_t serial=0;
     for(const auto &e:s.weapon_effect_journal){if(e.serial<=serial||e.serial>s.weapon_effect_serial||e.tick>s.simulation.ticks||!finite(e.velocity))
         throw FormatError("Match continuation changed weapon effect journal ordering");serial=e.serial;}
+    validate_native_weapon_zoom_audio_tu15(s.weapon_zoom_audio_journal,std::uint32_t(s.simulation.ticks));
+    if(!s.weapon_zoom_audio_journal.empty() && s.weapon_zoom_audio_journal.back().serial>s.weapon_zoom_audio_serial)
+        throw FormatError("Match continuation changed native zoom audio journal ordering");
     validate_physics_impulse_journal(s.physics_impulses,std::uint32_t(s.simulation.ticks));
     if(!s.physics_impulses.empty()&&std::bit_cast<std::int32_t>(s.physics_impulses.back().serial-s.physics_impulse_serial)>0)
         throw FormatError("Match continuation changed physics impulse journal ordering");
@@ -150,7 +153,7 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
     const auto incompatible=[&](const char *name,bool failed)noexcept{
         if(failed)first_failed=name;return failed;
     };
-    if(incompatible("version",saved.version!=3)||incompatible("admitted_binding",saved.admitted_binding!=binding)||
+    if(incompatible("version",saved.version!=4)||incompatible("admitted_binding",saved.admitted_binding!=binding)||
        incompatible("simulation.admitted_binding",saved.simulation.admitted_binding!=binding)||
        incompatible("configuration_binding",saved.configuration_binding!=authority_configuration())||
        incompatible("service_roles",saved.service_roles!=(current_service_roles=authority_service_roles()))||
@@ -161,7 +164,7 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
        incompatible("simulation.source_backed",saved.source_backed!=(observed_source_backing=saved.simulation.source_backed))) {
         std::ostringstream message;message<<"Match continuation has incompatible admission, definitions or local service roles"
             <<"; first_failed="<<first_failed;
-        if(std::string_view(first_failed)=="version")message<<" saved_version="<<saved.version<<" expected_version=3";
+        if(std::string_view(first_failed)=="version")message<<" saved_version="<<saved.version<<" expected_version=4";
         else if(std::string_view(first_failed)=="service_roles")message<<" saved_roles="<<saved.service_roles
             <<" current_roles="<<current_service_roles<<" differing_roles="<<(saved.service_roles^current_service_roles);
         else if(std::string_view(first_failed)=="player_pool.source_memory"||std::string_view(first_failed)=="source_players"||

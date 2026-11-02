@@ -1,0 +1,7 @@
+{
+  "stopped_owned_ctest_pid": 3084285,
+  "parent_worker_pid": 2929074,
+  "reason": "Known superseded pre-original-bound source. Preserve completed build and run all 33 checks once on the queued corrected source. Not an observation timeout.",
+  "signal": "SIGINT",
+  "command": "ctest --test-dir /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-query-native-20261102/halo2-test-9e1chqk4/build --build-config Release --output-on-failure --no-tests=error --parallel 1 --tests-regex ^(frontend_lobby_query_cpp_rust|retail_frontend_lobby_ready|original_frontend_team_picker|frontend_multiplayer_catalog_selection|original_local_profile_team|frontend_party_view_cpp_rust|frontend_lobby_view_cpp_rust|retail_frontend_lobby_game|original_game_variant_write_order|retail_frontend_lobby|frontend_party_flow_cpp_rust|frontend_party_cpp_rust|frontend_presentation_cpp_rust|frontend_progress_cpp_rust|frontend_search_cpp_rust|frontend_lobby_cpp_rust|rust_frontend_clans_http|rust_frontend_lobby_blocked|rust_frontend_lobby_complete|rust_frontend_lobby_rendered|frontend_online_identity|frontend_online_lobby_buttons|frontend_online_lobby_legacy_countdown|frontend_online_lobby_blocked_playlist|frontend_online_lobby_complete_playlist|frontend_online_lobby_buttons_gpu|frontend_matchmaking_http|frontend_matchmaking_gathering_http|frontend_clans_http|frontend_parties_http|mcc_frontend_parties_http|retail_frontend_lobby_policy|original_party_countdown_kernels)$"
+}

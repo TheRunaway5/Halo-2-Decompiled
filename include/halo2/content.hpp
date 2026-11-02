@@ -382,8 +382,9 @@ struct EncodedSound {
   unsigned sample_rate{}, channels{}, codec{}, samples{};
   std::vector<std::byte> data;
   unsigned sound_class = 54;
-  // Owned compressed chunks retain the MCC decoder's packet boundaries and
-  // state-release flag. `pcm_bytes` is the authored unrounded decoded extent.
+  // Exact compressed resource extents. Original stock chunks supply bytes;
+  // pcm_bytes/reset_after are MCC decoder metadata and remain zero/false for
+  // stock resources. Original descriptor flags do not acquire MCC semantics.
   struct PacketChunk { std::uint32_t bytes{}, pcm_bytes{}; bool reset_after{}; };
   std::vector<PacketChunk> packet_chunks;
 };

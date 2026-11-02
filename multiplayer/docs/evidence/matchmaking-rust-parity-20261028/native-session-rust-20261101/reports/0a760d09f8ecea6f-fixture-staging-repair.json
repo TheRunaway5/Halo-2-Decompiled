@@ -1,0 +1,40 @@
+{
+  "scope": "Restore read-only inputs omitted by the new snapshot coordinator. No production source change.",
+  "borrowed": [
+    {
+      "relative": "assets",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/assets",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": "external",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/external",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": "third_party",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/third_party",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": "resources",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/resources",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": "data",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/data",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": "docs",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/docs",
+      "borrowed_read_only": true
+    },
+    {
+      "relative": ".tools",
+      "source": "/home/eric/Developer/Halo-2-Decompiled/.tools",
+      "borrowed_read_only": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-controls-20261102/halo2-test-eud94zwa",
+  "command": [
+    "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+    "-B",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_tu15_party_countdown.py",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-original-controls-20261102/halo2-test-eud94zwa/tu15-countdown.json"
+  ],
+  "exit_code": 0,
+  "stdout": "PASS unchanged TU1.5 party countdown: 40 controls, 1083 instructions; {'timer': 466288, 'press': 1658813, 'writer': 388128}\n",
+  "stderr": "",
+  "script_sha256": "cd02ab7375636f75e54ebb59eeea1c3f0dafd67c21e67317c1700f2a886f6373",
+  "scope": "Unchanged TU1.5 timer/press decision blocks and complete writer; pre-evaluated status/host/getter operands and publication-call boundary remain explicit; not complete caller, Live or installed UI proof",
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "entries": {
+    "timer": 466288,
+    "press": 1658813,
+    "writer": 388128
+  },
+  "code_hashes": {
+    "0x71d70": "73cc29f4981d0a4ded48b27cb440821e6b7f6313ff4ce4b78d452e7b20b25e44",
+    "0x194fbd": "48b8ff85c62880bd577391672d8ac5166a35dc0ebe465a6ec51c593dcab8df9e",
+    "0x5ec20": "f5d7414590208c4cc6066bb34ce48c52a513a8267adbc412e2d4c5e086bfa60f"
+  },
+  "controls": 40,
+  "instruction_visits": 1083,
+  "fixture_sha256": "d8dec3055851191d8e0b054e3a2eebf4da47edfc7235f5273320f303e84fd8b6",
+  "rust_native_reference": "tests/fixtures/tu15_party_countdown_original.json",
+  "fresh_reference_bytes_identical": true
+}

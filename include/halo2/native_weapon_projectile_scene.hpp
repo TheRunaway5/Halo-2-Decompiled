@@ -69,6 +69,7 @@ public:
     // glow draw history, retaining resident authored resources. Re-synchronize
     // actual incoming projectiles before drawing. Caller owns world quiescence.
     void reset_lifetimes() noexcept;
+    std::vector<std::uint32_t> source_render_models()const;
     void synchronize(std::span<const NativeWeaponProjectile>);
     const std::vector<NativeWeaponProjectileDraw>& draw_view(std::int32_t,const SourceObjectViewLod&);
     const std::vector<SourceLightVolumeDraw>& light_volume_view(unsigned,Vec3 actual_camera_forward,

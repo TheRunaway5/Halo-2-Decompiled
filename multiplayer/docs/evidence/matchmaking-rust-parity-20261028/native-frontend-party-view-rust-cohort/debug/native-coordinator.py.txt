@@ -1,0 +1,103 @@
+import hashlib,json,os,shutil,subprocess,sys,select
+from types import SimpleNamespace
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ["HALO2_TEST_SCRATCH"]).resolve();source=scratch/"native-source";source.mkdir()
+output=root/"build/test-results/frontend-party-view-rust-20261102/native";output.mkdir(parents=True,exist_ok=True)
+ignore=shutil.ignore_patterns("__pycache__","target","*.so","*.dll","*.dylib")
+shutil.copyfile(root/"CMakeLists.txt",source/"CMakeLists.txt")
+for name in ("cmake","src","include"):shutil.copytree(root/name,source/name,ignore=ignore)
+for name in ("online_protocol","online_protocol_bridge","online_security_ffi","matchmaking_service"):shutil.copytree(root/"rust"/name,source/"rust"/name,ignore=ignore)
+shutil.copytree(root/"multiplayer/master_server",source/"multiplayer/master_server",ignore=ignore)
+def freeze(relative):
+ def copy(current,target):
+  if current.is_symlink():target.symlink_to(current.resolve(),target_is_directory=current.is_dir())
+  elif current.is_dir():
+   target.mkdir()
+   for child in current.iterdir():
+    if child.name not in ("__pycache__","target",".venv","node_modules"):copy(child,target/child.name)
+  elif current.suffix.lower() in (".py",".rs",".cpp",".hpp",".h",".c",".cc",".cxx",".cmake",".json",".toml",".lock",".yaml",".yml",".ts",".js",".txt",".md",".patch",".tsv",".reference",".sh",".bash",".in",".glsl",".vert",".frag",".comp",".geom",".inc"):shutil.copyfile(current,target)
+  else:target.symlink_to(current)
+ copy(root/relative,source/relative)
+for name in ("tools","shaders","tests"):freeze(name)
+for name in ("assets","external","third_party","resources","data","docs",".tools"):
+ if (root/name).exists():(source/name).symlink_to(root/name,target_is_directory=True)
+owned=[]
+for current,dirs,files in os.walk(source,followlinks=False):
+ dirs[:]=[d for d in dirs if not (Path(current)/d).is_symlink()]
+ for name in files:
+  p=Path(current)/name
+  if not p.is_symlink():owned.append(p)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+baseline_overrides=[]
+frozen_tool_live_drift_exemptions=[]
+pins={str(p.relative_to(source)):sha(p) for p in sorted(owned)}
+freeze_refreshes=[]
+for freeze_attempt in range(10):
+ drift=[n for n,h in pins.items() if n not in baseline_overrides and n not in frozen_tool_live_drift_exemptions and (not (root/n).is_file() or sha(root/n)!=h)]
+ if not drift:break
+ for n in drift:
+  before=pins[n];shutil.copyfile(root/n,source/n);pins[n]=sha(source/n)
+  freeze_refreshes.append({"attempt":freeze_attempt+1,"path":n,"before":before,"after":pins[n]})
+drift=[n for n,h in pins.items() if n not in baseline_overrides and n not in frozen_tool_live_drift_exemptions and (not (root/n).is_file() or sha(root/n)!=h)]
+def pinparts(label):
+ names=[]
+ for index in range(0,len(pins),400):
+  name=label+"source-pins-"+str(index//400)+".json";names.append(name);(output/name).write_text(json.dumps(dict(list(pins.items())[index:index+400]),indent=2)+"\n")
+ return names
+initial=pinparts("");shutil.copyfile(source/"CMakeLists.txt",output/"frozen-cmake.txt")
+archive=root/"EOS-SDK-58105819-Release-v1.19.2.1.zip"
+with archive.open("rb") as f:archive_sha=hashlib.file_digest(f,"sha256").hexdigest()
+info={"source":str(source),"scratch":str(scratch),"frozen_files":len(pins),"initial_source_pin_parts":initial,"drift_during_freeze":drift,"freeze_refreshes_before_build":freeze_refreshes,"baseline_overrides":baseline_overrides,"frozen_unused_tool_live_drift_exemptions":frozen_tool_live_drift_exemptions,"sdk_archive":{"path":str(archive),"sha256":archive_sha,"bytes":archive.stat().st_size,"borrowed_read_only":True},"retained_large_artifacts":[]}
+(output/"inputs.json").write_text(json.dumps(info,indent=2)+"\n")
+if drift:raise RuntimeError("Source changed while freezing: "+", ".join(drift))
+fifo=scratch/"control.fifo";os.mkfifo(fifo);control_fd=os.open(fifo,os.O_RDWR);pending=b""
+print("READY "+str(fifo),flush=True)
+allowed=('src/ui/frontend_matchmaking.cpp', 'src/ui/frontend_state.cpp', 'src/ui/frontend_clans.cpp', 'src/ui/frontend_party.cpp', 'src/ui/frontend_matchmaking_lobby.cpp', 'include/halo2/frontend.hpp', 'rust/online_protocol/src/matchmaking_frontend_search.rs', 'rust/online_protocol/tests/matchmaking_frontend_search.rs', 'rust/online_protocol/src/lib.rs', 'rust/online_protocol_bridge/src/matchmaking_frontend_search.rs', 'rust/online_protocol_bridge/src/matchmaking_frontend_search.hpp', 'rust/online_protocol_bridge/src/lib.rs', 'rust/online_protocol_bridge/build.rs', 'include/halo2/frontend_matchmaking_search.hpp', 'src/ui/frontend_matchmaking_search.cpp', 'src/ui/frontend_matchmaking_search_bridge.cpp', 'cmake/OnlinePeers.cmake', 'cmake/OnlineProtocolRust.cmake', 'tools/build_online_protocol_rust.py', 'tests/test_build_online_protocol_rust.py', 'tests/native_frontend_search_rust_tests.cpp', 'tests/test_native_frontend_search_rust.py')
+allowed=(*allowed,'rust/online_protocol/src/matchmaking_frontend_progress.rs','rust/online_protocol/tests/matchmaking_frontend_progress.rs','rust/online_protocol_bridge/src/matchmaking_frontend_progress.rs','include/halo2/frontend_matchmaking_policy.hpp','src/ui/frontend_matchmaking_policy_bridge.cpp','include/halo2/frontend_matchmaking_progress.hpp','include/halo2/original_matchmaking_widgets.hpp','tests/native_frontend_progress_rust_tests.cpp','tests/test_native_frontend_progress_rust.py','tools/oracle_tu15_matchmaking_roster.py','tools/oracle_tu15_matchmaking_widgets.py')
+allowed=(*allowed,'rust/online_protocol/src/matchmaking_frontend_presentation.rs','rust/online_protocol/tests/matchmaking_frontend_presentation.rs',
+'rust/online_protocol_bridge/src/matchmaking_frontend_presentation.rs','include/halo2/frontend_matchmaking_presentation.hpp',
+'src/ui/frontend_matchmaking_presentation_bridge.cpp','src/ui/frontend_matchmaking_presentation.cpp','tests/native_frontend_presentation_rust_tests.cpp',
+'tests/test_native_frontend_presentation_rust.py','tests/generate_frontend_presentation_reference.py','tests/frontend_online_tests.cpp')
+allowed=(*allowed,'src/ui/frontend_painter.cpp','include/halo2/frontend_emblem.hpp','src/ui/frontend_emblem.cpp')
+serial=0
+try:
+ while True:
+  while b"\n" not in pending:
+   ready,_,_=select.select([control_fd],[],[],1200)
+   if not ready:raise RuntimeError("Owned result-policy worker idle deadline")
+   pending+=os.read(control_fd,65536)
+  line,pending=pending.split(b"\n",1);request=json.loads(line)
+  if request.get("action")=="quit":break
+  assert request.get("action")=="validate"
+  serial+=1;label="iteration-"+str(serial);record={"passed":False,"baseline":bool(request.get("baseline")),"source":str(source),"scratch":str(scratch),"refreshed":[],"retained_large_artifacts":[]}
+  try:
+   for name in ([] if request.get("baseline") else list(allowed))+request.get("refresh",[]):
+    relative=Path(name);assert not relative.is_absolute() and ".." not in relative.parts and not (source/relative).is_symlink()
+    if not (root/name).is_file():continue
+    new=sha(root/name)
+    if pins.get(name)!=new:
+     (source/name).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,source/name);(source/name).touch();record["refreshed"].append({"path":name,"before":pins.get(name),"after":new});pins[name]=new
+   record["source_pin_parts"]=pinparts(label+"-");record["source_pin_sha256"]=hashlib.sha256(json.dumps(pins,sort_keys=True).encode()).hexdigest()
+   targets=request.get("targets",["native_session_api_tests","native_migration_callers_tests","native_session_access_tests","peer_source_admissions_tests","peer_source_admissions_cpp_reference","peer_source_admissions_rust_replay","peer_authority_transfer_tests","peer_authority_transfer_cpp_reference","peer_authority_transfer_rust_replay","peer_host_session_tests","peer_survivor_session_tests","peer_mesh_quality_session_tests","online_continuity_transport_tests","online_peer_transport_tests","peer_snapshot_candidate_tests","peer_snapshot_candidate_cpp_reference","peer_snapshot_candidate_rust_replay","native_receive_dispatch_tests"])
+   command=[sys.executable,str(root/"tools/run_tests.py"),"--build-worker","--source",str(source),"--output",str(output/label),"--jobs","2","--test-jobs","1"]
+   for target in targets:command+=["--target",target]
+   command+=["--filter",request.get("filter","^(native_session_api_cpp_rust|native_migration_callers_cpp_rust|native_session_access_cpp_rust|native_receive_dispatch_cpp_rust|peer_snapshot_candidate|peer_snapshot_candidate_cpp_rust_replay|peer_source_admissions|peer_source_admissions_cpp_rust_replay|peer_authority_transfer|peer_authority_transfer_cpp_rust_replay|online_peer_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$"),
+    "--cmake-arg=-DHALO2_MCC_MULTIPLAYER_ENGINE_MAP="+str(root/"assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b/halo2/h2_maps_win64_dx11/lockout.map"),"--cmake-arg=-DHALO2_MCC_PARTY_UI_TEST_CACHE="+str(root/"assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b"),"--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON","--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON","--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT="+str(root),"--cmake-arg=-DCMAKE_CXX_FLAGS_RELEASE=-O1 -DNDEBUG","--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF","--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF","--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE="+str(archive)]
+   for report in ("test-artifacts/frontend-party-view-policy.json","test-artifacts/frontend-lobby-view-policy.json","test-artifacts/frontend-party-policy.json","test-artifacts/frontend-party-flow.json","test-artifacts/frontend-presentation-policy.json","test-artifacts/frontend-progress-policy.json","test-artifacts/frontend-search-policy.json","Testing/Temporary/LastTest.log","online-protocol/Release/build-report.json","test-artifacts/source-admissions-cpp-rust.json","test-artifacts/authority-transfer-cpp-rust.json","test-artifacts/snapshot-candidate-cpp-rust.json","test-artifacts/native-receive-dispatch.json","test-artifacts/native-session-access.json","test-artifacts/native-migration-callers.json","test-artifacts/native-session-api.json"):command+=["--retain-report",report]
+   record["command"]=command;(output/(label+"-running.json")).write_text(json.dumps(record,indent=2)+"\n")
+   process=subprocess.Popen(command,env=dict(os.environ,RUSTUP_AUTO_INSTALL="0"),stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+   while True:
+    try:
+     stdout,_=process.communicate(timeout=30);break
+    except subprocess.TimeoutExpired:print(json.dumps({"iteration":serial,"status":"running","worker_pid":process.pid}),flush=True)
+   run=SimpleNamespace(returncode=process.returncode,stdout=stdout);(output/(label+"-runner.log")).write_bytes(run.stdout[-1048576:])
+   record["exit_code"]=run.returncode;record["runner_report"]=json.loads((output/label/"report.json").read_text());record["passed"]=run.returncode==0 and record["runner_report"]["passed"]
+   record["binaries"]={target:{"sha256":sha(scratch/"build"/target),"bytes":(scratch/"build"/target).stat().st_size} for target in targets if (scratch/"build"/target).is_file()}
+   record["frozen_inputs_intact"]=all(sha(source/n)==h for n,h in pins.items());assert record["frozen_inputs_intact"]
+   if not record["passed"]:print(run.stdout.decode(errors="replace")[-5000:],flush=True)
+  except BaseException as error:record["error"]=repr(error);print(repr(error),flush=True)
+  finally:
+   (output/(label+"-report.json")).write_text(json.dumps(record,indent=2)+"\n");(output/(label+"-running.json")).unlink(missing_ok=True);print(json.dumps({"iteration":serial,"passed":record["passed"],"report":str(output/(label+"-report.json"))}),flush=True)
+finally:
+ info.update(final_source_pin_parts=pinparts("final-"),iterations=serial,current_source_drift=[n for n,h in pins.items() if not (root/n).is_file() or sha(root/n)!=h])
+ (output/"inputs.json").write_text(json.dumps(info,indent=2)+"\n");print("Owner exiting; enclosing supervisor removes source/build/SDK/test output",flush=True)

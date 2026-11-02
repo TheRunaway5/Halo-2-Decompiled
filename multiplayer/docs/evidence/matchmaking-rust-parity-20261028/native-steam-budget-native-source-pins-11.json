@@ -1,0 +1,6 @@
+{
+  "tools/rust_service_steam_friends_controls.py": "10c7323fdcdbbd2783148dc9df2bdad4d5053b7b96384b7764b22588f86fe15b",
+  "tools/rust_service_steam_invite_probe.cpp": "6a5b9297bc6fa3aed6606369430100d4f0e561f50f52917690452e4414de0249",
+  "tools/rust_service_steam_provider_fixture.cpp": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+  "tools/test_rust_matchmaking_service.py": "764d6077b1a6c11aa1a5746c34a3379024f3cc375bebe5d7fc9bd12469b6a740"
+}

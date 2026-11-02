@@ -7,6 +7,11 @@ namespace halo2 {
 SourceCampaignCameraViewTu15 CinematicCameraInterpolation::sample(const CinematicCameraFrame &frame) {
     if(!std::isfinite(frame.fraction) || frame.fraction<0 || frame.fraction>1)
         throw FormatError("Invalid cinematic camera render fraction");
+    // Original1720E0 has completed the observer for this display frame. Camera
+    // animations can cut between samples without another HS command, so held
+    // samples cannot establish that an interval is safe to interpolate. Keep
+    // the original observer's cuts and transitions, including its tick cadence.
+    if(frame.original_observer) {clear();return frame.completed;}
     if(reference_held_)return frame.completed;
     if(!valid_ || !frame.paired || frame.command!=command_ || frame.restores!=restores_ ||
        frame.bsp!=bsp_ || frame.tick<tick_ || frame.tick-tick_>1) {

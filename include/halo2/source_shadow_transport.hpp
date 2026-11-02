@@ -114,6 +114,9 @@ public:
     virtual void receive(std::span<const std::byte>,std::uint64_t)=0;
     virtual std::vector<std::vector<std::byte>> poll(std::uint64_t)=0;
     virtual std::optional<SourceShadowPayload> completed()=0;
+    // Only an actual foreground import boundary may send this delivered-cut
+    // construction pulse; it grants neither native ACK nor gameplay liveness.
+    virtual bool preparation_progress(const SourceShadowPayload&){return false;}
     // Called only after the foreground owner imported/validated this exact cut.
     virtual bool acknowledge(const SourceShadowPayload&)=0;
     virtual bool current(const SourceShadowPayload&)const noexcept=0;

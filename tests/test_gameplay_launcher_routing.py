@@ -81,6 +81,29 @@ class GameplayLauncherRoutingTests(unittest.TestCase):
         self.assertNotIn('--skip-intro', row['argv'])
         self.assertNotIn('--multiplayer', row['argv'])
 
+    def test_opening_home_defers_expensive_readiness_until_the_window(self):
+        log = self.record_readiness_invocations()
+        # The home owns its asynchronous readiness check. Closing it must not
+        # parse either shader bank or hash the qualified multiplayer maps.
+        (self.root/'tools/launcher_ui.py').write_text('raise SystemExit(20)\n')
+        gameplay = self.root/'tools/gameplay_runtime_selection.py'
+        gameplay.write_text('raise RuntimeError("unrelated multiplayer admission ran")\n')
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        self.assertFalse(log.exists(), 'home ran readiness before opening its UI')
+
+    def test_direct_play_audits_only_the_selected_frontend_once(self):
+        log = self.record_readiness_invocations()
+        for path in (self.cache/'ui').iterdir(): path.unlink()
+        (self.cache/'ui').rmdir()
+        (self.root/'tools/gameplay_runtime_selection.py').write_text(
+            'raise RuntimeError("unrelated multiplayer admission ran")\n')
+        result = self.run_launcher('--launch-game', '--frames', '1', '--mute')
+        self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+        calls = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertEqual(len(calls), 1)
+        self.assertIn('--selected-frontend', calls[0])
+
     def test_explicit_multiplayer_uses_qualified_defaults(self):
         argv = self.routed('--multiplayer', '--frames', '6', '--mute')
         self.assertEqual(argv[0], str(self.runtime))

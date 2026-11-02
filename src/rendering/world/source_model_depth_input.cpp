@@ -31,8 +31,12 @@ void material_position(const Material& m) {
        (m.world_vertex_input_transform!=SourceWorldVertexInputTransform::Preserve &&
         m.world_vertex_input_transform!=SourceWorldVertexInputTransform::NormalizeSkinNormal) ||
        !source_world_depth_cull_admitted(m.forward_raster.cull) ||
-       !source_world_depth_private::position_program_admitted(m.vertex_program))
-        throw FormatError("model receiver depth lacks its exact native WORLD position program");
+       !source_model_depth_private::world_position_program_admitted(m.vertex_program))
+        throw FormatError("model receiver depth lacks its exact native WORLD position program: "+m.name+
+            " shader="+std::to_string(m.source_shader_datum)+" lod="+std::to_string(m.selected_shader_lod)+
+            " class="+(m.vertex_declaration?std::to_string(m.vertex_declaration->class_index):"NONE")+
+            " cull="+std::to_string(m.forward_raster.cull)+" transform="+
+            std::to_string(unsigned(m.world_vertex_input_transform)));
 }
 void native_prefix(const Cache& cache,const Material& m,unsigned classification,const SourceVertexDeclaration& apply) {
     material_position(m);
@@ -52,6 +56,85 @@ void native_prefix(const Cache& cache,const Material& m,unsigned classification,
         if(input>=declaration.semantics.size() || input>=apply.semantics.size() || declaration.semantics[input]!=apply.semantics[input])
             throw FormatError("model receiver depth ordinary/Apply live skin inputs differ");
 }
+}
+std::vector<SourceModelDepthSelection> source_model_depth_apply_selections_tu15(
+    std::span<const SourceModelDepthSelection> selections,const SourceShadowRawPlan& plan) {
+    using Part=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
+    std::set<Part> receiving;std::set<std::pair<std::uint32_t,std::uint32_t>> objects;
+    const auto authored=[&](std::uint32_t model,unsigned section,unsigned part)->const SourceShadowModelPart& {
+        if(!plan.model_parts)throw FormatError("model depth Apply selection lacks its immutable authored part bank");
+        const auto at=plan.model_parts->find({model,section,part});
+        if(at==plan.model_parts->end())throw FormatError("model depth Apply selection escaped its authored part bank");
+        return at->second;
+    };
+    const auto layers=[&](const auto& part,std::uint32_t shader,unsigned lod,std::uint32_t actual) {
+        if(shader!=part.shader || lod>=part.template_lod_layers.size() || actual!=part.template_lod_layers[lod])
+            throw FormatError("model depth Apply command lost its authored shader/template-LOD layers");
+    };
+    for(const auto& root:plan.roots)for(const auto& draw:root.receivers) {
+        if(draw.command.phase!=SourceShadowPhase::Apply)throw FormatError("model depth selection requires actual Apply draws");
+        const auto& binding=draw.source;const auto& owner=binding.owner();
+        if(owner.kind!=MenuWorldSourceOwnerKind::dynamic_object)continue;
+        if(!owner.generation || *owner.generation==~0u)throw FormatError("model depth Apply selection lost its actual object generation");
+        const auto section=binding.draw().geometry->section(),part=binding.draw().part;
+        layers(authored(owner.scope_datum,section,part),draw.command.command[2],
+            draw.command.command[5]>>8&255u,draw.command.command[4]);
+        if(!(draw.command.command[4]&0x800u))throw FormatError("model depth receiver contradicts its authored Apply layer");
+        receiving.emplace(*owner.generation,owner.scope_datum,section,part);
+        objects.emplace(*owner.generation,owner.scope_datum);
+    }
+    std::vector<SourceModelDepthSelection> result;
+    for(const auto& selection:selections) {
+        // Preserve the original caller's whole-object prefilter: objects with
+        // no Apply draw anywhere are not shadow receivers in this frame.
+        if(!objects.contains({selection.object,selection.render_model}))continue;
+        if(!selection.model || selection.source_vertices.size()%3 || selection.first%3)
+            throw FormatError("model depth Apply selection lost its ordinary triangle span");
+        std::optional<std::size_t> begin;
+        const auto finish=[&](std::size_t end) {
+            if(!begin)return;auto run=selection;run.first+=*begin;
+            run.source_vertices=selection.source_vertices.subspan(*begin,end-*begin);result.push_back(run);begin.reset();
+        };
+        std::map<std::pair<unsigned,unsigned>,bool> decisions;
+        for(std::size_t n=0;n<selection.source_vertices.size();n+=3) {
+            const auto& origins=selection.model->vertex_origins;const auto ordinal=selection.source_vertices[n];
+            if(ordinal>=origins.size())throw FormatError("model depth Apply selection escaped its original vertex owner");
+            const auto& origin=origins[ordinal];
+            for(unsigned lane=1;lane<3;++lane) {
+                const auto index=selection.source_vertices[n+lane];
+                if(index>=origins.size() || origins[index].section!=origin.section || origins[index].part!=origin.part ||
+                   origins[index].vertex_class!=origin.vertex_class)
+                    throw FormatError("model depth Apply selection crosses authored part/class ownership");
+            }
+            auto [decision,fresh]=decisions.try_emplace({origin.section,origin.part},false);
+            if(fresh) {
+                const auto& part=authored(selection.render_model,origin.section,origin.part);
+                const bool never=part.type==0 || part.type==5 || part.shader==~0u ||
+                    std::none_of(part.template_lod_layers.begin(),part.template_lod_layers.end(),[](auto mask){return mask&0x800u;});
+                const bool receiver=receiving.contains({selection.object,selection.render_model,origin.section,origin.part});
+                if(receiver && never)throw FormatError("model depth receiver contradicts its authored non-Apply part");
+                if(!receiver && !never) {
+                    bool excluded=false;
+                    for(const auto& root:plan.roots)for(const auto& command:root.model_commands)
+                        if(command.object==selection.object && command.render_model==selection.render_model &&
+                           command.section==origin.section && command.part==origin.part) {
+                            layers(part,command.shader,command.shader_lod,command.layers);
+                            if((command.layers&0x800u) && !command.empty_ranges)
+                                throw FormatError("model receiver depth part lacks its actual Apply owner: object="+std::to_string(selection.object)+
+                                    " model="+std::to_string(selection.render_model)+" section="+std::to_string(origin.section)+" part="+std::to_string(origin.part));
+                            excluded=true;
+                        }
+                    if(!excluded)throw FormatError("model receiver depth part lacks its actual Apply exclusion owner: object="+
+                        std::to_string(selection.object)+" model="+std::to_string(selection.render_model)+
+                        " section="+std::to_string(origin.section)+" part="+std::to_string(origin.part));
+                }
+                decision->second=receiver;
+            }
+            if(decision->second){if(!begin)begin=n;}else finish(n);
+        }
+        finish(selection.source_vertices.size());
+    }
+    return result;
 }
 SourceModelDepthInput source_model_depth_input_tu15(const SourceWorldDepthInput& depth,
     const RendererTargets::Use& use,std::span<const Vertex> vertices,
@@ -159,11 +242,31 @@ SourceModelDepthInput source_model_depth_input_tu15(const SourceWorldDepthInput&
                         throw FormatError("model receiver depth has conflicting actual native palettes");
                 match=&candidate;
             }
-            if(!match)throw FormatError("model receiver depth triangle has no matching actual native Apply owner");
+            if(!match) {
+                std::string candidates;
+                unsigned count{};
+                for(const auto &candidate:raw) {
+                    const auto &binding=candidate.draw->source;const auto &owner=binding.owner();
+                    if(owner.generation!=selection.object || owner.scope_datum!=selection.render_model)continue;
+                    if(count++<6)candidates+=" [section="+std::to_string(binding.draw().geometry->section())+
+                        " part="+std::to_string(binding.draw().part)+" class="+
+                        std::to_string(binding.declaration().class_index)+" triangles="+
+                        std::to_string(candidate.triangles.size())+" topology="+
+                        std::to_string(unsigned(binding.draw().topology))+
+                        " lod="+std::to_string((candidate.draw->command.command[5]>>8)&255u)+"]";
+                }
+                throw FormatError("model receiver depth triangle has no matching actual native Apply owner: object="+
+                    std::to_string(selection.object)+" definition="+std::to_string(selection.definition)+
+                    " model="+std::to_string(selection.render_model)+" lod="+std::to_string(selection.lod)+
+                    " section="+std::to_string(origin[0].section)+" part="+std::to_string(origin[0].part)+
+                    " class="+std::to_string(origin[0].vertex_class)+" triangle="+std::to_string(native_triangle)+
+                    " vertices="+std::to_string(origin[0].vertex)+","+std::to_string(origin[1].vertex)+","+
+                    std::to_string(origin[2].vertex)+" candidates="+std::to_string(count)+candidates);
+            }
             const std::array<Vertex,3> triangle{vertices[selection.first+n],vertices[selection.first+n+1],vertices[selection.first+n+2]};
             for(unsigned lane=0;lane<3;++lane) {
                 const auto at=selection.first+n+lane;const auto material=vertices[at].material;
-                const auto& m=materials[material];material_position(m);
+                const auto& m=materials[material];
                 const auto classification=match->draw->source.declaration().class_index;
                 if(checked_materials.emplace(material,classification).second)
                     native_prefix(depth.cache_owner(),m,classification,match->draw->source.declaration());

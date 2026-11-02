@@ -1,0 +1,53 @@
+{
+  "owned_parents": [
+    {
+      "parent": ".local/test-scratch/frontend-party-lobby-view-native-20261102",
+      "children": [
+        "halo2-test-w718i73m"
+      ],
+      "empty": false
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-core-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-rust-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-build-helper-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-original-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-original-inspected-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-original-qualified-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-component-20261102",
+      "children": [],
+      "empty": true
+    },
+    {
+      "parent": ".local/test-scratch/frontend-lobby-view-component-corrected-20261102",
+      "children": [],
+      "empty": true
+    }
+  ],
+  "active_owner": "frontend-party-lobby-view-native-20261102",
+  "retained_large_artifacts": []
+}

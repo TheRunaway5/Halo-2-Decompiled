@@ -1,0 +1,13 @@
+{
+  "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/client-controller-rust-validation.json",
+  "source_reports": 326,
+  "unique_report_payloads": 204,
+  "retained_report_count": 206,
+  "retained_report_bytes": 7498872,
+  "deduplication": "Exact retained byte SHA256; every source report maps to its authenticated payload",
+  "retained_large_artifacts": [],
+  "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-evidence/halo2-test-6wp8a4kh",
+  "cleanup_verified": true,
+  "duplicate_report_copies_removed": true,
+  "writer_removed": true
+}

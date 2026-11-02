@@ -1,0 +1,1827 @@
+{
+  "schema": "H2_RUST_STEAM_FRIEND_OWNER_VALIDATION_V1",
+  "updated_utc": "2026-10-29T22:05:59.931137+00:00",
+  "source_head": "7a9538c94f828aa164d92e3cc750c6d094cb7df0",
+  "steam_friend_component_passed": true,
+  "original_parity_certified": false,
+  "full_goal_complete": false,
+  "rust_authorities": "Rust now owns the complete modern Steam friend request coordinator: verified native-account continuation binding; current canonical Steam-link SQL; fixed upstream request planning, strict response decoding and100-ID batches; online-name filtering, Unicode16 casefold ordering and live registration/presence/block projection; endpoint rate limits, bounded FIFO work leases, credential epochs and60-second upstream caching. Python executes typed HTTP/clock/SQL/presence IO without an authoritative cache, lock, filter or sort. No SQL transaction crosses a provider await; uncommitted SQL observations and failed final COMMIT cannot publish shared cache data. Native account/link/config changes fence asynchronous completion. Steam party invitations require opaque native proofs bound to actor, bearer, current Steam subject, exact command/target and expiry; SQL rollback releases the proof, successful commit consumes it, and durable request replay remains idempotent. Real HTTP controls for revoked lookup, link changes and Python cache authority are red before the port and green afterwards. Modern bounds include a1MiB upstream body,10,000 friend IDs, first1,000 selected friends,100 summaries per request,1,000 cache entries/64MiB canonical JSON,75-second work lifetime and30-second invitation proof. Rust also owns the native method/endpoint response budget through CXX:1MiB for the exact friend GET and256KiB for other account operations, applied to both libcurl reception and JSON parsing. A real native HTTP fixture reproduces the old340,051-byte response rejection. These are declared modern Steam/service rules, not original Live recovery. Steam OpenID/shared identity/sign-in persona verification, general service/middleware replacement, cross-store/process recovery and all original/native played/delivered gates remain open.",
+  "reproduced_gaps": [
+    {
+      "trigger": "Revoke the actual native account at provider await.",
+      "before": "Authenticated GET incorrectly returns200.",
+      "after": "Native account continuation rejects401."
+    },
+    {
+      "trigger": "Remove the actor's current Steam alias during provider await.",
+      "before": "GET returns200 using stale linkage.",
+      "after": "Native SQL revalidation rejects403."
+    },
+    {
+      "trigger": "Install forged online-friend rows in the former Python cache while upstream is private.",
+      "before": "Party invite incorrectly succeeds200.",
+      "after": "Python cache alias is ignored; native provider/proof rejects403.",
+      "scope": "Internal adapter-authority control, not remote Python access."
+    },
+    {
+      "trigger": "Remove the canonical Steam alias after lookup and before the actual party command.",
+      "before": "Party invite incorrectly succeeds200.",
+      "after": "Native proof/canonical-link SQL rejects403."
+    },
+    {
+      "trigger": "Real libcurl/account HTTP receives1000 valid128-byte quote names.",
+      "before": "Server200 contains340051 bytes; native friend list is unavailable/empty under256KiB.",
+      "after": "Rust endpoint-specific1MiB budget admits all1000 rows through receiver and parser; other account endpoints keep256KiB."
+    }
+  ],
+  "checks": [
+    "Actual authenticated provider-await revocation/link/config fencing; no SQL transaction held over HTTP",
+    "Native proof authority, exact command/account/target binding, expiry, SQL rollback/commit and durable same-request replay",
+    "Final projection COMMIT failure cannot publish cache data or retain the upstream work slot",
+    "Cancellation releases FIFO work; credential changes retire old context; bounded rate/cache/work/proof lifetimes",
+    "1001 reversed friends truncate to ordered1000 with ten100-ID batches; upstream bodies above old16KiB work",
+    "Strict duplicate/shape/size/encoding handling; profiles are scoped to their actual requested summary batch",
+    "Pinned Unicode16 raw casefold ordering and live registration/presence/bilateral block projection",
+    "Matching final diagnostic/production source cohorts and stable copied native production source",
+    "Real native1000-friend HTTP, independent confirmation/OpenID fixture, sign-out and general account body-limit regression"
+  ],
+  "cohorts": {
+    "owner-red": {
+      "passed": false,
+      "files": 290,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_unicode.rs",
+        "multiplayer/master_server/service.py",
+        "multiplayer/master_server/parties_http.py",
+        "multiplayer/master_server/steam_friends.py",
+        "multiplayer/master_server/native_party_directory.py",
+        "multiplayer/master_server/tests/test_steam_login.py",
+        "multiplayer/master_server/tests/test_steam_friends_owner_native.py"
+      ],
+      "report": "steam-owner-red-report.json",
+      "manifest": "steam-owner-red-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-tz_l92py/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "27eb0a4ce96b1963af6eb26804139c1ac74bd430f1b142c1d632297e7ba40449",
+        "bytes": 4665592,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-tz_l92py/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native"
+          ],
+          "returncode": 1
+        }
+      ],
+      "backend_tests": 4,
+      "backend_seconds": 0.533,
+      "backend_failures": 4
+    },
+    "owner-first": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_security_ffi/src/matchmaking_coordinator.rs",
+        "rust/online_protocol/src/matchmaking_party_directory.rs",
+        "rust/online_protocol/src/matchmaking_unicode.rs",
+        "rust/online_protocol/src/matchmaking_steam_cache.rs",
+        "rust/online_protocol/src/matchmaking_steam_request.rs",
+        "multiplayer/master_server/tests/test_steam_friends_owner_native.py"
+      ],
+      "report": "steam-owner-first-report.json",
+      "manifest": "steam-owner-first-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-opck86w7/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "50017f8154871747f1499ec29149051bd0dde173d00c2f50eb0bd02e7e7255f4",
+        "bytes": 4868144,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-opck86w7/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-opck86w7/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_parties_http"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 193,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 193,
+      "rust_ignored": 2,
+      "backend_tests": 30,
+      "backend_seconds": 7.923,
+      "backend_failures": 0
+    },
+    "boundaries": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_unicode.rs",
+        "rust/online_protocol/src/matchmaking_steam_cache.rs",
+        "rust/online_protocol/src/matchmaking_steam_request.rs",
+        "multiplayer/master_server/tests/test_steam_friends_owner_native.py"
+      ],
+      "report": "steam-boundaries-report.json",
+      "manifest": "steam-boundaries-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-n0je51gv/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "238c02517ceb03ecfd3fa948ae5c32e9b1c90ebc18abaa7b124f23e77a0e002b",
+        "bytes": 4870624,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-n0je51gv/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_steam_login"
+          ],
+          "returncode": 0
+        }
+      ],
+      "backend_tests": 25,
+      "backend_seconds": 5.397,
+      "backend_failures": 0
+    },
+    "owner-units": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_steam_request.rs"
+      ],
+      "report": "steam-owner-units-report.json",
+      "manifest": "steam-owner-units-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-scol_wp0/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "037e5f2de8388dbe26ac3ab973451fdd9d8a78f7ad5f055e95888063f6682d8d",
+        "bytes": 4868416,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-scol_wp0/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-scol_wp0/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native",
+            "multiplayer.master_server.tests.test_steam_login"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 199,
+      "rust_integration_passed": 0,
+      "rust_checks_passed": 199,
+      "rust_ignored": 2,
+      "backend_tests": 25,
+      "backend_seconds": 5.836,
+      "backend_failures": 0
+    },
+    "full": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_steam_request.rs"
+      ],
+      "report": "steam-full-report.json",
+      "manifest": "steam-full-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-aohanb0d/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "ce5ca2e6e32a6854f480be3399b8ed7995c096c53e7c385ac922afb88de891a9",
+        "bytes": 4868256,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-aohanb0d/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_skill_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "matchmaking_coordinator",
+            "--test",
+            "gathering_owner",
+            "--test",
+            "team_assignment_original",
+            "--test",
+            "matchmaking_ratings_original",
+            "--test",
+            "session_candidates_original",
+            "--test",
+            "search_lifecycle_original"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-aohanb0d/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "multiplayer/master_server/tests",
+            "-t",
+            "."
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 199,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 293,
+      "rust_ignored": 2,
+      "backend_tests": 566,
+      "backend_seconds": 342.561,
+      "backend_failures": 0
+    },
+    "production": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [
+        "rust/online_protocol/src/matchmaking_steam_request.rs"
+      ],
+      "report": "steam-production-report.json",
+      "manifest": "steam-production-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-x96a0gsi/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "e3385a995678aa72f50b4106a99bc22e3dfcc1541126d3b1dcb6d243fa878608",
+        "bytes": 4870552,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-x96a0gsi/master-source/rust/online_protocol/Cargo.toml",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "gathering_owner"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-x96a0gsi/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_room_wire_owner_native",
+            "multiplayer.master_server.tests.test_voice_blocks",
+            "multiplayer.master_server.tests.test_eos_room_identity",
+            "multiplayer.master_server.tests.test_room_lifecycle_owner_native",
+            "multiplayer.master_server.tests.test_continuity_owner_native",
+            "multiplayer.master_server.tests.test_match_continuity",
+            "multiplayer.master_server.tests.test_room_setup_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_readiness_native",
+            "multiplayer.master_server.tests.test_queue_api_owner_native",
+            "multiplayer.master_server.tests.test_countdown_owner_native",
+            "multiplayer.master_server.tests.test_party_countdown",
+            "multiplayer.master_server.tests.test_party_consent_owner_native",
+            "multiplayer.master_server.tests.test_party_activity",
+            "multiplayer.master_server.tests.test_party_privacy",
+            "multiplayer.master_server.tests.test_sessions_owner_native",
+            "multiplayer.master_server.tests.test_catalog_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_http",
+            "multiplayer.master_server.tests.test_couch_online",
+            "multiplayer.master_server.tests.test_matchmaking_appearance",
+            "multiplayer.master_server.tests.test_security_linked_admission",
+            "multiplayer.master_server.tests.test_parties_http",
+            "multiplayer.master_server.tests.test_online_population",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_ranked_results",
+            "multiplayer.master_server.tests.test_casual_results",
+            "multiplayer.master_server.tests.test_result_consent",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_results_owner_native",
+            "multiplayer.master_server.tests.test_gathering_owner_native",
+            "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+            "multiplayer.master_server.tests.test_direct_peer_http",
+            "multiplayer.master_server.tests.test_match_continuity_http",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_content_rejection_is_authenticated_and_publishes_original_party_failure",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_readiness_loss_resets_the_shared_start_clock",
+            "multiplayer.master_server.tests.test_room_packets_owner_native",
+            "multiplayer.master_server.tests.test_security_voice_origin",
+            "multiplayer.master_server.tests.test_match_packet_budget",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_admission_real_challenges_loading_and_authenticated_routes",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_data_mismatch_closes_everyone",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_audio_flood_is_bounded_on_the_authenticated_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_game_flood_is_bounded_on_the_authenticated_destination",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_voice_preferences_share_the_bounded_speaker_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_presence_follows_live_match_after_frontend_session_teardown",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_delta_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_anonymous_and_unmatched_transport_denied",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disagreed_report_cannot_enter_persistent_results",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disconnect_during_review_records_no_result",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_report_admission_signed_totals_and_tied_standings",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_finalize_or_forge_postgame",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_forged_postgame_identity_is_rejected",
+            "multiplayer.master_server.tests.test_room_control_owner_native",
+            "multiplayer.master_server.tests.test_search_qos_owner_native",
+            "multiplayer.master_server.tests.test_search_qos",
+            "multiplayer.master_server.tests.test_party_directory_owner_native",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_clan_directory_owner_native",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_clan_voice",
+            "multiplayer.master_server.tests.test_eos_identity",
+            "multiplayer.master_server.tests.test_history_owner_native",
+            "multiplayer.master_server.tests.test_carnage_history",
+            "multiplayer.master_server.tests.test_player_profile",
+            "multiplayer.master_server.tests.test_profile_owner_native",
+            "multiplayer.master_server.tests.test_presence_owner_native",
+            "multiplayer.master_server.tests.test_friend_owner_native",
+            "multiplayer.master_server.tests.test_friend_cloud",
+            "multiplayer.master_server.tests.test_voice_owner_native",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 199,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 271,
+      "rust_ignored": 2,
+      "backend_tests": 358,
+      "backend_seconds": 246.2,
+      "backend_failures": 0
+    },
+    "full-final": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": true,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "report": "steam-full-final-report.json",
+      "manifest": "steam-full-final-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-gwof7xah/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "9acf9d853ea9bc900e596737040238492d00f5e409fffb46288acfff62109ed8",
+        "bytes": 4874360,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-gwof7xah/master-source/rust/online_protocol/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_skill_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "matchmaking_coordinator",
+            "--test",
+            "gathering_owner",
+            "--test",
+            "team_assignment_original",
+            "--test",
+            "matchmaking_ratings_original",
+            "--test",
+            "session_candidates_original",
+            "--test",
+            "search_lifecycle_original"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-gwof7xah/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "multiplayer/master_server/tests",
+            "-t",
+            "."
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 94,
+      "rust_checks_passed": 294,
+      "rust_ignored": 2,
+      "backend_tests": 566,
+      "backend_seconds": 145.732,
+      "backend_failures": 0
+    },
+    "production-final": {
+      "passed": true,
+      "files": 293,
+      "source_frozen": true,
+      "matchmaking_test_inputs": false,
+      "drift_during_freeze": [],
+      "changed_since_freeze": [],
+      "report": "steam-production-final-report.json",
+      "manifest": "steam-production-final-source-manifest.json",
+      "rust_library": {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-o_c1x6uq/cargo/release/libhalo2_online_security_ffi.so",
+        "sha256": "1aa31c8fbcc4ad51a777d837b5d83f36c1b3d20e403a97b96afa0460a6c05e9f",
+        "bytes": 4870384,
+        "retained": false,
+        "borrowed_external": false
+      },
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "test",
+            "--locked",
+            "--offline",
+            "--jobs",
+            "2",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-o_c1x6uq/master-source/rust/online_protocol/Cargo.toml",
+            "--lib",
+            "--test",
+            "matchmaking_continuity",
+            "--test",
+            "matchmaking_room_setup",
+            "--test",
+            "matchmaking_queue_api",
+            "--test",
+            "matchmaking_catalog",
+            "--test",
+            "matchmaking_sessions",
+            "--test",
+            "matchmaking_parties",
+            "--test",
+            "party_countdown_original",
+            "--test",
+            "matchmaking_results",
+            "--test",
+            "gathering_owner"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-o_c1x6uq/master-source/rust/online_security_ffi/Cargo.toml"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_room_wire_owner_native",
+            "multiplayer.master_server.tests.test_voice_blocks",
+            "multiplayer.master_server.tests.test_eos_room_identity",
+            "multiplayer.master_server.tests.test_room_lifecycle_owner_native",
+            "multiplayer.master_server.tests.test_continuity_owner_native",
+            "multiplayer.master_server.tests.test_match_continuity",
+            "multiplayer.master_server.tests.test_room_setup_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_readiness_native",
+            "multiplayer.master_server.tests.test_queue_api_owner_native",
+            "multiplayer.master_server.tests.test_countdown_owner_native",
+            "multiplayer.master_server.tests.test_party_countdown",
+            "multiplayer.master_server.tests.test_party_consent_owner_native",
+            "multiplayer.master_server.tests.test_party_activity",
+            "multiplayer.master_server.tests.test_party_privacy",
+            "multiplayer.master_server.tests.test_sessions_owner_native",
+            "multiplayer.master_server.tests.test_catalog_owner_native",
+            "multiplayer.master_server.tests.test_matchmaking_http",
+            "multiplayer.master_server.tests.test_couch_online",
+            "multiplayer.master_server.tests.test_matchmaking_appearance",
+            "multiplayer.master_server.tests.test_security_linked_admission",
+            "multiplayer.master_server.tests.test_parties_http",
+            "multiplayer.master_server.tests.test_online_population",
+            "multiplayer.master_server.tests.test_steam_login",
+            "multiplayer.master_server.tests.test_ranked_results",
+            "multiplayer.master_server.tests.test_casual_results",
+            "multiplayer.master_server.tests.test_result_consent",
+            "multiplayer.master_server.tests.test_clan_matchmaking_http",
+            "multiplayer.master_server.tests.test_results_owner_native",
+            "multiplayer.master_server.tests.test_gathering_owner_native",
+            "multiplayer.master_server.tests.test_gathering_sessions.GatheringHttpTests",
+            "multiplayer.master_server.tests.test_direct_peer_http",
+            "multiplayer.master_server.tests.test_match_continuity_http",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_content_rejection_is_authenticated_and_publishes_original_party_failure",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_opt_in_terminal_failure_survives_room_teardown_and_fresh_search_clears_it",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_start_countdown_is_shared_opt_in_and_disappears_on_readiness_loss",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_readiness_loss_resets_the_shared_start_clock",
+            "multiplayer.master_server.tests.test_room_packets_owner_native",
+            "multiplayer.master_server.tests.test_security_voice_origin",
+            "multiplayer.master_server.tests.test_match_packet_budget",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_admission_real_challenges_loading_and_authenticated_routes",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_data_mismatch_closes_everyone",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_audio_flood_is_bounded_on_the_authenticated_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_game_flood_is_bounded_on_the_authenticated_destination",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_voice_preferences_share_the_bounded_speaker_stream",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_presence_follows_live_match_after_frontend_session_teardown",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_send_authoritative_delta_snapshots",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_anonymous_and_unmatched_transport_denied",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_completed_report_allows_independent_requeue",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disagreed_report_cannot_enter_persistent_results",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_disconnect_during_review_records_no_result",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_team_report_admission_signed_totals_and_tied_standings",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_client_cannot_finalize_or_forge_postgame",
+            "multiplayer.master_server.tests.test_match_transport.MatchTransportTests.test_forged_postgame_identity_is_rejected",
+            "multiplayer.master_server.tests.test_room_control_owner_native",
+            "multiplayer.master_server.tests.test_search_qos_owner_native",
+            "multiplayer.master_server.tests.test_search_qos",
+            "multiplayer.master_server.tests.test_party_directory_owner_native",
+            "multiplayer.master_server.tests.test_party_voice",
+            "multiplayer.master_server.tests.test_friends_http",
+            "multiplayer.master_server.tests.test_clan_directory_owner_native",
+            "multiplayer.master_server.tests.test_clans_http",
+            "multiplayer.master_server.tests.test_clan_voice",
+            "multiplayer.master_server.tests.test_eos_identity",
+            "multiplayer.master_server.tests.test_history_owner_native",
+            "multiplayer.master_server.tests.test_carnage_history",
+            "multiplayer.master_server.tests.test_player_profile",
+            "multiplayer.master_server.tests.test_profile_owner_native",
+            "multiplayer.master_server.tests.test_presence_owner_native",
+            "multiplayer.master_server.tests.test_friend_owner_native",
+            "multiplayer.master_server.tests.test_friend_cloud",
+            "multiplayer.master_server.tests.test_voice_owner_native",
+            "multiplayer.master_server.tests.test_steam_friends_owner_native"
+          ],
+          "returncode": 0
+        }
+      ],
+      "rust_unit_passed": 200,
+      "rust_integration_passed": 72,
+      "rust_checks_passed": 272,
+      "rust_ignored": 2,
+      "backend_tests": 358,
+      "backend_seconds": 99.706,
+      "backend_failures": 0
+    }
+  },
+  "native_cmake": {
+    "packaging": {
+      "passed": true,
+      "inputs": 667,
+      "copied_source_bytes": null,
+      "copied_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "CMakeLists.txt",
+        "cmake/AuthorityCodec.cmake",
+        "cmake/PathTracing.cmake",
+        "cmake/PhysicsLiveWorldTu15.cmake",
+        "rust/online_protocol_bridge/src/lib.rs",
+        "rust/online_protocol/src/matchmaking_steam_request.rs"
+      ],
+      "declared_refresh": {},
+      "native_checks_passed": 1,
+      "reports": {
+        "build.log": "steam-native-packaging-build.log",
+        "configure.log": "steam-native-packaging-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "steam-native-packaging-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "steam-native-packaging-inputs.json",
+        "report.json": "steam-native-packaging-report.json",
+        "tests.log": "steam-native-packaging-tests.log"
+      }
+    },
+    "confirmation-fixture-red": {
+      "passed": false,
+      "inputs": 4277,
+      "copied_source_bytes": 166351657,
+      "copied_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-utm8xjhr/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "CMakeLists.txt",
+        "include/halo2/source_campaign_secondary_view_tu15.hpp",
+        "include/halo2/source_machine_scene.hpp",
+        "rust/online_protocol/src/matchmaking_steam_request.rs",
+        "rust/online_protocol_bridge/src/lib.rs",
+        "src/app/loop_audio_capture.hpp",
+        "src/app/main.cpp",
+        "src/campaign/source_campaign_secondary_view_tu15.cpp",
+        "src/gameplay/animation/source_first_person_context_tu15.cpp",
+        "src/gameplay/objects/source_machine_scene.cpp",
+        "src/gameplay/objects/source_object_geometry.cpp",
+        "src/gameplay/objects/source_object_geometry.hpp",
+        "src/network/online_account.cpp",
+        "src/rendering/mcc_native_shaders.cpp",
+        "src/runtime/mcc_native_pc_world_programs.inc",
+        "src/ui/frontend_painter.cpp",
+        "src/ui/frontend_state.cpp",
+        "tests/steam_login_http_test.py",
+        "tools/online_login_probe.cpp"
+      ],
+      "declared_refresh": {},
+      "native_checks_passed": 0,
+      "reports": {
+        "build.log": "steam-native-confirmation-fixture-red-build.log",
+        "configure.log": "steam-native-confirmation-fixture-red-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "steam-native-confirmation-fixture-red-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "steam-native-confirmation-fixture-red-inputs.json",
+        "report.json": "steam-native-confirmation-fixture-red-report.json",
+        "source-pins-0.json": "steam-native-confirmation-fixture-red-source-pins-0.json",
+        "source-pins-1.json": "steam-native-confirmation-fixture-red-source-pins-1.json",
+        "source-pins-10.json": "steam-native-confirmation-fixture-red-source-pins-10.json",
+        "source-pins-2.json": "steam-native-confirmation-fixture-red-source-pins-2.json",
+        "source-pins-3.json": "steam-native-confirmation-fixture-red-source-pins-3.json",
+        "source-pins-4.json": "steam-native-confirmation-fixture-red-source-pins-4.json",
+        "source-pins-5.json": "steam-native-confirmation-fixture-red-source-pins-5.json",
+        "source-pins-6.json": "steam-native-confirmation-fixture-red-source-pins-6.json",
+        "source-pins-7.json": "steam-native-confirmation-fixture-red-source-pins-7.json",
+        "source-pins-8.json": "steam-native-confirmation-fixture-red-source-pins-8.json",
+        "source-pins-9.json": "steam-native-confirmation-fixture-red-source-pins-9.json",
+        "tests.log": "steam-native-confirmation-fixture-red-tests.log"
+      },
+      "scope": "Superseded fixture failure before a valid body-limit control; not evidence of the client body-limit defect."
+    },
+    "loading-fixture-red": {
+      "passed": false,
+      "inputs": 4279,
+      "copied_source_bytes": 166405566,
+      "copied_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "include/halo2/source_campaign_secondary_view_tu15.hpp",
+        "include/halo2/source_machine_scene.hpp",
+        "rust/online_protocol/src/matchmaking_steam_request.rs",
+        "rust/online_protocol_bridge/src/lib.rs",
+        "src/app/loop_audio_capture.hpp",
+        "src/app/main.cpp",
+        "src/campaign/source_campaign_secondary_view_tu15.cpp",
+        "src/gameplay/animation/source_first_person_context_tu15.cpp",
+        "src/gameplay/objects/source_machine_scene.cpp",
+        "src/gameplay/objects/source_object_geometry.cpp",
+        "src/gameplay/objects/source_object_geometry.hpp",
+        "src/network/online_account.cpp",
+        "src/rendering/mcc_native_shaders.cpp",
+        "src/runtime/mcc_native_pc_world_programs.inc",
+        "tests/online_account_tests.cpp",
+        "tests/steam_login_http_test.py",
+        "tools/online_login_probe.cpp"
+      ],
+      "declared_refresh": {},
+      "native_checks_passed": 0,
+      "reports": {
+        "build.log": "steam-native-loading-fixture-red-build.log",
+        "configure.log": "steam-native-loading-fixture-red-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "steam-native-loading-fixture-red-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "steam-native-loading-fixture-red-inputs.json",
+        "report.json": "steam-native-loading-fixture-red-report.json",
+        "source-pins-0.json": "steam-native-loading-fixture-red-source-pins-0.json",
+        "source-pins-1.json": "steam-native-loading-fixture-red-source-pins-1.json",
+        "source-pins-10.json": "steam-native-loading-fixture-red-source-pins-10.json",
+        "source-pins-2.json": "steam-native-loading-fixture-red-source-pins-2.json",
+        "source-pins-3.json": "steam-native-loading-fixture-red-source-pins-3.json",
+        "source-pins-4.json": "steam-native-loading-fixture-red-source-pins-4.json",
+        "source-pins-5.json": "steam-native-loading-fixture-red-source-pins-5.json",
+        "source-pins-6.json": "steam-native-loading-fixture-red-source-pins-6.json",
+        "source-pins-7.json": "steam-native-loading-fixture-red-source-pins-7.json",
+        "source-pins-8.json": "steam-native-loading-fixture-red-source-pins-8.json",
+        "source-pins-9.json": "steam-native-loading-fixture-red-source-pins-9.json",
+        "tests.log": "steam-native-loading-fixture-red-tests.log"
+      },
+      "scope": "Superseded fixture failure before a valid body-limit control; not evidence of the client body-limit defect."
+    },
+    "body-red": {
+      "passed": false,
+      "inputs": 4279,
+      "copied_source_bytes": 166406320,
+      "copied_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "include/halo2/source_campaign_secondary_view_tu15.hpp",
+        "include/halo2/source_machine_scene.hpp",
+        "rust/online_protocol/src/matchmaking_steam_request.rs",
+        "rust/online_protocol_bridge/src/lib.rs",
+        "src/app/loop_audio_capture.hpp",
+        "src/app/main.cpp",
+        "src/campaign/source_campaign_secondary_view_tu15.cpp",
+        "src/gameplay/animation/source_first_person_context_tu15.cpp",
+        "src/gameplay/objects/source_machine_scene.cpp",
+        "src/gameplay/objects/source_object_geometry.cpp",
+        "src/gameplay/objects/source_object_geometry.hpp",
+        "src/network/online_account.cpp",
+        "src/rendering/mcc_native_shaders.cpp",
+        "src/runtime/mcc_native_pc_world_programs.inc",
+        "tests/online_account_tests.cpp"
+      ],
+      "declared_refresh": {
+        "tools/online_login_probe.cpp": {
+          "before": "bc1b83435da6326903f40952d1b1a1ab0897d35f9e9ef1593ddfdd4210c74243",
+          "after": "a3a2ca32e3f600b638fe317c10ad9cc3a5a28147f64ec43337a77e84900f6ea6"
+        },
+        "tests/steam_login_http_test.py": {
+          "before": "ef9e345e07c19b8a0b353ba4e91e6473224deafd3a376eea03d57aaa45711b88",
+          "after": "aad6ed0a56b5ad269a874f5ee81cb5ac86d6fcc7c8d4987bafae48d65d3bf1ca"
+        }
+      },
+      "native_checks_passed": 3,
+      "reports": {
+        "build.log": "steam-native-body-red-build.log",
+        "configure.log": "steam-native-body-red-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "steam-native-body-red-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "steam-native-body-red-inputs.json",
+        "report.json": "steam-native-body-red-report.json",
+        "source-pins-0.json": "steam-native-body-red-source-pins-0.json",
+        "source-pins-1.json": "steam-native-body-red-source-pins-1.json",
+        "source-pins-10.json": "steam-native-body-red-source-pins-10.json",
+        "source-pins-2.json": "steam-native-body-red-source-pins-2.json",
+        "source-pins-3.json": "steam-native-body-red-source-pins-3.json",
+        "source-pins-4.json": "steam-native-body-red-source-pins-4.json",
+        "source-pins-5.json": "steam-native-body-red-source-pins-5.json",
+        "source-pins-6.json": "steam-native-body-red-source-pins-6.json",
+        "source-pins-7.json": "steam-native-body-red-source-pins-7.json",
+        "source-pins-8.json": "steam-native-body-red-source-pins-8.json",
+        "source-pins-9.json": "steam-native-body-red-source-pins-9.json",
+        "tests.log": "steam-native-body-red-tests.log"
+      }
+    },
+    "green": {
+      "passed": true,
+      "inputs": 4279,
+      "copied_source_bytes": 166407693,
+      "copied_source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+      "drift_during_build": [],
+      "changed_in_live_checkout": [
+        "include/halo2/source_campaign_secondary_view_tu15.hpp",
+        "include/halo2/source_machine_scene.hpp",
+        "src/app/loop_audio_capture.hpp",
+        "src/app/main.cpp",
+        "src/campaign/source_campaign_secondary_view_tu15.cpp",
+        "src/gameplay/animation/source_first_person_context_tu15.cpp",
+        "src/gameplay/objects/source_machine_scene.cpp",
+        "src/gameplay/objects/source_object_geometry.cpp",
+        "src/gameplay/objects/source_object_geometry.hpp",
+        "src/rendering/mcc_native_shaders.cpp",
+        "src/runtime/mcc_native_pc_world_programs.inc"
+      ],
+      "declared_refresh": {
+        "rust/online_protocol/src/matchmaking_steam_request.rs": {
+          "before": "5aa1bbde62ac81a532384853caab4fffe30ba5c07508de6e6f9e8eaf8d52065b",
+          "after": "f5928d70575fd6e4a7cdea05006f6ce7aac53244d46fbe3f02359d4c946eac7b"
+        },
+        "rust/online_protocol_bridge/src/lib.rs": {
+          "before": "4e5395c9a9f36484352d2596e10698a10fd96f5b3cc673ff1d1115ae240b6cfa",
+          "after": "6a5d51cbc06c8890fc10606dcc062f864dcf8676f2d447e9f2bbd9536cb6d8ff"
+        },
+        "src/network/online_account.cpp": {
+          "before": "89e2f4fe7622f6366e949e262f9831bdbcd70cfc7b0fc94fd3c46d0a3f889214",
+          "after": "d88c521f40a0b57189cccf22386700a1459b50dc1d91666b51fdcdf29f8a1f8d"
+        },
+        "tests/online_account_tests.cpp": {
+          "before": "c946191fbbfca527b79c61f545e1e356fbaf0e69aa23eca16b4da39197cf6afc",
+          "after": "ec43c15878b78fbd29ea5e274d647d4964160e169cfb83193f57b09ceac3041a"
+        }
+      },
+      "native_checks_passed": 4,
+      "reports": {
+        "borrowed-test-support.json": "steam-native-green-borrowed-test-support.json",
+        "build.log": "steam-native-green-build.log",
+        "configure.log": "steam-native-green-configure.log",
+        "evidence/online-protocol/Release/build-report.json": "steam-native-green-evidence-online-protocol-Release-build-report.json",
+        "inputs.json": "steam-native-green-inputs.json",
+        "report.json": "steam-native-green-report.json",
+        "source-pins-0.json": "steam-native-green-source-pins-0.json",
+        "source-pins-1.json": "steam-native-green-source-pins-1.json",
+        "source-pins-10.json": "steam-native-green-source-pins-10.json",
+        "source-pins-2.json": "steam-native-green-source-pins-2.json",
+        "source-pins-3.json": "steam-native-green-source-pins-3.json",
+        "source-pins-4.json": "steam-native-green-source-pins-4.json",
+        "source-pins-5.json": "steam-native-green-source-pins-5.json",
+        "source-pins-6.json": "steam-native-green-source-pins-6.json",
+        "source-pins-7.json": "steam-native-green-source-pins-7.json",
+        "source-pins-8.json": "steam-native-green-source-pins-8.json",
+        "source-pins-9.json": "steam-native-green-source-pins-9.json",
+        "tests.log": "steam-native-green-tests.log"
+      },
+      "shared_backend_cohort_pins": 278,
+      "borrowed_test_support_scope": "Post-run tracked-HEAD equality verified for the borrowed tests/reference/vertex_program_reference.cpp static link support; production src/include were copied. External original assets and system SDKs remain borrowed read-only.",
+      "scope": "Real native libcurl/account HTTP with local independent Steam/OpenID provider; not installed/rendered gameplay, physical hardware, real Steam authorization, historical Live recovery or new original execution."
+    }
+  },
+  "final_backend_cohorts_identical": true,
+  "criteria_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "full_gap_count": 12,
+  "algorithm_id_count": 53,
+  "full_acceptance_gate_count": 12,
+  "source_pins": {
+    "rust/online_protocol/src/matchmaking_steam_cache.rs": {
+      "sha256": "8fe4489f342a305aad39e3cfae9893050225636ee8730b671605c1fa1c97d3bc",
+      "bytes": 20640
+    },
+    "rust/online_protocol/src/matchmaking_steam_request.rs": {
+      "sha256": "f5928d70575fd6e4a7cdea05006f6ce7aac53244d46fbe3f02359d4c946eac7b",
+      "bytes": 23312
+    },
+    "rust/online_protocol/src/matchmaking_party_directory.rs": {
+      "sha256": "6f6216fc31a0bfbf504ea5685a694a03ae7f39a932776add9f54548aba4729a2",
+      "bytes": 70791
+    },
+    "rust/online_protocol/src/matchmaking_unicode.rs": {
+      "sha256": "a834167ea6ae306338bcacc4905cfa8e4fda2010087f5c087a6b7ff7bb62a08a",
+      "bytes": 2520
+    },
+    "rust/online_protocol/src/lib.rs": {
+      "sha256": "fc311292099e08443e941b1ca22cd043a1d03a6d5b65d80b8aec132231d82718",
+      "bytes": 10478
+    },
+    "rust/online_security_ffi/src/matchmaking_coordinator.rs": {
+      "sha256": "8341c932b89287c63fd90986caf2d3182cd417f966b3917db1ae9195f4e8c6c1",
+      "bytes": 31907
+    },
+    "rust/online_protocol_bridge/src/lib.rs": {
+      "sha256": "6a5d51cbc06c8890fc10606dcc062f864dcf8676f2d447e9f2bbd9536cb6d8ff",
+      "bytes": 55073
+    },
+    "multiplayer/master_server/steam_friends.py": {
+      "sha256": "a96c8406fc8c00119b3710a5b3ac370281058f6548f03e6956261ea435041bf0",
+      "bytes": 894
+    },
+    "multiplayer/master_server/native_steam_friends.py": {
+      "sha256": "2b1f5e3eaa06e4c9b8042f20c720c87b201a510ecf6f7fc5187e8bf610558b30",
+      "bytes": 3538
+    },
+    "multiplayer/master_server/native_party_directory.py": {
+      "sha256": "3c46174e589aecacf0d0efcc798a04203e53b57a7ee84f8da8134cfeadd4dd87",
+      "bytes": 5855
+    },
+    "multiplayer/master_server/parties_http.py": {
+      "sha256": "2d19dc112d074ce938012b6a987956eb405b614a15bf08aae9a2c8c1ad4dca27",
+      "bytes": 6844
+    },
+    "multiplayer/master_server/service.py": {
+      "sha256": "38060851bf98b5e82693e44f18e767da7986be98681dba34e3ed9f86ddefc666",
+      "bytes": 29718
+    },
+    "multiplayer/master_server/tests/test_steam_friends_owner_native.py": {
+      "sha256": "e3a897fc5d87140acae684a0e19259a7b89e2c4152d1a192e56301cb32c0866b",
+      "bytes": 15173
+    },
+    "multiplayer/master_server/tests/test_steam_login.py": {
+      "sha256": "6582a09185f45ddc7b732fa3b75808676a4b216c0714b2f862484a28ebae7c6d",
+      "bytes": 22976
+    },
+    "src/network/online_account.cpp": {
+      "sha256": "d88c521f40a0b57189cccf22386700a1459b50dc1d91666b51fdcdf29f8a1f8d",
+      "bytes": 47601
+    },
+    "tools/online_login_probe.cpp": {
+      "sha256": "a3a2ca32e3f600b638fe317c10ad9cc3a5a28147f64ec43337a77e84900f6ea6",
+      "bytes": 3374
+    },
+    "tests/online_account_tests.cpp": {
+      "sha256": "ec43c15878b78fbd29ea5e274d647d4964160e169cfb83193f57b09ceac3041a",
+      "bytes": 32819
+    },
+    "tests/steam_login_http_test.py": {
+      "sha256": "aad6ed0a56b5ad269a874f5ee81cb5ac86d6fcc7c8d4987bafae48d65d3bf1ca",
+      "bytes": 7982
+    },
+    "multiplayer/docs/matchmaking-rust-parity-audit-20261028.md": {
+      "sha256": "ed1a3e7a84293e389b9c601d7618359a494db066d51e000082b132ebe5a5d4cc",
+      "bytes": 125489
+    },
+    "multiplayer/docs/matchmaking-rust-parity-gaps.json": {
+      "sha256": "90ba8c4ccc1522c72a75d73471cc9ab582136bcde7dd264b46dcb127588d91d7",
+      "bytes": 220830
+    },
+    "multiplayer/docs/friends.md": {
+      "sha256": "ff8fdab8bc65750d29b528c98c7fd8357e3135817b322630277acf215e8440a5",
+      "bytes": 21689
+    },
+    "multiplayer/docs/online-security-threat-model.md": {
+      "sha256": "65d666a211e540dd6a77a10dc3e7cb4129aabfb4d136f268e9d7c7cd668e8671",
+      "bytes": 28904
+    },
+    "rust/online_protocol/Cargo.toml": {
+      "sha256": "f105f0803da5e7d505fc2ca930415427fcb0704b5589eb243a0d28c1032e0a9c",
+      "bytes": 760
+    },
+    "rust/online_protocol/Cargo.lock": {
+      "sha256": "91413516ee038c081c5bbbf7ab3436c6411be0e781e841b44e6feb60c7ce5ddd",
+      "bytes": 10979
+    },
+    "rust/online_protocol/rust-toolchain.toml": {
+      "sha256": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "bytes": 87
+    },
+    "rust/online_protocol_bridge/Cargo.toml": {
+      "sha256": "acd2f6d60bb5b29ae5f08f99ce8d19d806c54176092eaca89edaef0aef168640",
+      "bytes": 584
+    },
+    "rust/online_protocol_bridge/Cargo.lock": {
+      "sha256": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+      "bytes": 46655
+    },
+    "rust/online_protocol_bridge/rust-toolchain.toml": {
+      "sha256": "7c25e98902429ff81dfb6676f8598120318d3fb3c9d4aab3391ef09090b6aa28",
+      "bytes": 87
+    },
+    "rust/online_security_ffi/Cargo.toml": {
+      "sha256": "f3e2c47b3e35130e92b878d165d7e70fe7906261e847ac4291ddc2c8269b8482",
+      "bytes": 421
+    },
+    "rust/online_security_ffi/Cargo.lock": {
+      "sha256": "7975ea9d98ec23f11a57c62822cff339d604ef287aec9d488b181a016bb05fa9",
+      "bytes": 11105
+    },
+    "rust/online_security_ffi/rust-toolchain.toml": {
+      "sha256": "75cd8d73777ba32f23fcf6d5a7f49019b4a7c8ebe34a06ceb5a40d1c21ab8ffc",
+      "bytes": 51
+    }
+  },
+  "retained_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-red-report.json",
+      "bytes": 1520,
+      "sha256": "e8fb81f4a2442db971e424f2ebd2445109b3c23dcc9d8ace3b891f9a9737a9d8"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-red-source-manifest.json",
+      "bytes": 37011,
+      "sha256": "fc506c436e5c53a0a916cbe74650abf9b76f04d90b23c74c570b28cfaa5bc21e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-red-step-0.log",
+      "bytes": 1607,
+      "sha256": "ea63eba824eb1b9c6392986fd61162dc2abd5b451156940557dfa02bd4db14f9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-red-step-1.log",
+      "bytes": 5970,
+      "sha256": "c5135b11e49d34b513fa999081e32e7aae520bc9a75659cf7368b38cc973c21c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-first-report.json",
+      "bytes": 2118,
+      "sha256": "da3836bbe9e7806a2f325cf50a1900507d16fe02aa7f5ec4b1da311687f775b4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-first-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "687e6d2dcd97ad16e7c65e6bf343f38a0da8338978d4e910d0638049e4428401"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-first-step-0.log",
+      "bytes": 20770,
+      "sha256": "3105145a44d7bf602ae365dbe081f7ca0ef43e6f6169633725a43f9c17c060b4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-first-step-1.log",
+      "bytes": 1607,
+      "sha256": "5e04977b66a68a8a90895660a457e09de17c30bed08a5479b82742de44a573f4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-first-step-2.log",
+      "bytes": 4263,
+      "sha256": "49640bbe174e1b0a7a65de2f876de2de2f450b3419fdeda99a20137f5b500457"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-boundaries-report.json",
+      "bytes": 1579,
+      "sha256": "2e21123a03594e24e3e15a9338d1200d906c54397f60d205622732621515a2fa"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-boundaries-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "2806cf61d0903012c3d84e4e62b755107bc89952d96e8dcbc05e2df615f2c47e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-boundaries-step-0.log",
+      "bytes": 1607,
+      "sha256": "eda006ff4ddbef4c9fe25a703d23577ec81fd8d88de089b8c33e6da8b73358f0"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-boundaries-step-1.log",
+      "bytes": 8194,
+      "sha256": "356f9d4c5b27a2318a370ff3d4919728940ecfb93b97423e15660d75beea64f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-units-report.json",
+      "bytes": 2057,
+      "sha256": "a84c4e7399141568123a22113e7f57c617c9ed40a22c6c3d91a43e271cf5bd7d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-units-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "a2f2620e0dee298ef37c8cae78d8925397ede2b5394321879b61bab1229c3e55"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-units-step-0.log",
+      "bytes": 21438,
+      "sha256": "6b24d2062a8c3220a74b9b6b46af5bec10f19e714f572060f3f6c68f6c4393c9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-units-step-1.log",
+      "bytes": 1607,
+      "sha256": "f7b76744838aa629ca810a8fbf2f1b49637c93fe3523acb390274840d20a2b8d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-owner-units-step-2.log",
+      "bytes": 10780,
+      "sha256": "c6f5ff5ce3735f8cecc01e99ba47f60eb64bd0bfb87bb08fd9d23ee06f584577"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-report.json",
+      "bytes": 2810,
+      "sha256": "3213fc74161ad671dbea16ac30bca0a66c48aad3c19b0bd9ee8d175aeb9791b4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "282994d74dff67706507843209a73f0ef0eae40bbbed61529927a5bc532e9bb7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-step-0.log",
+      "bytes": 33816,
+      "sha256": "e115c65696178604267c9174a368e83dceee579980a5dfeb88ae280c49622643"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-step-1.log",
+      "bytes": 1607,
+      "sha256": "1df3f4c4eb3f9bed33c89546a8625f742b55c5b8827d8782701cf5e5970a2951"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-step-2.log",
+      "bytes": 191383,
+      "sha256": "cb85ac37c8a5177c2c2488f40c788dbf5d13a4e3a3215c4fce090dea863a2bca"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-report.json",
+      "bytes": 8580,
+      "sha256": "64901ad8a1431669749364bae28c152d6d6c757ba35bd9c50d42b97f241f62d6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "3be8da641c7c58332074dd4a424777b67bd29e66b496b328aa9675ed277f8f58"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-step-0.log",
+      "bytes": 30289,
+      "sha256": "6e99bcb5fafd26f30c81f704abcb0157d1f04605a6377097ac09abb4c930467e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-step-1.log",
+      "bytes": 1607,
+      "sha256": "13928f68b865817da5175d9d6bcf5f42997bc46d3efa54b7321ef40ad87ba00d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-step-2.log",
+      "bytes": 151054,
+      "sha256": "cc2658247ff0ce5945719ed7330526e2b75ba4f201a6edc1ca698d06b31fbe5a"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-final-report.json",
+      "bytes": 2810,
+      "sha256": "7f05a187d0584e2beabc1df8475c9275e98ae123b40963245736f55164cf7463"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-final-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "31aa2f740479a89357efb4966d57f7c764de1e68cfc3f42cd3734a18a6768091"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-final-step-0.log",
+      "bytes": 33824,
+      "sha256": "ec54446a4fc5252f5ffb86a319ecf6c326a6c0f377ec284edf3ee45e01726934"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-final-step-1.log",
+      "bytes": 1607,
+      "sha256": "fd25a33546eaf841d526004f656fc9f5ff19785f0a16941a4fdb88e8ad5b34cf"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-full-final-step-2.log",
+      "bytes": 32638,
+      "sha256": "4b03f3983552a118ce8ae22842c364bc8cc8a920edc82d3c56fd346689f427b5"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-final-report.json",
+      "bytes": 8580,
+      "sha256": "081ef5d5e95512a142f25db08e4b80a2520390efa5483cc4ca806899197a9b3d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-final-source-manifest.json",
+      "bytes": 37392,
+      "sha256": "ab97280d39bfc6e3f64bcdc4f9e30c5843ceffccffe6acfc737e2156c4bcb145"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-final-step-0.log",
+      "bytes": 30297,
+      "sha256": "8529b8bbfff86f071e9eb9be5d7cb58b9b5199c3015c48d74241937ff73e8fcd"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-final-step-1.log",
+      "bytes": 1607,
+      "sha256": "c0542239ae180ed9d6c67154070f99fbd8ea836a2c6aaf5ab139e9c1db6f1c97"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-production-final-step-2.log",
+      "bytes": 14706,
+      "sha256": "ee9c26c421c7b75139a11a1736eda1a4040862b4ea74ff1b535c946aaf24c14d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-build.log",
+      "bytes": 7358,
+      "sha256": "a226d14963f7be9ee49f2c9d9b8300bad8be94da0eafef312404d04fc795e821"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-configure.log",
+      "bytes": 4645,
+      "sha256": "eba1cbf66427c1379082a6cf26fbf1a19abe840bcbc88e200a627a9962614219"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1883,
+      "sha256": "96c4c0d96bc6e32f7b10b97703b25c6a0c0d0ae2955e356b69e136dffab6e3b7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-inputs.json",
+      "bytes": 158321,
+      "sha256": "a113f040cac575cf748f085378c1c47bd78c2732f2db87e07a462dd1e07b329f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-report.json",
+      "bytes": 2806,
+      "sha256": "e2c380cdc22e6aeec0b9f5175cdb1724c8694b1cc7e790cab89fbe48f01d6c37"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-packaging-tests.log",
+      "bytes": 305,
+      "sha256": "a7e2662b888d1375c727c2ba5cccb930324cf3eb5bfb383aabe3f36d029ce339"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-build.log",
+      "bytes": 18287,
+      "sha256": "0f87d7afc8b3ab3019e2c397a1e727b38034e427a312b07292d3f03c0698d8c7"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-configure.log",
+      "bytes": 4643,
+      "sha256": "7def79ceaf05be95d946f09d5889a2bf30149e01018f4aac20b0ee1a39e9df3f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1883,
+      "sha256": "58e90753a14e44531016bf8251e8084c76fee209cd794d2b336959ff65ba4b47"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-inputs.json",
+      "bytes": 1283,
+      "sha256": "180755022fd1cc52fc122d99bb5fb8395b4ed244336b9c1793662009bb78adda"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-report.json",
+      "bytes": 2829,
+      "sha256": "4746339138ff00bda468e06c80134b38bbc8d08faecf1a7d23bc1b3123a99967"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-0.json",
+      "bytes": 43887,
+      "sha256": "74aa04959ecc4980899517d218876ba45c997a7d90827804aaff9512c70ea411"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "4ed15b29b135300bcb757aeb2e1546a6f48108a61353dd887a01130edda0399d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-10.json",
+      "bytes": 30634,
+      "sha256": "205d3d378e61584b7363ef5e400ae0541ffd550892ae8d6fdc73d1540c9f0a82"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-2.json",
+      "bytes": 46413,
+      "sha256": "9c4d32224c58d5d88d51bbd78f160788d72eac998e7546f0e7a70890bbeb67e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-3.json",
+      "bytes": 47051,
+      "sha256": "d36ed66063482496352f0cb60ee603be118f781ce4e121a4dcbf796a1f25d878"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-4.json",
+      "bytes": 46451,
+      "sha256": "7b4ca1f2bb98d8543972cb2cfb3685e9dbd5db1928717d2dd8a543ad48395089"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-5.json",
+      "bytes": 48537,
+      "sha256": "a7c203c48596369f75f7541adda14d7b3e06b38c4f744326ed4354bec01ab935"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-6.json",
+      "bytes": 49680,
+      "sha256": "e33c68767424bedb32d67badfe95cae4321634419104db0f8d55da2da55926f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-7.json",
+      "bytes": 49406,
+      "sha256": "2ae2d59edab8cef2a69a58f41da420bef2cf0a1512ff02ed6b21b27833ad61e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-8.json",
+      "bytes": 47190,
+      "sha256": "7b8758527d8d1d5ec0b7eaee46af7d84fa0b30cd342f048fa3d646dad7c02f3e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-source-pins-9.json",
+      "bytes": 49235,
+      "sha256": "fe73bcdb8fa09430b98e29d76fe050d6e6530aa899e6a133435bd616e575eb08"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-confirmation-fixture-red-tests.log",
+      "bytes": 1580,
+      "sha256": "1251e58830b0fc66c08a0f2e6b6822dd461d1a1c5611fc2b2daa1984bbb63429"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-build.log",
+      "bytes": 18287,
+      "sha256": "b1eb3a7eafb5f68963bb555ebc5fafb5f0e17f8bdb3781fbe10e51063ccea979"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-configure.log",
+      "bytes": 4643,
+      "sha256": "da32fbf579879e12c1fa52de77b153d9845253395e1ac5d3cdb0283c5431fc80"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1883,
+      "sha256": "fa63934e2ecc502416480f7ec510ea75e636106305e0d147a610184e9ad7b3f4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-inputs.json",
+      "bytes": 1231,
+      "sha256": "82f0473bee465ae27c6ae4d493e7b98a411c50a0df9fbcf202b5f65deca39d5e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-report.json",
+      "bytes": 2837,
+      "sha256": "29cf8131846c0ca915b46928aa82ab38abe9e438cbb264875d4168ac1bd42613"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-0.json",
+      "bytes": 43887,
+      "sha256": "90acefe2aebba97f537d2f7aad925db71a15d04379a89ef3c3a2b2f5c203c73d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "4ed15b29b135300bcb757aeb2e1546a6f48108a61353dd887a01130edda0399d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-10.json",
+      "bytes": 30830,
+      "sha256": "447e97019597671f5e2c458c041cfdeda6648208df75b127e55c390bb2212360"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-2.json",
+      "bytes": 46413,
+      "sha256": "9c4d32224c58d5d88d51bbd78f160788d72eac998e7546f0e7a70890bbeb67e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-3.json",
+      "bytes": 47051,
+      "sha256": "d36ed66063482496352f0cb60ee603be118f781ce4e121a4dcbf796a1f25d878"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-4.json",
+      "bytes": 46451,
+      "sha256": "7b4ca1f2bb98d8543972cb2cfb3685e9dbd5db1928717d2dd8a543ad48395089"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-5.json",
+      "bytes": 48537,
+      "sha256": "af373fb71dac42ff8593727b86617e4775b5844c4e20d301b127b014834a32ef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-6.json",
+      "bytes": 49680,
+      "sha256": "e33c68767424bedb32d67badfe95cae4321634419104db0f8d55da2da55926f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-7.json",
+      "bytes": 49406,
+      "sha256": "82c08524edf9b60d388f7c9417f82eb67381385b742d43543212d59629186937"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-8.json",
+      "bytes": 47190,
+      "sha256": "7b8758527d8d1d5ec0b7eaee46af7d84fa0b30cd342f048fa3d646dad7c02f3e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-source-pins-9.json",
+      "bytes": 49235,
+      "sha256": "fe73bcdb8fa09430b98e29d76fe050d6e6530aa899e6a133435bd616e575eb08"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-loading-fixture-red-tests.log",
+      "bytes": 1761,
+      "sha256": "2d429b985021e1013d7c8b4213b9734c88863f27bb77faba768db98540043e0f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-build.log",
+      "bytes": 848,
+      "sha256": "bcb8ee10a32d5978a17585de4776a15218be95b48ea1fb3321ac2ac187e41980"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-configure.log",
+      "bytes": 928,
+      "sha256": "0cf4e364408d1198f56f0b077115d72d6dbba72951571842b1c0e8ce52c82e47"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1883,
+      "sha256": "fa63934e2ecc502416480f7ec510ea75e636106305e0d147a610184e9ad7b3f4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-inputs.json",
+      "bytes": 1657,
+      "sha256": "735a48c3271cb37f9200eb876fa7b9a9c42e2badaf9cf6400a79fa32d3463735"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-report.json",
+      "bytes": 2953,
+      "sha256": "ab12c051da346c22f9cd669e307c3ac8b33a684b0dd849201c3f8a65fdf95ea9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-0.json",
+      "bytes": 43887,
+      "sha256": "90acefe2aebba97f537d2f7aad925db71a15d04379a89ef3c3a2b2f5c203c73d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "4ed15b29b135300bcb757aeb2e1546a6f48108a61353dd887a01130edda0399d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-10.json",
+      "bytes": 30830,
+      "sha256": "7084a8e31588162dbf424a54752442fc68227fe1c8ef6e45c5e76ae341a7c23c"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-2.json",
+      "bytes": 46413,
+      "sha256": "9c4d32224c58d5d88d51bbd78f160788d72eac998e7546f0e7a70890bbeb67e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-3.json",
+      "bytes": 47051,
+      "sha256": "d36ed66063482496352f0cb60ee603be118f781ce4e121a4dcbf796a1f25d878"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-4.json",
+      "bytes": 46451,
+      "sha256": "7b4ca1f2bb98d8543972cb2cfb3685e9dbd5db1928717d2dd8a543ad48395089"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-5.json",
+      "bytes": 48537,
+      "sha256": "af373fb71dac42ff8593727b86617e4775b5844c4e20d301b127b014834a32ef"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-6.json",
+      "bytes": 49680,
+      "sha256": "e33c68767424bedb32d67badfe95cae4321634419104db0f8d55da2da55926f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-7.json",
+      "bytes": 49406,
+      "sha256": "82c08524edf9b60d388f7c9417f82eb67381385b742d43543212d59629186937"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-8.json",
+      "bytes": 47190,
+      "sha256": "7b8758527d8d1d5ec0b7eaee46af7d84fa0b30cd342f048fa3d646dad7c02f3e"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-source-pins-9.json",
+      "bytes": 49235,
+      "sha256": "fe73bcdb8fa09430b98e29d76fe050d6e6530aa899e6a133435bd616e575eb08"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-body-red-tests.log",
+      "bytes": 2169,
+      "sha256": "a82e14282f4ea4e30862a1c05740768c21895a1d3877839cd928b061dafce4b6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-borrowed-test-support.json",
+      "bytes": 525,
+      "sha256": "9bf9c1a4e072e6881506f1530465ad51d37b2e06cf25bab530e0917fd026eaad"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-build.log",
+      "bytes": 12978,
+      "sha256": "6221ebbaee8eecaa93a5806e6c6dd9f60c8a65cc4b0d0a7e42e2505239419ea9"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-configure.log",
+      "bytes": 928,
+      "sha256": "23487f72965284a4e8a8ae64adfe996f3a59285180c6433b064d5af48ea4eea4"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-evidence-online-protocol-Release-build-report.json",
+      "bytes": 1883,
+      "sha256": "1b59d1d7770a03aac0578f11866bec6c9d3d6a4380586f1a32470c5ee3c3fb1f"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-inputs.json",
+      "bytes": 2183,
+      "sha256": "98afe9c0a8eb253dbe40238bf03bc3e8a2ab1b20034dbda4762061e8b79110ce"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-report.json",
+      "bytes": 2952,
+      "sha256": "b352f2818ae587ab872b82dda1ec412c106b1ddc1823f83c12d18d4a2c819f04"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-0.json",
+      "bytes": 43887,
+      "sha256": "90acefe2aebba97f537d2f7aad925db71a15d04379a89ef3c3a2b2f5c203c73d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-1.json",
+      "bytes": 46750,
+      "sha256": "4ed15b29b135300bcb757aeb2e1546a6f48108a61353dd887a01130edda0399d"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-10.json",
+      "bytes": 30830,
+      "sha256": "2f9c888782bc9cda43c81f59e66d1d7102b5ef8a92a4c6362e7b522aca9c9091"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-2.json",
+      "bytes": 46413,
+      "sha256": "9c4d32224c58d5d88d51bbd78f160788d72eac998e7546f0e7a70890bbeb67e6"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-3.json",
+      "bytes": 47051,
+      "sha256": "d36ed66063482496352f0cb60ee603be118f781ce4e121a4dcbf796a1f25d878"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-4.json",
+      "bytes": 46451,
+      "sha256": "7b4ca1f2bb98d8543972cb2cfb3685e9dbd5db1928717d2dd8a543ad48395089"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-5.json",
+      "bytes": 48537,
+      "sha256": "74337fdca69e5bbc394865af061650ec6b1401ec498fac5e26715ac23917c248"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-6.json",
+      "bytes": 49680,
+      "sha256": "e33c68767424bedb32d67badfe95cae4321634419104db0f8d55da2da55926f2"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-7.json",
+      "bytes": 49406,
+      "sha256": "82c08524edf9b60d388f7c9417f82eb67381385b742d43543212d59629186937"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-8.json",
+      "bytes": 47190,
+      "sha256": "ac769784ccaac8d61db9a44da44c584d5fcc0a1ccb39318bc454bfde1d45bd63"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-source-pins-9.json",
+      "bytes": 49235,
+      "sha256": "fe73bcdb8fa09430b98e29d76fe050d6e6530aa899e6a133435bd616e575eb08"
+    },
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/steam-native-green-tests.log",
+      "bytes": 640,
+      "sha256": "45c30a2fcfc092c536161015ecc3e06aa02bf3e0028d35e5c7737c23d1d6ee77"
+    }
+  ],
+  "retained_report_bytes": 3221603,
+  "retained_large_artifacts": [],
+  "cleanup": {
+    "trees": [
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-7yy7f66k/native-source",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-9yzkhvmy/build",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-aohanb0d",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-ei21fzwc/build",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-gwof7xah",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-n0je51gv",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-o_c1x6uq",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-opck86w7",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-scol_wp0",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-tz_l92py",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-utm8xjhr",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-utm8xjhr/native-source",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-x96a0gsi",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/build",
+        "removed": true
+      },
+      {
+        "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+        "removed": true
+      }
+    ],
+    "test_scratch_parent": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner",
+    "test_scratch_parent_empty": true,
+    "evidence_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-evidence/halo2-test-875htcjy",
+    "evidence_helper_managed_by": "tools/run_test.py; verify removal after return",
+    "evidence_helper_removed": true,
+    "evidence_helper_parent_empty": true
+  },
+  "runtime_replaced": false,
+  "service_activated": false,
+  "remaining": [
+    "Steam OpenID, canonical shared identity and sign-in persona verification",
+    "Full Rust HTTP/service and generic middleware replacement",
+    "Cross-store/process recovery and distributed coordination",
+    "Original Live/service/config/order/arbitration/codec recovery without guessed historical values",
+    "Full original/native played-world and delivered G01-G12 acceptance"
+  ]
+}

@@ -29,7 +29,7 @@ int main(int argc,char **argv)try {
     fixture::require(argc==4,"Supply original copy fixture, shader directory and report path");
     std::ifstream input(argv[1]);const auto original=nlohmann::json::parse(input);
     fixture::require(original.at("schema")=="original-scene-copy-destinations-v1"&&original.at("instruction_patches").empty()&&original.at("supplied_returns").empty(),"Invalid original copy fixture");
-    fixture::Gpu gpu;if(!gpu.initialize())return 77;
+    fixture::Gpu gpu;if(!gpu.initialize(VK_API_VERSION_1_3))return 77;
     VkPhysicalDeviceProperties device;vkGetPhysicalDeviceProperties(gpu.physical,&device);
     nlohmann::json cases=nlohmann::json::array();std::size_t channels=0;float maximum=0;
     for(const auto format:{VK_FORMAT_R8G8B8A8_UNORM,VK_FORMAT_B8G8R8A8_UNORM}) {
@@ -58,6 +58,22 @@ int main(int argc,char **argv)try {
             SourceSceneCopyGpuRecord call{gpu.device,gpu.command,source.handle,format,extent,
                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT|VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,VK_SAMPLE_COUNT_1_BIT,1,1,gpu.family,fence,true,true};
+            const SourceSceneCopyGpuUnwrittenAccess access{gpu.device,gpu.command,fence,gpu.family,true,true};
+            auto invalid_access=access;invalid_access.owner=VK_NULL_HANDLE;bool invalid_allocation_rejected=false;
+            try{copy.record_unwritten_access(invalid_access);}catch(const FormatError&){invalid_allocation_rejected=true;}
+            fixture::require(invalid_allocation_rejected,"Unwritten allocation accepted a foreign command owner");
+            // Allocation access establishes layout/lifetime, with no color
+            // assertion or copy result. Aborting must restore both images'
+            // distinct pre-record layouts before the next real submission.
+            gpu.begin();const auto unwritten=copy.record_unwritten_access(access);
+            fixture::require(unwritten.view==binding.view&&!copy.retire(),"Unwritten allocation lost its actual image/fence owner");
+            fixture::check(vkResetCommandBuffer(gpu.command,0));copy.discard_unsubmitted(gpu.command);
+            fixture::require(copy.retire(),"Discarded unwritten allocation stayed pending");
+            gpu.begin();copy.record_unwritten_access(access);fixture::check(vkEndCommandBuffer(gpu.command));
+            VkSubmitInfo allocation_submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};allocation_submit.commandBufferCount=1;allocation_submit.pCommandBuffers=&gpu.command;
+            fixture::check(vkQueueSubmit(gpu.queue,1,&allocation_submit,fence));fixture::check(vkWaitForFences(gpu.device,1,&fence,VK_TRUE,5000000000ull));
+            fixture::require(copy.retire(),"Unwritten allocation frame did not retire");
+            fixture::check(vkResetFences(gpu.device,1,&fence));
             gpu.begin();const auto initial=copy.record(call);const bool pending=!copy.retire();bool pending_prepare_rejected=false,other_fence_rejected=false;
             fixture::require(binding.view==initial.view && binding.format==initial.format &&
                 binding.extent.width==initial.extent.width && binding.extent.height==initial.extent.height,
@@ -102,7 +118,8 @@ int main(int argc,char **argv)try {
             gpu.begin();copy.record(call);fixture::check(vkEndCommandBuffer(gpu.command));
             fixture::check(vkQueueSubmit(gpu.queue,1,&submit,fence));fixture::check(vkWaitForFences(gpu.device,1,&fence,VK_TRUE,5000000000ull));fixture::require(copy.retire(),"Reused copy fence did not retire");
             vkDestroyFence(gpu.device,fence,nullptr);
-            cases.push_back({{"format",format},{"source",{extent.width,extent.height}},{"destination",dimensions},{"maximum_byte_error",case_max},{"ordered_copies",2},{"discard_reuse",true}});
+            cases.push_back({{"format",format},{"source",{extent.width,extent.height}},{"destination",dimensions},{"maximum_byte_error",case_max},{"ordered_copies",2},{"discard_reuse",true},
+                {"unwritten_allocation_access",true},{"unwritten_abort_recovered",true},{"real_copy_after_unwritten_frame",true}});
         }
     }
     fixture::require(fixture::validation_errors==0,"Scene-copy native resources produced Vulkan validation errors");

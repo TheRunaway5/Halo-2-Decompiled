@@ -9,6 +9,9 @@ namespace halo2 {
 struct SourceObjectAudioViewTu15 {
     Vec3 position;
     std::int16_t cluster;
+    struct Orientation {Vec3 forward,up;};
+    std::optional<Orientation> orientation{};
+    std::int32_t leaf=-1;
 };
 using SourceObjectAudioViewsTu15=std::array<std::optional<SourceObjectAudioViewTu15>,4>;
 

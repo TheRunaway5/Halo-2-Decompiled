@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "consumers": [
+    {
+      "consumer": "frontend",
+      "present": true,
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o",
+      "sha256": "cae28fe9659015a9cdc1b5bde8a7526d62b131051e0b5f20a35352ce259fac2b",
+      "bytes": 1616608,
+      "argv": [
+        "nm",
+        "-C",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o"
+      ],
+      "symbols": [
+        "                 U halo2::matchmaking_variant_valid(std::span<unsigned char const, 18446744073709551615ul>)"
+      ],
+      "retained": false
+    },
+    {
+      "consumer": "bridge_adapter",
+      "present": true,
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_online_protocol.dir/src/network/matchmaking_variant.cpp.o",
+      "sha256": "f1ba37cf83f2b241951fbe3318644285427c988354da9de5b755620ce7443547",
+      "bytes": 1744,
+      "argv": [
+        "nm",
+        "-C",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_online_protocol.dir/src/network/matchmaking_variant.cpp.o"
+      ],
+      "symbols": [
+        "                 U halo2::online_protocol_bridge::matchmaking_variant_valid(rust::cxxbridge1::Slice<unsigned char const>)",
+        "0000000000000000 T halo2::matchmaking_variant_valid(std::span<unsigned char const, 18446744073709551615ul>)"
+      ],
+      "retained": false
+    },
+    {
+      "consumer": "queue",
+      "present": true,
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_matchmaking.cpp.o",
+      "sha256": "b19dd2e9bb43a3fee5923ef4632d1358730f425a3548aa463bf0090651c682a1",
+      "bytes": 600824,
+      "argv": [
+        "nm",
+        "-C",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_matchmaking.cpp.o"
+      ],
+      "symbols": [
+        "                 U halo2::matchmaking_variant_valid(std::span<unsigned char const, 18446744073709551615ul>)"
+      ],
+      "retained": false
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi",
+  "retained_large_artifacts": [],
+  "scope": "Object linkage only; native runtime acceptance is separate"
+}

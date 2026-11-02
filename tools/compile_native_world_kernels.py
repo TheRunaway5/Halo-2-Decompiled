@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import struct
 import subprocess
@@ -85,18 +86,24 @@ def validate_entry(entry):
 
 VERTEX_WRAPPERS = {'world': 'world.vert',
                    'source-depth': 'world.vert',
+                   'path-tracing-source-depth': 'path_tracing/source_depth.vert',
                    'normal': 'pstencil/normal_accumulation.vert',
                    'normal-utility': 'pstencil/normal_light_utility.vert'}
 
 
 def vertex_source(shader_root, row, wrapper='world'):
     base = (shader_root / VERTEX_WRAPPERS[wrapper]).read_text()
-    if wrapper == 'source-depth':
+    if wrapper in ('source-depth', 'path-tracing-source-depth'):
         base = base.replace('#version 450', '#version 450\n#define H2_SOURCE_WORLD_DEPTH 1', 1)
     marker = '#include "world_vertex.glsl"'
     if base.count(marker) != 1:
         raise ValueError('Native world vertex wrapper ABI changed')
     body = (shader_root / 'world_vertex.glsl').read_text()
+    if wrapper == 'path-tracing-source-depth':
+        # Keep the complete authored execution and projection. Its ordinary
+        # color varyings become private globals; only the final PT interface
+        # is exported by the wrapper after that unchanged execution.
+        body = re.sub(r'layout\(location=\d+\) (?:flat )?out ', '', body)
     lowered = lower_vertex_program(row['instructions'], declaration=row['declaration'],
                                    extended_vertex_bank=row['extended'])
     marker = '#include "vertex_program.glsl"'
@@ -297,7 +304,8 @@ def main():
             data = result_path.read_bytes()
             inputs = spirv_interface_locations(data,1)
             if stage == 'vert':
-                expected = sorted([*range(9),11,12,13] + ([9,10] if row['extended'] else []))
+                expected = sorted([*range(9),11,12,13] + ([9,10] if row['extended'] else []) +
+                                  ([14] if wrapper == 'path-tracing-source-depth' else []))
                 if inputs != expected:
                     raise ValueError('Native world compiled input ABI differs from its complete Vulkan vertex declaration')
             stages[identity] = dict(path='native_world/'+result_path.name, sha256=sha(data),
@@ -319,12 +327,13 @@ def main():
         normal = stages[('vert', row['vertex_key']+'-normal')]['path']
         utility = stages[('vert', row['vertex_key']+'-normal-utility')]['path']
         source_depth = stages[('vert', row['vertex_key']+'-source-depth')]['path']
+        path_tracing_depth = stages[('vert', row['vertex_key']+'-path-tracing-source-depth')]['path']
         metadata = lower_vertex_program(row['instructions'],declaration=row['declaration'],
                                         extended_vertex_bank=row['extended'])
         header += [f'    {{{programs[row["program"]]}, {{{",".join(str(x)+"u" for x in row["controls"])}}}, '
                    f'{{{",".join(str(x)+"u" for x in row["declaration"])}}}, '
                    f'{str(row["extended"]).lower()}, "{vertex}"sv, "{fragment}"sv, "{normal}"sv, "{utility}"sv, '
-                   f'{metadata["default_texture_w_mask"]}u,{str(metadata["relative_constants"]).lower()}, "{source_depth}"sv}},']
+                   f'{metadata["default_texture_w_mask"]}u,{str(metadata["relative_constants"]).lower()}, "{source_depth}"sv, "{path_tracing_depth}"sv}},']
     header += ['}};', '} // namespace halo2::generated_native_world_kernels', '']
     report = dict(schema='HALO2_NATIVE_WORLD_KERNEL_COMPILED_V1', abi=1, target='vulkan1.3',
         registry_sha256=sha(registry_raw), source_sha256=pins, entries=len(entries),

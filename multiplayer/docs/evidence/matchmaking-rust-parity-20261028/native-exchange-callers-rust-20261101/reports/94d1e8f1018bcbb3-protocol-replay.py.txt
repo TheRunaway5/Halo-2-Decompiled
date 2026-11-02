@@ -1,0 +1,58 @@
+import hashlib,json,os,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/native-exchange-callers-rust-20261101'
+scratch=Path(os.environ['HALO2_TEST_SCRATCH']);sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={}
+for p in (work/'native').glob('iteration-2-source-pins-*.json'):pins.update(json.loads(p.read_text()))
+prior=json.loads((root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-preparation-caller-rust-validation.json').read_text())
+prior_pins={}
+for original,item in prior['retained_reports'].items():
+    if '/native/iteration-3-source-pins-' in original:prior_pins.update(json.loads((root/item['path']).read_text()))
+header='include/halo2/multiplayer_datagrams.hpp'
+assert sha(work/'protocol123-before.hpp.txt')==prior_pins[header]
+assert sha(work/'protocol124-current.hpp.txt')==pins[header]==sha(root/header)
+assert b'native_multiplayer_protocol = 123;' in (work/'protocol123-before.hpp.txt').read_bytes()
+assert b'native_multiplayer_protocol = 124;' in (work/'protocol124-current.hpp.txt').read_bytes()
+shutil.copytree(root/'include',scratch/'include',ignore=shutil.ignore_patterns('__pycache__'))
+shutil.copytree(root/'tests/reference/peer_source_admissions_before_rust_20261101',scratch/'reference')
+copies=['tests/reference/peer_source_admissions_before_rust_20261101.cpp','tests/peer_source_admissions_replay.cpp',
+        'tests/test_peer_source_admissions_replay.py','tests/test_peer_mesh_quality_replay.py']
+for n in copies:
+    assert sha(root/n)==pins[n]==prior_pins[n],n
+    shutil.copyfile(root/n,scratch/Path(n).name)
+sys.path.insert(0,str(scratch))
+import test_peer_source_admissions_replay as corpus
+from test_peer_mesh_quality_replay import Replay
+result={'passed':False,'scope':'Protocol-version effect on the exact preserved modern C++ admission replay only; two C++ instances per version. The actual C++/Rust current-version match is proved separately by both native runs. No original Live or native world claim.',
+    'scratch':str(scratch),'input_pins':{n:pins[n] for n in copies},
+    'native_protocol_before':123,'native_protocol_after':124,
+    'before_header_sha256':prior_pins[header],'after_header_sha256':pins[header],
+    'root_protocol_header_unchanged_by_probe':True,'runs':[],'retained_large_artifacts':[]}
+try:
+    for version,expected in [(123,'47f47dfed33177d1b68ab24d81c09fe6cce69efeb935bbe48ab5f1bd81ad9dad'),
+                             (124,'630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6')]:
+        override=scratch/str(version);(override/'halo2').mkdir(parents=True)
+        shutil.copyfile(work/('protocol123-before.hpp.txt' if version==123 else 'protocol124-current.hpp.txt'),override/'halo2/multiplayer_datagrams.hpp')
+        binary=override/'reference'
+        command=['/usr/bin/c++','-std=c++20','-O2','-pthread','-I'+str(override),'-I'+str(scratch/'reference'),'-I'+str(scratch/'include'),
+            str(scratch/'peer_source_admissions_replay.cpp'),str(scratch/'peer_source_admissions_before_rust_20261101.cpp'),'-lcrypto','-o',str(binary)]
+        run=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        (work/f'protocol{version}-compile.log').write_bytes(run.stdout[-1048576:]);assert run.returncode==0,run.stdout[-2000:]
+        replay=Replay(binary,binary,override)
+        try:
+            for count,group in [(2,1),(4,4),(8,4),(16,4),(16,1)]:
+                for loss in [False,True]:corpus.exchange_case(replay,count,group,loss)
+            for count in [2,16]:
+                for loss in [False,True]:corpus.exchange_case(replay,count,1,loss,legacy=True)
+            corpus.malformed_case(replay)
+        finally:replay.close()
+        row={'protocol':version,'command':command,'binary_sha256':sha(binary),'commands':replay.commands,
+            'packet_outputs':replay.packets,'receives':replay.receives,'state_reads':replay.states,
+            'corpus_and_observations_sha256':replay.digest.hexdigest(),'exit_codes':[p.returncode for p in replay.children]}
+        result['runs'].append(row)
+        assert row['commands']==25054 and row['corpus_and_observations_sha256']==expected and row['exit_codes']==[0,0],row
+    assert sha(root/header)==pins[header]
+    result['passed']=True
+finally:(work/'protocol-version-replay.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'passed':result['passed'],'protocols':[r['protocol'] for r in result['runs']],
+    'digests':[r['corpus_and_observations_sha256'] for r in result['runs']],'all_source_and_harness_pins_unchanged':True}))

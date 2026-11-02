@@ -41,5 +41,6 @@ struct Controls { Word entry_status{}; std::array<Word,8> modifiers{}; };
 // Typed block arithmetic and ordered circular histories for original records 8/9.
 // The caller supplies raw admitted 24-bit words; this API does not establish a
 // CPU coefficient converter, voice/PCM scale, DSP clock or hardware DMA receipt.
+void validate_controls(const Controls&);
 void process(State&,Workspace&,std::span<Word,32> input,std::array<std::span<Word,32>,4> outputs,const Controls&,ArithmeticTrace* = nullptr);
 }

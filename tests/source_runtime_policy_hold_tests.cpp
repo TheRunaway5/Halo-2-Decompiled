@@ -153,11 +153,58 @@ void active_admission(){
     need(rejected,"Publication overtook an active foreign policy admission");
     SourceRuntimePolicyHold after(bank);
 }
+void native_write_lease(){
+    using Reason=SourceRuntimeNativeWriteRefusal;
+    SourceRuntimeMemory bank;
+    bank.mount(0x10000,std::vector<std::byte>(4096),SourceRuntimeMemory::Access::ReadWrite,"native scalar block");
+    const std::array<SourceRuntimeNativeWriteRange,2> ranges{{{0x10100,12},{0x10800,4}}};
+    const std::array<std::byte,4> word{std::byte{1},std::byte{2},std::byte{3},std::byte{4}};
+    int guard_owner,observer_owner;unsigned guards{},observed{};
+    SourceRuntimeWriteSerial serial(bank);
+    {
+        SourceRuntimeNativeWriteLease lease(bank,ranges);need(bool(lease)&&lease.refusal()==Reason::None,"Plain native write block refused");
+        SourceRuntimeNativeWriteLease nested(bank,ranges);need(!nested&&nested.refusal()==Reason::PolicyHold,"Nested policy lease admitted or misattributed");
+        need(refused([&]{SourceRuntimePolicyChange change(bank);}),"Native lease permitted a policy change");
+        bool foreign_refused{};
+        std::thread worker([&]{foreign_refused=refused([&]{source_runtime_register_write_guard(bank,&guard_owner,[](auto,auto){});});});worker.join();
+        need(foreign_refused,"Native lease admitted a foreign policy publisher");
+        bank.write(0x10100,word);
+    }
+    need(serial.load()==1,"Native write serial did not count the actual store");
+    source_runtime_register_write_guard(bank,&guard_owner,[&](auto,auto){++guards;throw std::logic_error("guard");},0x80000000ull);
+    {
+        SourceRuntimeNativeWriteLease lease(bank,ranges);need(bool(lease),"Inert physical guard blocked ordinary native writes");
+        bank.write(0x10100,word);need(guards==0,"Native write invoked an inert guard");
+    }
+    source_runtime_unregister_write_guard(bank,&guard_owner);
+    source_runtime_register_write_guard(bank,&guard_owner,[&](auto,auto){++guards;throw std::logic_error("guard");});
+    {SourceRuntimeNativeWriteLease lease(bank,ranges);need(!lease&&lease.refusal()==Reason::Guard&&guards==0,"Native admission executed or bypassed an access guard");}
+    bool original_rejected{};try{bank.write(0x10100,word);}catch(const std::logic_error&){original_rejected=true;}
+    need(original_rejected&&guards==1,"Literal write guard lost ownership after native refusal");
+    source_runtime_unregister_write_guard(bank,&guard_owner);
+    source_runtime_register_write_observer(bank,&observer_owner,[&](auto,auto){++observed;});
+    {SourceRuntimeNativeWriteLease lease(bank,ranges);need(!lease&&lease.refusal()==Reason::Observer&&observed==0,"Native admission consumed an arbitrary observer");}
+    const std::array<const void*,1> allowed{{&observer_owner}};
+    {SourceRuntimeNativeWriteLease lease(bank,ranges,allowed);need(bool(lease),"Explicit semantic observer refused");bank.write(0x10100,word);}
+    need(observed==1,"Allowed observer did not receive the native write");
+    source_runtime_unregister_write_observer(bank,&observer_owner);
+    source_runtime_register_write_observer(bank,&observer_owner,[&](auto,auto){
+        SourceRuntimeNativeWriteLease recursive(bank,ranges,allowed);need(!recursive&&recursive.refusal()==Reason::Recursion,"Policy callback recursively acquired a native lease");});
+    bank.write(0x10100,word);source_runtime_unregister_write_observer(bank,&observer_owner);
+    {SourceRuntimePolicyChange change(bank);SourceRuntimeNativeWriteLease lease(bank,ranges);need(!lease&&lease.refusal()==Reason::PolicyChange,"Native lease overtook an admitted policy change");}
+    {SourceRuntimePolicyHold hold(bank);SourceRuntimeNativeWriteLease lease(bank,ranges);need(!lease&&lease.refusal()==Reason::PolicyHold,"Native lease overtook a publication hold");}
+    {SourceExecutionInputs inputs;{SourceExecutionInputBinding binding(bank,inputs);SourceRuntimeNativeWriteLease lease(bank,ranges);need(!lease&&lease.refusal()==Reason::PolicyChange,"Native lease ignored a recording/replay admission");}inputs.finish();}
+    const std::array<SourceRuntimeNativeWriteRange,1> overflow{{{0xfffffffeu,4}}};
+    {SourceRuntimeNativeWriteLease lease(bank,overflow);need(!lease&&lease.refusal()==Reason::Range,"Wrapping native write range admitted");}
+    {SourceRuntimeNativeWriteLease lease(bank,{});need(!lease&&lease.refusal()==Reason::Range,"Empty native write block admitted");}
+    {SourceRuntimeNativeWriteLease lease(bank,ranges);need(bool(lease),"Native policy refusal leaked its admission");}
+}
 }
 int main(){
     unsigned failed{};
     for(const auto &[name,run]:std::initializer_list<std::pair<const char *,void(*)()>>{
-        {"input_binding",input_binding},{"backing_policy",backing_policy},{"registry",registry},{"active_admission",active_admission}}){
+        {"input_binding",input_binding},{"backing_policy",backing_policy},{"registry",registry},{"active_admission",active_admission},
+        {"native_write_lease",native_write_lease}}){
         try{run();std::cout<<"PASS "<<name<<'\n';}
         catch(const std::exception &e){++failed;std::cerr<<"FAIL "<<name<<": "<<e.what()<<'\n';}
     }

@@ -1,0 +1,39 @@
+{
+  "scope": "Typed CXX exception translation on constructor, context replacement, full publication and pipelined publication only; Rust policy unchanged",
+  "source": "src/network/peer_authority_transfer.cpp",
+  "before_sha256": "8791a8596d82b447d760de7e5164b33c7581fefa46483dbf94dbb94d57059ec1",
+  "after_sha256": "d7fc2298dff21437e309d3ee5b96a8a6b318f5b59af4a90e67bfcd39f234ee72",
+  "cause": "CXX rust::Error derives directly from std::exception; the prior native public calls reject with std::invalid_argument",
+  "regression": "Native rejection helper and paired public replay now compare the invalid_argument category; exception message text is outside replay claims",
+  "full_replay_red_native_iteration": 4,
+  "minimal_red_report": "exception-repro-red.json",
+  "no_debug_instrumentation_added": true,
+  "no_context_md_or_adr_in_repo": true,
+  "inverse_changes": [
+    {
+      "after": "#include <stdexcept>\n",
+      "before": ""
+    },
+    {
+      "after": "template<class F>auto checked(F &&call){try{return call();}catch(const rust::Error &error){throw std::invalid_argument(error.what());}}\n",
+      "before": ""
+    },
+    {
+      "after": "        :owner(checked([&]{return bridge::new_peer_authority_transfer(self,native_multiplayer_protocol,wire(c),wire(l));})){\n",
+      "before": "        :owner(bridge::new_peer_authority_transfer(self,native_multiplayer_protocol,wire(c),wire(l))){\n"
+    },
+    {
+      "after": "bool PeerAuthorityTransfer::replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next){return checked([&]{return bridge::peer_authority_transfer_replace(*impl_->owner,wire(expected),wire(next));});}\n",
+      "before": "bool PeerAuthorityTransfer::replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next){return bridge::peer_authority_transfer_replace(*impl_->owner,wire(expected),wire(next));}\n"
+    },
+    {
+      "after": "AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &c,std::uint64_t tick,std::vector<std::byte> bytes,std::span<const unsigned> targets,std::uint64_t now){return checked([&]{return native(bridge::peer_authority_transfer_publish(*impl_->owner,wire(c),tick,wire(bytes),{targets.data(),targets.size()},now));});}\n",
+      "before": "AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &c,std::uint64_t tick,std::vector<std::byte> bytes,std::span<const unsigned> targets,std::uint64_t now){return native(bridge::peer_authority_transfer_publish(*impl_->owner,wire(c),tick,wire(bytes),{targets.data(),targets.size()},now));}\n"
+    },
+    {
+      "after": "AuthorityCutSeal PeerAuthorityTransfer::publish_ahead(const AuthorityTransferContext &c,const AuthorityCutSeal &previous,std::uint64_t tick,std::vector<std::byte> bytes,unsigned peer,std::uint64_t now){return checked([&]{return native(bridge::peer_authority_transfer_ahead(*impl_->owner,wire(c),wire(previous),tick,wire(bytes),peer,now));});}\n",
+      "before": "AuthorityCutSeal PeerAuthorityTransfer::publish_ahead(const AuthorityTransferContext &c,const AuthorityCutSeal &previous,std::uint64_t tick,std::vector<std::byte> bytes,unsigned peer,std::uint64_t now){return native(bridge::peer_authority_transfer_ahead(*impl_->owner,wire(c),wire(previous),tick,wire(bytes),peer,now));}\n"
+    }
+  ],
+  "failed_source_reconstructed_exactly": true
+}

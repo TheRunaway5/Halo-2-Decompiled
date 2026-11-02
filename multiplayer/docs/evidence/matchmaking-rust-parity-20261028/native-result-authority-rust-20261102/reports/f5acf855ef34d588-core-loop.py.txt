@@ -1,0 +1,11 @@
+import os,shutil,subprocess,json,hashlib,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ["HALO2_TEST_SCRATCH"]);source=scratch/"online_protocol"
+shutil.copytree(root/"rust/online_protocol",source,ignore=shutil.ignore_patterns("target","__pycache__"))
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source.rglob("*") if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_AUTO_INSTALL="0",RUSTUP_TOOLCHAIN="1.96.0")
+command=["cargo","test","--locked","--offline","--test","matchmaking_native_results","--","--test-threads=1"]
+r=subprocess.run(command,cwd=source,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+out=root/"build/test-results/native-result-authority-rust-20261102";label=os.environ.get("RESULT_TEST_LABEL","core-initial")
+(out/(label+".log")).write_bytes(r.stdout[-1048576:]);(out/(label+".json")).write_text(json.dumps({"passed":r.returncode==0,"exit_code":r.returncode,"command":command,"source_pins":pins,"scratch":str(scratch)},indent=2)+"\n")
+print(r.stdout.decode(errors="replace")[-10000:],flush=True);sys.exit(r.returncode)

@@ -7,8 +7,12 @@ RGB values.
 
 The complete player color producer is `830C0`, called by `161DB0`. A team
 replaces armor channel 0, while the player's personal primary becomes channel 1.
-Neutral membership makes channels 0 and 1 white. Emblem channels 2 and 3 retain
-the selected personal palette entries. `83050` and `1AA2B0` own palette lookup
+Neutral membership in a team game makes channels 0 and 1 white. FFA also uses
+membership `-1`, but retains both selected personal armor colors. The shared
+`source_multiplayer_player_colors` presentation policy distinguishes these
+cases for live bodies, first-person armor and detached-body fallbacks.
+Emblem channels 2 and 3 retain the selected personal palette entries.
+`83050` and `1AA2B0` own palette lookup
 and their original fallbacks. The fixture and its provenance are in
 `tests/fixtures/player_colors_tu15_original.*`; all 328 cases execute unchanged
 TU1.5 instructions against the original cache's actual palette blocks.
@@ -43,7 +47,7 @@ python3 tools/run_tests.py --jobs 2 --test-jobs 1 \
   --target frontend_team_tests --target game_pause_menu_tests \
   --target player_armor_emblem_runtime_tests --target native_request_protocol_tests \
   --target security_transport_tests --target online_pcr_family_tests \
-  --filter '^(original_player_colors_tu15|original_team_change_tu15|original_frontend_team_picker|native_game_pause_menu|native_team_switch_color_runtime|player_(armor_emblem|team_color|team_color_lan)_runtime|native_request_protocol|security_transport|online_pcr_family_carriers)$'
+  --filter '^(original_player_colors_tu15|original_team_change_tu15|original_frontend_team_picker|native_game_pause_menu|native_team_switch_color_runtime|native_player_personal_color_runtime|player_(armor_emblem|team_color|team_color_lan)_runtime|native_request_protocol|security_transport|online_pcr_family_carriers)$'
 ```
 
 The rendered four-player test creates mapped SDL virtual controllers and drives

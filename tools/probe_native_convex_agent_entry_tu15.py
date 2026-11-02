@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""Read actual2E4EB0 typed inputs reached by original321510->320EF0, no outcomes."""
+import argparse,hashlib,inspect,json,os,subprocess
+from pathlib import Path
+import validate_native_pair_consumer_actual_before_tu15 as parent
+from oracle_smg_firing_1_1 import ROOT
+
+def sha(p):return hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--capture',type=Path,required=True);p.add_argument('--archive-sha256',required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[],supplied_outcomes=False,kernel_GP_SIMD_input_supplied=False)
+ try:
+  source=inspect.getsource(parent.main);prefix=source.split(' try:\n',1)[1].split('  project=scratch',1)[0];env=dict(parent.__dict__,a=a,scratch=scratch,report=report);exec('\n'.join(line[2:]if line.startswith('  ')else line for line in prefix.splitlines()),env);elf=env['elf'];driver=(ROOT/'tools/observe_native_contact_producer_tu15.cpp').read_text().split('int main(int argc,char**argv)')[0]+(ROOT/'tools/observe_native_pair_consumer_tu15.cpp').read_text().split('int main(int argc,char**argv)')[0]+(ROOT/'tools/observe_native_pair_create_tu15.cpp').read_text().split('int main(int argc,char**argv)')[0]
+  driver+='''int main(int argc,char**argv)try{check(argc==3,"ELF and ordinal required");Child child;handler_entry(child,argv[1],std::stoul(argv[2]));child.go(0x2e4eb0u);const auto r=child.regs();const auto sp=std::uint32_t(r.rsp);J args=J::array();for(unsigned n=0;n<4;++n)args.push_back(child.word(sp+4u+n*4u));J shapes=J::array();for(unsigned n=0;n<2;++n){const auto p=args[n].get<std::uint32_t>(),shape=child.word(p),table=child.word(shape);shapes.push_back(J{{"payload",p},{"shape",shape},{"table",table},{"class_owner",child.word(table+0x14u)},{"center_owner",child.word(table+0x38u)},{"support_owner",child.word(table+0x30u)},{"encoding_owner",child.word(table+0x3cu)},{"transform_owner",child.word(p+8u)}});}const auto fp=child.fp();std::cout<<J{{"entry",0x2e4eb0u},{"ordinal",std::stoul(argv[2])},{"formal_arguments",args},{"shapes",shapes},{"floating_point",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"genuine_original_parent_reached_entry",true},{"captured_guest_ABI_claimed",false},{"returned_outcomes_consumed",false}}.dump()<<'\\n';return 0;}catch(std::exception&e){std::cerr<<e.what()<<'\\n';return 1;}'''
+  target=scratch/'probe.cpp';target.write_text('#include "halo2/native_tu15_pair_handlers.hpp"\n'+driver);binary=scratch/'probe';compile=['g++','-std=c++20','-O2','-I'+str(ROOT/'include'),str(target),'-o',str(binary)];r=subprocess.run(compile,capture_output=True,text=True);assert r.returncode==0,r.stderr[-4000:];rows=[]
+  for ordinal in range(2):r=subprocess.run([str(binary),str(elf),str(ordinal)],capture_output=True,text=True);assert r.returncode==0,r.stderr;rows.append(json.loads(r.stdout))
+  report.update(passed=True,inputs=rows,archive_sha256=a.archive_sha256,source_hashes={p:sha(ROOT/p)for p in ['tools/probe_native_convex_agent_entry_tu15.py','tools/observe_native_pair_create_tu15.cpp','tools/observe_native_contact_producer_tu15.cpp','tools/observe_native_pair_consumer_tu15.cpp','tools/validate_native_pair_consumer_actual_before_tu15.py']},scope='Genuine source constructor entry reached from actual typed02 parent BEFORE. Read-only formal payload/context/userdata and shape dispatch inputs only; no capturedoriginalCPUframe or nativekernel outcome supplied.')
+ except BaseException as e:report['error']=str(e)or repr(e);raise
+ finally:report['temporary_allocated_bytes_before_cleanup']=sum(p.stat().st_blocks*512 for p in scratch.rglob('*')if p.is_file());(a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+ return 0 if report['passed']else 1
+if __name__=='__main__':raise SystemExit(main())

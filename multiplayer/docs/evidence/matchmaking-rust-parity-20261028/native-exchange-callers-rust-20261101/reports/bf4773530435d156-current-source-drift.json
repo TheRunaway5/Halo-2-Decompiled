@@ -1,0 +1,52 @@
+[
+  {
+    "path": "cmake/PhysicsLiveWorldTu15.cmake",
+    "frozen": "dd6c1c39c2d1ad497e7868e9c71cb96b9aa76fe433f3df7aef04572004abc0ff",
+    "current": "cea39fb050d650d9117d0acb19cf5cf41cc74103631623a35b17cb370086e5aa"
+  },
+  {
+    "path": "cmake/WorkshopWrappedAgent.cmake",
+    "frozen": "f56c8be4cac916b97068bfadd583bc94ea26978ac229bc8f1304ad9de396f5ed",
+    "current": "eba3292a703584afbc097d4b143093b209c8ff9d9610671a0bbcac6cbfc2d453"
+  },
+  {
+    "path": "rust/online_protocol/README.md",
+    "frozen": "07a7e6e8f32d7b4d9730529825eba550fe5669fbcfd7e494bcc6422d310b6194",
+    "current": "a693506828ca0dcfab8f409968e83a1cbf075f4aa0cf3384bb3d40a8cf148c59"
+  },
+  {
+    "path": "rust/online_protocol_bridge/README.md",
+    "frozen": "9e72b84f1f38bcf22a1dd449e54e04680d124c7ca46c6275526dabdd0adacdf0",
+    "current": "7074d567ac718b1e18488f8be21ab166a729074e1d8ad4d51aea3c4e7f114ea1"
+  },
+  {
+    "path": "src/gameplay/multiplayer/multiplayer_runtime.cpp",
+    "frozen": "1c58e309c030e9e599db11210deeb39c0d38d1d2cf81f6ca70df1d6ab02183d3",
+    "current": "96f53a6d0b36809da5b9296783cc5623bf444ca57945a3ce064632cf2e3bcf23"
+  },
+  {
+    "path": "src/physics/native_tu15_world_integration_residuals.cpp",
+    "frozen": "2ae7bf2a5198a8590dc2048430c8d85aebbb4ed142d46c9e753dac0c00d820a2",
+    "current": "e606653c16f0f22e5da0d839fc60b95ee16b995fc9404274f69f4a84a74748d6"
+  },
+  {
+    "path": "src/rendering/material.cpp",
+    "frozen": "04be2e6a6bdc8de56514ebcb294cd827e6b80eea55af7333a1ba42a82ceeb02e",
+    "current": "8e7081a5e7a262e45b7cdff705e5f0a37e27f5b9cc5d81ccacf6edca634ad8e4"
+  },
+  {
+    "path": "tests/workshop_wrapped_agent_tests.cpp",
+    "frozen": "bcf1be3706bc9c7bc060b5a7564f9c6e1b46c4f4e984bce1dda1200e958c06d3",
+    "current": "cd1542c7e5657b28e6e0a0d52001ce2486861602ca98a94f6c6d67b27a421176"
+  },
+  {
+    "path": "tools/qualify_native_activation_types_tu15.py",
+    "frozen": "a5e05ee07885f1f882a91784cf19bfb04778a138e4032cc9004d9a74afe72393",
+    "current": "0127b463747ecb03348aee3a4e307672793e9176fade0f5c669217a0a7d70a4b"
+  },
+  {
+    "path": "tools/validate_native_wrapped_contact_agent_tu15.py",
+    "frozen": "e0f459e1183d1e155e6b80f4ecf13318648d6b70009bd64c0ce8ccc966f03edf",
+    "current": "9fb0611816ffd611afc03ce17a4fad4d504d9ac659c91bcc569e543b93bfc9ff"
+  }
+]

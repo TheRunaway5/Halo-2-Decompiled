@@ -1,0 +1,64 @@
+## Source-backed native lobby presentation and quick options in Rust (November 2)
+
+[Qualification receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-lobby-view-rust-validation.json).
+The safe `matchmaking_frontend_lobby_view` module now owns session-enum and pane
+selection, protocol/status/subtitle/leader/privacy/prior-stat bindings, button
+visibility and Start eligibility, game-type/icon/category/difficulty/help/count
+selection and five-/six-row quick options. The old C++ policy bodies are replaced
+by typed Rust calls. C++ supplies immutable cache observations and the actual
+shared gameplay default-buffer/descriptor getter, with no selection fallback.
+
+Guarded and unknown bindings retain their exact optional semantics: an empty
+known status is `Some(0)`, a guarded widget is untouched, and an unknown privacy
+value does not invent a string. Signed/full-width query values and opaque text
+bytes are preserved. Quick options retain authored holes, duplicate row order,
+first matching choice, override-before-default bounds, title+separator for an
+unknown choice, repeated native getters and immediate failure at the observed
+read. The native ABI rethrows the original exception object or nonstandard value.
+
+All three Rust suites pass 653 tests (568 protocol,65 bridge,20 service), with
+four existing platform-dependent ignores and twelve new lobby controls. Seven
+bridge-staging checks pass. Captured modern C++ kernels agree with the actual
+Rust/CXX implementation across 5,927 cases and 1,176 native IO observations,
+including 387 production cache/default adapter comparisons. All fourteen injected
+native failures preserve the exception identity; unexpected differences are zero.
+
+Fresh unchanged retail Xbox executable and literal-cache oracles reproduce all
+1,172 header fixture rows and 1,216 game-panel rows. The preserved game fixture
+has one additional round-time value8 row that the general oracle did not emit.
+An independent run through original19D220,2373BE,2374F0 and25092C confirms that
+row: `Round Time Limit: `, with no matching option label. Its fixture remains
+unchanged; the native comparator's stale quick-row count is corrected from70
+to71. The ordered-variant integration fixture now supplies the real borrowed
+asset directory to the unchanged confined reader. It also keeps unsupported
+native metadata load/save/reload and explicit refusal separate from valid saved-
+variant launch/edit/reload checks; production admission guards are unchanged.
+Session queries, locale/widget services and the literal `%s%s%s` formatting
+service remain supplied oracle boundaries. No native implementation supplies the
+original option-matching result. The executable SHA is
+`03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d`;
+this retail proof does not certify TU1.5 upstream producers or original Live.
+
+The final frozen native Release/O1 cohort passes @NATIVE_COUNT@ checks with no skips,
+including original lobby/game/countdown/variant fixtures, seven Rust/CXX policy
+comparisons, actual SDL/Vulkan privacy and playlist/Start input, complete native
+matchmaking/gathering and standalone Rust service flows, and one-/two-player
+party emblem pixels. The preceding full native attempt was interrupted by SIGTERM; its incomplete
+result is retained separately and its scratch was removed automatically. The
+initial isolated compiler harness omitted a descriptor
+include; its corrected frozen cohort passes. The pre-existing game-fixture
+coverage-count failure and its source-backed correction are retained. Owned
+build/Cargo/oracle/compiler/SDK/capture scratch is removed; bounded commands,
+source hashes, diagnostics and small required reference captures remain.
+
+Party menu/text selection, lobby query/roster producers, account-refresh/party
+join/departure and voice intent, and all other remaining matching-related policy
+still require Rust ownership. Complete original callers and all 53 owners,
+historical profiles/service ordering/arbitration, every required family/profile/
+topology/unshortened natural outcome/continuity/results/PCR/return route, genuine
+providers, physical installed Linux input and delivered restart/retry/configuration/
+rollback gates remain open. All twelve GAP records and G01-G12 criteria remain
+unchanged. No selected runtime or production service is replaced; full parity
+stays uncertified and the full goal remains active.
+
+

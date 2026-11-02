@@ -1,0 +1,40 @@
+import hashlib,json,re
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-search-rust-20261102'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+expected={
+ 'frontend_matchmaking_http':'Nonmember clan details lost the membership requirement',
+ 'frontend_matchmaking_gathering_http':'Matched/empty slot artwork is not an admitted source page',
+ 'frontend_clans_http':'ONLINE bitmaps missing selected imported sampling:',
+ 'frontend_parties_http':'ONLINE bitmaps missing selected imported sampling:'}
+def sections(path):
+ text=path.read_text();out={}
+ # CTest writes Start and result records in sequential --parallel 1 order.
+ rows=list(re.finditer(r'^\s*Start\s+\d+:\s+(\w+)\s*$',text,re.M))
+ for index,row in enumerate(rows):
+  part=text[row.end():rows[index+1].start() if index+1<len(rows) else len(text)]
+  result=re.search(r'Test\s+#\d+:\s+\w+\s+\.+\s*(Passed|\*\*\*Failed|\*\*\*Not Run|\*\*\*Skipped)',part)
+  assert result,(row.group(1),part[:300])
+  out[row.group(1)]={'passed':result.group(1)=='Passed','skipped':result.group(1) not in ('Passed','***Failed'),'text':part}
+ return out
+before=sections(work/'native/iteration-1/tests.log');after=sections(work/'native-candidate/iteration-2/tests.log')
+rows=[]
+for name,marker in expected.items():
+ b=before[name];a=after[name]
+ assert not b['skipped'] and not a['skipped']
+ shared=not b['passed'] and not a['passed'] and marker in b['text'] and marker in a['text']
+ improved=not b['passed'] and a['passed']
+ assert shared or improved,(name,b['passed'],a['passed'])
+ rows.append({'name':name,'captured_cpp_passed':b['passed'],'rust_passed':a['passed'],
+  'shared_failure':shared,'functional_improvement':improved,'shared_diagnostic':marker if shared else None})
+native=[]
+for cohort,i in [('native',1),('native-candidate',1),('native-candidate',2)]:
+ p=work/f'{cohort}/iteration-{i}-report.json';r=json.loads(p.read_text());log=work/f'{cohort}/iteration-{i}/tests.log';tests=sections(log)
+ native.append({'cohort':cohort,'iteration':i,'passed':r['passed'],'frozen_inputs_intact':r['frozen_inputs_intact'],'successful_tests':[n for n,v in tests.items() if v['passed']],'failed_tests':[n for n,v in tests.items() if not v['passed']],'source_pin_sha256':r['source_pin_sha256'],'refreshed':r['refreshed'],'steps':[(s['name'],s.get('exit_code')) for s in r['runner_report']['steps']]})
+required={'rust_frontend_lobby_blocked','rust_frontend_lobby_complete','rust_frontend_lobby_rendered','frontend_online_lobby_buttons','frontend_online_lobby_legacy_countdown','frontend_online_lobby_blocked_playlist','frontend_online_lobby_complete_playlist','original_party_countdown_kernels','retail_frontend_lobby_policy'}
+final_success=set(native[1]['successful_tests'])|set(native[2]['successful_tests']);assert required<=set(native[0]['successful_tests']);assert required|{'frontend_search_cpp_rust','frontend_lobby_cpp_rust','online_protocol_rust_build_helper'}<=final_success
+assert native[1]['passed'] and all(r['frozen_inputs_intact'] for r in native)
+result={'passed':True,'scope':'Observed native baseline and Rust-candidate functional outcomes; the interrupted baseline build was replaced by a fresh frozen cohort with declared unrelated dependency changes, so this is not a same-whole-source A/B proof','cases':rows,'all_wider_functional_tests_passed':all(x['rust_passed'] for x in rows),'all_final_native_tests_passed':all(x['rust_passed'] for x in rows),'native_runs':native,'final_unique_successful_tests':sorted(final_success),'baseline_same_full_source_cohort':False,'prior_owner_interrupted':True,'retained_large_artifacts':[]}
+(work/'functional-comparison.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps({'paired':True,'scoped_native_passes':len(final_success),
+ 'wider_shared_failures':sum(x['shared_failure'] for x in rows)}))

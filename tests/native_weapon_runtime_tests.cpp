@@ -1,5 +1,6 @@
 #include "helpers/gameplay_fixture.hpp"
 #include "helpers/first_person_dual_variants.hpp"
+#include "helpers/loopback_packet_proxy.hpp"
 #define SDL_MAIN_HANDLED
 #include "halo2/animation_presentation.hpp"
 #include "halo2/multiplayer.hpp"
@@ -11,16 +12,20 @@
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_match_authority.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/particle_draw.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <map>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <set>
@@ -103,14 +108,20 @@ bool check_authored_dual_channel(const Channel &channel,const test::AuthoredFirs
 }
 int network_dual_runtime(const MultiplayerOptions &request,unsigned representation,nlohmann::json &report) {
   report["scenario"]="native-authority-to-joining-client-dual";
+  const bool verify_firing=std::getenv("HALO2_TEST_FIRING_PRESENTATION")!=nullptr;
   struct Host {
     std::string address;
+    std::atomic<bool> drop_downstream{};
+    std::atomic<std::uint64_t> dropped_datagrams{};
     std::exception_ptr error;
     std::mutex mutex;
     nlohmann::json body_manager_context=nlohmann::json::array();
+    nlohmann::json delivered_commands=nlohmann::json::array();
     std::jthread worker;
     FirstPersonBindingDefinition dual_binding;
     std::optional<test::AuthoredFirstPersonDualVariants> dual_variants;
+    std::uint32_t firing_sound=null_datum;
+    std::set<std::uint32_t> firing_effects;
     Host(MultiplayerOptions options,unsigned representation) {
       options.host_port=1; // Select host preparation; LanHost owns an ephemeral socket below.
       if(options.starting_weapon)options.variant.values.set(89,int(options.starting_weapon));
@@ -122,6 +133,10 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
           check(world.cache->is_mcc(),"Network dual runtime requires prepared MCC assets");
           check(world.source_objects && world.source_objects->owns_physics(),
               "Network dual host has no native TU1.5 world");
+          const auto &weapon=world.content.weapons.at(world.rules.weapon);
+          firing_sound=weapon.sound;
+          for(const auto &entry:weapon.firing_effects)
+            for(auto effect:entry.effects)if(effect!=null_datum)firing_effects.insert(effect);
           dual_binding=world.cache->load_first_person_binding(world.rules.weapon,representation);
           dual_variants.emplace(*world.cache,dual_binding);
           const NetgameEquipment *pickup=nullptr;
@@ -133,12 +148,20 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
           check(pickup,"Network dual host has no authored starting-weapon pickup");
           const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),
               unsigned(options.bsp),world.network_starting_weapon_identity());
+          SourceMatchAuthority source_authority(world.match,*world.source_objects);
           LanHost host(world.match,0,fingerprint,options.variant);
-          ready.set_value(host.join_address());published=true;
+          host.enable_shadow_lane(source_authority,world.local_slots);
+          std::optional<test::LoopbackPacketProxy> proxy;
+          if(std::getenv("HALO2_TEST_SHARED_EFFECT_CATCHUP")) {
+            proxy.emplace(host.port(),8*1024*1024);proxy->allow_client_rebind();
+          }
+          ready.set_value(proxy?host.join_address("127.0.0.1",proxy->port()):host.join_address());published=true;
           std::array<Controls,multiplayer_capacity> commands{};
           std::optional<nlohmann::json> previous_body_manager;
+          std::optional<nlohmann::json> previous_command;
           auto next=std::chrono::steady_clock::now();
           while(!stop.stop_requested()) {
+            if(proxy){proxy->drop_host(drop_downstream.load());proxy->pump(world.match.state().tick);}
             host.receive(commands);
             const auto state=world.match.state();
             for(unsigned id=0;id<state.players.size();++id)
@@ -157,8 +180,22 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
                 auto context=retained_body_manager(*world.source_objects,completed.players[id].source_unit);
                 std::lock_guard lock(mutex);
                 record_body_manager(body_manager_context,previous_body_manager,std::move(context),completed.tick);
+                const auto &c=commands[id];const auto &p=completed.players[id];
+                const nlohmann::json observed{{"fire",c.fire},{"fire_secondary",c.fire_secondary},
+                    {"reload",c.reload},{"grenade",c.grenade},{"switch_weapon",c.switch_weapon},
+                    {"melee",c.melee},{"dual_wield",c.dual_wield},
+                    {"primary",p.source_weapon},{"offhand",p.secondary_weapon.datum},
+                    {"primary_loaded",p.loaded},{"offhand_loaded",p.secondary_weapon.loaded}};
+                if(!previous_command || *previous_command!=observed) {
+                  previous_command=observed;
+                  if(delivered_commands.size()<128) {
+                    auto row=observed;row["tick"]=completed.tick;delivered_commands.push_back(std::move(row));
+                  }
+                }
               }
             host.broadcast();
+            if(host.shadow_publication_pending())host.capture_shadow_state();
+            if(proxy){proxy->pump(completed.tick);dropped_datagrams=proxy->statistics().dropped;}
             next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
           }
         }catch(...) {
@@ -175,14 +212,15 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
   };
   Host host(request,representation);report["native_world_constructor_completed"]=true;report["runtime_cache_source"]="MCC";
   auto options=request;options.join=host.address;
-  options.frames=0;options.width=800;options.height=600;options.mute=true;
+  options.frames=0;options.width=800;options.height=600;options.mute=!verify_firing;
   options.desktop=std::make_shared<DesktopSession>();
   configure_test_display(*options.desktop,report);
   auto *window=options.desktop->window(options.width,options.height,false);
   SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
   check(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Network dual could not capture its actual SDL mouse");
-  enum class Stage {pickup,ready,offhand,primary,reload,done};Stage stage=Stage::pickup;
+  enum class Stage {pickup,ready,offhand,primary,reload,done,settle};Stage stage=Stage::pickup;
+  std::optional<unsigned> trigger_release_tick;
   std::optional<unsigned> slot;std::uint32_t stage_tick{};
   std::array<std::uint32_t,2> weapons{null_datum,null_datum};
   std::array<unsigned,2> draws{};
@@ -190,23 +228,97 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
   std::array<std::set<std::pair<std::uint32_t,std::uint32_t>>,2> channels;
   std::array<std::set<std::uint32_t>,2> hand_clips;
   bool offhand_fired{},primary_fired{},reloaded{},quit{};
+  unsigned fired_rounds{},firing_sounds{},firing_particles{};
+  const bool verify_shared_timeline=std::getenv("HALO2_TEST_SHARED_EFFECT_CATCHUP");
+  bool delivery_pause_done{};
+  unsigned observed_tick{},last_firing_tick{};
+  nlohmann::json firing_trace=nlohmann::json::array();
+  const auto trace_firing=[&](nlohmann::json row) {
+    if(firing_trace.size()<256)firing_trace.push_back(std::move(row));
+    report["firing_trace"]=firing_trace;
+  };
+  std::map<std::uint32_t,unsigned> observed_ammo;
+  std::set<std::uint32_t> particle_weapons;
+  if(verify_firing) {
+    options.frame_observer=[&](const MultiplayerFrameTiming &frame) {
+      report["shared_effect_timeline"]={{"caught_up_ticks",frame.shared_effect_catchup_ticks},
+          {"received_gaps",frame.shared_effect_catchup_receipts},
+          {"source_requests",frame.shared_effect_catchup_requests}};
+    };
+    check(host.firing_sound!=null_datum && !host.firing_effects.empty(),
+        "Joining-client firing coverage lacks its authored SMG sound/effect bank");
+    options.audio_observer=[&](const MultiplayerAudioSubmission &submission) {
+      if(submission.sound!=host.firing_sound)return;
+      check(submission.view==0 && submission.voice && submission.frames,
+          "Joining-client firing sound lost its native PCM voice or local view");
+      ++firing_sounds;
+      trace_firing({{"kind","pcm"},{"tick",observed_tick},{"owner",submission.owner},
+          {"voice",submission.voice},{"after_quit",quit}});
+    };
+    options.effect_observer=[&](unsigned view,unsigned,std::span<const ParticleDraw> particles) {
+      check(view==0,"Joining-client firing particles crossed local views");
+      for(const auto &particle:particles)if(host.firing_effects.contains(particle.effect_definition)) {
+        if(std::find(weapons.begin(),weapons.end(),particle.effect_owner)==weapons.end())continue;
+        ++firing_particles;particle_weapons.insert(particle.effect_owner);
+      }
+    };
+  }
   const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(180);
-  options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState &state) {
+  options.input_observer=[&](unsigned,std::span<const Controls> input,const MultiplayerState &state) {
     check(std::chrono::steady_clock::now()<deadline,"Network dual SDL sequence timed out");
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     if(!slot)for(unsigned id=1;id<state.players.size();++id)
       if(state.players[id].connected && state.players[id].source_unit!=null_datum){slot=id;break;}
     if(!slot)return;
     const auto &player=state.players[*slot];
+    observed_tick=state.tick;
     check(!player.dead,"Network dual participant died before its pose assertions");
     weapons={player.source_weapon,player.secondary_weapon.datum};
+    if(verify_firing)for(const auto &[weapon,loaded]:std::array{
+        std::pair{weapons[0],unsigned(player.loaded)},
+        std::pair{weapons[1],unsigned(player.secondary_weapon.loaded)}}) {
+      if(weapon==null_datum)continue;
+      const auto [previous,inserted]=observed_ammo.emplace(weapon,loaded);
+      if(!inserted) {
+        if(loaded<previous->second) {
+          fired_rounds+=previous->second-loaded;
+          last_firing_tick=state.tick;
+          trace_firing({{"kind","ammo"},{"tick",state.tick},{"weapon",weapon},
+              {"before",previous->second},{"after",loaded},{"after_quit",quit},
+              {"effect_serial",state.weapon_effects.empty()?0:state.weapon_effects.back().serial}});
+          check(!quit,"Joining-client firing test exited before authoritative triggers settled");
+        }
+        previous->second=loaded;
+      }
+    }
+    if(verify_firing)report["firing_presentation"]={{"passed",false},{"fired_rounds",fired_rounds},
+        {"native_pcm_submissions",firing_sounds},{"particle_draws",firing_particles},
+        {"particle_weapons",particle_weapons},{"xbox_output_parity",false}};
     report["network_dual"]={{"tick",state.tick},{"slot",*slot},{"stage",unsigned(stage)},
         {"weapons",weapons},{"draws",draws},{"primary_clock",player.first_person_clock.present},
         {"offhand_clock",player.secondary_weapon.clock.present},{"primary_loaded",player.loaded},
         {"offhand_loaded",player.secondary_weapon.loaded},
         {"channel_samples",{channels[0].size(),channels[1].size()}},
         {"clips_per_hand",{hand_clips[0].size(),hand_clips[1].size()}}};
-    {std::lock_guard lock(host.mutex);report["authority_body_manager_context"]=host.body_manager_context;}
+    {std::lock_guard lock(host.mutex);report["authority_body_manager_context"]=host.body_manager_context;
+      report["delivered_commands"]=host.delivered_commands;}
+    if(!input.empty())report["last_local_input"]={{"fire",input[0].fire},{"fire_secondary",input[0].fire_secondary},
+        {"reload",input[0].reload},{"grenade",input[0].grenade},{"switch_weapon",input[0].switch_weapon},
+        {"melee",input[0].melee},{"dual_wield",input[0].dual_wield}};
+    if(verify_shared_timeline && !delivery_pause_done && fired_rounds && !input.empty() &&
+        (input[0].fire || input[0].fire_secondary)) {
+      // Drop only actual downstream UDP datagrams during a brief client
+      // pause. Upstream controls and native authority keep running normally.
+      delivery_pause_done=true;
+      trace_firing({{"kind","client_delivery_pause"},{"tick",state.tick},{"milliseconds",110}});
+      host.drop_downstream=true;
+      std::this_thread::sleep_for(std::chrono::milliseconds(110));
+      host.drop_downstream=false;
+    }
+    const auto &bindings=options.desktop->keyboard_settings.bindings;
+    report["actual_keyboard_bindings"]={{"primary",bindings[unsigned(PcAction::DualPrimary)]},
+        {"secondary",bindings[unsigned(PcAction::DualSecondary)]},{"grenade",bindings[unsigned(PcAction::Grenade)]},
+        {"switch_weapon",bindings[unsigned(PcAction::SwitchWeapon)]},{"reload",bindings[unsigned(PcAction::Reload)]}};
     const auto advance=[&](Stage next){stage=next;stage_tick=state.tick;};
     if(stage==Stage::pickup) {
       hold_key(window_id,SDL_SCANCODE_C,true);
@@ -222,13 +334,28 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     }else if(stage==Stage::offhand) {
       offhand_fired|=player.secondary_weapon.loaded<60;
       check(player.loaded==60,"Joining-client offhand trigger consumed primary ammunition");
-      if(state.tick-stage_tick>=10) {
+      if(offhand_fired && state.tick-stage_tick>=10) {
         trigger(window_id,SDL_BUTTON_RIGHT,false);trigger(window_id,SDL_BUTTON_LEFT,true);advance(Stage::primary);
       }
     }else if(stage==Stage::primary) {
       primary_fired|=player.loaded<60;
-      if(state.tick-stage_tick>=10) {
-        trigger(window_id,SDL_BUTTON_LEFT,false);key(window_id,SDL_SCANCODE_R);advance(Stage::reload);
+      if(primary_fired && state.tick-stage_tick>=10) {
+        trigger(window_id,SDL_BUTTON_LEFT,false);
+        if(verify_firing)advance(Stage::done);
+        else advance(Stage::settle);
+      }
+    }else if(stage==Stage::settle) {
+      const bool released=!input.empty() && !input[0].fire && !input[0].fire_secondary &&
+          !(player.motion_sensor_control&0x21u);
+      if(!released)trigger_release_tick.reset();
+      else {
+        if(!trigger_release_tick)trigger_release_tick=state.tick;
+        if(state.tick-*trigger_release_tick>=10) {
+          report["reload_request"]={{"tick",state.tick},{"released_since",*trigger_release_tick},
+              {"native_trigger_holds",player.motion_sensor_control&0x21u},
+              {"primary_loaded",player.loaded},{"offhand_loaded",player.secondary_weapon.loaded}};
+          key(window_id,SDL_SCANCODE_R);advance(Stage::reload);
+        }
       }
     }else if(stage==Stage::reload) {
       reloaded|=offhand_fired && primary_fired && player.loaded==60 && player.secondary_weapon.loaded==60;
@@ -236,8 +363,18 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     }
     if(stage!=Stage::pickup)check(weapons[0]!=null_datum && weapons[1]!=null_datum,
         "Joining-client dual sequence lost an authoritative hand owner");
-    if(stage==Stage::done && !quit && draws[0]>10 && draws[1]>10 && poses[0].size()>3 && poses[1].size()>3 &&
-        channels[0].size()>3 && channels[1].size()>3 && hand_clips[0].size()>=3 && hand_clips[1].size()>=3) {
+    const auto required_clips=verify_firing?2u:3u;
+    // SDL release is queued by the observer and reaches the authority on a
+    // later frame. Finish only after its original unit trigger bits clear
+    // and the final ammunition change has drained through presentation.
+    const bool firing_delivered=!verify_firing || (fired_rounds>1 && firing_sounds==fired_rounds &&
+        !input.empty() && !input[0].fire && !input[0].fire_secondary &&
+        !(player.motion_sensor_control&0x21u) && state.tick-last_firing_tick>=10 &&
+        particle_weapons.contains(weapons[0]) && particle_weapons.contains(weapons[1]));
+    if(stage==Stage::done && state.tick-stage_tick>=10 && firing_delivered && !quit && draws[0]>10 && draws[1]>10 && poses[0].size()>3 && poses[1].size()>3 &&
+        channels[0].size()>3 && channels[1].size()>3 && hand_clips[0].size()>=required_clips && hand_clips[1].size()>=required_clips) {
+      trace_firing({{"kind","quit"},{"tick",state.tick},{"rounds",fired_rounds},{"pcm",firing_sounds},
+          {"native_trigger_holds",player.motion_sensor_control&0x21u},{"last_firing_tick",last_firing_tick}});
       SDL_Event event{};event.type=SDL_QUIT;check(SDL_PushEvent(&event)==1,"Exit network dual runtime");quit=true;
     }
   };
@@ -256,17 +393,37 @@ int network_dual_runtime(const MultiplayerOptions &request,unsigned representati
     }
   };
   const auto result=run_multiplayer(options);host.finish();
-  check(result==0 && quit && reloaded,"Joining-client dual fire/reload sequence did not complete");
+  check(result==0 && quit && (verify_firing?offhand_fired && primary_fired:reloaded),
+      "Joining-client dual firing/presentation sequence did not complete");
   for(unsigned hand=0;hand<2;++hand)
-    check(draws[hand]>10 && poses[hand].size()>3 && channels[hand].size()>3 && hand_clips[hand].size()>=3,
+    check(draws[hand]>10 && poses[hand].size()>3 && channels[hand].size()>3 &&
+        hand_clips[hand].size()>=(verify_firing?2u:3u),
         "Joining-client dual weapon was absent or its own animation channel stayed frozen");
   report["render_loop_completed"]=true;report["network_dual"]["passed"]=true;
   report["network_dual"]["draws"]=draws;
   report["network_dual"]["distinct_node_banks"]={poses[0].size(),poses[1].size()};
   report["network_dual"]["distinct_channel_samples"]={channels[0].size(),channels[1].size()};
   report["network_dual"]["clips_per_hand"]={hand_clips[0].size(),hand_clips[1].size()};
+  if(verify_firing) {
+    report["firing_presentation"]={{"fired_rounds",fired_rounds},{"native_pcm_submissions",firing_sounds},
+        {"particle_draws",firing_particles},{"particle_weapons",particle_weapons},
+        {"render_mode",std::getenv("HALO2_TEST_RENDER_MODE")?std::getenv("HALO2_TEST_RENDER_MODE"):"default"},
+        {"xbox_output_parity",false}};
+    check(fired_rounds>1 && firing_sounds==fired_rounds,
+        "Joining-client SMGs did not submit one authored PCM voice per fired round");
+    check(firing_particles && particle_weapons.contains(weapons[0]) && particle_weapons.contains(weapons[1]),
+        "Joining-client firing did not submit authored particles for both actual weapon owners");
+    if(verify_shared_timeline) {
+      report["shared_effect_timeline"]["dropped_host_datagrams"]=host.dropped_datagrams.load();
+      check(delivery_pause_done && host.dropped_datagrams.load()>0 && report.at("shared_effect_timeline").at("source_requests").get<std::uint64_t>()>0,
+          "Joined firing did not execute source requests through shared catch-up");
+      report["shared_effect_timeline"]["client_delivery_pause_ms"]=110;
+    }
+    report["firing_presentation"]["passed"]=true;
+  }
   std::cout<<"PASS native MCC authority -> authenticated localhost UDP -> joining-client SDL dual pickup, "
-      "independent fire/reload, actual hand draws="<<draws[0]<<','<<draws[1]
+      <<(verify_firing?"independent firing presentation":"independent fire/reload")
+      <<", actual hand draws="<<draws[0]<<','<<draws[1]
       <<" distinct node banks="<<poses[0].size()<<','<<poses[1].size()<<'\n';
   std::cout<<"LIMIT localhost transport; no WAN/DTLS, framebuffer or original-hardware parity claim\n";
   return 0;

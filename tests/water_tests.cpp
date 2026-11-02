@@ -131,9 +131,33 @@ void probe() {
     std::cout<<frame.horizon_argb<<'\n';
   }
 }
+int mcc_geometry(const std::filesystem::path& maps) {
+  if(!std::filesystem::is_regular_file(maps/"zanzibar.map"))return 77;
+  unsigned grids=0,triangles=0;
+  for(const auto* name:{"zanzibar","headlong","deltatap","dune","gemini"}) {
+    const Cache cache(maps/(std::string(name)+".map"));
+    check(cache.is_mcc(),"MCC water regression requires the imported MCC cache");
+    for(const auto& definition:cache.load_bsp_water(0).definitions) {
+      const auto& vertices=definition.geometry.vertices;
+      if(vertices.empty())continue;
+      check(vertices.size()==8064,"MCC water grid must retain its 2688 authored triangles");
+      for(std::size_t n=0;n<vertices.size();n+=3) {
+        const auto a=vertices[n].position,b=vertices[n+1].position,c=vertices[n+2].position;
+        const auto area=(double(b.x)-a.x)*(double(c.y)-a.y)-(double(b.y)-a.y)*(double(c.x)-a.x);
+        check(area<0,"MCC ocean contains a degenerate or reversed triangle");
+        ++triangles;
+      }
+      ++grids;
+    }
+  }
+  check(grids==5,"MCC water regression lost an authored infinite grid");
+  std::cout<<"PASS MCC water: "<<grids<<" complete grids, "<<triangles<<" nondegenerate authored triangles\n";
+  return 0;
+}
 }
 int main(int argc,char **argv) {
   try {
+    if(argc==3 && std::string_view(argv[1])=="--mcc")return mcc_geometry(argv[2]);
     if(argc>1 && std::string_view(argv[1])=="--materials")return materials(argc,argv);
     if(argc>1 && std::string(argv[1])=="--probe"){probe();return 0;}
     zero_words();
@@ -165,7 +189,8 @@ int main(int argc,char **argv) {
       "turf","backwash","dune","elongation","gemini","triplicate"};
     unsigned definitions=0,resident=0,drawn=0,pools=0;
     for(unsigned i=0;i<names.size();++i) {
-      const Cache cache((i<12?disc:dlc)/(std::string(names[i])+".map"));
+      const Cache cache(std::filesystem::canonical((i<12?disc:dlc)/(std::string(names[i])+".map")),
+          std::filesystem::canonical(disc));
       const auto water=cache.load_bsp_water(0);definitions+=unsigned(water.definitions.size());
       for(const auto &definition:water.definitions) {
         const auto frame=water_frame(definition,{3,-2,5},{.8f,.6f,-.2f},1.2f,4.f/3.f);

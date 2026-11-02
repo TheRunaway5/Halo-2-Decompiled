@@ -15,6 +15,8 @@ from oracle_smg_firing_1_1 import ROOT, Xbe, _Code, _trace, PIN
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN, full_tokens
 from native_damage_model_kernel_tu15 import install_native_model_lookup,strip_native_model_lookup
 from native_damage_voice_request_tu15 import install_native_damage_voice_request,strip_native_damage_voice_request
+from native_pending_response_kernel_tu15 import install_native_pending_response,strip_native_pending_response
+from native_damage_region_eligibility_kernel_tu15 import install_damage_region_eligibility,strip_damage_region_eligibility
 
 BASELINE_SHA256='32a7d51b0159e2927cf34a75dcf5d00b6be28c42bd2ae42b3e5465c7f45a6142'
 # The coherent374-case vehicle build pins the newer complete source at
@@ -55,6 +57,12 @@ def sha(path):
     with path.open('rb') as source:return hashlib.file_digest(source,'sha256').hexdigest()
 
 def canonical(source):
+    from native_weapon_effect_paired_bridge_tu15 import strip_native_paired_weapon_owners
+    source=strip_native_paired_weapon_owners(source)
+    source=strip_damage_region_eligibility(source)
+    source=strip_native_pending_response(source)
+    from generate_source_damage_delivery_runtime import install_native_damage_response_selection
+    source=install_native_damage_response_selection(source,remove=True)
     source=strip_native_damage_voice_request(source)
     from native_difficulty_parameter_kernel_tu15 import strip_native_difficulty_routes
     source=strip_native_difficulty_routes(source)
@@ -114,12 +122,19 @@ def main():
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     output=install_native_difficulty_routes(output,'delivery')
     output=install_native_damage_voice_request(output)
+    from generate_source_damage_delivery_runtime import install_native_damage_response_selection
+    output=install_native_damage_response_selection(output)
+    output=install_native_pending_response(output,True)
+    output=install_damage_region_eligibility(output,True)
+    from native_weapon_effect_paired_bridge_tu15 import install_native_paired_weapon_owners
+    output=install_native_paired_weapon_owners(output,'damage-observed')
     assert canonical(output)==source
     args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(output)
     report=dict(scope=__doc__,source_sha256=sha(args.source),canonical_baseline_sha256=canonical_pin,
         generated_cpp_sha256=sha(args.output),tool_sha256=sha(Path(__file__)),original_map_pack_sha256=PIN,
         original_tu15_sha256=NEW_PIN,whole_routines_authenticated=len(bodies),static_instruction_sites=len(mapping),
-        observations_selected=count,literal_original_bodies_byte_identical=True,
+        observations_selected=count,literal_older_image_bodies_byte_identical=True,
+        native_weapon_paired_owners=['bacc0/bbe00','c9a40/cabc0','177da0/1791c0','1781f0/179610','b9c20/bad60'],
         native_model_lookup_requires_separate_execution_qualification=True,
         canonical_observation_API_preserved=True,selected_image_observation_API_explicit=True,
         instruction_map={f'{p:08x}':q for p,q in sorted(mapping.items())},full_weapon_parity=False,

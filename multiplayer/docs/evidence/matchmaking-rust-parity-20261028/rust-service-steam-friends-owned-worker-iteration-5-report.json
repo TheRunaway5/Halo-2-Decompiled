@@ -1,0 +1,90 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/iteration-5",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "steam_friends",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/steam_friends_http.rs",
+    "tools/rust_service_steam_controls.py",
+    "tools/rust_service_steam_friends_controls.py"
+  ],
+  "source_files": 141,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/cargo/release/halo2-matchmaking-service",
+    "sha256": "0590e1b143fba709b1831bd2d8e6959866cb2b40806e7548374b42f506db03cf",
+    "bytes": 11039424,
+    "retained": false
+  },
+  "steam_friends": {
+    "qualified": true,
+    "checks": [
+      "actual Rust Steam lookup, canonical registration/observed presence, private cache hit and fixed curl security options",
+      "actual sealed Steam invitation proof, forged-claim rejection, deferred COMMIT rollback/retry, command replay and native privacy projection",
+      "private upstream relationships cannot be replaced by public identities or cached invitation proof",
+      "actual curl/JSON boundary rejects duplicate keys, compressed/redirected/oversized/unavailable responses and malformed profile rows",
+      "actual provider IO holds neither runtime mutex nor SQL; account revocation during IO rejects the late reply",
+      "current canonical Steam link is rechecked after actual provider IO before any projection or invitation",
+      "actual thousand-row response exceeds the former256KiB native limit, preserves deterministic first1000 selection and ten exact100-ID provider batches",
+      "real33-second eleven-call lookup survives the former30-second HTTP connection cutoff; native75-second owner deadline remains unchanged",
+      "actual unshortened60-second cache expiry observes a new private upstream rather than retaining stale invitation authority"
+    ],
+    "rows": 1000,
+    "public_reply_bytes": 332044,
+    "real_long_lookup_seconds": 33.02917217799404,
+    "real_cache_expiry_seconds": 61.009808125993004,
+    "fixture": {
+      "compiler": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/iteration-5/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "sha256": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+      "default_binary": true,
+      "upstream_interposed": true
+    },
+    "real_steam": false,
+    "native_played_world": false,
+    "native": null,
+    "native_slow_lookup_qualification": false,
+    "native_existing_http_timeout_seconds": 3
+  }
+}

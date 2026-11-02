@@ -39,7 +39,7 @@ NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
         throw FormatError("Native light receiver lost its full live light generation");
     const auto definition=word(record+4u),tag=word(0x4f0414u)+(definition&65535u)*16u;
     if(word(tag+4u)!=definition)throw FormatError("Native light receiver lost its full definition");
-    const auto flags=word(word(tag+8u));
+    const auto definition_data=word(tag+8u),flags=word(definition_data);
     auto cluster=std::int32_t(std::bit_cast<std::int16_t>(half(record+0x48u)));
     if(cluster==-1 && (flags&0x20u) && (flags&0x40000u))
         cluster=std::int32_t(word(0x4c6704u));
@@ -70,12 +70,12 @@ NativeLightReceiver native_light_receiver_tu15(PhysicsLiveWorldTu15& world,
     const auto owner=half(record+0x54u)==0xffffu?0xffffffffu:word(record+0x4cu);
     auto root=0xffffffffu;
     if(owner!=0xffffffffu) {
-        auto hierarchy=world.prepare_source_call();hierarchy.gp[1]=owner;
-        world.run_actual(0xbcfb0u,hierarchy);root=hierarchy.gp[0];
+        root=world.render_object_root(owner);
     }
     call=world.prepare_source_call(std::array{owner,root,std::uint32_t(shape.type()==0),shadow_input});
     call.gp[0]=light;call.gp[1]=definition;call.gp[6]=out.context;
     world.run_actual(0x31650u,call);
+    world.append_light_parent_biped_tu15(definition_data,shadow_input,owner,out.context);
     out.shadow_enabled=memory.view(shadow_input,1)[0]!=std::byte{};
     auto& view=out.view;out.visibility_bank=word(out.context);
     view.flags=word(out.context+0x2a60u);view.pass_mode=word(out.context+0x2a78u);
@@ -116,14 +116,19 @@ NativeLightGeometry native_light_geometry_tu15(PhysicsLiveWorldTu15& world,
     if(receiver.context!=0x5598f8u || word(0x4cd3a0u)!=receiver.context ||
        word(receiver.context)!=receiver.visibility_bank)
         throw FormatError("Native light geometry lost its completed receiver query");
-    world.call_actual(0x2cb10u);
-    auto call=world.prepare_source_call();call.gp[3]=receiver.context;
-    world.run_actual(0x135ea0u,call); //31EDA's retained EBX context.
-    world.call_actual(0x136030u,std::array{receiver.context});
+    auto call=world.prepare_source_call();
+    NativeTu15PhysicsFrameFp fp{call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
+    if(world.collect_render_bsp_units_tu15(fp)!=receiver.context)
+        throw FormatError("Native light BSP append lost31EDA's pinned context");
     call=world.prepare_source_call(std::array{1u});call.gp[0]=receiver.context;
+    call.x87_status=fp.status;call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
     world.run_actual(0x136230u,call);
-    world.call_actual(0x44710u);
-    call=world.prepare_source_call();call.gp[0]=0;
+    fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
+    call=world.prepare_source_call();call.x87_status=fp.status;
+    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};world.run_actual(0x44710u,call);
+    fp={call.floating_point->x87_control_word,call.x87_status,call.floating_point->mxcsr};
+    call=world.prepare_source_call();call.gp[0]=0;call.x87_status=fp.status;
+    call.floating_point=SourcePhysicsFactoryFloatingPoint{fp.control_word,fp.mxcsr};
     world.run_actual(0x40e80u,call);
     return {source_live_effect_light_state_tu15(world.memory()),
         source_live_effect_light_private_commands_tu15(world.memory()).legacy};

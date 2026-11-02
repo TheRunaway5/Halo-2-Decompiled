@@ -1,0 +1,10 @@
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path.cwd()/'tools'))
+from oracle_game_variants import Source
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+s=Source(dict(path=str(NEW_DEFAULT.resolve()),pin=NEW_PIN,globals=0x4ecc1c))
+for entry,end in [(0x796b0,0x796e0),(0x25773d,0x2577d0)]:
+ for i in Cs(CS_ARCH_X86,CS_MODE_32).disasm(s.image.read(entry,end-entry),entry):
+  print(f'{i.address:08x} {i.bytes.hex()} {i.mnemonic} {i.op_str}')

@@ -1,0 +1,36 @@
+## Rust party menu and text owner — 2026-11-02
+
+The complete `MenuState::populate_online_party` and `online_party_text` policies
+now live in `matchmaking_frontend_party_view`. The existing Rust party-flow
+controller supplies picker tab and invitation/member targets directly. C++
+supplies cached account facts, real expanded local-seat rows, resource and lobby
+queries, byte-preserving text expansion, and primitive native frame writes.
+There is no second C++ menu/text policy. Original/private locale namespaces,
+first-match duplicate identities, raw indices, retained entries and mutation
+order remain observable. The text adapter preserves the actual native exception
+object, including non-standard exceptions; Rust holds no state lock across IO.
+
+The captured modern C++ caller and exact production adapter match in 2,828
+cases, 2,763 ordered native reads/frame snapshots and same-controller reentries,
+and 78 injected native failures. Fifteen new Rust controls bring the three-crate
+suite to 668 passes, with four existing environment-dependent ignores; all seven
+build/staging helper checks pass. @NATIVE_COUNT@ native checks pass without skips,
+including actual SDL/Vulkan playlist/Start/privacy and party pixels, matchmaking
+and gathering, and unchanged source-backed lobby/countdown fixture checks.
+
+The initial pre-change native build captured an unrelated Vulkan handle/viewport
+shadowing compile error. Its failed report is retained. The accepted cohort
+consumes the live checkout's already-present device qualification and two local
+variable renames; this turn does not modify the shared renderer file.
+
+[The bounded receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-party-view-rust-validation.json)
+records frozen source identities, modern-versus-original evidence boundaries,
+commands and scratch cleanup. This increment does not execute a newly recovered
+Xbox/Live party producer. Original locale, identity, presence, rank and privacy
+producers remain separate evidence requirements. Lobby query/roster composition,
+account refresh/join/departure and voice-intent policy still have native owners.
+Historical recovery, all original callers, full natural played-world coverage,
+genuine providers, physical installed Linux input and delivered G01–G12 identity
+and restart/retry/configuration/rollback acceptance remain open. The full goal,
+all twelve GAP records and all 53 algorithm IDs remain unchanged and uncertified.
+

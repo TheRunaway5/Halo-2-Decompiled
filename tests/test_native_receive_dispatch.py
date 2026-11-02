@@ -1,0 +1,120 @@
+"""Compare the exact preserved C++ receive caller with production Rust dispatch.
+
+Phase/capability/resource/history observations and injected IO refusals are
+fixtures. Both invoke the actual protocol recognizers; only the caller's routing,
+raw operand/payload forwarding, lock lifetime and effect order are compared.
+This does not certify original Live, a native world, provider or installed client.
+"""
+import argparse
+import hashlib
+import itertools
+import json
+import os
+from pathlib import Path
+import subprocess
+
+ROOT = Path(__file__).resolve().parents[1]
+U32 = (1 << 32) - 1
+
+
+def packet(kind):
+    return (b"H2QO" if kind == 4 else b"ordinary" if kind == 7 else
+            b"H2N2" + bytes([124, 0, [13, 12, 11, 10, 0, 8, 7][kind]]))
+
+
+def cases():
+    # Every capability combination and phase flag bank; exact/foreign/zero epoch.
+    for flags, capabilities, kind, epoch in itertools.product(range(32), range(8), range(8), [0, 3, 4]):
+        yield dict(flags=flags, capabilities=capabilities, packet=packet(kind).hex(), epoch=epoch)
+    # Every native-owner presence bank, independently of capability observations.
+    for flags, owners, kind, epoch in itertools.product(range(32), range(128), range(8), [0, 3, 4]):
+        yield dict(flags=flags, owners=owners, packet=packet(kind).hex(), epoch=epoch)
+    for flags, binding, history, owner, epoch in itertools.product(
+            range(32), [None, 0, 2, 3, U32], [[], [3], [3, 3], [2, 4], [U32, 3], list(range(16))],
+            [119, 127], [0, 3, U32]):
+        yield dict(flags=flags, binding=binding, history=history, owners=owner, packet=packet(3).hex(), epoch=epoch)
+    for kind, source, epoch in itertools.product(range(8), [0, 4, 16, 256, 257, U32], [0, 3, U32]):
+        yield dict(packet=packet(kind).hex(), source=source, epoch=epoch)
+    for kind, epoch in itertools.product(range(8), [0, 3, U32]):
+        yield dict(packet=packet(kind).hex(), epoch=epoch, epochs=[epoch] * 7, binding=epoch)
+    for kind, fail, epoch, flags in itertools.product(range(8),
+            ["epoch", "receive", "payload", "abort", "progress", "fence", "general", "observe", "refresh"],
+            [3, 4], [0, 31]):
+        yield dict(packet=packet(kind).hex(), fail=fail, epoch=epoch, flags=flags)
+    for kind in range(8):
+        b = packet(kind)
+        variants = [b[:n] for n in range(len(b))] + [b + b"\x00\xff"]
+        for n in range(len(b)):
+            v = bytearray(b)
+            v[n] ^= 128
+            variants.append(bytes(v))
+        if kind not in [4, 7]:
+            for protocol in [0, 1, 124, 65535]:
+                variants.append(b[:4] + protocol.to_bytes(2, "little") + b[6:])
+        for v in variants:
+            yield dict(packet=v.hex())
+    for accepted, owners in itertools.product([False, True], [0, 119, 127]):
+        yield dict(packet=packet(7).hex(), general=accepted, owners=owners)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--binary", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+    report = dict(passed=False, scope=__doc__, original_live=False, native_world=False,
+                  genuine_provider=False, installed_client=False)
+    digest = hashlib.sha256()
+    commands = failures = events = 0
+    stderr = (scratch / "receive-fixture.log").open("wb")
+    process = subprocess.Popen([str(args.binary)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr)
+    last = None
+    startup_messages = []
+    try:
+        for command in cases():
+            last = command
+            raw = (json.dumps(command, separators=(",", ":")) + "\n").encode()
+            process.stdin.write(raw)
+            process.stdin.flush()
+            while True:
+                line = process.stdout.readline()
+                if line.strip() in (b"Shutdown handler: initialize.", b"Shutdown handler: cleanup."):
+                    startup_messages.append(line.decode().strip())
+                    continue
+                result = json.loads(line)
+                break
+            assert result.get("matched"), dict(command=command, result=result)
+            assert not result["result"]["held"], dict(command=command, result=result)
+            digest.update(raw)
+            digest.update(json.dumps(result, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+            commands += 1
+            failures += result["result"]["error"]
+            events += len(result["result"]["trace"])
+        report.update(passed=True, commands=commands, declared_native_io_refusals=failures,
+                      matched_events=events, sha256=digest.hexdigest(),
+                      binary_sha256=hashlib.sha256(args.binary.read_bytes()).hexdigest(),
+                      source_pins={n: hashlib.sha256((ROOT / n).read_bytes()).hexdigest() for n in [
+                          "tests/native_receive_dispatch_tests.cpp", "tests/test_native_receive_dispatch.py",
+                          "tests/reference/native_receive_dispatch_before_rust_20261101.inc"]})
+    except BaseException as error:
+        report.update(error=str(error), commands=commands, last_command=last)
+        raise
+    finally:
+        report["startup_messages"] = startup_messages
+        process.stdin.close()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+        process.stdout.close()
+        stderr.close()
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2) + "\n")
+    assert process.returncode == 0
+    print(json.dumps({k: report[k] for k in ["passed", "commands", "declared_native_io_refusals", "matched_events", "sha256"]}))
+
+
+if __name__ == "__main__":
+    main()

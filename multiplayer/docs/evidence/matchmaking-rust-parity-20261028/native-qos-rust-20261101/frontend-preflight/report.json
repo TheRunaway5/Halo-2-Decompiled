@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-frontend-preflight/halo2-test-uy5xllsw",
+  "commands": [
+    {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DNDEBUG",
+        "-I/home/eric/Developer/Halo-2-Decompiled/include",
+        "-I/home/eric/Developer/Halo-2-Decompiled/src",
+        "-I/usr/include/SDL2",
+        "-pthread",
+        "-fsyntax-only",
+        "/home/eric/Developer/Halo-2-Decompiled/tests/frontend_online_lobby_buttons_tests.cpp"
+      ],
+      "returncode": 0,
+      "source_sha256": "35a86282bc993d4c6ca707f9241bc8c4a4aa77e6d5e75167732a6923fd639292",
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-frontend-preflight-20261101/frontend_online_lobby_buttons_tests.log"
+    },
+    {
+      "command": [
+        "g++",
+        "-std=c++20",
+        "-DNDEBUG",
+        "-I/home/eric/Developer/Halo-2-Decompiled/include",
+        "-I/home/eric/Developer/Halo-2-Decompiled/src",
+        "-I/usr/include/SDL2",
+        "-pthread",
+        "-fsyntax-only",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/rust_service_frontend_io_delay.cpp"
+      ],
+      "returncode": 0,
+      "source_sha256": "6ffed556b372df15c1fbb2c2149d40a1eedac7942a02a68a40c6687bfb68aaaa",
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-frontend-preflight-20261101/rust_service_frontend_io_delay.log"
+    }
+  ],
+  "mcc_cache": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+  "mcc_layout_sha256": "a8f58aa838cc633c9ac7fbfa14e02845019587e25c9d23f9acfdb3ae774db803",
+  "retained_large_artifacts": []
+}

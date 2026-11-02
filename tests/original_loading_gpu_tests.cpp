@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
+#include <openssl/sha.h>
 #include <thread>
 using namespace halo2;
 namespace {
@@ -47,6 +49,29 @@ Image capture(DesktopSession&desktop,const std::filesystem::path&path,bool reque
   return image;
 }
 std::size_t lit(const Image&image){return std::count_if(image.rgb.begin(),image.rgb.end(),[](auto p){return p>8;});}
+void reject_low_resolution_logo(const std::filesystem::path&cache,const std::filesystem::path&output){
+  const auto bank=output/"reduced-logo/presentation/original-loading-v2";
+  std::filesystem::create_directories(bank.parent_path());
+  std::filesystem::copy(cache/"presentation/original-loading-v2",bank,std::filesystem::copy_options::recursive);
+  const auto path=bank/"loading-01.dds";
+  std::ifstream input(path,std::ios::binary|std::ios::ate);
+  std::vector<char> bytes(static_cast<std::size_t>(input.tellg()));input.seekg(0);input.read(bytes.data(),bytes.size());input.close();
+  check(bytes.size()==131200,"High-definition source logo extent changed");
+  const auto word=[&](unsigned at,unsigned value){for(unsigned n=0;n<4;++n)bytes[at+n]=char(value>>(8*n));};
+  word(12,64);word(16,512);word(20,512*64);bytes.resize(128+512*64);
+  std::array<unsigned char,32> hash{};SHA256(reinterpret_cast<const unsigned char*>(bytes.data()),bytes.size(),hash.data());
+  std::string digest;for(auto c:hash){digest+="0123456789abcdef"[c>>4];digest+="0123456789abcdef"[c&15];}
+  {std::ofstream file(path,std::ios::binary|std::ios::trunc);file.write(bytes.data(),bytes.size());}
+  nlohmann::json metadata;{std::ifstream file(bank/"manifest.json");file>>metadata;}
+  auto& logo=metadata["textures"][1];logo["width"]=512;logo["height"]=64;logo["bytes"]=bytes.size();logo["sha256"]=digest;
+  metadata["files"]["loading-01.dds"]={{"bytes",bytes.size()},{"sha256",digest}};
+  {std::ofstream file(bank/"manifest.json",std::ios::trunc);file<<metadata.dump(2);}
+  bool rejected=false;DesktopSession isolated;
+  try{configure_h2ek_original_loading_presentation(isolated,output/"reduced-logo",true);}
+  catch(const FormatError&error){rejected=std::string(error.what()).find("high-definition")!=std::string::npos;}
+  check(rejected,"A lower-resolution logo with rewritten self-consistent hashes was admitted");
+  std::filesystem::remove_all(output/"reduced-logo");
+}
 void backdrop(const Image&image){
   // TU1.5 23B971 packs the authored wigl(.85,0,20/255,44/255)
   // overlay as D900142C. Its blend over the cleared surface is RGB0,17,37.
@@ -206,6 +231,7 @@ int main(int argc,char**argv)try{
   check(!leaving.empty() && leaving.size()!=setting.size(),
         "Leaving game reused the setup status text");
   const auto output=std::filesystem::absolute(argv[2]);std::filesystem::create_directories(output);
+  reject_low_resolution_logo(cache,output);
   DesktopSession desktop;
   check(configure_h2ek_original_loading_presentation(desktop,cache,true),"Staged H2EK loading bank was not admitted");
   desktop.configure_network_transition(painter);

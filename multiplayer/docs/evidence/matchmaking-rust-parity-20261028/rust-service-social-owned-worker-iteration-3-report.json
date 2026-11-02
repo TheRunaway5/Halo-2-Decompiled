@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/iteration-3",
+  "commands": [],
+  "action": "social",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_social_controls.py"
+  ],
+  "source_files": 136,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social/halo2-test-27y3u4fq/cargo/release/halo2-matchmaking-service",
+    "sha256": "6c1546d05dbc46e762338b5a0482729c5b56227d3093aaccfd216906a90a63f2",
+    "bytes": 10989280,
+    "retained": false
+  },
+  "error": "table history_players has 2 columns but 3 values were supplied"
+}

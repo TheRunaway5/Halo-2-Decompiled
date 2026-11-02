@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-v9mamaiq/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-v9mamaiq",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-v9mamaiq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-v9mamaiq/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-voice-final-cmake/halo2-test-a1xyja4p/build/Testing/Temporary/scratch/halo2-test-v9mamaiq/cargo/release/halo2-matchmaking-service",
+    "bytes": 11450632,
+    "sha256": "8e55ee194ed57a982a706eccf4a092302fcf8f4b76f1c1dbfdb1a465dbb1a4c6",
+    "retained": false
+  },
+  "mode": "friend-cloud-room-only",
+  "friend_cloud": {
+    "qualified": true,
+    "checks": [
+      "valid configured service starts; public/symlink/FIFO/duplicate/oversized/publisher config and public/symlink cache roots fail before listening",
+      "actual source-v16 queue-only room EOS proof and private friend-file upload succeed without an account-session login or pre-existing public history ID",
+      "a real deferred history COMMIT failure rolls back public identity, canonical PUID, outbox and native room proof; retry with a different verified PUID commits once"
+    ],
+    "room_only": true,
+    "worker_calls": 1,
+    "worker_pids": [
+      1971651
+    ],
+    "real_sdk": false,
+    "real_cloud": false,
+    "native_played_world": false
+  }
+}

@@ -1,0 +1,22 @@
+FROM rust:1.96.0-slim-bookworm@sha256:4732ca96fd086cb9be682050c3f0176288eebaac2b80aa2bcefccfaf198e1950 AS build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pkg-config libcurl4-openssl-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY rust/online_protocol /build/rust/online_protocol
+COPY rust/matchmaking_service /build/rust/matchmaking_service
+RUN cargo build --locked --release --jobs 2 --manifest-path rust/matchmaking_service/Cargo.toml
+
+FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl libcurl4 libssl3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 matchmaking \
+    && useradd --uid 10001 --gid 10001 --no-create-home matchmaking \
+    && install -d -o 10001 -g 10001 -m 0700 /state
+COPY --from=build /build/rust/matchmaking_service/target/release/halo2-matchmaking-service /usr/local/bin/
+USER 10001:10001
+HEALTHCHECK --interval=15s --timeout=4s --start-period=5s --retries=3 \
+    CMD curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:8081/v1/health
+ENTRYPOINT ["halo2-matchmaking-service"]
+CMD ["--state", "/state", "--listen", "127.0.0.1:8081", "--behind-tls-proxy", "--steam-enabled", "--matchmaking-catalog", "/config/playlists.json"]

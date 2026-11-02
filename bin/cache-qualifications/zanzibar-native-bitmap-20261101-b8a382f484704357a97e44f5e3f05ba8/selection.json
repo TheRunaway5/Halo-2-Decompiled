@@ -1,0 +1,33 @@
+{
+  "cache": "assets/imported/mcc-zanzibar-tu15-20261101-v9",
+  "default_map": "coagulation.map",
+  "eos_worker": {
+    "bytes": 2036984,
+    "name": "eos_sdk_worker",
+    "schema": "H2_EOS_SDK_WORKER_V1",
+    "sha256": "1c60e8b895996e20ba6bdfb2c8f45aed3930a3eecbaf80d7504c253987caf3d1"
+  },
+  "inventory": "bin/engine-builds/29f4db427b1d44ea94a4449388ef6ff1/runtime-files.json",
+  "inventory_sha256": "2b4c840768b520ad21abc327ec617af8bdbb787a8e91fcbed907069014a7b64f",
+  "local_players": 2,
+  "maps": {
+    "ascension.map": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9",
+    "beavercreek.map": "977c957e952ce279a8d61d9706ac475fd564081c316bdd7420bfcab3aa2a9a45",
+    "coagulation.map": "2bb23227c845c14d80360a67cff42588344adad9529af47e04d34703db623b19",
+    "containment.map": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95",
+    "dune.map": "5ea54b1f229f3bde277320c2308fc3bf85ed813aad8a4a653699a136e5d0db3b",
+    "elongation.map": "6e57a17c7519420d6f4821fd71f60fd283609132a8bd55648e224a0bc7f7f8ae",
+    "gemini.map": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1",
+    "headlong.map": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c",
+    "lockout.map": "8141212c439bbf559963ae9c4323d573fa4f8d3d44bc99d5923d509358a9d6ee",
+    "warlock.map": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d",
+    "waterworks.map": "be622f7b4b91b65f5c68bbc2860c2fc551ac81c11b9d61c90c80b9e580756044",
+    "zanzibar.map": "01311e3a20af3ad4638471bd68ff505f64525397950d92bb2417697da41c67d3"
+  },
+  "qualification": "bin/cache-qualifications/zanzibar-native-bitmap-20261101-b8a382f484704357a97e44f5e3f05ba8/qualification.json",
+  "qualification_sha256": "611d8067b1a4a0e58857d735d9b3bb40a9664c825d9f5c41a0238d461d4c0e3d",
+  "runtime": "bin/engine-builds/29f4db427b1d44ea94a4449388ef6ff1/halo2_native",
+  "runtime_sha256": "36f1b64606b105520ecb613fc193188cd55b6ca0c3ef22f23ef28e2eb1282bc8",
+  "schema": "H2_LOCAL_GAMEPLAY_RUNTIME_SELECTION_V1",
+  "video_driver": "x11"
+}

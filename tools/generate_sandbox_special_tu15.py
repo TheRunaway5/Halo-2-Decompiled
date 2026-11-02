@@ -285,7 +285,8 @@ def main():
     assert source.count(composition)==1
     source=source.replace(composition,composition+
         'SourceFirstPersonCompositionObserverTu15::entry(s.memory,s.save());\n')
-    args.output.write_text(source)
+    from native_normalize_vector_bridge_tu15 import install_native_normalizer
+    args.output.write_text(install_native_normalizer(source,'Tu15Literal'))
     report = json.loads((args.directory/'generation.json').read_text())
     report['generated_cpp_sha256'] = sha(args.output)
     (args.directory/'generation.json').write_text(json.dumps(report, indent=2, sort_keys=True)+'\n')

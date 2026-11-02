@@ -1,0 +1,58 @@
+{
+  "passed": false,
+  "baseline_cpp_owner": false,
+  "command": [
+    "nm",
+    "-C",
+    "--undefined-only",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/CMakeFiles/halo2_authority_transfer.dir/src/network/peer_authority_transfer.cpp.o"
+  ],
+  "object_sha256": "018e1c7ed655d18750917d0cc5d4a42272e08bdef00b364f9671df30d071fd48",
+  "rust_entries": {
+    "new_peer_authority_transfer": true,
+    "peer_authority_transfer_context": true,
+    "peer_authority_transfer_replace": true,
+    "peer_authority_transfer_supported": true,
+    "peer_authority_transfer_feature_supported": true,
+    "peer_authority_transfer_features": true,
+    "peer_authority_transfer_publish": true,
+    "peer_authority_transfer_ahead": true,
+    "peer_authority_transfer_delivered": true,
+    "peer_authority_transfer_failed": true,
+    "peer_authority_transfer_preparing": true,
+    "peer_authority_transfer_poll": true,
+    "peer_authority_transfer_receive": true,
+    "peer_authority_transfer_completed": true,
+    "peer_authority_transfer_acknowledge": true,
+    "peer_authority_transfer_reject": true,
+    "peer_authority_transfer_validated": true,
+    "peer_authority_transfer_is_packet": true
+  },
+  "cpp_parser_crypto_dependencies": [],
+  "standalone_cpp_poll_cursor_dependencies": [],
+  "rust_native_input_count": 3401,
+  "rust_native_input_mismatch": [
+    "tests/fixtures/workshop_shape_types_tu15.tsv"
+  ],
+  "current_critical_source_drift": [],
+  "source_pins": {
+    "src/network/peer_authority_transfer.cpp": "d7fc2298dff21437e309d3ee5b96a8a6b318f5b59af4a90e67bfcd39f234ee72",
+    "include/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "rust/online_protocol/src/peer_authority_transfer.rs": "de37b82b7f72c0c9ceffe2e8539d8a6b1135d53b085b6af273448b04e444fb6d",
+    "rust/online_protocol/src/lib.rs": "e1179482c68ee686547f6ec25a53d8c0ce5973db17cdb01082482d67aed7e3dd",
+    "rust/online_protocol_bridge/src/peer_authority_transfer.rs": "f8095514193bad7f1f56f20ccb368fab96ecdfe5ab2b343547f59fd732911b61",
+    "rust/online_protocol_bridge/src/lib.rs": "17d24d5f312657e0ffeba384376448b8f5f22462a2fa71cb05c0841f3ae47fa9",
+    "cmake/OnlinePeers.cmake": "7b13cb084026a46058ec35fbd616f4fb1a24da13ada042c6c3009f37cd776be9",
+    "tests/peer_authority_transfer_tests.cpp": "f3eaf7ab5d11d4f7dab2f79fb38eb9aef1d37e9abfd5e194c54a8618f6450007",
+    "tests/peer_authority_transfer_replay.cpp": "f37d69bab218e41bbf14165b33fd41d54647a72f79855b13a91c092c019a821e",
+    "tests/test_peer_authority_transfer_replay.py": "8298faadba1144823387d806e07c58bccff4fada930db19b215fdb70a34562a4",
+    "tests/reference/peer_authority_transfer_before_rust_20261101.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "tests/reference/peer_authority_transfer_before_rust_20261101.json": "e6010e761bd82a0f2f57ed50d1d8cecb28def1bdddcbb9701cbd76043a40c0c9",
+    "tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "include/halo2/multiplayer_datagrams.hpp": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c",
+    "include/halo2/authority_network_limits.hpp": "6c977b194b1f0143da5a985b4767fd62517d2c2454bde6da9cf419fb7fd91fbb"
+  },
+  "audit_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-audit/halo2-test-rh7xfply",
+  "retained_large_artifacts": [],
+  "scope": "Compiled configured authority owner and source identities only; native worlds/providers, original wire, allocation identity/performance and delivery are not certified."
+}

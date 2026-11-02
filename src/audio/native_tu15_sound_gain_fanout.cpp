@@ -28,12 +28,15 @@ bool overlaps(std::uintptr_t a,std::uintptr_t b) {
     return a<b+bytes&&b<a+bytes;
 }
 }
-void process(const Controls& c,const Parameters& p,State& s,Input input,const std::array<Output,8>& routes) {
+void validate_controls(const Controls& c) {
     if(c.entry_scaling!=ScalingMode::none||c.arithmetic_saturation||c.sixteen_bit_arithmetic||c.double_precision_multiply)
         throw std::invalid_argument("Original arithmetic mode is unsupported");
     if(c.state_relative!=AddressingMode::linear)throw std::invalid_argument("Unsupported original state-relative addressing mode");
     for(auto mode:{c.input,c.destination_table,c.gain_sequence,c.output})
         if(mode!=AddressingMode::linear)throw std::invalid_argument("Original address mode is unsupported");
+}
+void process(const Controls& c,const Parameters& p,State& s,Input input,const std::array<Output,8>& routes) {
+    validate_controls(c);
     validate(s.flags);
     if(s.published_gain_source&&*s.published_gain_source!=GainSource::sequence_begin)
         throw std::invalid_argument("Unknown logical gain source selection");

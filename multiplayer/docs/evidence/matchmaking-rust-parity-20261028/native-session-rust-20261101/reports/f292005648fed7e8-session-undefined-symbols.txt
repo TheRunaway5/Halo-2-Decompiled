@@ -1,0 +1,270 @@
+                 U _GLOBAL_OFFSET_TABLE_
+                 U _Unwind_Resume
+                 U rust::cxxbridge1::Box<halo2::online_protocol_bridge::EosAuthHttp>::drop()
+                 U rust::cxxbridge1::Box<halo2::online_protocol_bridge::NativeSession>::drop()
+                 U rust::cxxbridge1::Box<halo2::online_protocol_bridge::NativeSessionWorker>::drop()
+                 U rust::cxxbridge1::Str::Str(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::reserve_total(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::set_len(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::Vec()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeal>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeal>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::reserve_total(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::set_len(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::Vec()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::reserve_total(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::set_len(unsigned long)
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::Vec()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionVoice>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionVoice>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionPacket>::data()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionPacket>::drop()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionPacket>::Vec()
+                 U rust::cxxbridge1::Vec<unsigned char>::reserve_total(unsigned long)
+                 U rust::cxxbridge1::Vec<unsigned char>::data()
+                 U rust::cxxbridge1::Vec<unsigned char>::drop()
+                 U rust::cxxbridge1::Vec<unsigned char>::set_len(unsigned long)
+                 U rust::cxxbridge1::Vec<unsigned char>::Vec()
+                 U rust::cxxbridge1::Vec<unsigned int>::reserve_total(unsigned long)
+                 U rust::cxxbridge1::Vec<unsigned int>::data()
+                 U rust::cxxbridge1::Vec<unsigned int>::drop()
+                 U rust::cxxbridge1::Vec<unsigned int>::set_len(unsigned long)
+                 U rust::cxxbridge1::Vec<unsigned int>::Vec()
+                 U rust::cxxbridge1::String::String(rust::cxxbridge1::String&&)
+                 U rust::cxxbridge1::String::String(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+                 U rust::cxxbridge1::String::String(rust::cxxbridge1::String const&)
+                 U rust::cxxbridge1::String::String()
+                 U rust::cxxbridge1::String::~String()
+                 U rust::cxxbridge1::sliceLen(void const*)
+                 U rust::cxxbridge1::slicePtr(void const*)
+                 U rust::cxxbridge1::sliceInit(void*, void const*, unsigned long)
+                 U halo2::PeerMeshQuality::poll(unsigned short, unsigned long, unsigned int)
+                 U halo2::PeerMeshQuality::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerMeshQuality::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerMeshQuality::PeerMeshQuality(unsigned int, halo2::AuthorityTransferContext)
+                 U halo2::PeerMeshQuality::~PeerMeshQuality()
+                 U halo2::PeerHostAgreement::observe_host(unsigned long)
+                 U halo2::PeerHostAgreement::publish_ready(halo2::ValidatedAuthorityCut const&)
+                 U halo2::PeerHostAgreement::poll(unsigned long, unsigned int)
+                 U halo2::PeerHostAgreement::drive(unsigned int, unsigned long)
+                 U halo2::PeerHostAgreement::propose(unsigned int, unsigned long)
+                 U halo2::PeerHostAgreement::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerHostAgreement::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerHostAgreement::PeerHostAgreement(unsigned int, halo2::AuthorityTransferContext, unsigned long)
+                 U halo2::PeerHostAgreement::~PeerHostAgreement()
+                 U halo2::OnlinePeerTransport::authentication_request()
+                 U halo2::OnlinePeerTransport::complete_authentication(halo2::OnlineEosAuthResponse const&)
+                 U halo2::OnlinePeerTransport::send(std::span<std::byte const, 18446744073709551615ul>, unsigned int)
+                 U halo2::OnlinePeerTransport::signal(halo2::OnlinePeerSignal const&)
+                 U halo2::OnlinePeerTransport::receive(std::vector<std::byte, std::allocator<std::byte> >&, unsigned int&)
+                 U halo2::OnlinePeerTransport::signals()
+                 U halo2::OnlinePeerTransport::OnlinePeerTransport(unsigned int, halo2::OnlineEosOptions const&)
+                 U halo2::OnlinePeerTransport::OnlinePeerTransport(unsigned int, std::vector<unsigned int, std::allocator<unsigned int> >, std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&)
+                 U halo2::OnlinePeerTransport::~OnlinePeerTransport()
+                 U halo2::source_game_variant(halo2::UiVariant const&)
+                 U halo2::PeerSourceAdmissions::resume_after_host_loss(unsigned int, halo2::AuthorityTransferContext, std::span<halo2::OnlineAdmission const, 18446744073709551615ul>, halo2::AcceptedSourcePlayers const&)
+                 U halo2::PeerSourceAdmissions::poll(unsigned long, unsigned int)
+                 U halo2::PeerSourceAdmissions::publish(halo2::AuthorityTransferContext const&, std::span<halo2::SourcePlayerAdmission const, 18446744073709551615ul>)
+                 U halo2::PeerSourceAdmissions::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerSourceAdmissions::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerSourceAdmissions::PeerSourceAdmissions(unsigned int, halo2::AuthorityTransferContext, std::span<halo2::OnlineAdmission const, 18446744073709551615ul>)
+                 U halo2::PeerSourceAdmissions::~PeerSourceAdmissions()
+                 U halo2::PeerAuthorityTransfer::publish_ahead(halo2::AuthorityTransferContext const&, halo2::AuthorityCutSeal const&, unsigned long, std::vector<std::byte, std::allocator<std::byte> >, unsigned int, unsigned long)
+                 U halo2::PeerAuthorityTransfer::take_completed()
+                 U halo2::PeerAuthorityTransfer::validated_cuts()
+                 U halo2::PeerAuthorityTransfer::reject_delivered(halo2::AuthorityTransferContext const&, halo2::AuthorityCutSeal const&)
+                 U halo2::PeerAuthorityTransfer::acknowledge_validated(halo2::AuthorityTransferContext const&, halo2::AuthorityCutSeal const&)
+                 U halo2::PeerAuthorityTransfer::poll(unsigned long, unsigned int)
+                 U halo2::PeerAuthorityTransfer::publish(halo2::AuthorityTransferContext const&, unsigned long, std::vector<std::byte, std::allocator<std::byte> >, std::span<unsigned int const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerAuthorityTransfer::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerAuthorityTransfer::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerAuthorityTransfer::PeerAuthorityTransfer(unsigned int, halo2::AuthorityTransferContext, halo2::AuthorityTransferLimits)
+                 U halo2::PeerAuthorityTransfer::~PeerAuthorityTransfer()
+                 U halo2::PeerSnapshotCandidate::poll(unsigned long, unsigned int)
+                 U halo2::PeerSnapshotCandidate::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerSnapshotCandidate::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerSnapshotCandidate::PeerSnapshotCandidate(unsigned int, halo2::AuthorityTransferContext, halo2::PeerSnapshotLimits)
+                 U halo2::PeerSnapshotCandidate::~PeerSnapshotCandidate()
+                 U halo2::PeerSurvivorSelection::invalidate(std::optional<halo2::AuthorityCutSeal>)
+                 U halo2::PeerSurvivorSelection::observe_ready(unsigned int, halo2::AuthorityCutSeal const&)
+                 U halo2::PeerSurvivorSelection::publish_inventory(halo2::PeerSurvivorInventory const&)
+                 U halo2::PeerSurvivorSelection::poll(unsigned long, unsigned int)
+                 U halo2::PeerSurvivorSelection::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerSurvivorSelection::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerSurvivorSelection::PeerSurvivorSelection(unsigned int, halo2::AuthorityTransferContext)
+                 U halo2::PeerSurvivorSelection::~PeerSurvivorSelection()
+                 U halo2::PeerCommonCutAgreement::confirm_native(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::acknowledge_abort(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::poll(unsigned long, unsigned int)
+                 U halo2::PeerCommonCutAgreement::abort(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::apply(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::offer(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::reject(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::receive(unsigned int, std::span<std::byte const, 18446744073709551615ul>, unsigned long)
+                 U halo2::PeerCommonCutAgreement::release(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::associate(halo2::PeerCommonCut const&)
+                 U halo2::PeerCommonCutAgreement::is_packet(std::span<std::byte const, 18446744073709551615ul>)
+                 U halo2::PeerCommonCutAgreement::PeerCommonCutAgreement(unsigned int, halo2::AuthorityTransferContext)
+                 U halo2::PeerCommonCutAgreement::~PeerCommonCutAgreement()
+                 U halo2::online_protocol_bridge::new_eos_auth_http(rust::cxxbridge1::Str, rust::cxxbridge1::Str)
+                 U halo2::online_protocol_bridge::native_session_run(halo2::online_protocol_bridge::NativeSessionWorker const&, halo2::online_protocol_bridge::NativeMatchSessionIo const&)
+                 U halo2::online_protocol_bridge::new_native_session(halo2::online_protocol_bridge::NativeSessionConfig const&)
+                 U halo2::online_protocol_bridge::native_session_fail(halo2::online_protocol_bridge::NativeSession&, rust::cxxbridge1::Str)
+                 U halo2::online_protocol_bridge::native_session_send(halo2::online_protocol_bridge::NativeSession&, unsigned int, rust::cxxbridge1::Slice<unsigned char const>)
+                 U halo2::online_protocol_bridge::native_session_text(halo2::online_protocol_bridge::NativeSession&, rust::cxxbridge1::Slice<unsigned char const>, halo2::online_protocol_bridge::NativeSessionResources const&)
+                 U halo2::online_protocol_bridge::native_session_view(halo2::online_protocol_bridge::NativeSession const&)
+                 U halo2::online_protocol_bridge::eos_auth_http_cancel(halo2::online_protocol_bridge::EosAuthHttp const&)
+                 U halo2::online_protocol_bridge::native_session_fence(halo2::online_protocol_bridge::NativeSession&, halo2::online_protocol_bridge::NativeSessionFence const&)
+                 U halo2::online_protocol_bridge::native_session_flush(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_seals(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_voice(halo2::online_protocol_bridge::NativeSession&, unsigned int, halo2::online_protocol_bridge::NativeSessionAudio const&, bool)
+                 U halo2::online_protocol_bridge::native_session_world(halo2::online_protocol_bridge::NativeSession&, unsigned char, halo2::online_protocol_bridge::NativeSessionSeal const&)
+                 U halo2::online_protocol_bridge::eos_auth_http_request(halo2::online_protocol_bridge::EosAuthHttp const&, halo2::online_protocol_bridge::EosAuthRequest const&)
+                 U halo2::online_protocol_bridge::native_session_direct(halo2::online_protocol_bridge::NativeSession&, halo2::online_protocol_bridge::NativeSessionDirect const&)
+                 U halo2::online_protocol_bridge::native_session_loaded(halo2::online_protocol_bridge::NativeSession&, unsigned long, rust::cxxbridge1::Slice<unsigned char const>, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::NativeSessionParameter const>)
+                 U halo2::online_protocol_bridge::native_session_signal(halo2::online_protocol_bridge::NativeSession&, halo2::online_protocol_bridge::NativeSessionSignal const&)
+                 U halo2::online_protocol_bridge::native_session_voices(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_worker(halo2::online_protocol_bridge::NativeSession const&)
+                 U halo2::online_protocol_bridge::all_survivors_prepared(unsigned short, unsigned short, unsigned char, unsigned char, halo2::online_protocol_bridge::MigrationPreparationCut const&, rust::cxxbridge1::Slice<halo2::online_protocol_bridge::MigrationPreparationCut const>)
+                 U halo2::online_protocol_bridge::native_session_confirm(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_failure(halo2::online_protocol_bridge::NativeSession&, bool, rust::cxxbridge1::Str)
+                 U halo2::online_protocol_bridge::native_session_receive(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_complete(halo2::online_protocol_bridge::NativeSession&, rust::cxxbridge1::Slice<unsigned char const>)
+                 U halo2::online_protocol_bridge::native_session_datagram(halo2::online_protocol_bridge::NativeSession&, unsigned int, unsigned int, rust::cxxbridge1::Slice<unsigned char const>)
+                 U halo2::online_protocol_bridge::native_session_outgoing(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_postgame(halo2::online_protocol_bridge::NativeSession const&)
+                 U halo2::online_protocol_bridge::native_session_room_api(halo2::online_protocol_bridge::NativeSession const&)
+                 U halo2::online_protocol_bridge::native_session_committed(halo2::online_protocol_bridge::NativeSession&, halo2::online_protocol_bridge::HostAgreementDecision const&)
+                 U halo2::online_protocol_bridge::native_session_selection(halo2::online_protocol_bridge::NativeSession&, halo2::online_protocol_bridge::HostAgreementContext const&)
+                 U halo2::online_protocol_bridge::native_session_bind_audio(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_fence_audio(halo2::online_protocol_bridge::NativeSession&, unsigned long)
+                 U halo2::online_protocol_bridge::native_session_preferences(halo2::online_protocol_bridge::NativeSession&, unsigned int, bool, unsigned short)
+                 U halo2::online_protocol_bridge::native_session_voice_enabled(halo2::online_protocol_bridge::NativeSession const&, unsigned int)
+                 U halo2::online_protocol_bridge::native_session_close_postgame(halo2::online_protocol_bridge::NativeSession&)
+                 U halo2::online_protocol_bridge::native_session_commit_allowed(halo2::online_protocol_bridge::NativeSession const&, halo2::online_protocol_bridge::HostAgreementDecision const&)
+                 U halo2::online_protocol_bridge::native_session_packet_current(halo2::online_protocol_bridge::NativeSession const&, halo2::online_protocol_bridge::NativeSessionPacket const&)
+                 U halo2::online_protocol_bridge::native_session_postgame_voice(halo2::online_protocol_bridge::NativeSession&, unsigned long, bool, unsigned short, unsigned short, rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>, bool)
+                 U halo2::PeerMigrationPreparation::admit_freeze(halo2::PeerMigrationPreparationObservation const&, halo2::PeerMigrationPreparationTicket const&, halo2::PeerSurvivorInventory const&, std::optional<halo2::PeerCommonCutState> const&)
+                 U halo2::PeerMigrationPreparation::reserve_retirement(halo2::PeerMigrationPreparationObservation const&, halo2::PeerMigrationPreparationTicket const&)
+                 U halo2::PeerMigrationPreparation::admit_external_freeze(halo2::PeerMigrationPreparationObservation const&, halo2::PeerSurvivorInventory const&, std::optional<halo2::PeerCommonCutState> const&)
+                 U halo2::PeerMigrationPreparation::step(halo2::PeerMigrationPreparationObservation const&)
+                 U halo2::PeerMigrationPreparation::retired(halo2::PeerMigrationPreparationObservation const&, halo2::PeerMigrationPreparationTicket const&)
+                 U halo2::PeerMigrationPreparation::retained(halo2::PeerMigrationPreparationTicket const&, unsigned long)
+                 U halo2::PeerMigrationPreparation::PeerMigrationPreparation(unsigned int, halo2::AuthorityTransferContext const&)
+                 U halo2::PeerMigrationPreparation::~PeerMigrationPreparation()
+                 U halo2::GameVoice::close()
+                 U halo2::GameVoice::fence()
+                 U halo2::GameVoice::focus(bool)
+                 U halo2::GameVoice::radio(bool, bool)
+                 U halo2::GameVoice::blocks(unsigned short)
+                 U halo2::GameVoice::enable(bool)
+                 U halo2::GameVoice::resume(unsigned long)
+                 U halo2::GameVoice::receive(halo2::GameVoiceFrame)
+                 U halo2::GameVoice::outgoing()
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionLink>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeal>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionSeat>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionAudio>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionVoice>::size() const
+                 U rust::cxxbridge1::Vec<halo2::online_protocol_bridge::NativeSessionPacket>::size() const
+                 U rust::cxxbridge1::Vec<unsigned char>::data() const
+                 U rust::cxxbridge1::Vec<unsigned char>::size() const
+                 U rust::cxxbridge1::Vec<unsigned int>::size() const
+                 U rust::cxxbridge1::String::operator std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >() const
+                 U halo2::PeerMeshQuality::candidates(unsigned long) const
+                 U halo2::PeerMeshQuality::migration_candidates(unsigned long) const
+                 U halo2::PeerMeshQuality::local(unsigned long) const
+                 U halo2::PeerMeshQuality::context() const
+                 U halo2::PeerHostAgreement::state(unsigned long) const
+                 U halo2::OnlinePeerTransport::authentication_ready() const
+                 U halo2::OnlinePeerTransport::ready(unsigned int) const
+                 U halo2::OnlinePeerTransport::failed(unsigned int) const
+                 U halo2::PeerSourceAdmissions::context() const
+                 U halo2::PeerSourceAdmissions::accepted() const
+                 U halo2::PeerSourceAdmissions::confirmed(unsigned int) const
+                 U halo2::PeerAuthorityTransfer::delivered_to(halo2::AuthorityTransferContext const&, halo2::AuthorityCutSeal const&, unsigned int) const
+                 U halo2::PeerAuthorityTransfer::feature_supported(unsigned int, unsigned int) const
+                 U halo2::PeerAuthorityTransfer::context() const
+                 U halo2::PeerAuthorityTransfer::supported(unsigned int) const
+                 U halo2::PeerSnapshotCandidate::state() const
+                 U halo2::PeerSurvivorSelection::allows_ready(unsigned int, halo2::AuthorityCutSeal const&) const
+                 U halo2::PeerSurvivorSelection::state() const
+                 U halo2::PeerCommonCutAgreement::state() const
+                 U halo2::PeerCommonCutAgreement::context() const
+                 U halo2::PeerMigrationPreparation::blocks_publication() const
+                 U halo2::PeerMigrationPreparation::retirement_pending() const
+                 U halo2::GameVoice::ready(unsigned long) const
+                 U halo2::GameVoice::snapshot() const
+                 U rust::cxxbridge1::String::operator=(rust::cxxbridge1::String&&) &
+                 U std::runtime_error::runtime_error(char const*)
+                 U std::runtime_error::~runtime_error()
+                 U std::condition_variable::notify_all()
+                 U std::condition_variable::condition_variable()
+                 U std::condition_variable::~condition_variable()
+                 U std::chrono::_V2::steady_clock::now()
+                 U std::thread::_M_start_thread(std::unique_ptr<std::thread::_State, std::default_delete<std::thread::_State> >, void (*)())
+                 U std::thread::join()
+                 U std::thread::_State::~_State()
+                 U std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
+                 U std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace_cold(char*, unsigned long, char const*, unsigned long, unsigned long)
+                 U std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)
+                 U std::__detail::__wait_impl(void const*, std::__detail::__wait_args_base&)
+                 U std::__detail::__notify_impl(void const*, bool, std::__detail::__wait_args_base const&)
+                 U std::uncaught_exception()
+                 U std::__throw_logic_error(char const*)
+                 U std::__throw_length_error(char const*)
+                 U std::__throw_system_error(int)
+                 U std::terminate()
+                 U typeinfo for __cxxabiv1::__forced_unwind
+                 U typeinfo for std::thread::_State
+                 U typeinfo for std::runtime_error
+                 U typeinfo for std::exception
+                 U vtable for __cxxabiv1::__class_type_info
+                 U vtable for __cxxabiv1::__si_class_type_info
+                 U operator delete(void*, unsigned long)
+                 U operator new(unsigned long)
+                 U __cxa_allocate_exception
+                 U __cxa_begin_catch
+                 U __cxa_end_catch
+                 U __cxa_free_exception
+                 U __cxa_guard_abort
+                 U __cxa_guard_acquire
+                 U __cxa_guard_release
+                 U __cxa_rethrow
+                 U __cxa_throw
+                 U __errno_location
+                 U __gxx_personality_v0
+                 U __libc_single_threaded
+                 U __stack_chk_fail
+                 U curl_easy_cleanup
+                 U curl_easy_init
+                 U curl_easy_perform
+                 U curl_easy_setopt
+                 U curl_free
+                 U curl_global_init
+                 U curl_slist_append
+                 U curl_slist_free_all
+                 U curl_url
+                 U curl_url_cleanup
+                 U curl_url_get
+                 U curl_url_set
+                 U curl_ws_recv
+                 U curl_ws_send
+                 U memcmp
+                 U memcpy
+                 U memmove
+                 U memset
+                 U nanosleep
+                 U pthread_cond_clockwait
+                 U pthread_mutex_lock
+                 U pthread_mutex_unlock
+                 U pthread_self
+                 U sched_yield
+                 U strcmp
+                 U strlen

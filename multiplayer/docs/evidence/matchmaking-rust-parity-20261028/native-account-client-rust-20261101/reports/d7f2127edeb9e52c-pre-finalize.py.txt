@@ -1,0 +1,56 @@
+import hashlib,json,os,re,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/native-account-client-rust-20261101'
+read=lambda p:json.loads(p.read_text())
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n')
+native=read(work/'native/inputs.json');source=Path(native['source']);build=Path(native['scratch'])/'build'
+rust=read(work/'full-rust/report.json');assert rust['passed'] and rust['frozen_inputs_intact']
+assert all(c['exit_code']==0 for c in rust['commands'])
+counts={name:sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',(work/'full-rust'/(name+'-test.log')).read_text()))) for name in ('online_protocol','online_protocol_bridge','matchmaking_service')}
+assert counts=={'online_protocol':480,'online_protocol_bridge':65,'matchmaking_service':20}
+for index in (13,14,15,16):assert read(work/f'native/iteration-{index}-report.json')['passed']
+last=read(work/'native/iteration-16-report.json');pins={}
+for part in last['source_pin_parts']:pins.update(read(work/'native'/part))
+assert all(sha(source/n)==h for n,h in pins.items())
+qualified=[];mismatches=[];excluded=[]
+for n,h in rust['source_pins'].items():
+ if not (source/n).is_file() and n=='tests/fixtures/weapon_effect_datum_allocate_tu15_original.json.gz':
+  assert sha(root/n)==h
+  stem='weapon_effect_datum_allocate'
+  assert not any(stem in p.read_text() for name in ('online_protocol','online_protocol_bridge','matchmaking_service') for p in (source/'rust'/name).rglob('*.rs'))
+  excluded.append({'path':n,'sha256':h,'reason':'Unrelated weapon fixture added after native snapshot; not referenced by any of the three crates; current bytes match Rust cohort'})
+ elif not (source/n).is_file() or sha(source/n)!=h:mismatches.append(n)
+ else:qualified.append(n)
+assert not mismatches,mismatches
+critical=['src/network/online_account.cpp','include/halo2/online_account.hpp','rust/online_protocol/src/matchmaking_account_client.rs',
+ 'rust/online_protocol/tests/matchmaking_account_client.rs','rust/online_protocol/examples/account_snapshot_replay.rs','rust/online_protocol/src/lib.rs',
+ 'rust/online_protocol_bridge/src/matchmaking_account_client.rs','rust/online_protocol_bridge/src/matchmaking_account_client.hpp',
+ 'rust/online_protocol_bridge/src/lib.rs','rust/online_protocol_bridge/build.rs','cmake/OnlineProtocolRust.cmake','cmake/OnlinePeers.cmake',
+ 'tools/build_online_protocol_rust.py','tests/test_build_online_protocol_rust.py','tests/native_account_client_tests.cpp',
+ 'tests/test_native_account_client.py','tests/account_snapshot_cpp_replay.cpp','tests/test_account_snapshot_replay.py',
+ 'tests/reference/account_client_before_rust_20261101/online_account.cpp.inc','tests/reference/account_client_before_rust_20261101/online_account_before.cpp',
+ 'tests/reference/account_client_before_rust_20261101/provenance.json','tests/reference/account_client_before_rust_20261101/online_account.hpp.reference','tests/test_account_frontend_comparison.py']
+assert all(sha(root/n)==sha(source/n)==pins[n] for n in critical)
+write(work/'qualified-inputs.json',{'passed':True,'rust_counts':counts,'qualified_rust_native_inputs':len(qualified),
+ 'all_rust_crate_source_inputs_identical':True,'all_common_fixture_inputs_identical':True,'excluded_from_native_inventory':excluded,'source_pins':{n:sha(root/n) for n in critical},'mismatches':mismatches,
+ 'unrelated_existing_input_drift':[n for n,h in pins.items() if not (root/n).is_file() or sha(root/n)!=h]})
+for relative in ('test-artifacts/account-frontend-comparison.json','test-artifacts/native-account-client-http.json','test-artifacts/account-snapshot-cpp-rust.json','rust-service/report.json','rust-service/source-manifest.json',
+ 'rust-frontend-blocked/report.json','rust-frontend-blocked/source-manifest.json','rust-frontend-rendered/report.json','rust-frontend-rendered/source-manifest.json'):
+ p=build/relative;assert p.is_file() and p.stat().st_size<=1048576,(relative,'missing or oversized')
+ destination=work/'qualified'/relative;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,destination)
+for name in ('native-account-client-http','account-snapshot-cpp-rust'):
+ d=read(work/'qualified/test-artifacts'/(name+'.json'));assert d['passed']
+assert read(work/'qualified/rust-service/report.json')['passed']
+assert read(work/'qualified/test-artifacts/account-frontend-comparison.json')['passed']
+for case in ('blocked','rendered'):
+ d=read(work/('qualified/rust-frontend-'+case+'/report.json'));assert d['passed'] and d['frontend']['passed']
+write(work/'native-runs.json',[{'iteration':i,'passed':read(work/f'native/iteration-{i}-report.json')['passed'],
+ 'test_log':str((work/f'native/iteration-{i}/tests.log').relative_to(root)),
+ 'source_pin_sha256':read(work/f'native/iteration-{i}-report.json')['source_pin_sha256'],
+ 'declared_refreshes':read(work/f'native/iteration-{i}-report.json')['refreshed']} for i in range(1,17)])
+check=subprocess.run(['git','diff','--check','--']+critical,capture_output=True,text=True);assert check.returncode==0,check.stdout+check.stderr
+new_sources=[n for n in critical if 'matchmaking_account_client' in n or n.startswith('tests/native_account_client') or n.startswith('tests/test_native_account_client') or n.startswith('tests/account_snapshot') or n.startswith('tests/test_account_snapshot')]
+assert all(all(line==line.rstrip() for line in (root/n).read_text().splitlines()) for n in new_sources)
+write(work/'whitespace-check.json',{'passed':True,'paths':critical})
+print('PASS frozen/current code and all',len(qualified),'Rust/native inputs; private frontend/service reports retained, no frames')

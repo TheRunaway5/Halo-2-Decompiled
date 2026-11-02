@@ -25,12 +25,12 @@ void mcc_sound_geometry_detail::apply(MccSoundRuntimePlan& out,
 std::vector<MccSoundGeometryResource> plan_mcc_sound_geometry_resources(const Cache& cache) {
     if(!cache.is_mcc())throw FormatError("Sound geometry projection requires an MCC cache owner");
     std::vector<MccSoundGeometryResource> result;
-    std::ifstream english;
-    std::uint64_t file_bytes{};
     // The token namespace starts beyond every normalized cache allocation,
     // including generated jmad resources. It cannot alias an original file byte.
     auto next=(std::uint64_t(cache.source_runtime_cache_bytes().size())+511u)&~std::uint64_t(511);
     for(const auto& tag:cache.tags())if(tag.group=="ugh!"&&tag.address&&tag.size) {
+        std::ifstream english;
+        std::uint64_t file_bytes{};
         const Bytes root(cache.read_tag_bytes(tag.address,0x78));
         const auto count=root.u32(0x70),address=root.u32(0x74);
         if(count>0x100000u)throw FormatError("MCC sound extra-info count exceeds its typed bank");
@@ -48,7 +48,7 @@ std::vector<MccSoundGeometryResource> plan_mcc_sound_geometry_resources(const Ca
             if(next+padded>0x40000000ull)
                 throw FormatError("MCC facial geometry exceeds its owned native file-token namespace");
             if(!english.is_open()) {
-                english.open(cache.shared_directory()/"sounds_en.dat",std::ios::binary|std::ios::ate);
+                english.open(cache.mcc_resource_bank_path(tag.handle(),MccResourceBank::EnglishSounds),std::ios::binary|std::ios::ate);
                 if(!english || english.tellg()<0)throw FormatError("MCC English facial resource container unavailable");
                 file_bytes=std::uint64_t(english.tellg());
             }

@@ -1,4 +1,7 @@
 #include "audio/mcc_sound_variation_provider_internal.hpp"
+#include "halo2/mcc_original_sound_runtime_delivery_tu15.hpp"
+#include "halo2/mcc_sound_dat_resources_tu15.hpp"
+#include "halo2/source_runtime_resources.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -26,6 +29,9 @@ struct NativeTag {
 struct SoundRoot {NativeTag tag;TagHandle gestalt;std::array<std::byte,20> bytes;};
 struct Catalog {
     const Cache* cache{};
+    std::shared_ptr<const MccOriginalSoundRuntimeDeliveryTu15> original;
+    std::shared_ptr<const MccSoundDatResourcesTu15> dat;
+    SourceRuntimeResources::Identity resources;
     std::uint32_t base{},extent{},table{},count{},globals_child{};
     std::vector<std::byte> index_prefix;
     std::vector<NativeTag> tags;
@@ -40,6 +46,7 @@ struct Catalog {
     // base in bounds must not pair another row's metadata with Cache PCM0.
     std::vector<std::array<std::byte,12>> ranges;
     std::vector<std::array<std::byte,16>> permutations;
+    std::vector<std::array<std::byte,8>> chunks;
 };
 class Reader {
     const Catalog& catalog;
@@ -155,11 +162,16 @@ SoundVariationDefinition parse(const Catalog& c,const MccSoundTimingOwnedReader&
 Catalog catalog(const Cache& cache,const MccRuntimeCacheDelivery& delivery,const MccSoundRuntimePlan& plan,
                 const MccSoundTimingOwnedReader& owner){
     require(cache.is_mcc(),"Native sound variation provider requires converted MCC ownership");
+    require(plan.original==delivery.original_sound_owner(),"Native sound variation canonical and resource owners differ");
+    if(plan.original)plan.original->require_plan(plan);
+    for(const auto& sound:plan.sounds)
+        require((sound.file==MccSoundDataFile::Original)==(plan.original&&plan.original->contains(sound.sound)),
+            "Native sound variation original resource classification differs from its sealed owner");
     const auto& index=delivery.index();const Bytes raw(index.region.bytes);
     require(index.table>=index.region.address&&index.count<=0x10000u&&
             std::uint64_t(index.table-index.region.address)+std::uint64_t(index.count)*16u==index.region.bytes.size(),
             "Native sound variation canonical directory extent differs");
-    Catalog c;c.cache=&cache;c.base=index.region.address;c.extent=delivery.reservation_bytes();c.table=index.table;c.count=index.count;
+    Catalog c;c.cache=&cache;c.original=plan.original;c.base=index.region.address;c.extent=delivery.reservation_bytes();c.table=index.table;c.count=index.count;
     require(c.extent>=index.region.bytes.size()&&std::uint64_t(c.base)+c.extent<=0x100000000ull,
             "Native sound variation canonical allocation wraps");
     const auto prefix=std::size_t(index.table-index.region.address);c.index_prefix.assign(index.region.bytes.begin(),index.region.bytes.begin()+prefix);
@@ -183,8 +195,14 @@ Catalog catalog(const Cache& cache,const MccRuntimeCacheDelivery& delivery,const
         require(c.blocks[n].count>=0&&std::uint32_t(c.blocks[n].count)<=0x100000u,"Native sound catalog merged table count differs");
         for(unsigned byte=0;byte<4;++byte){c.gestalt_bytes[n*8+byte]=std::byte(std::uint32_t(c.blocks[n].count)>>(byte*8));c.gestalt_bytes[n*8+4+byte]=std::byte(c.blocks[n].address>>(byte*8));}
         const auto bytes=std::uint64_t(std::uint32_t(c.blocks[n].count))*strides[n];
-        require(c.blocks[n].address>=c.base&&std::uint64_t(c.blocks[n].address)-c.base<=c.extent&&
-                bytes<=c.extent-(std::uint64_t(c.blocks[n].address)-c.base),"Native sound catalog merged table is outside its allocation");
+        // A literal empty table owns no readable interval. In particular the
+        // actual tutorial/Cairo table 6 is {0,0}; retain it
+        // exactly. Reader::row still refuses every ordinal of an empty table.
+        if(bytes&&!(c.blocks[n].address>=c.base&&std::uint64_t(c.blocks[n].address)-c.base<=c.extent&&
+                bytes<=c.extent-(std::uint64_t(c.blocks[n].address)-c.base)))
+            throw FormatError("Native sound catalog merged table is outside its allocation: table="+std::to_string(n)+
+                " count="+std::to_string(c.blocks[n].count)+" address="+std::to_string(c.blocks[n].address)+
+                " base="+std::to_string(c.base)+" extent="+std::to_string(c.extent));
     }
     const auto projected=[&](std::uint32_t at,std::size_t bytes){
         require(at>=plan.address&&std::uint64_t(at)-plan.address<=plan.bytes.size()&&
@@ -196,6 +214,8 @@ Catalog catalog(const Cache& cache,const MccRuntimeCacheDelivery& delivery,const
         c.ranges.push_back(fixed<12>(projected(c.blocks[4].address+n*12u,12)));
     for(unsigned n=0;n<unsigned(c.blocks[5].count);++n)
         c.permutations.push_back(fixed<16>(projected(c.blocks[5].address+n*16u,16)));
+    for(unsigned n=0;n<unsigned(c.blocks[8].count);++n)
+        c.chunks.push_back(fixed<8>(projected(c.blocks[8].address+n*12u,8)));
     const auto patch=[&](TagHandle h,std::size_t bytes)->const MccSoundRuntimePatch&{
         const auto found=std::ranges::find_if(plan.patches,[&](const auto& p){return p.owner==h&&p.after.size()==bytes&&p.before.size()==bytes;});
         require(found!=plan.patches.end(),"Native sound catalog lacks its complete projected root");return *found;
@@ -239,6 +259,19 @@ struct MccSoundVariationProviderAccess {
         require(memory&&owner->memory==memory && !owner->memory.owner_before(memory) && !memory.owner_before(owner->memory),
                 "Native script Access and sound metadata belong to different World owners");
     }
+    static void require_resources(const MccSoundVariationProvider& target,const MccSoundVariationProvider* saved,
+        const Cache& expected){
+        target.require_current(expected);const auto& current=target.impl_->catalog;
+        require(saved,"Native sound replacement has no saved immutable resource identity");
+        require(saved->impl_&&saved->impl_->catalog.cache==&expected,"Saved native sound resources belong to another Cache");
+        require(current.resources==saved->impl_->catalog.resources,"Native sound replacement changed its immutable resources");
+    }
+    static void require_world_resources(const MccSoundVariationProvider& provider,const Cache& expected,const SourceRuntimeResources& resources){
+        const auto owner=provider.impl_;require(owner&&owner->catalog.cache==&expected,"Native sound publication has a foreign Cache");
+        const auto& c=owner->catalog;const auto dat=resources.sound_dat_owner();
+        require(c.resources==resources.identity()&&c.original==resources.original_sound_owner()&&c.dat==dat&&
+            !c.dat.owner_before(dat)&&!dat.owner_before(c.dat),"Native sound publication has a foreign retained resource owner");
+    }
 };
 MccSoundVariationProvider::MccSoundVariationProvider(std::shared_ptr<const Impl> p):impl_(std::move(p)){}
 void MccSoundVariationProvider::require_current(const Cache& expected)const{
@@ -253,6 +286,26 @@ SoundVariationDefinition MccSoundVariationProvider::load(const Cache& expected,T
         result.emplace(parse(owner->catalog,reader,sound,pitch));
     }));require(result.has_value(),"Native sound variation provider did not execute its owned parser");return std::move(*result);
 }
+EncodedSound MccSoundVariationProvider::encoded(const Cache& expected,TagHandle sound,unsigned pitch,unsigned permutation)const{
+    const auto retained=impl_;require(bool(retained),"Native sound variation provider is absent");std::optional<EncodedSound> result;
+    require_status(with_mcc_sound_timing_owned_read(retained->lease,[&](const auto& owner){
+        const auto& c=retained->catalog;
+        require(&expected==c.cache,"Native sound variation provider belongs to another Cache");
+        const auto definition=parse(c,owner,sound,pitch);
+        require(permutation<definition.permutations.size(),"Native sound resource permutation escapes its exact metadata owner");
+        const Bytes selected(definition.permutations[permutation]);const auto first=selected.u16(12),count=selected.u16(14);
+        require(count&&std::uint64_t(first)+count<=c.chunks.size(),"Native sound resource chunks escape their immutable mapping");
+        const Reader r(c,owner);
+        for(unsigned n=0;n<count;++n){
+            const auto ordinal=unsigned(first)+n;const auto row=r.row(c.blocks[8],12,ordinal);
+            require(std::ranges::equal(std::span(row).first(8),c.chunks[ordinal]),
+                "Native sound resource descriptor changed its immutable locator or flags");
+        }
+        require(bool(c.dat),"Native sound provider lost its retained DAT owner");
+        result.emplace(c.original&&c.original->contains(sound)?c.original->bank()->encoded(sound,pitch,permutation):
+            expected.load_sound(sound.value,pitch,permutation,[&](const auto& request){return c.dat->read_encoded(expected,request);}));
+    }));require(result.has_value(),"Native sound resource provider did not execute its owned load");return std::move(*result);
+}
 MccSoundTimingReadLease MccSoundVariationProvider::timing_lease()const {
     require(bool(impl_),"Native sound variation provider is absent");
     return impl_->lease;
@@ -262,13 +315,22 @@ void require_mcc_sound_variation_owner(const MccSoundVariationProvider& provider
     const std::shared_ptr<const MccSoundTimingMemoryOwner>& memory){
     MccSoundVariationProviderAccess::require_owner(provider,expected,memory);
 }
+void require_mcc_sound_variation_resources(const MccSoundVariationProvider& target,
+    const MccSoundVariationProvider* saved,const Cache& expected){
+    MccSoundVariationProviderAccess::require_resources(target,saved,expected);
+}
+void require_mcc_sound_variation_world_resources(const MccSoundVariationProvider& provider,const Cache& expected,const SourceRuntimeResources& resources){
+    MccSoundVariationProviderAccess::require_world_resources(provider,expected,resources);
+}
 MccSoundVariationProvider make_mcc_sound_variation_provider(const Cache& actual,const Cache& expected,
     const MccRuntimeCacheDelivery& delivery,const MccSoundRuntimePlan& plan,
+    const SourceRuntimeResources& resources,
     const std::shared_ptr<const MccSoundTimingMemoryOwner>& owner){
+    resources.require_sound_plan(actual,plan);require(bool(resources.sound_dat_owner()),"Native sound provider requires retained DAT resources");
     auto lease=capture_mcc_sound_timing_read_lease(owner);std::optional<Catalog> c;
     require_status(with_mcc_sound_timing_owned_read(lease,[&](const auto& reader){
         require(&actual==&expected,"Native sound variation provider requires this World's Cache");
-        c.emplace(catalog(actual,delivery,plan,reader));
+        c.emplace(catalog(actual,delivery,plan,reader));c->dat=resources.sound_dat_owner();c->resources=resources.identity();
     }));require(c.has_value(),"Native sound variation provider failed its catalog transaction");
     return MccSoundVariationProviderAccess::make(std::move(lease),std::move(*c),owner);
 }

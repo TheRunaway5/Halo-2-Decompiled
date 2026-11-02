@@ -102,6 +102,23 @@ unsigned appearance_window_size(const FrontendContent &content,
   return std::min(screen.panes.front().lists.front().visible,
                   unsigned(frame.entries.size()));
 }
+void keep_list_selection_visible(const FrontendContent &content, MenuFrame &frame) {
+  if (frame.entries.empty() || frame.vista_pcr || frame.screen == 6 ||
+      appearance_window(frame.screen)) return;
+  const auto &screen = content.screen(frame.screen);
+  if (screen.panes.empty()) return;
+  const auto pane = frame.screen == 26
+      ? std::min(frame.context, unsigned(screen.panes.size() - 1)) : 0;
+  if (screen.panes[pane].lists.empty()) return;
+  const auto visible = screen.panes[pane].lists.front().visible;
+  if (!visible) return;
+  // Retain the row window while focus stays inside it. Recomputing its first
+  // row from every focused index scrolls a long menu on mouse hover.
+  if (frame.selected < frame.first_visible)
+    frame.first_visible = frame.selected;
+  else if (frame.selected - frame.first_visible >= visible)
+    frame.first_visible = frame.selected - visible + 1;
+}
 bool online_screen(unsigned screen) {
   // Actual mainmenu.map tag names: dialog_live_*, online_y_menu and
   // game_shell/xbox_live. Generic progress/error and Extras screens also
@@ -266,10 +283,10 @@ void MenuState::bind_primary_login() {
   online_prior_report_.reset();
   if(online_account_)online_account_->sign_out();account_={};
   if(online_matchmaking_)online_matchmaking_->sign_out();
-  matchmaking_active_=quickmatch_pending_=false;
+  matchmaking_search_.stop();
   if(online_voice_)online_voice_->leave();
   if(discord_social_)discord_social_->disconnect();
-  dismissed_party_invites_.clear();
+  party_flow_.clear_dismissed();
 }
 void MenuState::return_online(std::string message) {
   // Allocate fresh ONLINE navigation after world teardown or local PCR Done.
@@ -287,7 +304,7 @@ void MenuState::return_online_lobby(std::string message) {
   // End its completed/abandoned intent explicitly; renderer teardown keeps
   // the retained service alive, and a later Start needs a fresh queue intent.
   if(online_matchmaking_)online_matchmaking_->cancel_queue();
-  quickmatch_pending_=false;
+  matchmaking_search_.quick(false);
   reset_online_matchmaking_progress();
   return_online();
   if(frame().screen==20){pending_online_screen_=14;pending_online_context_=0;}
@@ -310,60 +327,9 @@ void MenuState::update_online_postgame() {
   const auto owner=pcr->vista_pcr;
   if(owner->input.continue_session)owner->input.continue_session();
 }
-void MenuState::enter_online_matchmaking_lobby() {
-  online_lobby_matchmaking_=true;
-  online_lobby_countdown_party_.clear();
-  cancel_online_lobby_countdown();
-  if(account_.party && account_.party->countdown && account_.party->countdown->complete)
-    online_lobby_countdown_consumed_=account_.party->countdown->serial;
-  if(frame().screen==14 && mode_==3){stack_.back().entries.clear();populate_online_party(stack_.back());++revision;}
-}
-void MenuState::cancel_online_lobby_countdown() {
-  online_lobby_countdown_=online_lobby_countdown_stage_=-1;
-}
-bool MenuState::update_online_lobby_countdown() {
-  const bool lobby=mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &f){return f.screen==14;});
-  if(online_lobby_leave_pending_)return false;
-  if(!lobby || !account_.party || !account_.party->countdown_supported) {
-    online_lobby_countdown_party_.clear();
-    if(online_lobby_countdown_>=0){cancel_online_lobby_countdown();++revision;}
-    return false;
-  }
-  const auto &published=account_.party->countdown;
-  if(published && published->seconds && *published->seconds>0 && online_lobby_countdown_party_.empty())
-    for(const auto &m:account_.party->members)online_lobby_countdown_party_.push_back(m.handle);
-  if(!published && !online_lobby_countdown_party_.empty()) {
-    const auto counted=std::exchange(online_lobby_countdown_party_,{});
-    const bool departed=std::any_of(counted.begin(),counted.end(),[&](const auto &handle){
-      return std::none_of(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==handle;});
-    });
-    if(departed) {
-      // Actual accepted member departure invalidated party A's parameter.
-      // 250804 presents its departure states6/14/19 as the original0xAE.
-      cancel_online_lobby_countdown();quickmatch_pending_=false;
-      if(online_matchmaking_)online_matchmaking_->cancel_queue();
-      reset_online_matchmaking_progress();
-      while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
-      dialog(0xae,-5,true);++revision;return true;
-    }
-  }
-  const auto seconds=published && published->seconds &&
-    (!published->complete || published->serial!=online_lobby_countdown_consumed_)?*published->seconds:-1;
-  if(seconds!=online_lobby_countdown_){online_lobby_countdown_=seconds;++revision;}
-  // 0x250A8B: UI sound10 for each new stage 0..3.
-  if(matchmaking_lobby_countdown_beeps(online_lobby_countdown_stage_,online_lobby_countdown_) &&
-     pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::PregameCountdown);
-  online_lobby_countdown_stage_=online_lobby_countdown_;
-  if(!published || !published->complete || published->serial==online_lobby_countdown_consumed_)return false;
-  // 0x6E410: a zero countdown stops and a matchmaking party enters mode6,
-  // which 0x19B1C9 presents as screen210 for the retained playlist.
-  online_lobby_countdown_consumed_=published->serial;
-  online_lobby_countdown_party_.clear();
-  cancel_online_lobby_countdown();
-  while(stack_.size()>1 && frame().screen!=14)stack_.pop_back();
-  open(210);
-  return true;
-}
+
+
+
 std::optional<DiscordIdentity> MenuState::online_identity() const {
   if (online_account_ && !account_.authenticated) return std::nullopt;
   return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
@@ -389,7 +355,7 @@ void MenuState::update_online_login() {
     if (status.status == DiscordLoginStatus::Failed) awaiting_discord_login_ = false;
   } else if (!status.identity && std::any_of(stack_.begin(), stack_.end(), [](const auto &f) { return online_screen(f.screen); })) {
     if (online_matchmaking_) online_matchmaking_->sign_out();
-    matchmaking_active_ = quickmatch_pending_ = false;
+    matchmaking_search_.stop();
     while (stack_.size() > 1 && frame().screen != 6) stack_.pop_back();
     open(20);
   }
@@ -527,8 +493,12 @@ std::optional<int> MenuState::focused_profile_species(const MenuFrame &frame) co
 MenuFrame MenuState::build(unsigned id, unsigned context) const {
   if(id==13 || id==vista_menu(13))
     throw FormatError("Retired screen13 is unavailable in native navigation");
-  if (id == 19 && content_.vista) return build_pc(vista_menu(19), context);
-  if (is_vista_menu(id)) return build_pc(id, context);
+  if (id == 19 && content_.vista) id = vista_menu(19);
+  if (is_vista_menu(id)) {
+    auto frame = build_pc(id, context);
+    keep_list_selection_visible(content_, frame);
+    return frame;
+  }
   if (!content_.screens.contains(id))
     throw FormatError("retail menu screen not found: " + std::to_string(id));
   const auto &s = content_.screens.at(id);
@@ -556,6 +526,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x284, 30, 0);
     add(0x285, 30, 1);
     add(0x286, 19);
+    f.entries.push_back({"MODS", -120, 0});
     f.entries.push_back({"EXIT GAME", -19, 0});
     break;
   case 19:
@@ -679,6 +650,10 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0xb8, -2, 1);
     add(0x28f, -2, 2);
     add(0x290, -2, 3);
+    if (context == workshop_menu_context && workshop_mission_) {
+      f.title = workshop_mission_->title + " - DIFFICULTY";
+      f.description = workshop_mission_->description;
+    }
     break;
   case 2:
   case 11:
@@ -699,6 +674,33 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   }
   case 60:
   case 207: {
+    if (id == 60 && context == workshop_mission_context && workshop_mission_) {
+      f.title = workshop_mission_->title;
+      f.description = "Choose how to launch this mission.";
+      f.entries.push_back({workshop_mission_->campaign ? "Play Campaign" : "Play Local Multiplayer", -123, 0});
+      f.entries.push_back({"Explore Map", -124, 0});
+      break;
+    }
+    if (id == 60 && context >= workshop_menu_context) {
+      if (context == workshop_menu_context) {
+        f.title = "MODS";
+        f.description = workshop_catalog_.mods.empty()
+            ? "No Halo 2 Workshop missions found. Subscribe and download in Steam, then refresh."
+            : "Choose a downloaded Halo 2 mod.";
+        for (unsigned i = 0; i < workshop_catalog_.mods.size(); ++i)
+          f.entries.push_back({workshop_catalog_.mods[i].title, -121, int(i)});
+        if (!workshop_catalog_.errors.empty())
+          f.description = workshop_catalog_.errors.front();
+        f.entries.push_back({"Refresh", -120, 0});
+      } else {
+        const auto &mod = workshop_catalog_.mods.at(context - workshop_menu_context - 1);
+        f.title = mod.title;
+        f.description = mod.error.empty() ? "Choose a mission." : mod.error;
+        for (unsigned i = 0; i < mod.missions.size(); ++i)
+          f.entries.push_back({mod.missions[i].title, -122, int(i)});
+      }
+      break;
+    }
     const std::array<unsigned, 7> ids{0x10f, 0x237, 0x110, 0x113,
                                       0x439, 0x10e, 0x115};
     for (unsigned i = 0; i < ids.size(); ++i)
@@ -1002,6 +1004,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     // window; 24C461 then assigns that cell and its preceding siblings.
     f.first_visible = f.selected >= visible ? f.selected - visible + 1 : 0;
   }
+  keep_list_selection_visible(content_, f);
   return f;
 }
 void MenuState::open(unsigned screen, unsigned context) {
@@ -1030,24 +1033,17 @@ void MenuState::open(unsigned screen, unsigned context) {
   if (appearance_child)
     appearance_snapshots_.emplace_back(stack_.size(), appearance());
   stack_.push_back(build(screen, context));
-  if(screen==25 && mode_==3 && account_.party && account_.party->privacy) {
-    const auto &privacy=*account_.party->privacy;
-    online_privacy_pending_=OnlinePrivacyPending{frame().instance,0,privacy.revision,privacy.mode,privacy.context};
-  }
+  party_flow_drive(FrontendPartyFlowAction::OpenedPrivacy);
   if(screen==14 && mode_==3) {
     // Custom Game/Create Party from the ONLINE menu forms a lobby with no
     // matchmaking hopper; matchmaking returns re-mark it afterwards.
-    if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_matchmaking_=false;cancel_online_lobby_countdown();}
-    if(online_account_ && !account_.party && !online_account_->snapshot().busy)
-      online_account_->party_command({"create"});
-    if(!matchmaking_active_)refresh_online_matchmaking();
+    if(stack_.size()>=2 && stack_[stack_.size()-2].screen==186){online_lobby_.exit();}
+    search_drive(FrontendSearchAction::OpenedLobby);
   }
   if (screen == 219 && context == online_server_browser_context) refresh_online_directory();
   if ((screen == 219 || screen == 237) && context == 0) refresh_online_matchmaking();
   if (screen == 210) {
-    quickmatch_pending_ = true;
-    if (!matchmaking_active_) refresh_online_matchmaking();
-    update_online_matchmaking();
+    search_drive(FrontendSearchAction::OpenedSearch);
   }
   preview_appearance_selection();
   if (screen == 167) {
@@ -1068,12 +1064,12 @@ void MenuState::open(unsigned screen, unsigned context) {
 void MenuState::open_game_pause(bool campaign) {
   open_game_pause(campaign,false);
 }
-void MenuState::open_game_pause(bool campaign,bool online) {
+void MenuState::open_game_pause(bool campaign,bool online,bool splitscreen) {
   if(!content_.gameplay_overlay || !content_.vista)
     throw FormatError("Pause menu requires its gameplay UI source");
   stack_.clear();
   stack_.push_back(build(vista_menu(18),campaign?campaign_game_pause_context:
-      online?online_game_pause_context:0u));
+      online?online_game_pause_context:splitscreen?splitscreen_game_pause_context:0u));
   ++revision;
 }
 void MenuState::set_pcr_clock(std::function<std::uint32_t()> clock) {
@@ -1378,6 +1374,7 @@ bool MenuState::vista_pcr_event(std::uint32_t code) {
 }
 void MenuState::pane_selection_changed(unsigned previous) {
   auto &f = stack_.back();
+  keep_list_selection_visible(content_, f);
   // These actual constructors use a null layout container:2306CF(19),
   //237758(38),23768D(178),2BB477(12),2519F7/251AA6(210).
   //22F6CA registers focus notifications;24C461->230427 deletes ordinary
@@ -1479,7 +1476,42 @@ void MenuState::dialog(unsigned id, int action, bool single) {
     f.entries.push_back({d.second, -5, 0});
   f.selected = single ? 0 : d.selected;
 }
+void MenuState::begin_workshop_preparation() {
+  open(8);
+  auto &f = stack_.back();
+  f.title = "PREPARING MOD";
+  f.description = "Preparing this mission. This can take a moment.";
+  f.entries.clear();
+  workshop_preparing_ = true;
+  ++revision;
+}
+std::optional<std::pair<std::string,std::string>> MenuState::workshop_details(const MenuFrame &f) const {
+  if(f.screen!=60 || f.context<workshop_menu_context)return std::nullopt;
+  if(f.context==workshop_mission_context && workshop_mission_)
+    return std::pair{workshop_mission_->title,
+        !f.entries.empty() && f.entries.at(f.selected).destination==-124
+        ? std::string("Explore the map with the free camera. Campaign scripts and AI do not run.")
+        : workshop_mission_->description};
+  if(f.context==workshop_menu_context) {
+    if(f.entries.empty() || f.entries.at(f.selected).destination==-120)
+      return std::pair{std::string("REFRESH"),std::string("Scan installed Steam Workshop subscriptions for Halo 2 missions.")};
+    const auto &mod=workshop_catalog_.mods.at(f.entries.at(f.selected).value);
+    return std::pair{mod.title,mod.error.empty()?mod.description:mod.error};
+  }
+  const auto &mod=workshop_catalog_.mods.at(f.context-workshop_menu_context-1);
+  if(f.entries.empty())return std::pair{mod.title,mod.error};
+  const auto &mission=mod.missions.at(f.entries.at(f.selected).value);
+  return std::pair{mission.title,mission.description};
+}
+void MenuState::finish_workshop_preparation(const std::string &error) {
+  if (!workshop_preparing_) throw FormatError("Workshop preparation lost its progress screen");
+  workshop_preparing_ = false;
+  stack_.pop_back();
+  ++revision;
+  if (!error.empty()) unavailable(error);
+}
 void MenuState::accept() {
+  if (workshop_preparing_) return;
   if(content_.gameplay_overlay && !frame().entries.empty() &&
       frame().entries.at(frame().selected).destination<=-100) {
     const auto action=frame().entries.at(frame().selected).destination;
@@ -1495,7 +1527,7 @@ void MenuState::accept() {
       return;
     }
     if(action==-104) {back();return;}
-    if(action==-103 || action==-102) {
+    if(action==-103 || action==-102 || action==-116 || action==-117) {
       const bool leave_match=action==-103 && frame().context==online_game_pause_context;
       // Original23217B/2321FC confirm restart/quit before dispatch.
       const auto &d=content_.dialogs.at(action==-102?0xaa:0xa8);
@@ -1509,12 +1541,20 @@ void MenuState::accept() {
           f.title=detail::frontend_pc_compiled_localized(*content_.vista, content_.screen(vista_menu(18)),0x040002ed);
           f.description="Quit the current game? Unsaved progress will be lost.";
         }
+      } else if(action==-116) {
+        f.title="End Match";
+        f.description="End the current match for all local players?";
+      } else if(action==-117) {
+        f.title="Exit To Desktop";
+        f.description="Exit the game and return to the desktop?";
       }
-      f.entries={{action==-102?d.first:f.title,action==-102?-112:-113,0},{d.second,-104,0}};
+      const auto confirmed=action==-102?-112:action==-116?-118:action==-117?-119:-113;
+      f.entries={{action==-102?d.first:f.title,confirmed,0},{d.second,-104,0}};
       f.selected=1;++revision;return;
     }
     const auto requested=action==-100?GamePauseAction::Resume:action==-101?GamePauseAction::Revert:
-        action==-112?GamePauseAction::Restart:GamePauseAction::Quit;
+        action==-112?GamePauseAction::Restart:action==-118?GamePauseAction::EndMatch:
+        action==-119?GamePauseAction::ExitToDesktop:GamePauseAction::Quit;
     const auto error=game_pause_action_?game_pause_action_(requested):"No live game owns this action.";
     if(!error.empty())unavailable(error);
     return;
@@ -1536,11 +1576,7 @@ void MenuState::accept() {
       lobby_session_action_(f.selected?FrontendLobbySessionAction::Setup:FrontendLobbySessionAction::Start))return;
   if (f.screen == 210) return;
   if ((f.screen == 219 || f.screen == 237) && f.context == 0) {
-    if (f.selected < matchmaking_.playlists.size()) {
-      const auto &playlist=matchmaking_.playlists[f.selected];
-      if(!playlist.eligible){pending_ui_sounds_.push_back(FrontendUiSound::Error);return;}
-      selected_playlist_=playlist.id;prepare_online_matchmaking_lobby(false);
-    } else refresh_online_matchmaking();
+    search_drive(FrontendSearchAction::Select,f.selected);
     return;
   }
   if (f.screen == 219 && f.context == online_server_browser_context) {
@@ -1563,10 +1599,10 @@ void MenuState::accept() {
       }
       else {
         if (online_matchmaking_) online_matchmaking_->sign_out();
-        matchmaking_active_ = quickmatch_pending_ = false;
+        matchmaking_search_.stop();
         if (online_account_) online_account_->sign_out();
         if (online_voice_) online_voice_->leave();
-        party_voice_wanted_=false;
+        party_flow_.voice_wanted(false);
         if(discord_social_)discord_social_->disconnect();
         saved_login_suppressed_=true;discord_login_->sign_out();
         online_prior_report_.reset();
@@ -1637,6 +1673,41 @@ void MenuState::accept() {
     return;
   }
   const auto entry = f.entries.at(f.selected);
+  if (entry.destination == -120) {
+    if (!workshop_scanner_) { unavailable("Steam Workshop discovery is unavailable in this runtime."); return; }
+    try {
+      workshop_catalog_ = workshop_scanner_();
+      workshop_mission_.reset();
+      if (f.screen == 60 && f.context >= workshop_menu_context) stack_.pop_back();
+      open(60, workshop_menu_context);
+    } catch (const std::exception &error) { unavailable(error.what()); }
+    return;
+  }
+  if (entry.destination == -121) {
+    open(60, workshop_menu_context + 1 + unsigned(entry.value));
+    return;
+  }
+  if (entry.destination == -122) {
+    workshop_mission_ = workshop_catalog_.mods.at(f.context - workshop_menu_context - 1)
+                            .missions.at(unsigned(entry.value));
+    open(60, workshop_mission_context);
+    return;
+  }
+  if (entry.destination == -123 || entry.destination == -124) {
+    if (!workshop_mission_) throw FormatError("Workshop mission selection disappeared");
+    if (entry.destination == -123 && workshop_mission_->campaign) open(12, workshop_menu_context);
+    else {
+      // Workshop multiplayer starts as a local game. Network peers need their
+      // own matching content; the stock map catalog cannot advertise this owner.
+      launch = FrontendLaunch{};
+      launch->multiplayer = entry.destination == -123;
+      launch->workshop_preview = entry.destination == -124;
+      launch->variant = current_variant();
+      launch->workshop = workshop_mission_;
+      ++revision;
+    }
+    return;
+  }
   if (f.screen == 6) {
     if (entry.destination == -19) {
       quit = true;
@@ -1774,7 +1845,7 @@ void MenuState::accept() {
   } else if (entry.destination == -16) {
     // 0x252150 "Leave Matchmaking": cancel the search; party A returns to
     // pre-game, which 0x19B1C9 presents as pregame lobby14 pane2.
-    quickmatch_pending_ = false;
+    matchmaking_search_.quick(false);
     if (online_matchmaking_) online_matchmaking_->cancel_queue();
     reset_online_matchmaking_progress();
     while (stack_.size() > 1 && frame().screen != 186) stack_.pop_back();
@@ -1792,18 +1863,7 @@ void MenuState::accept() {
     if(owner && owner->leave_session)owner->leave_session();
     update_online_account();return_online();
   } else if (entry.destination == -11) {
-    if(mode_==3 && std::any_of(stack_.begin(),stack_.end(),[](const auto &frame){return frame.screen==14;})) {
-      // Original0x8B callbacks25132E/251345 leave the sessions, not merely
-      // their widgets. A submitted command is acknowledged before UI return.
-      if(online_lobby_leave_pending_)return;
-      if(account_.party && (!online_account_ || !online_account_->party_command({"leave_lobby"}))) {
-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
-        return;
-      }
-      online_lobby_leave_pending_=true;
-      if(online_matchmaking_)online_matchmaking_->cancel_queue();
-      quickmatch_pending_=false;update_online_account();update_online_lobby_leave();return;
-    }
+    if(online_lobby_input(3))return;
     while (stack_.size() > 1 && frame().screen != 6)
       stack_.pop_back();
     ++revision;
@@ -1842,27 +1902,7 @@ void MenuState::accept() {
         open(14);
     }
   } else if (entry.destination == -2) {
-    if(f.screen==25 && mode_==3) {
-      if(!online_account_ || !account_.party || !account_.party->privacy) {
-        unavailable("This ONLINE service does not support party privacy settings.");return;
-      }
-      if(!account_.party->leader){unavailable("Only the party leader can change party privacy.");return;}
-      if(account_.busy || (online_privacy_pending_ && online_privacy_pending_->command_serial)){
-        unavailable("Wait for the current ONLINE operation to finish.");return;
-      }
-      if(entry.value<0 || entry.value>2)throw FormatError("Original party privacy selection is outside its authored range");
-      const auto before=*account_.party->privacy;
-      if(!online_privacy_pending_ || online_privacy_pending_->frame_instance!=f.instance ||
-          online_privacy_pending_->context!=before.context) {
-        unavailable("The party changed before its privacy selection was accepted.");return;
-      }
-      OnlinePartyCommand command;command.action="privacy";command.version=account_.party->version;
-      command.privacy=unsigned(entry.value);command.privacy_revision=before.revision;command.privacy_context=before.context;
-      if(!online_account_->party_command(std::move(command))){unavailable("Wait for the current ONLINE operation to finish.");return;}
-      online_privacy_pending_=OnlinePrivacyPending{f.instance,online_account_->snapshot().party_command_serial,
-          before.revision,unsigned(entry.value),before.context};
-      update_online_account();return;
-    }
+    if(party_flow_drive(FrontendPartyFlowAction::SelectPrivacy,entry.value))return;
     if (f.screen == 11 || f.screen == 2) {
       level_ = unsigned(entry.value);
       if (f.screen == 11 && f.context != 1)
@@ -1871,7 +1911,12 @@ void MenuState::accept() {
         back();
     } else if (f.screen == 12) {
       difficulty_ = unsigned(entry.value);
-      if (f.context == 1) back();
+      if (f.context == workshop_menu_context && workshop_mission_) {
+        launch = FrontendLaunch{};
+        launch->campaign = true;
+        launch->difficulty = difficulty_;
+        launch->workshop = workshop_mission_;
+      } else if (f.context == 1) back();
       else launch = FrontendLaunch{std::string(campaign_files.at(level_)) + ".map",
                                    true, difficulty_};
     } else if (f.screen == 1) {
@@ -1961,7 +2006,8 @@ void MenuState::accept() {
   ++revision;
 }
 void MenuState::back() {
-  if(online_lobby_leave_pending_)return; //199E3C's leave task owns completion.
+  if (workshop_preparing_) return;
+  if(online_lobby_.leave_pending())return; //199E3C's leave task owns completion.
   if(online_couch_screen(frame())) {
     if(online_local_options_) {
       const auto login=local_discord_logins_[*online_local_options_];
@@ -1984,15 +2030,13 @@ void MenuState::back() {
     // TU1.5 0x25217B: once a game is found (pane2+), Cancel is refused with
     // UI sound2 until that pane has been current for a minute.
     if (!matchmaking_progress_cancel_allowed(online_matchmaking_progress_pane(),
-                                             ui_clock_ - matchmaking_pane_clock_)) {
+                                             ui_clock_ - matchmaking_search_.clock())) {
       if (pending_ui_sounds_.size() < 16) pending_ui_sounds_.push_back(FrontendUiSound::Error);
       back_refused_ = true;
       return;
     }
     // Dialog 0x8D when every party player is on this console, else 0x8C.
-    const auto party_players = account_.party ? account_.party->members.size() : std::size_t{0};
-    dialog(party_players <= local_players().size() ? matchmaking_leave_dialog_local
-                                                   : matchmaking_leave_dialog_party, -16);
+    dialog(matchmaking_progress_leave_dialog(online_party_members().size(),local_players().size()), -16);
     return;
   }
   if (frame().screen == 20 && awaiting_discord_login_) {
@@ -2028,17 +2072,7 @@ void MenuState::back() {
     return;
   }
   if (frame().screen == 14 || frame().screen == 30) {
-    if(frame().screen==14 && mode_==3 && account_.party && account_.party->leader && online_lobby_countdown_>=0) {
-      // 250B1E param1/0xD: an active leader's B runs25122F/19A7E9 and
-      // stays in the lobby. The later idle B may ask with0x8B.
-      if(!online_account_ || !online_account_->party_command({"countdown_cancel"}))
-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
-      return;
-    }
-    if(frame().screen==14 && mode_==3 && account_.party && !account_.party->leader && online_lobby_countdown_>=0)
-      // 2511B6's member route runs25122F before its0x8B: the real mode1
-      // request can be observed even when the later confirmation is canceled.
-      if(online_account_)online_account_->party_command({"countdown_request"});
+    if(online_lobby_input(1))return;
     dialog(frame().screen == 14 ? 0x8b : 0x37, -11);
     return;
   }
@@ -2082,15 +2116,7 @@ void MenuState::auxiliary() {
       lobby_session_action_(FrontendLobbySessionAction::Auxiliary))return;
   if (frame().screen == 211 && frame().context == 41) { ++clan_message_page_; ++revision; return; }
   update_online_login();
-  if(frame().screen==14 && mode_==3) {
-    // Authored host status 0x200001F0: X cancels a running start countdown.
-    if(online_lobby_countdown_>=0) {
-      if(!online_account_ || !account_.party || !online_account_->party_command({account_.party->leader?"countdown_cancel":"countdown_request"}))
-        if(pending_ui_sounds_.size()<16)pending_ui_sounds_.push_back(FrontendUiSound::Error);
-      return;
-    }
-    open(216);return;
-  }
+  if(online_lobby_input(2))return;
   if (frame().screen == 219 && online_identity()) {
     if (frame().context == online_server_browser_context) refresh_online_directory();
     else refresh_online_matchmaking();
@@ -2171,7 +2197,7 @@ bool MenuState::activate_pointer(FrontendPointerTarget target) {
   case Action::InviteDismiss: return act_invite_notice(false);
   case Action::InviteTab:
     if(!party_invite_picker() || target.index>1)return false;
-    return switch_invite_tab(target.index==party_invite_tab_?0:1);
+    return switch_invite_tab(target.index==party_invite_tab()?0:1);
   case Action::PcrTab:
     if(target.index>1)return false;
     return switch_pcr_tab(target.index?1:-1);
@@ -2517,140 +2543,8 @@ const UiLobbyMap *MenuState::focused_lobby_map(const MenuFrame &frame) const {
   return entry.destination == -2 && entry.value >= 0
       ? frontend_multiplayer_map(content_.multiplayer_maps,unsigned(entry.value)) : nullptr;
 }
-std::optional<FrontendLobbyView> MenuState::lobby_view() const {
-  if(mode_==3) {
-    FrontendLobbyView view;view.protocol=2;view.input.session_enum=6;
-    view.input.host=account_.party && account_.party->leader;
-    view.input.start_permission=online_lobby_start_error().empty();
-    // This service does not publish Xbox Live's ordinary idle status enum.
-    // The source kernel's unknown branch owns no authored status string.
-    view.input.status=-1;
-    view.input.countdown=online_lobby_countdown_>=0;
-    if(view.input.countdown)view.input.status=10;
-    if(account_.party && account_.party->countdown && !account_.party->countdown->requester.empty()) {
-      const auto &members=account_.party->members;
-      const auto requester=std::find_if(members.begin(),members.end(),[&](const auto &m){return m.handle==account_.party->countdown->requester;});
-      if(requester!=members.end()) {
-        view.input.delayed_player=int(requester-members.begin());
-        view.input.countdown_cancelled=requester->leader; // 19ABE4: requester's machine is session leader.
-      }
-    }
-    view.input.party_privacy=account_.party && account_.party->privacy?int(account_.party->privacy->mode):-1;
-    view.input.max_players=16;view.input.player_count=int(online_party_members().size());
-    view.machines=account_.party?int(account_.party->members.size()):int(!local_players().empty());
-    view.input.prior_stats_count=has_online_prior_stats()?int(online_prior_report_->results->player_count):0;
-    view.party_names=std::vector<std::string>{};
-    for(const auto &m:online_party_members()) {
-      if(view.party_players.size()==16)break; // Authored lobby capacity; social list retains every member.
-      view.party_names->push_back(m.name);
-      FrontendLobbyRosterPlayer player;
-      player.session_index=int(view.party_players.size());player.name=m.name;
-      player.appearance_available=m.appearance.has_value();
-      if(m.appearance)player.appearance=*m.appearance;
-      // A service party has no recovered Xbox subparty quantity/rank owner.
-      // Keep the authored single-player stripe page and hide rank artwork.
-      view.party_players.push_back(std::move(player));
-      const bool talking=voice_party_ && voice_.joined && ((m.self && voice_.transmitting) ||
-          std::find(voice_.talking.begin(),voice_.talking.end(),m.handle)!=voice_.talking.end());
-      const bool muted=std::find(voice_.muted.begin(),voice_.muted.end(),m.handle)!=voice_.muted.end();
-      // Remote idle device state is not supplied by this relay. Only actual
-      // reception, the local mute choice and our own device state are known.
-      view.party_speakers.push_back(!m.self && !talking && !muted?3:
-          voice_party_ && voice_.joined && !muted && !(m.self && voice_.microphone_muted)?!talking:2);
-    }
-    return view;
-  }
-  // These are the native local-host routes. Live/reference session0 and1
-  // establish the Split Screen/System Link mapping; no remote party is
-  // manufactured for an unsupported online route or a direct screen preview.
-  if (mode_ != 1 && mode_ != 2 && mode_ != 4) return {};
-  FrontendLobbyView view;
-  view.protocol = mode_ == 2 ? 1 : mode_ == 4 ? lobby_protocol_ : 0;
-  view.engine = engine_;
-  view.difficulty = difficulty_;
-  const bool campaign = mode_ == 4;
-  if (campaign) {
-    for (const auto &map : content_.campaign_maps) {
-      const auto slash = map.scenario_path.find_last_of("\\/");
-      if (map.scenario_path.substr(slash == std::string::npos ? 0 : slash + 1) == campaign_files.at(level_)) {
-        view.map = &map;
-        break;
-      }
-    }
-  } else view.map = frontend_multiplayer_map(content_.multiplayer_maps,map_);
-  view.input.session_enum = frontend_lobby_session_enum({view.protocol, 1,
-      campaign && view.map ? view.map->campaign_id : -1,
-      frontend_lobby_variant_type(engine_), view.map != nullptr});
-  view.input.host = true;
-  view.input.party_privacy = profile_option(25, 0);
-  const auto variant=current_variant();
-  const auto settings=source_game_variant(variant);
-  const bool defusal=!campaign && bomb_defusal_variant(variant);
-  view.input.team_mode = !campaign && source_game_variant_get(settings,91) != 0;
-  // Original flag5/parameter13 controls NONE in the cycle. The retail assets
-  // have no authored rule selector for this parameter; do not add one.
-  view.allow_no_team = !campaign && source_game_variant_get(settings,13) != 0;
-  view.player_team = lobby_team_;
-  if(system_link_host_)view.local_team_session_indices=system_link_local_slots_;
-  view.team_edit = lobby_team_edit_;view.local_team_edits=local_team_edits_;
-  view.local_team_edits[0]=lobby_team_edit_;
-  view.input.local_team_selection = std::ranges::any_of(view.local_team_edits,[](const auto &edit){return edit.valid;});
-  view.team_count = frontend_lobby_team_count(view.map ?
-      std::span<const std::uint8_t>(view.map->team_counts) : std::span<const std::uint8_t>{},
-      frontend_lobby_variant_type(engine_).value_or(-1), view.map != nullptr);
-  if(defusal) {
-    // This custom Assault mode has exactly two sides even on eight-team maps.
-    view.team_count=2;view.input.team_mode=true;view.allow_no_team=false;
-  }
-  view.input.team_count = int(view.team_count);
-  view.input.player_count = int(local_players().size());
-  if (!signed_in_.empty()) view.player_appearance = appearance_for_profile(signed_in_);
-  view.input.max_players = campaign ? 2 : 16;
-  // Original19A2CE's established-local-host branch, frozen separately from
-  // online/loading states. Current native roster contains one ready local
-  // player;19A2CE excludes NONE from the distinct-team count. Co-op requires
-  // two present and ready players. Preview edits do not replace membership.
-  std::uint16_t local_team_mask{};
-  for(const auto &player:local_players())if(player.team>=0 && player.team<int(view.team_count))local_team_mask|=std::uint16_t(1u<<player.team);
-  if (view.map && view.input.player_count > 0)
-    view.input.status = frontend_lobby_ready_status({view.input.session_enum,
-        view.input.player_count, view.input.player_count, view.input.team_mode,
-        std::popcount(local_team_mask), int(view.team_count)});
-  // 63F00 checks local host/session ownership, independently of19A2CE.
-  view.input.start_permission = view.input.host;
-  // Actual native session countdown, rather than an immediate Start launch.
-  // This is the existing Xbox lobby presentation; PC lobby14 remains separate.
-  if(session_countdown_ && *session_countdown_>=0) {
-    view.input.countdown=true;
-    view.input.start_permission=false;
-    // Xbox24FFC9 binds status10 to the live countdown (E413). Status11
-    // selects the unrelated matchmaking "You need to be in a party" text.
-    view.input.status=10;
-  }
-  if (!campaign) {
-    std::map<unsigned,int> queries;
-    for (unsigned id=0;id<112;++id)queries.emplace(id,source_game_variant_get(settings,int(id)));
-    if(detail::frontend_custom_variant(variant)) {
-      UiParameter capacity;capacity.parameter=90;
-      queries[90]=detail::frontend_variant_parameter_value(variant,capacity);
-    }
-    view.quick_options = frontend_lobby_quick_options(content_, engine_, queries,
-        detail::frontend_compiled_localized(content_,content_.screens.at(14),0x1a001820));
-  }
-  if(mode_==2 && system_link_host_) {
-    view.input.host=*system_link_host_;view.input.start_permission=*system_link_host_ && !session_countdown_;
-    view.party_names.emplace();view.party_players=system_link_players_;view.machines=int(system_link_machines_);
-    unsigned teams{};
-    for(const auto& player:system_link_players_) {
-      view.party_names->push_back(player.name);view.party_speakers.push_back(2);
-      if(player.team>=0 && player.team<8)teams|=1u<<player.team;
-    }
-    view.input.player_count=int(system_link_players_.size());
-    if(!session_countdown_)view.input.status=frontend_lobby_ready_status({view.input.session_enum,
-        view.input.player_count,view.input.player_count,view.input.team_mode,std::popcount(teams),int(view.team_count)});
-  }
-  return view;
-}
+std::string MenuState::lobby_query_campaign_file(unsigned level) const {return campaign_files.at(level);}
+
 void MenuState::adopt_gameplay_teams(std::span<const std::int8_t> teams,bool preserve_edits) {
   const auto players=local_players();
   if(teams.size()!=players.size())return;
@@ -2741,7 +2635,7 @@ std::string MenuState::expand(const std::string &source) const {
               frontend_lobby_difficulty_string(std::int16_t(difficulty_)));
           break;
         case 0xe413:
-          result += mode_==3 && online_lobby_countdown_>=0?matchmaking_lobby_countdown_text(online_lobby_countdown_):
+          result += mode_==3 && online_lobby_.seconds()>=0?matchmaking_lobby_countdown_text(online_lobby_.seconds()):
             session_countdown_?std::to_string(*session_countdown_):"0";
           break;
         case 0xe414:
@@ -2756,7 +2650,7 @@ std::string MenuState::expand(const std::string &source) const {
           // 22D52E/22D566 retain party A's selected hopper. The service
           // catalog supplies its actual public name/description.
           if(const auto hopper=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),
-              [&](const auto &p){return p.id==selected_playlist_;});hopper!=matchmaking_.playlists.end())
+              [&](const auto &p){return p.id==matchmaking_search_.selected();});hopper!=matchmaking_.playlists.end())
             result += code==0xe43a?hopper->name:hopper->description;
           break;
         default:

@@ -1,0 +1,22 @@
+#include "halo2/online_match_session.hpp"
+#include "halo2/online_search_qos.hpp"
+#include <chrono>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+using namespace halo2;
+int main(int argc,char **argv)try {
+  if(argc!=3)return 2;
+  if(std::string(argv[1])=="qos") {
+    OnlineSearchQos socket(argv[2],std::string(43,'s'),true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  }else {
+    std::vector<OnlineAdmission> players(2);
+    for(unsigned i=0;i<2;++i){players[i].slot=players[i].peer=i;players[i].name="Probe "+std::to_string(i);
+      players[i].team=int(i);players[i].identity.fill(std::byte(i+1));}
+    OnlineMatchSession socket(argv[2],"11111111-1111-4111-8111-111111111111",std::string(43,'s'),0,std::move(players),true,false);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  }
+  std::cout<<"Native probe ended without a world\n";return 0;
+}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "cases": 995,
+  "comparisons": 37417,
+  "modern_differences": [],
+  "intended_original_sort_permutations": 19,
+  "intended_original_signed_timer_changes": 42,
+  "original_sort_cases": 852,
+  "original_sort_passed": true,
+  "original_sort_fixture_sha256": "d722bfd679bd56e4d2d06aad7e126c79def1aa54615412eb4c217a6999e8652e",
+  "native_sha256": "5eb7c17d6a3e9b00d75310fe5415fcc7fd6f1bc84479a64dc09fb12b54fd5393",
+  "scope": "Captured modern roster/rank/appearance/voice methods, native Rust wrappers and original sort fixture; synthetic typed observations, no network/session producer or delivered runtime claim."
+}

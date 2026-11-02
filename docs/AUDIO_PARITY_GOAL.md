@@ -1,5 +1,11 @@
 # Original Xbox sound playback goal
 
+October30 campaign clarification: cutscene audio, sound effects and dialogue
+must be 1:1 native semantic TU1.5 kernels as part of the active campaign-engine
+goal. The [campaign completion contract](CAMPAIGN_NATIVE_AUDIO_COMPLETION.md)
+and [current source/original ownership audit](../analysis/campaign-native-audio-20261030/current-scope.json)
+retain the remaining native, composed playback and audible-output gates.
+
 User request,2026-10-11: ensure all sounds play exactly where they belong.
 The goal is active. It covers sound events, event time, emitter placement,
 listener selection, authored variation/gain/pitch, looping/stop behavior and

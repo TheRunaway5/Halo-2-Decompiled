@@ -1,0 +1,12 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/frontend_online_tests.cpp",
+    "src/ui/frontend_painter.cpp"
+  ],
+  "targets": [
+    "frontend_online_tests"
+  ],
+  "filter": "^(frontend_online_identity|rust_frontend_clans_http|frontend_clans_http|frontend_parties_http)$"
+}

@@ -34,11 +34,19 @@ def save(path, value):
         path.write_text(json.dumps(value, indent=2) + "\n")
 
 
+def policy_lines(raw):
+    lines=raw.decode().splitlines()
+    if lines[:1]==["Shutdown handler: initialize."] and lines[-1:]==["Shutdown handler: cleanup."]:
+        return lines[1:-1]
+    return lines
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tu15", type=Path, default=NEW_DEFAULT)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--fixture", type=Path)
+    parser.add_argument("--native", type=Path)
     args = parser.parse_args()
     scratch = Path(os.environ["HALO2_TEST_SCRATCH"]).resolve(strict=True)
     source = Source(dict(path=str(args.tu15.resolve()), pin=NEW_PIN, globals=0x4ECC1C))
@@ -114,24 +122,21 @@ def main():
                         cases.append(dict(pane=pane, ranked=ranked, party_players=party_players,
                             game_players=game_players, maximum=maximum, use_party=party, rows=rows))
 
-    probe, binary = scratch / "matchmaking-roster.cpp", scratch / "matchmaking-roster"
-    probe.write_text('''#include "halo2/frontend_matchmaking_progress.hpp"
-#include <iostream>
-int main() {
-  unsigned pane, ranked, party, game; int maximum;
-  while (std::cin >> pane >> ranked >> party >> game >> maximum) {
-    std::optional<unsigned> limit; if (maximum >= 0) limit = maximum;
-    const auto rows = halo2::matchmaking_progress_rows(pane, ranked, party, game, limit);
-    std::cout << halo2::matchmaking_progress_uses_party(pane, ranked);
-    for (auto row : rows) std::cout << " " << int(row);
-    std::cout << "\\n";
-  }
-}
+    probe, binary = scratch / "matchmaking-roster.rs", scratch / "matchmaking-roster"
+    owner = ROOT / "rust/online_protocol/src/matchmaking_frontend_progress.rs"
+    if args.native:
+        command = [str(args.native.resolve(strict=True)), "--rows"]
+    else:
+        probe.write_text('#[path=' + json.dumps(str(owner)) + '] mod core;\n' + r'''use std::io::{self,BufRead};
+fn main(){for line in io::stdin().lock().lines(){let l=line.unwrap();let v:Vec<i64>=l.split_whitespace().map(|s|s.parse().unwrap()).collect();
+let rows=core::rows(v[0] as u32,v[1]!=0,v[2] as u32,v[3] as u32,if v[4]<0{None}else{Some(v[4] as u32)});
+print!("{}",core::uses_party(v[0] as u32,v[1]!=0) as u8);for row in rows{print!(" {}",match row{core::RowKind::Player=>0,core::RowKind::Matched=>1,core::RowKind::Empty=>2});}println!();}}
 ''')
-    subprocess.run(["c++", "-std=c++20", "-I" + str(ROOT / "include"), str(probe), "-o", str(binary)], check=True)
+        subprocess.run(["rustup", "run", "1.96.0", "rustc", "--edition=2024", "-Adead_code", str(probe), "-o", str(binary)], check=True)
+        command = [str(binary)]
     inputs = "".join(f"{c['pane']} {int(c['ranked'])} {c['party_players']} {c['game_players']} "
         f"{c['maximum'] if c['maximum'] is not None else -1}\n" for c in cases)
-    actual = subprocess.check_output([str(binary)], input=inputs.encode()).decode().splitlines()
+    actual = policy_lines(subprocess.check_output(command, input=inputs.encode()))
     assert len(actual) == len(cases)
     for case, line in zip(cases, actual):
         expected = [int(case["use_party"]), *({"player": 0, "matched": 1, "empty": 2}[r] for r in case["rows"])]
@@ -147,6 +152,8 @@ int main() {
         cases=len(cases), original_tu15_sha256=NEW_PIN, entry="0x25780b",
         original_executed_instructions=len(source.executed),
         executed_original_addresses=[hex(p) for p in sorted(source.executed)],
+        backend="native CXX/Rust wrapper" if args.native else "standalone current Rust owner",
+        rust_source_sha256=sha(owner), native_binary_sha256=sha(args.native) if args.native else None,
         native_header_sha256=sha(ROOT / "include/halo2/frontend_matchmaking_progress.hpp"),
         tool_sha256=sha(__file__), fixture_sha256=sha(args.fixture) if args.fixture else None,
         scope="Actual unchanged TU1.5 selection257835 before session getters; count-result consumers "

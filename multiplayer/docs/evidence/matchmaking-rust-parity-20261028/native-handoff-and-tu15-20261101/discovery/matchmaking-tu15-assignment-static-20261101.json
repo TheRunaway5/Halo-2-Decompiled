@@ -1,0 +1,378 @@
+{
+  "schema": "H2_TU15_ASSIGNMENT_STATIC_CORRESPONDENCE_V1",
+  "retail_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "rows": [
+    {
+      "retail_entry": "0x193440",
+      "instructions": 6,
+      "candidates": [
+        {
+          "address": "0x196850",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 6,
+          "calls": [],
+          "original_code_sha256": "5b696ee69a4ea4523f8d7b86c69fbd463f7f7ac5f9f33b445e05cf4717753850"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x193370",
+      "instructions": 7,
+      "candidates": [
+        {
+          "address": "0x196750",
+          "normalized_instructions_and_internal_branches_equal": false,
+          "instructions": 7,
+          "calls": [],
+          "original_code_sha256": "108ccfd12a73930694785a924cd1ddbd36a06c574cde6abbd70c0741899850e3"
+        },
+        {
+          "address": "0x196780",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 7,
+          "calls": [],
+          "original_code_sha256": "2934a8829813a26848cd57cf43ec77ba2c10623b1d754e7ecbe0a7533f686eb7"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x1934d0",
+      "instructions": 12,
+      "candidates": [
+        {
+          "address": "0x1968e0",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 12,
+          "calls": [],
+          "original_code_sha256": "c6dbc25ecae8242f55224e505fc6f8dec7f393384501fb26f4b9eee0a2eb040e"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x1933d0",
+      "instructions": 13,
+      "candidates": [
+        {
+          "address": "0x1967e0",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 13,
+          "calls": [],
+          "original_code_sha256": "6959842aad3c786f0f82f3e2727056d91ba9877fdead892c4de3d14510d0d3d4"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x1933a0",
+      "instructions": 13,
+      "candidates": [
+        {
+          "address": "0x1967b0",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 13,
+          "calls": [],
+          "original_code_sha256": "296e4c2ff2131ffa7fda29f9ab413e66caa92a5172bc70fa07aba6d6398fc6d0"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x193400",
+      "instructions": 11,
+      "candidates": [
+        {
+          "address": "0x196810",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 11,
+          "calls": [],
+          "original_code_sha256": "b9ee0f6cd09ba4cc31f61f77b0162ee117fbed71deee69b6d3be91f70d509ad5"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x193470",
+      "instructions": 11,
+      "candidates": [
+        {
+          "address": "0x196880",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 11,
+          "calls": [],
+          "original_code_sha256": "ced2be07ebe4bc8c42ab437536f623ddfda578c10b312cf4960c8acc7ade6748"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x1934b0",
+      "instructions": 11,
+      "candidates": [
+        {
+          "address": "0x1968c0",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 11,
+          "calls": [],
+          "original_code_sha256": "86b8fcb9574b7ed1f8a05718f3819b581b4ea6710b881679a2b0a96f3084617c"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x91e30",
+      "instructions": 70,
+      "candidates": [
+        {
+          "address": "0x9e010",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 70,
+          "calls": [
+            {
+              "site": "0x9e067",
+              "target": "0x9e1a0"
+            }
+          ],
+          "original_code_sha256": "2d07f45e2d53e2369c381858e482920e68e1d4925e1ecdeb864b1ddd743c9c9f"
+        }
+      ],
+      "unique_full_match": true
+    },
+    {
+      "retail_entry": "0x91fc0",
+      "instructions": 181,
+      "candidates": [
+        {
+          "address": "0x9e1a0",
+          "normalized_instructions_and_internal_branches_equal": true,
+          "instructions": 181,
+          "calls": [
+            {
+              "site": "0x9e1a5",
+              "target": "0x32a660"
+            },
+            {
+              "site": "0x9e1cd",
+              "target": "0x20650"
+            },
+            {
+              "site": "0x9e232",
+              "target": "0x9d760"
+            },
+            {
+              "site": "0x9e24b",
+              "target": "0x9d800"
+            },
+            {
+              "site": "0x9e34a",
+              "target": "0x9dbe0"
+            },
+            {
+              "site": "0x9e36d",
+              "target": "0x9dc10"
+            },
+            {
+              "site": "0x9e37d",
+              "target": "0x9dd10"
+            },
+            {
+              "site": "0x9e396",
+              "target": "0x9dd70"
+            }
+          ],
+          "original_code_sha256": "bd27fc548571c440ffd0c383d2f2ef9a62bd8c9fe0ee3a00a7ca9f1b0194692a"
+        }
+      ],
+      "unique_full_match": true
+    }
+  ],
+  "corridor": {
+    "retail_entry": "0x71b1e",
+    "tu15_candidate_entry": "0x7578e",
+    "retail_instructions": 128,
+    "tu15_instructions": 128,
+    "normalized_instructions_and_internal_branches_equal": true,
+    "paired_calls": [
+      {
+        "retail_site": "0x71b20",
+        "retail_target": "0x1934b0",
+        "tu15_site": "0x75790",
+        "tu15_target": "0x1968c0"
+      },
+      {
+        "retail_site": "0x71b36",
+        "retail_target": "0x1933a0",
+        "tu15_site": "0x757a6",
+        "tu15_target": "0x1967b0"
+      },
+      {
+        "retail_site": "0x71b3c",
+        "retail_target": "0x1933d0",
+        "tu15_site": "0x757ac",
+        "tu15_target": "0x1967e0"
+      },
+      {
+        "retail_site": "0x71b42",
+        "retail_target": "0x1934d0",
+        "tu15_site": "0x757b2",
+        "tu15_target": "0x1968e0"
+      },
+      {
+        "retail_site": "0x71b4a",
+        "retail_target": "0x193370",
+        "tu15_site": "0x757ba",
+        "tu15_target": "0x196780"
+      },
+      {
+        "retail_site": "0x71b52",
+        "retail_target": "0x193440",
+        "tu15_site": "0x757c2",
+        "tu15_target": "0x196850"
+      },
+      {
+        "retail_site": "0x71b68",
+        "retail_target": "0x91e30",
+        "tu15_site": "0x757d8",
+        "tu15_target": "0x9e010"
+      },
+      {
+        "retail_site": "0x71b73",
+        "retail_target": "0x193400",
+        "tu15_site": "0x757e3",
+        "tu15_target": "0x196810"
+      },
+      {
+        "retail_site": "0x71b9a",
+        "retail_target": "0x1933a0",
+        "tu15_site": "0x7580a",
+        "tu15_target": "0x1967b0"
+      },
+      {
+        "retail_site": "0x71ba0",
+        "retail_target": "0x1933d0",
+        "tu15_site": "0x75810",
+        "tu15_target": "0x1967e0"
+      },
+      {
+        "retail_site": "0x71ba6",
+        "retail_target": "0x1934d0",
+        "tu15_site": "0x75816",
+        "tu15_target": "0x1968e0"
+      },
+      {
+        "retail_site": "0x71bae",
+        "retail_target": "0x193370",
+        "tu15_site": "0x7581e",
+        "tu15_target": "0x196780"
+      },
+      {
+        "retail_site": "0x71bb6",
+        "retail_target": "0x193440",
+        "tu15_site": "0x75826",
+        "tu15_target": "0x196850"
+      },
+      {
+        "retail_site": "0x71bbc",
+        "retail_target": "0x91fc0",
+        "tu15_site": "0x7582c",
+        "tu15_target": "0x9e1a0"
+      },
+      {
+        "retail_site": "0x71bcb",
+        "retail_target": "0x193470",
+        "tu15_site": "0x7583b",
+        "tu15_target": "0x196880"
+      },
+      {
+        "retail_site": "0x71be1",
+        "retail_target": "0x1933a0",
+        "tu15_site": "0x75851",
+        "tu15_target": "0x1967b0"
+      },
+      {
+        "retail_site": "0x71be7",
+        "retail_target": "0x1933d0",
+        "tu15_site": "0x75857",
+        "tu15_target": "0x1967e0"
+      },
+      {
+        "retail_site": "0x71bed",
+        "retail_target": "0x1934d0",
+        "tu15_site": "0x7585d",
+        "tu15_target": "0x1968e0"
+      },
+      {
+        "retail_site": "0x71bf5",
+        "retail_target": "0x193370",
+        "tu15_site": "0x75865",
+        "tu15_target": "0x196780"
+      },
+      {
+        "retail_site": "0x71bfd",
+        "retail_target": "0x193440",
+        "tu15_site": "0x7586d",
+        "tu15_target": "0x196850"
+      },
+      {
+        "retail_site": "0x71c0c",
+        "retail_target": "0x91e30",
+        "tu15_site": "0x7587c",
+        "tu15_target": "0x9e010"
+      },
+      {
+        "retail_site": "0x71c17",
+        "retail_target": "0x193400",
+        "tu15_site": "0x75887",
+        "tu15_target": "0x196810"
+      },
+      {
+        "retail_site": "0x71c3e",
+        "retail_target": "0x1933a0",
+        "tu15_site": "0x758ae",
+        "tu15_target": "0x1967b0"
+      },
+      {
+        "retail_site": "0x71c44",
+        "retail_target": "0x1933d0",
+        "tu15_site": "0x758b4",
+        "tu15_target": "0x1967e0"
+      },
+      {
+        "retail_site": "0x71c4a",
+        "retail_target": "0x1934d0",
+        "tu15_site": "0x758ba",
+        "tu15_target": "0x1968e0"
+      },
+      {
+        "retail_site": "0x71c52",
+        "retail_target": "0x193370",
+        "tu15_site": "0x758c2",
+        "tu15_target": "0x196780"
+      },
+      {
+        "retail_site": "0x71c5a",
+        "retail_target": "0x193440",
+        "tu15_site": "0x758ca",
+        "tu15_target": "0x196850"
+      },
+      {
+        "retail_site": "0x71c60",
+        "retail_target": "0x91fc0",
+        "tu15_site": "0x758d0",
+        "tu15_target": "0x9e1a0"
+      }
+    ],
+    "tu15_failure_boundary": "0x758e3",
+    "tu15_success_boundary": "0x7591d"
+  },
+  "scope": "Read-only full getter/kernel CFG and assignment-corridor correspondence. Image relocations and direct calls normalized; actual targets retained separately. Original execution and Rust comparison not yet run.",
+  "original_execution_run": false,
+  "rust_comparison_run": false,
+  "full_caller_qualified": false,
+  "full_goal_complete": false,
+  "retained_large_artifacts": [],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/matchmaking-assignment-static/halo2-test-rgyc9i89"
+}

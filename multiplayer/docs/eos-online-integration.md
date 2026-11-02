@@ -95,7 +95,17 @@ The first five settings are saved as GitHub Actions secrets in
 configuration exists at `.local/eos-setup/client.env` with mode `0600`. It must
 never be committed or included in logs. GitHub secrets do not automatically
 configure a running game. A qualified Linux launcher build can package the
-settings and SDK using:
+settings and SDK.
+
+Ordinary `build_launcher_engine.py` rebuilds now preserve an existing selected
+runtime's `eos-client.env`, or use `.local/eos-setup/client.env` if the selected
+runtime has no packaged configuration. An explicit `--eos-client-config` takes
+priority. An unconfigured checkout retains the development direct path.
+The existing private input is packaged through the same validator; its values
+are not logged. A running game must be reopened after restoring a missing
+adjacent configuration file.
+
+Supply an explicit input with:
 
 ```bash
 python3 tools/build_launcher_engine.py \
@@ -195,6 +205,17 @@ the local Halo profile and synchronized on change. New account join dates are
 server-issued and stable; migration does not invent dates for older accounts.
 Historical PCR appearance and detailed match records remain immutable.
 
+Current Rust ownership update,2026-10-29: the master profile/customization schema,
+validation, revision/outbox writes, public projections, career-total queries and
+bounded cache now execute in Rust. The HTTP/SQLite adapters bind the actual
+native account capability across body/IO boundaries. A revoked bearer cannot
+finish a paused customization upload. Cache publication follows successful SQL
+commit; an outer transaction cannot publish uncommitted totals. This local
+source qualification is recorded in the
+[current profile receipt](evidence/matchmaking-rust-parity-20261028/profile-validation.json);
+it is separate from the dated deployment records below and does not activate
+this Rust increment or establish full native matchmaking parity.
+
 EOS profile identity is gated by `H2_EOS_PROFILES=1`; it requires the configured
 proprietary OpenID provider and public master JWKS endpoint. It does not promote
 a PC's device ID into permanent account ownership. Server SDK proof verification
@@ -218,6 +239,18 @@ couch seats; queue-to-room transitions count once, and a new search takes
 priority over an old postgame connection. The website caches the aggregate for
 five seconds and keeps advertised public-server occupancy separate. No private
 account IDs or online roster are published.
+
+Current Rust ownership update, 2026-10-29: the actual native account and queue
+handles now select recent authenticated seats, guest classification, catalog
+rows, activity precedence and anonymous counters. Native room admission,
+socket generations, challenge expiry and room deadlines select connected
+seats and postgame party flags. Python supplies clocks and socket observations.
+Status reads perform no SQL writes and cannot renew activity; clocks moving
+backwards cannot revive stale presence. The
+[presence receipt](evidence/matchmaking-rust-parity-20261028/presence-validation.json)
+records source qualification separately from the dated deployments above.
+This increment does not activate a new service or establish original Xbox
+Live presence semantics or full native matchmaking parity.
 
 The trusted Stats/Leaderboards publisher, 32 stat definitions and nine current
 playlist leaderboards are configured in Epic. Real SDK qualification verified

@@ -1,0 +1,27 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-native-20261102/halo2-test-z8_etvk3",
+  "regular_bytes": 6625335850,
+  "regular_files": 63562,
+  "borrowed_symlinks_not_followed": true,
+  "accepted_iteration": 2,
+  "passing_native_checks": 34,
+  "scoped_sources_current": true,
+  "scoped_sources": 45,
+  "validated_object_hashes_unchanged": true,
+  "validated_objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_account_flow.cpp.o": "371884c5d855634519159e5df93278f207d2b8222bc83ff01aa36a9504a3c368",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_clans.cpp.o": "b0bf9ba296a87b95aecebd33346970c0d1b1e90ed76068d2e706b51eee57530f",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o": "62329689f20bcb53382099b315890b02ecfaf1365d9906d1f38156e0373d1519",
+    "libhalo2_frontend_party_flow.a": "e5c3d55d82c80fde5e40431fadd8b53adfc6307a2e19f5b7aa212e8de35d1005",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_search.cpp.o": "095a48a9fbeb7030284b6f131c0ae4f0fdafe4be13090b87b66b16d3cd5d61d3",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking.cpp.o": "e22736fca135a150068f11bf9a711067fe47c32ea57c73ba805918a10fb36d8e",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_lobby_query.cpp.o": "8cf5696577b3c40dbf651223d475f448c6323a644c076062ac2de434eddcf99c",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_party_flow.cpp.o": "5e95b1f59a2a64d7a1d8bdaa8c5df32dabe6a54d7c0a9be280381f4078288180",
+    "CMakeFiles/halo2_frontend_party_flow.dir/src/ui/frontend_matchmaking_party_flow_bridge.cpp.o": "b39f9d44f3b943387334a9f7152b2a79837e75a2c6aaaeeb3d93d271947c0d06",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_party_view.cpp.o": "cccd3cdbab33859433532c1dedbd8f08bcd1be085e63da97c8787a4f2eb8acc1",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_party.cpp.o": "73347cf2a21c2f6a7db35875b693a97de4e08edbf986f9cf98818e0bef626be4",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_session.cpp.o": "e8efda177d053f18e3875979b38f3b6d00f34ed7c53d4aab59b2726e91713c05",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o": "194bf99dd59d745cb48217d9ffe087d25cb9a4cf34a6eb4a49a69b5076e60c33"
+  },
+  "retained_large_artifacts": []
+}

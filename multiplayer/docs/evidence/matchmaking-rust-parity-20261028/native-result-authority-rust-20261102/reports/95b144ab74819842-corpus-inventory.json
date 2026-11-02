@@ -1,0 +1,8 @@
+{
+  "base_commands": 4666,
+  "operations": {
+    "publish": 248,
+    "validate": 4418
+  },
+  "input_sha256": "7bca2923fcc914eb76307fcaaf5c7f6784e25b346f1acfcdc65ac55745c0cdd3"
+}

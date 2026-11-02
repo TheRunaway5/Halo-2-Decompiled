@@ -19,6 +19,7 @@ import uuid
 import zipfile
 
 from audit_rendering import Cache, FormatError, file_sha, ImportBudget, donor_inventory
+from donor_tree import DonorTree, private_output, admit
 from disc import Disc, inspect_xbe
 from archive_io import copy_exact, stream_command
 from export_vista_menu_ui import dds_image, expand_resource, mip_shapes, safe_asset_path
@@ -173,7 +174,7 @@ def extract_vista(source, target, progress=print, *, gameplay=False, loading_onl
         staging = Path(temporary) / "output"
         try:
             result = _extract_vista(source, staging, progress, gameplay=gameplay, loading_only=loading_only, _depth=_depth)
-        except ValueError as error:
+        except (ValueError, OSError) as error:
             raise FormatError(str(error)) from error
         staging.rename(target)
         return result
@@ -181,7 +182,7 @@ def extract_vista(source, target, progress=print, *, gameplay=False, loading_onl
 
 def _extract_vista(source, target, progress=print, *, gameplay=False, loading_only=False, _depth=0):
     source = source.resolve()
-    target.mkdir(parents=True)
+    target.mkdir(parents=True, mode=0o700)
     if source.is_dir():
         # A previously extracted installer or installed game is also a donor.
         base = source if (source / "maps/mainmenu.map").is_file() else source.parent
@@ -189,21 +190,21 @@ def _extract_vista(source, target, progress=print, *, gameplay=False, loading_on
             if loading_only and (source / "loading.bin").is_file():
                 base = source
             inventory = donor_inventory(base / "maps", members=VISTA_MAX_MEMBERS) if not loading_only else []
-            selected = [] if loading_only else ([regular(base / "maps" / p) for p, _, directory in inventory
+            selected = [] if loading_only else ([(Path('maps')/p, info) for p, info, directory in inventory
                         if not directory and len(p.parts) == 1 and p.suffix == ".map"] if gameplay else
-                        [regular(base / "maps" / name) for name in ("mainmenu.map", "shared.map")])
+                        [(Path('maps')/name, admit((base/'maps'/name).lstat(), False)) for name in ("mainmenu.map", "shared.map")])
             if not loading_only:
-                selected += [regular(base / "maps" / p) for p, _, directory in inventory
+                selected += [(Path('maps')/p, info) for p, info, directory in inventory
                              if not directory and len(p.parts) == 2 and p.parts[0] == "fonts"]
-            selected += [regular(base / name) for name in ("loading.bin", "halo2.exe") if (base / name).exists()]
-            selected = [(path, path.stat().st_size) for path in selected]
-            vista_budget([(str(path), size, None) for path, size in selected], shutil.disk_usage(target).free)
-            for path, size in selected:
-                relative = path.relative_to(base)
-                destination = target / relative
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                with path.open("rb") as inp, destination.open("xb") as out:
-                    copy_exact(inp, out, size)
+            selected += [(Path(name), admit((base/name).lstat(), False)) for name in ("loading.bin", "halo2.exe") if (base / name).exists()]
+            vista_budget([(str(path), info.st_size, None) for path, info in selected], shutil.disk_usage(target).free)
+            with DonorTree(base) as donor:
+                for relative, info in selected:
+                    with donor.open_file(relative, info) as inp:
+                        destination = target / relative
+                        destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                        with private_output(destination) as out:
+                            copy_exact(inp, out, info.st_size)
             return dict(path=str(source), kind="directory")
         source = regular(source / "h2pc_data.bin")
     else:
@@ -228,7 +229,7 @@ def _extract_vista(source, target, progress=print, *, gameplay=False, loading_on
                 progress("Reading the Vista installer data archive…")
                 with tempfile.TemporaryDirectory(prefix="halo2-vista-", dir=target.parent) as temporary:
                     payload = Path(temporary) / "h2pc_data.bin"
-                    with archive.open(nested[0]) as inp, payload.open("xb") as out:
+                    with archive.open(nested[0]) as inp, private_output(payload) as out:
                         copy_exact(inp, out, nested[0].file_size)
                     extract_vista(payload, target / "nested", progress, gameplay=gameplay, loading_only=loading_only, _depth=_depth+1)
                     for child in (target / "nested").iterdir():
@@ -246,7 +247,7 @@ def _extract_vista(source, target, progress=print, *, gameplay=False, loading_on
                 seen.add(row.filename)
                 destination = target / row.filename
                 destination.parent.mkdir(parents=True, exist_ok=True)
-                with archive.open(row) as inp, destination.open("xb") as out:
+                with archive.open(row) as inp, private_output(destination) as out:
                     copy_exact(inp, out, row.file_size)
     else:
         program = shutil.which("7z") or shutil.which("7zz")
@@ -285,7 +286,7 @@ def _extract_vista(source, target, progress=print, *, gameplay=False, loading_on
                     member += 1
                     destination = target / name
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                    current = outputs.enter_context(destination.open("xb"))
+                    current = outputs.enter_context(private_output(destination))
                     if remaining:
                         return
                     current.close()
@@ -776,11 +777,13 @@ def main():
     try:
         from mcc_movies import _cancellation
         import mcc_onboarding
+        from setup_progress import write_progress
+        progress = write_progress if args.gui_owner else print
         with _cancellation(), _gui_owner(args.gui_owner):
             if args.use_cache:
-                mcc_onboarding.select(args.root, args.use_cache)
+                mcc_onboarding.select(args.root, args.use_cache, progress=progress)
             else:
-                mcc_onboarding.setup(args.root, args.mcc_root)
+                mcc_onboarding.setup(args.root, args.mcc_root, progress=progress)
         return 0
     except (OSError, ValueError, KeyError) as error:
         print(f"MCC import failed: {error}", file=sys.stderr)

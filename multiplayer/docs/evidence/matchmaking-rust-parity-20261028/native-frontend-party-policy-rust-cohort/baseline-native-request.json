@@ -1,0 +1,8 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "targets": [
+    "frontend_online_tests"
+  ],
+  "filter": "^(frontend_online_identity|rust_frontend_clans_http|frontend_clans_http|frontend_parties_http)$"
+}

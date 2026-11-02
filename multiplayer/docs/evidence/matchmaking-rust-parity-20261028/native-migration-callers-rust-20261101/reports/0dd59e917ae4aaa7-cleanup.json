@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-rust/halo2-test-u8_sxmak",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-rust-final/halo2-test-0xk9yeo5"
+  ],
+  "source_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-native/halo2-test-g_mk3ljz/native-source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-rust/halo2-test-u8_sxmak/source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-migration-callers-rust-final/halo2-test-0xk9yeo5/source"
+  ],
+  "all_owned_source_build_sdk_cargo_scratch_removed": true,
+  "empty_scratch_parents": [
+    ".local/test-scratch/native-migration-callers-native",
+    ".local/test-scratch/native-migration-callers-rust",
+    ".local/test-scratch/native-migration-callers-rust-final",
+    ".local/test-scratch/native-migration-callers-staging",
+    ".local/test-scratch/native-migration-callers-link-audit"
+  ],
+  "all_declared_scratch_parents_empty": true,
+  "units": {
+    "halo2-mm-migration-callers-native-20261101.service": "LoadState=not-found\nActiveState=inactive\nSubState=dead",
+    "halo2-mm-migration-callers-rust-20261101.service": "LoadState=not-found\nActiveState=inactive\nSubState=dead",
+    "halo2-mm-migration-callers-rust-final-20261101.service": "LoadState=not-found\nActiveState=inactive\nSubState=dead"
+  },
+  "retained_large_artifacts": [],
+  "original_assets_references_and_selected_runtimes_preserved": true
+}

@@ -1,0 +1,41 @@
+## Rust complete lobby query owner — 2026-11-02
+
+The whole `MenuState::lobby_view()` caller now runs in
+`matchmaking_frontend_lobby_query`, including ONLINE, local/campaign and System
+Link paths. Rust owns route rejection, map/catalog selection, session/readiness
+inputs, countdown presence, primary/local team-edit composition, ONLINE roster
+capacity, requester lookup, actual member count versus physical machine count,
+prior-statistics gating, and speaker state. It calls the existing Rust lobby
+presentation/quick-option policies directly or through typed resource IO.
+C++ supplies actual native profile/seat reads, the gameplay settings and custom
+mode getters, localization, immutable cache records and opaque rendering values.
+Rust-selected indices preserve native map pointer and all nine appearance bytes.
+
+The literal captured complete caller and exact native adapter match in 1,055
+cases and 23,520 ordered native reads and Rust reentries. All 542 injected native
+failures retain their exception identity. The final three-crate Rust suite has
+686 passes, eighteen new controls and four existing environment-dependent
+ignores. Seven build/staging checks pass. @NATIVE_COUNT@ native checks pass without
+skips, including rendered party and playlist/Start/privacy controls, matchmaking
+and gathering, original readiness/team selection, catalog identity and local
+profile conversions. The receipt retains source identities and scratch cleanup.
+
+Fresh unchanged retail oracles regenerate all 1,014 readiness rows and all 958
+team-selection rows byte for byte; 143 of the latter qualify the map team-count
+primitive used here. A separate unchanged `19A2CE` execution supplies nine signed
+member-team cases. It ignores IDs outside0..15. Rust makes that bound explicit,
+preventing wider native shifts from aliasing a valid team. These nine cases are
+checked directly against original outputs through Rust and CXX; they do not
+execute the former C++ caller's undefined shifts. This is pinned supplied retail
+Xbox evidence, not a new TU1.5 or historical Live producer claim.
+
+[The bounded receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-lobby-query-rust-validation.json)
+keeps the producer boundary explicit. Native committed-profile/member producers,
+team editing, account refresh/join/departure, friend-join continuation, postgame
+review and voice-intent policy still need ownership work. Original Live idle
+status, rank/subparty quantity, complete original callers and historical service
+ordering/arbitration are not inferred from this modern caller migration. Full
+natural played-world scope, genuine providers, physical installed Linux input
+and G01–G12 delivered identities/restart/retry/configuration/rollback remain open.
+All twelve GAP records, 53 algorithm IDs and the full goal criteria are unchanged.
+

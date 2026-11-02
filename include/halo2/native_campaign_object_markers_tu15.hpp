@@ -3,6 +3,33 @@
 #include <array>
 namespace halo2 {
 enum class NativeCampaignObjectMarkerPoseTu15 {local,world};
+// Affine inputs may be retained parent matrices or private native values.
+// Vector reads preserve the original scalar + paired-component boundary.
+class NativeCampaignObjectTransformInputTu15 {
+public:
+    virtual ~NativeCampaignObjectTransformInputTu15()=default;
+    virtual std::uint32_t scalar(unsigned field)const=0;
+    virtual std::array<std::uint32_t,3> vector(unsigned first)const=0;
+};
+class NativeCampaignObjectTransformRetainedTu15 final:public NativeCampaignObjectTransformInputTu15 {
+    const SourcePhysicsContactMemory &memory_;std::uint32_t base_;
+public:
+    NativeCampaignObjectTransformRetainedTu15(const SourcePhysicsContactMemory &,std::uint32_t);
+    std::uint32_t scalar(unsigned)const override;
+    std::array<std::uint32_t,3> vector(unsigned)const override;
+};
+class NativeCampaignObjectTransformLocalTu15 final:public NativeCampaignObjectTransformInputTu15 {
+    const std::array<std::uint32_t,13> &value_;
+public:
+    explicit NativeCampaignObjectTransformLocalTu15(const std::array<std::uint32_t,13> &);
+    std::uint32_t scalar(unsigned)const override;
+    std::array<std::uint32_t,3> vector(unsigned)const override;
+};
+struct NativeCampaignObjectTransformProductContinuationTu15 {
+    // Actual forward-column side+up terms. Their Y/Z pair contributes to the
+    // next packed quaternion norm's otherwise unused lanes in170820.
+    std::array<std::uint32_t,2> forward_side_up_pair{};
+};
 struct NativeCampaignObjectMarkerValueTu15 {
     std::uint16_t node{};
     std::array<std::uint32_t,13> local{},world{};
@@ -55,6 +82,10 @@ void native_campaign_object_quaternion_basis_tu15(SourcePhysicsContactMemory &,
     std::uint32_t quaternion,std::uint32_t destination,NativeTu15PhysicsFrameFp &);
 void native_campaign_object_transform_product_tu15(SourcePhysicsContactMemory &,
     std::uint32_t left,std::uint32_t right,std::uint32_t destination,NativeTu15PhysicsFrameFp &);
+NativeCampaignObjectTransformProductContinuationTu15 native_campaign_object_transform_product_tu15(
+    SourcePhysicsContactMemory &,const NativeCampaignObjectTransformInputTu15 &left,
+    const NativeCampaignObjectTransformInputTu15 &right,std::uint32_t destination,
+    NativeTu15PhysicsFrameFp &,const SourcePhysicsContactRecordObserver & = {});
 std::uint32_t native_campaign_object_marker_transforms_tu15(SourcePhysicsContactMemory &,
     std::uint32_t model,std::uint32_t group,std::uint32_t variants,std::uint32_t node_indices,
     std::uint32_t node_transforms,bool mirrored,std::uint32_t destination,

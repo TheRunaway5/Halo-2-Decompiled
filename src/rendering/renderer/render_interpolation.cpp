@@ -155,6 +155,34 @@ bool same_world_attachment(const SourceWorldPose &a,const SourceWorldPose &b) {
     return a.attachment->parent==b.attachment->parent &&
         a.attachment->parent_node==b.attachment->parent_node;
 }
+Transform first_person_world_nlerp(const Transform& a,const Transform& b,float f) {
+    if(f==0)return a;
+    if(f==1 || !std::memcmp(&a,&b,sizeof(a)))return b;
+    const auto mirrored=[](const Transform& t) {
+        return dot(cross(t.basis[0],t.basis[1]),t.basis[2])<0;
+    };
+    const auto quaternion=[](const Transform& t,bool mirror) {
+        const float sign=mirror?-1.f:1.f;
+        return glm::quat_cast(glm::mat3(
+            glm::vec3(t.basis[0].x,t.basis[0].y,t.basis[0].z),
+            glm::vec3(t.basis[1].x*sign,t.basis[1].y*sign,t.basis[1].z*sign),
+            glm::vec3(t.basis[2].x,t.basis[2].y,t.basis[2].z)));
+    };
+    Transform result=b;
+    const bool mirror_a=mirrored(a),mirror_b=mirrored(b);
+    // As in ordinary presentation, reflection changes are discrete flags.
+    if(mirror_a==mirror_b && std::memcmp(a.basis.data(),b.basis.data(),sizeof(a.basis))) {
+        const auto before=quaternion(a,mirror_a),after=quaternion(b,mirror_b);
+        const float sign=glm::dot(before,after)<0?-1.f:1.f;
+        const auto rotation=glm::mat3_cast(glm::normalize(before*(1.f-f)+after*(sign*f)));
+        for(unsigned i=0;i<3;++i)result.basis[i]={rotation[i].x,rotation[i].y,rotation[i].z};
+        if(mirror_b)result.basis[1]=result.basis[1]*-1.f;
+    }
+    const float before=1.f-f;
+    result.position=a.position*before+b.position*f;
+    result.scale=a.scale*before+b.scale*f;
+    return result;
+}
 void validate_source_world_poses(std::span<const SourceWorldPose> poses) {
     for(unsigned n=0;n<poses.size();++n) {
         if(poses[n].object==0xffffffffu || poses[n].nodes.empty())
@@ -372,6 +400,32 @@ std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,flo
         auto result=sample(owner,*model,f,parent_frame);active.erase(owner);return result;
     };
     return resolve(object);
+}
+std::vector<Transform> SourceWorldInterpolation::sample_first_person_body(std::uint32_t object,float f,
+    const ModelProvider& models)const {
+    validate_render_fraction(f);
+    if(!models)throw FormatError("First-person WORLD body requires its admitted model hierarchy");
+    const auto now=std::find_if(current_.begin(),current_.end(),[&](const auto& pose){return pose.object==object;});
+    if(now==current_.end())throw FormatError("First-person WORLD body lost its current full object owner");
+    const auto* model=models(object);
+    if(!model || now->nodes.size()!=model->bones.size())
+        throw FormatError("First-person WORLD body differs from its admitted model hierarchy");
+    // Do not manufacture a WORLD attachment for legacy input, or change the
+    // established parent-node sampling of a seated/carried representation.
+    if(!now->attachment || now->attachment->parent!=0xffffffffu || now->attachment->parent_frame)
+        return sample(object,f,models);
+    if(presented_motion(presented_,object))return sample(object,f,models);
+    const auto before=std::find_if(previous_.begin(),previous_.end(),[&](const auto& pose){return pose.object==object;});
+    const bool paired=paired_ && before!=previous_.end() && before->nodes.size()==now->nodes.size() &&
+        before->model==now->model && same_world_attachment(*before,*now);
+    auto result=now->nodes;
+    if(paired && f!=1)for(unsigned node=0;node<result.size();++node)
+        result[node]=first_person_world_nlerp(before->nodes[node],now->nodes[node],f);
+    // A model/lifetime cut shows the current authoritative origin. Paired
+    // nodes and the own predicted root use exactly the same supplied alpha.
+    if(const auto offset=predicted_offset(object,paired?f:1.f,true))
+        for(auto& node:result)node.position=node.position+*offset;
+    return result;
 }
 void SourceWorldInterpolation::refresh(std::uint64_t tick,std::span<const SourceWorldPose> poses,
     std::span<const std::uint32_t> discontinuities) {

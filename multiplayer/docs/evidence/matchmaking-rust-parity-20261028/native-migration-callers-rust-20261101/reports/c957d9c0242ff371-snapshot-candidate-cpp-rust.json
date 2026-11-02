@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "scope": "Preserved modern C++ / Rust snapshot public API and exact wire replay.\n\nPrivate native leases are real. The archive bytes, clock, authenticated peer\ninputs and foreground assertions are declared fixtures, not native world,\ngenuine provider, original Live or installed-client acceptance.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_runtime": false,
+  "wire_coverage": [
+    {
+      "kind": 0,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 3,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 1,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 5,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 2,
+      "bytes": 111,
+      "variants": 225,
+      "seeded_commands": 6,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 3,
+      "bytes": 1095,
+      "variants": 2193,
+      "seeded_commands": 8,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 4,
+      "bytes": 79,
+      "variants": 161,
+      "seeded_commands": 8,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 5,
+      "bytes": 107,
+      "variants": 217,
+      "seeded_commands": 8,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 6,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 11,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 7,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 10,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 8,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 10,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 9,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 7,
+      "every_byte_and_truncation": true
+    },
+    {
+      "kind": 10,
+      "bytes": 67,
+      "variants": 137,
+      "seeded_commands": 6,
+      "every_byte_and_truncation": true
+    }
+  ],
+  "commands": 57325,
+  "packets": 9299,
+  "receives": 18281,
+  "states": 4110,
+  "sha256": "da3493708394453f8851d6bf4e81f6ac77a8664a097e0ae3700832e29eb58d85",
+  "binary_pins": {
+    "reference": "b2f059619a04b61e16d88d0c8b7d1e4e8eab8662fb52eac065d115465669365d",
+    "rust": "96879de74e8f1efa14e3dff7be6371349548e140961d9a504f07b4d16fb00ab8"
+  },
+  "source_pins": {
+    "tests/peer_snapshot_candidate_replay.cpp": "e4a0ec1a80a4d6d89121c4042a5ebcf316648cae7ec85d667f2a864b1d5873d0",
+    "tests/test_peer_snapshot_candidate_replay.py": "b34f0313d24a2279fd3e503eb52314fea6eb73a701a801238fa6cfb2261d7cfd",
+    "tests/reference/peer_snapshot_candidate_before_rust_20261101.cpp": "72f688a535322fec3237b156e682fb5a5308d929b3ca023e3a8cce320dda795b"
+  }
+}

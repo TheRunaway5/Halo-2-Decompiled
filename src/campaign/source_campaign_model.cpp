@@ -16,7 +16,7 @@ bool source_campaign_lit_scenery(const RenderModel &model,const ScenarioObject &
     if(object.type!=6)return false;
     return std::ranges::any_of(model.mesh.materials,[](const auto &material) {
         return std::ranges::any_of(material.lods,[](const auto &lod) {
-            return (lod.available_layers&(1u<<3))!=0;
+            return (lod.available_layers&((1u<<3)|(1u<<5)))!=0;
         });
     });
 }
@@ -29,6 +29,7 @@ SourceCampaignModel::SourceCampaignModel(const Cache &cache,std::uint32_t defini
     for(const auto &entry:initial.variants)variant_names_.push_back(entry.name);
     render_model_=initial.render_model;
     if(render_model_==null_datum)throw FormatError("Campaign source model has no render-model definition");
+    prt_=cache.load_source_prt_definition(render_model_);
     const auto palettes=cache.load_source_model_palette_definition(render_model_);
     for(unsigned lod=0;lod<6;++lod) {
         auto &sections=sections_[lod];
@@ -43,14 +44,19 @@ SourceCampaignModel::SourceCampaignModel(const Cache &cache,std::uint32_t defini
         // Explicit section decoding depends on LOD only through the compound
         // palette. Retain one immutable bank when both inputs are identical.
         // Distinct palettes and section sets keep distinct resource banks.
-        for(unsigned prior=0;prior<lod;++prior) {
+        for(unsigned prior=0;!prt_ && prior<lod;++prior) {
             if(sections_[prior]==sections && std::ranges::equal(
                 std::as_bytes(std::span(palettes.compounds[prior])),
                 std::as_bytes(std::span(palettes.compounds[lod])))) {
                 lods_[lod]=lods_[prior];break;
             }
         }
-        if(!lods_[lod])lods_[lod]=std::make_shared<RenderModel>(cache.load_model_sections(definition_,false,variant_,lod,sections));
+        if(!lods_[lod]) {
+            auto model=std::make_shared<RenderModel>(cache.load_model_sections(definition_,false,variant_,lod,sections));
+            if(prt_ && !model->mesh.vertices.empty() && !cache.apply_source_prt_vertices(*model,render_model_,lod))
+                throw FormatError("Campaign PRT model has no authored section/LOD stream: "+model->name);
+            lods_[lod]=std::move(model);
+        }
         const auto &model=*lods_[lod];
         if(model.vertex_origins.size()!=model.mesh.vertices.size())throw FormatError("Campaign resource union lost its source vertex identities");
         if(lod && (model.bones.size()!=lods_[0]->bones.size() || model.checksum!=lods_[0]->checksum))
@@ -72,6 +78,36 @@ void SourceCampaignModel::prepare_materials(const Cache &cache,Mesh &destination
             resources.mesh.vertices.push_back(model.mesh.vertices[i]);resources.vertex_origins.push_back(model.vertex_origins[i]);
         }
     }
+    section_materials_=bool(prt_) || std::ranges::any_of(resources.mesh.materials,[](const auto&m) {
+        return m.template_name=="shaders\\shader_templates\\texture_camera\\texture_camera";
+    });
+    std::map<unsigned,std::shared_ptr<const VertexProgramBank>> declarations;
+    const auto declaration=[&](unsigned section) {
+        auto [at,inserted]=declarations.try_emplace(section);
+        if(inserted) {
+            if(!prt_ || prt_->order!=3 || prt_->clusters!=10 || prt_->pca_vectors!=4)
+                throw FormatError("Campaign PRT requires its authored coefficient dimensions");
+            const auto nodes=std::min<std::size_t>(2,cache.source_prt_section_nodes(render_model_,section).size());
+            if(!nodes)throw FormatError("Campaign PRT section has no authored node palette");
+            // Allocation/stream declaration only. Renderer admission below
+            // requires the completed 24020 owner bank before any draw.
+            auto bank=std::make_shared<VertexProgramBank>();bank->first_constant=68;bank->prt_inputs=true;
+            bank->constants.resize(2+nodes*40);bank->constants[1]=source_prt_scale_constants();at->second=std::move(bank);
+        }
+        return at->second;
+    };
+    const auto prepare=[&](Material &material,unsigned section,unsigned implementation) {
+        if(material.lods.empty())return true;
+        const auto layers=material.lods.at(material.selected_shader_lod).available_layers;
+        if(layers&(1u<<5)) {
+            if(!prepare_prt_material(cache,material,declaration(section)))return false;
+            material.environment_pass->requires_owner_prt_bank=true;return true;
+        }
+        if(prepare_texture_camera_material(cache,material,implementation))return true;
+        return implementation==3?prepare_default_object_material(cache,material,0.f):
+            prepare_dynamic_material(cache,material,{},true,0.f);
+    };
+    const auto first_section=resources.vertex_origins.empty()?0u:unsigned(resources.vertex_origins.front().section);
     // Shader banks share immutable geometry. A missing optional baked shader
     // capability stays explicit if an original class1 unit later requires it.
     std::optional<RenderModel> baked;
@@ -90,17 +126,41 @@ void SourceCampaignModel::prepare_materials(const Cache &cache,Mesh &destination
     }
     for(auto &material:resources.mesh.materials) {
         const auto colors=material.object_render_colors;
-        if(!material.lods.empty() && !prepare_dynamic_material(cache,material,{},true,0.f))
+        if(!prepare(material,first_section,2))
             throw FormatError("Campaign cinematic model shader is unresolved: "+material.name);
         if(colors)apply_object_render_colors(material,*colors);
     }
-    auto shaders=std::make_unique<SourceDynamicModelShaders>(cache,resources,render_model_,2,0.f);
+    SourceDynamicModelShaders::MaterialPreparer section_prepare;
+    if(section_materials_)section_prepare=[&](auto&m,unsigned section){return prepare(m,section,2);};
+    auto shaders=std::make_unique<SourceDynamicModelShaders>(cache,resources,render_model_,2,0.f,section_prepare);
+    std::optional<RenderModel> defaults;std::unique_ptr<SourceDynamicModelShaders> default_shaders;
+    if(section_materials_) {
+        defaults=resources;
+        for(auto&material:defaults->mesh.materials) {
+            const auto colors=material.object_render_colors;
+            if(!prepare(material,first_section,3))throw FormatError("Campaign default model material is unresolved: "+material.name);
+            if(colors)apply_object_render_colors(material,*colors);
+        }
+        default_shaders=std::make_unique<SourceDynamicModelShaders>(cache,*defaults,render_model_,3,0.f,
+            [&](auto&m,unsigned section){return prepare(m,section,3);});
+    }
     if(destination.materials.size()+resources.mesh.materials.size()+
-        (baked?baked->mesh.materials.size():0)>0xffffffffull)
+        (baked?baked->mesh.materials.size():0)+(defaults?defaults->mesh.materials.size():0)>0xffffffffull)
         throw FormatError("Campaign source material namespace exhausted");
     material_base_=unsigned(destination.materials.size());
-    for(auto &material:resources.mesh.materials)destination.materials.push_back(std::move(material));
+    const auto append=[&](auto& materials) {
+        for(auto&material:materials) {
+            if(material.environment_pass && material.environment_pass->requires_owner_prt_bank)
+                prt_materials_.insert(unsigned(destination.materials.size()));
+            destination.materials.push_back(std::move(material));
+        }
+    };
+    append(resources.mesh.materials);
     shaders_=std::move(shaders);
+    if(defaults) {
+        default_material_base_=unsigned(destination.materials.size());append(defaults->mesh.materials);
+        default_shaders_=std::move(default_shaders);
+    }
     if(baked) {
         baked_material_base_=unsigned(destination.materials.size());
         for(auto &material:baked->mesh.materials)destination.materials.push_back(std::move(material));
@@ -111,11 +171,41 @@ void SourceCampaignModel::rebase_materials(unsigned before,unsigned after) {
     if(!shaders_ || material_base_<before || std::uint64_t(material_base_-before)+after>0xffffffffull)
         throw FormatError("Campaign source material rebase lost its resident namespace");
     material_base_=material_base_-before+after;
+    if(default_shaders_)default_material_base_=default_material_base_-before+after;
+    std::set<unsigned> rebased;
+    for(auto material:prt_materials_) {
+        if(material<before || std::uint64_t(material-before)+after>0xffffffffull)
+            throw FormatError("Campaign PRT material rebase lost its resident namespace");
+        rebased.insert(material-before+after);
+    }
+    prt_materials_=std::move(rebased);
     if(baked_shaders_) {
         if(baked_material_base_<before || std::uint64_t(baked_material_base_-before)+after>0xffffffffull)
             throw FormatError("Campaign baked material rebase lost its resident namespace");
         baked_material_base_=baked_material_base_-before+after;
     }
+}
+std::vector<SourcePrtMaterialBank> SourceCampaignModel::prt_banks(std::uint32_t owner,
+    std::span<const SourceLiveModelBaseDrawTu15> draws)const {
+    std::vector<SourcePrtMaterialBank> result;
+    if(!prt_)return result;
+    for(const auto&draw:draws)if(draw.object==owner && draw.override_slot==255 && draw.geometry.geometry.resident) {
+        if(draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
+            throw FormatError("Campaign PRT bank lost its actual model owner");
+        const auto section=draw.unit.words[3]>>9u&511u;
+        const auto*shaders=draw.lighting_class==3?default_shaders_.get():shaders_.get();
+        const auto base=draw.lighting_class==3?default_material_base_:material_base_;
+        if(!shaders)throw FormatError("Campaign PRT bank has no resident shader classification");
+        for(const auto slot:shaders->material_slots(section))if(prt_materials_.contains(base+slot)) {
+            if(!draw.prt_bank)throw FormatError("Campaign PRT draw has no completed native coefficient bank");
+            const auto existing=std::ranges::find_if(result,[&](const auto&v){return v.material==base+slot;});
+            if(existing!=result.end()) {
+                if(existing->bank->constants!=draw.prt_bank->constants)
+                    throw FormatError("Campaign PRT section aliases different native coefficient owners");
+            } else result.push_back({base+slot,draw.prt_bank,section});
+        }
+    }
+    return result;
 }
 std::vector<Vertex> SourceCampaignModel::vertices(std::uint32_t owner,
     const SourceObjectDrawCollector &collector,std::span<const Transform> nodes)const {
@@ -180,8 +270,9 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
     for(const auto &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
-        if((draw.lighting_class!=1 && draw.lighting_class!=2) ||
-            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 || !(draw.unit.words[0]&1u))
+        if((draw.lighting_class!=1 && draw.lighting_class!=2 && !(draw.lighting_class==3 && default_shaders_)) ||
+            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 ||
+            (!(draw.unit.words[0]&1u) && !section_materials_))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
         if(draw.lod>=6 || draw.lod!=draws.front().lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");
@@ -200,8 +291,9 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
             at=posed.emplace(key,vertices(draw.lod,sections,nodes,baked?current_lighting:nullptr,instance)).first;
         }
         if(at->second.empty())throw FormatError("Campaign main unit has no selected resident vertices");
-        (baked?baked_shaders_:shaders_)->append_selected(result,at->second,{0,draw.coverage},view,
-            baked?baked_material_base_:material_base_);
+        const auto*selected_shaders=baked?baked_shaders_.get():draw.lighting_class==3?default_shaders_.get():shaders_.get();
+        selected_shaders->append_selected(result,at->second,{0,draw.coverage},view,
+            baked?baked_material_base_:draw.lighting_class==3?default_material_base_:material_base_);
     }
     return result;
 }
@@ -225,8 +317,9 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
     for(const auto &draw:draws) {
         if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
             throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
-        if((draw.lighting_class!=1 && draw.lighting_class!=2) ||
-            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 || !(draw.unit.words[0]&1u))
+        if((draw.lighting_class!=1 && draw.lighting_class!=2 && !(draw.lighting_class==3 && default_shaders_)) ||
+            draw.lighting_class!=(draw.unit.words[0]>>29) || draw.override_slot!=255 ||
+            (!(draw.unit.words[0]&1u) && !section_materials_))
             throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
         if(draw.lod>=6 || draw.lod!=draws.front().lod)
             throw FormatError("Campaign main units lost their single selected geometry LOD");
@@ -266,14 +359,17 @@ SourceCampaignDrawGeometry SourceCampaignModel::draw_deferred(std::uint32_t owne
         const auto &prepared=at->second;
         if(prepared.pose.vertices.empty())throw FormatError("Campaign main unit has no selected resident vertices");
         if(!prepared.pose.gpu) {
-            (baked?baked_shaders_:shaders_)->append_selected(result.vertices,prepared.pose.vertices,{0,draw.coverage},view,
-                baked?baked_material_base_:material_base_);
+            const auto*selected_shaders=baked?baked_shaders_.get():draw.lighting_class==3?default_shaders_.get():shaders_.get();
+            selected_shaders->append_selected(result.vertices,prepared.pose.vertices,{0,draw.coverage},view,
+                baked?baked_material_base_:draw.lighting_class==3?default_material_base_:material_base_);
             continue;
         }
         auto selected=prepared.pose.vertices;auto ordinals=prepared.ordinals;
-        shaders_->select_indexed(selected,ordinals,{0,draw.coverage},view);
+        const auto*selected_shaders=draw.lighting_class==3?default_shaders_.get():shaders_.get();
+        const auto base=draw.lighting_class==3?default_material_base_:material_base_;
+        selected_shaders->select_indexed(selected,ordinals,{0,draw.coverage},view);
         if(selected.empty())continue;
-        for(auto &vertex:selected)vertex.material+=material_base_;
+        for(auto &vertex:selected)vertex.material+=base;
         auto geometry=std::make_shared<ModelSkinGeometry>();
         geometry->owner=owner;geometry->definition=definition_;geometry->render_model=render_model_;geometry->lod=draw.lod;
         geometry->vertices=selected;geometry->palette=prepared.pose.palette;geometry->source_vertices=std::move(ordinals);

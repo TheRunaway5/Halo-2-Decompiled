@@ -19,7 +19,7 @@ SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::
     SourceBspResidentLighting lighting):SourceBspResidentPlan(cache,mesh,bsp,lighting,nullptr) {}
 SourceBspResidentPlan::SourceBspResidentPlan(const Cache &cache,Mesh &mesh,std::size_t bsp,
     SourceBspResidentLighting lighting,const SourceTextureCameraBindingTu15 *texture_camera,bool live_texture_camera)
-    :geometry_(cache.load_source_bsp_admission(bsp)),
+    :bsp_index_(bsp),geometry_(cache.load_source_bsp_admission(bsp)),
      parts_(cache.load_source_transparent_bsp_parts(bsp)),materials_(mesh.materials.size()),
      source_shaders_(mesh.materials.size(),0xffffffffu),raw_vertices_(mesh.vertices) {
     if(lighting!=SourceBspResidentLighting::static_lightmap &&
@@ -115,6 +115,7 @@ SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderVie
 }
 SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderView &view,
     SourceBspShaderLodAuxiliary auxiliary) const {
+    const auto broken=source_bsp_broken_parts(parts_,view.breakable_visibility,bsp_index_);
     const auto camera=source_shader_coverage_camera(view.camera);
     const auto shader_view=source_shader_lod_view(view.outer_top,view.outer_bottom,
         auxiliary.present,auxiliary.byte5);
@@ -128,6 +129,7 @@ SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderVie
             const auto key=std::pair{owner,unsigned(part.ordinal)};
             const auto source=source_materials_.find(key);
             if(source==source_materials_.end())continue;
+            if(broken.contains(key))continue;
             if(!alpha) {
                 selected.emplace(key,Decision{{{},{}},{SourceBspPartDecision::suppressed,
                     SourceBspPartSuppression::zero_alpha,{}}});continue;
@@ -149,7 +151,7 @@ SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderVie
             const auto lod=unsigned(choice.index);
             if(lod>=slots.size())throw FormatError("BSP source shader LOD outside resident bank");
             SourceBspShaderPart accepted{owner,section_id,part.ordinal,lod,slots[lod],coverage,alpha};
-            selected.emplace(key,Decision{{slots[lod],source_shader_instance_stipple(alpha).level},
+            selected.emplace(key,Decision{{slots[lod],source_shader_instance_stipple_level(alpha)},
                 {SourceBspPartDecision::accepted,SourceBspPartSuppression::none,accepted}});
             // Preserve the original result push even if a duplicate admission
             // key keeps the earlier emplaced vertex binding.
@@ -172,6 +174,11 @@ SourceBspResidentViewPlan SourceBspResidentPlan::select(const SourceBspShaderVie
             source_shader_coverage_byte(actual_coverage),source_shader_instance_alpha(actual_coverage));
     }
     for(const auto &part:resident_parts_) {
+        if(broken.contains({part.original.geometry,part.original.part})) {
+            result.bindings.push_back({{}, {}});
+            result.decisions.push_back({SourceBspPartDecision::suppressed,SourceBspPartSuppression::broken_surface,{}});
+            continue;
+        }
         const auto found=selected.find({part.original.geometry,part.original.part});
         if(found==selected.end()) {
             result.bindings.push_back({part.original.material,{}});result.decisions.push_back({});

@@ -1,0 +1,73 @@
+{
+  "passed": true,
+  "scope": "Protocol-version effect on the exact preserved modern C++ admission replay only; two C++ instances per version. The actual C++/Rust current-version match is proved separately by both native runs. No original Live or native world claim.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518",
+  "input_pins": {
+    "tests/reference/peer_source_admissions_before_rust_20261101.cpp": "afd234af56b8aa24ab0d5503b63b162bcb095b07e108ab11c8e74921e359522f",
+    "tests/peer_source_admissions_replay.cpp": "ea308988bd79d818b48eddd9b20c63578afaebfc7b33fccc6093ff58d39eea70",
+    "tests/test_peer_source_admissions_replay.py": "319454fa1e920e180f3252b0a3c6f9938be99596adf1e3c4059b81b38828ec2c",
+    "tests/test_peer_mesh_quality_replay.py": "5e501b4e3f9bb5200982d6239882db690d1f93bcb9d40b954c9f3a623d3870d7"
+  },
+  "native_protocol_before": 123,
+  "native_protocol_after": 124,
+  "before_header_sha256": "7b99491f1606a3c2b3a23d8a12e3736692a87c358d79bcc1c9edbb179bf992ee",
+  "after_header_sha256": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c",
+  "root_protocol_header_unchanged_by_probe": true,
+  "runs": [
+    {
+      "protocol": 123,
+      "command": [
+        "/usr/bin/c++",
+        "-std=c++20",
+        "-O2",
+        "-pthread",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/123",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/reference",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/include",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/peer_source_admissions_replay.cpp",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/peer_source_admissions_before_rust_20261101.cpp",
+        "-lcrypto",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/123/reference"
+      ],
+      "binary_sha256": "2921f385c42f2bf1a8e5dbb7cdafd6081d2542f4b14181cd30601841ed662d1d",
+      "commands": 25054,
+      "packet_outputs": 591,
+      "receives": 3943,
+      "state_reads": 5989,
+      "corpus_and_observations_sha256": "47f47dfed33177d1b68ab24d81c09fe6cce69efeb935bbe48ab5f1bd81ad9dad",
+      "exit_codes": [
+        0,
+        0
+      ]
+    },
+    {
+      "protocol": 124,
+      "command": [
+        "/usr/bin/c++",
+        "-std=c++20",
+        "-O2",
+        "-pthread",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/124",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/reference",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/include",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/peer_source_admissions_replay.cpp",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/peer_source_admissions_before_rust_20261101.cpp",
+        "-lcrypto",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-exchange-callers-protocol-replay/halo2-test-75xra518/124/reference"
+      ],
+      "binary_sha256": "367bc1ec3247ff876c0b8c1ddcd3ca7773b06839c047626e2b0fb947a499f219",
+      "commands": 25054,
+      "packet_outputs": 591,
+      "receives": 3943,
+      "state_reads": 5989,
+      "corpus_and_observations_sha256": "630e4735387c2212918508ee0f9cda637a2521d3a8eb5f960abc6b10f0cb06d6",
+      "exit_codes": [
+        0,
+        0
+      ]
+    }
+  ],
+  "retained_large_artifacts": []
+}

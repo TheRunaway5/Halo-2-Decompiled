@@ -33,7 +33,7 @@ Vec3 grenade_render_position(std::span<const NativeGrenadeProjectile> previous,
             std::lerp(prior->position.z,current.position.z,fraction)};
 }
 struct SourceGrenadeScene::Impl {
-    struct Template {SourceObjectGeometry geometry;ShadowCasterDefinition bounds;std::uint16_t flags{};};
+    struct Template {SourceObjectGeometry geometry;ShadowCasterDefinition bounds;std::uint16_t flags{};std::uint32_t render_model=~0u;};
     struct Owner {
         NativeGrenadeProjectile projectile;
         std::array<std::int8_t,4> previous_lod{-1,-1,-1,-1};
@@ -120,6 +120,7 @@ struct SourceGrenadeScene::Impl {
             const auto colors=c.load_source_object_color_definition(definition);
             if(!colors.channels.empty())throw FormatError("grenade scene requires actual constructor color inputs");
             Template prepared;prepared.flags=object.u16(2);prepared.bounds=c.load_object_shadow_definition(definition);
+            prepared.render_model=initial.render_model;
             ScenarioObject request;request.type=5;request.definition=definition;request.variant=initial.default_variant;request.scale=one;
             prepared.geometry.load(c,request,initial,selection,initial.render_model);
             const auto frame=source_object_transform({},{one,0,0},{0,0,one},one,false);
@@ -234,6 +235,11 @@ void SourceGrenadeScene::reset_lifetimes() noexcept {
 SourceGrenadeScene::SourceGrenadeScene(SourceGrenadeScene&&)noexcept=default;
 SourceGrenadeScene&SourceGrenadeScene::operator=(SourceGrenadeScene&&)noexcept=default;
 std::span<const SourceGrenadePreparedBank>SourceGrenadeScene::banks()const{impl_->own();return impl_->banks;}
+std::vector<std::uint32_t> SourceGrenadeScene::source_render_models()const {
+    impl_->own();std::set<std::uint32_t> models;
+    for(const auto &bank:impl_->templates)if(bank.render_model!=~0u)models.insert(bank.render_model);
+    return {models.begin(),models.end()};
+}
 void SourceGrenadeScene::synchronize(std::span<const NativeGrenadeProjectile>objects){Impl::Mutation mutation(*impl_);impl_->synchronize(objects);}
 const std::vector<SourceGrenadeDraw>&SourceGrenadeScene::draw_view(std::int32_t frame,const SourceObjectViewLod&view){Impl::Mutation mutation(*impl_);return impl_->draw(frame,view);}
 } // namespace halo2

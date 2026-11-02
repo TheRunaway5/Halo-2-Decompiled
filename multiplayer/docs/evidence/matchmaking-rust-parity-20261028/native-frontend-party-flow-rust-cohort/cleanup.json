@@ -1,0 +1,43 @@
+{
+  "owned_native": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-flow-native-20261102/halo2-test-0xaym5n8",
+  "owned_regular_bytes_before_removal": 5988893337,
+  "owned_regular_files_before_removal": 62614,
+  "scratch_roots": [
+    ".local/test-scratch/frontend-party-flow-build-helper-20261102",
+    ".local/test-scratch/frontend-party-flow-component-20261102",
+    ".local/test-scratch/frontend-party-flow-component-reentry-20261102",
+    ".local/test-scratch/frontend-party-flow-core-initial-20261102",
+    ".local/test-scratch/frontend-party-flow-framing-20261102",
+    ".local/test-scratch/frontend-party-flow-native-20261102",
+    ".local/test-scratch/frontend-party-flow-resource-red-20261102",
+    ".local/test-scratch/frontend-party-flow-rust-20261102",
+    ".local/test-scratch/frontend-party-flow-scope-20261102"
+  ],
+  "retained_large_artifacts": [],
+  "owned_scratch_removed": true,
+  "native_owner_exit_code": 0,
+  "scratch_roots_verified_empty": {
+    ".local/test-scratch/frontend-party-flow-build-helper-20261102": [],
+    ".local/test-scratch/frontend-party-flow-component-20261102": [],
+    ".local/test-scratch/frontend-party-flow-component-reentry-20261102": [],
+    ".local/test-scratch/frontend-party-flow-core-initial-20261102": [],
+    ".local/test-scratch/frontend-party-flow-framing-20261102": [],
+    ".local/test-scratch/frontend-party-flow-native-20261102": [],
+    ".local/test-scratch/frontend-party-flow-resource-red-20261102": [],
+    ".local/test-scratch/frontend-party-flow-rust-20261102": [],
+    ".local/test-scratch/frontend-party-flow-scope-20261102": []
+  },
+  "private_native_bytes_removed": 5988893337,
+  "post_documentation_scratch_roots_verified_empty": {
+    ".local/test-scratch/frontend-party-flow-build-helper-20261102": [],
+    ".local/test-scratch/frontend-party-flow-component-20261102": [],
+    ".local/test-scratch/frontend-party-flow-component-reentry-20261102": [],
+    ".local/test-scratch/frontend-party-flow-core-initial-20261102": [],
+    ".local/test-scratch/frontend-party-flow-finalization-20261102": [],
+    ".local/test-scratch/frontend-party-flow-framing-20261102": [],
+    ".local/test-scratch/frontend-party-flow-native-20261102": [],
+    ".local/test-scratch/frontend-party-flow-resource-red-20261102": [],
+    ".local/test-scratch/frontend-party-flow-rust-20261102": [],
+    ".local/test-scratch/frontend-party-flow-scope-20261102": []
+  }
+}

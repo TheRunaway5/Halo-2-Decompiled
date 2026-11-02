@@ -81,12 +81,16 @@ constexpr std::array profiles{
 // words before the original per-tick and presentation event consumers run.
 // Sound/particle/event-part conversion remains a separate owner.
 #include "assets/mcc/mcc_destruction_effect_scalar_profiles.inc"
+// Weapon/charge/projectile graphs have the same original17AAB0 RNG selector.
+// These complete named flag words were measured across the38-map original
+// weapon closure and the prepared MCC directories; other values stay authored.
+#include "assets/mcc/mcc_weapon_effect_scalar_profiles.inc"
 }
 std::optional<MccGameplayScalarReceipt> convert_mcc_gameplay_scalar(
     TagGroup group,std::string_view name,std::span<std::byte> definition) {
     const Profile* profile=nullptr;
     for(const auto candidates:{std::span<const Profile>(profiles),std::span<const Profile>(damage_profiles),
-        std::span<const Profile>(destruction_effect_profiles)}) {
+        std::span<const Profile>(destruction_effect_profiles),std::span<const Profile>(weapon_effect_profiles)}) {
         const auto found=std::ranges::find_if(candidates,[&](const auto& value){
             return value.group==group && value.name==name;
         });

@@ -25,7 +25,9 @@ MAX_SUBJECT_SESSIONS = 4
 REFRESH_LIFETIME = 30 * 86400
 MAX_REMEMBERED_SESSIONS = 100_000
 MAX_PENDING_PER_SOURCE = 4
-PENDING_NEW_SOURCE_RESERVE = 128
+MAX_PENDING_PER_PREFIX = 8
+MAX_ANONYMOUS_PENDING = 128
+MAX_PENDING = 1000
 
 
 @dataclass
@@ -35,6 +37,7 @@ class Pending:
     status: str = "pending"
     identity: object = None
     source: str = ""
+    prefix: str = ""
     confirmation: str = ""
     browser_token: str = ""
     attempts: int = 0
@@ -61,6 +64,8 @@ class SteamLogin:
         CREATE INDEX IF NOT EXISTS steam_refresh_issued ON steam_login_refresh_sessions(refresh_hash);
         """)
 
+    def wall(self):return self.clock()
+
     def cleanup(self):
         now = self.clock()
         self.pending = {k: v for k, v in self.pending.items() if v.expires > now}
@@ -79,6 +84,7 @@ class SteamLogin:
     async def start(self, request):
         self.enabled()
         source = self.directory.source(request)
+        prefix = self.directory.source_prefix(source)
         self.directory.rate("steam-start:" + source, 20)
         body = await self.directory.body(request)
         fields(body, ("challenge", "confirmation"))
@@ -87,13 +93,17 @@ class SteamLogin:
         confirmation = text(body["confirmation"], maximum=43)
         require(bool(re.fullmatch(r"[A-Za-z0-9_-]{43}", confirmation)), "Invalid confirmation proof")
         self.cleanup()
-        occupied = sum(p.source == source for p in self.pending.values())
-        require(occupied < MAX_PENDING_PER_SOURCE and
-                (not occupied or len(self.pending) < 1000 - PENDING_NEW_SOURCE_RESERVE),
+        anonymous = [p for p in self.pending.values() if p.identity is None]
+        occupied = sum(p.source == source for p in anonymous)
+        require(occupied < MAX_PENDING_PER_SOURCE and sum(p.prefix == prefix for p in anonymous) < MAX_PENDING_PER_PREFIX,
                 "Too many pending Steam sign-ins from this source", 429)
-        require(len(self.pending) < 1000, "Steam sign-in capacity reached", 503)
+        require(len(anonymous) < MAX_ANONYMOUS_PENDING and len(self.pending) < MAX_PENDING,
+                "Steam sign-in capacity reached", 503)
+        # Rejected prefix/capacity requests never consume the shared start
+        # allowance. Existing provider-verified flows never use this bucket.
+        self.directory.rate("global:steam-start", 60, burst=16)
         state = secrets.token_urlsafe(32)
-        self.pending[state] = Pending(challenge, self.clock() + 300, source=source, confirmation=confirmation)
+        self.pending[state] = Pending(challenge, self.clock() + 300, source=source, prefix=prefix, confirmation=confirmation)
         url = OP + "?" + urlencode({
             "openid.ns": NS, "openid.mode": "checkid_setup",
             "openid.realm": self.directory.settings.public_url + "/",
@@ -343,78 +353,20 @@ class SteamLogin:
         return VerifiedOwner("steam", row[0], row[1])
 
     async def link_discord(self, request):
-        """Both live credentials are required; names never establish a link.
-
-        A new Steam profile may adopt an existing Discord player. An already
-        played Steam account requires a separate reviewed data migration.
-        """
-        self.enabled()
-        import uuid
-        from .player_identity import VERIFIED_ACCOUNT_NAME, allocate
-        body = await self.directory.body(request)
-        fields(body, ("discord_token",))
-        primary = await self.directory.owner(request)
-        require(primary[0] == "steam", "Sign in with Steam before linking Discord", 403)
-        token = text(body["discord_token"], maximum=2048)
-        social = await self.directory.verify_owner(self.directory.session, token, self.directory.settings.discord_client_id)
-        require(isinstance(social, VerifiedOwner) and social.provider == "discord",
-                "Verified Discord identity required", 401)
-        steam = self.db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", primary).fetchone()
-        discord = self.db.execute("SELECT player FROM player_identities WHERE provider='discord' AND subject=?", (social.subject,)).fetchone()
-        if steam and discord and steam[0] == discord[0]:
-            return web.json_response({"state": "linked"}, headers={"Cache-Control": "no-store"})
-        if discord:
-            require(not self.db.execute("SELECT 1 FROM player_identities WHERE player=? AND provider='steam'", discord).fetchone(),
-                    "This Discord account is already linked to another Steam account", 409)
-        old = steam[0] if steam else None
-        require(not old or not self.db.execute("SELECT 1 FROM player_identities WHERE player=? AND provider='discord'", (old,)).fetchone(),
-                "This Steam account is already linked to another Discord account", 409)
-        require(bool(re.fullmatch(r"[a-z0-9_.]{2,32}", social.username)), "Invalid verified Discord username", 403)
-        if old and discord:
-            require(not any(any(p.player == old for p in s.seats()) for s in self.directory.matchmaking.sessions.values()),
-                    "Leave matchmaking before linking accounts", 409)
-            # Check every declared persistent reference, including stats/ranks.
-            # Do not delete or silently combine two independently played users.
-            for (table,) in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
-                # A public alias is allocated at first login, before any play.
-                # Actual history, customization and EOS bindings still block
-                # adoption through their own player foreign keys below.
-                if table in ("player_profiles", "player_identities", "history_players", "player_friend_tags", "friend_cloud_outbox"):
-                    continue
-                quoted = '"' + table.replace('"', '""') + '"'
-                for fk in self.db.execute("PRAGMA foreign_key_list(" + quoted + ")").fetchall():
-                    if fk[2] == "players":
-                        column = '"' + fk[3].replace('"', '""') + '"'
-                        require(not self.db.execute("SELECT 1 FROM " + quoted + " WHERE " + column + "=? LIMIT 1", (old,)).fetchone(),
-                                "Steam account already has ONLINE data; a data migration is required", 409)
-        # No await from the final checks through commit and session revocation.
-        with self.db:
-            if discord:
-                target = discord[0]
-                if old:
-                    self.db.execute("DELETE FROM friend_cloud_outbox WHERE player=?", (old,))
-                    self.db.execute("DELETE FROM player_friend_tags WHERE player=?", (old,))
-                    self.db.execute("DELETE FROM history_players WHERE player=?", (old,))
-                    self.db.execute("DELETE FROM player_identities WHERE player=?", (old,))
-                    self.db.execute("DELETE FROM player_profiles WHERE player=?", (old,))
-                    self.db.execute("DELETE FROM players WHERE id=?", (old,))
-                self.db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*primary, target))
-                self.db.execute("UPDATE player_profiles SET steam_name=? WHERE player=?",
-                                (request.get(VERIFIED_ACCOUNT_NAME, ""), target))
-            else:
-                target = old or allocate(self.db, primary)
-                if not old:
-                    self.db.execute("INSERT INTO player_profiles(player,screen_name,steam_name,joined_at) VALUES(?,?,?,?)",
-                                    (target, social.username, request.get(VERIFIED_ACCOUNT_NAME, ""),self.directory.store.now()))
-                self.db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (social.username,target))
-                self.db.execute("UPDATE player_profiles SET discord_username=? WHERE player=?", (social.username,target))
-                self.db.execute("INSERT INTO player_identities VALUES('discord',?,?)", (social.subject,target))
-            from .friend_tags import assign
-            assign(self.db,target)
-        if old and discord:
-            self.directory.clans.revoke_player(old)
-        self.directory.voice_blocks.subjects.clear()
-        return web.json_response({"state": "linked"}, headers={"Cache-Control": "no-store"})
+        """Typed provider IO; Rust owns canonical authorization and SQL adoption."""
+        from .native_party_directory import run
+        body=await self.directory.body(request)
+        def features():
+            return dict(header=request.headers.get('Authorization',''),steam_enabled=self.directory.settings.steam_enabled,
+                        registration_now=int(self.directory.store.clock()))
+        run(self,'link_preflight',family='identity',body=body,features=features())
+        # Keep the shared provider/source admission budget while its generic
+        # verification middleware is still a temporary migration boundary.
+        await self.directory.owner(request)
+        social=await self.directory.verify_owner(self.directory.session,body['discord_token'],self.directory.settings.discord_client_id)
+        verified=dict(provider=social.provider,subject=social.subject,username=social.username) if isinstance(social,VerifiedOwner) else None
+        result=run(self,'link',family='identity',body=body,features=features(),verified_owner=verified)
+        return web.json_response(result,headers={'Cache-Control':'no-store'})
 
     def routes(self):
         return [web.post("/v1/auth/steam/start", self.start),

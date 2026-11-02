@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "single_policy_translation_unit": true,
+  "compile_owner": "halo2_frontend_lobby_view",
+  "command": [
+    "nm",
+    "-C",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/build/libhalo2_frontend_lobby_view.a"
+  ],
+  "sha256": "5a37939061d3264e121161b7db07f3d5311ae24271938524aba37ef29f9d6740",
+  "bytes": 32882,
+  "required_rust_entries": [
+    "session",
+    "pane",
+    "protocol",
+    "presentation",
+    "variant_type",
+    "game_icon",
+    "quick_category",
+    "difficulty",
+    "help",
+    "player_count",
+    "player_count_string",
+    "default_value",
+    "quick_options"
+  ],
+  "missing": [],
+  "undefined_rust_entry_observations": [
+    "                 U halo2::online_protocol_bridge::lobby_view_pane(int, int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_session(halo2::online_protocol_bridge::LobbyViewSession const&)",
+    "                 U halo2::online_protocol_bridge::lobby_view_protocol(int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_presentation(halo2::online_protocol_bridge::LobbyViewInput const&)",
+    "                 U halo2::online_protocol_bridge::lobby_view_help(int, int, int, int, int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_game_icon(int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_difficulty(short)",
+    "                 U halo2::online_protocol_bridge::lobby_view_player_count(int, int, int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_variant_type(unsigned int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_default_value(unsigned int, unsigned int, halo2::online_protocol_bridge::NativeFrontendLobbyViewIo const&)",
+    "                 U halo2::online_protocol_bridge::lobby_view_quick_options(unsigned int, rust::cxxbridge1::Slice<unsigned char const>, unsigned long, halo2::online_protocol_bridge::NativeFrontendLobbyViewIo const&)",
+    "                 U halo2::online_protocol_bridge::lobby_view_quick_category(int)",
+    "                 U halo2::online_protocol_bridge::lobby_view_player_count_string(int)"
+  ],
+  "scope": "Actual CMake archive imports the thirteen Rust policy entries; this is component linkage proof, not installed client delivery",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-linkage-20261102/halo2-test-3l7p959x",
+  "retained_large_artifacts": []
+}

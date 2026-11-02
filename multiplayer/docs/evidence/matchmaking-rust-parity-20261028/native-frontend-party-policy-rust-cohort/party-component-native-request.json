@@ -1,0 +1,27 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "rust/online_protocol/src/lib.rs",
+    "rust/online_protocol/src/matchmaking_frontend_party.rs",
+    "rust/online_protocol/tests/matchmaking_frontend_party.rs",
+    "rust/online_protocol_bridge/src/lib.rs",
+    "rust/online_protocol_bridge/build.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party.rs",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party.hpp",
+    "include/halo2/frontend_matchmaking_party.hpp",
+    "src/ui/frontend_matchmaking_party_bridge.cpp",
+    "src/ui/frontend_party.cpp",
+    "cmake/OnlinePeers.cmake",
+    "cmake/OnlineProtocolRust.cmake",
+    "tools/build_online_protocol_rust.py",
+    "tests/test_build_online_protocol_rust.py",
+    "tests/native_frontend_party_rust_tests.cpp",
+    "tests/generate_frontend_party_reference.py",
+    "tests/test_native_frontend_party_rust.py"
+  ],
+  "targets": [
+    "native_frontend_party_rust_tests"
+  ],
+  "filter": "^frontend_party_cpp_rust$"
+}

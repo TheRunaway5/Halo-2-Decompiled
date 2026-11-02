@@ -1,0 +1,95 @@
+{
+  "passed": true,
+  "native_owner_exit_code": 0,
+  "native_final_iterations": 13,
+  "owned_roots_checked": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-component-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-core-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-countdown-restart-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-failure-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-helper-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-native-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-original-activation-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-original-chooser-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-playlist-research-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-syntax-20261102",
+      "empty": true,
+      "remaining_entries": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-validation-20261102",
+      "empty": true,
+      "remaining_entries": []
+    }
+  ],
+  "owned_report_scratch_removed": [
+    {
+      "report": "native/inputs.json",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-native-20261102/halo2-test-eigfxr6n",
+      "removed": true
+    },
+    {
+      "report": "rust/report.json",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-validation-20261102/halo2-test-0n4xk7er",
+      "removed": true
+    },
+    {
+      "report": "native-component/report.json",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-component-20261102/halo2-test-dv4we8jd",
+      "removed": true
+    },
+    {
+      "report": "countdown-restart/report.json",
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-countdown-restart-20261102/halo2-test-c98rq0bt",
+      "removed": true
+    }
+  ],
+  "native_storage_before_exit": {
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-presentation-native-20261102/halo2-test-eigfxr6n",
+    "regular_files": 62355,
+    "sum_regular_file_bytes": 5926231579,
+    "sum_allocated_file_bytes": 6093492224,
+    "symlinked_borrowed_inputs_excluded": true,
+    "retained_large_artifacts": []
+  },
+  "unrelated_assets_reference_snapshots_and_selected_runtimes_preserved": true,
+  "retained_large_artifacts": [],
+  "bounded_work_reports_pending_archive": true
+}

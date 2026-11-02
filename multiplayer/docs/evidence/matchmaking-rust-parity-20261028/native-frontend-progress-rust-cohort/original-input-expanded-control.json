@@ -1,0 +1,64 @@
+{
+  "passed": false,
+  "cases": 536,
+  "mismatches": 24,
+  "first_mismatches": [
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 2147483648,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 2147483649,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 4294967294,
+        "original": 0
+      },
+      "actual": 1
+    },
+    {
+      "case": {
+        "kind": "cancel",
+        "pane": 2,
+        "now": 0,
+        "elapsed": 4294967295,
+        "original": 0
+      },
+      "actual": 1
+    }
+  ],
+  "legacy_differences": 24,
+  "expanded_party_counterfactual": true,
+  "host_local_counterfactual": false,
+  "legacy_cancel_differences": 24,
+  "legacy_leave_differences": 0,
+  "minimal_leave_counterexample": null,
+  "original_instruction_addresses": 167,
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "fixture_sha256": "33a98e57351edd57af915c72d33069c9aba730c9e5d5839feec5c28e33a2f9bc",
+  "rust_source_sha256": "04573b04b2dd4d0f74e457077f2a51356cdebc1a5152a3d2e84187d4d2ad0c94",
+  "backend": "standalone current Rust owner",
+  "native_binary_sha256": null,
+  "scope": "Original progress cancellation consumers and leave-count caller/getters.\n\nPane and frozen UI clock observations are explicit inputs to2584AE. The\n2584C9 leave-count caller executes unchanged19475B/1946AA and their actual\nsession/membership getters over explicit synthetic session banks, stopping\nbefore dialog allocation. No original UI/network producer or live-flow claim.\n",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-input-expanded-20261102/halo2-test-e9dukw8o",
+  "retained_large_artifacts": []
+}

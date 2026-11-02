@@ -40,6 +40,7 @@ FRONTEND_H2EK_LOADING_FILES = {
     ("manifest.json", "ambience.xbox-adpcm", "loading-00.dds", "loading-01.dds",
      "loading-03.dds", "loading-04.dds", "loading-05.dds", "loading-11.dds")}
 FRONTEND_PROMPT_FONT_PROFILE = "mcc-native-control-fonts-v1"
+FRONTEND_CONTROLLER_PROMPT_PROFILE = 'H2_LOCAL_PLAYER_PROMPTS_V1'
 
 
 def _digest(value):
@@ -59,7 +60,7 @@ class NativeTestOwnerChanged(ValueError):
         self.after_path = after_path
 
 
-def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
+def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False, windows_adjacent=False):
     if path.is_symlink() or not path.is_file():
         raise ValueError("Native-test file has no direct owner")
     with path.open("rb") as stream:
@@ -78,6 +79,9 @@ def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
                 if readonly_literal:
                     from packaged_shader_defaults import readonly_literal_location
                     readonly_literal_location(data, embedded)
+                if windows_adjacent:
+                    from windows_shader_binding import readonly_shader_literal
+                    readonly_shader_literal(data)
         after_fd, after_path = descriptor_identity(stream.fileno()), path_identity(path)
         if before != after_fd or before != after_path:
             raise NativeTestOwnerChanged(path, before, after_fd, after_path)
@@ -126,6 +130,7 @@ def _runtime_owner(root, runtime, *, frontend=False):
     _digest(report["validation"]["report_sha256"])
     owner = report["runtime"]
     shaders = report["shaders"]
+    windows_adjacent = False
     if shaders.get("binding") == "compiled-default":
         if owner.get("path") != str(runtime):
             raise ValueError("Native-test executable was relocated")
@@ -133,6 +138,12 @@ def _runtime_owner(root, runtime, *, frontend=False):
         if not directory.is_absolute():
             raise ValueError("Native test requires its absolute compiled default shader owner")
         payload, compiled, readonly = runtime, os.fsencode(directory), False
+    elif shaders.get("binding") == "windows-executable-adjacent":
+        if (not frontend or owner.get('path') != 'halo2_native.exe' or
+                runtime != root/'halo2_native.exe' or shaders.get('directory') != 'shaders'):
+            raise ValueError('Windows frontend requires its fixed executable/adjacent shader layout')
+        directory, payload = root/'shaders', runtime
+        compiled, readonly, windows_adjacent = b'shaders\0', False, True
     elif shaders.get("binding") == "packaged-compiled-default":
         from packaged_shader_defaults import (PACKAGE_LOADER, PACKAGE_PAYLOAD, PACKAGE_RUNTIME,
                                                PACKAGE_SHADERS, native_runtime_wrapper,
@@ -217,7 +228,8 @@ def _runtime_owner(root, runtime, *, frontend=False):
     # path check prevents accidentally treating adjacent shaders as its actual
     # compiled default. No command-line override bypasses the runtime's guard.
     expected = owner["payload"]["sha256"] if readonly else owner["sha256"]
-    if _file_digest(payload, embedded=compiled, readonly_literal=readonly) != _digest(expected):
+    if _file_digest(payload, embedded=compiled, readonly_literal=readonly,
+                    windows_adjacent=windows_adjacent) != _digest(expected):
         raise ValueError("Native-test executable changed")
     if 'eos_worker' in report:
         validate_eos_worker(payload, report['eos_worker'])
@@ -250,18 +262,34 @@ def _frontend_contract(report):
         "presentation/loading/manifest.json", "presentation/loading/glow-mask.dds",
         "presentation/loading/loading.wav", "presentation/loading-v2/manifest.json",
         "presentation/loading-v2/glow-mask.dds", "presentation/loading-v2/loading-tone.xbox-adpcm"}
+    owned_prompts = set()
+    profile = validation.get('controller_prompt_profile')
+    if profile is not None:
+        if profile != FRONTEND_CONTROLLER_PROMPT_PROFILE:
+            raise ValueError('Unsupported port-owned button prompt profile')
+        from controller_prompt_assets import FAMILIES, RUNTIME_FILES
+        owned_prompts = {'presentation/prompts-'+family+'/'+name
+                         for family in FAMILIES for name in RUNTIME_FILES | {'manifest.json'}}
+        allowed.update(owned_prompts)
     return dict(native_fonts=native_fonts, loading_files=loading_files,
-                allowed_presentation=allowed)
+                allowed_presentation=allowed, owned_prompt_files=owned_prompts)
 
 
-def _check(root, runtime, cache, *, frontend=False):
+def _check(root, runtime, cache, *, frontend=False, owner=None):
     root, cache = Path(root).resolve(), Path(cache)
     if cache.is_symlink():
         raise ValueError("Native-test cache cannot be a symlink")
     cache = cache.resolve(strict=True)
     if cache.parent != root / "assets/imported" or cache.name.startswith("."):
         raise ValueError("Native-test map requires the selected private cache")
-    report = _runtime_owner(root, runtime, frontend=frontend)["report"]
+    # The selected frontend reader has already audited this exact executable
+    # and shader bank. It rechecks the selection/capability/executable after
+    # resource admission; do not repeat the expensive shader audit here.
+    if owner is None:
+        owner = _runtime_owner(root, runtime, frontend=frontend)
+    if owner['runtime'] != Path(runtime).resolve(strict=True):
+        raise ValueError('Native-test resource admission changed its runtime owner')
+    report = owner['report']
     bitmap = report["map"]
     expected_map = FRONTEND_MAP if frontend else MAP
     if bitmap.get("path") != expected_map:
@@ -283,6 +311,7 @@ def _check(root, runtime, cache, *, frontend=False):
                     "halo2/h2_maps_win64_dx11/sounds_neutral.dat",
                     "halo2/h2_fonts/font_table.txt"}
         required.update(loading_files)
+        required.update(contract['owned_prompt_files'])
         if (cache / 'frontend-map-bindings.json').exists() or (cache / 'frontend-map-bindings.json').is_symlink():
             required.add('frontend-map-bindings.json')
         # Every imported font is part of frontend admission, including languages

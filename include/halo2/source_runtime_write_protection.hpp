@@ -5,9 +5,38 @@
 #include <functional>
 #include <memory>
 #include <thread>
+#include <span>
 namespace halo2 {
 class SourceRuntimeMemory;
 class SourceRuntimePolicyChange;
+struct SourceRuntimeNativeWriteRange {std::uint32_t address;std::size_t bytes;};
+enum class SourceRuntimeNativeWriteRefusal : std::uint8_t {
+    None,Range,ReferenceDispatch,Recursion,PolicyHold,PolicyChange,Observer,Guard,Unavailable,Count
+};
+// Permission-policy admission for an ordinary native memory block. Unknown
+// observers and any guard that can affect a requested write refuse admission;
+// no callback is executed by the check. The explicit observer allowlist is
+// reserved for owners whose effects depend only on the final write set and
+// permit consolidation of dead source stack stores. Serial counters continue
+// to count actual native writes. Policy changes stay excluded until release.
+// As with PolicyHold, the caller separately owns bank lifetime/executor and
+// topology exclusion. Recording/replay policy admissions retain the literal.
+// Policy publishers must also stay on that executor: foreign publishers throw
+// while the lease is held, rather than waiting for its native writes to finish.
+class SourceRuntimeNativeWriteLease final {
+public:
+    SourceRuntimeNativeWriteLease(const SourceRuntimeMemory &,
+        std::span<const SourceRuntimeNativeWriteRange>,std::span<const void *const> allowed_observers={}) noexcept;
+    ~SourceRuntimeNativeWriteLease();
+    explicit operator bool()const noexcept{return memory_!=nullptr;}
+    SourceRuntimeNativeWriteRefusal refusal()const noexcept{return refusal_;}
+    SourceRuntimeNativeWriteLease(const SourceRuntimeNativeWriteLease&)=delete;
+    SourceRuntimeNativeWriteLease(SourceRuntimeNativeWriteLease&&)=delete;
+private:
+    const SourceRuntimeMemory *memory_{};
+    const std::thread::id executor_=std::this_thread::get_id();
+    SourceRuntimeNativeWriteRefusal refusal_=SourceRuntimeNativeWriteRefusal::None;
+};
 // Policy exclusion only; neither class grants native execution authority or
 // retains the borrowed bank. The enclosing owner must keep that bank alive.
 // Acquire the hold after installing ordinary write/topology guards and before

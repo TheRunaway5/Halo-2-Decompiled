@@ -58,6 +58,7 @@ struct SourceBspAdmissionInput {
         instance_capacity=source_bsp_main_instance_capacity;
     // Normal main-mode0 is flags0/context+2A78=0/auxNULL. The verified optional
     // branches are20(skip),80(forceinstance admission),200(clipping plane).
+    //400 is carried for the separate object machine filter and ignored here.
     std::uint32_t flags{},context_2a78{};
     ShaderVector clipping_plane{};
     // Exact16E210 result for each authored cluster, produced with the caller's

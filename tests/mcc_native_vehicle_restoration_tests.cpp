@@ -51,7 +51,7 @@ int main(int argc,char**argv)try {
     need(argc==3,"Expected complete vehicle source fixture and finite policy");std::ifstream input(argv[1]),policy_input(argv[2]);
     const auto all=Json::parse(input),policy=Json::parse(policy_input);
     need(all.at("schema")=="H2_MCC_NATIVE_VEHICLE_RESTORATION_FIXTURE_V1"&&all.at("cases").size()==2,"Vehicle literal fixture census differs");
-    unsigned rejects=0,payload_checks=0,region_checks=0,typed_checks=0,bitmap_checks=0,string_checks=0,records=0,semantics=0;
+    unsigned rejects=0,payload_checks=0,region_checks=0,typed_checks=0,bitmap_checks=0,string_checks=0,records=0,semantics=0,preceding_checks=0;
     for(unsigned case_index=0;case_index<2;++case_index){const auto& row=all.at("cases").at(case_index);const auto& profile=policy.at("maps").at(case_index);
         Fixture value(row,all,profile);auto bank=value.before;const auto output=value.run(bank);
         need(bank.at("shader_tags").size()==value.before.at("shader_tags").size()+profile.at("records").size(),"Vehicle complete record count differs");
@@ -61,6 +61,19 @@ int main(int argc,char**argv)try {
             ++records;if(item.at("record").at("group")!="shad"){
                 const auto& record=item.at("record");const auto key=std::pair{record.at("group").get<std::string>(),record.at("name").get<std::string>()};
                 need(output.semantic_names.at(key)==item.at("semantic_name").get<std::string>(),"Vehicle original semantic label differs");++semantics;}}
+        const auto reject_bank=[&](const Json& original,const char* message){auto changed=original;bool rejected=false;
+            try{(void)value.run(changed);}catch(const FormatError& error){rejected=std::string_view(error.what())==
+                "Vehicle restoration lacks its exact authenticated preceding source bank";}
+            need(rejected&&changed==original,message);++rejects;++preceding_checks;};
+        reject_bank(row.at("obsolete_preceding_library"),"Obsolete literal preceding bank admitted or modified");
+        for(const auto& insertion:row.at("preceding_insertions")) {
+            const auto index=insertion.at("index").get<unsigned>();
+            need(value.before.at("shader_tags").at(index)==insertion.at("record"),"Fixture inserted metadata changed");
+            auto missing=value.before;missing.at("shader_tags").erase(missing.at("shader_tags").begin()+index);
+            reject_bank(missing,"Incomplete preceding template metadata admitted or modified");
+            auto changed=value.before;changed.at("shader_tags").at(index).at("bytes")=0;
+            reject_bank(changed,"Corrupted preceding template metadata admitted or modified");
+        }
         const auto fail=[&](const char* message){auto changed=value.before;bool rejected=false;try{const auto result=value.run(changed);rejected=result.payloads.empty()&&result.semantic_names.empty();}
             catch(const FormatError&){rejected=true;}need(rejected&&changed==value.before,message);++rejects;};
         // Every source region, typed allocation identity and borrowed payload is
@@ -94,5 +107,6 @@ int main(int argc,char**argv)try {
     std::cout<<Json{{"passed",true},{"profiles",2},{"complete_original_records",records},{"semantic_program_labels",semantics},
         {"opaque_region_controls",region_checks},{"typed_owner_controls",typed_checks},{"complete_payload_controls",payload_checks},
         {"bitmap_frame_controls",bitmap_checks},{"dynamic_StringID_controls",string_checks},{"strict_rejections",rejects},
+        {"exact_preceding_bank_controls",preceding_checks},
         {"scope","Finite source-admission and atomic closure; actual Cache ABI/material/AOT/GPU acceptance is separate"}}.dump()<<'\n';return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

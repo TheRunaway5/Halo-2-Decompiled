@@ -101,7 +101,9 @@ namespace halo2 {
 //121 adds terminal native shot/hit observations for checked PCR accuracy.
 //122 carries current native player/held-weapon region choices beside their
 //WORLD bank for full-body secondary rays. The matrix codec remains H2WP1.
-inline constexpr unsigned native_multiplayer_protocol = 123;
+//124 carries actual source zoom requests and committed native reset sound
+//selections. Earlier body codecs omit this journal; peer headers still match.
+inline constexpr unsigned native_multiplayer_protocol = 124;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

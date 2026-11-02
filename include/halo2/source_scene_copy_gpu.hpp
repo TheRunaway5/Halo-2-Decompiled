@@ -42,9 +42,19 @@ struct SourceSceneCopyGpuImage {
     VkFormat format{};
     VkExtent2D extent;
 };
+// Original1DC20 publishes an allocated target without a pixel initialization
+// or a completed camera scene. This access owns layout/lifetime only. Its
+// contents remain unspecified until a genuine record() writes the copy.
+struct SourceSceneCopyGpuUnwrittenAccess {
+    VkDevice owner{};
+    VkCommandBuffer command{};
+    VkFence completion{};
+    std::uint32_t queue_family{};
+    bool outside_render_pass{},exclusive_access{};
+};
 // Descriptor preparation facts only. This deliberately carries no image or
-// produced-content/layout claim. Sampling requires record() first, in the
-// same submitted command (or a successfully retired earlier submission).
+// produced-content/layout claim. Sampling needs a recorded allocation access
+// or copy in the same command, or a successfully retired earlier submission.
 struct SourceSceneCopyGpuBinding {
     VkImageView view{};
     VkFormat format{};
@@ -71,6 +81,9 @@ public:
     // Allows descriptor allocation/upload before command recording. Preparing
     // this binding does not initialize the image or make it sample-ready.
     SourceSceneCopyGpuBinding prepare(const SourceSceneCopyGpuInput &);
+    // Make a genuine unwritten allocation shader-readable. This emits no
+    // clear, transfer or draw and never establishes completed copy history.
+    SourceSceneCopyGpuImage record_unwritten_access(const SourceSceneCopyGpuUnwrittenAccess &);
     SourceSceneCopyGpuImage record(const SourceSceneCopyGpuRecord &);
     bool retire();
     // Only after the caller successfully resets a never-submitted command.

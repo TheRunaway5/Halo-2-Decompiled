@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "original_execution_passed": true,
+  "cases": 852,
+  "mismatches": 0,
+  "first_counterexamples": [],
+  "legacy_stable_sort_differences": 316,
+  "legacy_first_counterexamples": [
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": false,
+      "teams": true,
+      "players": [
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    },
+    {
+      "ranked": true,
+      "teams": false,
+      "players": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "original": [
+        1,
+        0
+      ],
+      "cpp_before": [
+        0,
+        1
+      ]
+    }
+  ],
+  "original_instruction_addresses": 474,
+  "original_instruction_visits": 3781380,
+  "original_comparator_calls": 15841,
+  "source_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "backend": "standalone current Rust owner",
+  "rust_source_sha256": "04573b04b2dd4d0f74e457077f2a51356cdebc1a5152a3d2e84187d4d2ad0c94",
+  "native_binary_sha256": null,
+  "scope": "Unchanged TU1.5 progress sort caller through its real original callees.\n\nExplicit synthetic session/player banks; stops before widget allocation.\nNo networking, source slot producer or delivered runtime claim.\n",
+  "fixture_sha256": "d722bfd679bd56e4d2d06aad7e126c79def1aa54615412eb4c217a6999e8652e",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-sort-rust-20261102/halo2-test-p_i4z02b",
+  "retained_large_artifacts": []
+}

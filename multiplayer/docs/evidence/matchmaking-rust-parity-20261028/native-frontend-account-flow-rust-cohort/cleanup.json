@@ -1,0 +1,53 @@
+{
+  "owned_scratch_removed": true,
+  "parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-native-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-core-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-core-corrected-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-component-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-component-corrected-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-full-rust-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-stager-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-scope-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-account-flow-linkage-20261102",
+      "empty": true,
+      "children": []
+    }
+  ],
+  "completed_native_removed_regular_bytes": 6625335850,
+  "retained_large_artifacts": [],
+  "original_assets_existing_references_other_owners_and_selected_runtimes_preserved": true
+}

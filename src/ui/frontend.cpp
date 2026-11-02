@@ -49,6 +49,7 @@
 #include <ctime>
 #include <deque>
 #include <fstream>
+#include <future>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <nlohmann/json.hpp>
@@ -669,6 +670,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   // mainmenu/PCR factory runs. Its frame-delta intro clock is distinct from
   // PCR16's native open clock, and only an actual map rebuild resets it.
   state.ui_clock(session->ui_clock());
+  state.set_workshop_scanner(options.workshop_scan);
   state.initialize_mainmenu_map();
   if(!initial_entry && options.entry!=FrontendOptions::Entry::session_return)
     session->enter(options.entry,options.postgame_report);
@@ -1213,6 +1215,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     return std::uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
         Clock::now()-intro_capture_started).count());
   };
+  std::optional<FrontendLaunch> workshop_launch;
+  std::future<WorkshopPreparedMission> workshop_preparation;
   while (running && !state.quit && !state.launch &&
          (!options.frames || (intro_capture?!intro_capture->done():frames<options.frames))) {
     const auto now = Clock::now();
@@ -1522,6 +1526,34 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
                    event.button.button == SDL_BUTTON_LEFT && state.frame().screen == 9)
           accept();
       }
+    }
+    if (state.launch && state.launch->workshop) {
+      if (!options.workshop_prepare) {
+        state.launch.reset();
+        state.system_link_configuration_error("Workshop preparation is unavailable in this runtime.");
+      } else {
+        workshop_launch = std::move(state.launch);
+        state.launch.reset();
+        state.begin_workshop_preparation();
+        workshop_preparation = std::async(std::launch::async, options.workshop_prepare,
+                                         *workshop_launch->workshop);
+      }
+    }
+    if (workshop_launch && workshop_preparation.valid() &&
+        workshop_preparation.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+      try {
+        const auto prepared = workshop_preparation.get();
+        if(!workshop_launch->workshop_preview)
+          if(const auto reason=prepared.gameplay_unavailable_reason();!reason.empty())throw FormatError(reason);
+        workshop_launch->map = prepared.map;
+        workshop_launch->shared_maps = prepared.shared_maps;
+        workshop_launch->prepared_cache_root = prepared.prepared_root;
+        state.finish_workshop_preparation();
+        state.launch = std::move(workshop_launch);
+      } catch (const std::exception &error) {
+        state.finish_workshop_preparation(error.what());
+      }
+      workshop_launch.reset();
     }
     if(options.session_update && options.session_update(state,ui_clock_ms,sound))break;
     for(const auto cue:state.take_ui_sounds())sound(cue);

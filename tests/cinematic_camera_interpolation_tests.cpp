@@ -1,6 +1,8 @@
 #include "halo2/cinematic_camera_interpolation.hpp"
 #include "halo2/campaign_frame_clock.hpp"
 #include <cmath>
+#include <bit>
+#include <array>
 #include <cstddef>
 #include <cstring>
 #include <iostream>
@@ -8,13 +10,35 @@
 #include <stdexcept>
 using namespace halo2;
 static_assert(sizeof(SourceCampaignCameraViewTu15)==48);
-static_assert(offsetof(CinematicCameraFrame,completed)==40 && sizeof(CinematicCameraFrame)==88);
+static_assert(offsetof(CinematicCameraFrame,completed)==40 && sizeof(CinematicCameraFrame)==96);
 void check(bool ok,const char *message){if(!ok)throw std::runtime_error(message);}
 bool same(const SourceCampaignCameraViewTu15&a,const SourceCampaignCameraViewTu15&b){return !std::memcmp(&a,&b,sizeof(a));}
 SourceCampaignCameraViewTu15 pose(unsigned tick){const float a=float(tick)*.01f;
  return {{float(tick)*3,0,0},{std::cos(a),std::sin(a),0},{0,0,1},1+float(tick)*.001f,4.f/3,0};}
 int main(int argc,char**)try {
  const bool held=argc>1;unsigned subticks{},moving{};
+ // Actual opening poses at ticks1400/1401 in one camera-animation command8.
+ // The animation contains a hard cut without a new HS camera command. A fast
+ // display can observe held source subframes before that internal shot change.
+ const auto from_bits=[](const std::array<std::uint32_t,9>& bits) {
+  SourceCampaignCameraViewTu15 view{};float values[9];
+  for(unsigned n=0;n<9;++n)values[n]=std::bit_cast<float>(bits[n]);
+  view.position={values[0],values[1],values[2]};
+  view.forward={values[3],values[4],values[5]};view.up={values[6],values[7],values[8]};
+  view.horizontal_field_of_view=1.22173047f;view.aspect=4.f/3;return view;
+ };
+ const auto shot_before=from_bits({3277281114u,3273043110u,1102493413u,3211924344u,
+     3193254229u,1048572899u,1047976571u,1032461254u,1064819072u});
+ const auto shot_after=from_bits({3277344748u,3272691196u,1101933377u,3190294912u,
+     1063792795u,1053201924u,1032804720u,3200471932u,1064039837u});
+ CinematicCameraInterpolation source_camera;
+ (void)source_camera.sample({1400,8,0,0,true,0,shot_before,true});
+ (void)source_camera.sample({1400,8,0,0,true,.5f,shot_before,true});
+ check(same(source_camera.sample({1401,8,0,0,true,.25f,shot_after,true}),shot_after),
+       "Original observer hard cut became a fast camera move within one animation command");
+ // Ordinary native observer transitions also retain their completed output.
+ check(same(source_camera.sample({1401,8,0,0,true,.75f,shot_before,true}),shot_before),
+       "Completed original observer transition was interpolated a second time");
  for(unsigned hz:{30,60,90,120,144,165,240}) {
   CampaignFrameClock clock;CinematicCameraInterpolation camera(held);std::uint64_t tick{};
   auto previous=pose(0);std::uint64_t last_tick{};float last_fraction{};

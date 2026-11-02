@@ -1,0 +1,6 @@
+{
+  "cause": "Core and bridge files share their src directory name and filename; the initial bounded evidence path collided",
+  "correction": "Distinct core/bridge paths; exact inverse reconstruction of the core source independently hash-matched to both qualified initial snapshots",
+  "all_pre_fix_source_hashes_verified": true,
+  "production_and_test_source_unchanged": true
+}

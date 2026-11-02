@@ -1,0 +1,27 @@
+{
+  "include/halo2/frontend_emblem.hpp": {
+    "prior_native_sha256": "732c311f2a72e7a2046789b73a82552609cf571cb4c2e7dc51fbedf10bd78d72",
+    "current_sha256": "732c311f2a72e7a2046789b73a82552609cf571cb4c2e7dc51fbedf10bd78d72",
+    "same": true
+  },
+  "src/ui/frontend_party.cpp": {
+    "prior_native_sha256": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+    "current_sha256": "18bc1e2aca618173123851a098e75e7454ebd79ef5b8d6d8f81d62ecd894a9e8",
+    "same": true
+  },
+  "src/ui/frontend_emblem.cpp": {
+    "prior_native_sha256": "eddc8fc5a8ad0da03c509a1963ee8e2b28dbcb9f3c2c8ada4bc53f5a353b4611",
+    "current_sha256": "eddc8fc5a8ad0da03c509a1963ee8e2b28dbcb9f3c2c8ada4bc53f5a353b4611",
+    "same": true
+  },
+  "src/ui/frontend_painter.cpp": {
+    "prior_native_sha256": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+    "current_sha256": "243fe21517de9e1ba50a0659fdd8fe437b878538de1f0b823b40a5e807c2b994",
+    "same": true
+  },
+  "tests/frontend_online_tests.cpp": {
+    "prior_native_sha256": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+    "current_sha256": "b609e7b75bc359cdd270f2e7603f9c60f10ab6332fe9ba5a2301f5c5308276cd",
+    "same": true
+  }
+}

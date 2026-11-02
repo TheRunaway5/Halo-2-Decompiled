@@ -35,7 +35,8 @@ def main():
         assert stack[1:]==(request['bytes'],request['buffer'],0,initial['gp'][6],5,4)
         (scratch/'entry-ram.bin').write_bytes(bank[:]);(scratch/'entry-cpu.json').write_text(json.dumps(initial)+'\n')
     sources=[ROOT/'tests/source_sound_cache_io_tu15_tests.cpp',ROOT/'src/audio/source_sound_cache_io_tu15.cpp']
-    header=ROOT/'include/halo2/source_sound_cache_io_tu15.hpp';source_hashes={str(path):sha(path)for path in sources+[header]}
+    header=ROOT/'include/halo2/source_sound_cache_io_tu15.hpp';read_header=ROOT/'include/halo2/source_sound_cache_read_tu15.hpp'
+    source_hashes={str(path):sha(path)for path in sources+[header,read_header]}
     binary=args.binary.absolute()if args.binary else scratch/'sound-cache-io'
     command=None
     if not args.binary:
@@ -57,7 +58,7 @@ def main():
         full_native_world_or_audio_output_verified=False,full_weapon_parity=False,runner_scratch=str(scratch),new_large_reference_inputs=False,
         tool_sha256=sha(Path(__file__)),helper_sha256=sha(ROOT/'tools/original_xbox_pose_case.py'))
     (output/'report.json').write_text(json.dumps(result,indent=2)+'\n')
-    for path in [Path(__file__),ROOT/'tools/original_xbox_pose_case.py',*sources,header]:shutil.copyfile(path,output/path.name)
+    for path in [Path(__file__),ROOT/'tools/original_xbox_pose_case.py',*sources,header,read_header]:shutil.copyfile(path,output/path.name)
     print(json.dumps(dict(passed=result['passed'],negative_controls=len(native['negative_controls']),comparisons=comparisons,runner_scratch=str(scratch))),flush=True)
     assert result['passed'];return 0
 

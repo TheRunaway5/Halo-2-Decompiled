@@ -25,6 +25,9 @@ struct MccSoundTimingGap {
 struct MccSoundTimingBinding {
     TagHandle sound,gestalt;
     std::uint32_t source_root{},native_root{};
+    // Ordinals in the defining source: raw MCC for prefix bindings, original
+    // bank metadata for sealed original replacements. Native addresses below
+    // always identify the currently published combined table bank.
     std::uint32_t source_range{},source_permutation{};
     std::uint32_t native_range{},native_permutation{};
     unsigned relative_pitch{},relative_permutation{};
@@ -81,8 +84,12 @@ private:
 // Owner-atomic, immutable construction: authenticate the complete raw owner,
 // all typed named intervals, the complete supplied V4 native projection and
 // actual encoded payload identity before admitting any binding for an owner.
-// Unknown/custom owners and the three known Wraith natural-pitch omissions
-// remain explicit gaps. No source/native byte or existing plan field changes.
+// Unknown/custom MCC owners and the three known Wraith natural-pitch omissions
+// remain explicit gaps. Sealed original replacements independently rebuild
+// and authenticate their retained parent, preserve/rebase unrelated references,
+// and admit exact original headers/resources together. MCC owner statuses stay
+// unchanged. A failed join admits no replacement bindings. No live epoch,
+// readiness, voice or device owner is created by construction.
 MccSoundTimingPlan build_mcc_sound_timing_reference(
     const MccSoundVanillaSource&,const MccSoundRuntimePlan&);
 MccSoundTimingPlan build_mcc_sound_timing_reference(

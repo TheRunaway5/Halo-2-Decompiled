@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "guards": {
+    "include/halo2/confined_file.hpp": {
+      "before": "03e07373e2c2bf068e35c74679b5cb71333b70e170f5c5f3db42fdbd1585a9a5",
+      "current": "03e07373e2c2bf068e35c74679b5cb71333b70e170f5c5f3db42fdbd1585a9a5",
+      "unchanged": true
+    },
+    "src/gameplay/multiplayer/custom_slayer.cpp": {
+      "before": "a9d5711cef3ed873f5fa1563a26d6e2138f1496377e374dfc0999d615cddfde0",
+      "current": "a9d5711cef3ed873f5fa1563a26d6e2138f1496377e374dfc0999d615cddfde0",
+      "unchanged": true
+    },
+    "src/gameplay/multiplayer/multiplayer.cpp": {
+      "before": "1e50d0895e59466025292f7ca6b5a6dd6b4cb0831acfd774acae7b6b34612643",
+      "current": "1e50d0895e59466025292f7ca6b5a6dd6b4cb0831acfd774acae7b6b34612643",
+      "unchanged": true
+    }
+  },
+  "scope": "Actual native source guards are byte-identical across the interrupted and restarted cohorts"
+}

@@ -122,9 +122,10 @@ int main(int argc,char** argv) {
             }
             if(resources && call.instruction==0x21f4bdu) {
                 const SourceSoundCacheIoTu15Services io{
-                    [&](auto encoded,auto size) {
-                        auto bytes=resources->load(encoded,size);
-                        resource_reads.push_back({{"encoded",encoded},{"bytes",size},{"actual_bytes",bytes.size()}});
+                    [&](const SourceSoundCacheReadTu15& read) {
+                        auto bytes=resources->sound_cache(read);
+                        resource_reads.push_back({{"descriptor",read.descriptor},{"encoded",read.encoded_offset},
+                            {"size_flags",read.size_flags},{"bytes",read.bytes},{"actual_bytes",bytes.size()}});
                         return bytes;
                     },
                     [&](auto descriptor,auto destination,auto size) {

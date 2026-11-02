@@ -169,7 +169,7 @@ impl Session {
         row
     }
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(super) struct Registry {
     serial: u64,
     sessions: Vec<Session>,
@@ -178,6 +178,23 @@ pub(super) struct Registry {
     failures: HashMap<String, (u64, String)>,
 }
 impl Registry {
+    pub(super) fn presence(&self, now: f64) -> Vec<(String, bool)> {
+        self.sessions
+            .iter()
+            .filter(|s| {
+                crate::matchmaking_presence::recent(
+                    s.data["expires"].as_f64().unwrap(),
+                    s.data["seen"].as_f64().unwrap(),
+                    now,
+                )
+            })
+            .flat_map(|s| {
+                array(&s.data, "local_players")
+                    .iter()
+                    .map(|p| (p["player"].as_str().unwrap().to_owned(), p["guest"] == true))
+            })
+            .collect()
+    }
     pub(super) fn qos_binding(&self, generation: u64, key: &str, who: &str, now: f64) -> bool {
         self.active(generation, now).is_ok_and(|record| {
             record.key == key
@@ -710,6 +727,14 @@ impl Registry {
                 self.check(core, r)
             }
             "session_register" => self.register(core, r),
+            "session_identity_in_use" => {
+                let who = m::text(&r["player"], 64)?;
+                Ok(json!(self.sessions.iter().any(|s| {
+                    array(&s.data, "local_players")
+                        .iter()
+                        .any(|p| p["player"] == who)
+                })))
+            }
             "session_auth" => {
                 let header = r["header"]
                     .as_str()

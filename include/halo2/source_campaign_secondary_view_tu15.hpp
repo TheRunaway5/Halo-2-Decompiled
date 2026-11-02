@@ -14,6 +14,7 @@
 #include <memory>
 namespace halo2 {
 class MultiplayerObjectRuntime;
+class SourceCampaignMachineViewPacket;
 // These presentation values belong to the real object/actor/weapon owner.
 // A generic model collector cannot invent an unwritten color channel or a
 // shader-function variable. The callback must copy view-dependent source
@@ -36,6 +37,11 @@ struct SourceCampaignSecondaryMaterialOwnerTu15 {
     std::function<std::vector<unsigned>(const SourceCampaignViewFrameTu15 &,
         const SourceModelShaderView &,std::vector<std::vector<Vertex>> &,
         std::vector<ModelObjectDraw> &)> append_specialized;
+    // PRT machines retain their own section streams, current coefficient
+    // banks and depth selections. The packet belongs to this exact view;
+    // collecting another view never replaces its backing.
+    std::function<std::shared_ptr<const SourceCampaignMachineViewPacket>(
+        const SourceCampaignViewFrameTu15 &,const SourceModelShaderView &)> machine_view;
 };
 // Owned completed geometry/packets. Exported ModelView spans borrow only this
 // object or the immutable BSP/material owners supplied at construction.
@@ -48,7 +54,9 @@ struct SourceCampaignSecondaryPacketsTu15 {
     SourceModelShaderView shaders;
     Camera camera;
     std::vector<std::vector<Vertex>> poses;
+    std::vector<std::vector<SourcePrtMaterialBank>> prt_banks;
     std::vector<ModelObjectDraw> objects;
+    std::shared_ptr<const SourceCampaignMachineViewPacket> machines;
     std::vector<Vertex> background,vertices,reflection_background;
     pstencil::CampaignShadows shadows;
     SourceCampaignWaterWeatherFrameTu15 families;

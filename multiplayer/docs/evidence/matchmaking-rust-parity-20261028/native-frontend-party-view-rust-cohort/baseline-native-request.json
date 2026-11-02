@@ -1,0 +1,10 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [],
+  "targets": [
+    "frontend_online_tests",
+    "frontend_lobby_policy_tests"
+  ],
+  "filter": "^(frontend_clans_http|frontend_parties_http|retail_frontend_lobby_policy)$"
+}

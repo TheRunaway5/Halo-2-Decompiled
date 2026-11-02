@@ -1,13 +1,17 @@
 #include "halo2/source_campaign_view_tu15.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/native_tu15_cull_walk_44710.hpp"
+#include "halo2/native_tu15_render_lighting.hpp"
 #include "halo2/source_live_shadow_main_inputs_tu15.hpp"
 #include "halo2/source_live_shadow_main_draws_tu15.hpp"
 #include "halo2/source_live_shadow_selection_tu15.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/source_shadow_raw_draw.hpp"
 #include "halo2/source_texture_camera_scene_prefix_tu15.hpp"
 #include <bit>
 #include <cstring>
+#include <cstdlib>
 
 namespace halo2 {
 SourceCampaignViewTu15::SourceCampaignViewTu15(const Cache &cache,std::size_t bsp)
@@ -29,17 +33,11 @@ SourceCampaignViewTu15::SourceCampaignViewTu15(const Cache &cache,std::size_t bs
         const auto row=read(definitions+n*200u,0x6cu);
         definitions_[n]={row.u16(0x14u),row.u16(0x24u),false};
     }
-    const auto lighting=cache.load_bsp_lighting(bsp);
-    lightmap_matches_=lighting.structure_matches && lighting.bitmap_datum!=0xffffffffu;
     for(unsigned n=0;n<instances_.size();++n) {
         const auto row=read(instances+n*88u,88u);
         std::memcpy(&transforms_[n],row.slice(0,sizeof(Transform)).data(),sizeof(Transform));
         instances_[n].lighting_policy=row.u16(0x56u);
         instances_[n].transform_address=0x71002000u+n*88u;
-        if(lightmap_matches_) {
-            const auto bucket=lighting.instance_buckets.at(n).bucket;
-            instances_[n].lightmap_resident=bucket>=0 && unsigned(bucket)<lighting.buckets.size();
-        }
     }
 }
 
@@ -50,25 +48,16 @@ void SourceCampaignViewTu15::prepare_bsp(PhysicsLiveWorldTu15 &world,const Sourc
     if(!bsp || word(bsp+0x9cu)!=clusters_.size() || word(bsp+0x138u)!=definitions_.size() ||
        word(bsp+0x140u)!=instances_.size())
         throw FormatError("Campaign main draw resources differ from the actual current BSP");
-    const auto ready=[&](std::uint32_t row) {
-        if(!Bytes(memory.view(row+0x24u,2)).u16(0))return false;
-        auto completed=world.request_render_geometry(2u,row+0x28u);
-        if(!completed)completed=world.request_render_geometry(0u,row+0x28u);
-        if(!completed || !word(row+0x50u))
-            throw FormatError("Campaign original BSP resource publication did not finish");
-        return true;
-    };
-    for(const auto &cluster:main.clusters) {
+    for(const auto &cluster:main.clusters)
         if(cluster.id>=clusters_.size())throw FormatError("Campaign main cluster escapes the retained BSP");
-        clusters_[cluster.id].resident=ready(word(bsp+0xa0u)+cluster.id*176u);
-    }
     for(const auto &instance:main.instances) {
         if(instance.id>=instances_.size())throw FormatError("Campaign main instance escapes the retained BSP");
         const auto row=word(bsp+0x144u)+instance.id*88u;
         const auto definition=std::bit_cast<std::int16_t>(Bytes(memory.view(row+0x34u,2)).u16(0));
         if(definition<0 || unsigned(definition)>=definitions_.size() || definition!=geometry_.instances[instance.id].definition)
             throw FormatError("Campaign main instance lost its authored definition");
-        definitions_[definition].resident=ready(word(bsp+0x13cu)+unsigned(definition)*200u);
+        // Instance resources are requested by449D0 after133520's alpha gate,
+        // rather than eagerly acquiring every visible instance definition.
     }
 }
 
@@ -155,14 +144,26 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
     if(!consume_particles)world.publish_render_visibility(frame.visibility);
     SourceObjectAdmissionInput object_input;object_input.containing_fog=containing;
     frame.objects=world.admit_render_objects(frame.visibility,object_input,frame.bsp.associations);
-    source_draw_units_begin(frame.units,input.view);source_bsp_range_arena_begin(frame.units.arena);
+    // This native ordinary-view owner publishes its main context before
+    // 2CB10/2CBD0 consume that context's mode. A viewport ordinal is a
+    // separate input, and the preceding per-view reset may leave the global
+    // context pointer unset until this publication.
+    const std::uint32_t main_context=0x556e18u;
+    world.write_source_call_input(0x4cd3a0u,std::as_bytes(std::span(&main_context,1)));
+    const auto draw_context=Bytes(memory.view(0x4cd3a0u,4)).u32(0);
+    const auto draw_mode=Bytes(memory.view(draw_context+0x2a78u,4)).u32(0);
+    source_draw_units_begin(frame.units,draw_mode);source_bsp_range_arena_begin(frame.units.arena);
     if(consume_particles) {
         prepare_bsp(world,frame.bsp);
-        const SourceBspDrawWorld resources{geometry_,clusters_,definitions_,instances_,lightmap_matches_};
+        SourceBspDrawWorld resources{geometry_,clusters_,definitions_,instances_,false};
+        const auto abi=world.prepare_source_call();
+        NativeTu15PhysicsFrameFp fp{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
+        auto services=source_draw_resource_services_tu15(world,fp);resources.services=&services;
         source_bsp_collect_draw_units(frame.units,frame.bsp,resources,
-            {input.view,0x71000000u,0,fog,source_shader_coverage_camera(input.rendering)});
+            {draw_mode,0x71000000u,0,fog,source_shader_coverage_camera(input.rendering)});
     }
     SourceLiveModelDrawContextTu15 context;
+    context.entry.mode=context.draw.draw.mode=draw_mode;
     context.entry.eye=context.draw.eye=input.eye;context.forward=input.forward;
     context.entry.distance_scale=input.distance_scale;
     context.entry.coverage_multiplier=input.coverage_multiplier;
@@ -179,8 +180,6 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         selected.remember(collector);
         frame.built.insert_or_assign(Bytes(collector.bytes).u32(0),collector);
     };
-    const std::uint32_t main_context=0x556e18u;
-    world.write_source_call_input(0x4cd3a0u,std::as_bytes(std::span(&main_context,1)));
     source_live_shadow_main_inputs_tu15(world,context);
     if(consume_particles)world.call_actual(0xc35d0u);
     source_live_model_draws_tu15(world,frame.objects,frame.units,context);
@@ -195,15 +194,22 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
             0x71000000u,0x71002000u,transforms_,
             [&](auto address,auto bytes){world.write_source_call_input(address,bytes);});
         source_live_shadow_main_queues_tu15(world,frame.bsp,frame.objects);
-        auto cull=world.prepare_source_call();world.run_actual(0x44710u,cull);
+        static const bool reference_cull=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_CULL");return p && *p;}();
+        if(reference_cull) {auto cull=world.prepare_source_call();world.run_actual(0x44710u,cull);}
+        else source_native_cull_walk_tu15(world);
         // Authenticated normal13660→13768→2BCB0 argument5=0; after the
         // real completed main handoff/cull, never a model-only boolean.
-        auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);
+        static const bool reference_commands=[]{const auto* p=std::getenv("HALO2_REFERENCE_MAIN_COMMANDS");return p && *p;}();
+        if(reference_commands){auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);}
+        else world.run_native_command_frame_tu15();
         frame.main_commands_completed=true;
         frame.transparent_commands=source_live_transparent_queue_tu15(world);
         frame.transparent_groups=source_live_transparent_groups_tu15(world);
         for(const auto &group:frame.transparent_groups)
-            frame.transparent_group_parts.push_back(group_parts_.resolve(group,frame.base_draws));
+            frame.transparent_group_parts.push_back(group_parts_.resolve(group,frame.base_draws,
+                [&world](const MenuWorldSourcePass &pass) {
+                    return source_shadow_raw_pass_owner_tu15(world,pass.cache_owner(),pass);
+                }));
         frame.source_particle_commands=Bytes(memory.view(0x4c2aa0u,4)).u32(0);
         frame.world_particles=particles_.draw(world,frame.visibility,input.particles->camera,input.view,
             input.particles->projection_angle,input.distance_scale,true,true);

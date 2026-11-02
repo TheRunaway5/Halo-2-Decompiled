@@ -71,7 +71,7 @@ def selected_frontend_runtime(root, gameplay_runtime, cache):
         if owner is None:
             return None
         runtime = owner['runtime']
-        _check(root, runtime, cache, frontend=True)
+        _check(root, runtime, cache, frontend=True, owner=owner)
         check_owner_unchanged(owner)
         return runtime
     except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError):

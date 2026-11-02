@@ -22,7 +22,48 @@ template<class F>void rejected(F&& action) {
     bool failed=false;try{action();}catch(const FormatError&){failed=true;}
     require(failed,"Malformed/unowned script data admitted");
 }
+void scenery_start_projection() {
+    const auto signature=mcc_script_builtin_signature(185);
+    require(signature && signature->name=="scenery_animation_start" &&
+        signature->declared_return_type==4 && signature->xbox_opcode==184 &&
+        std::ranges::equal(signature->argument_types,std::array<std::uint16_t,3>{55,36,11}),
+        "Qualified scenery start lost its authenticated three-argument prototype");
+    const std::string names("scenery_animation_start\0",24);
+    std::vector<std::byte> nodes(5*20);
+    row(nodes,0,0x9200,185,4,8,0xffffffff,0xdeadbeef,0x92010001);
+    row(nodes,1,0x9201,2,2,9,0x92020002,0,0);
+    row(nodes,2,0x9202,55,55,9,0x92030003,0,0xabcd0007);
+    row(nodes,3,0x9203,36,36,9,0x92040004,0,0xef010009);
+    row(nodes,4,0x9204,11,11,9,0xffffffff,0,0x1200000a);
+    const auto donor=nodes;
+    const auto converted=project_mcc_script_layout(nodes,bytes(names),{});
+    require(converted.native_ready() && converted.converted_calls==1 && converted.rewritten_calls==1 &&
+        Bytes(converted.nodes).u16(2)==184,"MCC scenery start did not select original Xbox184");
+    for(unsigned n=0;n<nodes.size();++n)if(n!=2 && n!=3)
+        require(converted.nodes[n]==nodes[n],"Scenery projection changed authored syntax or argument bits");
+    require(nodes==donor,"Scenery projection modified borrowed donor nodes");
+    word(nodes,68,0xffffffff);
+    auto blocked=project_mcc_script_layout(nodes,bytes(names),{});
+    require(blocked.nodes==nodes && blocked.requirements.size()==1 &&
+        blocked.requirements[0].need==MccScriptLayoutNeed::ArgumentCount,
+        "Truncated scenery arguments silently admitted");
+    nodes=donor;
+    const std::string wrong("scenery_animation_start_loop\0",29);
+    blocked=project_mcc_script_layout(nodes,bytes(wrong),{});
+    require(blocked.nodes==nodes && blocked.requirements.size()==1 &&
+        blocked.requirements[0].need==MccScriptLayoutNeed::BuiltinIdentity,
+        "Scenery start accepted a different function identity");
+    // A qualified start does not admit the still unqualified relative-loop wrapper.
+    const std::string pending("scenery_animation_start_relative_loop\0",38);
+    word(nodes,2,188,2);
+    blocked=project_mcc_script_layout(nodes,bytes(pending),{});
+    require(!mcc_script_builtin_signature(188) && blocked.nodes==nodes && blocked.requirements.size()==1 &&
+        blocked.requirements[0].need==MccScriptLayoutNeed::UnknownBuiltin,
+        "Scenery admission leaked into an unqualified neighboring builtin");
+    rejected([&]{blocked.require_native_ready();});
+}
 void synthetic() {
+    scenery_start_projection();
     std::vector<std::byte> nodes(4*20,std::byte{0x5a});
     row(nodes,0,0x9000,0x1c3,4,8,0xffffffff,0xdeadbeef,0x90010001);
     row(nodes,1,0x9001,2,2,9,0x90020002,0,0);

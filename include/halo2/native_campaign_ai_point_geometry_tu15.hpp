@@ -21,8 +21,18 @@ void native_campaign_ai_project_point_tu15(SourcePhysicsContactMemory &,
     const SourcePhysicsContactRecordObserver & = {});
 // Private intermediate projection for native algorithms. Retained input reads
 // are identical; coordinates stay typed host values instead of guest scratch.
+// A numeric consumer may retain the actual coordinate quantity produced at
+// the permutation/local/scale boundaries. This is native mathematical data,
+// not an instruction callback or a synthesized SIMD register file.
+struct NativeCampaignAiProjectionCoordinateTu15 {
+    enum class Stage {PermutedZ,LocalX,ScaledLocalX};
+    Stage stage;std::uint32_t bits;
+};
+using NativeCampaignAiProjectionCoordinateObserverTu15=
+    std::function<void(const NativeCampaignAiProjectionCoordinateTu15 &)>;
 std::array<std::uint32_t,3> native_campaign_ai_project_point_value_tu15(
-    const SourcePhysicsContactMemory &,std::uint32_t framed_point,NativeTu15PhysicsFrameFp &);
+    const SourcePhysicsContactMemory &,std::uint32_t framed_point,NativeTu15PhysicsFrameFp &,
+    const NativeCampaignAiProjectionCoordinateObserverTu15 & = {});
 // Returns the exact REAL bits. Equal frame IDs use their local coordinates;
 // differing IDs project both points before their distinct source association.
 std::uint32_t native_campaign_ai_point_distance_squared_tu15(

@@ -50,9 +50,27 @@ or global account-consensus protocol.
   daemon does not fetch, resolve, or probe advertised game endpoints, so game
   metadata cannot direct an HTTP request to a private service.
 - A token bucket permits 600 requests/minute per source IP by default, with an
-  initial burst of that size. Owner API calls additionally allow 20/minute per
-  source and verified owner; authenticated peer sync allows 600/minute per peer.
-  Buckets are bounded to 4,096 keys and reset on process restart.
+  initial burst of that size. A prefix budget additionally permits 1,200/minute
+  with a 512-request burst per IPv6 /64 (IPv4 uses exact addresses). Configure
+  `H2_MASTER_IPV6_PREFIX_BITS` and `H2_MASTER_PREFIX_RATE_PER_MINUTE` when needed.
+  A shared budget permits 6,000/minute with a 2,048-request burst; configure its
+  refill with `H2_MASTER_GLOBAL_RATE_PER_MINUTE`. At most 64 HTTP handlers run
+  concurrently; upgraded WebSockets release their HTTP admission slot.
+  Owner API calls additionally allow 20/minute per source and verified owner.
+  Federation uses the separate cadence/single-flight policy in
+  [federation](federation.md); discovery has [page and response budgets](discovery-api.md).
+- Independent bounded LRU tables hold source (4,096), prefix (1,024), principal
+  (4,096), anonymous device (1,024), peer (8), and fixed global (32) buckets.
+  Admission evicts one oldest entry when needed instead of rejecting every
+  unseen source or sweeping the table. Source rotation never evicts principal
+  or peer budgets. Health exposes aggregate occupancy/rejections/evictions,
+  without client addresses. Buckets reset on process restart.
+- Steam pre-provider state is limited to four entries per exact source, eight
+  per source prefix, and 128 anonymous entries globally, including failed and
+  cancelled unverified flows. Anonymous starts also have a shared 16-request
+  burst refilling at 60/minute. Provider-verified and completing flows retain
+  the remaining capacity in the 1,000-entry bank and do not spend anonymous-start
+  tokens to confirm or poll. Fresh exact addresses do not receive a reserve.
 - SQLite writes are serialized in one process, with WAL and transactions. The
   database is bound to its master ID; a missing/mismatched key fails startup.
 

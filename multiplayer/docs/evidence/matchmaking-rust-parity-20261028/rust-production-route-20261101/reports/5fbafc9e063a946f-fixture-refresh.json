@@ -1,0 +1,26 @@
+{
+  "reason": "Eleven actual bounded provider calls need1100ms each to exceed the10s proxy boundary;550ms each would not reproduce that fault.",
+  "relative_path": "tools/rust_service_delivery_controls.py",
+  "before_sha256": "0765c58630614f08fc80343a0790914c4c10da1cc598ab8ad5ec0cc7c451aaf2",
+  "after_sha256": "ea2f28712d3de02d1c586cbc89daad65e5d95037e8f16bc998ae64cdf03f7dbc",
+  "affected_compiler_inputs": false,
+  "refreshed_before_control_module_import": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source",
+  "at_ns": 1793574011764352577,
+  "followup_refresh": {
+    "reason": "Verify actual peer media reception after the proxied idle Ping/Pong, rather than only successful client-side send.",
+    "before_sha256": "ea2f28712d3de02d1c586cbc89daad65e5d95037e8f16bc998ae64cdf03f7dbc",
+    "after_sha256": "21a26d10d35079d32b3e8e34cb7a50090b451dda632743dd69b3017d73952294",
+    "affected_compiler_inputs": false,
+    "refreshed_before_control_module_import": true,
+    "at_ns": 1793574086806157208
+  },
+  "diagnostic_refresh": {
+    "reason": "Require the exact stale-catalog error and retain bounded real service/proxy diagnostics on failure or success.",
+    "before_sha256": "21a26d10d35079d32b3e8e34cb7a50090b451dda632743dd69b3017d73952294",
+    "after_sha256": "2c4b28276e323abbe044d1eb4adee2a710c7b4413406981403db190fd3d69d8a",
+    "affected_compiler_inputs": false,
+    "refreshed_before_control_module_import": true,
+    "at_ns": 1793574142695906338
+  }
+}

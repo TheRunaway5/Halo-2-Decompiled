@@ -2,6 +2,9 @@
 #include "halo2/mcc_native_shaders.hpp"
 #include "halo2/mcc_runtime_delivery.hpp"
 #include "halo2/object_lighting.hpp"
+#include "halo2/model_selection.hpp"
+#include "halo2/model.hpp"
+#include "halo2/source_tag_metadata.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <bit>
@@ -250,10 +253,132 @@ int check_variants(const Json& root,const std::filesystem::path& maps) {
         <<" MCC maps / "<<actual_materials<<" resident donor materials prepared\n";
     return 0;
 }
+int check_shared_env_illum(const Json& root,const std::filesystem::path& prepared,bool audit_neighbors) {
+    require(root.at("cases").size()==1,"shared env_illum literal census changed");
+    const auto& input=root.at("cases").front();Fixture f(root,input);
+    const auto before=f.regions;const auto projected=f.run();
+    require(bool(projected),"literal shared MCC env_illum was not projected");
+    unsigned banks{},main{};check(f,*projected,input,banks,main);
+    require(banks==11&&main==3&&f.regions==before,"shared env_illum paired banks changed");
+    unsigned rejected{};
+    const auto negative=[&](auto mutate){auto bad=f;mutate(bad);require(!bad.run(),"changed shared env_illum source was admitted");++rejected;};
+    for(unsigned n=0;n<f.payload.size();++n)negative([&](auto& bad){bad.payload[n]^=std::byte{1};});
+    negative([](auto& bad){bad.shader.datum^=0x10000u;});
+    negative([](auto& bad){bad.stem.datum^=0x10000u;});
+    negative([](auto& bad){bad.stem.group="mode";});
+    negative([](auto& bad){bad.payload_name[0]^=1;});
+    const Bytes shader_root(f.read(f.shader.address,84));const auto pp=shader_root.u32(36);
+    for(const auto [field,stride]:fields)negative([&](auto& bad){const Bytes d(bad.read(pp,124));bad.write(pp+field,d.u32(field)+1);});
+    negative([&](auto& bad){bad.write(pp+124,1);});
+    negative([&](auto& bad){const Bytes d(bad.read(pp,124));const auto handle=Bytes(bad.read(d.u32(8),4)).u32(0);bad.names.at(handle).group="mode";});
+    negative([&](auto& bad){const Bytes d(bad.read(pp,124));bad.write(d.u32(48),0);});
+    Json report={{"passed",true},{"paired_auxiliary_banks",banks},{"paired_main_banks",main},
+        {"rejection_controls",rejected},{"maps",Json::array()}};
+    const auto maps=prepared/"halo2/h2_maps_win64_dx11";
+    std::unique_ptr<Cache> coagulation;
+    if(audit_neighbors)coagulation=std::make_unique<Cache>(maps/"coagulation.map");
+    for(const auto name:{"street_sweeper","needle"}) {
+        Cache cache(maps/(std::string(name)+".map"));
+        const auto* shader=cache.query_tag({.group=TagGroup{"shad"},.name=input.at("name").get<std::string>(),.require_address=true});
+        require(shader&&cache.is_preserved_native_shader(*shader),"shared env_illum actual Cache admission failed");
+        const auto material=cache.load_material(shader->datum);
+        require(material.passes.size()==60&&material.lods.size()==3,"shared env_illum native pass/LOD census changed");
+        for(unsigned lod=0;lod<material.lods.size();++lod) {
+            auto current=material;current.selected_shader_lod=lod;
+            require(prepare_dynamic_material(cache,current,{},true,0.f),"actual shared env_illum dynamic LOD failed");
+        }
+        report["maps"].push_back({{"map",name},{"shader",shader->datum},{"passes",material.passes.size()},
+            {"shader_lods",material.lods.size()}});
+        if(!audit_neighbors)continue;
+        std::map<std::uint32_t,Material> materials;
+        unsigned definitions{},geometry_lods{},unavailable_definitions{};
+        for(const auto& tag:cache.select_tags())if(tag.group=="weap"||tag.group=="vehi"||tag.group=="bipd") {
+            bool loaded=false;
+            try {
+                const auto initial=cache.load_initial_model_definition(tag.datum);
+                const auto selected=cache.load_initial_model_selection(tag.datum,initial.default_variant);
+                if(!selected.resolved()){++unavailable_definitions;continue;}
+                const auto metadata=cache.load_source_tag_metadata(initial.render_model);
+                const Bytes header(metadata.bytes_at(metadata.source_address(),0x68));
+                const auto count=header.u32(0x60);
+                require(count<=65536,"model material census escapes its source bound");
+                const auto raw_materials=count?cache.read_tag_bytes(header.u32(0x64),std::size_t(count)*32):std::span<const std::byte>{};
+                const Bytes authored_materials(raw_materials);
+                for(unsigned lod=0;lod<6;++lod) {
+                    const auto model=cache.load_model(tag.datum,false,initial.default_variant,selected,lod);
+                    if(model.mesh.vertices.empty())continue;
+                    ++geometry_lods;loaded=true;
+                    std::set<unsigned> used;
+                    for(const auto& vertex:model.mesh.vertices)if(vertex.material<count)used.insert(vertex.material);
+                    for(const auto index:used) {
+                        const auto shader_id=authored_materials.u32(index*32+12);
+                        if(!materials.contains(shader_id))materials.emplace(shader_id,cache.load_material(shader_id,false,false));
+                    }
+                }
+            }catch(const FormatError&){++unavailable_definitions;}
+            definitions+=loaded;
+        }
+        Json failures=Json::array(),census=Json::array();unsigned prepared_lods{},unprepared_lods{};
+        require(materials.size()<=256,"neighbor audit exceeds its bounded material census");
+        for(const auto& [datum,authored]:materials) {
+            Json accepted=Json::array(),rejected=Json::array();
+            for(unsigned lod=0;lod<authored.lods.size();++lod) {
+                auto current=authored;current.selected_shader_lod=lod;
+                try {
+                    if(prepare_dynamic_material(cache,current,{},true,0.f)) {
+                        ++prepared_lods;accepted.push_back(lod);continue;
+                    }
+                }catch(const FormatError&){}
+                ++unprepared_lods;rejected.push_back(lod);
+            }
+            Json row={{"shader",datum},{"name",authored.name},{"template",authored.template_name},
+                {"passes",authored.passes.size()},{"shader_lods",authored.lods.size()},
+                {"rendering_gaps",authored.rendering_gaps},{"prepared_lods",accepted},{"unprepared_lods",rejected}};
+            if(!rejected.empty()) {
+                const auto* counterpart=coagulation->query_tag({.handle=TagHandle{datum},.require_address=true});
+                if(counterpart&&counterpart->group=="shad"&&counterpart->name==authored.name)try {
+                    const auto original=coagulation->load_material(datum,false,false);
+                    Json original_accepted=Json::array(),original_rejected=Json::array();
+                    for(unsigned lod=0;lod<original.lods.size();++lod) {
+                        auto current=original;current.selected_shader_lod=lod;
+                        bool bound=false;
+                        try{bound=prepare_dynamic_material(*coagulation,current,{},true,0.f);}catch(const FormatError&){}
+                        (bound?original_accepted:original_rejected).push_back(lod);
+                    }
+                    row["coagulation"]={{"shader",datum},{"name",original.name},{"template",original.template_name},
+                        {"passes",original.passes.size()},{"shader_lods",original.lods.size()},
+                        {"rendering_gaps",original.rendering_gaps},
+                        {"prepared_lods",original_accepted},{"unprepared_lods",original_rejected}};
+                    row["classification"]=authored.passes.empty()&&!original_accepted.empty()&&original_rejected.empty()
+                        ?"PC has no native passes; exact Coagulation counterpart prepares every LOD"
+                        :"Requires role/source-context qualification; generic dynamic preparation alone does not prove a crash";
+                }catch(const FormatError& e){row["coagulation_error"]=std::string(e.what()).substr(0,512);}
+                else row["coagulation_error"]="No same full-salt shader and symbolic identity in Coagulation";
+            }
+            census.push_back(row);
+            if(!rejected.empty())failures.push_back(std::move(row));
+        }
+        require(!materials.empty()&&prepared_lods,"neighbor audit has no actually decoded material/LOD input");
+        report["maps"].back()["neighbor_audit"]={{"passed",unprepared_lods==0},{"definitions",definitions},{"geometry_lods",geometry_lods},
+            {"unavailable_definitions",unavailable_definitions},{"unique_materials",materials.size()},
+            {"prepared_shader_lods",prepared_lods},{"unprepared_shader_lods",unprepared_lods},
+            {"materials",census},{"failures",failures},
+            {"scope","Successful default-variant weap/vehi/bipd geometry banks at all six LODs; initial dynamic object context; no live object or GPU assertion"}};
+    }
+    const auto output=std::filesystem::path(std::getenv("HALO2_TEST_SCRATCH"))/"mcc-shared-env-illum.json";
+    std::ofstream(output)<<report.dump(2)<<'\n';
+    std::cout<<"PASS shared MCC env_illum: 14 paired banks, "<<rejected
+             <<" strict rejection controls, Street Sweeper/Needle all three dynamic LODs\n";
+    return 0;
+}
 }
 int main(int argc,char**argv)try {
     if(argc<2 || !std::filesystem::is_regular_file(argv[1]))return 77;
     Json root;std::ifstream(argv[1])>>root;
+    if(root.at("schema")=="H2_MCC_SHARED_ENV_ILLUM_FIXTURE_V1") {
+        require(argc>=3,"shared env_illum requires actual prepared MCC data");
+        return check_shared_env_illum(root,argv[2],argc>=4&&std::string_view(argv[3])=="--neighbor-audit");
+    }
     if(root.at("schema")=="H2_MCC_NATIVE_TEMPLATE_VARIANT_FIXTURE_V1")
         return check_variants(root,argc>=3?std::filesystem::path(argv[2]):std::filesystem::path{});
     require(root.at("schema")=="H2_MCC_TEX_BUMP_PRIVATE_FIXTURE_V1","wrong fixture schema");

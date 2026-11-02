@@ -49,6 +49,14 @@ class FrontendRuntimeSelectionTests(unittest.TestCase):
         self.assertFalse(admission.native_gameplay_test_available(self.root,self.frontend,self.cache))
         self.assertEqual(before,{p:p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
 
+    def test_selected_frontend_audits_the_shader_bank_once(self):
+        self.publish()
+        with patch.object(admission, '_runtime_owner', wraps=admission._runtime_owner) as audit, \
+                patch.object(selection, '_runtime_owner', wraps=selection._runtime_owner) as owner_audit:
+            self.assertEqual(self.selected(), self.frontend)
+        # Rechecking selection identities must not repeat the full shader audit.
+        self.assertEqual(audit.call_count + owner_audit.call_count, 1)
+
     def test_missing_stale_runtime_or_sidecar_does_not_fall_back(self):
         for path in (self.frontend,self.fixture.sidecar):
             with self.subTest(path=path):

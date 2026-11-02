@@ -1,0 +1,184 @@
+--- captured/src/ui/frontend_party.cpp
++++ current/src/ui/frontend_party.cpp
+@@ -7,7 +7,6 @@
+ 
+ namespace halo2 {
+ namespace {
+-constexpr unsigned party_context=42;
+ constexpr unsigned invite_context=45;
+ }
+ 
+@@ -15,18 +14,10 @@
+   auto sounds=std::move(pending_ui_sounds_);pending_ui_sounds_.clear();return sounds;
+ }
+ std::optional<FrontendInviteNotice> MenuState::invite_notice() const {
+-  return frontend_party_notice_rust(account_,signed_in_,dismissed_party_invites_,launch.has_value(),unsigned(matchmaking_.status));
++  return frontend_party_notice_rust(account_,signed_in_,party_flow_.dismissed(),launch.has_value(),unsigned(matchmaking_.status));
+ }
+ bool MenuState::act_invite_notice(bool accept) {
+-  const auto notice=invite_notice();if(!notice)return false;
+-  const auto invite=std::find_if(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==notice->id;});
+-  if(invite==account_.party_invitations.end())return false;
+-  if(!accept){dismissed_party_invites_.push_back(invite->id);++revision;return true;}
+-  if(!notice->can_accept || !online_account_)return false;
+-  // Remain on this screen until the worker confirms actual membership.
+-  if(!online_account_->party_command({"accept",invite->id,{},{},invite->version}))return false;
+-  if(online_matchmaking_)online_matchmaking_->cancel_queue();
+-  update_online_account();++revision;return true;
++  return party_flow_drive(FrontendPartyFlowAction::Notice,accept?1:0);
+ }
+ std::vector<OnlinePartyMember> MenuState::online_party_members() const {
+   FrontendPartyIo io;
+@@ -44,20 +35,17 @@
+   return frontend_party_members_rust(account_.party,io);
+ }
+ bool MenuState::online_party_screen(const MenuFrame &f) const {
+-  return (f.screen==14 && mode_==3) || (f.screen==26 && f.context==2) || (f.screen==216 && f.context==0) ||
+-         (f.screen==31 && (f.context==party_context || f.context==invite_context));
++  return frontend_party_flow_screen(mode_,f.screen,f.context);
+ }
+-bool MenuState::party_invite_picker() const {return frame().screen==31 && frame().context==invite_context;}
++bool MenuState::party_invite_picker() const {return frontend_party_flow_picker(frame().screen,frame().context);}
+ bool MenuState::switch_invite_tab(int direction) {
+-  if(!party_invite_picker())return false;
+-  if(direction)party_invite_tab_=1-party_invite_tab_;
+-  auto &f=stack_.back();f.entries.clear();f.selected=0;populate_online_party(f);++revision;return true;
++  return party_flow_drive(FrontendPartyFlowAction::SwitchTab,direction);
+ }
+ void MenuState::populate_online_party(MenuFrame &f) const {
+   f.description.clear();
+   if(f.screen==31 && f.context==invite_context) {
+     f.title="INVITE TO PARTY";
+-    if(party_invite_tab_==0) {
++    if(party_flow_.tab()==0) {
+       f.description=account_.friends_message;
+       for(unsigned i=0;i<account_.friends.size();++i) {
+         const auto &p=account_.friends[i];
+@@ -119,14 +107,16 @@
+     f.entries.push_back({"Leave Party",-33,5});
+   } else if(f.screen==31) {
+     f.title="PARTY";
+-    if(party_target_kind_==1) {
+-      const auto it=std::find_if(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==party_target_;});
++    const auto target=party_flow_.target();
++    const auto kind=party_flow_.kind();
++    if(kind==1) {
++      const auto it=std::find_if(account_.party_invitations.begin(),account_.party_invitations.end(),[&](const auto &i){return i.id==target;});
+       if(it!=account_.party_invitations.end()){f.title=it->name;f.entries={{"Accept Party Invite",-33,2},{"Decline Party Invite",-33,3},{"Block Future Invites",-33,4}};}
+-    } else if(party_target_kind_==2 && account_.party) {
+-      const auto it=std::find_if(account_.party->outgoing.begin(),account_.party->outgoing.end(),[&](const auto &i){return i.id==party_target_;});
++    } else if(kind==2 && account_.party) {
++      const auto it=std::find_if(account_.party->outgoing.begin(),account_.party->outgoing.end(),[&](const auto &i){return i.id==target;});
+       if(it!=account_.party->outgoing.end()){f.title=it->name;f.entries={{"Cancel Party Invite",-33,7}};}
+     } else if(account_.party) {
+-      const auto it=std::find_if(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==party_target_;});
++      const auto it=std::find_if(account_.party->members.begin(),account_.party->members.end(),[&](const auto &m){return m.handle==target;});
+       if(it!=account_.party->members.end()) {
+         f.title=it->name;
+         if(it->self)f.entries={{"Playlists",219,0},{"Leave Party",-33,5}};
+@@ -192,102 +182,17 @@
+   return i==0?account_.party_message.empty()?account_.message:account_.party_message:"";
+ }
+ void MenuState::update_online_privacy() {
+-  if(!online_privacy_pending_)return;
+-  const auto pending=*online_privacy_pending_;
+-  const bool current=frame().screen==25 && frame().instance==pending.frame_instance;
+-  if(!account_.party || !account_.party->privacy || account_.party->privacy->context!=pending.context) {
+-    online_privacy_pending_.reset();
+-    if(current)unavailable("The party changed before its privacy update was acknowledged.");
+-    return;
+-  }
+-  if(!pending.command_serial) {
+-    if(!current)online_privacy_pending_.reset();
+-    return;
+-  }
+-  if(account_.busy || (account_.party_command_serial==pending.command_serial && !account_.party_command_successful))return;
+-  const auto &ack=*account_.party->privacy;
+-  const bool accepted=account_.party_command_serial==pending.command_serial && account_.party_command_successful==true &&
+-      ack.mode==pending.mode && ack.revision>pending.revision;
+-  online_privacy_pending_.reset();
+-  if(!current)return;
+-  if(accepted)back(); // Source2BF022 closes channel3 after its actual mutation.
+-  else unavailable(account_.party_message.empty()?"The party privacy update was not accepted. Try again.":account_.party_message);
++  party_flow_drive(FrontendPartyFlowAction::ObservePrivacy);
+ }
+ std::string MenuState::online_party_column(const MenuFrame &f,unsigned row,unsigned column) const {
+   // Preserve the source caller's profile/local-seat reads before cell guards.
+   const auto members=online_party_members();
+   return frontend_party_column_rust(members,voice_,voice_party_,f.screen,row,column);
+ }
+-void MenuState::party_command(OnlinePartyCommand command) {
+-  const bool enter=command.action=="create" || command.action=="accept";
+-  if(!online_account_ || !online_account_->party_command(std::move(command))){unavailable("Wait for the current ONLINE operation to finish.");return;}
+-  update_online_account();
+-  if(enter){while(stack_.size()>1 && frame().screen!=186)stack_.pop_back();open(14);}
+-  else {
+-    while(stack_.size()>1 && !(frame().screen==26 && frame().context==2) && frame().screen!=14 && frame().screen!=186)stack_.pop_back();
+-    if(frame().screen!=26)open(26,2);
+-  }
+-  ++revision;
+-}
++
+ 
+ 
+ bool MenuState::accept_online_party() {
+-  const auto f=frame();if(!online_party_screen(f))return false;
+-  if(f.entries.empty() || f.selected>=f.entries.size())return true;
+-  const auto entry=f.entries[f.selected];
+-  if(f.screen==216 && entry.destination==31 && entry.value==int(invite_context)) {
+-    party_invite_tab_=0;
+-    update_online_account();open(31,invite_context);return true;
+-  }
+-  if(f.context==invite_context && (entry.destination==-36 || entry.destination==-37)) {
+-    const auto i=unsigned(entry.value);
+-    if(!account_.party || !account_.party->leader || account_.busy)return true;
+-    if(entry.destination==-36 && i<account_.friends.size()) {
+-      const auto &p=account_.friends[i];
+-      if(p.state!="friend")return true;
+-      party_command({"invite_friend",p.id});
+-    } else if(entry.destination==-37 && account_.clan && i<account_.clan->members.size())
+-      party_command({"invite_member",account_.clan->members[i].id});
+-    return true;
+-  }
+-  // 250B1E consumes A/Start before the focused button while the countdown
+-  // runs, so even Game Setup focus shortens it through25106C/19A78E.
+-  if(online_lobby_input(0,entry.destination))return true;
+-  if(f.screen==14 && entry.destination>0){if(!account_.party || account_.party->leader)open(unsigned(entry.destination),unsigned(entry.value));return true;}
+-  if(f.screen==26 && entry.destination==31) {
+-    const auto i=unsigned(entry.value);party_target_version_=0;
+-    if(i>=2000 && account_.party && i-2000<account_.party->outgoing.size()){party_target_=account_.party->outgoing[i-2000].id;party_target_kind_=2;}
+-    else if(i>=1000 && i-1000<account_.party_invitations.size()){const auto &v=account_.party_invitations[i-1000];party_target_=v.id;party_target_version_=v.version;party_target_kind_=1;}
+-    else if(account_.party && i<online_party_members().size()) {
+-      const auto member=online_party_members()[i];
+-      if(member.local_controller>0){open_online_local_player(unsigned(member.local_controller));return true;}
+-      party_target_=member.handle;party_target_kind_=0;
+-    }
+-    else return true;
+-    open(31,party_context);return true;
+-  }
+-  if(entry.destination==167){keyboard_text.clear();open(167,9);return true;}
+-  if(entry.destination>0){open(unsigned(entry.destination),entry.destination==26?2u:unsigned(entry.value));return true;}
+-  if(entry.destination==-5){back();return true;}
+-  if(entry.destination==-34 && online_voice_) {
+-    if(entry.value==0) {
+-      if(voice_party_ && (voice_.joined || voice_.connecting)){online_voice_->leave();party_voice_wanted_=false;}
+-      else {
+-        online_voice_->leave();online_voice_.reset();
+-        online_voice_=std::make_shared<OnlineVoice>(online_account_,true);voice_party_=party_voice_wanted_=true;online_voice_->join();
+-      }
+-    } else if(entry.value==1)online_voice_->mute_microphone(!voice_.microphone_muted);
+-    else if(entry.value==2)online_voice_->mute(party_target_,std::find(voice_.muted.begin(),voice_.muted.end(),party_target_)==voice_.muted.end());
+-    voice_=online_voice_->snapshot();back();update_online_account();return true;
+-  }
+-  if(entry.destination==-33) {
+-    constexpr const char *actions[]{"create","invite_clan","accept","decline","block","leave","unready","cancel","transfer","remove"};
+-    if(entry.value<0 || entry.value>=10)return true;
+-    OnlinePartyCommand command;command.action=actions[entry.value];command.value=party_target_;command.version=party_target_version_;
+-    if(entry.value!=2)command.version=0;
+-    if(entry.value==6 && online_matchmaking_)online_matchmaking_->cancel_queue();
+-    party_command(std::move(command));return true;
+-  }
+-  return true;
++  return party_flow_drive(FrontendPartyFlowAction::Accept);
+ }
+ } // namespace halo2

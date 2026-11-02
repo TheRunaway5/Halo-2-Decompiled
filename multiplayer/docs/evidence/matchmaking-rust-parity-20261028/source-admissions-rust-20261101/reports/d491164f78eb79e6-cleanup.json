@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-native/halo2-test-ck522utp",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/source-admissions-full-rust/halo2-test-rbble3mw"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "source-admissions-full-rust": [],
+    "source-admissions-native": [],
+    "source-admissions-audit": []
+  },
+  "native_unit_state": "LoadState=not-found\nActiveState=inactive\nSubState=dead\n",
+  "retained_large_artifacts": [],
+  "permanent_reference_inputs": [
+    "tests/reference/peer_source_admissions_before_rust_20261101.cpp",
+    "tests/reference/peer_source_admissions_before_rust_20261101.json",
+    "tests/reference/peer_source_admissions_before_rust_20261101/halo2/peer_source_admissions.hpp"
+  ],
+  "preserved": "Original/reference inputs, licensed SDK archive, preexisting snapshots/evidence, selected runtimes and unrelated active work"
+}

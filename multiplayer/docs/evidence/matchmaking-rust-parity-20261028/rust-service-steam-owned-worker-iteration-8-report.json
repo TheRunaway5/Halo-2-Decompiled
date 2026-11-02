@@ -1,0 +1,29 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-8",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 101
+    }
+  ],
+  "action": "all",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/steam_http.rs"
+  ],
+  "source_files": 134,
+  "error": "Rust build/test failed"
+}

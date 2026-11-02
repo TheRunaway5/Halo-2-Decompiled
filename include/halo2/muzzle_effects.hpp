@@ -41,6 +41,16 @@ struct MuzzleEffectView {
   ShaderVector clip_range;
   unsigned width{},height{};
 };
+// Completed source-owned request. The producer instance is an identity only;
+// it is never admitted as a recipient pool handle. Gameplay parts already ran
+// on the producer; local light residency retains its ordinary owner check.
+struct SourceMuzzleEffectRequest {
+  std::uint32_t effect=0xffffffffu,weapon=0xffffffffu,source_instance=0xffffffffu;
+  std::uint32_t tick{},a_bits{},b_bits{};
+  SourceEffectColors colors;
+  Vec3 velocity;
+  bool light_parts_owned{};
+};
 // Native FP residency for the admitted camera1/3 fixed event systems.
 // Markers are current model-order poses, never an estimated camera offset.
 // Authored emitters, RNG, birth and sprite kernels use retained native owners.
@@ -92,11 +102,19 @@ public:
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,bool light_parts_owned);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,
       bool light_parts_owned,bool source_gameplay_parts_owned);
+  // Preserve every native journal request until advance reaches its source
+  // tick. Several receipts may arrive before one frame. Supply current poses
+  // before advance; allocation, refresh, event/RNG and sound kernels then run
+  // in the same tick/order as individually delivered requests.
+  void source_request(const SourceMuzzleEffectRequest &);
   using Marker=std::function<Transform(std::uint32_t)>;
   using Markers=std::function<std::vector<Transform>(std::uint32_t)>;
   // Completed FP marker bank at a simulation tick. Birth never depends on a draw.
   void pose(std::uint32_t weapon,const Marker &,const MuzzleEffectView &,std::uint32_t tick,float tick_seconds);
   void pose(std::uint32_t weapon,const Markers &,const MuzzleEffectView &,std::uint32_t tick,float tick_seconds);
+  // Stage actual marker/view operands without birthing slices or consuming
+  // RNG. Catch-up must install these inputs before either consumer advances.
+  void stage_pose(std::uint32_t weapon,const Markers &,const MuzzleEffectView &);
   // Retained object attachment: repeat flag2, zero initial interval, and
   // current completed object-function scalars. It owns a separate lifetime.
   std::uint32_t attachment(std::uint32_t effect,std::uint32_t weapon,std::uint32_t tick,SourceEffectControls,bool enabled=true);
@@ -106,6 +124,8 @@ public:
       SourceEffectControls,bool enabled,std::uint32_t authored_marker_alias,bool source_gameplay_parts_owned);
   void retire_attachments_except(std::span<const std::uint32_t> weapons);
   void advance(std::uint32_t tick,float tick_seconds);
+  std::optional<std::uint32_t> completed_tick() const noexcept;
+  std::size_t pending_source_requests() const noexcept;
   void collision_query(ParticleCollisionQuery);
   std::uint32_t marker_name(std::uint32_t effect) const;
   std::vector<std::uint32_t> marker_names(std::uint32_t effect) const;

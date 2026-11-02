@@ -1,0 +1,15 @@
+import difflib,hashlib,json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-party-policy-rust-20261102'
+reference=root/'tests/reference/frontend_party_before_rust_20261102'
+records=[]
+for relative in ('src/ui/frontend_party.cpp','src/ui/frontend_painter.cpp','tests/frontend_online_tests.cpp'):
+ before=(reference/(Path(relative).name+'.reference')).read_bytes();after=(root/relative).read_bytes()
+ diff=''.join(difflib.unified_diff(before.decode().splitlines(keepends=True),after.decode().splitlines(keepends=True),fromfile='captured/'+relative,tofile='current/'+relative))
+ target=work/'source-review'/(Path(relative).name+'.diff.txt');target.parent.mkdir(exist_ok=True)
+ target.write_text(diff)
+ records.append({'path':relative,'before_sha256':hashlib.sha256(before).hexdigest(),'after_sha256':hashlib.sha256(after).hexdigest(),'diff':str(target.relative_to(work))})
+assert '[DEBUG-party-policy-' not in (root/'tests/frontend_online_tests.cpp').read_text()
+assert 'unsafe' not in (root/'rust/online_protocol/src/matchmaking_frontend_party.rs').read_text()
+(work/'source-review.json').write_text(json.dumps({'source_changes':records,'temporary_debug_instrumentation_removed':True,'core_party_rust_safe':True},indent=2)+'\n')
+print(json.dumps({'reviewed_changes':len(records),'temporary_debug_instrumentation_removed':True}))

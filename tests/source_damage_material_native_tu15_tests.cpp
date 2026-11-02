@@ -1,5 +1,6 @@
 #include "halo2/source_damage_delivery_runtime.hpp"
 #include "halo2/source_damage_material_native_tu15.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -36,6 +37,7 @@ int main(int argc,char **argv)try {
     std::ifstream input(argv[1]);const auto fixture=Json::parse(input);
     check(fixture.at("schema")=="H2_DAMAGE_MATERIAL_NATIVE_ORIGINAL_V1","Wrong material authority");
     Json results=Json::array();std::size_t differences{},compared_bytes{},instructions_total{},accesses_total{};
+    std::uint64_t search_calls{},comparator_calls{};
     bool product_mutation_rejected=false,other_difference=false;
     for(const auto &row:fixture.at("cases")) {
         Memory memory;for(const auto &bank:row.at("before_banks"))
@@ -54,8 +56,17 @@ int main(int argc,char **argv)try {
         (route=="selected"?source_run_damage_delivery_runtime_selected_observations:source_run_damage_delivery_runtime)(memory,
             0xd71c0u,abi,SourcePhysicsContactImage::TitleUpdate15,*abi.floating_point,services,{});
         const auto actual_activity=source_damage_material_native_activity();
+        search_calls+=actual_activity.search_calls-activity.search_calls;
+        comparator_calls+=actual_activity.comparator_calls-activity.comparator_calls;
         Json errors=Json::array();const auto verify=[&](bool yes,const char *why){if(!yes)errors.push_back(why);};
         verify(actual_activity.calls==activity.calls+1,"Native material route not selected");
+        const auto original_calls=[&](std::uint32_t entry){
+            return std::count(row.at("instructions").begin(),row.at("instructions").end(),entry);
+        };
+        verify(actual_activity.search_calls-activity.search_calls==original_calls(0x1408b0u),
+            "Native material search route not selected for every original call");
+        verify(actual_activity.comparator_calls-activity.comparator_calls==original_calls(0xd8100u),
+            "Native material comparator route not selected for every original call");
         verify(instructions==row.at("instructions"),"Native material instruction boundaries differ");
         verify(memory.accesses==row.at("accesses"),"Native material ordered access addresses/sizes differ");
         verify(abi.gp==expected.at("gp").get<decltype(abi.gp)>(),"Native material GP state differs");
@@ -83,6 +94,7 @@ int main(int argc,char **argv)try {
     }
     Json report{{"passed",differences==0},{"route",route},{"cases",results.size()},{"differences",differences},
         {"original_final_bank_bytes",compared_bytes},{"instructions",instructions_total},{"ordered_accesses",accesses_total},
+        {"native_search_calls",search_calls},{"native_comparator_calls",comparator_calls},
         {"product_mutation_rejected",product_mutation_rejected && !other_difference},{"results",results}};
     std::ofstream(argv[3])<<report.dump(2)<<'\n';
     std::cout<<"Material owner route="<<route<<" cases="<<results.size()<<" differences="<<differences<<'\n';

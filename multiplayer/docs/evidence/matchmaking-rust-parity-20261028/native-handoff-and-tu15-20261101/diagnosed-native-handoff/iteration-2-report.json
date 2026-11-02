@@ -1,0 +1,109 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/iteration-2",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-2-build",
+        "--build-only",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--target",
+        "rust_service_native_handoff_probe",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--retain-report",
+        "online-protocol/Release/build-report.json"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_native_handoff_probe.cpp",
+    "tools/rust_service_native_handoff_controls.py"
+  ],
+  "source_pin_sha256": "25637a9c7c1485c6aa6e3da5840ea741006098ff9c3c13114d0659de74772e66",
+  "native_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build/rust_service_native_handoff_probe",
+    "sha256": "aa87446ccccd771788cc6ba62de9147aad83bdafd8881e6ff564c42cb1579025",
+    "bytes": 27809712,
+    "retained": false
+  },
+  "runtime_binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service/cargo/release/halo2-matchmaking-service",
+    "sha256": "a3b1ed4dd57b20f0143fb680c13aa2aecf10f260a75cfb9a5474879f0479c61d",
+    "retained": false
+  },
+  "native_handoff": {
+    "qualified": false,
+    "native_clients": [
+      {
+        "returncode": 1,
+        "error": "Native queue/handoff failed",
+        "full_settings_validated": true,
+        "game_id": "lab-test-091",
+        "map": "highplains",
+        "native_error": "This build does not include the EOS SDK",
+        "native_loading_reached": false,
+        "native_session_taken": false,
+        "played_world": false,
+        "queue_status": 9,
+        "real_provider": false,
+        "settings_bytes": 304,
+        "stage": "native search/QoS/descriptor",
+        "variant": "3 Plots"
+      },
+      {
+        "returncode": 1,
+        "error": "Native queue/handoff failed",
+        "full_settings_validated": true,
+        "game_id": "lab-test-091",
+        "map": "highplains",
+        "native_error": "Matchmaking failed. Try again.",
+        "native_loading_reached": false,
+        "native_session_taken": false,
+        "played_world": false,
+        "queue_status": 9,
+        "real_provider": false,
+        "settings_bytes": 304,
+        "stage": "native search/QoS/descriptor",
+        "variant": "3 Plots"
+      }
+    ],
+    "full_settings_validated": true,
+    "configured_sdk": false,
+    "negative_control": "Explicit disabled EOS client configuration; v16 must not silently downgrade its transport.",
+    "source_catalog_edited": false,
+    "declared_map_inventory": [
+      "beavercreek",
+      "coagulation",
+      "deltatap",
+      "derelict",
+      "foundation",
+      "highplains",
+      "lockout",
+      "midship",
+      "triplicate",
+      "warlock",
+      "waterworks",
+      "zanzibar"
+    ],
+    "real_provider": false,
+    "played_world": false,
+    "original_parity": false,
+    "full_goal_complete": false
+  }
+}

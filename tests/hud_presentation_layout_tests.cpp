@@ -43,14 +43,19 @@ int main() try {
             "HUD cell right no longer reaches its physical viewport");
       close(y(v.outer.bottom), reference.outer.bottom * dimensions[1] / 480,
             "HUD cell bottom no longer reaches its physical viewport");
-      close(x(v.safe.left) - x(v.outer.left), 8 * layout.scale,
-            "HUD left corner still uses the Xbox overscan inset");
-      close(y(v.safe.top) - y(v.outer.top), 8 * layout.scale,
-            "HUD top corner still uses the Xbox overscan inset");
-      close(x(v.outer.right) - x(v.safe.right), 8 * layout.scale,
-            "HUD right corner still uses the Xbox overscan inset");
-      close(y(v.outer.bottom) - y(v.safe.bottom), 8 * layout.scale,
-            "HUD bottom corner still uses the Xbox overscan inset");
+      const bool split = reference.mode != 0;
+      const float left_inset = split ? 8 : reference.safe.left-reference.outer.left,
+                  top_inset = split ? 8 : reference.safe.top-reference.outer.top,
+                  right_inset = split ? 8 : reference.outer.right-reference.safe.right,
+                  bottom_inset = split ? 8 : reference.outer.bottom-reference.safe.bottom;
+      close(x(v.safe.left) - x(v.outer.left), left_inset * layout.scale,
+            "HUD left inset changed its single-view/split-screen policy");
+      close(y(v.safe.top) - y(v.outer.top), top_inset * layout.scale,
+            "HUD top inset changed its single-view/split-screen policy");
+      close(x(v.outer.right) - x(v.safe.right), right_inset * layout.scale,
+            "HUD right inset changed its single-view/split-screen policy");
+      close(y(v.outer.bottom) - y(v.safe.bottom), bottom_inset * layout.scale,
+            "HUD bottom inset changed its single-view/split-screen policy");
       // The source center is deliberately asymmetric in split-screen.
       // Preserve its existing floor operation in adapted HUD coordinates.
       const float old_left = v.outer.left + reference.safe.left - reference.outer.left,

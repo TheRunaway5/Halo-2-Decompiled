@@ -49,6 +49,12 @@ ShaderVector oracle(const Material& material,std::array<ShaderVector,4> t) {
         else t[3][0]=t[3][1]=t[3][2]=.5f;
         v1[3]=0;
     }
+    if(pt::qualified_opaque_detail(material)) {
+        auto words=material.forward_program.words;words[15]&=0xff000000u;
+        auto result=halo2_test::scalar_combiners(words,t,material.forward_diffuse,v1);
+        result[3]=t[0][3]; // Family6 is opaque; its alpha remains the T0 representative.
+        return result;
+    }
     return halo2_test::scalar_combiners(material.forward_program.words,t,material.forward_diffuse,v1);
 }
 // Read authored RGBA8/BC images directly, independently of the resident record.
@@ -116,7 +122,9 @@ void verify(Material material,std::mt19937& random) {
     const auto original=material.forward_program;
     for(unsigned n=0;n<1024;++n) {
         std::array<ShaderVector,4> t{};for(auto& sample:t)for(auto& c:sample)c=channel(random);
-        for(unsigned c:{13u,21u,43u,44u})material.forward_program.words[c]=random();
+        if(source->family==pt::SurfaceFamily::OpaqueDetail)
+            material.forward_program.words[15]=random()&0x00ffffffu;
+        else for(unsigned c:{13u,21u,43u,44u})material.forward_program.words[c]=random();
         if(bump_coverage(source->family)) {
             const auto below_opaque=[&]{return (random()&0xffffffu)|((random()%255u)<<24);};
             if(source->family==pt::SurfaceFamily::BumpLeafCoverage) {
@@ -241,7 +249,7 @@ int main(int argc,char** argv)try {
     for(const auto& material:bump){require(material.has_value(),"Actual source census missed a bump coverage family");bump_controls(*material);}
     report.update({{"passed",true},{"checks",checks},{"qualified_materials",qualified},{"scalar_cases",scalar_cases},
         {"atlas_cases",atlas_cases},{"maximum_error",maximum_error},{"bump_coverage_cases",coverage_cases},
-        {"scope","Exact admitted native unlit RGB and family1..3 output-alpha; family4..5 preserve only proven LESS255 coverage. Source mip/sampler transport and tint; no GPU or unknown-family parity claim"}});
+        {"scope","Exact admitted native unlit RGB and family1..3 output-alpha; family4..5 preserve only proven LESS255 coverage; opaque family6 retains its T0 alpha representative. Source mip/sampler transport and tint; no GPU or unknown-family parity claim"}});
     std::ofstream(argv[3])<<report.dump(2)<<'\n';
     std::cout<<"PASS native source surface: materials="<<qualified<<" scalar="<<scalar_cases<<" atlas="<<atlas_cases<<" checks="<<checks<<'\n';return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

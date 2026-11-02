@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <map>
 using namespace halo2;
 namespace {
 void check(bool ok,const char *why){if(!ok)throw FormatError(why);}
@@ -45,9 +46,8 @@ int main(int argc,char **argv)try {
       ++controls;
       check(name.starts_with(devices.device(view)==PromptDevice::PlayStation?
           "controller-prompts/playstation/":"controller-prompts/xbox/"),"A player drew another controller family's artwork");
-      check(devices.device(view)!=PromptDevice::KeyboardMouse,"KBM player drew a controller icon");
     }
-    check(devices.device(view)==PromptDevice::KeyboardMouse?!controls:controls>=6,
+    check(controls>=6,
           "Device selection failed to reach the actual action HUD icon quads");
     ++draws;return vertices;
   };
@@ -70,12 +70,68 @@ int main(int argc,char **argv)try {
   // changing the logical font or ordinary glyph samples.
   ControllerPromptArtwork artwork(mesh,gameplay_font_directory(cache));artwork.prepare(6);
   const auto font=load_gameplay_font_source(gameplay_font_directory(cache));
+  unsigned owned_bindings{};
+  for(unsigned selector=0;selector<font.names.size();++selector) {
+    artwork.prepare(selector);
+    const auto raw=load_retail_font(font.directory/font.names.at(selector));
+    std::map<std::uint32_t,unsigned> counts;
+    for(const auto record:raw.glyph_record_indices)++counts[record];
+    for(unsigned code=0xe100;code<=0xe13c;++code) {
+      if((code>0xe111 && code<0xe12c) || (code>=0xe136 && code<=0xe13b))continue;
+      const auto record=raw.glyph_record_indices.at(code);
+      const auto found=raw.glyphs.find(code);
+      if(record==0xffffffffu || counts.at(record)!=1 || found==raw.glyphs.end() ||
+          !found->second.width || !found->second.height)continue;
+      const auto& g=found->second;
+      for(const auto device:{PromptDevice::KeyboardMouse,PromptDevice::Xbox,PromptDevice::PlayStation}) {
+        const auto sample=artwork.sample(selector,code,device,g,0,0,g.width,g.height);
+        check(sample && mesh.materials.at(sample->material).name.starts_with("controller-prompts/"),
+            "An active control/keycap glyph sampled MCC button artwork");
+      }
+      ++owned_bindings;
+    }
+  }
+  check(owned_bindings==331,"Owned button prompt coverage differs from the actual MCC selector bindings");
   const auto actual=load_gameplay_font(font,6);const auto &glyph=actual.glyphs.at(0xe100);
   const auto full=artwork.sample(6,0xe100,PromptDevice::PlayStation,glyph,0,0,glyph.width,glyph.height);
   const auto clipped=artwork.sample(6,0xe100,PromptDevice::PlayStation,glyph,2,3,glyph.width-4,glyph.height-6);
   check(full && clipped && clipped->material==full->material && clipped->uv[0]>full->uv[0] &&
       clipped->uv[1]>full->uv[1] && clipped->uv[2]<full->uv[2] && clipped->uv[3]<full->uv[3],
       "Clipped PlayStation prompt lost its actual atlas rectangle");
+  const auto control_font=load_retail_font(font.directory/font.names.at(6));
+  for(const auto code:{0xe132u,0xe133u,0xe134u,0xe135u,0xe13cu}) {
+    const auto& frame=control_font.glyphs.at(code);
+    for(const auto device:{PromptDevice::KeyboardMouse,PromptDevice::Xbox,PromptDevice::PlayStation}) {
+      const auto sample=artwork.sample(6,code,device,frame,0,0,frame.width,frame.height);
+      check(sample && mesh.materials.at(sample->material).name.starts_with("controller-prompts/"),
+          "A keycap/shared prompt fell back to MCC controller glyph artwork");
+    }
+  }
+  {
+    const auto cwd=std::filesystem::current_path();
+    const auto* layout=std::getenv("H2_INSTALLATION_LAYOUT");
+    const bool had_layout=layout!=nullptr;const std::string saved=layout?layout:"";
+    const auto restore=[&]{
+      std::filesystem::current_path(cwd);
+      if(had_layout)SDL_setenv("H2_INSTALLATION_LAYOUT",saved.c_str(),1);
+    };
+#ifdef _WIN32
+    _putenv_s("H2_INSTALLATION_LAYOUT","");
+#else
+    unsetenv("H2_INSTALLATION_LAYOUT");
+#endif
+    bool rejected=false;
+    try {
+      std::filesystem::current_path(cwd.root_path());
+      Mesh empty;
+      ControllerPromptArtwork missing(empty,cwd.root_path()/"__missing_owned_prompts__/halo2/h2_fonts");
+      missing.prepare(6);
+      try{(void)missing.sample(6,0xe100,PromptDevice::Xbox,glyph,0,0,glyph.width,glyph.height);}
+      catch(const FormatError&){rejected=true;}
+    }catch(...){restore();throw;}
+    restore();
+    check(rejected,"Missing owned Xbox prompts silently fell back to MCC glyph pixels");
+  }
   mcc_native_prompt_test::verify_native_mcc_prompt_hud(gameplay_font_directory(cache));
   if(argc==3) {
     const auto *prior_layout=std::getenv("H2_INSTALLATION_LAYOUT");
@@ -90,6 +146,6 @@ int main(int argc,char **argv)try {
         "Vanilla onboarding cache did not provide its installed PlayStation artwork");
     SDL_setenv("H2_INSTALLATION_LAYOUT",prior.c_str(),1);
   }
-  std::cout<<"PASS mixed controller HUD: players=4 draws="<<draws<<" sizes=3 families=Xbox,PlayStation,KBM isolation=exact\n";
+  std::cout<<"PASS mixed controller HUD: players=4 draws="<<draws<<" sizes=3 families=Xbox,PlayStation,KBM isolation=exact owned_bindings="<<owned_bindings<<"\n";
   return 0;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

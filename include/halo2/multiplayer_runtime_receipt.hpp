@@ -31,6 +31,8 @@ struct MultiplayerRuntimeReceiptValues {
     std::uint64_t world_impact_serial{},world_melee_serial{},world_detonation_serial{},
         world_unit_effect_serial{},world_voice_serial{},rumble_serial{};
     std::uint32_t client_effect_serial{},world_weapon_effect_serial{};
+    NativeWeaponZoomAudioCursorTu15 weapon_zoom_audio_cursor;
+    std::vector<NativeWeaponZoomAudioPendingTu15> weapon_zoom_audio_pending;
     std::uint32_t objective_audio_serial{};
     std::optional<std::uint32_t> objective_audio_tick;
     MultiplayerEventMessageStateTu15 event_messages;

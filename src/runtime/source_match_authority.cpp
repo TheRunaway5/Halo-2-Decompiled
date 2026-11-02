@@ -176,6 +176,13 @@ void SourceMatchAuthority::Prepared::retain_live_multiplayer_render_history_from
   source.calls_.capture();source.match_.authority_calls_.capture();
   impl_->world->retain_live_multiplayer_render_history_from(source.world_);
 }
+void SourceMatchAuthority::Prepared::retain_native_particle_history_from(
+    const SourceMatchAuthority &source) {
+  if(!impl_ || !impl_->world || impl_->owner==&source)
+    throw FormatError("Native particle history requires a distinct prepared Match owner");
+  source.calls_.capture();source.match_.authority_calls_.capture();
+  impl_->world->retain_native_particle_history_from(source.world_);
+}
 SourceMatchAuthority::Prepared SourceMatchAuthority::prepare(const Checkpoint &saved,AuthorityDigest binding) {
   return prepare(saved,binding,{});
 }

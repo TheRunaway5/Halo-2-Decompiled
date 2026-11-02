@@ -19,15 +19,16 @@ void append(SourceBspDrawState& state,const SourceBspDrawContext& context,
     const SourceBspDrawGeometry& geometry,std::uint32_t classification,
     std::uint32_t unit_flags,unsigned cluster,unsigned instance,
     std::uint16_t association,std::uint8_t alpha,std::uint32_t transform,
-    float coverage,const std::function<bool(bool)>& request_resident={}) {
+    float coverage,const std::function<bool(bool)>& request_resident={},const SourceDrawUnitServices* live={}) {
     SourceDrawUnitInput input;input.geometry=cluster;input.instance=instance;
     input.stack={unit_flags,0xffffffffu,0xffffffffu,0,0,association,alpha,
         transform,0xffffffffu,std::bit_cast<std::uint32_t>(coverage),31};
+    if(live){source_draw_unit_append(state,input,{context.mode,context.mask_arena_address},*live);return;}
     SourceDrawUnitServices services;
     services.geometry=[&](auto,auto,const auto&){return SourceDrawUnitGeometry{geometry.geometry_class,geometry.mask_subparts};};
     services.lighting=[&](auto,auto,auto){return classification;};
-    services.resident=[&](auto,auto selector,auto,const auto&) {
-        return request_resident?request_resident((selector&255u)!=0):geometry.resident;
+    services.resident=[&](auto,auto,bool request,const auto&) {
+        return request_resident?request_resident(request):geometry.resident;
     };
     source_draw_unit_append(state,input,{context.mode,context.mask_arena_address},services);
 }
@@ -47,8 +48,11 @@ void source_bsp_collect_draw_units(SourceBspDrawState& state,SourceBspAdmission&
         const auto entry=admission.cluster_entries[record.id];
         //133390 uses MOVSX byte, then2CBF0 stores its low16 association.
         const auto association=std::uint16_t(std::int16_t(std::bit_cast<std::int8_t>(entry)));
-        append(state,context,world.clusters[record.id],world.lightmap_matches?0:3,
-            flags(record.flags,context)|0x40u,record.id,0x7ff,association,255,0,coverage);
+        const auto resident=world.cluster_resident?std::function<bool(bool)>([&](bool request) {
+            return world.cluster_resident(record.id,request);
+        }):std::function<bool(bool)>{};
+        append(state,context,world.clusters[record.id],world.services?0u:world.lightmap_matches?0u:3u,
+            flags(record.flags,context)|0x40u,record.id,0x7ff,association,255,0,coverage,resident,world.services);
     }
     for(auto& record:admission.instances) {
         if(record.id>=world.instances.size() || record.id>=2048)
@@ -60,7 +64,7 @@ void source_bsp_collect_draw_units(SourceBspDrawState& state,SourceBspAdmission&
         const auto coverage=source_shader_instance_coverage(instance.center,instance.radius,context.camera);
         const auto alpha=source_shader_instance_alpha(coverage);
         if(!alpha){record.flags|=1;continue;}
-        const unsigned classification=world.lightmap_matches && owner.lightmap_resident?
+        const unsigned classification=world.services?0u:world.lightmap_matches && owner.lightmap_resident?
             unsigned(owner.lighting_policy!=0):3;
         const auto definition=unsigned(instance.definition);
         const auto resident=world.definition_resident?std::function<bool(bool)>([&](bool request) {
@@ -68,7 +72,7 @@ void source_bsp_collect_draw_units(SourceBspDrawState& state,SourceBspAdmission&
         }):std::function<bool(bool)>{};
         append(state,context,world.definitions[definition],classification,
             flags(record.flags,context)|0x1008u|((record.flags&0x800u)?1u:0x40u),
-            0,record.id,record.association,alpha,owner.transform_address,coverage,resident);
+            0,record.id,record.association,alpha,owner.transform_address,coverage,resident,world.services);
     }
 }
 }

@@ -1,0 +1,160 @@
+{
+  "passed": true,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-tests.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-build.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "directory-production-abi.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_discovery_only",
+        "multiplayer.master_server.tests.test_http",
+        "multiplayer.master_server.tests.test_registry"
+      ],
+      "returncode": 0,
+      "log": "directory-regressions.log"
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "returncode": 0,
+      "log": "private-provider-fixture.log"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "production_activated": false,
+  "docker_image_executed": false,
+  "caddy": {
+    "version": "v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=",
+    "archive_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz",
+    "checksum_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_checksums.txt",
+    "archive_sha512": "a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7",
+    "archive_sha256": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+    "binary_sha256": "678ade3bfc088749c81a681adc603333ee0bb023b6a6cfe3c0f58bef8ff854e9",
+    "retained": false
+  },
+  "binary": {
+    "sha256": "dab44b71c09e6752f46bea695415dce8bbaeb8e3e628f1b40ac8ceb8dc336f58",
+    "bytes": 11466000,
+    "retained": false
+  },
+  "directory_abi": {
+    "sha256": "112738e3280a524b3611ea8ea47f2b94163b33adb9f67b0eaf30f4702acaa370",
+    "bytes": 4974928,
+    "retained": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "controls_sha256": "1f7590f3a01a400b37cfb4edb43b37c634fb548209d311d6161a5029705a9693",
+      "output": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/rust-delivery-20261101/run-03/attempt-01",
+      "passed": false,
+      "error": "AssertionError(('PUT', '/v1/account/voice-blocks', 502, 200, 'Identity provider unavailable'))",
+      "accepted_control_refresh": {
+        "before_sha256": "1f7590f3a01a400b37cfb4edb43b37c634fb548209d311d6161a5029705a9693",
+        "after_sha256": "47af1525fcc1a72697a56ef6acbdfce7b0e4fc8f11d5e9cb7511d68ed7d6f1d3",
+        "compiler_inputs_changed": false
+      }
+    },
+    {
+      "attempt": 2,
+      "controls_sha256": "47af1525fcc1a72697a56ef6acbdfce7b0e4fc8f11d5e9cb7511d68ed7d6f1d3",
+      "output": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/rust-delivery-20261101/run-03/attempt-02",
+      "passed": true
+    }
+  ],
+  "delivery": {
+    "passed": true,
+    "checks": [
+      "negative controls reproduce the old 10s gateway failure and 16KiB voice-preference refusal",
+      "verified local TLS reaches the real Rust thousand-friend lookup and full2000-subject preference write; typed body limits still reject overflow",
+      "health and unsupported routes belong to Rust; legacy discovery is isolated and has no matching fallback",
+      "all14 playlists, v12/v16 eligibility, ticket search/cancel and consent-gated shared countdown traverse Caddy TLS into Rust",
+      "real WSS search heartbeat and party-voice idle Ping/Pong plus subsequent peer media delivery survive the production proxy transports",
+      "service restart and catalog revision change retain canonical identities, ranks and signing keys; old grants/revisions are rejected",
+      "catalog rollback reuses the original canonical database and signing identities",
+      "stopped Rust produces a gateway error while discovery remains live; requests never fall through to Python",
+      "the production loopback-only trust boundary still rejects a wildcard backend before opening state",
+      "Docker Compose validates the opt-in namespace, mounts and restart dependencies without activating it"
+    ],
+    "observations": {
+      "old_proxy_timeout": {
+        "status": 504,
+        "seconds": 10.005562479025684
+      },
+      "old_proxy_voice_body_status": 413,
+      "candidate_steam_lookup_seconds": 12.171133889991324,
+      "voice_idle_ping_seconds": 10.116055006015813,
+      "docker_daemon": {
+        "available": false,
+        "returncode": 1,
+        "diagnostic": "failed to connect to the docker API at unix:///home/eric/.docker/desktop/docker.sock; check if the path is correct and if the daemon is running: dial unix /home/eric/.docker/desktop/docker.sock: connect: no such file or directory\n"
+      }
+    },
+    "real_provider": false,
+    "original_live": false,
+    "played_world": false,
+    "installed_client_input": false,
+    "docker_image_executed": false,
+    "full_matchmaking_ready": false,
+    "legacy_binary_rollback_qualified": false
+  },
+  "source_drift_after_validation": []
+}

@@ -1,0 +1,148 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw",
+  "commands": [
+    {
+      "name": "compile",
+      "argv": [
+        "/usr/bin/c++",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/src",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/native-source/include",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/native.o",
+        "-c",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/native.cpp"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "link",
+      "argv": [
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/native.o",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/native-probe",
+        "-Wl,-rpath,/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/eos-sdk/SDK/Bin",
+        "libhalo2_online_matchmaking.a",
+        "libhalo2_peer_survivor_selection.a",
+        "libhalo2_online_peers.a",
+        "_deps/halo2_datachannel-build/libdatachannel-static.a",
+        "_deps/halo2_datachannel-build/deps/usrsctp/usrsctplib/libusrsctp.a",
+        "/usr/lib/libssl.so",
+        "_deps/halo2_datachannel-build/deps/libjuice/libjuice-static.a",
+        "libhalo2_authority_transfer.a",
+        "libhalo2_source_admissions.a",
+        "libhalo2_peer_mesh_quality.a",
+        "libhalo2_peer_host_agreement.a",
+        "libhalo2_peer_common_cut.a",
+        "libhalo2_peer_snapshot_candidate.a",
+        "libhalo2_online_voice.a",
+        "libhalo2_online_account.a",
+        "libhalo2_discord_identity.a",
+        "libhalo2_online_protocol.a",
+        "online-protocol/Release/libhalo2_online_protocol_bridge.a",
+        "eos-sdk/SDK/Bin/libEOSSDK-Linux-Shipping.so",
+        "-Wl,@/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/online-protocol/Release/native-libs.rsp",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcrypto.so",
+        "/usr/lib/libSDL2-2.0.so.0.3200.74",
+        "/usr/lib/libopus.so",
+        "libhalo2_game_variant.a"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "shim",
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/again.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-again-wire/halo2-test-i2n548hw/again.so",
+        "-ldl"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "cases": {
+    "qos": {
+      "native_exit_code": 0,
+      "wire": {
+        "empty_pong_received": true
+      },
+      "socket_send_calls": [
+        {
+          "injected": true,
+          "length": 0,
+          "sent": 0,
+          "result": 81
+        },
+        {
+          "injected": false,
+          "length": 0,
+          "sent": 0,
+          "result": 0
+        }
+      ],
+      "fixture": "One actual zero-byte WebSocket Ping; native curl_ws_send reports CURLE_AGAIN exactly once. No response is supplied."
+    },
+    "room": {
+      "native_exit_code": 0,
+      "wire": {
+        "empty_pong_received": true
+      },
+      "socket_send_calls": [
+        {
+          "injected": true,
+          "length": 0,
+          "sent": 0,
+          "result": 81
+        },
+        {
+          "injected": false,
+          "length": 0,
+          "sent": 0,
+          "result": 0
+        }
+      ],
+      "fixture": "One actual zero-byte WebSocket Ping; native curl_ws_send reports CURLE_AGAIN exactly once. No response is supplied."
+    }
+  },
+  "genuine_providers": false,
+  "played_world": false,
+  "source_pins": {
+    "src/network/online_match_session.cpp": "eb501209d336ea06dea7a3d92de500f972e4aceb4f617bb246f4ee04808e89fc",
+    "include/halo2/native_matchmaking_socket.hpp": "105a3e0a9112e8a774e2f21accb1146dcbe38c65bbf4e2941cfed823c41ebd50",
+    "src/network/online_search_qos.cpp": "b0c627581e06f0079ba57951cef528656322ed886077da1f63bec5bb2e36573b",
+    "rust/online_protocol/src/matchmaking_native_qos.rs": "c61846b071c5e4d85ee2b3f518b84f0d2e81322867d7dd1302de6f5436635c6d",
+    "rust/online_protocol/src/matchmaking_native_socket.rs": "818ecdb2376800c1da6c85ab7e71562dd5c745ca0cdcf782a4dba1662715a587",
+    "rust/online_protocol/src/matchmaking_native_control.rs": "ba6f23c095c4fcc5c1244a7a7b7175f7dff5c0dd47b650c418f9111df094e582",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "f03987950c519af626fcc73fead01312c08c691e91c0b8ed1b184e13086aa752",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "3f13c239e5c38522c9fd8680c332c4489348b95cf13fb61f63a6e62451be120e"
+  },
+  "borrowed_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-qualified/halo2-test-im4wrtc1/build/libhalo2_online_matchmaking.a",
+    "sha256": "9c29ff762371463c565b722f4438eb63d416b7078992f063dd96bfc7a2db8e6e",
+    "borrowed_read_only": true,
+    "copied": false
+  },
+  "native_probe": {
+    "sha256": "f1888dbeb44cd4495bd477785dd4b7dd634635a8552afac94866a6d3bc1041b1",
+    "bytes": 28000824,
+    "retained": false
+  },
+  "rust_qos_native_wire_control_passed": true,
+  "rust_room_native_wire_control_passed": true,
+  "original_cpp_room_regression_fixed": true,
+  "scope": "Actual native socket/backpressure comparison on one frozen cohort. Both Rust QoS and the native room Rust worker retry the unsent empty Pong and the actual server receives it. The prior C++ room regression is fixed. No original Live, native world, genuine provider or installed acceptance is asserted."
+}

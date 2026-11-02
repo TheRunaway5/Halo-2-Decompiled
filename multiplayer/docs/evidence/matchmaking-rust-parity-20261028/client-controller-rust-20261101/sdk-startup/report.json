@@ -1,0 +1,12 @@
+{
+  "binary_sha256": "4980415575c85417de12d433116a2a13fb64913072e4fe4a83d38d23ddc6bddc",
+  "exit_code": 1,
+  "fixture_inputs_explicitly_absent": true,
+  "startup": [
+    "Shutdown handler: initialize.",
+    "Private QoS fixture inputs required",
+    "Shutdown handler: cleanup."
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-sdk-startup-diagnostic/halo2-test-tv5cjfiu",
+  "retained_large_artifacts": []
+}

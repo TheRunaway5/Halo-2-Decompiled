@@ -14,6 +14,9 @@ int actual_lockout_colors(const std::filesystem::path& shaders,const std::filesy
     if(!std::filesystem::is_regular_file(map))return 77;
     Cache cache(map);const auto mesh=cache.load_bsp(0);
     auto scene=pt::build_scene(mesh.vertices,mesh.materials);pt::refresh_color_guides(scene,mesh.lightmaps);
+    // Isolate actual local emission explicitly. Authenticated secondary
+    // irradiance exists independently of sky availability in production.
+    for(auto& material:scene.materials)material.color_guide[3]=0;
     auto dark=scene;for(auto& material:dark.materials)material.emission={};
     dark.emissive_count=0;dark.pixels.resize(dark.texture_texel_count);
     auto pure_bsdf_scene=scene;
@@ -28,7 +31,8 @@ int actual_lockout_colors(const std::filesystem::path& shaders,const std::filesy
     const auto dot=[](Vec3 a,Vec3 b){return a.x*b.x+a.y*b.y+a.z*b.z;};
     const auto cross=[](Vec3 a,Vec3 b){return Vec3{a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x};};
     const auto normalize=[&](Vec3 v){return multiply(v,1.f/std::sqrt(dot(v,v)));};
-    Json report{{"map",map.string()},{"scope","Actual BSP receiver/material/emission transport; local emission isolated from sky and occupied native lights; no native gameplay acceptance"},
+    Json report{{"map",map.string()},{"scope","Actual BSP receiver/material/emission transport; local emission isolated from secondary static irradiance (energy tags explicitly cleared), sky and occupied native lights; no native gameplay acceptance"},
+        {"source_indirect_cache_enabled",false},
         {"upscaler","Off"},{"samples",1},{"bounces",1},{"emissive_triangles",scene.emissive_count},{"regions",Json::array()}};
     bool colors_valid=true,noise_valid=true;
     for(const auto first:std::array<unsigned,2>{20124,18645}) {

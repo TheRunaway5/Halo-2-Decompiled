@@ -1,0 +1,72 @@
+--- frozen/rust/online_protocol_bridge/src/lib.rs
++++ current/rust/online_protocol_bridge/src/lib.rs
+@@ -68,6 +68,8 @@
+ use matchmaking_frontend_party::*;
+ mod matchmaking_frontend_party_flow;
+ use matchmaking_frontend_party_flow::*;
++mod matchmaking_frontend_lobby_view;
++use matchmaking_frontend_lobby_view::*;
+ use matchmaking_readiness::{matchmaking_connected_teams, matchmaking_eligibility,
+     matchmaking_error_dialog, matchmaking_error_clear, matchmaking_native_launch_ready};
+ use netcode::{
+@@ -547,6 +549,27 @@
+     enum MigrationDriverFreezeKind { Publish, Retire, Refuse, Invalidate }
+     struct MigrationDriverFreeze { kind: MigrationDriverFreezeKind, reason: MigrationDriverReason }
+     enum MigrationDriverRetirement { Retryable, RetiredButFenced, Stale }
++    struct LobbyViewBool {present:bool,value:bool}
++    struct LobbyViewI32 {present:bool,value:i32}
++    struct LobbyViewU32 {present:bool,value:u32}
++    struct LobbyViewBytes {present:bool,value:Vec<u8>}
++    struct LobbyViewSession {session_class:i32,live_subtype:i32,campaign_id:i32,variant:LobbyViewI32,settings_valid:bool}
++    struct LobbyViewInput {
++        session:i32,previous:i32,host:bool,team_mode:bool,local_team_selection:bool,
++        countdown:bool,start_permission:bool,update_guard:bool,status:i32,delayed_player:i32,
++        countdown_cancelled:bool,loading_map:bool,editing_options:bool,team_count:i32,
++        player_count:i32,max_players:i32,overflow_status:u32,privacy:i32,prior_stats:i32,
++    }
++    struct LobbyViewPresentation {
++        pane:i32,buttons_present:bool,button0:bool,button1:bool,leader_text:LobbyViewU32,
++        leader_visible:LobbyViewBool,start_eligible:LobbyViewBool,status:LobbyViewU32,
++        status_warning:bool,subtitle:u32,privacy_text:LobbyViewU32,privacy_visible:LobbyViewBool,
++        privacy:LobbyViewU32,prior_stats_text:LobbyViewU32,prior_stats_visible:LobbyViewBool,
++    }
++    struct LobbyViewHelp {text:LobbyViewU32,visible:bool,value:LobbyViewU32,string_id:u32}
++    struct LobbyViewCategory {present:bool,rows:Vec<u32>}
++    struct LobbyViewChoice {label:Vec<u8>,value:i32}
++    struct LobbyViewParameter {present:bool,parameter:u32,title:Vec<u8>,choices:Vec<LobbyViewChoice>}
+     unsafe extern "C++" {
+         include!("src/matchmaking_native_preparation.hpp");
+         type NativePreparationIo;
+@@ -578,6 +601,12 @@
+         include!("src/matchmaking_frontend_presentation.hpp");
+         include!("src/matchmaking_frontend_party.hpp");
+         include!("src/matchmaking_frontend_party_flow.hpp");
++        include!("src/matchmaking_frontend_lobby_view.hpp");
++        type NativeFrontendLobbyViewIo;
++        fn lobby_view_category(self:&NativeFrontendLobbyViewIo,id:u32)->Result<LobbyViewCategory>;
++        fn lobby_view_parameter(self:&NativeFrontendLobbyViewIo,tag:u32)->Result<LobbyViewParameter>;
++        fn lobby_view_value(self:&NativeFrontendLobbyViewIo,parameter:u32)->Result<LobbyViewI32>;
++        fn lobby_view_default(self:&NativeFrontendLobbyViewIo,engine:u32,parameter:u32)->Result<LobbyViewI32>;
+         type NativeFrontendPartyFlowIo;
+         fn party_flow_facts(self:&NativeFrontendPartyFlowIo)->Result<PartyFlowFacts>;
+         fn party_flow_members(self:&NativeFrontendPartyFlowIo)->Result<Vec<PartyMemberData>>;
+@@ -957,6 +986,19 @@
+         fn frontend_party_column(party:&[PartyMemberData],voice:&PartyVoiceData,screen:u32,row:u32,column:u32)->Vec<u8>;
+         fn frontend_party_sounds(before:&PartyNotificationData,after:&PartyNotificationData)->Vec<u32>;
+         fn frontend_party_notice(facts:&PartyNoticeFactsData)->PartyNoticeData;
++        fn lobby_view_session(input:&LobbyViewSession)->i32;
++        fn lobby_view_pane(session:i32,previous:i32)->i32;
++        fn lobby_view_protocol(session:i32)->u32;
++        fn lobby_view_presentation(input:&LobbyViewInput)->LobbyViewPresentation;
++        fn lobby_view_variant_type(engine:u32)->LobbyViewI32;
++        fn lobby_view_game_icon(kind:i32)->i32;
++        fn lobby_view_quick_category(kind:i32)->LobbyViewU32;
++        fn lobby_view_difficulty(value:i16)->u32;
++        fn lobby_view_help(pane:i32,protocol:i32,machines:i32,privacy:i32,session:i32)->LobbyViewHelp;
++        fn lobby_view_player_count(previous:i32,a:i32,b:i32)->i32;
++        fn lobby_view_player_count_string(count:i32)->LobbyViewU32;
++        fn lobby_view_default_value(engine:u32,parameter:u32,io:&NativeFrontendLobbyViewIo)->Result<LobbyViewI32>;
++        fn lobby_view_quick_options(engine:u32,separator:&[u8],count:usize,io:&NativeFrontendLobbyViewIo)->Result<Vec<LobbyViewBytes>>;
+         type FrontendPartyFlow;
+         fn new_frontend_party_flow()->Box<FrontendPartyFlow>;
+         fn clone_frontend_party_flow(controller:&FrontendPartyFlow)->Box<FrontendPartyFlow>;

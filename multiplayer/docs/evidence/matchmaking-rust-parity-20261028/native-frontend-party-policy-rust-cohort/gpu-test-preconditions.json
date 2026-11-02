@@ -1,0 +1,6 @@
+{
+  "display_present": true,
+  "party_pixel_test_requested": true,
+  "pass_requires_explicit_pixel_output": true,
+  "retained_frames": false
+}

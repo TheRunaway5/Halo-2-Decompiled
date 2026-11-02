@@ -1,0 +1,34 @@
+import hashlib,json,os,select,shutil,subprocess,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();source=scratch/'source';output=root/'build/test-results/frontend-presentation-rust-20261102/countdown-restart';output.mkdir(parents=True,exist_ok=True)
+ignore=shutil.ignore_patterns('target','__pycache__','*.so','*.dll','*.dylib')
+for name in ('online_protocol','online_protocol_bridge','online_security_ffi','matchmaking_service'):
+ shutil.copytree(root/'rust'/name,source/'rust'/name,ignore=ignore)
+shutil.copytree(root/'tests/fixtures',source/'tests/fixtures',ignore=ignore)
+for name in ('data','examples','tests/fixtures'):
+ shutil.copytree(root/'multiplayer/master_server'/name,source/'multiplayer/master_server'/name,ignore=ignore)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={str(p.relative_to(source)):sha(p) for p in source.rglob('*') if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'target'),CARGO_BUILD_JOBS='2',CARGO_INCREMENTAL='0',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+report={'passed':False,'scratch':str(scratch),'source_pins_before':pins.copy(),'steps':[],'retained_large_artifacts':[]}
+def save(): (output/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+def run(name,cmd):
+ r=subprocess.run(cmd,cwd=source,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ (output/(name+'.log')).write_bytes(r.stdout[-1048576:]);report['steps'].append({'name':name,'command':cmd,'exit_code':r.returncode,'log':name+'.log'})
+ save();print(json.dumps({'step':name,'exit_code':r.returncode,'tail':r.stdout.decode(errors='replace')[-2200:]}),flush=True);return r
+try:
+ red=run('red',['cargo','test','--locked','--offline','--manifest-path','rust/online_protocol/Cargo.toml','--test','matchmaking_parties','completed_queue_cancel_allows_a_fresh_countdown_for_a_different_playlist','--','--exact'])
+ report['expected_regression_red']=red.returncode==101 and b'Completed consumed countdown cannot lock the next playlist' in red.stdout
+ assert report['expected_regression_red'],'Regression must fail at the actual consumed-countdown guard'
+ save();fifo=scratch/'control.fifo';os.mkfifo(fifo);fd=os.open(fifo,os.O_RDWR);print('RED_READY '+str(fifo),flush=True)
+ ready,_,_=select.select([fd],[],[],1200);assert ready,'Timed out waiting for owned candidate refresh'
+ assert os.read(fd,4096).decode().strip()=='validate';os.close(fd)
+ name='rust/online_protocol/src/matchmaking_party_countdowns.rs';before=pins[name]
+ shutil.copyfile(root/name,source/name);pins[name]=sha(source/name);report['refresh']={'path':name,'before':before,'after':pins[name]};save()
+ for crate in ('online_protocol','online_protocol_bridge','matchmaking_service'):
+  assert run(crate,['cargo','test','--locked','--offline','--manifest-path',f'rust/{crate}/Cargo.toml']).returncode==0,crate
+ report['source_pins_after']=pins
+ report['frozen_inputs_intact']=all(sha(source/n)==h for n,h in pins.items());assert report['frozen_inputs_intact']
+ report['live_drift']=[n for n,h in pins.items() if not(root/n).is_file() or sha(root/n)!=h]
+ report['passed']=True
+finally:save()

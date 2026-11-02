@@ -1,0 +1,153 @@
+{
+  "schema": "halo2-native-ui-remaining-policy-inventory-v1",
+  "scope": "Read-only next-owner inventory; no implementation, original parity certification or acceptance-gate closure",
+  "source_groups": [
+    {
+      "group": "progress privacy and rank projections",
+      "path": "src/ui/frontend_matchmaking.cpp",
+      "sha256": "7e4885f0fc6f7f2343df036806c02db0d6a8e9006489c2f2cbbd246e39753df8",
+      "functions_or_call_sites": {
+        "online_matchmaking_team_colors": [
+          53
+        ],
+        "populate_online_matchmaking": [
+          61
+        ],
+        "online_matchmaking_roster_order": [
+          93,
+          122,
+          156,
+          288,
+          308
+        ],
+        "online_matchmaking_rank": [
+          137
+        ],
+        "online_matchmaking_player_appearance": [
+          279
+        ],
+        "online_matchmaking_speaker": [
+          294
+        ]
+      },
+      "remaining": true,
+      "note": "C++ still chooses party/game roster visibility, row categories, ordering, rank exposure and source rows; native rendering and authenticated IO may remain C++."
+    },
+    {
+      "group": "progress input gates",
+      "path": "src/ui/frontend_state.cpp",
+      "sha256": "90924f5096780ad9f6f22797d6549735a3bb816d3ada3abb7a1315f63c799879",
+      "functions_or_call_sites": {
+        "matchmaking_progress_cancel_allowed": [
+          2055
+        ],
+        "matchmaking_progress_consumes_y": [
+          2207
+        ],
+        "matchmaking_leave_dialog_local": [
+          2063
+        ]
+      },
+      "remaining": true,
+      "note": "Back/leave-dialog selection and Y suppression remain native policy branches, independent of the Rust pregame lobby controller."
+    },
+    {
+      "group": "progress policy leaves",
+      "path": "include/halo2/frontend_matchmaking_progress.hpp",
+      "sha256": "bbbe94376bd2f6d2981848ddc7d73b496e357e324fde055f73f01f281d09f18e",
+      "functions_or_call_sites": {
+        "matchmaking_progress_pc_pane": [
+          87
+        ],
+        "matchmaking_progress_cancel_allowed": [
+          131
+        ],
+        "matchmaking_progress_consumes_y": [
+          136
+        ],
+        "matchmaking_progress_order": [
+          148
+        ],
+        "matchmaking_progress_team_colors": [
+          167
+        ],
+        "matchmaking_progress_uses_party": [
+          180,
+          186
+        ],
+        "matchmaking_progress_rows": [
+          183
+        ]
+      },
+      "remaining": true,
+      "note": "Separate source-backed rules from native formatting/artwork. The header explicitly uses stable_sort; complete original qsort equal-key ordering is not established by this inventory."
+    },
+    {
+      "group": "original widget helpers",
+      "path": "include/halo2/original_matchmaking_widgets.hpp",
+      "sha256": "c3548666536cb9e7c999940b7b20ca25e7b16a2fcb715db950ecdd9a7fa00d9b",
+      "functions_or_call_sites": {
+        "original_matchmaking_title": [
+          8
+        ],
+        "original_matchmaking_option_category": [
+          18
+        ],
+        "original_matchmaking_game_icon": [
+          23
+        ],
+        "original_matchmaking_needed": [
+          29
+        ],
+        "OriginalMatchmakingTipClock": [
+          37
+        ],
+        "original_matchmaking_tip_index": [
+          48
+        ]
+      },
+      "remaining": true,
+      "note": "Title/needed/icon helpers are used by the native frontend. Category/tip helpers need an actual production-caller inventory; this report does not invent a downloaded tip producer."
+    }
+  ],
+  "retained_original_controls": [
+    {
+      "path": "tests/fixtures/matchmaking_widgets_tu15_original.json",
+      "sha256": "6f67dd3e21901b9cb42ee5406dea0590511193451e9769ee7a681e4648e4a394",
+      "bytes": 43608,
+      "controls": 191,
+      "case_fields": [
+        "category",
+        "count",
+        "icon",
+        "input",
+        "seed",
+        "tip_clock_expired",
+        "tip_index",
+        "title",
+        "updated_seed"
+      ],
+      "fresh_original_execution_this_inventory": false
+    },
+    {
+      "path": "tests/fixtures/matchmaking_roster_tu15_original.json",
+      "sha256": "a52a1075bdfb7dce6ade4a54f71bb2f224588baeb54ee70d25de30abbb0dfc27",
+      "bytes": 127024,
+      "controls": 504,
+      "case_fields": [
+        "game_players",
+        "maximum",
+        "pane",
+        "party_players",
+        "ranked",
+        "rows",
+        "use_party"
+      ],
+      "fresh_original_execution_this_inventory": false
+    }
+  ],
+  "original_sort_tie_order_claim": false,
+  "all_twelve_gaps_and_g01_g12_still_open": true,
+  "selected_runtime_replaced": false,
+  "retained_large_artifacts": []
+}

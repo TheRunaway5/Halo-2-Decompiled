@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "object_sha256": "a36eddd88a2957d99dbf0319814efd3d254b19be16a8da0fab4dbab43e82283f",
+  "rust_entries": {
+    "native_publication_session": [
+      "U halo2::online_protocol_bridge::native_publication_session(halo2::online_protocol_bridge::NativeSession const&, halo2::online_protocol_bridge::NativePublicationDecision const&)"
+    ],
+    "native_publication_abort": [
+      "U halo2::online_protocol_bridge::native_publication_abort(halo2::online_protocol_bridge::NativePublicationIo const&)"
+    ],
+    "native_publication_progress": [
+      "U halo2::online_protocol_bridge::native_publication_progress(halo2::online_protocol_bridge::NativePublicationIo const&)"
+    ],
+    "native_publication_fence": [
+      "U halo2::online_protocol_bridge::native_publication_fence(halo2::online_protocol_bridge::NativePublicationIo const&)"
+    ],
+    "native_publication_prepare": [
+      "U halo2::online_protocol_bridge::native_publication_prepare(halo2::online_protocol_bridge::NativePublicationIo const&, halo2::online_protocol_bridge::NativePublicationContext const&, halo2::online_protocol_bridge::MigrationPreparationCut const&)"
+    ],
+    "native_publication_propose": [
+      "U halo2::online_protocol_bridge::native_publication_propose(halo2::online_protocol_bridge::NativePublicationIo const&, unsigned int)"
+    ],
+    "native_publication_propose_automatic": [
+      "U halo2::online_protocol_bridge::native_publication_propose_automatic(halo2::online_protocol_bridge::NativePublicationIo const&)"
+    ],
+    "native_publication_finish": [
+      "U halo2::online_protocol_bridge::native_publication_finish(halo2::online_protocol_bridge::NativePublicationIo const&, halo2::online_protocol_bridge::NativePublicationDecision const&)"
+    ]
+  },
+  "cpp_parser_crypto_dependencies": [],
+  "old_cpp_caller_leaf_dependencies": [],
+  "final_rust_native_source_mismatch": [],
+  "current_critical_source_drift": [],
+  "source_pins": {
+    "src/network/online_match_session.cpp": "9f005d83d092edf878ab7734bf8649816dc857096a4b162dcc28a1c0c9e53647",
+    "rust/online_protocol/src/matchmaking_native_publication.rs": "e96500a372517223e4423f4b393e328d61fd1fa78eda4b621ff8b13b83f3709b",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "ca57912fd9b78630952035e52e23b81bd60e84426892699dd149b4bca4bd24d5",
+    "rust/online_protocol/src/lib.rs": "0a2c7d6e9189041d754feed004a975f16acba604b0c37ed1698dedd54de13c21",
+    "rust/online_protocol_bridge/src/matchmaking_native_publication.rs": "0cc2bd80d6fb6dd02c3ab7fa6f03f827e8e0701fb7be4e0b4ce3323b5d8570e1",
+    "rust/online_protocol_bridge/src/matchmaking_native_publication.hpp": "6f28cbd956ee843c58ffb87d84ec729db23a2bd7bafb424050fd1ddb2c91936e",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "903d2705055299ecf8084ec2d49a9bfdc6f55310fc60021b03d706a3a41424cb",
+    "rust/online_protocol_bridge/src/lib.rs": "9fe0f0b4caa59ab36530580d81cd27296418bd11bc34f5960ac1789d92055c0d",
+    "rust/online_protocol_bridge/build.rs": "1ac664a7f0677dbc9fe9aed41ab10087a54c0c0ec949a0bff2dcd8777731078c",
+    "cmake/OnlineProtocolRust.cmake": "642912c85ee8dd678c9b1411e9a8c830cc28c382b3b6f3d76c36ab6d1ab269ad",
+    "tools/build_online_protocol_rust.py": "5b7857e231d639d70923792c000fa8ec3851305a3177c5efbcf77140544ae80d",
+    "tests/test_build_online_protocol_rust.py": "d6516a57e211d44db9d9bef6ffea6880ba59284bb5695fa7a42892bd8f54474d",
+    "tests/peer_host_session_tests.cpp": "1e443482ea7c98a37316af97775bb36b57c56ae44e3906a29fdcb380d06301b7"
+  },
+  "scope": "Compiled Session delegates the complete Ready/proposal/selection-progress/finish caller to Rust and retains actual native IO. Symbols do not certify original Live, played-world/provider or installed acceptance",
+  "retained_large_artifacts": []
+}

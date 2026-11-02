@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/iteration-3",
+  "commands": [],
+  "action": "friend_cloud",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_friend_cloud_controls.py"
+  ],
+  "source_files": 144,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud/halo2-test-jw1r2gjg/cargo/release/halo2-matchmaking-service",
+    "sha256": "3a5b7a2749db44899463a6072379f610dd89f74b14045fb2416a93bef0dc7001",
+    "bytes": 11179672,
+    "retained": false
+  },
+  "friend_cloud": {
+    "qualified": true,
+    "checks": [
+      "valid configured service starts; public/symlink/FIFO/duplicate/oversized/publisher config and public/symlink cache roots fail before listening",
+      "actual login and friend consent enqueue opaque public records for both peers; no synthetic EOS identity or upload is created for unbound accounts",
+      "real account EOS proof wakes upload; independently verified Rust RSA delegation binds the existing canonical account, issuer/audience and120-second lifetime; exact downloaded record evicts only the acknowledged payload",
+      "real deferred outbox COMMIT failure rolls back friendship, both payloads and replay; identical request retries once without upload or revision churn on committed replay",
+      "health and an independent SQL write proceed during actual worker IO; a newer consent revision cannot be acknowledged by an older successful download",
+      "real deferred completion COMMIT failure retains the sealed claim; acknowledgement retry succeeds without repeating provider IO",
+      "wrong read-back, duplicate JSON, oversized lines and excess SDK log lines cannot acknowledge; native retry waits the unshortened thirty-second backoff and stores only a generic error",
+      "real130-second worker deadline kills/reaps the exact child before its private cache is removed and leaves the payload pending",
+      "SIGTERM during real owned IO cancels and reaps before cache removal; restart retains the same pending revision and canonical EOS identity and uploads it through a fresh native claim"
+    ],
+    "timings": {
+      "health_and_sql_seconds": 0.004795743996510282,
+      "real_backoff_seconds": 30.096026800005347,
+      "real_worker_timeout_seconds": 129.96505432200502,
+      "shutdown_seconds": 0.01576410800043959
+    },
+    "worker_calls": 13,
+    "worker_pids": [
+      1475315,
+      1475333,
+      1475367,
+      1475376,
+      1475386,
+      1476922,
+      1476932,
+      1476948,
+      1476973,
+      1479778,
+      1479788,
+      1491544,
+      1491553
+    ],
+    "real_sdk": false,
+    "real_cloud": false,
+    "native_played_world": false
+  }
+}

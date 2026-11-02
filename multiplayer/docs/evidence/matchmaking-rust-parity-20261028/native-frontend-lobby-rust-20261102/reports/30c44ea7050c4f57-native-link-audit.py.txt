@@ -1,0 +1,66 @@
+import hashlib,json,os,re,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-rust-20261102';owner=root/'.local/test-scratch/frontend-lobby-rust-20261102/halo2-test-dwnf1_3e';source=owner/'native-source';build=owner/'build'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();read=lambda p:json.loads(p.read_text())
+before=read(work/'baseline-link-audit.json');assert before['passed']
+report={'passed':False,'scratch':os.environ['HALO2_TEST_SCRATCH'],'scope':'Compiled Rust-owned pregame controller, native UI effect adapter and exact reference restoration; not original Live or delivered Linux proof','objects':{}}
+methods=['enter_online_matchmaking_lobby(', 'cancel_online_lobby_countdown(', 'update_online_lobby_countdown(', 'update_online_lobby_leave(', 'online_lobby_start_error(']
+try:
+ paths={'state':build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o',
+ 'party':build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_party.cpp.o',
+ 'effects':build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_lobby.cpp.o',
+ 'bridge':build/'CMakeFiles/halo2_frontend_lobby.dir/src/ui/frontend_matchmaking_lobby_bridge.cpp.o'}
+ for label,obj in paths.items():
+  defined=subprocess.run(['nm','-C','--defined-only',str(obj)],capture_output=True,text=True,check=True).stdout
+  undefined=subprocess.run(['nm','-u','-C',str(obj)],capture_output=True,text=True,check=True).stdout
+  calls=[line.strip() for line in undefined.splitlines() if 'halo2::online_protocol_bridge::frontend_lobby_' in line or 'halo2::online_protocol_bridge::new_frontend_lobby(' in line or 'halo2::online_protocol_bridge::clone_frontend_lobby(' in line]
+  policy=[line.strip() for line in defined.splitlines() if any('MenuState::'+method in line for method in methods)]
+  report['objects'][label]={'sha256':sha(obj),'bytes':obj.stat().st_size,'rust_calls':calls,'defined_pregame_methods':policy,
+   'all_defined_symbols_sha256':hashlib.sha256(defined.encode()).hexdigest(),'all_undefined_symbols_sha256':hashlib.sha256(undefined.encode()).hexdigest()}
+ assert not report['objects']['state']['defined_pregame_methods'] and not report['objects']['party']['defined_pregame_methods']
+ assert len(report['objects']['effects']['defined_pregame_methods'])>=5
+ calls=report['objects']['bridge']['rust_calls'];assert len(calls)>=14
+ for method in ['frontend_lobby_seconds(', 'frontend_lobby_plan(', 'frontend_lobby_finish_input(', 'frontend_lobby_observe(', 'frontend_lobby_observe_leave(', 'clone_frontend_lobby(']:
+  assert any(method in line for line in calls),method
+ fixed='5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae'
+ assert sha(root/'tests/frontend_lobby_policy_tests.cpp')==sha(source/'tests/frontend_lobby_policy_tests.cpp')==fixed
+ reference=root/'tests/reference/frontend_lobby_before_rust_20261102';provenance=read(reference/'provenance.json')
+ assert sha(reference/'frontend_lobby_policy.cpp.inc')==provenance['policy_sha256']
+ for v in provenance['input_fragments'].values():assert sha(root/v['path'])==v['sha256']
+ assert sha(root/provenance['outer_input_gate']['path'])==provenance['outer_input_gate']['sha256']
+ assert sha(root/'src/ui/frontend_matchmaking.cpp')==sha(reference/'frontend_matchmaking.cpp.reference')
+ current=read(work/'implementation-checkpoint.json')['source_pins']
+ names=sorted(set(current)|{'tests/frontend_lobby_policy_tests.cpp','tests/frontend_matchmaking_lobby_rust_tests.cpp'})
+ pins={n:sha(root/n) for n in names}
+ for p in reference.iterdir():
+  if p.is_file():pins[str(p.relative_to(root))]=sha(p)
+ assert all(sha(source/n)==h for n,h in pins.items())
+ rust=read(work/'full-rust/report.json')['source_pins'];native={}
+ for p in (work/'native').glob('iteration-4-source-pins-*.json'):native.update(read(p))
+ shared=sorted(set(native)&set(rust));assert all(native[n]==rust[n] for n in shared)
+ borrowed=[]
+ for n in sorted(set(rust)-set(native)):
+  assert not n.startswith(('rust/','multiplayer/master_server/')),n
+  entry={'path':n,'rust_sha256':rust[n],'current_sha256':sha(root/n),'borrowed':(source/n).is_symlink()}
+  if entry['current_sha256']!=rust[n]:
+   assert n.startswith('tests/fixtures/') and n.endswith(('.gz','.bin','.xz','.zlib')),n
+   # Only an unrelated fixture without any crate or pregame reference can
+   # be excluded; test or implementation drift is never silently accepted.
+   needles=[Path(n).name,Path(n).name.split('.')[0]]
+   references=[]
+   for p in (root/'rust').rglob('*'):
+    if p.is_file() and p.suffix in ('.rs','.toml','.cpp','.hpp') and 'target' not in p.parts:
+     if any(needle in p.read_text(errors='replace') for needle in needles):references.append(str(p.relative_to(root)))
+   assert not references,references
+   entry.update(excluded_unused_foreign_fixture=True,rust_references=references)
+  borrowed.append(entry)
+ counts={}
+ for name in ['online_protocol','online_protocol_bridge','matchmaking_service']:
+  text=(work/f'full-rust/{name}-test.log').read_text();rows=re.findall(r'test result: ok\. (\d+) passed; 0 failed; (\d+) ignored;',text)
+  counts[name]={'passed':sum(int(a) for a,b in rows),'ignored':sum(int(b) for a,b in rows)}
+ assert sum(v['passed'] for v in counts.values())==591
+ report.update(passed=True,source_pins=pins,cpp_before=before,restored_original_test_sha256=fixed,original_reference=provenance,
+  unchanged_search_launch_controller=True,rust_native_shared_inputs=len(shared),rust_native_shared_input_mismatches=[],
+  borrowed_or_excluded_inputs=borrowed,rust_counts=counts,unsafe_core_rust=False)
+finally:(work/'native-link-audit.json').write_text(json.dumps(report,indent=2)+'\n')
+print(json.dumps({'passed':report['passed'],'rust_entry_count':len(report['objects']['bridge']['rust_calls']),'rust_native_shared_inputs':len(shared),'rust_tests':591}))

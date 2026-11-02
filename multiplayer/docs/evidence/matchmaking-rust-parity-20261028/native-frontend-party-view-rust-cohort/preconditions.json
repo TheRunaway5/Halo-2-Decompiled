@@ -1,0 +1,15 @@
+{
+  "previous_goal_turn": "progress",
+  "previous_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-lobby-view-rust-validation.json",
+  "previous_rust_passed": 653,
+  "previous_native_passed": 27,
+  "prior_scoped_sources_unchanged": true,
+  "reference_source_pins": {
+    "src/ui/frontend_party.cpp": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+    "include/halo2/frontend.hpp": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "a954eec5f17e4aef26f67b5c5555390d3e5aa8206aa0758cf2694cba7a9e7dea"
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_complete": false
+}

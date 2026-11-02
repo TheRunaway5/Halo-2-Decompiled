@@ -16,6 +16,8 @@ constexpr std::array<std::pair<unsigned,unsigned>,14> fields{{
     {60,20},{68,4},{76,2},{84,4},{92,4},{100,12},{108,4}}};
 constexpr std::array<std::pair<unsigned,unsigned>,5> template_fields{{
     {0,10},{8,2},{16,10},{24,6},{32,4}}};
+constexpr std::string_view resident_illum_payload=
+    "ffbc8f0460d8beaf3e5349ba896d63d42fb7bbbccd7b18b9735ba19ccce06bec.bin";
 void require(bool ok,const char* message){if(!ok)throw FormatError(message);}
 void word(std::vector<std::byte>& bytes,std::size_t at,std::uint32_t value) {
     Bytes(bytes).require(at,4);
@@ -64,10 +66,11 @@ std::vector<std::byte> shader_pass_ranges(std::span<const std::byte> passes) {
 }
 }
 
-std::optional<MccOwnedShaderProjection> project_mcc_unanimated_world_cooked(
+static std::optional<MccOwnedShaderProjection> project_world_cooked(
     const Tag& shader,const Tag& source_stem,const Tag& native_stem,
     std::string_view payload_name,std::span<const std::byte> payload,
-    const MccShaderRead& read_source,const MccShaderFind& find,const MccShaderBitmapFrame& owns_frame) {
+    const MccShaderRead& read_source,const MccShaderFind& find,const MccShaderBitmapFrame& owns_frame,
+    bool resident_template) {
     try {
         const auto* profile=profile_for(native_stem,payload_name);
         if(!profile||!read_source||!find||!owns_frame)return {};
@@ -83,9 +86,9 @@ std::optional<MccOwnedShaderProjection> project_mcc_unanimated_world_cooked(
                 source_stem.address&&source_stem.size>=96&&source_stem.size<=16u*1024u*1024u,
                 "Cooked material lost an independently owned source/native template");
         const auto& native_record=profile->at("native_record");
-        require(payload_name.size()==68&&payload_name.substr(64)==".bin"&&
-                payload.size()==native_record.at("bytes").get<std::size_t>()&&native_stem.size==payload.size()&&
-                digest(payload)==payload_name.substr(0,64),
+        require(native_stem.size==payload.size()&&(resident_template ||
+                (payload_name.size()==68&&payload_name.substr(64)==".bin"&&
+                 payload.size()==native_record.at("bytes").get<std::size_t>()&&digest(payload)==payload_name.substr(0,64))),
                 "Cooked native template differs from its complete authenticated original payload");
         const auto source=[&](std::uint32_t at,std::size_t size) {
             require(size<=16u*1024u*1024u&&std::uint64_t(at)+size<=0x100000000ull,
@@ -255,6 +258,127 @@ std::optional<MccOwnedShaderProjection> project_mcc_unanimated_world_cooked(
             append(output_definition+field+4,banks[i]);
         }
         return result;
+    }catch(const FormatError&){return {};}
+}
+
+std::optional<MccOwnedShaderProjection> project_mcc_unanimated_world_cooked(
+    const Tag& shader,const Tag& source_stem,const Tag& native_stem,
+    std::string_view payload_name,std::span<const std::byte> payload,
+    const MccShaderRead& read,const MccShaderFind& find,const MccShaderBitmapFrame& frames) {
+    return project_world_cooked(shader,source_stem,native_stem,payload_name,payload,read,find,frames,false);
+}
+
+std::optional<MccOwnedShaderProjection> project_mcc_resident_one_alpha_env_illum_template(
+    const Tag& source_stem,const Tag& resident_pass,const Tag& resident_vertex,
+    const MccShaderRead& read,const MccShaderFind& find) {
+    try {
+        const auto* profile=profile_for(source_stem,resident_illum_payload);
+        if(!profile || !read || !find)return {};
+        const auto source=[&](std::uint32_t address,std::size_t extent) {
+            require(address&&extent&&extent<=16u*1024u*1024u&&
+                    std::uint64_t(address)+extent<=0x100000000ull,"Resident cooked metadata extent changed");
+            const auto bytes=read(address,extent);
+            require(bytes.size()==extent,"Resident cooked metadata read is incomplete");
+            return std::vector<std::byte>(bytes.begin(),bytes.end());
+        };
+        const auto same=[&](const Tag& owner) {
+            const auto* actual=find(owner.datum);
+            return actual&&actual->datum==owner.datum&&actual->group==owner.group&&actual->name==owner.name&&
+                actual->address==owner.address&&actual->size==owner.size;
+        };
+        require(resident_pass.group=="spas"&&resident_pass.name=="shaders\\shader_passes\\transparent\\default_transparent_one_sided"&&
+                resident_pass.size==576&&same(resident_pass)&&resident_vertex.group=="vrtx"&&
+                resident_vertex.name=="rasterizer\\vertex_shaders_xbox\\transparent_generic_reflection"&&
+                resident_vertex.size==5608&&same(resident_vertex),"Resident reflection program owners changed");
+        auto pass=source(resident_pass.address,resident_pass.size);
+        auto vertex=source(resident_vertex.address,resident_vertex.size);
+        const auto normalize=[&](auto& bytes,const Tag& owner,const auto& pointers) {
+            for(const auto& [field,target]:pointers) {
+                require(std::uint64_t(owner.address)+target<=0xffffffffu&&
+                        Bytes(bytes).u32(field)==owner.address+target,"Resident reflection pointer ownership changed");
+                word(bytes,field,target);
+            }
+        };
+        constexpr std::array<std::pair<unsigned,unsigned>,5> pass_pointers{{
+            {32,36},{40,124},{48,464},{56,432},{64,480}}};
+        constexpr std::array<std::pair<unsigned,unsigned>,15> vertex_pointers{{
+            {8,12},{20,208},{28,216},{48,892},{56,904},{76,1708},{84,1720},{104,1708},
+            {112,2604},{132,3520},{140,3536},{160,3520},{168,4532},{188,3520},{196,4532}}};
+        normalize(pass,resident_pass,pass_pointers);normalize(vertex,resident_vertex,vertex_pointers);
+        require(Bytes(pass).u32(380)==resident_vertex.datum,"Resident reflection vertex reference changed");
+        word(pass,380,0);
+        // Complete already-resident03a pass/vertex payloads, including all
+        // state, sampler, program and declaration bytes; only addresses and
+        // the independently checked full vertex handle are normalized.
+        require(digest(pass)=="d8c09130f1242ce045116fa3cc2c6a03425733f5df800ae4db0ccd40f3d99312"&&
+                digest(vertex)=="9b8a3c3c0e1d8e21eef32be5a16dfd02cc362b33825d2e2665a290dcf61fefe2",
+                "Resident reflection pass or vertex bytes changed");
+        const auto* current=find(source_stem.datum);
+        require(source_stem.group=="stem"&&source_stem.address&&source_stem.size>=96&&source_stem.size<=16u*1024u*1024u&&
+                std::uint64_t(source_stem.address)+source_stem.size<=0x100000000ull&&current&&
+                current->datum==source_stem.datum&&current->group==source_stem.group&&current->name==source_stem.name,
+                "Resident cooked source template identity changed");
+        const auto& graph=profile->at("source_graph");
+        auto root=source(source_stem.address,96);
+        require(Bytes(root).u32(88)==3,"Resident cooked source platform count changed");
+        const auto definitions=source(Bytes(root).u32(92),120);word(root,92,0);
+        require(root==unhex(graph.at("root_hex").get<std::string>()),"Resident cooked source template root changed");
+        std::array<std::vector<std::byte>,5> banks;
+        for(unsigned platform=0;platform<3;++platform) {
+            auto definition=std::vector<std::byte>(definitions.begin()+platform*40,definitions.begin()+(platform+1)*40);
+            const auto& expected=graph.at("definitions").at(platform);
+            for(unsigned n=0;n<template_fields.size();++n) {
+                const auto [field,stride]=template_fields[n];const auto count=Bytes(definition).u32(field),pointer=Bytes(definition).u32(field+4);
+                const auto& array=expected.at("arrays").at(n);
+                require(array.at("field")==field&&count==array.at("count").get<unsigned>(),"Resident cooked source bank shape changed");
+                auto bank=count?source(pointer,std::size_t(count)*stride):std::vector<std::byte>{};
+                require(count||!pointer,"Resident cooked empty source bank has a pointer");
+                if(!platform)banks[n]=bank;
+                if(field==16)for(unsigned pass_index=0;pass_index<count;++pass_index) {
+                    const auto at=pass_index*10;const auto* actual=find(Bytes(bank).u32(at+4));
+                    const auto& expected_pass=array.at("typed_references").at(pass_index);
+                    require(Bytes(bank).u32(at)==0x73706173u&&actual&&actual->datum==Bytes(bank).u32(at+4)&&
+                            actual->datum==resident_pass.datum&&actual->group==expected_pass.at(0).get<std::string>()&&
+                            actual->name==expected_pass.at(1).get<std::string>(),"Resident cooked typed pass reference changed");
+                    word(bank,at+4,0);
+                }
+                require(bank==unhex(array.at("raw_hex").get<std::string>()),"Resident cooked source state/remap bytes changed");
+                word(definition,field+4,0);
+            }
+            require(definition==unhex(expected.at("definition_hex").get<std::string>()),"Resident cooked source definition changed");
+        }
+        // Paired source proof: every other template row is identical. These
+        // four pixel destinations are the existing Vulkan pass's registers.
+        constexpr std::array<std::uint32_t,4> pixels{{0x00040000u,0x01030400u,0x02040400u,0x03040040u}};
+        for(unsigned n=0;n<pixels.size();++n)word(banks[4],(n+4)*4,pixels[n]);
+        word(root,88,1);MccOwnedShaderProjection result{std::move(root),{}};
+        result.bytes.resize(136);word(result.bytes,92,96);result.pointers.emplace_back(92,96);
+        for(unsigned n=0;n<template_fields.size();++n) {
+            const auto [field,stride]=template_fields[n];const auto at=(result.bytes.size()+3)&~std::size_t(3);
+            result.bytes.resize(at);result.bytes.insert(result.bytes.end(),banks[n].begin(),banks[n].end());
+            word(result.bytes,96+field,unsigned(banks[n].size()/stride));word(result.bytes,100+field,unsigned(at));
+            result.pointers.emplace_back(100+field,unsigned(at));
+        }
+        return result;
+    }catch(const FormatError&){return {};}
+}
+
+std::optional<MccOwnedShaderProjection> project_mcc_resident_one_alpha_env_illum_material(
+    const Tag& shader,const Tag& source_stem,const Tag& native_stem,
+    const Tag& resident_pass,const Tag& resident_vertex,const MccShaderRead& read,
+    const MccShaderFind& find,const MccShaderBitmapFrame& frames) {
+    try {
+        auto expected=project_mcc_resident_one_alpha_env_illum_template(source_stem,resident_pass,resident_vertex,read,find);
+        if(!expected || native_stem.size!=expected->bytes.size())return {};
+        const auto installed_bytes=read(native_stem.address,native_stem.size);
+        auto installed=std::vector<std::byte>(installed_bytes.begin(),installed_bytes.end());
+        for(const auto& [field,target]:expected->pointers) {
+            require(std::uint64_t(native_stem.address)+target<=0xffffffffu&&
+                    Bytes(installed).u32(field)==native_stem.address+target,"Resident cooked template relocation changed");
+            word(installed,field,target);
+        }
+        require(installed==expected->bytes,"Resident cooked template differs from its qualified source projection");
+        return project_world_cooked(shader,source_stem,native_stem,resident_illum_payload,expected->bytes,read,find,frames,true);
     }catch(const FormatError&){return {};}
 }
 }

@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include "player_shadows_runtime_capture.hpp"
+#include "player_shadows_policy_fixture.hpp"
 #include "halo2/multiplayer_runtime_authority.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/source_live_shadow_selection_tu15.hpp"
@@ -31,6 +32,7 @@ class Host {
     std::promise<std::string> address_;
     std::mutex mutex_;
     std::exception_ptr error_;
+    nlohmann::json producer_policy_;
 public:
     std::atomic<bool> advance{};
     std::atomic<unsigned> tick{};
@@ -64,6 +66,11 @@ public:
                     authority.host()->receive(controls);
                     if(advance&&world->match.simulation().ticks()<180)world->match.step(controls);
                     tick=world->match.simulation().ticks();
+                    if(options.local_players==2) {
+                        const auto policy=shadow_test::main_caller_policy(*world->source_objects,2,
+                            world->match.unit(0).body.position+Vec3{0,0,1.7f});
+                        std::lock_guard lock(mutex_);producer_policy_=policy;
+                    }
                     authority.broadcast_candidate_frame(frame);
                     frame.reset();
                     const auto stats=authority.host()->shadow_transport_statistics();
@@ -98,13 +105,23 @@ public:
     ~Host(){worker_.request_stop();if(worker_.joinable())worker_.join();}
     void check_error(){std::lock_guard lock(mutex_);if(error_)std::rethrow_exception(error_);}
     void finish(){worker_.request_stop();worker_.join();check_error();}
+    nlohmann::json producer_policy(){std::lock_guard lock(mutex_);return producer_policy_;}
 };
 }
 
 int main(int argc,char **argv) {
     std::filesystem::path output;
     try {
-        need(argc==5,"Supply prepared MCC map, shared maps, graphics mode and report");
+        need(argc>=5,"Supply prepared MCC map, shared maps, graphics mode and report");
+        bool gpu_off{},host_players_seen{};unsigned host_players=1;
+        for(int arg=5;arg<argc;++arg) {
+            const std::string_view flag=argv[arg];
+            if(flag=="--gpu-off"&&!gpu_off)gpu_off=true;
+            else if(flag=="--host-local-players"&&!host_players_seen&&arg+1<argc) {
+                const std::string_view value=argv[++arg];
+                need(value=="1"||value=="2","Host local-view fixture count must be1 or2");host_players=value=="2"?2:1;host_players_seen=true;
+            }else throw FormatError("Invalid joined shadow fixture control");
+        }
         output=argv[4];
         const auto *scratch=std::getenv("HALO2_TEST_SCRATCH");
         need(scratch&&*scratch,"Joined shadow check requires its owned test scratch");
@@ -115,20 +132,29 @@ int main(int argc,char **argv) {
         SDL_SetMainReady();
         MultiplayerOptions options;
         options.map=argv[1];options.shared_maps=argv[2];options.width=640;options.height=480;
-        options.local_players=1;options.hidden=true;options.mute=true;options.validation=true;
+        options.local_players=host_players;options.hidden=true;options.mute=true;options.validation=true;
         options.variant={"Slayer",0,{{2,0},{10,0},{89,5}}};options.starting_weapon=5;
         options.session_random_seed=0x12345678u;
         options.source_object_savegame_directory=std::filesystem::path(scratch)/"host-world";
         Host host(options);
+        options.local_players=1;
         options.source_object_savegame_directory.clear();options.join=host.address;
         options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
         need(!options.prepared_world->source_objects,"Joining shadow test silently created gameplay authority");
         shadow_test::Capture capture;
+        capture.gpu_disabled_control=gpu_off;
         capture.mode=mode;capture.picture=std::filesystem::path(scratch)/"joined-player-shadow.ppm";
         capture.advance=[&]{host.check_error();host.advance=true;};capture.finish=[&]{host.finish();};
         report=shadow_test::capture(options,capture);
         report["scope"]="Actual UDP joining player, native host and submitted GPU shadow frame";
         report["host_tick"]=host.tick.load();
+        report["producer_local_players"]=host_players;report["recipient_local_players"]=1;
+        if(host_players==2) {
+            report["producer_graphics_policy"]=host.producer_policy();
+            shadow_test::require_graphics_policy(report["producer_graphics_policy"],2);
+            need(report["local_slot"]==2,"Two-local host did not admit the actual independent recipient seat2");
+        }
+        report["observed_input_hash_schema"]=1;
         report["passed"]=true;save(output);
         std::cout<<"PASS actual joined player shadow mode="<<mode<<" tick="<<report["tick"]<<" local="<<report["local_unit"]<<'\n';
         return 0;

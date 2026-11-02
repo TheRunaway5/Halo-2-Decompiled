@@ -1,0 +1,19 @@
+{
+  "previous_goal_turn": "progress",
+  "previous_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-party-policy-rust-validation.json",
+  "previous_native_passes": 22,
+  "previous_rust_passes": 626,
+  "reference_source_pins": {
+    "src/ui/frontend_party.cpp": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+    "src/ui/frontend_state.cpp": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+    "src/ui/frontend_clans.cpp": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+    "include/halo2/frontend.hpp": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+    "include/halo2/online_account.hpp": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b",
+    "tests/frontend_online_tests.cpp": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775",
+    "tests/frontend_online_lobby_buttons_tests.cpp": "539a8e16ded9590931f93cad7f5ba3201c2e47f776a15f715d2fd9ca7f8aa72a"
+  },
+  "scope_inventory_sha256": "e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048",
+  "full_criteria_projection_sha256": "72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8",
+  "goal_objective_sha256": "605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9",
+  "full_goal_complete": false
+}

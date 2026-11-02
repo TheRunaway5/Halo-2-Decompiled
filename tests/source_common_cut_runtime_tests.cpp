@@ -3,9 +3,11 @@
 #include "halo2/native_player_profile.hpp"
 #include "halo2/peer_common_cut.hpp"
 #include "halo2/source_peer_host_takeover.hpp"
+#include "halo2/source_host_continuation_codec.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/cache.hpp"
 #include "helpers/source_common_client.hpp"
+#include "helpers/original_sound_playing_publication.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
@@ -24,6 +26,10 @@ using namespace std::chrono_literals;
 namespace {
 std::string stage="setup";
 void check(bool value,const char *why){if(!value)throw FormatError(why);}
+std::optional<std::filesystem::path> original_audio_report_path;
+nlohmann::json original_audio_report{{"passed",false},{"phases",nlohmann::json::array()},{"goal_complete",false},
+    {"device_or_xbox_waveform_verified",false},{"native_source_voice_allocation_verified",false},{"aggregate_world_and_audio_adoption_verified",false}};
+void save_original_audio_report(){if(original_audio_report_path){std::ofstream out(*original_audio_report_path);check(bool(out),"Cannot write original common-cut Audio report");out<<original_audio_report.dump(2)<<'\n';}}
 template<class F>void rejects(F &&work){bool refused{};try{work();}catch(const FormatError &){refused=true;}check(refused,"Invalid native preparation ownership accepted");}
 bool same_peer_envelopes(const SoundClassFades &a,const SoundClassFades &b){
     for(std::size_t i=0;i<sound_class_count;++i){
@@ -175,9 +181,10 @@ struct Foreground {
 }
 
 int main(int argc,char **argv)try{
-    std::cout<<std::unitbuf;check(argc==5,"Supply ORIGIN DESCRIPTORS (XBE | --mcc) MAP");
+    std::cout<<std::unitbuf;check(argc==5||argc==7,"Supply ORIGIN DESCRIPTORS (XBE | --mcc) MAP and optional original Audio report");
     const bool selected_mcc=std::string_view(argv[3])=="--mcc";
     const bool prospective_mode=std::getenv("HALO2_COMMON_PROSPECTIVE")!=nullptr;
+    if(argc==7){check(selected_mcc&&prospective_mode&&std::string_view(argv[5])=="--original-destruction-sounds","Original Audio requires the genuine prospective MCC route");original_audio_report_path=argv[6];}
     const bool client_mode=std::getenv("HALO2_COMMON_CLIENT")!=nullptr;
     const bool client_abort_mode=std::getenv("HALO2_COMMON_CLIENT_ABORT")!=nullptr;
     const bool disconnect_mode=std::getenv("HALO2_COMMON_DISCONNECT")!=nullptr;
@@ -197,7 +204,9 @@ int main(int argc,char **argv)try{
         const Cache cache(map,map.parent_path(),std::shared_ptr<const OriginalData>{});
         check(cache.is_mcc()&&!cache.is_vista()&&cache.original_data()==OriginalData::native_tu15(),
             "MCC common-cut route requires imported MCC assets and compiled native TU1.5 gameplay");
-        std::cout<<"OBSERVED selected MCC common-cut input; external_xbe=0; no asset import performed\n";
+        if(original_audio_report_path)check(bool(cache.original_sound_catalog()),"Original common-cut Audio has no production catalog");
+        std::cout<<(original_audio_report_path?"OBSERVED owned original-sound common-cut input; external_xbe=0; no asset import performed\n":
+            "OBSERVED selected MCC common-cut input; external_xbe=0; no asset import performed\n");
     }else{
         if(!std::filesystem::is_regular_file(argv[3])||!std::filesystem::is_regular_file(argv[4]))return 77;
         std::cout<<"REFERENCE offline Xbox TU1.5 common-cut route; not MCC runtime acceptance\n";
@@ -359,6 +368,20 @@ int main(int argc,char **argv)try{
             if(foreground[p]->current)check(owners[p]->match().replica_checkpoint(*foreground[p]->current).matches(*foreground[p]->current),
                 "Common recovery-pin service restored a historical replica into the live receipt");}
     };
+    if(original_audio_report_path){
+        // Exercise the same complete native checkpoint and network policy as
+        // the actual publisher. An offline/expanded limit must never mint a
+        // common cut or hide this route's real admission failure.
+        stage="original Audio native archive admission";
+        const auto paired=capture_source_host_continuation(*authority.host(),generation,1);
+        std::uint64_t bank_bytes{};for(const auto& r:paired.world.world.world.bank.regions)bank_bytes+=r.bytes.size();
+        original_audio_report["native_archive_preflight"]={{"network_admitted",false},
+            {"native_bank_bytes",bank_bytes},{"network_decoded_limit",authority_network_decoded_bytes}};
+        try{const auto encoded=encode_source_host_continuation(paired,source_authority_network_codec_limits());
+            original_audio_report["native_archive_preflight"]["network_admitted"]=true;
+            original_audio_report["native_archive_preflight"]["encoded_bytes"]=encoded.size();}
+        catch(const FormatError& error){original_audio_report["native_archive_preflight"]["error"]=error.what();throw;}
+    }
     stage="first exact common offer";std::optional<PeerCommonCut> first;
     wait([&]{drive();first=offered();return first.has_value();},"Actual runtime publisher never offered its exact all-peer cut");
     check(first->context==generation&&first->recipients==recipient_mask,"Runtime Offer changed native generation or fixed physical membership");
@@ -464,6 +487,8 @@ int main(int argc,char **argv)try{
             "Routing refusal consumed the exact prospective foreground owner");
         prospective_binding=owners[candidate]->common_prospective_audio_binding(preimported_cut);
         check(prospective_binding&&prospective_binding->current(),"Sealed prospective target did not mint a genuine native audio binding");
+        if(original_audio_report_path)original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
+            worlds[candidate]->cache,worlds[candidate]->source_objects->tu15_world(),*prospective_binding,"sealed-before-certificate"));
         prospective_clock_calls=imported_clock->calls.load();
         check(owners[candidate]->prepare_common_prospective(preimported_cut,unused_clock)&&
             owners[candidate]->seal_common_prospective(preimported_cut)&&unused_clock->calls==0&&
@@ -972,7 +997,8 @@ int main(int argc,char **argv)try{
     require_live();
     std::cout<<"PASS native common-cut composed receipt adoption: exact effects/pose/frontiers/deferred cues; cancellation, foreign owner, stale mutation, wrong seal and executor controls\n";
     std::cout<<"PASS native common-cut peer audio envelopes: all54 target/current/remaining triples and game-over latch; continued fade suffix\n";
-    if(selected_mcc)std::cout<<"PASS selected-MCC-native common-cut receipt route: three physical sessions and twelve couch players\n";
+    if(selected_mcc)std::cout<<(original_audio_report_path?"PASS owned-original-sound common-cut receipt route: three direct sessions and twelve couch players\n":
+        "PASS selected-MCC-native common-cut receipt route: three physical sessions and twelve couch players\n");
     const auto other_client=clients[1];
     std::shared_ptr<CountingClock> other_import_clock;
     std::uint64_t other_import_calls{};
@@ -1099,6 +1125,8 @@ int main(int argc,char **argv)try{
         check(prospective_binding&&prospective_binding->current()&&prospective_boundary&&prospective_boundary->current()&&
             prospective_foreground->ready(*prospective_foreground_prepared)&&imported_clock->calls==prospective_clock_calls,
             "Private prospective scope did not survive history eviction, Release and unrelated Abort repair");
+        if(original_audio_report_path)original_audio_report["phases"].push_back(halo2::test::original_sound_playing_publication(
+            worlds[candidate]->cache,worlds[candidate]->source_objects->tu15_world(),*prospective_binding,"learned-certificate"));
         const auto role=owners[candidate]->prepared_common_prospective();
         sessions[candidate]->loaded(fingerprint^1u,variant);bool fingerprint_refused{};
         try{fingerprint_refused=!owners[candidate]->prepare_takeover(decision,unused_clock);}
@@ -1243,6 +1271,9 @@ int main(int argc,char **argv)try{
         std::cout<<"PASS Rust prospective native role: actual departure/camera/lens preparation before election; same native scope retained across Release/history eviction/unrelated Abort; exact certificate transfers same sealed owner without reconstruction; fingerprint/certificate/executor refusals preserve eligibility; missing-survivor/callback veto; native-only adoption keeps public access fenced until explicit release\n";
         std::cout<<"PASS prospective held foreground boundary: typed private preparation before election; exact scope retained through repair/certificate binding; default and routing refusal; coupled native publication consumes the bound headless routing owner once\n";
         std::cout<<"LIMIT native-only activation with declared survivor readiness; no complete foreground/renderer/lens/input/playing-audio Ready, production scheduling/freeze driver, playable host migration, played match, WAN or microphone acceptance\n";
+        if(original_audio_report_path){check(original_audio_report["phases"].size()==2,"Original common-cut Audio omitted a genuine factory phase");
+            original_audio_report["passed"]=true;original_audio_report["genuine_prospective_original_playing_audio_verified"]=true;
+            save_original_audio_report();std::cout<<"PASS original-bank common-cut playing Audio: two genuine factory phases, queued original PCM and exact replay\n";}
         return 0;
     }
     // loaded() changes the current native fingerprint without changing the
@@ -1276,4 +1307,6 @@ int main(int argc,char **argv)try{
     std::cout<<"PASS decision-free exact native import: genuine first pending pair, cold clock consumers verified; same selected first owner survives Release/history eviction, unrelated replay Abort and repaired-pair rotation; full certificate/admission refusals preserve preparation; consumed fingerprint failure clears invalid target and authentic pair retries; same opaque retry owner finalizes without reconstruction\n";
     std::cout<<"LIMIT headless CPU/native owner-pin and certificate-finalization integration; selected pending NativeImport Abort retirement is source-audited and session-veto tested separately, not directly run here; no production pre-election scheduling/freeze driver, full renderer/HUD/input/playing-audio adopter, host-loss activation, WAN or physical controller/headset acceptance\n";
     return 0;
-}catch(const std::exception &error){std::cerr<<stage<<": "<<error.what()<<'\n';return 1;}
+}catch(const std::exception &error){if(original_audio_report_path){original_audio_report["phase"]=stage;original_audio_report["error"]=error.what();
+    try{save_original_audio_report();}catch(...){}}
+    std::cerr<<stage<<": "<<error.what()<<'\n';return 1;}

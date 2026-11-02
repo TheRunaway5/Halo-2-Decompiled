@@ -27,6 +27,9 @@ layout(location=0) out vec4 pixel;
 #include "source_alpha_test.glsl"
 #include "source_stipple.glsl"
 #include "world_depth_fragment.glsl"
+#ifdef H2_PATH_TRACING_SOURCE_DEPTH
+#include "path_tracing/source_depth.glsl"
+#endif
 #include "path_tracing/scene.glsl"
 #include "path_tracing/lighting_filter.glsl"
 void main() {
@@ -35,6 +38,9 @@ void main() {
     // distance scale. Its depth must agree with the retained fog/effect passes.
     gl_FragDepth=titleDepth.y!=0.0?worldD24Depth(clamp(sourceDepthRaw!=0u?
         titleDepth.x:titleDepth.x*16777215.0,0.0,16777215.0)):gl_FragCoord.z;
+#ifdef H2_PATH_TRACING_SOURCE_DEPTH
+    gl_FragDepth=traceSourceDepth();
+#endif
     TraceMaterial material=traceMaterials[traceMaterialIndex];
     vec4 sourceColor;if(!tracePrimarySurface(material,traceTexcoord,sourceColor))discard;
     if(!traceAlphaPass(material,sourceColor.a))discard;

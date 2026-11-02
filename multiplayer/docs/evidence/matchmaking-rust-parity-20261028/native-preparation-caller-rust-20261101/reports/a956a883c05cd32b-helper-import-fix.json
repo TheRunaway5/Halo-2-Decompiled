@@ -1,0 +1,13 @@
+{
+  "scope": "Rust bridge helper glob import ambiguity; exact verified explicit-import correction, no algorithm change",
+  "failed_check_exit_code": 101,
+  "error": "E0659 context is ambiguous after sibling helper visibility; two glob imports",
+  "source": "rust/online_protocol_bridge/src/lib.rs",
+  "before_sha256": "47008d8bac4dd4dc901bd4c4354044e5d24b6406035993df43b80d538b280949",
+  "after_sha256": "2fe83d6b76d79a8d7db5457a23cb094e9ce00892a6d918905f5b3174cb62cdb6",
+  "inverse_change": {
+    "after": "use matchmaking_native_publication::{native_publication_session,native_publication_abort,\n    native_publication_progress,native_publication_fence,native_publication_prepare,\n    native_publication_propose,native_publication_propose_automatic,native_publication_finish};",
+    "before": "use matchmaking_native_publication::*;"
+  },
+  "failed_source_reconstructed_exactly": true
+}

@@ -1,0 +1,11 @@
+{
+  "unchanged_frozen_inputs": true,
+  "current_source_drift": [
+    "rust/matchmaking_service/src/friend_cloud.rs",
+    "rust/matchmaking_service/src/friend_cloud_runtime.rs",
+    "tools/rust_service_friend_cloud_controls.py",
+    "tools/test_rust_matchmaking_service.py"
+  ],
+  "observed_owned_bytes": 389097206,
+  "retained_large_artifacts": []
+}

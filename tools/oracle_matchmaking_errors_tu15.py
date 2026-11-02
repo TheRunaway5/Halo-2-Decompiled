@@ -23,6 +23,9 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--report-output',type=Path,required=True);a=p.parse_args()
     Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     src=Source(dict(path=str(NEW_DEFAULT),pin=NEW_PIN,globals=0x51d048));g=src.g
+    def verify_instruction(memory,address,size,_context):
+      assert bytes(memory.mem_read(address,size))==src.image.read(address,size)
+    g.hook_add(UC_HOOK_CODE,verify_instruction)
     screen,session=0x1100000,0x1102000;g.mem_map(screen,0x10000)
     def put(at,v):g.mem_write(at,struct.pack('<I',v&0xffffffff))
     rows=[]
@@ -62,7 +65,7 @@ def main():
         if cache.u(ent) in (0xab,0xac,0xad,0xae):
           dialogs.append(dict(id=cache.u(ent),file_offset=ent,strings=[strings.get(cache.u(ent+8+i*4) or cache.u(group+16+i*4)) for i in range(4)]))
     report=dict(passed=True,source_sha256=NEW_PIN,cache_sha256=MENU_PIN,selector='0x256AF7',widget_stop='0x195D21',selector_controls=rows,state_clear_controls=clears,dialogs=dialogs,
-      scope=__doc__,executed_distinct_instructions=len(src.executed-{0x195d21}),tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+      scope=__doc__,executed_distinct_instructions=len(src.executed-{0x195d21}),all_executed_instruction_bytes_verified=True,tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
     encoded=json.dumps(report,indent=2)+'\n';assert len(encoded.encode())<=1024*1024
     a.report_output.parent.mkdir(parents=True,exist_ok=True);a.report_output.write_text(encoded)
     print(json.dumps(dict(passed=True,selector_controls=len(rows),clear_controls=len(clears),report=str(a.report_output))))

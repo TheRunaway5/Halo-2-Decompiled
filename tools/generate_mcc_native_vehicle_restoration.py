@@ -15,9 +15,9 @@ SOURCES = {
 }
 MAPS = {
     'needle': (9902592, 'bdf79ad0880e0ded968745bc102dcadaeb2ac690dd0eab42eb994f6f4f1d5fb7',
-               '8698adc13e378c5220b18699471a47758b96ff68d04ffe1dc66cfddc8030a7de', 92, 68, 42),
+               'e6d29d7ea2bfaa3ffb71e3bea099d662d9903b8a7a2c771b5b83f8c5ac17afc5', 92, 68, 42),
     'street_sweeper': (7628288, 'a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6',
-                       '7f9222998d0752232147a2c20278140a3d622c3d09d7ea2004e4c99b98537b10', 81, 61, 38),
+                       'cfd2c9726730513d27498ea9933afd20098d18955d5499abec8769eb6ea06305', 81, 61, 38),
 }
 SHARED_AUTHORITY = ('Exact consumed typed allocations/opaque regions and bitmap metadata/frame ownership; '
                     'whole-file shared fingerprint is preparation provenance only')

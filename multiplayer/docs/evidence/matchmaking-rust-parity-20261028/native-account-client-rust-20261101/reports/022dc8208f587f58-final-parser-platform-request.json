@@ -1,0 +1,10 @@
+{
+  "action": "validate",
+  "targets": [
+    "account_snapshot_cpp_replay"
+  ],
+  "filter": "^account_snapshot_cpp_rust_replay$",
+  "refresh": [
+    "tests/test_account_snapshot_replay.py"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/iteration-4",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "voice",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/runtime.rs",
+    "rust/matchmaking_service/src/social_voice.rs",
+    "rust/matchmaking_service/src/social_voice_http.rs"
+  ],
+  "source_files": 147,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice/halo2-test-j4fbttrd/cargo/release/halo2-matchmaking-service",
+    "sha256": "82dc37613fc3cf9af375272de1271879f3ef003a9fce0c87b9aea40e2f4d13bc",
+    "bytes": 11434000,
+    "retained": false
+  },
+  "voice": {
+    "authentication_preflight_passed": true,
+    "checks": [
+      "/v1/account/voice-blocks requires authorization before voice IO",
+      "/v1/clans/voice requires authorization before voice IO",
+      "/v1/party/voice requires authorization before voice IO"
+    ],
+    "relay_qualified": false,
+    "real_audio": false,
+    "original_parity": false
+  }
+}

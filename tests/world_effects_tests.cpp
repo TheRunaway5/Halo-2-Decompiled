@@ -5,6 +5,9 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/world_effects.hpp"
 #include "halo2/source_portal_visibility.hpp"
+#include "halo2/pstencil/shared_light_materials.hpp"
+#include "halo2/source_transparent_parts.hpp"
+#include "halo2/source_tag_metadata.hpp"
 #include <SDL.h>
 #include <iostream>
 #include <set>
@@ -22,11 +25,54 @@ void check(bool b, const char *m) {
 } // namespace
 int main(int argc, char **argv) {
   try {
-    if (argc != 4)
+    const bool catalog_test=argc==5&&std::string_view(argv[4])=="light-catalog";
+    if (argc != 4&&!catalog_test)
       throw FormatError("Supply MAP SHARED_MAPS UPDATE_XBE");
     auto cache = std::make_shared<Cache>(argv[1], argv[2],
                                          OriginalData::load_xbe(argv[3]));
     const auto content = cache->load_content(0, true);
+    if(catalog_test) {
+      Mesh mesh;CollisionWorld collision(content.collision);
+      NativeWorldEffects effects(*cache,mesh,collision,0x12345678);
+      const auto catalog=effects.light_definitions();
+      std::uint32_t plasma=0xffffffffu;
+      for(const auto& tag:cache->tags())if(tag.group=="ligh"&&tag.name=="effects\\generic_lights\\plasma_explosion")plasma=tag.datum;
+      check(plasma!=0xffffffffu,"Zanzibar catalog control lacks its authored Ghost destruction light");
+      check(std::find(catalog.begin(),catalog.end(),plasma)!=catalog.end(),
+          "Ghost destruction light is absent before GPU material freeze");
+      check(effects.lights().empty(),"Catalog construction created a runtime light");
+      unsigned supported{};
+      for(const auto& tag:cache->tags())if(tag.group=="ligh") {
+        bool loadable=true;try{(void)load_effect_light(*cache,tag.datum);}catch(const FormatError&){loadable=false;}
+        const bool admitted=std::find(catalog.begin(),catalog.end(),tag.datum)!=catalog.end();
+        check(admitted==loadable,"Native runtime light support and resident catalog disagree");
+        supported+=loadable;
+      }
+      // Actual Ghost receiving shaders and their authored layer12 LODs.
+      // Validate complete resident pass capsules without inventing live draw commands.
+      pstencil::SharedLightMaterials materials(*cache,mesh);std::set<std::uint32_t> shaders;
+      for(const auto& tag:cache->tags())if(tag.group=="mode"&&tag.name=="objects\\vehicles\\ghost\\ghost") {
+        const auto metadata=cache->load_source_tag_metadata(tag.datum);
+        const Bytes bytes(metadata.bytes_at(metadata.source_address(),metadata.size()));
+        const Bytes refs(cache->read_tag_bytes(bytes.u32(0x64u),bytes.u32(0x60u)*32u));
+        for(unsigned n=0;n<bytes.u32(0x60u);++n)if(refs.u32(n*32u+12u)!=0xffffffffu)shaders.insert(refs.u32(n*32u+12u));
+      }
+      check(!shaders.empty(),"Light catalog control lacks its actual Ghost shader owners");
+      unsigned passes{};
+      for(const auto shader:shaders) {
+        const auto metadata=cache->load_source_transparent_shader(shader);
+        for(unsigned lod=0;lod<metadata.template_lod_layers.size();++lod)if(metadata.template_lod_layers[lod]&0x1000u)
+          for(const auto id:std::array{plasma}) {
+            const auto& entries=materials.preload(shader,lod,id,load_effect_light(*cache,id));
+            check(!entries.empty(),"Supported light lost a Ghost layer12 material capsule");passes+=entries.size();
+          }
+      }
+      check(passes>0,"Ghost light catalog did not preload any actual shader pass");
+      std::cout<<"PASS authored native light material catalog: "<<supported<<" definitions, "<<passes
+          <<" actual Ghost plasma-explosion layer12 passes; no runtime births or selection supplied\n";
+      return 0;
+    }
+
     UiVariant variant{"Slayer", 0, {}};
     variant.values.set(0x59, 5);
     auto rules = slayer_rules(variant);

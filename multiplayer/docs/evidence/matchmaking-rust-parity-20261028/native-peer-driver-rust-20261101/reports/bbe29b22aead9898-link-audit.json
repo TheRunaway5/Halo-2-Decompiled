@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "object_sha256": "36e31807fab7a30c1513f55ef15bcddbaed0df098ce5c218dafd1934fdfd45be",
+  "rust_entries": {
+    "native_peer_run": [
+      "U halo2::online_protocol_bridge::native_peer_run(halo2::online_protocol_bridge::NativePeerWorker&, halo2::online_protocol_bridge::NativeMatchPeersIo const&)"
+    ],
+    "native_peer_poll_allowed": [
+      "U halo2::online_protocol_bridge::native_peer_poll_allowed(halo2::online_protocol_bridge::NativePeerPlan const&, halo2::online_protocol_bridge::NativePeerPoll)"
+    ],
+    "native_session_peer_plan": [
+      "U halo2::online_protocol_bridge::native_session_peer_plan(halo2::online_protocol_bridge::NativeSession const&, halo2::online_protocol_bridge::NativePeerResources const&)"
+    ],
+    "native_session_peer_worker": [
+      "U halo2::online_protocol_bridge::native_session_peer_worker(halo2::online_protocol_bridge::NativeSession const&)"
+    ],
+    "native_session_epoch_packets": [
+      "U halo2::online_protocol_bridge::native_session_epoch_packets(halo2::online_protocol_bridge::NativeSession const&)"
+    ]
+  },
+  "cpp_parser_crypto_policy_dependencies": [],
+  "final_rust_native_source_mismatch": [],
+  "current_critical_source_drift": [],
+  "source_pins": {
+    "src/network/online_match_session.cpp": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e",
+    "src/network/peer_authority_transfer.cpp": "41cc3cbd76c0f8a3a8a93508c30b55242d964336711c936fe3f7b012b5628915",
+    "include/halo2/peer_authority_transfer.hpp": "43f7f43606108ed3d32139c12c1105d48200722cc7bbdf7330bdbde30c6f3eb7",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "0edcd771593582759df803e107d78a8017aa2bb83204ccec4c3f745156da2a24",
+    "rust/online_protocol_bridge/src/lib.rs": "755ddcab73d700986179607f284f62524da088cd029aa85046665dbf35b7a8b9",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "4c0b11c31ce2091788501c5ab6ae69c42ff98e99f7b4207efdd348c902f200eb",
+    "rust/online_protocol/src/matchmaking_native_peers.rs": "c97d831327b82abd2d2f544121358dc17f1f0911225c3dc03fb70a806043d7bc",
+    "rust/online_protocol_bridge/src/matchmaking_native_peers.rs": "e5854fe1c6ff08e789787b027f8c22d7ce05c2b06eddd2373fba80d74ad22aee",
+    "rust/online_protocol_bridge/src/matchmaking_native_peers.hpp": "96caaad66db4555464f4d5f6f719250c998a088980e8a7fcd4adfea990c3fc6a",
+    "rust/online_protocol_bridge/build.rs": "5c91843a2b26dabd1144c7832704b6943e7c161aa6e88271269b5b880d3a6ad5",
+    "cmake/OnlineProtocolRust.cmake": "1eebf0901fa484b6b31f6372d49884b54da331b82982eb35d70918abdde297e1",
+    "tools/build_online_protocol_rust.py": "fbf8c09711610e9959dc6454e235e1d56cfa84267bcaaa771f2347bbee191dec",
+    "tests/test_build_online_protocol_rust.py": "1b47ba651fbf2ca29a53e1059828cc8ba077bea94ec831eed5513e18dd8fdda8",
+    "tests/peer_authority_transfer_tests.cpp": "d8191dbcf087a2d0f9a353cb6ca9fe245a7a3f51467deabd36f81fa2dbe943a2"
+  },
+  "scope": "Actual compiled native Session links the Rust peer worker/plan; symbols do not certify played-world, original service or delivered behavior",
+  "retained_large_artifacts": []
+}

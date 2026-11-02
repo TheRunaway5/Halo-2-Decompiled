@@ -1,0 +1,11 @@
+{
+  "passed": false,
+  "native_rust_empty_pong_seen": true,
+  "fixture_failed": true,
+  "observed_error": "aiohttp TestServer forces handler_cancellation=True; the native client disconnect cancelled the pending receive task after the Pong was observed",
+  "production_failure_claimed": false,
+  "scratch_removed": true,
+  "source_checked": "installed aiohttp.test_utils.BaseTestServer.start_server and web_protocol.RequestHandler.connection_lost",
+  "primary_documentation": "https://docs.aiohttp.org/en/stable/web_advanced.html#peer-disconnection",
+  "retained_large_artifacts": []
+}

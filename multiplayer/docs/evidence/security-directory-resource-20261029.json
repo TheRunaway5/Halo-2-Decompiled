@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-29",
+  "finding_id": "csf_5c0a11693cd2e02f4799a35c",
+  "title": "Full-directory response endpoints allow burst-driven resource exhaustion",
+  "result": "Fixed in local source; not deployed or rescanned in Security Cloud.",
+  "limits": {
+    "discovery_records": 64,
+    "discovery_bytes": 65536,
+    "response_slots": 4,
+    "reserved_response_bytes": 8388608,
+    "response_drain_seconds": 5,
+    "source_discovery_burst": 32,
+    "source_discovery_requests_per_second": 2,
+    "global_discovery_burst": 64,
+    "global_discovery_requests_per_second": 10,
+    "peer_sync_burst": 1,
+    "peer_sync_in_flight": 1,
+    "peer_sync_refill": "one request per configured sync interval"
+  },
+  "validation": {
+    "backend_tests_passed": 59,
+    "native_ctests_passed": 1,
+    "original_reproduction": "1,000-row public response and six accepted fresh-nonce syncs; both regressions failed before the fix.",
+    "coverage": [
+      "1,000 large valid listings, bounded pages and complete traversal",
+      "source burst and global slot/byte admission before snapshot construction",
+      "health responsiveness with response slots occupied",
+      "peer single-flight, cadence refill, replay, audience and signature validation",
+      "response drain timeout, cancellation and connection-error cleanup",
+      "listing revision cache, expiry, other-connection writes, rollback and no-op updates",
+      "CLI/native continuation bounds and two-process federation lifecycle"
+    ],
+    "final_frozen_backend_sources_match": [
+      "multiplayer/master_server/directory_resources.py",
+      "multiplayer/master_server/service.py",
+      "multiplayer/master_server/store.py",
+      "multiplayer/master_server/protocol.py",
+      "multiplayer/master_server/protocol.schema.json",
+      "multiplayer/master_server/cli.py",
+      "multiplayer/master_server/tests/test_directory_resource_limits.py"
+    ]
+  },
+  "limitations": [
+    "Focused validation, not a production saturation/RSS benchmark.",
+    "Reverse-proxy client-facing write deadlines and buffering were not changed or live-qualified; the five-second drain limit applies at the aiohttp response transport.",
+    "Large-directory clients need pagination support; small final pages preserve the original response shape.",
+    "Production service and launcher-selected runtime were not rebuilt, restarted or deployed."
+  ],
+  "runs": [
+    {
+      "report": "build/test-results/directory-resource-red/report.json",
+      "passed": false,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-toqivbln",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_directory_resource_limits"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/directory-resource-focused/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xd20hdv7",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-xd20hdv7/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_registry",
+            "multiplayer.master_server.tests.test_http"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/directory-resource-final/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8qipx9th",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-8qipx9th/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_registry",
+            "multiplayer.master_server.tests.test_http",
+            "multiplayer.master_server.tests.test_processes",
+            "multiplayer.master_server.tests.test_security_scan_20261025_directory",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_security_capacity",
+            "multiplayer.master_server.tests.test_security_enrollment"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/directory-resource-verified/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_v4kjke6",
+      "scratch_removed": true,
+      "commands": [
+        {
+          "argv": [
+            "cargo",
+            "build",
+            "--locked",
+            "--release",
+            "--manifest-path",
+            "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-_v4kjke6/master-source/rust/online_security_ffi/Cargo.toml",
+            "--features",
+            "matchmaking-test-inputs"
+          ],
+          "returncode": 0
+        },
+        {
+          "argv": [
+            "/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "multiplayer.master_server.tests.test_directory_resource_limits",
+            "multiplayer.master_server.tests.test_registry",
+            "multiplayer.master_server.tests.test_http",
+            "multiplayer.master_server.tests.test_processes",
+            "multiplayer.master_server.tests.test_security_scan_20261025_directory",
+            "multiplayer.master_server.tests.test_security_scan_20261023",
+            "multiplayer.master_server.tests.test_security_capacity",
+            "multiplayer.master_server.tests.test_security_enrollment"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "report": "build/test-results/directory-native-client/report.json",
+      "passed": true,
+      "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/halo2-test-naoavgmz",
+      "scratch_removed": true,
+      "commands": []
+    }
+  ],
+  "source_sha256": {
+    "multiplayer/master_server/directory_resources.py": "8a2c6d9aae16f30dc7a43e95df1ea9e9d2c9488a52c2c26e0701a74b02dbfc08",
+    "multiplayer/master_server/service.py": "d50499b780237152789e97c7e2f82adf856c3af3d5523c8b6dadfd648cde6c90",
+    "multiplayer/master_server/store.py": "f34675b7f173f7f30d2feb459069c47843be249aab9339fd181974e0bed81e97",
+    "multiplayer/master_server/protocol.py": "ed0d31f509cadfd61fc99e4408db0530a5d82c18bae71bf67c3009141aa86c07",
+    "multiplayer/master_server/protocol.schema.json": "ad8caf0d556772f50201eebd8dc66bc0002feb5e697a5149b38108c75d08e5a0",
+    "multiplayer/master_server/cli.py": "39a315082be873c7fa3eb2f6a2edd4503e172b8454b43f6c81248465e966fd7d",
+    "multiplayer/master_server/tests/test_directory_resource_limits.py": "5516753f1f629b3e90146f84f14950cf64edf4c25c7155de6d4d6f04caa7c69f",
+    "src/network/online_directory.cpp": "35a159b9d5fdd67a4262866010c87eb65f74b351ea458fb8836c95b6ec86691c",
+    "tests/online_directory_tests.cpp": "02a860475680ca374e08dd7b6e6ca384a75b83cb6e72d3397dbc54bd25e49961",
+    "multiplayer/docs/discovery-api.md": "a086a10b1a31902d25bc5b1a8756d6ac61d8bd4b8398fce67724dec12642c3a5",
+    "multiplayer/docs/federation.md": "522711e35b0523b321ef627e1270166826794bb7a03185c4ee568438f01d0e72"
+  },
+  "retained_large_artifacts": []
+}

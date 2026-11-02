@@ -1,0 +1,44 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-qbl_squc/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-qbl_squc",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-qbl_squc/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-qbl_squc/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-steam-budget/halo2-test-4m1y326r/build/Testing/Temporary/scratch/halo2-test-qbl_squc/cargo/release/halo2-matchmaking-service",
+    "bytes": 11056952,
+    "sha256": "0443807e6f0c82e2a49d9618ffa14dbca59b640aaad31b394c50a72b98e0f76b",
+    "retained": false
+  },
+  "mode": "native-steam-budget-only",
+  "error": "Waiting for Steam authorization in the browser.\nSteam friend response did not admit the expected bounded row count: unavailable / 0\n"
+}

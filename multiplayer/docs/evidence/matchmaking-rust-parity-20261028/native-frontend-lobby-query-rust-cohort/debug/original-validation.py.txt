@@ -1,0 +1,40 @@
+import hashlib,json,lzma,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+out=root/'build/test-results/frontend-lobby-query-rust-20261102/original';out.mkdir(parents=True)
+(source/'tools').mkdir(parents=True)
+for p in (root/'tools').glob('*.py'):shutil.copyfile(p,source/'tools'/p.name)
+(source/'tools/reference').symlink_to(root/'tools/reference',target_is_directory=True)
+(source/'assets').symlink_to(root/'assets',target_is_directory=True)
+(source/'analysis/frontend/lobby').mkdir(parents=True)
+(source/'tests/fixtures').mkdir(parents=True)
+name='analysis/frontend/lobby/oracle-ready-policy.py';shutil.copyfile(root/name,source/name)
+pins={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.rglob('*.py')if not p.is_symlink()}
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+originals={n:dict(sha256=sha(root/n),bytes=(root/n).stat().st_size)for n in ['assets/disc/default.xbe','assets/disc/maps/mainmenu.map']}
+assert originals['assets/disc/default.xbe']['sha256']=='03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d'
+assert originals['assets/disc/maps/mainmenu.map']['sha256']=='1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b'
+fixtures=['frontend_lobby_ready_original.tsv','frontend_team_original.tsv'];reference={n:sha(root/'tests/fixtures'/n)for n in fixtures}
+report=dict(passed=False,scratch=str(scratch),source_pins=pins,originals=originals,reference_fixtures=reference,steps=[],retained_large_artifacts=[],
+ version='Pinned supplied retail Xbox, not a new TU1.5 execution or original Live producer claim')
+def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
+try:
+ for script in [name,'tools/oracle_frontend_team_selection.py']:
+  command=[str(root/'.tools/python/bin/python'),'-B',str(source/script)]
+  run=subprocess.run(command,cwd=source,capture_output=True,env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1'))
+  log=Path(script).stem+'.log';(out/log).write_bytes((run.stdout+run.stderr)[-1048576:]);report['steps'].append(dict(command=command,exit_code=run.returncode,log=log));save();print(json.dumps(dict(script=script,exit_code=run.returncode,tail=(run.stdout+run.stderr).decode(errors='replace')[-2000:])),flush=True)
+  assert run.returncode==0,script
+ report['fixtures']={n:dict(unchanged=sha(source/'tests/fixtures'/n)==reference[n],fresh_sha256=sha(source/'tests/fixtures'/n),reference_sha256=reference[n],rows=len((source/'tests/fixtures'/n).read_text().splitlines()))for n in fixtures}
+ assert all(v['unchanged']for v in report['fixtures'].values())
+ ready=json.loads((source/'analysis/frontend/lobby/ready-policy-original.json').read_text());team=json.loads((source/'analysis/multiplayer/game-variants/frontend-team-original.json').read_text())
+ report['ready']=dict(cases=len(ready['cases']),constant_inputs=ready['constant_inputs'],scope=ready['scope'])
+ report['team']=dict(rows=team['rows'],boundary=team['boundary'],seams=team['seams'],map_count_rows=len(team['counts']))
+ report['retained_reports']=[]
+ for name in ['analysis/frontend/lobby/ready-policy-original.json','analysis/multiplayer/game-variants/frontend-team-original.json','analysis/multiplayer/game-variants/frontend-team-retail-instructions.txt']:
+  raw=(source/name).read_bytes();compressed=lzma.compress(raw);assert len(compressed)<=1048576
+  path=out/(Path(name).name+'.xz');path.write_bytes(compressed);assert lzma.decompress(path.read_bytes())==raw
+  report['retained_reports'].append(dict(path=path.name,sha256=sha(path),bytes=path.stat().st_size,decoded_sha256=hashlib.sha256(raw).hexdigest(),decoded_bytes=len(raw)))
+ assert all(sha(root/'tests/fixtures'/n)==h for n,h in reference.items())
+ report['frozen_inputs_intact']=all(sha(source/n)==h for n,h in pins.items());assert report['frozen_inputs_intact']
+ report['passed']=True
+finally:save()

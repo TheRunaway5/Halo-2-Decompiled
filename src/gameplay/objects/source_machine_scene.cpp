@@ -13,8 +13,11 @@
 #include "halo2/scene.hpp"
 #include "halo2/reference_player.hpp"
 #include "gameplay/objects/source_object_geometry.hpp"
+#include "rendering/models/model_world_pose_cache.hpp"
 #include "halo2/render_interpolation.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_campaign_machine_view.hpp"
+#include "halo2/physics_live_world_tu15.hpp"
 #include <map>
 #include <algorithm>
 #include <set>
@@ -52,13 +55,17 @@ struct SourceMachineScene::Impl {
         std::uint32_t runtime_flags{};
         std::vector<std::uint8_t> active_permutations;
         std::vector<Transform> world_nodes;
+        // Derived immutable-input memoization; never substitutes scene or
+        // checkpoint state. Each hit also retains the fresh kernel's FP/errno
+        // effects through ModelWorldPoseCache's strict admission gate.
+        std::array<ModelWorldPoseCache,6> pose_cache;
         ObjectLightingCache light;
         ShadowCasterSphere sphere;
         ObjectColors initial_colors;
         std::array<std::optional<SourceView>,4> source_views;
     };
     const Cache &cache;
-    const CollisionWorld &collision;
+    const CollisionWorld *collision;
     Mesh &mesh_owner;
     BspLighting lighting;
     BspSurfaceLighting surface;
@@ -130,14 +137,20 @@ struct SourceMachineScene::Impl {
     std::set<std::size_t> machine_placements,nonrendered_placements;
 
     bool effects_only{};
+    bool campaign_resources_only{};
+    std::uint64_t campaign_frame{};
+    const std::shared_ptr<source_campaign_machine_detail::FrameAuthority> campaign_authority=
+        std::make_shared<source_campaign_machine_detail::FrameAuthority>();
     struct Fork {};
     Impl(const Impl &s,Fork):cache(s.cache),collision(s.collision),mesh_owner(s.mesh_owner),lighting(s.lighting),
         surface(s.surface),conversion(s.conversion),sh(s.sh),counts(s.counts),state(s.state),resource_slots(s.resource_slots),
         deferred_resources(s.deferred_resources),machine_placements(s.machine_placements),
         nonrendered_placements(s.nonrendered_placements),effects_only(true) {}
-    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool source_resource_defer)
+    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld *cw,bool source_resource_defer,bool campaign=false)
         :cache(c),collision(cw),mesh_owner(mesh),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
+        campaign_resources_only=campaign;
+        if(!collision&&!campaign)throw FormatError("Machine presentation requires its actual collision owner");
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
             if(object.type==7)machine_placements.insert(source_object);
@@ -159,23 +172,30 @@ struct SourceMachineScene::Impl {
             m.position=m.placement.initial_position;m.power=m.placement.initial_power;m.scale=object.scale;
             //All nineteen supplied gears have private power/position groups.
             //Named gear groups require1152E0's shared group write producer.
-            if(m.definition.type==2 && (m.placement.power_group!=-1 || m.placement.position_group!=-1))
+            if(!campaign && m.definition.type==2 && (m.placement.power_group!=-1 || m.placement.position_group!=-1))
                 throw FormatError("named gear group progression requires source shared state: "+m.definition.name);
             m.runtime_flags=source_machine_object_flags(0,m.definition);
             if(m.definition.position)++counts.position_overlays;
             if(m.definition.type!=2)++counts.initial_state_only;
             if(m.definition.render_model==0xffffffffu){nonrendered_placements.insert(source_object);continue;}
-            if(!source_object_light_query_bank_valid(lighting))
+            if(!campaign && !source_object_light_query_bank_valid(lighting))
                 throw FormatError("machine model lighting implementation3 requires original active bank: "+m.definition.name);
             m.bounds=cache.load_object_shadow_definition(object.definition);
             const auto basis=authored_basis(object.rotation);
             m.object=source_object_transform(object.position,basis.forward,basis.up,m.scale,false);
             const auto initial_definition=cache.load_initial_model_definition(object.definition);
-            const auto initial_selection=cache.load_initial_model_selection(object.definition,object.variant);
-            if(!initial_selection.resolved())
-                throw FormatError("machine initial model RNG selection requires source state: "+m.definition.name);
-            m.active_permutations=initial_selection.permutations;
-            m.geometry.load(cache,object,initial_definition,initial_selection,m.definition.render_model);
+            if(campaign) {
+                // Definition residency never selects a live permutation or
+                // advances the source RNG. Completed native units select the
+                // actual section and pose independently for each packet.
+                m.geometry.load_union(cache,object,initial_definition,m.definition.render_model);
+            } else {
+                const auto initial_selection=cache.load_initial_model_selection(object.definition,object.variant);
+                if(!initial_selection.resolved())
+                    throw FormatError("machine initial model RNG selection requires source state: "+m.definition.name);
+                m.active_permutations=initial_selection.permutations;
+                m.geometry.load(cache,object,initial_definition,initial_selection,m.definition.render_model);
+            }
             pose(m);
             const auto colors=cache.load_object_colors(object.definition,object.variant);
             m.initial_colors=colors;
@@ -209,6 +229,15 @@ struct SourceMachineScene::Impl {
     }
     void own()const {
         if(std::this_thread::get_id()!=executor)throw FormatError("Machine scene crossed its executor");
+    }
+    void retire_campaign_packets() {
+        const auto generation=campaign_authority->generation.load(std::memory_order_relaxed);
+        if(generation==std::numeric_limits<std::uint64_t>::max())
+            throw FormatError("Campaign machine packet generation exhausted");
+        campaign_authority->generation.store(generation+1,std::memory_order_release);
+    }
+    void require_presentation()const {
+        if(campaign_resources_only)throw FormatError("Campaign machine resources require completed native draws, not a second controller");
     }
     void quiescent()const {
         own();if(depth)throw FormatError("Machine scene has an active presentation call");
@@ -275,8 +304,16 @@ struct SourceMachineScene::Impl {
         m.world_nodes=m.solved_nodes?*m.solved_nodes:pose_model_locals_nodes_world(model,root,locals);
         if(m.world_nodes.empty())throw FormatError("machine model has no query node0: "+m.definition.name);
         m.sphere=source_shadow_sphere(m.bounds,m.world_nodes.front(),root.scale);
-        if(!m.resource_error)m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
-            skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
+        const auto* fresh=std::getenv("HALO2_REFERENCE_FRESH_MACHINE_POSES");
+        if(!m.resource_error) {
+            if(m.solved_nodes && !(fresh && *fresh)) {
+                for(unsigned lod=0;lod<6;++lod)m.geometry.pose_world_lod_view(lod,[&](const RenderModel& resident) {
+                    const auto posed=m.pose_cache[lod].update_preserving_effects(resident,m.world_nodes);
+                    return ModelSkinWorldPoseView{posed.vertices,{},false};
+                });
+            } else m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
+                skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
+        }
     }
     void bind_banks(Machine &m,Mesh &mesh){if(!effects_only)m.geometry.update_banks(cache,m.world_nodes,sh,mesh);}
     static void reference_pose(Machine &m) {
@@ -372,12 +409,13 @@ struct SourceMachineScene::Impl {
         }state.last_tick=tick;
     }
     void query_lighting(Machine&m,std::int32_t frame,float distance){
+        if(!collision)throw FormatError("Machine private lighting query has no collision owner");
         const auto origin=m.sphere.center;
         const bool due=object_lighting_query_due(m.light,frame,origin,distance,false);
         ObjectLightQueryContext context;context.bank_valid=source_object_light_query_bank_valid(lighting);
         context.object_type=7;context.definition_flags=m.definition.object_flags;context.runtime_flags=m.runtime_flags;
         const auto query=due?source_object_light_query(context,[&](unsigned mode){
-            return query_object_lightmap(surface,collision,origin,ObjectLightMapQueryContext{mode,
+            return query_object_lightmap(surface,*collision,origin,ObjectLightMapQueryContext{mode,
                 !(m.light.sample_valid && m.light.lighting_valid),1.f,m.light.target});},
             []{return ObjectLightQueryResult{};}):ObjectLightQueryAdmission{};
         if(query.query.status==ObjectLightQueryStatus::attribution_unresolved)
@@ -393,16 +431,127 @@ struct SourceMachineScene::Impl {
 
 };
 SourceMachineScene::SourceMachineScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,
-    Mesh&mesh,const CollisionWorld&collision,bool source_resource_defer):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_resource_defer)){}
+    Mesh&mesh,const CollisionWorld&collision,bool source_resource_defer):impl_(std::make_shared<Impl>(c,objects,bsp,mesh,&collision,source_resource_defer)){}
 SourceMachineScene::SourceMachineScene(std::unique_ptr<Impl> impl):impl_(std::move(impl)){}
+std::unique_ptr<SourceMachineScene> SourceMachineScene::campaign_resources(const Cache&cache,
+    std::span<const ScenarioObject> objects,std::size_t bsp,Mesh&mesh) {
+    return std::unique_ptr<SourceMachineScene>(new SourceMachineScene(
+        std::make_unique<Impl>(cache,objects,bsp,mesh,nullptr,true,true)));
+}
+bool SourceMachineScene::owns_definition(std::uint32_t definition)const {
+    impl_->quiescent();
+    if(!impl_->campaign_resources_only)throw FormatError("Campaign machine ownership requires its resource-only owner");
+    bool found{};
+    for(const auto&machine:impl_->state.machines)if(machine.definition_datum==definition){
+        found=true;if(machine.resource_error||!machine.geometry.material_count)return false;
+    }
+    return found&&impl_->resources_ready();
+}
+void SourceMachineScene::begin_campaign_frame(std::uint64_t frame) {
+    Impl::Mutation mutation(*impl_);
+    if(!impl_->campaign_resources_only || !frame || frame<=impl_->campaign_frame)
+        throw FormatError("Campaign machine frame requires a fresh actual enclosing epoch");
+    impl_->retire_campaign_packets();impl_->campaign_frame=frame;
+}
+std::shared_ptr<const SourceCampaignMachineViewPacket> SourceMachineScene::collect_campaign_view(
+    const SceneObjects&scene,std::span<const SourceLiveModelBaseDrawTu15> draws,
+    const SourceModelShaderView&shader,PhysicsLiveWorldTu15&world,
+    const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)>&inputs) {
+    impl_->quiescent();
+    if(!impl_->campaign_resources_only||!impl_->campaign_frame||!inputs||!impl_->resources_ready())
+        throw FormatError("Campaign machine collection lost its completed frame/material/input owners");
+    struct Scope {Impl&s;explicit Scope(Impl&owner):s(owner){++s.depth;}~Scope(){--s.depth;}} scope(*impl_);
+    auto packet=std::shared_ptr<SourceCampaignMachineViewPacket>(new SourceCampaignMachineViewPacket);
+    packet->resources_=impl_;packet->authority_=impl_->campaign_authority;
+    packet->generation_=impl_->campaign_authority->generation.load(std::memory_order_acquire);
+    packet->sections_.reserve(draws.size());packet->ordinals.reserve(draws.size());
+    std::set<unsigned> consumed;
+    for(const auto&draw:draws) {
+        const auto owned=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),
+            [&](const auto&machine){return machine.definition_datum==draw.definition;});
+        if(owned==impl_->state.machines.end())continue;
+        if(!consumed.insert(draw.ordinal).second)throw FormatError("Campaign machine view repeated an actual source ordinal");
+        const auto&live=scene.get(draw.object);
+        const auto at=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),[&](const auto&machine){
+            return machine.source_object==live.placement&&machine.definition_datum==draw.definition;
+        });
+        if(at==impl_->state.machines.end()||live.handle!=draw.object||!live.visible||live.bsp_hidden)
+            throw FormatError("Campaign machine draw lost its actual full scene owner/placement");
+        const auto&machine=*at;Impl::require_resources(machine);
+        if(draw.unit.words[1]!=machine.definition.render_model||draw.lod>=6||draw.override_slot!=255||
+           (draw.lighting_class!=2&&draw.lighting_class!=3)||draw.lighting_class!=(draw.unit.words[0]>>29))
+            throw FormatError("Campaign machine draw lost its actual model/LOD/class/override contract");
+        const auto body=world.source_object_body(draw.object);
+        if(Bytes(world.memory().view(body,4)).u32(0)!=draw.definition)
+            throw FormatError("Campaign machine draw lost its actual native definition generation");
+        packet->ordinals.push_back(draw.ordinal);
+        if(!draw.geometry.geometry.resident)continue; // Actual449D0 no-resource return.
+        const auto nodes=world.rendered_world_nodes(draw.object);
+        if(!nodes||nodes->empty())throw FormatError("Campaign machine draw lost its completed rendered WORLD nodes");
+        const auto section=(draw.unit.words[3]>>9u)&511u;
+        auto selected=machine.geometry.selected_section_world(draw.lod,section,{0,draw.coverage},shader,*nodes);
+        const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16u));
+        for(auto&vertex:selected.vertices)vertex.source_stipple_level=stipple;
+        if(selected.vertices.empty())continue;
+        std::vector<SourcePrtMaterialBank> banks;
+        if(selected.prt_lighting) {
+            const auto definition=machine.geometry.prt_definition();
+            if(!definition||!draw.unit.words[4]||
+                Bytes(world.memory().view(draw.unit.words[4],4)).u32(0)!=draw.object)
+                throw FormatError("Campaign PRT draw lost its current coefficient/context owner");
+            banks=machine.geometry.selected_prt_banks(draw.lod,section,
+                source_live_model_prt_bank_tu15(world,draw.unit,*definition));
+        }
+        auto presentation=inputs(draw);
+        packet->sections_.push_back({std::move(selected.vertices),std::move(selected.ordinals),
+            std::move(banks),std::move(presentation.colors),std::move(presentation.input),
+            selected.ordinary_lighting?std::optional{draw.lighting}:std::nullopt,
+            {draw.object,draw.definition,machine.definition.render_model,draw.lod,
+                &machine.geometry.at(draw.lod).model,0,{}}});
+    }
+    packet->objects.reserve(packet->sections_.size());
+    for(auto&section:packet->sections_) {
+        section.depth.source_vertices=section.source_vertices;
+        ModelObjectDraw draw{section.vertices,section.lighting,section.colors,section.input,section.prt};
+        draw.source_model_selection=section.depth;packet->objects.push_back(std::move(draw));
+    }
+    packet->require_current();return packet;
+}
+void SourceMachineScene::rebase_campaign_materials(unsigned before,unsigned after) {
+    Impl::Mutation mutation(*impl_);
+    if(!impl_->campaign_resources_only)throw FormatError("Campaign material transfer requires its resource-only owner");
+    const auto translate=[&](unsigned value){
+        if(value<before||std::uint64_t(value-before)+after>0xffffffffull)
+            throw FormatError("Campaign machine material transfer escaped its actual namespace");
+        return value-before+after;
+    };
+    // The caller has already moved the same common block into this Mesh.
+    // Validate its new slots and every internal index before publication.
+    for(const auto&slot:impl_->resource_slots) {
+        const auto index=translate(slot.material);
+        if(index>=impl_->mesh_owner.materials.size())throw FormatError("Campaign machine material transfer lost a resident slot");
+        const auto&material=impl_->mesh_owner.materials[index];const auto&pass=material.environment_pass;
+        if(material.source_shader_datum!=slot.shader||material.selected_shader_lod!=slot.shader_lod||
+            bool(pass&&pass->forward_vertex==9)!=slot.prt||(slot.prt&&!pass->vertex_bank))
+            throw FormatError("Campaign machine material transfer changed its authored shader/PRT owner");
+    }
+    for(const auto&machine:impl_->state.machines)if(!machine.resource_error)
+        machine.geometry.validate_material_rebase(before,after);
+    impl_->retire_campaign_packets();
+    for(auto&machine:impl_->state.machines)if(!machine.resource_error)machine.geometry.rebase_materials(before,after);
+    for(auto&slot:impl_->resource_slots)slot.material=translate(slot.material);
+}
 std::unique_ptr<SourceMachineScene> SourceMachineScene::fork()const {
+    impl_->require_presentation();
     if(impl_->executor!=std::this_thread::get_id() || impl_->depth)
         throw FormatError("Machine fork requires its completed foreground owner");
     return std::unique_ptr<SourceMachineScene>(new SourceMachineScene(std::make_unique<Impl>(*impl_,Impl::Fork{})));
 }
-SourceMachineScene::~SourceMachineScene()=default;
+SourceMachineScene::~SourceMachineScene(){if(impl_)impl_->campaign_authority->alive.store(false,std::memory_order_release);}
 SourceMachineScene::SourceMachineScene(SourceMachineScene&&) noexcept=default;
-SourceMachineScene&SourceMachineScene::operator=(SourceMachineScene&&) noexcept=default;
+SourceMachineScene&SourceMachineScene::operator=(SourceMachineScene&&other) noexcept {
+    if(this!=&other){if(impl_)impl_->campaign_authority->alive.store(false,std::memory_order_release);impl_=std::move(other.impl_);}return *this;
+}
 struct SourceMachineScene::Checkpoint::Data {
     std::weak_ptr<const void> owner;
     std::thread::id executor;
@@ -482,13 +631,16 @@ bool SourceMachineScene::commit_restore(PreparedRestore &prepared)noexcept {
     ++s.revision;p.consumed=true;return true;
 }
 void SourceMachineScene::update(std::uint64_t tick,std::int32_t frame,Vec3 eye,float scale,Mesh&mesh){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);impl_->require_mesh(mesh);
     impl_->update(tick,frame,eye,scale,mesh);
 }
 void SourceMachineScene::update_pose(std::uint64_t tick,std::int32_t frame,Mesh&mesh){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);impl_->require_mesh(mesh);impl_->update_pose(tick,frame,mesh);
 }
 void SourceMachineScene::interpolate(const SourceDeviceWorldSnapshot &previous,float fraction){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);
     validate_render_fraction(fraction);
     for(auto &m:impl_->state.machines) {
@@ -514,6 +666,7 @@ void SourceMachineScene::interpolate(const SourceDeviceWorldSnapshot &previous,f
     }
 }
 void SourceMachineScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction) {
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);
     validate_render_fraction(fraction);
     for(auto &m:impl_->state.machines)if(m.active && m.solved_nodes && !m.reference) {
@@ -524,6 +677,7 @@ void SourceMachineScene::interpolate(const SceneObjects &scene,const SceneInterp
     }
 }
 void SourceMachineScene::synchronize(const SceneObjects&scene,const SourceDeviceWorld*devices){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);impl_->synchronize(scene,devices);
 }
 void SourceMachineScene::reset_lifetimes() noexcept {
@@ -531,6 +685,12 @@ void SourceMachineScene::reset_lifetimes() noexcept {
     // The legacy noexcept retirement API cannot throw on a foreign/busy or
     // exhausted owner. Reject those calls before touching any live state.
     if(std::this_thread::get_id()!=s.executor||s.depth||s.revision==std::numeric_limits<std::uint64_t>::max())return;
+    if(s.campaign_resources_only){
+        const auto generation=s.campaign_authority->generation.load(std::memory_order_relaxed);
+        if(generation==std::numeric_limits<std::uint64_t>::max())s.campaign_authority->alive.store(false,std::memory_order_release);
+        else s.campaign_authority->generation.store(generation+1,std::memory_order_release);
+        s.campaign_frame=0;++s.revision;return;
+    }
     ++s.revision;s.state.last_tick=0;s.state.render_frame=0;s.state.lifetimes_bound=false;
     for(auto &m:s.state.machines){
         m.handle=0xffffffffu;m.created_tick=m.advanced_tick=0;
@@ -540,16 +700,19 @@ void SourceMachineScene::reset_lifetimes() noexcept {
     }
 }
 void SourceMachineScene::set_reference_devices(std::span<const ReferenceDeviceState> devices,Mesh&mesh){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);impl_->require_mesh(mesh);
     impl_->set_reference_devices(devices,mesh);
 }
 void SourceMachineScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings)const{
+    impl_->require_presentation();
     impl_->own();for(const auto&m:impl_->state.machines)if(m.active && m.visible){Impl::require_resources(m);const auto&g=m.geometry.at(5);
         out.insert(out.end(),g.vertices.begin(),g.vertices.end());
         bindings.push_back({m.geometry.first_material,m.geometry.material_count,m.light.lighting});}
 }
 void SourceMachineScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);impl_->require_mesh(impl_->mesh_owner);
     for(auto&m:impl_->state.machines)if(m.active && m.visible){
         if(const auto& source=m.source_views.at(view.view_index);source) {
@@ -577,10 +740,12 @@ std::vector<std::uint32_t> SourceMachineScene::source_render_models()const {
     return {roots.begin(),roots.end()};
 }
 void SourceMachineScene::begin_source_frame() {
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);for(auto& m:impl_->state.machines)for(auto& view:m.source_views)view.reset();
 }
 bool SourceMachineScene::retain_source_view(unsigned view,std::span<const SourceLiveModelBaseDrawTu15> draws,
     std::span<const Transform> nodes,const SourceModelShaderView& shader,PhysicsLiveWorldTu15& world) {
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);if(view>=4)throw FormatError("Native MACH view exceeds four players");
     if(draws.empty())return false;
     const auto at=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),[&](const auto& m){return m.active&&m.visible&&m.handle==draws.front().object;});
@@ -593,7 +758,7 @@ bool SourceMachineScene::retain_source_view(unsigned view,std::span<const Source
         if(draw.override_slot!=255 || (draw.lighting_class!=2 && draw.lighting_class!=3))return false;
         const auto section=(draw.unit.words[3]>>9)&511u;
         auto selected=machine.geometry.selected_section_world(draw.lod,section,{0,draw.coverage},shader,nodes);
-        const auto stipple=source_shader_instance_stipple(std::uint8_t(draw.unit.words[6]>>16)).level;
+        const auto stipple=source_shader_instance_stipple_level(std::uint8_t(draw.unit.words[6]>>16));
         for(auto& vertex:selected.vertices)vertex.source_stipple_level=stipple;
         std::vector<SourcePrtMaterialBank> banks;
         if(selected.prt_lighting) {
@@ -607,6 +772,7 @@ bool SourceMachineScene::retain_source_view(unsigned view,std::span<const Source
     machine.source_views[view]=std::move(retained);return true;
 }
 void SourceMachineScene::append_source_models(std::vector<ModelObjectDraw>& output,const SourceObjectViewLod& view) {
+    impl_->require_presentation();
     Impl::Mutation mutation(*impl_);
     for(auto& machine:impl_->state.machines)if(machine.active&&machine.visible) {
         auto& source=machine.source_views.at(view.view_index);if(!source)continue;

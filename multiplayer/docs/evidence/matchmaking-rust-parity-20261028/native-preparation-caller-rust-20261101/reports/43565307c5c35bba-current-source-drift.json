@@ -1,0 +1,117 @@
+[
+  {
+    "path": "cmake/NativeWeaponEffectsTu15.cmake",
+    "frozen": "5a8360470c9c1872103f9cb1d989e990e6aea42a36c1774f5c82bd03cea3ac77",
+    "current": "34d5d471326083219853a41643b53fd29c41e5d9f2e361d3add89586fc98df88"
+  },
+  {
+    "path": "cmake/PhysicsLiveWorldTu15.cmake",
+    "frozen": "9d273922e8987da44e5f65ec10a22ea68d71e0b01cfb77a1d46791cdf995107f",
+    "current": "41afd14fc14e019be03a6a10a73b0bf4a8b2739611d20ec53a4ceb4a716666af"
+  },
+  {
+    "path": "include/halo2/multiplayer.hpp",
+    "frozen": "4a77dfa2e2c60d7474ee7ee234e060060e5bf2e600b741824ce0ed20d1cbfecc",
+    "current": "5abb4eeba595892955bcd828f93c797743d31bc057a0a0ee85b7513cc6cc4b9f"
+  },
+  {
+    "path": "include/halo2/multiplayer_authority.hpp",
+    "frozen": "74caa8daaeb5964d833a4ac9643c4c5499a923ba9aebda023e4abbc3d33cfa2b",
+    "current": "39db38967cfda0d075003fba0e636065cb50f8b8d68b6110506e3848a9cf61b1"
+  },
+  {
+    "path": "include/halo2/multiplayer_datagrams.hpp",
+    "frozen": "7b99491f1606a3c2b3a23d8a12e3736692a87c358d79bcc1c9edbb179bf992ee",
+    "current": "b5c377a4cc753f7231bc21c0f4f9b6e4b1619988f37b3c18288731405271151c"
+  },
+  {
+    "path": "include/halo2/multiplayer_object_runtime.hpp",
+    "frozen": "248803392d1b7c2e0b8b459d5447d2a8c5970393f96e5ab291bbb5cf46a1b583",
+    "current": "e33b45506265ff61acd9ddba50e6666c09cd59cac1b2b314d75bbe596d4be51d"
+  },
+  {
+    "path": "include/halo2/multiplayer_runtime_receipt.hpp",
+    "frozen": "34d458c89a2b415c238f9cd7b788011b8a12d47c9580608888a02ab0d713fe85",
+    "current": "37f86459ca246e72de9047ea632ac462b26655e28e2d8ec96bde235be96c27e8"
+  },
+  {
+    "path": "include/halo2/physics_live_world_tu15.hpp",
+    "frozen": "d3dc4a9f9a7de016e28bfe20b265887dd1af08050d8234e77605b99d2b5c6fce",
+    "current": "028ea4b58810e2f49909cf08e1818132f244cb0e6c6bb6382e84a2a68cd3764a"
+  },
+  {
+    "path": "include/halo2/source_prop_scene.hpp",
+    "frozen": "4b26a1ba343cbe871cefe555fbfa247d589c76f94d57de7c2fdf5037c4e462b9",
+    "current": "2f80354533bc27a0799ad95625ee4dde710a96ef37eb3c2749d5223fbbd26af8"
+  },
+  {
+    "path": "src/gameplay/multiplayer/multiplayer.cpp",
+    "frozen": "f8bfa23a582f6edc1acbd46c60183bf6432f80f2fbb2154292a591eceab599cb",
+    "current": "1e50d0895e59466025292f7ca6b5a6dd6b4cb0831acfd774acae7b6b34612643"
+  },
+  {
+    "path": "src/gameplay/multiplayer/multiplayer_continuation.cpp",
+    "frozen": "55239743e9be5f0d91999e0ac18aa546f7cbbe58ed99739f65f9f25dd9627f75",
+    "current": "78a2ff73235c11cfca8882a9e389941c3a4218e358bb69e7674306cefecd1fc7"
+  },
+  {
+    "path": "src/gameplay/multiplayer/multiplayer_object_runtime.cpp",
+    "frozen": "e1cf57548de3d6ca691e300af12590fdff6da5c9c3b6d0f977e3a97cb58c4475",
+    "current": "eff4afedcd77f3ca4949d2de55d0b5313b24d62fa726c4cb758e5539781a34bf"
+  },
+  {
+    "path": "src/gameplay/multiplayer/multiplayer_runtime.cpp",
+    "frozen": "735385fe2684d6833a67c34578289db4b2f9733cb8f8fa03fa8c88c6f682b0a4",
+    "current": "1c58e309c030e9e599db11210deeb39c0d38d1d2cf81f6ca70df1d6ab02183d3"
+  },
+  {
+    "path": "src/gameplay/objects/source_prop_scene.cpp",
+    "frozen": "950fae02264cb679ec65b47bdd09770f068bca78b5e1afa38365a58957d3e083",
+    "current": "ec31fe1c5d0b714d689d912393c8e7ff380e8ea19aeba4514107656c62dbb585"
+  },
+  {
+    "path": "src/gameplay/objects/source_scenery_scene.cpp",
+    "frozen": "28bc247721cc2158fe7b706798f98698546219f406408e92f13bd70ab16dd280",
+    "current": "a2af565ffc5fe924649ad7bd9f43bb8237d722c00d4d21f5efef567da235f6d3"
+  },
+  {
+    "path": "src/network/multiplayer_authority_fields.hpp",
+    "frozen": "1c95db84f1331d835cafe028d0049f974caf666cddeb742653e8978856a26509",
+    "current": "0bf24506e80ff9b8833280575aba6a2b7c246e11f66da226bb492fa260457527"
+  },
+  {
+    "path": "src/network/multiplayer_network.cpp",
+    "frozen": "7fbc81b9a89d0213528c1eba9c56699e858fd584b4699b4995d42e6f61aef80d",
+    "current": "cb5af64b6896ace6d3589164c63eb13411e44ff3cde18ce3d6d6d85282e36dab"
+  },
+  {
+    "path": "src/physics/native_tu15_world_integration_residuals.cpp",
+    "frozen": "d69cfcca7461269a0b5928ee561a8042a89ddd09bb83f8d9cf83ff000e92a7f6",
+    "current": "8b322128027f5aa2ca36695e272075bf396a382bd5b008ae70e1bdb2fb0550e5"
+  },
+  {
+    "path": "src/physics/physics_live_world_tu15.cpp",
+    "frozen": "dd0dd61d3c55652486dcd848036211ab1325033e7cb3808dea12ccf6cb1fbd59",
+    "current": "27225136d760eb85c55afc0829e04700e0448f179a4b2ec8f289442e72ebc1ca"
+  },
+  {
+    "path": "src/rendering/world/source_world_depth_input.cpp",
+    "frozen": "5c5cf08cec8440e18123aa5c16575c5670423da9bd6c8d129947ad5017f87257",
+    "current": "5082ca0a3eb65c0012a6de34b16ecb378df1485a9d21be4d2a95ef6c24228727"
+  },
+  {
+    "path": "tests/source_prop_scene_tests.cpp",
+    "frozen": "4b9fa91124f812ec9a52733ba457749b1945575fa03d8ab23fe2be835ff6e36a",
+    "current": "a396b0adb44bd81fc19694dd2d0b3bccbf88c2bdcff00d938433ccfe4a6703fc"
+  },
+  {
+    "path": "tests/source_world_depth_frames_tests.cpp",
+    "frozen": "d9d624ff58c4016d37a7f27901395f920c64db9c1e5fccfa7b6ac6a73aa5e786",
+    "current": "3773ff65dd6d9a482fd2f1f75cca0936dc559bc25a6ce29647f482b4e56d1a86"
+  },
+  {
+    "path": "tools/validate_native_phantom_overlap_add_tu15.py",
+    "frozen": "7d3ee6d28e2f739d0a03ee804a471695a3357dac00e7ae2859073142938a268b",
+    "current": "d2e477ba779be51dc9acc71d69ce288c63191abbd06f223fec9e3855b9a50a76"
+  }
+]

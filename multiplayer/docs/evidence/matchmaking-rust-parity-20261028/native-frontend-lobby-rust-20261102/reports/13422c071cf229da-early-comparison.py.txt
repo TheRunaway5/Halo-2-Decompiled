@@ -1,0 +1,49 @@
+import hashlib,json,os,shutil,subprocess,sys,select
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);work=root/'build/test-results/frontend-lobby-rust-20261102'
+source=scratch/'source';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest();report={'passed':False,'scratch':str(scratch),'commands':[]}
+for crate in ['online_protocol','online_protocol_bridge']:
+ shutil.copytree(root/'rust'/crate,source/'rust'/crate,ignore=shutil.ignore_patterns('target','__pycache__'))
+for directory in ['include','tests/reference/frontend_lobby_before_rust_20261102']:
+ shutil.copytree(root/directory,source/directory)
+for name in ['tests/frontend_matchmaking_lobby_rust_tests.cpp','tests/test_frontend_lobby_policy.py','src/ui/frontend_matchmaking_lobby_bridge.cpp','src/ui/frontend_matchmaking_lobby.cpp']:
+ p=source/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(root/name,p)
+report['source_pins']={str(p.relative_to(source)):sha(p) for p in source.rglob('*') if p.is_file()}
+env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/'cargo'),CARGO_BUILD_JOBS='2',RUSTUP_AUTO_INSTALL='0',RUSTUP_TOOLCHAIN='1.96.0')
+def run(command,cwd,label):
+ p=subprocess.run(command,cwd=cwd,env=env,capture_output=True);data=p.stdout+p.stderr;(work/(label+'.log')).write_bytes(data[-1048576:])
+ report['commands'].append({'command':command,'cwd':str(cwd),'exit_code':p.returncode,'log':label+'.log','full_log_sha256':hashlib.sha256(data).hexdigest(),'full_log_bytes':len(data)})
+ print(label,p.returncode,flush=True)
+ if p.returncode:print(data.decode(errors='replace')[-7000:],flush=True);raise SystemExit(p.returncode)
+def attempt():
+ run(['cargo','build','--locked','--offline'],source/'rust/online_protocol_bridge','early-cargo')
+ include=scratch/'cargo/cxxbridge';rust_include=scratch/'cargo/debug/build'
+ # Cargo exposes the shared bridge path under target/cxxbridge.
+ command=['c++','-std=c++20','-O2','-I'+str(source/'include'),'-I'+str(source/'tests'),'-I'+str(include),'-I'+str(source/'rust/online_protocol_bridge'),
+  str(source/'tests/frontend_matchmaking_lobby_rust_tests.cpp'),str(source/'src/ui/frontend_matchmaking_lobby_bridge.cpp'),
+  str(scratch/'cargo/debug/libhalo2_online_protocol_bridge.a'),'-lcurl','-lssl','-lcrypto','-ldl','-lpthread','-lm','-o',str(scratch/'comparison')]
+ run(command,source,'early-cpp')
+ run(['c++','-std=c++20','-fsyntax-only','-I'+str(source/'include'),'-I'+str(source/'src'),'-I'+str(include),'-I'+str(source/'rust/online_protocol_bridge'),str(source/'src/ui/frontend_matchmaking_lobby.cpp')],source,'native-adapter-syntax')
+ run([sys.executable,str(source/'tests/test_frontend_lobby_policy.py'),str(scratch/'comparison'),'--report',str(work/'early-comparison.json')],source,'early-replay')
+ report['passed']=True
+fifo=scratch/'retry.fifo';os.mkfifo(fifo);fd=os.open(fifo,os.O_RDWR)
+serial=0
+while True:
+ serial+=1;report['passed']=False;report['commands']=[]
+ try:attempt()
+ except SystemExit as error:report['exit_code']=error.code
+ finally:
+  report['source_pins']={str(p.relative_to(source)):sha(p) for p in source.rglob('*') if p.is_file()}
+  (work/('early-iteration-'+str(serial)+'-runner.json')).write_text(json.dumps(report,indent=2)+'\n')
+ if report['passed']:break
+ print('READY_RETRY '+str(fifo),flush=True)
+ ready,_,_=select.select([fd],[],[],1200)
+ if not ready:raise RuntimeError('Owned compiler retry deadline')
+ request=json.loads(os.read(fd,65536))
+ if request.get('action')=='quit':raise SystemExit(report.get('exit_code',1))
+ assert request.get('action')=='retry'
+ for directory in ['rust/online_protocol','rust/online_protocol_bridge','include','tests/reference/frontend_lobby_before_rust_20261102']:
+  shutil.copytree(root/directory,source/directory,dirs_exist_ok=True,ignore=shutil.ignore_patterns('target','__pycache__'))
+ for name in ['tests/frontend_matchmaking_lobby_rust_tests.cpp','tests/test_frontend_lobby_policy.py','src/ui/frontend_matchmaking_lobby_bridge.cpp','src/ui/frontend_matchmaking_lobby.cpp']:
+  shutil.copyfile(root/name,source/name)
+(work/'early-comparison-runner.json').write_text(json.dumps(report,indent=2)+'\n')

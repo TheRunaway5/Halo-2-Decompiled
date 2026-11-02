@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "cases": 191,
+  "whole_original_calls": 382,
+  "bounded_category_selectors": 191,
+  "bounded_original_tip_selectors": 191,
+  "original_instructions": 110,
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "no_instruction_patches": true,
+  "no_replaced_callees": true,
+  "scope": "Bounded unchanged TU1.5 matchmaking widget decisions versus native kernels.\n\nTitle and game-icon routines run in full (the icon's bitmap owner is absent).\nThe option-category selector stops before its original external goof lookup;\nno external UI/tag/session callee is replaced or claimed to have executed.\nThe downloaded-tip LCG/index and signed15-second clock comparison are bounded\noriginal blocks with explicit inputs. Whole screen/helper byte correspondence\nis separate from these bounded calls.\n",
+  "backend": "standalone current Rust owner",
+  "rust_source_sha256": "04573b04b2dd4d0f74e457077f2a51356cdebc1a5152a3d2e84187d4d2ad0c94",
+  "native_binary_sha256": null,
+  "native_source_sha256": "f002cb7c1dbea9fcfe3c41f55c695fdbabfbaaf20d5ee651bba59c5590999e6d",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-progress-widget-original-20261102/halo2-test-hfvqxynz",
+  "scratch_retained": false
+}

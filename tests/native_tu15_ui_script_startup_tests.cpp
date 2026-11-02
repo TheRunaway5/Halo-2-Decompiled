@@ -22,6 +22,47 @@ void same(const SourceRuntimeMemory& memory,std::uint32_t address,std::size_t by
  const auto raw=unhex(expected.get<std::string>());check(raw.size()==bytes&&std::ranges::equal(memory.view(address,bytes),raw),"Native constructor bytes differ from unchanged TU1.5 execution");
 }
 template<class F>void reject(F action){bool rejected=false;try{action();}catch(const std::exception&){rejected=true;}check(rejected,"Invalid or partial constructor backing was admitted");}
+void scalar(const Json& fixture) {
+ check(fixture.at("xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
+     fixture.at("table_address")==0x502248 && fixture.at("table_bytes")==0x3c10 &&
+     fixture.at("instruction_patches").empty() && fixture.at("supplied_results").empty(),
+     "Scalar constructor reference is not unchanged TU1.5 evidence");
+ unsigned cases=0;
+ for(const auto& row:fixture.at("cases")) {
+  SourceRuntimeMemory memory;mount_native_tu15_ui_script_startup_data(memory);
+  check(std::ranges::all_of(memory.view(0x502248,0x3c10),[](auto b){return b==std::byte{};}),
+      "Complete scalar-cast lookup storage must start loader-zeroed");
+  const auto source_stack=fixture.at("stack").get<std::uint32_t>();
+  memory.mount(source_stack-128,unhex(row.at("stack_before")),SourceRuntimeMemory::Access::ReadWrite,
+      "declared original scalar constructor caller stack");
+  SourcePhysicsWorldRuntimeAbi abi{};abi.gp=row.at("initial_gp").get<decltype(abi.gp)>();
+  abi.eflags=row.at("flags");const auto control=row.at("control").get<std::uint16_t>();
+  abi.floating_point={control,0x1f80};
+  for(unsigned n=0;n<8;++n)for(unsigned j=0;j<4;++j)for(unsigned b=0;b<4;++b)
+      abi.xmm[n][j]|=((cases+n+j*4+b)&255)<<(b*8);
+  const auto before=abi;
+  Json stores=Json::array();std::vector<std::uint32_t> trace;
+  SourcePhysicsWorldRuntimeServices services;
+  services.instruction=[&](auto pc){trace.push_back(pc);};
+  services.required_owner=[](auto&,const auto&,auto&,const auto&){throw std::runtime_error("Scalar constructor reached a dependency");};
+  source_run_ui_script_startup_tu15(memory,0x212470,abi,{control,0x1f80},services,[&](const auto& store){
+   std::uint64_t value=0;for(std::size_t n=0;n<store.written.size();++n)value|=std::uint64_t(std::to_integer<unsigned>(store.written[n]))<<(n*8);
+   stores.push_back({store.instruction,store.address,store.written.size(),value});
+  });
+  check(abi.gp==row.at("gp").get<decltype(abi.gp)>() && abi.eflags==before.eflags,
+      "Scalar constructor returned different original registers/flags");
+  check(abi.xmm==before.xmm && abi.x87_depth==before.x87_depth && abi.x87_status==before.x87_status &&
+      abi.floating_point && before.floating_point &&
+      abi.floating_point->x87_control_word==before.floating_point->x87_control_word &&
+      abi.floating_point->mxcsr==before.floating_point->mxcsr,"Scalar constructor changed its FP/SIMD ABI");
+  check(trace==row.at("trace").get<decltype(trace)>() && stores==row.at("stores"),
+      "Scalar constructor original instruction/store order differs");
+  same(memory,0x502248,0x3c10,row.at("table_after"));
+  same(memory,source_stack-128,256,row.at("stack_after"));++cases;
+ }
+ check(cases==4,"Scalar constructor reference lost flags/direction coverage");
+ std::cout<<"PASS four unchanged original scalar constructors; all3844 lookup words, stores, stack and ABI\n";
+}
 void run(const Json& expected){
  SourceRuntimeMemory memory;mount_native_tu15_ui_script_startup_data(memory);
  const auto fill=expected.at("fill").get<unsigned>();
@@ -77,4 +118,4 @@ void run(const Json& expected){
  std::cout<<"Original startup51..58 fill "<<fill<<": "<<instructions<<" instructions, "<<views.regions.size()<<" wide storage regions\n";
 }
 }
-int main(int argc,char** argv){try{check(argc==2,"Expected original startup fixture");std::ifstream stream(argv[1]);Json fixture;stream>>fixture;check(fixture.at("passed")==true&&fixture.at("original_xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Original startup fixture is not authenticated TU1.5 evidence");for(const auto& row:fixture.at("cases"))run(row);return 0;}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}
+int main(int argc,char** argv){try{check(argc==2,"Expected original startup fixture");std::ifstream stream(argv[1]);Json fixture;stream>>fixture;if(fixture.value("schema","")=="H2_TU15_HS_SCALAR_CASTS_V1"){scalar(fixture);return 0;}check(fixture.at("passed")==true&&fixture.at("original_xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Original startup fixture is not authenticated TU1.5 evidence");for(const auto& row:fixture.at("cases"))run(row);return 0;}catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}}

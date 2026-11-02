@@ -33,6 +33,7 @@ struct BspPostprocess::Impl {
     VkImageView gradient{};
     std::map<std::uint32_t,std::vector<VkImageView>> noise_frames;
     std::uint32_t random{};
+    static constexpr unsigned slots=35; // 2 fog + threshold + 31 blur + composite.
     struct View {
         BspPostprocessView input;
         PatchyFogState state;
@@ -44,9 +45,9 @@ struct BspPostprocess::Impl {
         std::array<Image,2> blur;
         VkFramebuffer noise_framebuffer{};
         std::array<VkFramebuffer,2> blur_framebuffers{};
-        std::array<Uniform,8> uniforms;
-        std::array<VkDescriptorSet,8> descriptors{};
-        std::array<VkPipeline,8> pipelines{};
+        std::array<Uniform,slots> uniforms;
+        std::array<VkDescriptorSet,slots> descriptors{};
+        std::array<VkPipeline,slots> pipelines{};
     };
     std::array<View,4> views;
     std::size_t view_count{};
@@ -67,19 +68,19 @@ struct BspPostprocess::Impl {
             {0,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr},
             {1,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr}}};
         make_layout(bloom_bindings,bloom_set_layout,bloom_layout);
-        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,72},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,32}};
+        const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,180},{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,4*slots}};
         VkDescriptorPoolCreateInfo pi{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        pi.maxSets=32;pi.poolSizeCount=2;pi.pPoolSizes=sizes;
+        pi.maxSets=4*slots;pi.poolSizeCount=2;pi.pPoolSizes=sizes;
         check(vkCreateDescriptorPool(context.device,&pi,nullptr,&pool),"BSP postprocess descriptor pool");
         make_target_pass();
         for(unsigned index=0;index<views.size();++index) {
             auto &view=views[index];
-            std::array<VkDescriptorSetLayout,8> layouts;layouts.fill(bloom_set_layout);
+            std::array<VkDescriptorSetLayout,slots> layouts;layouts.fill(bloom_set_layout);
             layouts[0]=layouts[1]=patchy_set_layout;
             VkDescriptorSetAllocateInfo allocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-            allocate.descriptorPool=pool;allocate.descriptorSetCount=8;allocate.pSetLayouts=layouts.data();
+            allocate.descriptorPool=pool;allocate.descriptorSetCount=slots;allocate.pSetLayouts=layouts.data();
             check(vkAllocateDescriptorSets(context.device,&allocate,view.descriptors.data()),"BSP postprocess descriptor sets");
-            for(unsigned i=0;i<8;++i) {
+            for(unsigned i=0;i<slots;++i) {
                 make_uniform(i<2?400:272,view.uniforms[i]);
                 VkDescriptorBufferInfo info{view.uniforms[i].buffer,0,i<2?400u:272u};
                 VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
@@ -176,9 +177,10 @@ struct BspPostprocess::Impl {
         VkPipelineDepthStencilStateCreateInfo depth{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
         VkPipelineColorBlendAttachmentState attachment{};attachment.colorWriteMask=0xf;attachment.blendEnable=blending!=0;
         attachment.srcColorBlendFactor=blending==2?VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR:VK_BLEND_FACTOR_ONE;
-        attachment.dstColorBlendFactor=blending==2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        attachment.srcAlphaBlendFactor=blending==2?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:VK_BLEND_FACTOR_ZERO;
-        attachment.dstAlphaBlendFactor=blending==2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attachment.dstColorBlendFactor=blending>=2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        attachment.srcAlphaBlendFactor=blending==2?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
+            blending==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
+        attachment.dstAlphaBlendFactor=blending>=2?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         attachment.colorBlendOp=attachment.alphaBlendOp=VK_BLEND_OP_ADD;
         VkPipelineColorBlendStateCreateInfo blend{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};blend.attachmentCount=1;blend.pAttachments=&attachment;
         const VkDynamicState dynamic_states[]{VK_DYNAMIC_STATE_VIEWPORT,VK_DYNAMIC_STATE_SCISSOR};
@@ -247,7 +249,7 @@ struct BspPostprocess::Impl {
         }
         const std::array<VkImageView,4> target{view.noise.view,view.noise.view,view.noise.view,view.noise.view};
         image_binding(view.descriptors[1],2,target,clamp_sampler);
-        for(unsigned i=0;i<6;++i) {
+        for(unsigned i=0;i<slots-2;++i) {
             const auto image=i?view.blur[(i-1)%2].view:view.scene.view;
             image_binding(view.descriptors[i+2],0,{&image,1},clamp_sampler);
         }
@@ -294,15 +296,18 @@ struct BspPostprocess::Impl {
             const auto parameters=cinematic_bloom_parameters(view.bloom.threshold,view.bloom.strength,
                 cinematic,cinematic_override);
             view.bloom.threshold=parameters.threshold;view.bloom.strength=parameters.strength;
-            view.bloom.programs=menu_bloom(parameters.threshold,parameters.strength);
-            for(unsigned pass=0;pass<6;++pass) {
-                const auto physical=pass==5?view.size:view.quarter;
-                const auto controls=source_bloom_filter_controls(pass<5?view.bloom.programs.radii[pass]:0,
+            view.bloom.programs=halo2::cinematic_bloom(view.bloom.threshold,view.bloom.strength,
+                cinematic,cinematic_override);
+            const auto filters=unsigned(view.bloom.programs.radii.size());
+            for(unsigned pass=0;pass<=filters;++pass) {
+                const auto physical=pass==filters?view.size:view.quarter;
+                const auto controls=source_bloom_filter_controls(pass<filters?view.bloom.programs.radii[pass]:0,
                     {float(physical.width),float(physical.height)},
-                    pass<5?view.input.source_bloom_filter_extent:std::nullopt);
-                const auto& program=pass==0?view.bloom.programs.threshold:pass==5?view.bloom.programs.composite:view.bloom.programs.blur;
+                    pass<filters?view.input.source_bloom_filter_extent:std::nullopt);
+                const auto& program=pass==0?view.bloom.programs.threshold:pass==filters?view.bloom.programs.composite:view.bloom.programs.blur;
                 view.pipelines[pass+2]=native_pipeline("bloom",program,bloom_layout,
-                    pass==5?context.color_pass:target_pass,pass==5?2:0);
+                    pass==filters?context.color_pass:target_pass,
+                    pass==filters?(view.bloom.programs.silver_bullet?2:3):0);
                 const BloomUniform uniform{native_fragment_uniform_words(program.words),
                     controls,{0,0,1,1}};
                 write_uniform(view.uniforms[pass+2],uniform);
@@ -359,9 +364,10 @@ struct BspPostprocess::Impl {
         barriers[1].srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;barriers[1].dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
         vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,0,0,nullptr,0,nullptr,2,barriers.data());
         view.scene_initialized=true;
-        for(unsigned pass_index=0;pass_index<5;++pass_index)
+        const auto filters=unsigned(view.bloom.programs.radii.size());
+        for(unsigned pass_index=0;pass_index<filters;++pass_index)
             pass(command,target_pass,view.blur_framebuffers[pass_index%2],view.quarter,{{0,0},view.quarter},view.pipelines[pass_index+2],bloom_layout,view.descriptors[pass_index+2],true);
-        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[7],bloom_layout,view.descriptors[7],false);
+        pass(command,context.color_pass,target.color_framebuffer,context.extent,view.input.rectangle,view.pipelines[filters+2],bloom_layout,view.descriptors[filters+2],false);
         }
         VkRenderPassBeginInfo resume{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};resume.renderPass=context.continuation_pass;resume.framebuffer=target.continuation_framebuffer;
         resume.renderArea={{0,0},context.extent};vkCmdBeginRenderPass(command,&resume,VK_SUBPASS_CONTENTS_INLINE);viewport(command,view.input.rectangle);

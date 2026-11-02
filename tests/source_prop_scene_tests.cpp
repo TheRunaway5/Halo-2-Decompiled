@@ -29,6 +29,21 @@ bool same(const std::vector<ObjectLightingBinding> &a,const std::vector<ObjectLi
   if(a[n].first_material!=b[n].first_material||a[n].material_count!=b[n].material_count||std::memcmp(x.data(),y.data(),sizeof(x)))return false;
  }return true;
 }
+void material_owners(const SourcePropScene& scene,const SceneObjects& objects,const LevelContent& content,const Mesh& mesh) {
+ unsigned owned{};
+ for(unsigned slot=0;slot<mesh.materials.size();++slot)if(const auto owner=scene.material_owner(slot)) {
+  ++owned;
+  const auto found=std::find_if(objects.objects().begin(),objects.objects().end(),
+   [&](const auto& object){return object.handle==owner->object;});
+  check(found!=objects.objects().end() && owner->object!=null_datum,
+   "Prop material retained a retired or foreign salted lifetime");
+  const auto& placement=content.objects.at(found->placement);
+  check(placement.type==11 && owner->definition==placement.definition,
+   "Prop material changed its authored placement/definition owner");
+ }
+ check(scene.effect_owners().empty() || owned,"Live prop has no independent material owner");
+ check(!scene.material_owner(unsigned(mesh.materials.size())),"Prop owned an unallocated material slot");
+}
 void checkpoint_roundtrip(const Cache &cache,const LevelContent &content,const CollisionWorld &collision,
  SourcePropScene &scene,const SceneObjects &objects,Mesh &mesh){
  const auto material_count=mesh.materials.size();
@@ -207,7 +222,10 @@ int main(int argc,char**argv){try{
  const std::array names{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron","foundation","headlong","lockout","midship","waterworks","zanzibar","containment","warlock","deltatap","turf","backwash","dune","elongation","gemini","triplicate"};
  SourcePropSceneStats totals;unsigned vertices=0,bindings=0;
  for(unsigned i=0;i<names.size();++i){
-  Cache cache(std::filesystem::path(i<12?"assets/disc/maps":"assets/map-pack/maps")/(std::string(names[i])+".map"));
+  // The fixture's map-pack directory is an installation alias. Hand Cache
+  // the actual reference asset owner; retain its no-link resource admission.
+  Cache cache(std::filesystem::canonical(std::filesystem::path(i<12?"assets/disc/maps":"assets/map-pack/maps")/(std::string(names[i])+".map")),
+      std::filesystem::canonical("assets/disc/maps"));
   const auto content=cache.load_content(0,true);
   if(probe){for(const auto&object:content.objects)if(object.type==11){
    const auto d=cache.load_source_prop_definition(object.definition);
@@ -221,6 +239,7 @@ int main(int argc,char**argv){try{
   totals.union_dynamic_materials+=s.union_dynamic_materials;totals.union_prt_materials+=s.union_prt_materials;
   totals.union_section_banks+=s.union_section_banks;
   SceneObjects objects(content,0);scene.synchronize(objects);
+  material_owners(scene,objects,content,mesh);
   if(std::string(names[i])=="coagulation") {
    const auto vehicle=std::find_if(content.objects.begin(),content.objects.end(),[](const auto &o){
     return o.type==1 && o.name<0 && o.definition!=null_datum;
@@ -358,6 +377,8 @@ int main(int argc,char**argv){try{
   std::map<std::size_t,std::vector<std::uint8_t>> retained_permutations;
   for(const auto &o:scene.effect_owners())retained_permutations[o.placement]={o.permutations.begin(),o.permutations.end()};
   scene.reset_lifetimes();std::vector<Vertex> reset;std::vector<ObjectLightingBinding> reset_bindings;
+  for(unsigned slot=0;slot<mesh.materials.size();++slot)
+   check(!scene.material_owner(slot),"Retired prop material kept its previous native shader-input owner");
   scene.append(reset,reset_bindings);
   if(!reset.empty()||!reset_bindings.empty())throw FormatError("Retired prop world retained draw admission");
   scene.synchronize(before_move);scene.update_pose(0,mesh);scene.append(reset,reset_bindings);

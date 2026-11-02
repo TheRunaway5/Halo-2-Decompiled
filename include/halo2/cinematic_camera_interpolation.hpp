@@ -7,6 +7,8 @@ struct CinematicCameraFrame {
     bool paired{};
     float fraction{};
     SourceCampaignCameraViewTu15 completed;
+    // A completed original observer already owns camera motion and cuts.
+    bool original_observer{};
 };
 // Native presentation history only. Source camera/tick ownership stays intact.
 class CinematicCameraInterpolation {

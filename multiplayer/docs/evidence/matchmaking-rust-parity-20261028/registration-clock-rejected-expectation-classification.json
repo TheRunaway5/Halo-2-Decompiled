@@ -1,0 +1,13 @@
+{
+  "classification": "rejected_test_expectation",
+  "observed_behavior_confirmed": true,
+  "production_bug_proven": false,
+  "reason": "SteamLogin.owner uses its independent wall clock. clock_floor is used for registry expiration and canonical registration timestamps; it is not the Steam credential clock.",
+  "source_contracts": [
+    "multiplayer/master_server/steam_login.py:47",
+    "multiplayer/master_server/steam_login.py:348",
+    "multiplayer/master_server/clans_http.py:44",
+    "multiplayer/master_server/store.py:71"
+  ],
+  "production_change_made": false
+}

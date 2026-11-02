@@ -234,6 +234,28 @@ int main() {
       OnlineMatchmaking client(login, invalid, http);
       check(client.snapshot().status == OnlineMatchmakingStatus::Failed, "Invalid or unapproved plaintext origin accepted");
     }
+    {
+      // Linux map names and public API strings may contain invalid UTF-8.
+      // Typed CXX conversion must report invalid input without escaping the
+      // constructor/UI command as an exception or sending partial requests.
+      const auto invalid_text=std::string("Bad")+char(0xff);
+      auto invalid=options;invalid.maps={invalid_text};
+      OnlineMatchmaking bad_map(login,invalid,http);
+      check(bad_map.snapshot().status==OnlineMatchmakingStatus::Failed,"Invalid native map encoding escaped configuration admission");
+      OnlineMatchmaking bad_name(login,options,http);
+      bad_name.refresh(invalid_text);
+      eventually([&]{return bad_name.snapshot().status==OnlineMatchmakingStatus::Failed;});
+      const auto invalid_before=posts.load();
+      bad_name.join("ranked");
+      eventually([&]{return bad_name.snapshot().status==OnlineMatchmakingStatus::Failed;});
+      bad_name.cancel_queue();
+      eventually([&]{return bad_name.snapshot().status==OnlineMatchmakingStatus::Failed;});
+      check(posts==invalid_before,"Invalid profile reused an earlier valid name through a new command");
+      bad_name.refresh("Chosen Pilot");
+      eventually([&]{return bad_name.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      bad_name.join(invalid_text);
+      eventually([&]{return bad_name.snapshot().status==OnlineMatchmakingStatus::Failed;});
+    }
     for (unsigned variant=0;variant<7;++variant) {
       auto body=Json::parse(playlists);
       auto &row=body["playlists"][0];row["clan_match"]=true;row["eligible"]=false;

@@ -1,0 +1,14 @@
+{
+  "previous_goal_turn": "progress",
+  "previous_rust_passed": 668,
+  "previous_native_passed": 28,
+  "prior_scoped_sources_unchanged": true,
+  "reference_source_pins": {
+    "src/ui/frontend_state.cpp": "918d7a3e5ac3cdc8fa38378a2837956c98e96313b264828782f3115abcf56ecf",
+    "include/halo2/frontend.hpp": "63fdacaacffa683bb2b0995efa231e4fa6bf73f965042ec64438a7979c4d66f7",
+    "include/halo2/frontend_lobby_team.hpp": "597708c77e5fabcecea3fc051173d271ba996c1b9d9c22561672c25445350eef",
+    "include/halo2/frontend_lobby_ready.hpp": "9c5e66cafa3687c0ff084bbde87e208c2e34f0c5a78d32df43f1895e494ea58c",
+    "CMakeLists.txt": "9b121d7d3be3f4ff44e13984dc16329218db42e83098ef0a293b4821ca595684"
+  },
+  "goal_complete": false
+}

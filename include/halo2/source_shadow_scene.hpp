@@ -35,6 +35,7 @@ private:
     std::array<std::uint32_t,2> command_masks_{};
     std::vector<std::unique_ptr<SourceShadowMaterial>> materials_;
     std::vector<SourceShadowRawDraw> casters_,receivers_;
+    std::vector<SourceShadowModelPartCommand> model_commands_;
     std::size_t empty_descriptors_{};
 };
 // Immutable raw resources and fixed Generate0/Apply4 pass residency are loaded
@@ -48,6 +49,7 @@ public:
     SourceShadowScene(const SourceShadowScene&)=delete;
     SourceShadowScene& operator=(const SourceShadowScene&)=delete;
     std::span<const SourceShadowRawPlanMaterial> resident() const;
+    const SourceShadowModelPartBank& model_parts() const;
     // Complete this Scene's immutable selected bitmap bank from the actual
     // salted model owner's native BCB70 function/override/clock context.
     // The completed material must retain its stable address through drawing.

@@ -1,0 +1,34 @@
+{
+  "schema": "H2_VOICE_COHERENT_NATIVE_INPUTS_V1",
+  "before_sha256": "05240ee8ab5521b70a1623425984ba9285ebe7d4da420b920f4e4b027066be45",
+  "after_sha256": "05240ee8ab5521b70a1623425984ba9285ebe7d4da420b920f4e4b027066be45",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4264,
+  "changed": [],
+  "returncode": 0,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-wkvs7hqu/native-source",
+  "copied_files": 4264,
+  "copied_source_bytes": 166231857,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "current_source_drift": [
+    "cmake/FirstPersonBodyTu15.cmake",
+    "cmake/NativeTu15ShadowInverse.cmake",
+    "src/gameplay/animation/source_first_person_context_tu15.cpp"
+  ],
+  "source_control": "Owned CMake/Rust/backend/C++/headers and selected tooling/tests. Required external/original asset inputs remain borrowed read-only. Native source data and build outputs are removed by the owner.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/voice-policy-owner/halo2-test-wkvs7hqu",
+  "retained_large_artifacts": []
+}

@@ -1,0 +1,47 @@
+import hashlib,json,os,re,subprocess,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/peer-authority-transfer-rust-20261101'
+iteration=int(sys.argv[1]);native=json.loads((work/f'native/iteration-{iteration}-report.json').read_text())
+assert native['passed'] and native['frozen_inputs_intact']
+source=Path(native['source']);build=Path(native['scratch'])/'build';sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+pins={}
+for n in native['source_pin_parts']:pins.update(json.loads((work/'native'/n).read_text()))
+objects=list(build.rglob('peer_authority_transfer.cpp.o'));assert len(objects)==1,objects
+command=['nm','-C','--undefined-only',str(objects[0])];run=subprocess.run(command,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE);assert run.returncode==0,run.stderr
+names=['new_peer_authority_transfer']+['peer_authority_transfer_'+n for n in ['context','replace','supported','feature_supported','features','publish','ahead','delivered','failed','preparing','poll','receive','completed','acknowledge','reject','validated','is_packet']]
+entries={name:any('::'+name+'(' in line for line in run.stdout.splitlines()) for name in names}
+crypto=[line.strip() for line in run.stdout.splitlines() if re.search(r'\bSHA256\b|EVP_|nlohmann|json::',line)]
+old_cursor=[line.strip() for line in run.stdout.splitlines() if any('::'+n+'(' in line for n in ['new_peer_poll_cursor','peer_poll_order','peer_record_served'])]
+critical=['src/network/peer_authority_transfer.cpp','include/halo2/peer_authority_transfer.hpp',
+    'rust/online_protocol/src/peer_authority_transfer.rs','rust/online_protocol/src/lib.rs',
+    'rust/online_protocol_bridge/src/peer_authority_transfer.rs','rust/online_protocol_bridge/src/lib.rs',
+    'cmake/OnlinePeers.cmake','tests/peer_authority_transfer_tests.cpp','tests/peer_authority_transfer_replay.cpp',
+    'tests/test_peer_authority_transfer_replay.py','tests/reference/peer_authority_transfer_before_rust_20261101.cpp',
+    'tests/reference/peer_authority_transfer_before_rust_20261101.json',
+    'tests/reference/peer_authority_transfer_before_rust_20261101/halo2/peer_authority_transfer.hpp',
+    'include/halo2/multiplayer_datagrams.hpp','include/halo2/authority_network_limits.hpp']
+rust=json.loads((work/'full-rust/report.json').read_text());assert rust['passed'] and rust['syntax']['passed'] and rust['frozen_inputs_intact']
+mismatch=[n for n,h in rust['source_pins'].items() if not (source/n).is_file() or sha(source/n)!=h]
+unused_drift=None;policy_mismatch=list(mismatch)
+if mismatch:
+    unused_drift=json.loads((work/'unrelated-borrowed-fixture-drift.json').read_text())
+    assert unused_drift['passed'] and mismatch==[unused_drift['fixture']]
+    assert sha(source/unused_drift['fixture'])==unused_drift['current_native_borrowed_fixture_sha256']
+    policy_mismatch=[]
+critical_drift=[n for n in critical if sha(root/n)!=pins[n]]
+baseline=iteration==1;assert native['baseline']==baseline
+if baseline:assert sha(source/'src/network/peer_authority_transfer.cpp')==json.loads((work/'before.json').read_text())['sha256']
+drift=[{'path':n,'frozen':h,'current':sha(root/n) if (root/n).is_file() else None} for n,h in pins.items() if not (root/n).is_file() or sha(root/n)!=h]
+passed=(not any(entries.values()) and len(old_cursor)==3 and any('SHA256' in s for s in crypto)) if baseline else (all(entries.values()) and not crypto and not old_cursor)
+result={'passed':passed and not policy_mismatch and (baseline or not critical_drift),
+    'baseline_cpp_owner':baseline,'command':command,'object_sha256':sha(objects[0]),'rust_entries':entries,
+    'cpp_parser_crypto_dependencies':crypto,'standalone_cpp_poll_cursor_dependencies':old_cursor,
+    'rust_native_input_count':len(rust['source_pins']),'rust_native_input_mismatch':mismatch,
+    'rust_native_policy_input_mismatch':policy_mismatch,'all_inventory_inputs_identical':not mismatch,
+    'unrelated_unused_borrowed_fixture_drift':unused_drift,
+    'current_critical_source_drift':critical_drift,'source_pins':{n:pins[n] for n in critical},
+    'audit_scratch':os.environ['HALO2_TEST_SCRATCH'],'retained_large_artifacts':[],
+    'scope':'Compiled configured authority owner and source identities only; native worlds/providers, original wire, allocation identity/performance and delivery are not certified.'}
+(work/('baseline-link-audit.json' if baseline else 'link-audit.json')).write_text(json.dumps(result,indent=2)+'\n')
+if not baseline:(work/'current-source-drift.json').write_text(json.dumps(drift,indent=2)+'\n')
+print(json.dumps({'passed':result['passed'],'baseline':baseline,'rust_entry_count':sum(entries.values()),'cpp_crypto':crypto,'old_cursor_count':len(old_cursor),'rust_mismatch':mismatch,'critical_drift':critical_drift,'drift_count':len(drift)}));assert result['passed']

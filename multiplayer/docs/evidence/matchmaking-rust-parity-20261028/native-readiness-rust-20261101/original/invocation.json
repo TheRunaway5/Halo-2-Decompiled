@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "commands": [
+    {
+      "argv": [
+        "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_matchmaking_readiness_tu15.py",
+        "--report-output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-readiness-rust-source-20261101/readiness.json"
+      ],
+      "returncode": 0,
+      "tool_sha256": "5d252f39860b5b3a601350026c3dcab31b6ae903aecad9cfeba507dde7ce9b16"
+    },
+    {
+      "argv": [
+        "/home/eric/Developer/Halo-2-Decompiled/.tools/python/bin/python",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/oracle_matchmaking_errors_tu15.py",
+        "--report-output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-readiness-rust-source-20261101/errors.json"
+      ],
+      "returncode": 0,
+      "tool_sha256": "f4fa1842ca50b2e447d86fe0196c01c31a7ae3d0f8fe6f1fe882d2fb441cf95d"
+    }
+  ],
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-readiness-original/halo2-test-8znoi9a4",
+  "retained_large_artifacts": []
+}

@@ -36,6 +36,16 @@ def main():
     parser.add_argument('--fixed-clock', action='store_true')
     parser.add_argument('--pending-continuation', action='store_true',
                         help='Also qualify the module chain at its actual original pending countdown')
+    parser.add_argument('--native-pending', action='store_true',
+                        help='Require actual target-native pending steps and their committed stores before the original blast')
+    parser.add_argument('--native-region-eligibility', action='store_true',
+                        help='Observe actual native response-region decisions, including pending due/eligibility/blast order')
+    parser.add_argument('--native-model-state', action='store_true',
+                        help='Require actual full-generation target calls through the native model-region state owner')
+    parser.add_argument('--sound-requests', action='store_true',
+                        help='Retain actual original sound caller requests during firing and destruction, excluding verification replays')
+    parser.add_argument('--initial-pose-read-only', action='store_true',
+                        help='Compare complete native memory and resource owners across two cold body-pose publications before the first state query')
     parser.add_argument('--jobs', type=int, default=8)
     parser.add_argument('--test-jobs', type=int, default=1)
     parser.add_argument('--build-runtime', action='store_true',
@@ -43,12 +53,16 @@ def main():
     args = parser.parse_args()
     if args.pending_continuation and not (args.continuation and args.fixed_clock):
         parser.error('Pending continuation requires --continuation --fixed-clock')
+    if args.native_pending and not args.pending_continuation:
+        parser.error('Native pending validation requires --pending-continuation')
     if not os.environ.get('HALO2_TEST_SCRATCH'):
         parser.error('Use a tools/run_test.py-owned finite command session')
     scratch = Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)
     source = scratch / 'source'
     prior = json.loads(args.cohort.read_text())
-    if Path(prior['scratch']).resolve() != scratch or not (scratch / 'build').is_dir():
+    prepared=prior.get('status')=='prepared' and prior.get('validation_not_run') is True and not prior.get('passed')
+    if (Path(prior['scratch']).resolve() != scratch or not source.is_dir() or
+            (not (scratch / 'build').is_dir() and not prepared)):
         raise ValueError('Cohort does not belong to this active build owner')
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
@@ -86,6 +100,7 @@ def main():
         # diagnostic hash. A new production admission still owns its new hash.
         if previous.get('production_refresh') == str(args.production_refresh.resolve()):
             expected[fixture] = previous['fixture_refresh']['after']
+            expected['CMakeLists.txt'] = previous['registered_cmake_sha256']
         if previous.get('production_refresh') != str(args.production_refresh.resolve()):
             expected['CMakeLists.txt'] = production['cmake_sha256']
         report['production_refresh'] = str(args.production_refresh.resolve())
@@ -95,7 +110,11 @@ def main():
             report['original_qualified_dependency_closure'] = production['original_qualified_dependency_closure']
     if prior.get('private_build_partition'):
         part = prior['private_build_partition']
-        expected[part['path']] = part['after']
+        # A declared later production delta can append qualified sources to
+        # this same CMake file while retaining the private partition. Do not
+        # replace that authenticated newer hash with the initial partition.
+        if part['path'] not in report.get('patches', {}):
+            expected[part['path']] = part['after']
     frozen_drift = [name for name, digest in expected.items() if sha(source / name) != digest]
     report['frozen_source_drift_before_refresh'] = frozen_drift
     report['workspace_drift_from_frozen_source'] = [name for name, digest in expected.items()
@@ -128,6 +147,9 @@ def main():
     report['fixture_refresh']['copied'] = report['fixture_refresh']['before'] != report['fixture_refresh']['after']
     if report['fixture_refresh']['copied']:
         shutil.copyfile(ROOT / fixture, source / fixture)
+    if (sha(source / fixture) != report['fixture_refresh']['after'] or
+            sha(ROOT / fixture) != report['fixture_refresh']['after']):
+        raise ValueError('Destruction fixture changed while freezing its declared refresh')
     if 'patches' in report:
         report['patches'][fixture] = dict(before=report['fixture_refresh']['before'],after=report['fixture_refresh']['after'])
     cmake = source / 'CMakeLists.txt'
@@ -167,8 +189,22 @@ def main():
         environment['HALO2_DESTRUCTION_FIXED_CLOCK'] = '1'
     if args.pending_continuation:
         environment['HALO2_DESTRUCTION_PENDING_CONTINUATION'] = '1'
+    if args.native_pending:
+        environment['HALO2_DESTRUCTION_PENDING_NATIVE'] = '1'
+    if args.native_region_eligibility:
+        environment['HALO2_DESTRUCTION_REGION_ELIGIBILITY_NATIVE'] = '1'
+    if args.native_model_state:
+        environment['HALO2_DESTRUCTION_MODEL_REGION_STATE_NATIVE'] = '1'
+    if args.sound_requests:
+        environment['HALO2_DESTRUCTION_SOUND_REQUESTS'] = '1'
+    if args.initial_pose_read_only:
+        environment['HALO2_DESTRUCTION_INITIAL_POSE_READ_ONLY'] = '1'
     report.update(command=command, continuation=args.continuation, fixed_clock=args.fixed_clock,
                   pending_continuation=args.pending_continuation, cases=args.case,
+                  native_pending=args.native_pending,
+                  native_region_eligibility=args.native_region_eligibility,
+                  native_model_state=args.native_model_state,sound_requests=args.sound_requests,
+                  initial_pose_read_only=args.initial_pose_read_only,
                   runtime_targets_built=args.build_runtime,test_jobs=args.test_jobs)
     save()
     print(json.dumps({'status': 'validating', 'report': str(receipt)}), flush=True)

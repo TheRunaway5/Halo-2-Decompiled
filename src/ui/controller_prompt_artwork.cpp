@@ -117,14 +117,17 @@ void ControllerPromptArtwork::prepare(unsigned selector) {
 }
 std::optional<ControllerPromptSample> ControllerPromptArtwork::sample(unsigned selector,unsigned code,PromptDevice device,
     const FontGlyph &glyph,int x,int y,int width,int height)const {
-  if(device==PromptDevice::KeyboardMouse || code<0xe100 || code>0xe131 ||
-      (code>0xe111 && code<0xe12c) || !glyph.width || !glyph.height)return {};
+  const bool prompt=(code>=0xe100 && code<=0xe111) ||
+      (code>=0xe12c && code<=0xe135) || code==0xe13c;
+  if(!prompt || !glyph.width || !glyph.height)return {};
   if(!impl_->enabled) {
-    if(device==PromptDevice::PlayStation)throw FormatError("PlayStation controller prompt resources are unavailable");
-    return {};
+    throw FormatError("Port-owned button prompt resources are unavailable; run launcher Repair");
   }
+  // Keycap frames and shared prompt artwork also belong to our banks. The
+  // caller translates keyboard bindings; no private-use prompt samples MCC.
   const auto &bank=impl_->banks[device==PromptDevice::PlayStation?1:0];
-  const auto found=bank.records.find({selector,code});if(found==bank.records.end())return {};
+  const auto found=bank.records.find({selector,code});
+  if(found==bank.records.end())throw FormatError("Port-owned button prompt is missing for this font selector");
   const auto &r=found->second;const auto material=bank.materials.at(r.atlas);
   const auto &texture=impl_->mesh.materials.at(material).diffuse;
   if(x<0 || y<0 || width<0 || height<0 || unsigned(x+width)>glyph.width || unsigned(y+height)>glyph.height)

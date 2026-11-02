@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scope": "Exact captured modern C++ search controller versus production Rust/CXX over declared native IO; original service and installed runtime are not certified",
+  "cases": 3705,
+  "commands": 5407,
+  "native_refusals": 53,
+  "callback_observations": 25191,
+  "wrapper_clones": 3705,
+  "mismatches": [],
+  "input_sha256": "ae03eca0af781cd74c47db54811abc195d2213970501eb361d8a4ae038868447",
+  "output_sha256": "6df4351368c4c50466eff22b0e289b68ce9267276277c067833d0e2b2c22cdcb",
+  "binary_sha256": "4ce23c3963fa8a6a058d49d3fcea632fe413164c56225432da7d02a6302cc05b"
+}

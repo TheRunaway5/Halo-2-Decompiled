@@ -1,0 +1,18 @@
+import os,shutil,subprocess,json,hashlib,sys
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ["HALO2_TEST_SCRATCH"]);out=root/"build/test-results/native-result-authority-rust-20261102"
+base=root/".local/test-scratch/native-results-full-rust-20261102";owners=list(base.glob("halo2-test-*"))
+if len(owners)==1 and (owners[0]/"cargo/cxxbridge").is_dir():source=owners[0]/"cargo/cxxbridge"
+else:
+ for name in ("online_protocol","online_protocol_bridge"):shutil.copytree(root/"rust"/name,scratch/"source/rust"/name,ignore=shutil.ignore_patterns("target","__pycache__"))
+ env=dict(os.environ,CARGO_TARGET_DIR=str(scratch/"cargo"),CARGO_BUILD_JOBS="2",RUSTUP_TOOLCHAIN="1.96.0",RUSTUP_AUTO_INSTALL="0")
+ r=subprocess.run(["cargo","check","--locked","--offline","--manifest-path",str(scratch/"source/rust/online_protocol_bridge/Cargo.toml")],env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);assert r.returncode==0,r.stdout.decode(errors="replace")[-3000:]
+ source=scratch/"cargo/cxxbridge"
+shutil.copytree(source,scratch/"generated")
+shutil.copytree(root/"rust/online_protocol_bridge/src",scratch/"module/src")
+shutil.copyfile(root/"tests/native_result_authority_tests.cpp",scratch/"fixture.cpp")
+shutil.copytree(root/"tests/reference/native_results_before_rust_20261102",scratch/"reference/native_results_before_rust_20261102")
+command=["c++","-std=c++20","-fsyntax-only","-I"+str(scratch/"generated"),"-I"+str(scratch/"module"),str(scratch/"fixture.cpp")]
+r=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(out/"fixture-syntax.log").write_bytes(r.stdout[-1048576:]);(out/"fixture-syntax.json").write_text(json.dumps({"passed":r.returncode==0,"command":command,"exit_code":r.returncode,"fixture_sha256":hashlib.sha256((scratch/"fixture.cpp").read_bytes()).hexdigest(),"scratch":str(scratch)},indent=2)+"\n")
+print(r.stdout.decode(errors="replace")[-8000:],flush=True);sys.exit(r.returncode)

@@ -1,0 +1,10 @@
+if(BUILD_TESTING)
+  add_executable(campaign_dialogue_audio_tests tests/campaign_dialogue_audio_tests.cpp)
+  target_link_libraries(campaign_dialogue_audio_tests PRIVATE halo2_systems)
+  set(HALO2_CAMPAIGN_DIALOGUE_MAP "" CACHE FILEPATH "Owned prepared MCC opening map for actual dialogue PCM regression")
+  set(HALO2_CAMPAIGN_DIALOGUE_SHARED "" CACHE PATH "Owned shared-map directory for actual dialogue PCM regression")
+  set(HALO2_CAMPAIGN_DIALOGUE_XBE "" CACHE FILEPATH "Owned TU1.5 executable for dialogue driver constants")
+  add_test(NAME campaign_dialogue_actual_pcm COMMAND campaign_dialogue_audio_tests
+      "${HALO2_CAMPAIGN_DIALOGUE_MAP}" "${HALO2_CAMPAIGN_DIALOGUE_SHARED}" "${HALO2_CAMPAIGN_DIALOGUE_XBE}")
+  set_tests_properties(campaign_dialogue_actual_pcm PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+endif()

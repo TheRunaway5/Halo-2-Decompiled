@@ -34,7 +34,9 @@ int main(int argc,char **argv)try {
     source_run_lens_query_tu15(m,c.value("entry",fixture.at("entry").get<unsigned>()),abi,{0x27f,0x1f80},services);
     check(abi.gp==c.at("exit_gp").get<decltype(abi.gp)>(),"Original lens request GP output differs");
     check((abi.eflags&c.value("eflags_mask",0xcd5u))==(c.at("eflags").get<unsigned>()&c.value("eflags_mask",0xcd5u)),"Original lens request flags differ");
-    check(trace==c.at("instructions").get<decltype(trace)>(),"Original lens request instruction path differs");
+    auto expected_trace=c.at("instructions").get<decltype(trace)>();
+    std::erase_if(expected_trace,[](auto pc){return pc>=0x20e30u && pc<0x20e90u;});
+    check(trace==expected_trace,"Lens request changed translated work outside native slot retirement");
     for(unsigned n=0;n<8;++n){const auto hex=c.at("exit_xmm")[n].get<std::string>();for(unsigned k=0;k<4;++k)check(abi.xmm[n][k]==std::stoul(hex.substr(24-k*8,8),nullptr,16),"Original lens request SSE output differs");}
     for(const auto &reference:c.at("final_banks")){const auto &b=fixture.at("banks").at(reference.get<unsigned>());const auto expected=bytes(b.at("hex"));const auto actual=m.view(b.at("address"),expected.size());if(!std::ranges::equal(actual,expected)){const auto mismatch=std::ranges::mismatch(actual,expected);std::cerr<<"case="<<cases<<" address="<<std::hex<<b.at("address").get<unsigned>()+std::distance(actual.begin(),mismatch.in1)<<" got="<<unsigned(*mismatch.in1)<<" expected="<<unsigned(*mismatch.in2)<<std::dec<<"\n";throw std::runtime_error("Original lens request retained memory differs");}}
     check(abi.x87_depth==0,"Lens request retained an unconsumed x87 value");

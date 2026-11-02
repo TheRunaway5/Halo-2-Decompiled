@@ -1,0 +1,33 @@
+{
+  "all_shared_inputs_match": true,
+  "shared_pre_change_inputs": {
+    "cmake/OnlinePeers.cmake": "359200cdefefb7ae605bb437c51492f73f2c2426c53621bb6cdcbe288d8a44f1",
+    "cmake/OnlineProtocolRust.cmake": "0eb9fa4ab89ec72c089656e4e9cc929664629962fd423effcf5941ab6c60aa57",
+    "include/halo2/frontend_lobby_game.hpp": "851f585c06e715b71e57d1fb95d85d5656985f4a5565421c296cce27ad2a7135",
+    "rust/online_protocol/src/lib.rs": "76e3f0e3608abbb55a44142a36ea032ece37ecd127ad77782894b4eced525736",
+    "rust/online_protocol/src/matchmaking_frontend_lobby_view.rs": "3d92a4644218ce61025072c8549810aef16d9e6753b721e9f8f594d23ee296de",
+    "rust/online_protocol/tests/matchmaking_frontend_lobby_view.rs": "2e383edba6ef6ea99fd897c553c774e96f8b49a4054a1c6e9dbe9a326cf04b8a",
+    "rust/online_protocol_bridge/build.rs": "9274de6775db5278599bdbcde43601c793d84c2c4b8e86b83c954ffdf28f2eed",
+    "rust/online_protocol_bridge/src/lib.rs": "01752226f4f6da77f8dba55c49064bdf574912f2d0168337249ad1ac28b7e120",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.hpp": "c6d15ea77cb1f080c2664ba46263c3cc54ae70e6d38b269f923122676d18b8ef",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_lobby_view.rs": "1089381cd27c270442fc0e624ed23e24651759d9fdbc37de1ac9d5e6dbf55de9",
+    "src/ui/frontend_lobby.cpp": "89c13a70b98b0954f26711fe4af10c67e83b83b9bdcbafc27f2c4507b8ab8a24",
+    "src/ui/frontend_lobby_game_bridge.cpp": "ff701ba284835584036f4899bb016961d43625305586e7a9d2862fe5ec8348a3",
+    "tests/frontend_lobby_game_tests.cpp": "f7cb2afcb0dc7c0dedf1f4938d97512408d4bad80f7578fec33375807483dd86",
+    "tests/generate_frontend_lobby_view_reference.py": "314d74de1dcfdb56511a9c810d059c1c17597ef2aac45134de8916a09f7d1d09",
+    "tests/native_frontend_lobby_view_rust_tests.cpp": "524e3424367f513b0db786a138ca2eeed4cc4601dbdcae4aa17dceed9de07927",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend.hpp.reference": "9d5a4d1d9f97c2cd19a77f0f1b1060c15523833a62d0a1e6c23289d1065e0494",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.cpp.reference": "051db86581c171a7e3c6189f28456f03b37c8ebc0af58743b91d22e6db9e5f5b",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby.hpp.reference": "6bcf8746c721badd78946e96613f699b4e7f63f91209635e3b7eaaa2b1e61a13",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game.hpp.reference": "6cbf2d31a43668ccb06ff59907a691640da7d1fb9de1405967b3db2048fa1b44",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_game_tests.cpp.reference": "cde8b133c4c27413921bb5bd0fc83e9af229d4aa85d0cad44a7d7a05208a4d6d",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_lobby_policy_tests.cpp.reference": "5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/frontend_party.cpp.reference": "c1a0327265eb41d17f461ed512fb9f02bb0cbe78c15bb59e9e73670f51d8c8f6",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/provenance.json": "6173475cefd53c9aba92f07684fcd9eeb7984f2b8c3442cefb811c5822dc7218",
+    "tests/reference/frontend_party_lobby_view_before_rust_20261102/variant_write_order_tests.cpp.reference": "1bfb5ca1eba34541580686239e9574a6d237af3647beff4e9615e4b76c183b00",
+    "tests/test_build_online_protocol_rust.py": "c91253430fdfcf828fc8a33891f35f9bce560ec12fdf60ebf7186e1c205551b7",
+    "tests/test_native_frontend_lobby_view_rust.py": "c6dd0933088f2054472111b81c4b3fadc75e0c10e2f5e000f01361a9730613e9",
+    "tests/variant_write_order_tests.cpp": "cfe829432aee451c79e1f0d46e5d176b41940389e366134da33c61320bb9cd38",
+    "tools/build_online_protocol_rust.py": "37fe22ad3ca85fa0c37a940cff18b08df76f1a81ee71415017c4a42744f775b8"
+  }
+}

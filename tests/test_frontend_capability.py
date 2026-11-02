@@ -74,6 +74,18 @@ class FrontendCapabilityTests(unittest.TestCase):
         self.assertTrue(self.available())
         self.assertEqual(self.sidecar.read_bytes(), before)
 
+    def test_owned_prompt_profile_requires_our_banks_even_when_mcc_fonts_are_intact(self):
+        from test_controller_prompt_assets import controller_prompt_fixture
+        from controller_prompt_assets import prepare, PROFILE
+        controller_prompt_fixture(self.root)
+        entry=prepare(self.root,self.cache,progress=lambda _:None)
+        self.report['validation']['controller_prompt_profile']=PROFILE
+        self.report['resources'].update({name:self.digest(self.cache/name) for name in entry['files']})
+        self.publish();self.assertTrue(self.available())
+        (self.cache/'presentation/prompts-xbox/atlases/0.dds').unlink()
+        self.assertFalse(self.available())
+        self.assertTrue((self.cache/'halo2/h2_fonts/font_table.txt').is_file())
+
     def test_converted_native_ui_asset_is_exactly_pinned(self):
         name = "presentation/ui/native-layout.json"
         asset = self.cache/name

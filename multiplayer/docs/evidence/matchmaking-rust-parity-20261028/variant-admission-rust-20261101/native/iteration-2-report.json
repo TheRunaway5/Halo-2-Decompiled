@@ -1,0 +1,175 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--target",
+        "game_variant_normalization_tests",
+        "--target",
+        "original_matchmaking_readiness_tests",
+        "--target",
+        "rust_service_native_handoff_probe",
+        "--target",
+        "online_matchmaking_tests",
+        "--target",
+        "online_eos_bootstrap_tests",
+        "--filter",
+        "^(original_game_variant_normalization|original_matchmaking_readiness|rust_native_handoff_failclosed_http|online_matchmaking_client|online_eos_release_bootstrap|online_protocol_rust_build_helper)$",
+        "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+        "--retain-report",
+        "Testing/Temporary/LastTest.log",
+        "--retain-report",
+        "rust-native-handoff-failclosed/step-0.log",
+        "--retain-report",
+        "rust-native-handoff-failclosed/step-1.log",
+        "--retain-report",
+        "online-protocol/Release/build-report.json",
+        "--retain-report",
+        "rust-native-handoff-failclosed/report.json",
+        "--retain-report",
+        "rust-native-handoff-failclosed/source-manifest.json"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tests/game_variant_normalization_tests.cpp"
+  ],
+  "source_pin_sha256": "51a02033b936b73c84672db0f4f599175985fd637989b57969eab5e598c81983",
+  "runner_report": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "game_variant_normalization_tests",
+          "original_matchmaking_readiness_tests",
+          "rust_service_native_handoff_probe",
+          "online_matchmaking_tests",
+          "online_eos_bootstrap_tests"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(original_game_variant_normalization|original_matchmaking_readiness|rust_native_handoff_failclosed_http|online_matchmaking_client|online_eos_release_bootstrap|online_protocol_rust_build_helper)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-native/halo2-test-2425fqvi/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 8900,
+        "sha256": "873f32a691302511f5065a60dcb2a6b7c5f4cc3d971f82c4d22ab0581c01f923",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/step-0.log",
+        "status": "retained",
+        "bytes": 6560,
+        "sha256": "977bf1c42053ea0509607fa8527f1f4c7a2d09220fede57d81b82b982bb72e9c",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/rust-native-handoff-failclosed/step-0.log"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/step-1.log",
+        "status": "retained",
+        "bytes": 319,
+        "sha256": "1e811573662f46f400a22f18fa7dfbc2b021d8e903e1ea9395bf47489955cce9",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/rust-native-handoff-failclosed/step-1.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 1865,
+        "sha256": "aa641457bc079f2c3cfc4237d38c28077033ff9c4a57b6f3862dab88fb3cf895",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/online-protocol/Release/build-report.json"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/report.json",
+        "status": "retained",
+        "bytes": 7685,
+        "sha256": "d82af77f97ade2e974547e25000956f30a452e0f5aab9f56e0ed2a9076cf779a",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/rust-native-handoff-failclosed/report.json"
+      },
+      {
+        "path": "rust-native-handoff-failclosed/source-manifest.json",
+        "status": "retained",
+        "bytes": 19219,
+        "sha256": "2bde50a969eb10e6f72c468043243902db59c03cb45c9d2581fb7b6999e3eb61",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-variant-native-owned-20261101/iteration-2/evidence/rust-native-handoff-failclosed/source-manifest.json"
+      }
+    ]
+  },
+  "frozen_inputs_intact": true
+}

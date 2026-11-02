@@ -9,6 +9,10 @@ constexpr std::array first{Copy{0x3826a0,0x3826a8,0x46abac,0x56e080}};
 constexpr std::array second{Copy{0x3826c0,0x3826c8,0x46a1e4,0x56e084},
     Copy{0x3826d0,0x3826d8,0x46abb0,0x56e088}};
 constexpr std::array third{Copy{0x3826f0,0x3826f8,0x46a544,0x56e08c}};
+constexpr std::array fourth{Copy{0x382710,0x382718,0x46a8e8,0x56e090}};
+constexpr std::array fifth{Copy{0x382730,0x382738,0x46a8e8,0x56e094}};
+constexpr std::array sixth{Copy{0x382750,0x382758,0x46a544,0x56e098}};
+constexpr std::array seventh{Copy{0x382770,0x382778,0x46a5d8,0x56e09c}};
 std::uint32_t word(std::span<const std::byte,4> bytes) {
     std::uint32_t value{};
     for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);
@@ -16,7 +20,8 @@ std::uint32_t word(std::span<const std::byte,4> bytes) {
 }
 }
 bool source_campaign_ai_scalar_defaults_tu15_owns_entry(std::uint32_t entry) {
-    return entry==0x3826a0 || entry==0x3826c0 || entry==0x3826f0;
+    return entry==0x3826a0 || entry==0x3826c0 || entry==0x3826f0 ||
+        entry==0x382710 || entry==0x382730 || entry==0x382750 || entry==0x382770;
 }
 void source_run_campaign_ai_scalar_defaults_tu15(SourcePhysicsContactMemory& memory,std::uint32_t entry,
     SourcePhysicsWorldRuntimeAbi& abi,SourcePhysicsFactoryFloatingPoint,
@@ -26,6 +31,10 @@ void source_run_campaign_ai_scalar_defaults_tu15(SourcePhysicsContactMemory& mem
     case 0x3826a0:copies=first;ret=0x3826b0;break;
     case 0x3826c0:copies=second;ret=0x3826e0;break;
     case 0x3826f0:copies=third;ret=0x382700;break;
+    case 0x382710:copies=fourth;ret=0x382720;break;
+    case 0x382730:copies=fifth;ret=0x382740;break;
+    case 0x382750:copies=sixth;ret=0x382760;break;
+    case 0x382770:copies=seventh;ret=0x382780;break;
     default:throw std::invalid_argument("Unowned original AI scalar initializer");
     }
     for(const auto& copy:copies) {

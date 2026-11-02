@@ -1,0 +1,9 @@
+{
+  "tools/rust_service_social_controls.py": "1eeb54f1fd2fd9b8a70f2a7a1d3c45b7d5192c6be073c9cad893b6c7f98c7f0b",
+  "tools/rust_service_social_probe.cpp": "e2b5344eb59850c1d7ab0dde962ab09025a5a7f93018eba3239f721805329a2a",
+  "tools/rust_service_steam_controls.py": "a188a6892527d05a1ce2e2fd10481b9158d62a590dc677d8bafa9ed34b5e7bb8",
+  "tools/rust_service_steam_friends_controls.py": "10c7323fdcdbbd2783148dc9df2bdad4d5053b7b96384b7764b22588f86fe15b",
+  "tools/rust_service_steam_invite_probe.cpp": "b7659b1f8790aecf77f5cfdf05f5bf3f6f312c891d5a9bcfdb656c4d28b34663",
+  "tools/rust_service_steam_provider_fixture.cpp": "0d6ae2cca959b8b38b08ad8d330606857d18985e0f195514ba7abc502ef8e293",
+  "tools/test_rust_matchmaking_service.py": "592eb927bd9c878f3e443440f9a0f9ec43935ef41a2d94c642fdb9811ff514eb"
+}

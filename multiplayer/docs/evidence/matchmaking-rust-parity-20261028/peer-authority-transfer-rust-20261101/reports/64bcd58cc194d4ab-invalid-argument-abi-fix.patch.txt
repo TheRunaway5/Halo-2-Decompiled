@@ -1,0 +1,42 @@
+--- before
++++ after
+@@ -2,10 +2,12 @@
+ #include "halo2/multiplayer_datagrams.hpp"
+ #include "halo2-online-protocol-bridge/src/lib.rs.h"
+ #include <algorithm>
++#include <stdexcept>
+ 
+ namespace halo2 {
+ namespace {
+ namespace bridge=online_protocol_bridge;
++template<class F>auto checked(F &&call){try{return call();}catch(const rust::Error &error){throw std::invalid_argument(error.what());}}
+ bridge::SourceAdmissionsContext wire(const AuthorityTransferContext &c){
+     bridge::SourceAdmissionsContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});
+     out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+@@ -32,22 +34,22 @@
+ struct PeerAuthorityTransfer::Impl {
+     rust::Box<bridge::PeerAuthorityTransfer> owner;
+     Impl(unsigned self,const AuthorityTransferContext &c,const AuthorityTransferLimits &l)
+-        :owner(bridge::new_peer_authority_transfer(self,native_multiplayer_protocol,wire(c),wire(l))){
++        :owner(checked([&]{return bridge::new_peer_authority_transfer(self,native_multiplayer_protocol,wire(c),wire(l));})){
+         static_assert(native_multiplayer_protocol<=0xffffu&&authority_feature_source_pipeline==128u);
+     }
+ };
+ PeerAuthorityTransfer::PeerAuthorityTransfer(unsigned self,AuthorityTransferContext c,AuthorityTransferLimits l):impl_(std::make_unique<Impl>(self,c,l)){}
+ PeerAuthorityTransfer::~PeerAuthorityTransfer()=default;
+ AuthorityTransferContext PeerAuthorityTransfer::context()const{return native(bridge::peer_authority_transfer_context(*impl_->owner));}
+-bool PeerAuthorityTransfer::replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next){return bridge::peer_authority_transfer_replace(*impl_->owner,wire(expected),wire(next));}
++bool PeerAuthorityTransfer::replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next){return checked([&]{return bridge::peer_authority_transfer_replace(*impl_->owner,wire(expected),wire(next));});}
+ bool PeerAuthorityTransfer::supported(unsigned peer)const{return bridge::peer_authority_transfer_supported(*impl_->owner,peer);}
+ bool PeerAuthorityTransfer::feature_supported(unsigned peer,std::uint32_t feature)const{return bridge::peer_authority_transfer_feature_supported(*impl_->owner,peer,feature);}
+ AuthorityTransferFeatures PeerAuthorityTransfer::feature_snapshot()const{const auto v=bridge::peer_authority_transfer_features(*impl_->owner);return {native(v.context),v.features};}
+-AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &c,std::uint64_t tick,std::vector<std::byte> bytes,std::span<const unsigned> targets,std::uint64_t now){return native(bridge::peer_authority_transfer_publish(*impl_->owner,wire(c),tick,wire(bytes),{targets.data(),targets.size()},now));}
++AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &c,std::uint64_t tick,std::vector<std::byte> bytes,std::span<const unsigned> targets,std::uint64_t now){return checked([&]{return native(bridge::peer_authority_transfer_publish(*impl_->owner,wire(c),tick,wire(bytes),{targets.data(),targets.size()},now));});}
+ bool PeerAuthorityTransfer::delivered_to(const AuthorityTransferContext &c,const AuthorityCutSeal &seal,unsigned peer)const{return bridge::peer_authority_transfer_delivered(*impl_->owner,wire(c),wire(seal),peer);}
+ bool PeerAuthorityTransfer::failed_to(const AuthorityTransferContext &c,const AuthorityCutSeal &seal,unsigned peer,std::uint64_t now){return bridge::peer_authority_transfer_failed(*impl_->owner,wire(c),wire(seal),peer,now);}
+ bool PeerAuthorityTransfer::note_native_preparation(const AuthorityTransferContext &c,const AuthorityCutSeal &seal,unsigned peer,std::uint64_t now){return bridge::peer_authority_transfer_preparing(*impl_->owner,wire(c),wire(seal),peer,now);}
+-AuthorityCutSeal PeerAuthorityTransfer::publish_ahead(const AuthorityTransferContext &c,const AuthorityCutSeal &previous,std::uint64_t tick,std::vector<std::byte> bytes,unsigned peer,std::uint64_t now){return native(bridge::peer_authority_transfer_ahead(*impl_->owner,wire(c),wire(previous),tick,wire(bytes),peer,now));}
++AuthorityCutSeal PeerAuthorityTransfer::publish_ahead(const AuthorityTransferContext &c,const AuthorityCutSeal &previous,std::uint64_t tick,std::vector<std::byte> bytes,unsigned peer,std::uint64_t now){return checked([&]{return native(bridge::peer_authority_transfer_ahead(*impl_->owner,wire(c),wire(previous),tick,wire(bytes),peer,now));});}
+ bool PeerAuthorityTransfer::is_packet(std::span<const std::byte> bytes){return bridge::peer_authority_transfer_is_packet(wire(bytes));}
+ std::vector<AuthorityTransferPacket> PeerAuthorityTransfer::poll(std::uint64_t now,unsigned budget){
+     std::vector<AuthorityTransferPacket> out;for(const auto &p:bridge::peer_authority_transfer_poll(*impl_->owner,now,budget))out.push_back({p.peer,native(p.bytes)});return out;

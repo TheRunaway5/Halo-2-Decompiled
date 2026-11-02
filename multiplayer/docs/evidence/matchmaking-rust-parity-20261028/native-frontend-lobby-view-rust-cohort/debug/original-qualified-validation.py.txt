@@ -1,0 +1,57 @@
+import hashlib,json,os,shutil,subprocess
+from pathlib import Path
+root=Path.cwd();scratch=Path(os.environ['HALO2_TEST_SCRATCH']);source=scratch/'source'
+output=root/'build/test-results/frontend-party-lobby-view-rust-20261102/original-qualified';output.mkdir(parents=True)
+folder=source/'analysis/frontend/lobby';folder.mkdir(parents=True);(source/'tests/fixtures').mkdir(parents=True)
+for name in ['assets','tools']:(source/name).symlink_to(root/name,target_is_directory=True)
+names=['oracle-game-panel.py','oracle-header-policy.py','game-panel-original.json']
+pins={}
+for name in names:
+ p=root/'analysis/frontend/lobby'/name;pins[str(p.relative_to(root))]=hashlib.sha256(p.read_bytes()).hexdigest();shutil.copyfile(p,folder/name)
+steps=[]
+for name in names[:2]:
+ command=[str(root/'.tools/python/bin/python'),'-B',str(folder/name)]
+ p=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+ (output/(name+'.log')).write_bytes(p.stdout[-1048576:]);steps.append(dict(command=command,exit_code=p.returncode))
+ print(name,p.returncode,p.stdout.decode(errors='replace')[-1800:],flush=True)
+ if p.returncode:break
+fixtures={}
+for name in ['frontend-lobby-game-original.tsv','frontend_lobby_header_original.tsv']:
+ before=root/'tests/fixtures'/name;after=source/'tests/fixtures'/name
+ fixtures[name]=dict(unchanged=after.is_file() and before.read_bytes()==after.read_bytes(),reference_sha256=hashlib.sha256(before.read_bytes()).hexdigest(),fresh_sha256=hashlib.sha256(after.read_bytes()).hexdigest() if after.is_file() else None,rows=len([v for v in before.read_text().splitlines() if v and not v.startswith('#')]))
+import difflib
+for name in fixtures:
+ before=(root/'tests/fixtures'/name).read_text().splitlines(keepends=True);after=(source/'tests/fixtures'/name).read_text().splitlines(keepends=True)
+ delta=''.join(difflib.unified_diff(before,after,fromfile='preserved/'+name,tofile='fresh/'+name))
+ (output/(name+'.diff.txt')).write_text(delta)
+ fixtures[name]['semantic_lines_equal']=[line for line in before if not line.startswith('#')]==[line for line in after if not line.startswith('#')]
+ print(name,'diff bytes',len(delta.encode()),delta[:2500],flush=True)
+extra_script=source/'unknown-choice.py'
+extra_script.write_text("""import json,runpy,sys
+from pathlib import Path
+from unicorn.x86_const import UC_X86_REG_EAX,UC_X86_REG_EBX,UC_X86_REG_ECX,UC_X86_REG_ESI,UC_X86_REG_EDI
+s=runpy.run_path(sys.argv[1]);r=s['r'];variant=s['variant'];context=s['context'];calls=s['lookup_calls']
+r.w(0x4e034c,0);r.run(0x19d220,argv=[variant,0]);r.w(0x4e034c,s['globals_at'])
+r.run(0x2373be,registers=[(UC_X86_REG_EAX,10),(UC_X86_REG_ESI,variant),(UC_X86_REG_EBX,8)])
+actual=r.run(0x2374f0,registers=[(UC_X86_REG_EAX,10),(UC_X86_REG_EDI,variant)])
+context.clear();calls.clear();out=r.alloc(bytes(512));sep=r.alloc(s['separator'].encode('utf-16le')+b'\\0\\0')
+r.g.mem_write(s['widget']+0x6e,b'\\0')
+r.run(0x25092c,argv=[s['widget'],sep,out],registers=[(UC_X86_REG_EAX,1),(UC_X86_REG_ECX,variant)])
+result=dict(engine=0,ordinal=1,parameter=context.get('parameter'),stored_value=actual,custom=1,text=context.get('row',''),lookups=list(calls),original_functions=['19d220','2373be','2374f0','25092c'],supplied_native_formatter=False)
+Path(sys.argv[2]).write_text(json.dumps(result,indent=2)+'\\n')
+""")
+command=[str(root/'.tools/python/bin/python'),'-B',str(extra_script),str(folder/'oracle-game-panel.py'),str(source/'unknown-choice.json')]
+p=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(output/'unknown-choice.log').write_bytes(p.stdout[-1048576:]);steps.append(dict(command=command,exit_code=p.returncode))
+extra=json.loads((source/'unknown-choice.json').read_text()) if (source/'unknown-choice.json').is_file() else {}
+extra['passed']=p.returncode==0 and extra.get('stored_value')==8 and extra.get('parameter')==10 and extra.get('text')=='Round Time Limit: '
+(output/'unknown-choice.json').write_text(json.dumps(extra,indent=2)+'\n')
+name='frontend-lobby-game-original.tsv'
+before=(root/'tests/fixtures'/name).read_text().splitlines();after=(source/'tests/fixtures'/name).read_text().splitlines()
+extra_row='quick\t0\t1\t10\t8\t1\tRound Time Limit: '
+removed=[line for line in before if line not in after];added=[line for line in after if line not in before]
+fixtures[name]['unchanged_except_independently_executed_unknown_choice']=removed==[extra_row] and not added and [line for line in before if line!=extra_row]==after
+pinned={str(p.relative_to(root)):dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),bytes=p.stat().st_size) for p in [root/'assets/disc/default.xbe',root/'assets/disc/maps/mainmenu.map']}
+result=dict(passed=len(steps)==3 and all(s['exit_code']==0 for s in steps) and fixtures['frontend_lobby_header_original.tsv']['unchanged'] and fixtures['frontend-lobby-game-original.tsv']['unchanged_except_independently_executed_unknown_choice'] and extra['passed'],steps=steps,unknown_choice=extra,fixtures=fixtures,source_pins=pins,originals=pinned,scratch=str(scratch),version='Pinned supplied retail Xbox executable; this receipt does not relabel it as TU1.5',retained_large_artifacts=[])
+(output/'report.json').write_text(json.dumps(result,indent=2)+'\n')
+raise SystemExit(0 if result['passed'] else 1)

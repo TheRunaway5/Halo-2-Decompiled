@@ -27,6 +27,17 @@ if(BUILD_TESTING AND HALO2_PLAYER_SHADOW_NATIVE_TESTS AND HALO2_PLAYER_SHADOW_MA
         HALO2_SHADOW_ONLINE_GPU=1 HALO2_SHADER_DIR="${HALO2_RUNTIME_SHADER_DIR}")
     add_dependencies(player_shadows_online_runtime_tests halo2_shaders path_tracing_shaders)
     find_program(HALO2_PLAYER_SHADOW_XVFB_RUN xvfb-run)
+    if(HALO2_PLAYER_SHADOW_XVFB_RUN)
+        foreach(players 2 3 4)
+            set(split_name player_shadows_native_split_${players})
+            add_test(NAME ${split_name} COMMAND ${Python3_EXECUTABLE}
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_player_shadows_split.py"
+                --runtime "$<TARGET_FILE:halo2_native>" --map "${HALO2_PLAYER_SHADOW_MAP}"
+                --players "${players}" --report-output "${CMAKE_CURRENT_BINARY_DIR}/${split_name}.json")
+            set_tests_properties(${split_name} PROPERTIES RUN_SERIAL TRUE TIMEOUT 210
+                LABELS "mcc;player-shadows;native-runtime;split-policy;gpu")
+        endforeach()
+    endif()
     foreach(mode Original pStencil PathTracing)
         set(name player_shadows_native_${mode})
         add_test(NAME ${name} COMMAND ${Python3_EXECUTABLE}
@@ -54,9 +65,17 @@ if(BUILD_TESTING AND HALO2_PLAYER_SHADOW_NATIVE_TESTS AND HALO2_PLAYER_SHADOW_MA
                 --fixture "$<TARGET_FILE:player_shadows_joined_runtime_tests>"
                 --map "${HALO2_PLAYER_SHADOW_MAP}" --mode "${mode}"
                 --report-output "${CMAKE_CURRENT_BINARY_DIR}/${name}.json")
-            set_tests_properties(${name} PROPERTIES RUN_SERIAL TRUE TIMEOUT 300
+            set_tests_properties(${name} PROPERTIES RUN_SERIAL TRUE TIMEOUT 510
                 LABELS "mcc;player-shadows;joined;native-runtime;gpu"
                 ENVIRONMENT "SDL_VIDEODRIVER=x11;SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache")
         endforeach()
+        add_test(NAME player_shadows_joined_host2_recipient1_Original COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_player_shadows_joined.py"
+            --fixture "$<TARGET_FILE:player_shadows_joined_runtime_tests>"
+            --map "${HALO2_PLAYER_SHADOW_MAP}" --mode Original --host-local-players 2
+            --report-output "${CMAKE_CURRENT_BINARY_DIR}/player_shadows_joined_host2_recipient1_Original.json")
+        set_tests_properties(player_shadows_joined_host2_recipient1_Original PROPERTIES RUN_SERIAL TRUE TIMEOUT 510
+            LABELS "mcc;player-shadows;joined;recipient-view-policy;native-runtime;gpu"
+            ENVIRONMENT "SDL_VIDEODRIVER=x11;SDL_AUDIODRIVER=dummy;XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache;HALO2_PIPELINE_CACHE_DIRECTORY=@HALO2_TEST_SCRATCH@/vulkan-cache")
     endif()
 endif()

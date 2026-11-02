@@ -1,0 +1,75 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-3",
+  "commands": [],
+  "action": "steam",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/rust_service_steam_controls.py",
+    "tools/rust_service_steam_provider_fixture.cpp"
+  ],
+  "source_files": 134,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/cargo/release/halo2-matchmaking-service",
+    "sha256": "530fed5de5c7ab3f90e6a2160381a8bc4f793994a3ba7e7ffdf477c1961497e4",
+    "bytes": 10910808,
+    "retained": false
+  },
+  "steam": {
+    "qualified": true,
+    "checks": [
+      "real Rust native URL/device/PKCE and browser-cookie/code authorization, escaped confirmation HTML, wrong-origin/proof rejection and one-time handoff",
+      "actual failed credential COMMIT rolls back active/remembered/mapping writes and preserves confirmed pending state; retry publishes once",
+      "Rust-issued Steam grant creates the existing canonical account/clan/profile namespace; saved renewal credentials cannot authorize account APIs",
+      "renewal preserves the fixed thirty-day expiry without upstream IO; failed forget COMMIT rolls back, retry revokes only its issued sessions and is idempotent",
+      "real Rust dual-provider linking uses the shared canonical owner: wrong application is rejected, failed COMMIT retains both identities/grants, retry preserves the existing clan and revokes only the adopted bare account",
+      "Steam credential revocation during actual Discord provider IO is revalidated before canonical linking and creates no alias",
+      "actual BEGIN IMMEDIATE wait crosses Steam expiry and rejects the late canonical transaction without writing an alias",
+      "wrong destination/identity/signed fields, duplicate query and invalid/stale nonce are rejected before provider IO; five wrong game codes retire confirmation",
+      "independent fixture HMAC rejects a modified signed Steam identity before any credential is issued",
+      "actual curl boundary disables ambient proxy/redirects, verifies TLS, bounds and parses replies, rejects compression/duplicate fields/oversize and checks profile identity",
+      "failed nonce COMMIT leaves no replay record or browser authorization publication",
+      "provider cancellation remains a proof-bound declined pending state without credential writes",
+      "real trusted-proxy source/prefix occupancy caps4/8 preserve fresh sources; rejected occupancy leaves the independent sixteen-start global burst intact",
+      "real Rust process restart retains valid remembered grants and revocations while dropping private pending browser flows"
+    ],
+    "observed": {
+      "subject_b": "76561197960287931",
+      "nonce_rows": 5,
+      "provider_calls": 32
+    },
+    "capacity": {
+      "per_source": 4,
+      "per_prefix": 8,
+      "accepted_global": 16,
+      "forwarded_sources_are_private_proxy_fixtures": true
+    },
+    "restart": {
+      "persisted_refresh": true,
+      "revocation_persisted": true
+    },
+    "native": null,
+    "fixture": {
+      "compiler": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-bvnhfwc4/iteration-3/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "sha256": "11bb5a7aa5917d5a62c4b69091256333377d365a3ce9d365d626fc04af426cdd",
+      "default_production_binary": true,
+      "policy_in_rust": true,
+      "upstream_interposed": true
+    },
+    "real_steam": false,
+    "scope": "Actual Rust browser/device/SQL/renewal HTTP with fixed-provider curl IO replaced by an independent private HMAC fixture; no real Steam grant, original or delivered/gameplay acceptance."
+  }
+}

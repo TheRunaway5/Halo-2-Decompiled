@@ -1,0 +1,104 @@
+{
+  "passed": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-tests.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "rust-service-build.log"
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source/rust/online_security_ffi/Cargo.toml"
+      ],
+      "returncode": 0,
+      "log": "directory-production-abi.log"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "multiplayer.master_server.tests.test_discovery_only",
+        "multiplayer.master_server.tests.test_http",
+        "multiplayer.master_server.tests.test_registry"
+      ],
+      "returncode": 0,
+      "log": "directory-regressions.log"
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/source/tools/rust_service_steam_provider_fixture.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-_i541xs9/provider.so",
+        "-ldl",
+        "-lcrypto"
+      ],
+      "returncode": 0,
+      "log": "private-provider-fixture.log"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "production_activated": false,
+  "docker_image_executed": false,
+  "caddy": {
+    "version": "v2.11.7 h1:yj0Y4fYZGPkSvibBJ1sTWE33xC0fxztVyXEW5iIdUT4=",
+    "archive_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz",
+    "checksum_url": "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_checksums.txt",
+    "archive_sha512": "a7a433a1b133efc3c8d10eb0b99d52a24b5ef5c322dc77f5282182b1c0402139ab83f3a99f0c52409df77d20123fb0b523edad8a66d8f5e49136197bf61ef0e7",
+    "archive_sha256": "727b91701a392de6ebc5027509f548bf39979e5216340d0faed8fa5e69c84f8b",
+    "binary_sha256": "678ade3bfc088749c81a681adc603333ee0bb023b6a6cfe3c0f58bef8ff854e9",
+    "retained": false
+  },
+  "binary": {
+    "sha256": "fe914b6e6cbd3d5296c5a00a4be9ca38fe128aa35557ef843c9bfd739b3cbfa7",
+    "bytes": 11465328,
+    "retained": false
+  },
+  "directory_abi": {
+    "sha256": "3f9853d6857400905a696ce4b921e7bc4e47760e54ceb6cf0e1c3f83b9e59cd0",
+    "bytes": 4973368,
+    "retained": false
+  },
+  "error": ""
+}

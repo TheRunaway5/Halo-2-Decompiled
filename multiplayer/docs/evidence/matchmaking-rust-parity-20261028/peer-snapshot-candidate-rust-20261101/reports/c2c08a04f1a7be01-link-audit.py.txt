@@ -1,0 +1,40 @@
+import hashlib,json,os,re,subprocess,sys
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/peer-snapshot-candidate-rust-20261101';iteration=int(sys.argv[1])
+read=lambda p:json.loads(p.read_text());sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+native=read(work/f'native/iteration-{iteration}-report.json');assert native['passed'] and native['frozen_inputs_intact']
+source=Path(native['source']);build=Path(native['scratch'])/'build';pins={}
+for n in native['source_pin_parts']:pins.update(read(work/'native'/n))
+objects=list(build.rglob('peer_snapshot_candidate.cpp.o'));assert len(objects)==1,objects
+command=['nm','-C','--undefined-only',str(objects[0])];run=subprocess.run(command,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE);assert run.returncode==0,run.stderr
+names=['new_peer_snapshot_candidate']+['peer_snapshot_'+n for n in ['self','begin','arm','publish','take','capture','close','reject','can_retire','retire','state','poll','receive','is_packet']]
+entries={n:any('::'+n+'(' in line for line in run.stdout.splitlines()) for n in names}
+crypto=[line.strip() for line in run.stdout.splitlines() if re.search(r'\bSHA256\b|EVP_|nlohmann|json::',line)]
+critical=['src/network/peer_snapshot_candidate.cpp','include/halo2/peer_snapshot_candidate.hpp',
+'rust/online_protocol/src/peer_snapshot_candidate.rs','rust/online_protocol/src/lib.rs',
+'rust/online_protocol_bridge/src/peer_snapshot_candidate.rs','rust/online_protocol_bridge/src/peer_snapshot_candidate.hpp',
+'rust/online_protocol_bridge/src/lib.rs','rust/online_protocol_bridge/build.rs',
+'cmake/PeerSnapshotCandidate.cmake','cmake/OnlineProtocolRust.cmake','tools/build_online_protocol_rust.py',
+ 'tests/test_build_online_protocol_rust.py','tests/peer_snapshot_candidate_tests.cpp','tests/peer_snapshot_candidate_replay.cpp',
+ 'tests/test_peer_snapshot_candidate_replay.py','tests/reference/peer_snapshot_candidate_before_rust_20261101.cpp',
+ 'tests/reference/peer_snapshot_candidate_before_rust_20261101.json','tests/reference/peer_snapshot_candidate_before_rust_20261101/halo2/peer_snapshot_candidate.hpp',
+ 'include/halo2/multiplayer_datagrams.hpp']
+rust=read(work/'full-rust/report.json');assert rust['passed'] and rust['frozen_inputs_intact'] and rust['syntax']['passed']
+mismatch=[n for n,h in rust['source_pins'].items() if not (source/n).is_file() or sha(source/n)!=h]
+critical_drift=[n for n in critical if sha(root/n)!=pins[n]]
+baseline=native['baseline'];expected=['src/network/peer_snapshot_candidate.cpp','include/halo2/peer_snapshot_candidate.hpp','cmake/PeerSnapshotCandidate.cmake']
+assert not mismatch,mismatch
+if baseline:
+ assert sha(source/expected[0])==read(work/'before.json')['sha256']
+ assert set(critical_drift)==set(expected)
+passed=(not any(entries.values()) and any('SHA256' in s for s in crypto)) if baseline else (all(entries.values()) and not crypto and not critical_drift)
+result={'passed':passed,'baseline_cpp_owner':baseline,'command':command,'object_sha256':sha(objects[0]),'rust_entries':entries,
+'cpp_parser_crypto_dependencies':crypto,'rust_native_input_count':len(rust['source_pins']),'rust_native_input_mismatch':mismatch,
+'all_inventory_inputs_identical':not mismatch,'current_critical_source_drift':critical_drift,'source_pins':{n:pins[n] for n in critical},
+'audit_scratch':os.environ['HALO2_TEST_SCRATCH'],'retained_large_artifacts':[],
+'scope':'Compiled snapshot owner and source identities only. Genuine private native banks are used; no original Live, provider, played-world, timing, whole-world memory budget or installed-delivery acceptance.'}
+(work/('baseline-link-audit.json' if baseline else 'link-audit.json')).write_text(json.dumps(result,indent=2)+'\n')
+if not baseline:
+ drift=[{'path':n,'frozen':h,'current':sha(root/n) if (root/n).is_file() else None} for n,h in pins.items() if not (root/n).is_file() or sha(root/n)!=h]
+ (work/'current-source-drift.json').write_text(json.dumps(drift,indent=2)+'\n')
+print(json.dumps({'passed':passed,'baseline':baseline,'rust_entry_count':sum(entries.values()),'cpp_crypto':crypto,'mismatch':mismatch,'critical_drift':critical_drift}));assert passed

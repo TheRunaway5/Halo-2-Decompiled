@@ -397,7 +397,9 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     match.configure_melee_animation(cache,*cache->original_data()->melee_constants);
   if(cache->original_data() && cache->original_data()->grenade_constants)
     match.configure_grenades(cache,*cache->original_data()->grenade_constants);
-  if(options.host_port || options.online_match)
+  // A private presentation world must retain the producer's complete authored
+  // replicated bindings when validating its native checkpoint, including LAN.
+  if(shadow || options.host_port || options.online_match)
     for(unsigned representation:source_session_player_representations(content,match.source_game_type()))
       if(representation<content.player_representations.size() &&
           content.player_representations[representation].biped.datum!=null_datum)

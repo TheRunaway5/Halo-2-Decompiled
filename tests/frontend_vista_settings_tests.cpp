@@ -315,11 +315,18 @@ int main(int argc, char **argv) {
     check(state.frame().entries.at(0).label=="Graphics Mode" &&
           state.pc_value_label(state.frame(),0)=="Original","Original graphics default missing");
     choose(state,0);
+    check(state.frame().screen==vista_menu(271) && state.frame().context==video_graphics_mode_context &&
+          state.frame().title=="GRAPHICS MODE" && state.frame().entries.size()==3 && state.frame().selected==0 &&
+          applied_display.graphics_mode==pstencil::GraphicsMode::Original,
+          "Graphics Mode did not open a picker focused on the current mode");
+    choose(state,1);
     check(applied_display.graphics_mode==pstencil::GraphicsMode::pStencil &&
           state.pc_value_label(state.frame(),0)=="pStencil" &&
           MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,
           "pStencil mode did not apply and persist");
     choose(state,0);
+    check(state.frame().selected==1,"Graphics Mode did not focus pStencil on reopen");
+    choose(state,2);
     check(applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing &&
           state.pc_value_label(state.frame(),0)=="Path Tracing" &&
           MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::PathTracing,
@@ -347,11 +354,11 @@ int main(int argc, char **argv) {
           MenuState(content,preferences).pc_display_settings()==applied_display,
           "Path Tracing quality did not apply independently and persist");
     state.back();
-    choose(state,0);
+    choose(state,0);choose(state,0);
     check(applied_display.graphics_mode==pstencil::GraphicsMode::Original && state.frame().entries.size()==14 &&
           applied_display.path_tracing_samples==2 && applied_display.path_tracing_bounces==2,
           "Original mode did not restore or inactive RT quality altered graphics mode");
-    choose(state,0);choose(state,0);
+    choose(state,0);choose(state,2);
     check(applied_display.graphics_mode==pstencil::GraphicsMode::PathTracing,
           "video defaults fixture did not select Path Tracing");
     choose(state,12);choose(state,11);choose(state,13);choose(state,0);
@@ -372,11 +379,12 @@ int main(int argc, char **argv) {
         if(value.graphics_mode!=pstencil::GraphicsMode::PathTracing)rejected_applied=value;
         return value.graphics_mode==pstencil::GraphicsMode::PathTracing?"Path Tracing unavailable":std::string{};
       });
-      rejected_path.open(vista_menu(256));choose(rejected_path,0);choose(rejected_path,0);
-      check(rejected_path.pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original &&
-            rejected_applied.graphics_mode==pstencil::GraphicsMode::Original &&
+      rejected_path.open(vista_menu(256));choose(rejected_path,0);choose(rejected_path,1);
+      choose(rejected_path,0);choose(rejected_path,2);
+      check(rejected_path.pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil &&
+            rejected_applied.graphics_mode==pstencil::GraphicsMode::pStencil &&
             rejected_path.frame().description=="Path Tracing unavailable",
-            "unavailable Path Tracing trapped the graphics cycle instead of restoring Original");
+            "unavailable Path Tracing changed the previously selected graphics mode");
       const auto invalid=preferences.string()+".invalid-crt";
       {std::ofstream file(invalid);file<<"halo2-native-menu-v1\npc_crt_filter 2\npc_two_player_split 2\npc_graphics_mode 99\n";}
       check(!MenuState(content,invalid).pc_display_settings().crt_filter,"invalid saved CRT value was accepted");
@@ -457,7 +465,7 @@ int main(int argc, char **argv) {
       check(task_draw.scenes.front().before_vertex<=task_draw.vertices.size(),"PC model lost its draw ordering boundary");
       leave.close_vista_leave_task(task,3);
       check(leave.frame().screen==6 && leave.frame().instance!=old_lobby &&
-          leave.frame().entries.size()==6,"Task close did not retain the native main menu");
+          leave.frame().entries.size()==7,"Task close did not retain the native main menu");
       bool rejected{};try{leave.open(vista_menu(13));}catch(const FormatError&){rejected=true;}
       check(rejected && leave.frame().screen==6,"Retired PC13 was reachable through native navigation");
 

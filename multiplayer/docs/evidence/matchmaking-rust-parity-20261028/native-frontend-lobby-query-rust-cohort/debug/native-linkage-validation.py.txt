@@ -1,0 +1,17 @@
+import hashlib,json,os,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-lobby-query-rust-20261102'
+info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build'
+adapter=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_lobby_query.cpp.o'
+state=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_state.cpp.o'
+def symbols(p):
+ r=subprocess.run(['nm','-C',str(p)],capture_output=True,text=True);assert r.returncode==0;return r.stdout.splitlines()
+lines=symbols(adapter);imports=[l for l in lines if' U halo2::online_protocol_bridge::frontend_lobby_query('in l]
+definitions=[l for l in lines if' T halo2::MenuState::lobby_view() const'in l]
+state_definitions=[l for l in symbols(state)if' T halo2::MenuState::lobby_view() const'in l]
+units=json.loads((build/'compile_commands.json').read_text());compiled=[u for u in units if Path(u['file']).name=='frontend_matchmaking_lobby_query.cpp']
+assert len(imports)==len(definitions)==len(compiled)==1 and not state_definitions
+assert 'CMakeFiles/halo2_systems.dir/'in compiled[0]['command']
+files={str(p.relative_to(build)):dict(sha256=hashlib.sha256(p.read_bytes()).hexdigest(),bytes=p.stat().st_size)for p in [adapter,state]}
+report=dict(passed=True,one_production_query_definition=True,sole_native_adapter_translation_unit=True,compile_owner='halo2_systems',required_rust_imports=imports,native_query_definitions=definitions,old_state_translation_unit_query_definitions=state_definitions,objects=files,scope='Actual compiled MenuState query imports the Rust owner; no second native query definition. Component linkage, not installed runtime delivery.',scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[])
+(work/'native-linkage.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))

@@ -2,7 +2,7 @@
   "schema": "H2_MCC_NATIVE_CHARACTER_SHARED_V1",
   "source_shared_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
   "source_library_canonical_sha256": "f523c80325d5fe3f8bff7d4f3768a3b97fb2d9904a9fa455f307757e7436917e",
-  "scope": "Two exact actual shared character setups only; images and original animation input IDs/curves remain authored",
+  "scope": "Twelve exact actual shared character/overlay/weapon-pass setups only; images, authored colors and original animation input IDs/curves remain authored; no programs imported",
   "profiles": [
     {
       "template": "shaders\\shader_templates\\opaque\\tex_bump_env_four_change_color",
@@ -2058,6 +2058,5966 @@
       ],
       "runtime_reference_slots": {
         "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\emblem_overlay_simple",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000400000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\texture_mapping\\emblem_overlay_simple"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000201040302",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 4,
+                "raw_hex": "000000006500000066000001b0010000",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "17ef4fbf3460cec54e17e5b0bcb17296010ef40730f578364be844dcc268ff62",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff400000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000001000000000000000200000000000000010000000000000001000000000000001900000000000000010000000000000001000000000000000c000000000000000c00000000000000030000000000000004000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000f0fd7540",
+        "12": "0000000000000000",
+        "20": "0000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03020300030000040202",
+        "60": "08060018000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000006060017000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c000000000000000b06000d000000000000803f1400000000000000",
+        "68": "0000ffff0100020002000400030005000400000005000100060003000700060008000700090008000a0009000b00ffff",
+        "76": "000201140b02",
+        "84": "6500000066000002b001000100000001",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0,
+          1081474544
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "00000000000000000000803f0000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000803f00000000000000000000803f0000803f",
+        "01000000000000000000803f00000000000000000000803f0000803f",
+        "0000000000000000000080420000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "00000000000000000000803f0000000000000000"
+      ],
+      "native_source_map": "coagulation",
+      "input_names": [
+        "emblem_toggle_foreground",
+        "",
+        "",
+        "",
+        "emblem_foreground_index",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "emblem_active"
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\emblem_overlay_simple",
+        "bytes": 242,
+        "payload": "57dcd3b1a631edbbad9d3262b6031bfdf283c40a2576cde30575a812b8568ca2.bin",
+        "fnv64": "41521b91a8a2f1fc",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\emblem_overlay_simple"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\characters\\elite\\shaders\\elite_emblem",
+        "bytes": 1504,
+        "payload": "344fe478cb86b096e61e5381d02de32b2cbf13e7f4a33aec71c762be875639a1.bin",
+        "fnv64": "ebceb3929e58a746",
+        "pointers": [
+          [
+            16,
+            512
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            992
+          ],
+          [
+            92,
+            592
+          ],
+          [
+            100,
+            608
+          ],
+          [
+            108,
+            624
+          ],
+          [
+            116,
+            640
+          ],
+          [
+            124,
+            656
+          ],
+          [
+            132,
+            720
+          ],
+          [
+            140,
+            208
+          ],
+          [
+            148,
+            220
+          ],
+          [
+            156,
+            460
+          ],
+          [
+            164,
+            896
+          ],
+          [
+            172,
+            912
+          ],
+          [
+            180,
+            928
+          ],
+          [
+            188,
+            960
+          ],
+          [
+            196,
+            960
+          ],
+          [
+            236,
+            736
+          ],
+          [
+            256,
+            768
+          ],
+          [
+            276,
+            800
+          ],
+          [
+            296,
+            800
+          ],
+          [
+            316,
+            832
+          ],
+          [
+            336,
+            768
+          ],
+          [
+            356,
+            768
+          ],
+          [
+            376,
+            864
+          ],
+          [
+            396,
+            864
+          ],
+          [
+            416,
+            864
+          ],
+          [
+            436,
+            864
+          ],
+          [
+            456,
+            736
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\emblem_overlay_simple"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\emblem_overlay_simple"
+            ]
+          ],
+          [
+            592,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            996,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1004,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1012,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1020,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1028,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1036,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1044,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1052,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1060,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1068,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1076,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1084,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1092,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1100,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1108,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1116,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1124,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1132,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1140,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1148,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1156,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1164,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1172,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1180,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1188,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1196,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1204,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1212,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1220,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1228,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1236,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1244,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1252,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1260,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1268,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1276,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1284,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1292,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1300,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1308,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1316,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1324,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1332,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1340,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1348,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1356,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1364,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1372,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1380,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1388,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1396,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1404,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1412,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1420,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1428,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1436,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1444,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1452,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1460,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1468,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1476,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1484,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1492,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ],
+          [
+            1500,
+            [
+              "bitm",
+              "ui\\global_bitmaps\\emblems\\foreground"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            220,
+            "emblem_toggle_foreground"
+          ],
+          [
+            300,
+            "emblem_foreground_index"
+          ],
+          [
+            440,
+            "emblem_active"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "0000000000000000",
+        "20": "0000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03020300030000040202",
+        "68": "0000ffff0100020002000400030005000400000005000100060003000700060008000700090008000a0009000b00ffff",
+        "76": "000201140b02",
+        "84": "8000030000010302b001000100000001",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 4
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0,
+          1079459378
+        ]
+      ],
+      "image_log_words_retained_from_source": true,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          4
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          5
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          6
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          7
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          8
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          9
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          10
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          11
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          12
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          13
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          14
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          15
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          16
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          17
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          18
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          19
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          20
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          21
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          22
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          23
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          24
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          25
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          26
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          27
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          28
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          29
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          30
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          31
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          32
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          33
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          34
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          35
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          36
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          37
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          38
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          39
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          40
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          41
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          42
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          43
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          44
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          45
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          46
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          47
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          48
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          49
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          50
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          51
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          52
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          53
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          54
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          55
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          56
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          57
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          58
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          59
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          60
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          61
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          62
+        ],
+        [
+          [
+            "bitm",
+            "ui\\global_bitmaps\\emblems\\foreground"
+          ],
+          63
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "0200000000000000320000000000000008000000000000002100000000000000a000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 2,
+                "raw_hex": "0032083c0100cdcccc3c19320800010000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 50,
+                "raw_hex": "00000000000000020100010001000100010001000102020203020402050005000502060006000600060006000600060006000600060006000602070007000700070007000700070007000700070007000700070208000800080008000800080008000800",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 8,
+                "raw_hex": "73617073000000000008736170730000000004087361707300000000080e73617073000000000f0a73617073000000001402736170730000000015087361707300000000190873617073000000001d08",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_env_detail_alpha_test"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_generate"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tex"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\lightmap\\lightmap_tex_env_detail_alpha_test"
+                  ],
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\fog\\fog_planar"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 33,
+                "raw_hex": "000a050a0a080e0a130a18081c0a210c27082b0a3002310c37043900390039043b003b043d043f003f0240044200420444024500450045024600460046024700470047024800480048024900490049024a004a004a024b004b004b044d044f0451045300530455045700570459045b005b045d045f046104630465006508690069006900690069006900690069006900690069006900690a6e0a7308770a7c0a8108850a8a0c9008940a99029a0ca000a000a000a000a000a000a000a000a000a000a000a000",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 160,
+                "raw_hex": "00000000010000030200000503000004040000018100000082000001630000026400000387000004b2010000b0050001b10d00023311000300000000010000030200000503000004040000018100000082000001630000026400000387000004b2010000b0050001b10d0002331100030000000001000003020000050300000404000001840000048500000587000000880000016a0000026b000003b2010000b0050001b10d000233110003000000000100000302000005030000040400000165000002b2010000b0050001981c0004991c0005b10d00023311000300000000010000030000000001000003b2010000b00500010000000001000003b20100000000000001000003b2010000b00500010000000600000006000000060000000600000006000000060000000600000000010000038100000482000005b2010000b00500010000000001000003b2010000b00500010000000001000003b2010000b00500010000000001000003b2010000b005000100000000010000038100000482000005b2010000b00500010000000001000003b20100008a1c00068b1c0007b005000100000000010000030200000503000004040000018100000082000001630000026400000387000004b2010000b0050001b10d00023311000300000000010000030200000503000004040000018100000082000001630000026400000387000004b2010000b0050001b10d0002331100030000000001000003020000050300000404000001840000048500000587000000880000016a0000026b000003b2010000b0050001b10d000233110003000000000100000302000005030000040400000165000002b2010000b0050001981c0004991c0005b10d000233110003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "c8e130f186846758d1e3a624303d7eaeb67621fb83a930389d8cd708d875b0b1",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff060000000000000074696c73ffffffff00000000000000000000803f000000000000000000000000",
+      "source_definition_hex": "00000000070000000000000006000000000000000800000000000000020000000000000032000000000000000800000000000000210000000000000000000000000000000000000000000000000000000000000000000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000747e38400000000000000000747eb83f0000000000000000747eb83f0000000000000000747e38400000000000000000f0fd753f0000000000000000747e38400000000000000000f0fdf53f",
+        "12": "787878001f1f1f00000000ff000000ff787878001f1f1f00",
+        "20": "0000803f0000803f00000000000000000000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000df4f8d3edf4f8d3e7b146e3f0000000014aec73e000000007b146e3f00000000d7a3f03ed7a3f03ed7a3f03e000000008fc2f53d8fc2f53d8fc2f53d00000000",
+        "28": "000000000032000000001932",
+        "36": "00000000000000020100010001000100010001000102020203020402050005000502060006000600060006000600060006000600060006000602070007000700070007000700070007000700070007000700070208000800080008000800080008000800",
+        "44": "00080408080e0f0a1402150819081d08",
+        "52": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "60": "",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "0300ffffffffffff0200ffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor_bump"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\color_white"
+          ],
+          0,
+          1069055604
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\color_white"
+          ],
+          0,
+          1069055604
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\vehicle_glass"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0,
+          1073085936
+        ]
+      ],
+      "runtime_hex": "6d746962000000006d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962000000006d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [],
+      "native_source_map": "coagulation",
+      "input_names": [],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test",
+        "bytes": 1172,
+        "payload": "fd934672b0819dd316a46d9eb26d61def8fb87e7ba5ea2f2cff2d5673a861ea3.bin",
+        "fnv64": "65116dd60eb156b3",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            1072
+          ],
+          [
+            116,
+            156
+          ],
+          [
+            124,
+            256
+          ],
+          [
+            132,
+            460
+          ]
+        ],
+        "references": [
+          [
+            160,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+            ]
+          ],
+          [
+            170,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_env"
+            ]
+          ],
+          [
+            180,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_generate"
+            ]
+          ],
+          [
+            190,
+            [
+              "spas",
+              "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+            ]
+          ],
+          [
+            200,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+            ]
+          ],
+          [
+            210,
+            [
+              "spas",
+              "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+            ]
+          ],
+          [
+            220,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ],
+          [
+            230,
+            [
+              "spas",
+              "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+            ]
+          ],
+          [
+            240,
+            [
+              "spas",
+              "shaders\\shader_passes\\lightmap\\lightmap_env"
+            ]
+          ],
+          [
+            250,
+            [
+              "spas",
+              "shaders\\shader_passes\\fog\\fog_planar"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\warthog\\turrets\\gauss\\shaders\\gauss_turret_sensor",
+        "bytes": 1128,
+        "payload": "6a930f38cd689a780642128ead67d7511d0f19f5bc12fb9d97a3c37223844307.bin",
+        "fnv64": "d882aa4423868619",
+        "pointers": [
+          [
+            16,
+            84
+          ],
+          [
+            36,
+            164
+          ],
+          [
+            48,
+            680
+          ],
+          [
+            172,
+            288
+          ],
+          [
+            180,
+            372
+          ],
+          [
+            188,
+            396
+          ],
+          [
+            196,
+            736
+          ],
+          [
+            204,
+            540
+          ],
+          [
+            212,
+            640
+          ],
+          [
+            220,
+            752
+          ],
+          [
+            260,
+            660
+          ],
+          [
+            268,
+            1104
+          ],
+          [
+            276,
+            1104
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test"
+            ]
+          ],
+          [
+            88,
+            [
+              "bitm",
+              "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+            ]
+          ],
+          [
+            132,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\color_white"
+            ]
+          ],
+          [
+            164,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test"
+            ]
+          ],
+          [
+            288,
+            [
+              "bitm",
+              "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor_bump"
+            ]
+          ],
+          [
+            300,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\color_white"
+            ]
+          ],
+          [
+            312,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\color_white"
+            ]
+          ],
+          [
+            324,
+            [
+              "bitm",
+              "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+            ]
+          ],
+          [
+            336,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            348,
+            [
+              "bitm",
+              "objects\\bitmaps\\reflection_maps\\vehicle_glass"
+            ]
+          ],
+          [
+            360,
+            [
+              "bitm",
+              "rasterizer\\linear_corner_fade"
+            ]
+          ],
+          [
+            684,
+            [
+              "bitm",
+              "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor_bump"
+            ]
+          ],
+          [
+            692,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\color_white"
+            ]
+          ],
+          [
+            700,
+            [
+              "bitm",
+              "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+            ]
+          ],
+          [
+            708,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            716,
+            [
+              "bitm",
+              "objects\\bitmaps\\reflection_maps\\vehicle_glass"
+            ]
+          ],
+          [
+            724,
+            [
+              "bitm",
+              "rasterizer\\linear_corner_fade"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_banks": {
+        "12": "787878001f1f1f00000000ff000000ff787878001f1f1f00",
+        "20": "000080410000804100000000000000000000803f0000803f00000000000000000000803f0000803f000000000000000000000000000000000000803f0000803f0000803f0000803f0000000000000000df4f8d3edf4f8d3e7b146e3f0000000014aec73e000000007b146e3f00000000d7a3f03ed7a3f03ed7a3f03e000000008fc2f53d8fc2f53d8fc2f53d00000000",
+        "28": "000000000032000000001932",
+        "36": "0000000201000102020002000200020002000200020203020402050206000600060207000700070007000700070007000700070007020800080209000900090009000900090009000900090009000900090009020a000a000a000a000a000a000a000a00",
+        "44": "000201080506080e0f0a1402150819021a081e08",
+        "52": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "0300ffffffffffff0200ffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 2,
+        "8": 50,
+        "16": 10,
+        "24": 34,
+        "32": 152
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor_bump"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\color_white"
+          ],
+          0,
+          1069055604
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\color_white"
+          ],
+          0,
+          1069055604
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\vehicle_glass"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0,
+          1073085936
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor_bump"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\color_white"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\warthog\\turrets\\gauss\\bitmaps\\gauss_turret_sensor"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\bitmaps\\reflection_maps\\vehicle_glass"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "rasterizer\\linear_corner_fade"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": 3,
+        "12": -1,
+        "48": 1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff070000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000100000000000000030000000000000001000000000000001900000000000000010000000000000001000000000000000a000000000000000a00000000000000010000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000747e38400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "60": "b605000f000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "0000000000000000000080400000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f"
+      ],
+      "native_source_map": "01b_spacestation",
+      "input_names": [
+        "random_constant",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\scorpion\\shaders\\icon",
+        "bytes": 1000,
+        "payload": "f27f4db709a774cb787ae7cb8abe35dcdaddd2d5beabaf9d1b521c44db9caa58.bin",
+        "fnv64": "bb18f632df4cfb33",
+        "pointers": [
+          [
+            16,
+            512
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            444
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            592
+          ],
+          [
+            108,
+            608
+          ],
+          [
+            116,
+            656
+          ],
+          [
+            124,
+            672
+          ],
+          [
+            132,
+            736
+          ],
+          [
+            140,
+            752
+          ],
+          [
+            148,
+            244
+          ],
+          [
+            156,
+            864
+          ],
+          [
+            164,
+            912
+          ],
+          [
+            172,
+            928
+          ],
+          [
+            180,
+            944
+          ],
+          [
+            188,
+            976
+          ],
+          [
+            196,
+            976
+          ],
+          [
+            260,
+            768
+          ],
+          [
+            280,
+            800
+          ],
+          [
+            300,
+            800
+          ],
+          [
+            320,
+            800
+          ],
+          [
+            340,
+            832
+          ],
+          [
+            360,
+            832
+          ],
+          [
+            380,
+            832
+          ],
+          [
+            400,
+            832
+          ],
+          [
+            420,
+            832
+          ],
+          [
+            440,
+            832
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            448,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            456,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            464,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            472,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            480,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\icon"
+            ]
+          ],
+          [
+            488,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            496,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            244,
+            "random_constant"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\icon"
+          ],
+          4
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff070000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000100000000000000030000000000000001000000000000001900000000000000010000000000000001000000000000000a000000000000000a00000000000000010000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000747e38400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "60": "b605000f000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "0000000000000000000080400000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f"
+      ],
+      "native_source_map": "01b_spacestation",
+      "input_names": [
+        "random_constant",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\scorpion\\shaders\\number_decal",
+        "bytes": 1000,
+        "payload": "cf296d832712ebf98f3aa03810e7fe73d76ab82006a27c430a201db0986624fd.bin",
+        "fnv64": "193494f7ec92750f",
+        "pointers": [
+          [
+            16,
+            304
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            244
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            384
+          ],
+          [
+            108,
+            400
+          ],
+          [
+            116,
+            448
+          ],
+          [
+            124,
+            464
+          ],
+          [
+            132,
+            528
+          ],
+          [
+            140,
+            544
+          ],
+          [
+            148,
+            560
+          ],
+          [
+            156,
+            864
+          ],
+          [
+            164,
+            912
+          ],
+          [
+            172,
+            928
+          ],
+          [
+            180,
+            944
+          ],
+          [
+            188,
+            976
+          ],
+          [
+            196,
+            976
+          ],
+          [
+            576,
+            768
+          ],
+          [
+            596,
+            800
+          ],
+          [
+            616,
+            800
+          ],
+          [
+            636,
+            800
+          ],
+          [
+            656,
+            832
+          ],
+          [
+            676,
+            832
+          ],
+          [
+            696,
+            832
+          ],
+          [
+            716,
+            832
+          ],
+          [
+            736,
+            832
+          ],
+          [
+            756,
+            832
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            248,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            256,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            264,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            272,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            280,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+            ]
+          ],
+          [
+            288,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            296,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            560,
+            "random_constant"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\number_decal"
+          ],
+          4
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff040000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000100000000000000030000000000000001000000000000001900000000000000010000000000000001000000000000000a000000000000000a00000000000000010000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000747e38400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "60": "b605000f000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\marine"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "00000000000000000000803f0000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f"
+      ],
+      "native_source_map": "01b_spacestation",
+      "input_names": [
+        "random_constant",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\scorpion\\shaders\\marine",
+        "bytes": 968,
+        "payload": "7eed7d252fb3870678de089a7c65730f62cc7dd88862c6a8071b7e189bcf07e6.bin",
+        "fnv64": "fa4de396692c88c5",
+        "pointers": [
+          [
+            16,
+            480
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            444
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            560
+          ],
+          [
+            108,
+            576
+          ],
+          [
+            116,
+            624
+          ],
+          [
+            124,
+            640
+          ],
+          [
+            132,
+            704
+          ],
+          [
+            140,
+            720
+          ],
+          [
+            148,
+            244
+          ],
+          [
+            156,
+            832
+          ],
+          [
+            164,
+            880
+          ],
+          [
+            172,
+            896
+          ],
+          [
+            180,
+            912
+          ],
+          [
+            188,
+            944
+          ],
+          [
+            196,
+            944
+          ],
+          [
+            260,
+            736
+          ],
+          [
+            280,
+            768
+          ],
+          [
+            300,
+            768
+          ],
+          [
+            320,
+            768
+          ],
+          [
+            340,
+            800
+          ],
+          [
+            360,
+            800
+          ],
+          [
+            380,
+            800
+          ],
+          [
+            400,
+            800
+          ],
+          [
+            420,
+            800
+          ],
+          [
+            440,
+            800
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\marine"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            448,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\marine"
+            ]
+          ],
+          [
+            456,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\marine"
+            ]
+          ],
+          [
+            464,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            472,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            244,
+            "random_constant"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\marine"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\marine"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\marine"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff070000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000100000000000000030000000000000001000000000000001900000000000000010000000000000001000000000000000a000000000000000a00000000000000010000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000b6be19400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "60": "b605000f000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          0,
+          1075429046
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "0000000000000000000080400000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f"
+      ],
+      "native_source_map": "01b_spacestation",
+      "input_names": [
+        "random_constant",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\scorpion\\shaders\\no_step",
+        "bytes": 1000,
+        "payload": "7ddb44a04f183312358f395fae3c20bda7dc1c555b49dc36f23d1f9948f1b47b.bin",
+        "fnv64": "195ed670252e3844",
+        "pointers": [
+          [
+            16,
+            304
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            244
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            384
+          ],
+          [
+            108,
+            400
+          ],
+          [
+            116,
+            448
+          ],
+          [
+            124,
+            464
+          ],
+          [
+            132,
+            528
+          ],
+          [
+            140,
+            544
+          ],
+          [
+            148,
+            560
+          ],
+          [
+            156,
+            864
+          ],
+          [
+            164,
+            912
+          ],
+          [
+            172,
+            928
+          ],
+          [
+            180,
+            944
+          ],
+          [
+            188,
+            976
+          ],
+          [
+            196,
+            976
+          ],
+          [
+            576,
+            768
+          ],
+          [
+            596,
+            800
+          ],
+          [
+            616,
+            800
+          ],
+          [
+            636,
+            800
+          ],
+          [
+            656,
+            832
+          ],
+          [
+            676,
+            832
+          ],
+          [
+            696,
+            832
+          ],
+          [
+            716,
+            832
+          ],
+          [
+            736,
+            832
+          ],
+          [
+            756,
+            832
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            248,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            256,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            264,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            272,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            280,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+            ]
+          ],
+          [
+            288,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            296,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            560,
+            "random_constant"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          0,
+          1075429046
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\no_step"
+          ],
+          4
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff030000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "00000000030000000000000001000000000000000300000000000000010000000000000019000000000000000100000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000747e38400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "000000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "00000000000000000000",
+        "60": "",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\scorpion_decal"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [],
+      "native_source_map": "01b_spacestation",
+      "input_names": [],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\vehicles\\scorpion\\shaders\\scorpion_decal",
+        "bytes": 584,
+        "payload": "eccc8a8ab67da180a26c7d777d28abf6ab5cab53d8dc0d7a8c6fc790d44e9aa6.bin",
+        "fnv64": "e481abed2d84e8b6",
+        "pointers": [
+          [
+            16,
+            288
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            256
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            368
+          ],
+          [
+            108,
+            384
+          ],
+          [
+            116,
+            432
+          ],
+          [
+            124,
+            448
+          ],
+          [
+            132,
+            512
+          ],
+          [
+            140,
+            244
+          ],
+          [
+            180,
+            528
+          ],
+          [
+            188,
+            560
+          ],
+          [
+            196,
+            560
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\scorpion_decal"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            260,
+            [
+              "bitm",
+              "objects\\vehicles\\scorpion\\bitmaps\\scorpion_decal"
+            ]
+          ],
+          [
+            268,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            276,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "000000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "00000000000000000000",
+        "68": "",
+        "76": "",
+        "84": "",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\scorpion_decal"
+          ],
+          0,
+          1077444212
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\vehicles\\scorpion\\bitmaps\\scorpion_decal"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\overlay",
+      "source_graph": {
+        "root_hex": "0000000000000000000000000100000000000000000000000000000000000000ffffffffffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000700000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320400000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\overlay\\overlay"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603020406",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 7,
+                "raw_hex": "0000000001000001020000028100000032090000b1050001b0010002",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "e4e9c0bc739b9713a8abacfceac3395876293ec5eb9292c0df0ec992e5cedf4f",
+      "source_root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff060000000000000074696c73ffffffff000002000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000100000000000000030000000000000001000000000000001900000000000000010000000000000001000000000000000a000000000000000a00000000000000010000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000323e57400000000000000000f0fd753f0000000000000000f0fd753f",
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "60": "da280006000000000000803f140000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          0,
+          1079459378
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "0000000000000000295c7f400000000000000000",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f"
+      ],
+      "native_source_map": "01b_spacestation",
+      "input_names": [
+        "scrawl",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\opaque\\overlay",
+        "bytes": 248,
+        "payload": "0d72f1cc54a7aca47c244e6b84690c2987583ace20978df157ca27d32a8cf68c.bin",
+        "fnv64": "b6e23bbcfac99e5f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\overlay\\overlay"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\weapons\\multiplayer\\assault_bomb\\shaders\\assault_bomb_scrawl",
+        "bytes": 952,
+        "payload": "c8c2c0817b31795e175a4f2f6d8f42fe8701d2fb30866df63c8c1ea60d5bd04c.bin",
+        "fnv64": "17b2da897635dc2b",
+        "pointers": [
+          [
+            16,
+            592
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            540
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            672
+          ],
+          [
+            108,
+            244
+          ],
+          [
+            116,
+            292
+          ],
+          [
+            124,
+            688
+          ],
+          [
+            132,
+            752
+          ],
+          [
+            140,
+            300
+          ],
+          [
+            148,
+            312
+          ],
+          [
+            156,
+            832
+          ],
+          [
+            164,
+            880
+          ],
+          [
+            172,
+            532
+          ],
+          [
+            180,
+            896
+          ],
+          [
+            188,
+            928
+          ],
+          [
+            196,
+            928
+          ],
+          [
+            328,
+            512
+          ],
+          [
+            348,
+            768
+          ],
+          [
+            368,
+            768
+          ],
+          [
+            388,
+            768
+          ],
+          [
+            408,
+            800
+          ],
+          [
+            428,
+            800
+          ],
+          [
+            448,
+            800
+          ],
+          [
+            468,
+            800
+          ],
+          [
+            488,
+            800
+          ],
+          [
+            508,
+            800
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\opaque\\overlay"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            232,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ],
+          [
+            544,
+            [
+              "bitm",
+              "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+            ]
+          ],
+          [
+            552,
+            [
+              "bitm",
+              "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+            ]
+          ],
+          [
+            560,
+            [
+              "bitm",
+              "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+            ]
+          ],
+          [
+            568,
+            [
+              "bitm",
+              "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+            ]
+          ],
+          [
+            576,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_detail"
+            ]
+          ],
+          [
+            584,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            312,
+            "scrawl"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "ffffff00",
+        "20": "0000803f0000803f0000000000000000000080410000804100000000000000000000803f0000803f0000000000000000",
+        "28": "040000000032",
+        "36": "0000000000020100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "01020100010000000002",
+        "68": "00000000010001000200020003000300040004000500050006000600070007000800080009000900",
+        "76": "0014",
+        "84": "b001000000000000",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 7
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          0,
+          1079459378
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0,
+          1064697328
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0,
+          1064697328
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          1
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          2
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\multiplayer\\assault_bomb\\bitmaps\\assault_bomb_scrawl"
+          ],
+          3
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_detail"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\default_additive_zero_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\meter_active_camo",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000b00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\transparent\\meter_active_camo"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "0004020a0708",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 11,
+                "raw_hex": "00000000010000016100000083000001630000028400000364000004d2010000f3010001d4050002f5050003",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "2b99ceb4dd4204c3ea091877ba720eab6ee0c0f61712abad7a79a644e429c8d5",
+      "source_root_hex": "6d657473000000000000000001000000000000000500040000000000000000000300000000000000ffffffff020000000000000074696c73ffffffff00000000000000000000803f000000000000000000000000",
+      "source_definition_hex": "00000000020000000000000005000000000000000400000000000000010000000000000019000000000000000100000000000000010000000000000003000000000000000300000000000000030000000000000003000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000f0fd75400000000000000000f0fd7540",
+        "12": "0000000000ff0000000000dfff6666000000009b",
+        "20": "0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000",
+        "28": "008000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03000300030000060300",
+        "60": "73050004000000000000803f2400000000000000b2050003000000000000803f340000000000000073050004000000000000803f2400000000000000",
+        "68": "0000ffff0100ffff0200ffff",
+        "76": "000201020202",
+        "84": "610000008300000264000001",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge_alpha"
+          ],
+          0,
+          1081474544
+        ]
+      ],
+      "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "02000000000000000000803f0000000000000000000000000000803f000000000000803f",
+        "03000a000000003f83c02a3f00000000000000000000803f00000000000000000000803f0000803f00000000000000000000803f",
+        "0220030000ff000000000000000000000000ff00000000000000803f000000000000803f"
+      ],
+      "native_source_map": "coagulation",
+      "input_names": [
+        "heat",
+        "one",
+        "heat"
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\meter_active_camo",
+        "bytes": 274,
+        "payload": "b86f4b203cba5ece40f3427be1c37b2c3fa2a559a56b827ceaa704506ec45676.bin",
+        "fnv64": "9fb0cf6dd57ecae0",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            208
+          ],
+          [
+            108,
+            224
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\transparent\\meter_active_camo"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_gauge",
+        "bytes": 824,
+        "payload": "52b4fd02568c738ced59f73a948de65f2371576a4492f8c11e9fbb5be0a7ea5c.bin",
+        "fnv64": "9d9fc7b5487fdbf8",
+        "pointers": [
+          [
+            16,
+            448
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            424
+          ],
+          [
+            92,
+            208
+          ],
+          [
+            100,
+            232
+          ],
+          [
+            108,
+            528
+          ],
+          [
+            116,
+            592
+          ],
+          [
+            124,
+            608
+          ],
+          [
+            132,
+            672
+          ],
+          [
+            140,
+            252
+          ],
+          [
+            148,
+            264
+          ],
+          [
+            156,
+            736
+          ],
+          [
+            164,
+            752
+          ],
+          [
+            172,
+            412
+          ],
+          [
+            180,
+            768
+          ],
+          [
+            188,
+            800
+          ],
+          [
+            196,
+            800
+          ],
+          [
+            280,
+            688
+          ],
+          [
+            300,
+            324
+          ],
+          [
+            320,
+            376
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\transparent\\meter_active_camo"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\transparent\\meter_active_camo"
+            ]
+          ],
+          [
+            208,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge"
+            ]
+          ],
+          [
+            220,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge_alpha"
+            ]
+          ],
+          [
+            428,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge"
+            ]
+          ],
+          [
+            436,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge_alpha"
+            ]
+          ]
+        ],
+        "strings": [
+          [
+            264,
+            "heat"
+          ],
+          [
+            284,
+            "one"
+          ],
+          [
+            304,
+            "heat"
+          ]
+        ]
+      },
+      "native_banks": {
+        "12": "00000000000000df00ff00000000009bff666600",
+        "20": "0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f0000000000000000",
+        "28": "008000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "03000300030000060300",
+        "68": "0000ffff0100ffff0200ffff",
+        "76": "000201020202",
+        "84": "000003004000040240040301",
+        "92": "ffffffffffffffffffffffffffffffffffffffff",
+        "100": "000000000000000000000000000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 11
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge_alpha"
+          ],
+          0,
+          1081474544
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_rifle_heat_gauge_alpha"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": -1,
+        "12": -1,
+        "48": -1,
+        "56": -1
+      }
+    },
+    {
+      "template": "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo",
+      "source_graph": {
+        "root_hex": "000000000000000000000000010000000000000000000000000000000000000074696c73ffffffff00000000000000000000000000000000000000000000000064616873ffffffff0000000064616873ffffffff000000000300000000000000",
+        "definitions": [
+          {
+            "definition_hex": "01000000000000001900000000000000010000000000000001000000000000000f00000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 1,
+                "raw_hex": "00320080000000000000",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 25,
+                "raw_hex": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 1,
+                "raw_hex": "73617073000000000002",
+                "typed_references": [
+                  [
+                    "spas",
+                    "shaders\\shader_passes\\plasma\\plasma_alpha_active_camo"
+                  ]
+                ]
+              },
+              {
+                "field": 24,
+                "count": 1,
+                "raw_hex": "000603080710",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 15,
+                "raw_hex": "00000000010000010200000282000000830000016400000285000003d2010000f3010001d4050002f5050003d6090004f70900056b1c00066a1c0007",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          },
+          {
+            "definition_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "arrays": [
+              {
+                "field": 0,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 8,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 16,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 24,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              },
+              {
+                "field": 32,
+                "count": 0,
+                "raw_hex": "",
+                "typed_references": []
+              }
+            ]
+          }
+        ]
+      },
+      "source_graph_sha256": "6ece71ae906e8e5c8ffae39206768ac47cb51e21bde1faf8fa62e68ec03104af",
+      "source_root_hex": "6d657473000000000000000001000000000000000500000000000000000000000300000000000000ffffffff020000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+      "source_definition_hex": "0000000003000000000000000400000000000000080000000000000001000000000000001900000000000000010000000000000001000000000000000d000000000000000d00000000000000040000000000000006000000000000000500000000000000020000000000000006000000000000000000000000000000",
+      "source_banks": {
+        "4": "0000000000000000b6be19400000000000000000f0fd75400000000000000000b6be1940",
+        "12": "e7e79e009f40000000000000ffffe100",
+        "20": "0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000000000000000000000000000803f0000000000000000000000000000803f",
+        "28": "008000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "05020500050000060304",
+        "60": "00000000000000000000803f1c0000000000000000000000000000000000803f1c00000000000000000000000000000000000040340000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000803f1c0000000000000000000000000000000000a040340000000000000000000000000000000000803f340000000000000000000000000000000000803f3400000000000000",
+        "68": "000001000100020002000400030005000400000005000300060006000700070008000800090009000a00ffff0b00ffff0c00ffff",
+        "76": "00140a020b020c02",
+        "84": "820000028300000185000003d4050000f505000001000000",
+        "92": "0000ffffffffffffffffffffffffffffffffffff",
+        "100": "0000803f0000803f0000803f000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+          ],
+          0,
+          1075429046
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\clouds_256"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+          ],
+          0,
+          1075429046
+        ]
+      ],
+      "runtime_hex": "6d746962000000006d746962ffffffff0000803f0000803f0000803f000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+      "curves": [
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "03000b00000000000000803f00000000000000000000a04000000000000000000000803f0000803f00000000000000000000803f",
+        "01000000000000000000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "010000000000803f0000803f00000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "01000000000000000000000000000000000000000000803f0000803f",
+        "033003002b1d0000482f0000000000009f400000cdcc4c3e00000000000000000000803f0000803f00000000000000000000803f",
+        "0320080015000a000000000000000000fdffae009a99993e000000009a99993e0000803f0000803f00000000000000000000803f",
+        "033008004a4a0000ffff620000000000ffffff009a99993e000000009a99993e0000803f0000803f00000000000000000000803f"
+      ],
+      "native_source_map": "coagulation",
+      "input_names": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "native_record": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo",
+        "bytes": 300,
+        "payload": "a003667d611a7676503fb5c5c4f1d1603d9bb9defe81e5b0ce82eff63227333c.bin",
+        "fnv64": "2cc3251d794070d1",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            160
+          ],
+          [
+            108,
+            176
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            240
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\plasma\\plasma_alpha_active_camo"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_shader_record": {
+        "group": "shad",
+        "name": "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_current",
+        "bytes": 1392,
+        "payload": "1378e13ec9302ddc693ac4978eeaf53640df525e5bc5ba79151356f557183233.bin",
+        "fnv64": "844f7279d2569686",
+        "pointers": [
+          [
+            16,
+            640
+          ],
+          [
+            36,
+            84
+          ],
+          [
+            48,
+            1376
+          ],
+          [
+            92,
+            720
+          ],
+          [
+            100,
+            208
+          ],
+          [
+            108,
+            768
+          ],
+          [
+            116,
+            896
+          ],
+          [
+            124,
+            912
+          ],
+          [
+            132,
+            976
+          ],
+          [
+            140,
+            992
+          ],
+          [
+            148,
+            224
+          ],
+          [
+            156,
+            1168
+          ],
+          [
+            164,
+            1232
+          ],
+          [
+            172,
+            1248
+          ],
+          [
+            180,
+            1280
+          ],
+          [
+            188,
+            1312
+          ],
+          [
+            196,
+            1344
+          ],
+          [
+            240,
+            1008
+          ],
+          [
+            260,
+            1008
+          ],
+          [
+            280,
+            1040
+          ],
+          [
+            300,
+            1104
+          ],
+          [
+            320,
+            1008
+          ],
+          [
+            340,
+            1008
+          ],
+          [
+            360,
+            1136
+          ],
+          [
+            380,
+            1136
+          ],
+          [
+            400,
+            1136
+          ],
+          [
+            420,
+            1136
+          ],
+          [
+            440,
+            484
+          ],
+          [
+            460,
+            536
+          ],
+          [
+            480,
+            588
+          ]
+        ],
+        "references": [
+          [
+            4,
+            [
+              "stem",
+              "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo"
+            ]
+          ],
+          [
+            84,
+            [
+              "stem",
+              "shaders\\shader_templates\\transparent\\plasma_alpha_active_camo"
+            ]
+          ],
+          [
+            644,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+            ]
+          ],
+          [
+            720,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+            ]
+          ],
+          [
+            732,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\clouds_256"
+            ]
+          ],
+          [
+            744,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+            ]
+          ],
+          [
+            1380,
+            [
+              "bitm",
+              "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+            ]
+          ],
+          [
+            1388,
+            [
+              "bitm",
+              "shaders\\default_bitmaps\\bitmaps\\clouds_256"
+            ]
+          ]
+        ],
+        "strings": []
+      },
+      "native_banks": {
+        "12": "e7e79e009f40000000000000ffffe100",
+        "20": "0000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000803f000000800000000000000000000000000000803f00000000000000000000000000000000000000000000803f0000000000000000000000000000803f",
+        "28": "008000000032",
+        "36": "0000000000000000000000000000000000000000000000000000000000000002010001000100010001000100010001000100",
+        "44": "0002",
+        "52": "05020500050000060304",
+        "68": "000001000100020002000400030005000400000005000300060006000700070008000800090009000a00ffff0b00ffff0c00ffff",
+        "76": "00140a020b020c02",
+        "84": "c0000402c004040180010403d4050000f505000001000000",
+        "92": "0000ffffffffffffffffffffffffffffffffffff",
+        "100": "0000803f0000803f0000803f000000000000000000000000",
+        "108": "000000000000000000000000000000000000000000000000"
+      },
+      "native_shape": {
+        "0": 1,
+        "8": 25,
+        "16": 1,
+        "24": 1,
+        "32": 15
+      },
+      "original_images": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+          ],
+          0,
+          1075429046
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\clouds_256"
+          ],
+          0,
+          1081474544
+        ],
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+          ],
+          0,
+          1075429046
+        ]
+      ],
+      "image_log_words_retained_from_source": false,
+      "prediction_roles": [
+        [
+          [
+            "bitm",
+            "objects\\weapons\\rifle\\plasma_rifle\\bitmaps\\plasma_current_noise_a"
+          ],
+          0
+        ],
+        [
+          [
+            "bitm",
+            "shaders\\default_bitmaps\\bitmaps\\clouds_256"
+          ],
+          0
+        ]
+      ],
+      "runtime_reference_slots": {
+        "4": 0,
         "12": -1,
         "48": -1,
         "56": -1

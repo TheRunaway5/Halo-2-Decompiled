@@ -1,6 +1,9 @@
 #define SDL_MAIN_HANDLED
 #include "halo2/frontend_session.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/desktop_session.hpp"
+#include "halo2/frontend_canvas.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/native_tu15_online_services.hpp"
 #include "ui/frontend_og_matchmaking_layout.hpp"
 #include <SDL.h>
@@ -8,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -17,6 +21,9 @@ using namespace halo2;
 using namespace std::chrono_literals;
 namespace {
 void check(bool value,const char* message){if(!value)throw FormatError(message);}
+bool rust_service_case(){const auto *v=std::getenv("H2_TEST_FRONTEND_STEAM");return v&&std::string_view(v)=="1";}
+unsigned catalog_rows(){return rust_service_case()?14:4;}
+const char *selected_hopper(){return rust_service_case()?"rumble-pit":"ranked";}
 std::size_t discard(char*,std::size_t a,std::size_t b,void*){return a*b;}
 void key(SDL_Keycode value){SDL_Event e{};e.type=SDL_KEYDOWN;e.key.keysym.sym=value;check(SDL_PushEvent(&e)==1,"Actual SDL key delivery failed");e.type=SDL_KEYUP;check(SDL_PushEvent(&e)==1,"Actual SDL key release failed");}
 void rendered_buttons(const std::shared_ptr<FrontendSession>&frontend,
@@ -30,6 +37,7 @@ void rendered_buttons(const std::shared_ptr<FrontendSession>&frontend,
   frontend->online_services->login=frontend->discord_login;
   frontend->online_services->account=account;frontend->online_services->matchmaking=queue;
   FrontendOptions options;options.session=frontend;options.entry=FrontendOptions::Entry::session_return;
+  options.desktop=std::make_shared<DesktopSession>();
   options.session_mainmenu_ready=[](MenuState&s){s.return_online();};
   options.maps=maps;options.vista_settings=maps/"mainmenu.map";
   options.hidden=options.skip_intro=options.mute=true;options.width=960;options.height=720;
@@ -37,8 +45,48 @@ void rendered_buttons(const std::shared_ptr<FrontendSession>&frontend,
   std::uint64_t same_mode_serial{},same_mode_revision{};
   auto changed=std::chrono::steady_clock::now();const auto started=changed;
   nlohmann::json observations=nlohmann::json::array();
+  nlohmann::json mouse_inputs=nlohmann::json::array();
+  Mesh pointer_mesh;std::unique_ptr<FrontendPainter> pointer_layout;
+  const auto mouse_entry=[&](const MenuState&s,unsigned entry,std::uint32_t clock,const char *phase_name) {
+    if(!pointer_layout) {
+      const Cache selected_cache(maps/"mainmenu.map");
+      pointer_layout=std::make_unique<FrontendPainter>(frontend->content(),gameplay_font_directory(selected_cache),
+          pointer_mesh,maps/"ui/frame_edges");
+      pointer_layout->prompt_device(PromptDevice::KeyboardMouse);
+    }
+    auto *window=options.desktop->window(options.width,options.height,options.hidden);
+    int width{},height{};SDL_GetWindowSize(window,&width,&height);
+    const auto canvas=frontend_canvas(unsigned(width),unsigned(height));
+    // Derive a real SDL point from admitted font glyphs and the menu's actual
+    // clipped hit layout. This supplies neither a target nor a UI clock.
+    const auto draw=pointer_layout->draw(s,float(clock)/1000.f,-1,clock,{unsigned(width),unsigned(height)});
+    for(std::size_t first=0;first+5<draw.vertices.size();first+=6) {
+      const auto &a=draw.vertices[first],&b=draw.vertices[first+4];
+      const auto &material=pointer_mesh.materials.at(a.material);
+      if(!material.name.starts_with("font/") || a.color.x+a.color.y+a.color.z<.1f)continue;
+      const int x=int(std::floor(canvas.left+(a.position.x+b.position.x)*.5f*canvas.scale));
+      const int y=int(std::floor(canvas.top+(a.position.y+b.position.y)*.5f*canvas.scale));
+      if(x<0||x>=width||y<0||y>=height)continue;
+      const auto hit=pointer_layout->pointer_hit((float(x)+.5f-canvas.left)/canvas.scale,
+          (float(y)+.5f-canvas.top)/canvas.scale);
+      if(!hit||hit->action!=FrontendPointerAction::Entry||hit->index!=entry)continue;
+      SDL_Event event{};event.type=SDL_MOUSEMOTION;event.motion.windowID=SDL_GetWindowID(window);
+      event.motion.x=x;event.motion.y=y;event.motion.xrel=event.motion.yrel=1;
+      check(SDL_PushEvent(&event)==1,"Actual SDL mouse motion delivery failed");
+      event={};event.type=SDL_MOUSEBUTTONDOWN;event.button.windowID=SDL_GetWindowID(window);
+      event.button.button=SDL_BUTTON_LEFT;event.button.state=SDL_PRESSED;event.button.clicks=1;
+      event.button.x=x;event.button.y=y;check(SDL_PushEvent(&event)==1,"Actual SDL mouse click delivery failed");
+      event.type=SDL_MOUSEBUTTONUP;event.button.state=SDL_RELEASED;
+      check(SDL_PushEvent(&event)==1,"Actual SDL mouse release delivery failed");
+      mouse_inputs.push_back({{"phase",phase_name},{"screen",s.frame().screen},{"entry",entry},
+          {"caption",s.frame().entries.at(entry).label},{"x",x},{"y",y},{"width",width},{"height",height},
+          {"font_material",material.name},{"actual_sdl_events",true},{"direct_menu_activation",false}});
+      return;
+    }
+    throw FormatError(std::string("Actual visible menu glyph has no requested mouse target: ")+phase_name);
+  };
   const auto present=[&](std::string next){if(tag!=next){tag=std::move(next);changed=std::chrono::steady_clock::now();}return captured.contains(tag);};
-  options.session_update=[&](MenuState&s,std::uint32_t,const auto&){
+  options.session_update=[&](MenuState&s,std::uint32_t clock,const auto&){
     check(std::chrono::steady_clock::now()-started<100s,"Rendered source Start/Game Setup path timed out");
     const auto &f=s.frame();const auto a=account->snapshot();const auto q=queue->snapshot();
     switch(phase){
@@ -66,16 +114,19 @@ void rendered_buttons(const std::shared_ptr<FrontendSession>&frontend,
       else if(privacy_phase==7 && f.screen==25 && present("privacy-reset")){check(f.selected==1,"Privacy reset lost actual mode focus");key(SDLK_UP);key(SDLK_RETURN);++privacy_phase;}
       else if(privacy_phase==8 && f.screen==14 && a.party && a.party->privacy && a.party->privacy->mode==0 && !a.busy && present("privacy-open-restored")) {
         if(f.selected==0)key(SDLK_RIGHT);key(SDLK_RETURN);++privacy_phase;
-      } else if(privacy_phase==9 && f.screen==23 && present("setup-restored")){key(SDLK_RETURN);++phase;}
+      } else if(privacy_phase==9 && f.screen==23 && present("setup-restored")){mouse_entry(s,0,clock,"choose-matchmaking-playlist");++phase;}
       break;
-    case 3:if(f.screen==237&&!f.entries.empty()&&present("playlist")){check(f.entries.size()==4,"Rendered source237 is not the authenticated listing");key(SDLK_DOWN);key(SDLK_UP);key(SDLK_RETURN);++phase;}break;
-    case 4:if(f.screen==14&&s.lobby_view()->input.start_permission&&present("selected-lobby")){key(SDLK_LEFT);key(SDLK_RETURN);++phase;}break;
+    case 3:if(f.screen==237&&!f.entries.empty()&&present("playlist")){check(f.entries.size()==catalog_rows(),"Rendered source237 is not the authenticated listing");mouse_entry(s,0,clock,"playlist-row");++phase;}break;
+    case 4:if(f.screen==14&&s.lobby_view()->input.start_permission&&present("selected-lobby")){
+      const auto entry=std::find_if(f.entries.begin(),f.entries.end(),[](const auto&e){return e.destination==-17;});
+      check(entry!=f.entries.end(),"Rendered lobby omitted Start Game");
+      mouse_entry(s,unsigned(entry-f.entries.begin()),clock,"start-game");++phase;}break;
     case 5:if(f.screen==14&&s.online_lobby_countdown()>0&&present("countdown-start")&&!a.busy){check(q.playlist_id.empty(),"Rendered Start bypassed shared countdown");key(SDLK_x);++phase;}break;
     case 6:if(f.screen==14&&s.online_lobby_countdown()<0&&!a.busy&&present("countdown-cancel")){key(SDLK_RETURN);++phase;}break;
     case 7:if(f.screen==14&&s.online_lobby_countdown()>0&&present("countdown-restart")&&!a.busy){before=s.online_lobby_countdown();key(SDLK_RETURN);++phase;}break;
     case 8:if(f.screen==14&&!a.busy&&s.online_lobby_countdown()>0&&s.online_lobby_countdown()<before){if(s.online_lobby_countdown()>3){before=s.online_lobby_countdown();key(SDLK_RETURN);}else{tag.clear();++phase;}}break;
     case 9:if(f.screen==14&&s.online_lobby_countdown()>0)present("countdown-"+std::to_string(s.online_lobby_countdown()));else if(f.screen==210){tag.clear();++phase;}break;
-    case 10:if(f.screen==210&&q.status==OnlineMatchmakingStatus::Searching&&present("search")){check(q.playlist_id=="ranked","Rendered shared clock queued a different hopper");key(SDLK_ESCAPE);++phase;}break;
+    case 10:if(f.screen==210&&q.status==OnlineMatchmakingStatus::Searching&&present("search")){check(q.playlist_id==selected_hopper(),"Rendered shared clock queued a different hopper");key(SDLK_ESCAPE);++phase;}break;
     case 11:if(f.screen==7&&present("leave-confirm")){check(detail::og_matchmaking_layout::goal_frame(f,&s),"Actual B dialog lost its original goal ancestor");key(SDLK_UP);key(SDLK_RETURN);++phase;}break;
     case 12:if(f.screen==14&&q.status==OnlineMatchmakingStatus::Ready&&present("returned-lobby")){++phase;return true;}break;
     }
@@ -100,21 +151,46 @@ void rendered_buttons(const std::shared_ptr<FrontendSession>&frontend,
       "playlist","selected-lobby","countdown-start","countdown-cancel","countdown-restart","countdown-3","countdown-2","countdown-1","search","leave-confirm","returned-lobby"})
     check(captured.contains(required)&&std::filesystem::is_regular_file(output/(std::string(required)+".ppm")),"Actual rendered button flow omitted a required phase");
   std::ofstream(output/"observations.json")<<observations.dump(2)<<'\n';
-  std::cout<<"PASS actual SDL/Vulkan source Setup23 -> privacy25 actual/same-mode acknowledged setters -> listing237 -> retained lobby Start/X/restart/3/2/1 -> search -> B/cancel -> retained lobby\n";
+  check(mouse_inputs.size()==3,"Rendered Start/playlist path omitted actual mouse input");
+  std::ofstream(output/"mouse-inputs.json")<<mouse_inputs.dump(2)<<'\n';
+  std::cout<<"PASS actual SDL/Vulkan source Setup23 -> privacy25 actual/same-mode acknowledged setters -> mouse Choose Playlist/listing237/Start -> retained lobby X/restart/3/2/1 -> search -> B/cancel -> retained lobby\n";
 }
 }
 int main(int argc,char**argv)try{
+  if(argc==3&&std::string_view(argv[1])=="--environment-probe"){
+    const auto options=online_matchmaking_environment(argv[2]);
+    std::cout<<nlohmann::json{{"compatibility",options.compatibility},{"maps",options.maps}}.dump()<<'\n';return 0;
+  }
   check(argc==6,"Supply MCC maps --matchmaking-url URL --callback-port PORT");
   check(std::string_view(argv[2])=="--matchmaking-url" && std::string_view(argv[4])=="--callback-port","Unexpected button fixture arguments");
   const auto legacy_value=std::getenv("H2_TEST_LEGACY_PARTY_COUNTDOWN");
   const bool legacy=legacy_value&&std::string_view(legacy_value)=="1";
+  const auto blocked_value=std::getenv("H2_TEST_BLOCKED_PLAYLIST");
+  const bool blocked=blocked_value&&std::string_view(blocked_value)=="1";
   curl_global_init(CURL_GLOBAL_DEFAULT);
   const Cache cache(std::filesystem::path(argv[1])/"mainmenu.map");auto frontend=std::make_shared<FrontendSession>();frontend->retain_content(cache.load_frontend());
   auto &menu=frontend->create_state();menu.accept();menu.select(0);menu.accept();menu.text("Pilot");menu.commit_text();menu.back();
   check(menu.signed_in_profile()=="Pilot","Actual source profile chooser did not admit the local profile");
   for(const auto id:{7u,8u}){menu.open(id);check(!detail::og_matchmaking_layout::goal_frame(menu.frame(),&menu),"Unrelated dialog acquired the original matchmaking route");menu.back();}
   std::string browser;DiscordLoginOptions login_options;login_options.callback_port=std::stoul(argv[5]);
-  auto login=std::make_shared<DiscordLogin>([&](const auto&value){browser=value;return true;},login_options,
+  std::shared_ptr<DiscordLogin> login;
+  if(rust_service_case()) {
+    // Only the external Steam handoff is a private fixture. Account, party,
+    // catalog, countdown and queue requests below reach the real Rust server.
+    const auto *credential=std::getenv("H2_TEST_STEAM_TOKEN"),*subject=std::getenv("H2_TEST_STEAM_SUBJECT");
+    check(credential&&subject,"Private native Steam handoff inputs required");
+    const std::string base(argv[3]),token(credential),identity(subject),device(43,'d');
+    const auto encode=[](const std::string&value){auto *raw=curl_easy_escape(nullptr,value.c_str(),int(value.size()));check(raw,"Steam fixture URL encoding failed");std::string out(raw);curl_free(raw);return out;};
+    const std::string ns="http://specs.openid.net/auth/2.0",op="https://steamcommunity.com/openid/login";
+    const auto url=op+"?openid.ns="+encode(ns)+"&openid.mode=checkid_setup&openid.realm="+encode(base+"/")+"&openid.return_to="+
+      encode(base+"/v1/auth/steam/callback/"+device)+"&openid.identity="+encode(ns+"/identifier_select")+"&openid.claimed_id="+encode(ns+"/identifier_select");
+    login=DiscordLogin::steam([](const auto&){return true;},[base,token,identity,device,url](const DiscordHttpRequest&r,std::stop_token)->DiscordHttpResponse {
+      if(r.url==base+"/v1/auth/steam/start")return {201,nlohmann::json{{"device",device},{"url",url},{"expires_in",300},{"interval",1}}.dump()};
+      check(r.url==base+"/v1/auth/steam/poll","Unexpected native provider fixture request");
+      return {200,nlohmann::json{{"state","signed_in"},{"token",token},{"expires_in",28800},
+        {"identity",{{"id",identity},{"username","Steam Fixture"},{"display_name","Steam Fixture"}}}}.dump()};
+    });
+  }else login=std::make_shared<DiscordLogin>([&](const auto&value){browser=value;return true;},login_options,
       [](const DiscordHttpRequest&r,std::stop_token)->DiscordHttpResponse{
         if(r.url.ends_with("/token"))return {200,R"({"access_token":"t","token_type":"Bearer","scope":"identify","expires_in":3600})"};
         return {200,R"({"id":"123456789012345678","username":"verified_user","global_name":"Pilot"})"};
@@ -132,30 +208,68 @@ int main(int argc,char**argv)try{
     std::cerr<<"Lobby button timeout state (no credentials): "<<detail.dump()<<'\n';
     throw FormatError(std::string("Actual ONLINE lobby button path timed out: ")+stage);
   }std::this_thread::sleep_for(5ms);}};
-  login->start();wait([&]{return !browser.empty();});
+  if(rust_service_case()){menu.set_discord_login(login);frontend->discord_login=login;menu.update_online_login();}
+  login->start();if(!rust_service_case()) {wait([&]{return !browser.empty();});
   const auto at=browser.find("state=")+6;const auto end=browser.find('&',at);
   const auto callback="http://127.0.0.1:"+std::string(argv[5])+"/discord/callback?code=test&state="+browser.substr(at,end-at);
   {std::unique_ptr<CURL,decltype(&curl_easy_cleanup)> curl(curl_easy_init(),curl_easy_cleanup);
     curl_easy_setopt(curl.get(),CURLOPT_URL,callback.c_str());curl_easy_setopt(curl.get(),CURLOPT_PROXY,"");curl_easy_setopt(curl.get(),CURLOPT_TIMEOUT_MS,2000L);curl_easy_setopt(curl.get(),CURLOPT_WRITEFUNCTION,discard);
-    check(curl_easy_perform(curl.get())==CURLE_OK,"Actual external account callback failed");}
+    check(curl_easy_perform(curl.get())==CURLE_OK,"Actual external account callback failed");}}
   wait([&]{return login->authorization().has_value();});menu.set_discord_login(login);
   frontend->discord_login=login;
   OnlineAccountOptions account_options;account_options.endpoint=argv[3];account_options.allow_loopback_http=true;account_options.enable_parties=true;account_options.poll_interval=25ms;
+  if(rust_service_case())account_options.poll_interval=20s;
   if(const auto gpu=std::getenv("H2_TEST_LOBBY_BUTTONS_GPU");gpu&&std::string_view(gpu)=="1")
     account_options.poll_interval=20s; // Actual production social cadence; commands wake it immediately.
   account=std::make_shared<OnlineAccount>(login,account_options);menu.set_online_account(account);
-  OnlineMatchmakingOptions queue_options;queue_options.endpoint=argv[3];queue_options.allow_loopback_http=true;queue_options.maps={"lockout"};queue_options.poll_interval=25ms;
+  const auto native_environment=std::getenv("H2_TEST_ONLINE_ENVIRONMENT");
+  auto queue_options=rust_service_case()||(native_environment&&std::string_view(native_environment)=="1")?
+      online_matchmaking_environment(argv[1]):OnlineMatchmakingOptions{};
+  queue_options.endpoint=argv[3];queue_options.allow_loopback_http=true;
+  if(!rust_service_case())queue_options.maps={"lockout"};
+  queue_options.poll_interval=rust_service_case()?1s:25ms;
+  if(const auto complete=std::getenv("H2_TEST_COMPLETE_PLAYLIST");complete&&std::string_view(complete)=="1")
+    check(queue_options.compatibility=="halo2-native-queue-v16","Complete playlist did not use the actual ONLINE environment capability");
   queue=std::make_shared<OnlineMatchmaking>(login,queue_options);menu.set_online_matchmaking(queue);
   stage="authenticated account session";wait([&]{return account->snapshot().authenticated&&!account->snapshot().busy;});
+  if(rust_service_case()) {
+    stage="unchanged source catalog through the native Rust client";
+    queue->refresh("Pilot");wait([&]{return queue->snapshot().status==OnlineMatchmakingStatus::Ready;});
+    const auto snapshot=queue->snapshot();check(snapshot.playlists.size()==14,"Rust native UI did not receive the full source catalog");
+    const auto chosen=std::find_if(snapshot.playlists.begin(),snapshot.playlists.end(),[](const auto&p){return p.id==selected_hopper();});
+    check(chosen!=snapshot.playlists.end()&&chosen->eligible!=blocked,"Actual native compatibility did not gate the selected source hopper");
+    nlohmann::json rows=nlohmann::json::array();for(const auto&p:snapshot.playlists)rows.push_back({{"id",p.id},{"eligible",p.eligible}});
+    std::cout<<"NATIVE_UI_CATALOG "<<nlohmann::json{{"compatibility",queue_options.compatibility},{"maps",queue_options.maps},{"playlists",rows},{"steam_handoff_fixture",login->uses_steam()}}.dump()<<'\n';
+  }
   if(const auto gpu=std::getenv("H2_TEST_LOBBY_BUTTONS_GPU");gpu&&std::string_view(gpu)=="1") {
     check(!legacy,"Rendered button path requires the supported modern service");
     rendered_buttons(frontend,account,queue,argv[1]);
     queue->sign_out();account->sign_out();menu.set_online_matchmaking({});menu.set_online_account({});return 0;
   }
   menu.return_online();menu.select(0);menu.accept();
+  if(blocked){
+    stage="actual ineligible catalog and accepted ONLINE party";
+    wait([&]{const auto a=account->snapshot();const auto q=queue->snapshot();return menu.frame().screen==14&&a.party&&a.party->leader&&!a.busy&&
+        q.status==OnlineMatchmakingStatus::Ready&&q.playlists.size()==catalog_rows()&&
+        std::none_of(q.playlists.begin(),q.playlists.end(),[](const auto&p){return p.eligible;});});
+    const auto action=[&](int destination){const auto rows=menu.frame().entries;const auto it=std::find_if(rows.begin(),rows.end(),[&](const auto&e){return e.destination==destination;});
+      check(it!=rows.end(),"Blocked playlist fixture lost its original menu action");menu.select(unsigned(it-rows.begin()));menu.accept();};
+    action(-17);
+    check(menu.frame().screen==8&&!menu.frame().description.empty(),"Ineligible ONLINE Start Game silently did nothing");
+    menu.back();action(23);menu.select(0);menu.accept();
+    stage="actual Choose Matchmaking Playlist listing";wait([&]{return menu.frame().screen==237&&menu.frame().entries.size()==catalog_rows();});
+    menu.select(0);menu.accept();
+    check(menu.frame().screen==8&&!menu.frame().description.empty(),"Choosing an ineligible matchmaking playlist silently did nothing");
+    check(detail::og_matchmaking_layout::goal_frame(menu.frame(),&menu),"Blocked playlist error lost its retained matchmaking ancestor");
+    menu.back();check(menu.frame().screen==237,"Blocked playlist error discarded the actual playlist chooser");
+    check(queue->snapshot().playlist_id.empty()&&menu.online_lobby_countdown()<0,"Blocked playlist fabricated a countdown or search");
+    queue->sign_out();account->sign_out();menu.set_online_matchmaking({});menu.set_online_account({});
+    std::cout<<"PASS actual ineligible ONLINE Start and Choose Matchmaking Playlist report a visible error, retain the chooser, and never enqueue\n";
+    return 0;
+  }
   stage="actual accepted party and playlist consent";
   wait([&]{const auto a=account->snapshot();return menu.frame().screen==14&&a.party&&a.party->leader&&!a.busy&&
-    std::any_of(a.party->members.begin(),a.party->members.end(),[](const auto&m){return m.self&&m.ready_playlist=="ranked";});});
+    std::any_of(a.party->members.begin(),a.party->members.end(),[](const auto&m){return m.self&&m.ready_playlist==selected_hopper();});});
   check(menu.expand(menu.online_party_text(menu.frame(),48))=="Xbox Live: Optimatch",
       "Original pregame protocol token was replaced by the generic ONLINE label");
   const auto select=[&](int destination){const auto&rows=menu.frame().entries;const auto found=std::find_if(rows.begin(),rows.end(),[&](const auto&e){return e.destination==destination;});check(found!=rows.end(),"Actual source menu omitted expected semantic action");menu.select(unsigned(found-rows.begin()));};
@@ -206,7 +320,7 @@ int main(int argc,char**argv)try{
           s.party->privacy && s.party->privacy->mode==mode && s.party->privacy->context==before.context &&
           s.party->privacy->revision>before.revision && s.party_command_successful==true;});
       const auto p=account->snapshot().party;
-      check(p->version==party_version && std::all_of(p->members.begin(),p->members.end(),[](const auto&m){return m.ready_playlist=="ranked";}),
+      check(p->version==party_version && std::all_of(p->members.begin(),p->members.end(),[](const auto&m){return m.ready_playlist==selected_hopper();}),
           "Party privacy mutation invalidated unrelated membership or hopper consent");
       constexpr std::array<std::uint32_t,3> ids{0x04000201,0x0f000202,0x06000203};
       check(menu.lobby_view()->input.party_privacy==int(mode) && menu.online_party_text(menu.frame(),10)==
@@ -218,7 +332,7 @@ int main(int argc,char**argv)try{
     // The snapshot is retained across iterator use; the RPC is a real second
     // controller/service observation while the privacy editor owns channel3.
     const auto privacy_catalog=queue->snapshot().playlists;
-    const auto active_hopper=std::find_if(privacy_catalog.begin(),privacy_catalog.end(),[](const auto&p){return p.id=="ranked";});
+    const auto active_hopper=std::find_if(privacy_catalog.begin(),privacy_catalog.end(),[](const auto&p){return p.id==selected_hopper();});
     check(active_hopper!=privacy_catalog.end() && account->party_command({"countdown_start",{},active_hopper->id,active_hopper->revision}),
         "Privacy countdown preservation control could not start its actual party clock");
     stage="actual countdown while original privacy editor is open";
@@ -236,12 +350,12 @@ int main(int argc,char**argv)try{
     set_privacy(0);
     select(23);menu.accept();
     menu.select(0);menu.accept();wait([&]{return menu.frame().screen==237&&!menu.frame().entries.empty();});
-    check(menu.frame().entries.size()==4&&menu.frame().entries[0].label==queue->snapshot().playlists[0].name,
+    check(menu.frame().entries.size()==catalog_rows()&&menu.frame().entries[0].label==queue->snapshot().playlists[0].name,
         "Lobby playlist selector was replaced by a confirmation/details page");
     stage="chosen playlist return and consent";menu.select(0);menu.accept();wait([&]{return menu.frame().screen==14&&!account->snapshot().busy;});
     check(menu.lobby_view()->input.start_permission,"Authenticated supported solo party disabled Start Game");
     const auto catalog=queue->snapshot().playlists;
-    const auto hopper=std::find_if(catalog.begin(),catalog.end(),[](const auto&p){return p.id=="ranked";});
+    const auto hopper=std::find_if(catalog.begin(),catalog.end(),[](const auto&p){return p.id==selected_hopper();});
     check(hopper!=catalog.end()&&account->party_command({"ready",{},hopper->id,hopper->revision}),"Busy-operation control did not submit real authenticated consent");
     menu.update_online_login();check(!menu.lobby_view()->input.start_permission,"Busy party operation left Start Game eligible");
     select(-17);menu.accept();
@@ -254,7 +368,7 @@ int main(int argc,char**argv)try{
     check(menu.online_lobby_countdown()<=10&&queue->snapshot().playlist_id.empty(),"Start Game did not begin only the authoritative shared countdown");
     while(menu.online_lobby_countdown()>3){const auto before=menu.online_lobby_countdown();select(23);menu.accept();wait([&]{return !account->snapshot().busy&&menu.online_lobby_countdown()<before;});check(menu.frame().screen==14,"Active countdown A incorrectly opened Game Setup");}
     stage="shared countdown completion and search";wait([&]{return menu.frame().screen==210&&queue->snapshot().status==OnlineMatchmakingStatus::Searching;});
-    check(queue->snapshot().playlist_id=="ranked"&&!menu.launch,"Actual shared countdown did not enqueue exactly the selected hopper");
+    check(queue->snapshot().playlist_id==selected_hopper()&&!menu.launch,"Actual shared countdown did not enqueue exactly the selected hopper");
     menu.back();menu.select(0);menu.accept();
     stage="authenticated search cancellation";wait([&]{return menu.frame().screen==14&&queue->snapshot().status==OnlineMatchmakingStatus::Ready;});
   }

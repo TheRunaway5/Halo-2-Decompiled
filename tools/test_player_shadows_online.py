@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 from run_tests import validation_environment
 from test_player_shadows_native import local_body_triangles, ppm, validate_output
+from test_player_shadows_joined import bitmap_prediction_receipts, geometry_usage_receipts, native_transport_diagnostics
 
 
 def receipts(output, prefix):
@@ -23,7 +24,7 @@ def main():
     args = parser.parse_args()
     scratch = Path(os.environ['HALO2_TEST_SCRATCH']).resolve()
     output = scratch / 'online-reports'
-    command = ['xvfb-run', '-a', '-s', '-screen 0 800x600x24', 'python3',
+    command = ['python3',
                str(Path(__file__).resolve().parents[1] / 'tests/source_authority_publisher_http_test.py'),
                str(args.fixture)]
     report = {'passed': False, 'command': command, 'mode': args.mode,
@@ -41,16 +42,6 @@ def main():
             log.seek(0)
             report['diagnostic_tail'] = log.read()[-24000:]
         report['exit_code'] = result.returncode
-        report['endpoint_diagnostics'] = {}
-        for account in ('one', 'two'):
-            path = output / f'{account}.log'
-            if path.is_file():
-                text = path.read_text()
-                report['endpoint_diagnostics'][account] = {
-                    'tail': text[-16000:],
-                    'native_adoptions': receipts(text, '[shadow-presentation] '),
-                    'transport_progress': [line for line in text.splitlines()
-                                           if line.startswith('Native shadow client transport: ')][-16:]}
         if result.returncode:
             raise RuntimeError(f'Actual ONLINE shadow fixture exited {result.returncode}')
         endpoints = report['endpoints'] = []
@@ -106,6 +97,31 @@ def main():
         report['passed'] = True
     except Exception as error:
         report['error'] = str(error)
+    # Include early native ownership witnesses on failure/timeout too; an
+    # unrelated later tail must not erase the actual address relationship.
+    report['endpoint_diagnostics'] = {}
+    for account in ('one', 'two'):
+        path = output / f'{account}.log'
+        if path.is_file():
+            text = path.read_text()
+            entry = report['endpoint_diagnostics'][account] = {'tail': text[-16000:]}
+            try:
+                runtime_path = output / f'native-shadow-{account}.json'
+                if runtime_path.is_file():
+                    if runtime_path.stat().st_size > 1024 * 1024:
+                        raise RuntimeError('ONLINE native endpoint receipt exceeds its storage bound')
+                    entry['runtime'] = json.loads(runtime_path.read_text())
+                entry['completed_shadow_frames'] = receipts(text, 'Player shadow frame: ')[-2:]
+                entry.update({'native_adoptions': receipts(text, '[shadow-presentation] '),
+                              'native_transport_diagnostics': native_transport_diagnostics(text),
+                              'geometry_usage_receipts': geometry_usage_receipts(text),
+                              'bitmap_prediction_receipts': bitmap_prediction_receipts(text),
+                              'transport_progress': [line for line in text.splitlines()
+                                  if line.startswith('Native shadow client transport: ')][-16:]})
+            except Exception as error:
+                report['passed'] = False
+                report.setdefault('error', str(error))
+                entry['diagnostic_error'] = str(error)
     args.report_output.parent.mkdir(parents=True, exist_ok=True)
     args.report_output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({key: report.get(key) for key in ('passed', 'mode', 'error')}))

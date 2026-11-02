@@ -67,6 +67,8 @@ def main():
     a.output.write_text(install_paired_model_lookup(a.output.read_text()))
     from native_difficulty_parameter_kernel_tu15 import install_native_difficulty_routes
     a.output.write_text(install_native_difficulty_routes(a.output.read_text(),'canonical'))
+    from native_pending_response_kernel_tu15 import install_native_pending_response
+    a.output.write_text(install_native_pending_response(a.output.read_text(),False))
     manifest=json.loads(a.manifest.read_text());manifest['generated_cpp_sha256']=sha(a.output)
     manifest['configuration_tool_sha256']=sha(Path(__file__))
     manifest['native_model_lookup']=dict(entry='d80a0',canonical_observation_ABI_preserved=True,

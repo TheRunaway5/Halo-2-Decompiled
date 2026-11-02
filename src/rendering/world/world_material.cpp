@@ -73,8 +73,8 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
                                   const Material *camouflage_original=nullptr,
                                   bool texture_camera_default=false) {
   const auto &p = m.passes.at(selected);
-  // No unresolved uniform is silently substituted. Pixel brightness externs
-  // 21/22 were resolved from the shader by Cache::load_material (1BBF0).
+  // No unresolved uniform is silently substituted. Scalar21 is shader
+  // specular brightness; TU1.5 scalar22 is the literal1.0 (33768).
   const auto lighting_source=[](unsigned source) {
     return (source>=14 && source<=17) || source==23 || source==24 || source==35;
   };
@@ -527,7 +527,7 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,
     remap_pixel_constants(source.program,context.pixel_constants,source.pixel_remaps,
         source.fragments,context.shader_switches);
     std::array<float,256> scalars{};scalars[21]=context.specular_brightness;
-    scalars[22]=context.ambient_brightness;std::vector<ShaderRemap> brightness;
+    scalars[22]=1.f;std::vector<ShaderRemap> brightness;
     for(const auto&r:source.pixel_externs)if(r.source==21 || r.source==22)brightness.push_back(r);
     remap_pixel_externs(source.program,scalars,{},brightness,source.fragments,context.shader_switches);
     auto material=bind_pass(cache,context,index,6,false,nullptr,true,nullptr,nullptr,&uniforms);
@@ -566,7 +566,7 @@ static std::vector<Material> projected_light_material(const Cache &cache,
     remap_pixel_constants(source.program,context.pixel_constants,source.pixel_remaps,
         source.fragments,context.shader_switches);
     std::array<float,256> scalars{};scalars[21]=context.specular_brightness;
-    scalars[22]=context.ambient_brightness;std::vector<ShaderRemap> brightness;
+    scalars[22]=1.f;std::vector<ShaderRemap> brightness;
     for(const auto&r:source.pixel_externs)if(r.source==21 || r.source==22)brightness.push_back(r);
     remap_pixel_externs(source.program,scalars,{},brightness,source.fragments,context.shader_switches);
     auto material=bind_pass(cache,context,index,6,false,nullptr,true,nullptr,nullptr,&uniforms,&definition,load_images);

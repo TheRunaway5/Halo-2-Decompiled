@@ -1,0 +1,11 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/native_migration_callers_tests.cpp"
+  ],
+  "targets": [
+    "native_migration_callers_tests"
+  ],
+  "filter": "^native_migration_callers_cpp_rust$"
+}

@@ -1,0 +1,96 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v",
+  "commands": [
+    {
+      "name": "compile",
+      "argv": [
+        "/usr/bin/c++",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/native-source/src",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/native-source/include",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/native.o",
+        "-c",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/native.cpp"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "link",
+      "argv": [
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/native.o",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/native-probe",
+        "-Wl,-rpath,/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/eos-sdk/SDK/Bin",
+        "libhalo2_online_matchmaking.a",
+        "libhalo2_peer_survivor_selection.a",
+        "libhalo2_online_peers.a",
+        "_deps/halo2_datachannel-build/libdatachannel-static.a",
+        "_deps/halo2_datachannel-build/deps/usrsctp/usrsctplib/libusrsctp.a",
+        "/usr/lib/libssl.so",
+        "_deps/halo2_datachannel-build/deps/libjuice/libjuice-static.a",
+        "libhalo2_authority_transfer.a",
+        "libhalo2_source_admissions.a",
+        "libhalo2_peer_mesh_quality.a",
+        "libhalo2_peer_host_agreement.a",
+        "libhalo2_peer_common_cut.a",
+        "libhalo2_peer_snapshot_candidate.a",
+        "libhalo2_online_voice.a",
+        "libhalo2_online_account.a",
+        "libhalo2_discord_identity.a",
+        "libhalo2_online_protocol.a",
+        "online-protocol/Release/libhalo2_online_protocol_bridge.a",
+        "eos-sdk/SDK/Bin/libEOSSDK-Linux-Shipping.so",
+        "-Wl,@/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/online-protocol/Release/native-libs.rsp",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcrypto.so",
+        "/usr/lib/libSDL2-2.0.so.0.3200.74",
+        "/usr/lib/libopus.so",
+        "libhalo2_game_variant.a"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "shim",
+      "argv": [
+        "g++",
+        "-std=c++20",
+        "-O1",
+        "-shared",
+        "-fPIC",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/again.cpp",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-again-wire-qualified/halo2-test-1__igt9v/again.so",
+        "-ldl"
+      ],
+      "returncode": 0
+    }
+  ],
+  "retained_large_artifacts": [],
+  "cases": {},
+  "genuine_providers": false,
+  "played_world": false,
+  "source_pins": {
+    "src/network/online_match_session.cpp": "010204b14bf5f0ea41d88abf0aa1039dab1aaaaf70a0bfab7fc54d0d4402f63b",
+    "src/network/online_search_qos.cpp": "b0c627581e06f0079ba57951cef528656322ed886077da1f63bec5bb2e36573b",
+    "rust/online_protocol/src/matchmaking_native_qos.rs": "4983c158fa08a99c076667053da715f4a4bdf156e75e8b7a9dd59959bc839ed9"
+  },
+  "borrowed_archive": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build/libhalo2_online_matchmaking.a",
+    "sha256": "b8e129ee29b25532de8d4622ed5682369a09700856093138d6506a1c1a9bfaaa",
+    "borrowed_read_only": true,
+    "copied": false
+  },
+  "native_probe": {
+    "sha256": "818b31a27b01a1e93be3af30b645608d4592b37c166d75573497bf06d52769bd",
+    "bytes": 27831016,
+    "retained": false
+  }
+}

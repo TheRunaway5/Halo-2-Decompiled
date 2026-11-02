@@ -18,14 +18,23 @@ async def main():
     binary = str(Path(sys.argv[1]).resolve())
     legacy = len(sys.argv) > 2 and sys.argv[2] == "legacy"
     processes = []
+    sdk_output = []
+    async def record(process):
+        while True:
+            line = await asyncio.wait_for(process.stdout.readline(), 15)
+            if not line:
+                raise AssertionError((await process.stderr.read()).decode())
+            # The pinned linked SDK writes these lifecycle diagnostics before
+            # main/at exit. Keep them visible without treating them as JSON.
+            if line.strip() in (b"Shutdown handler: initialize.", b"Shutdown handler: cleanup."):
+                sdk_output.append(line.decode().strip())
+                continue
+            return json.loads(line)
     async def command(index, value):
         process = processes[index]
         process.stdin.write((json.dumps(value) + "\n").encode())
         await process.stdin.drain()
-        line = await asyncio.wait_for(process.stdout.readline(), 8)
-        if not line:
-            raise AssertionError((await process.stderr.read()).decode())
-        return json.loads(line)
+        return await record(process)
     with tempfile.TemporaryDirectory(prefix="halo2-native-continuity-") as temp:
         path = Path(temp) / "catalog.json"
         path.write_text(json.dumps(catalog()))
@@ -61,7 +70,7 @@ async def main():
                     process.stdin.write((json.dumps(dict(origin=str(client.make_url("/")).rstrip("/"),
                         descriptor=descriptor)) + "\n").encode())
                     await process.stdin.drain()
-                initial = [json.loads(await asyncio.wait_for(p.stdout.readline(), 10)) for p in processes]
+                initial = [await record(p) for p in processes]
                 assert all(p["phase"] == "running" and p["epoch"] == 0 for p in initial)
                 host = initial[0]["host"]
                 h = next(i for i, d in enumerate(descriptors) if d["slot"] == host)
@@ -114,6 +123,8 @@ async def main():
                     if process.returncode is None:
                         process.kill()
                         await process.wait()
+                if sdk_output:
+                    print('Native SDK lifecycle diagnostics: ' + json.dumps(sdk_output))
 
 
 if __name__ == "__main__":

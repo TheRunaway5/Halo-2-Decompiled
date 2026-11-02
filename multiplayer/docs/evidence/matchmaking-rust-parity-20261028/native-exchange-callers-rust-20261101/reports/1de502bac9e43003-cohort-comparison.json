@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "rust_native_inputs_compared": 3399,
+  "mismatches": [],
+  "native_cpp_is_preserved_baseline": true,
+  "current_and_frozen_source_pins": {
+    "src/network/online_match_session.cpp": {
+      "current": "161d5d98ddeb2cbde1895f173b749382154b90405e88ae432549c95cd2cc5325",
+      "frozen_native": "f9d5f2932c0f202d5c50dc63d6049b98571869b1b9b71f368441c65bf315a4d6"
+    },
+    "rust/online_protocol/src/matchmaking_native_exchange.rs": {
+      "current": "bd123bbeb80bd0b177252c071feed1375f84a25edcfdd4f2ac6abe0429cfccbe",
+      "frozen_native": "bd123bbeb80bd0b177252c071feed1375f84a25edcfdd4f2ac6abe0429cfccbe"
+    },
+    "rust/online_protocol/src/matchmaking_native_session.rs": {
+      "current": "7125342b32fa395bcb1706263b57b57214f0df3e1b4f0620d25f099dd583f4c3",
+      "frozen_native": "7125342b32fa395bcb1706263b57b57214f0df3e1b4f0620d25f099dd583f4c3"
+    },
+    "rust/online_protocol_bridge/src/matchmaking_native_exchange.rs": {
+      "current": "35b3270846f6c5f66bab73a5eb723deb637910a9876fb63c0ded0aa32865b6a2",
+      "frozen_native": "35b3270846f6c5f66bab73a5eb723deb637910a9876fb63c0ded0aa32865b6a2"
+    },
+    "tests/peer_host_session_tests.cpp": {
+      "current": "e342cf19e83161c48f7f6a03e4c94c30e11fc17851fcb11edae4e22bdf70e4f8",
+      "frozen_native": "e342cf19e83161c48f7f6a03e4c94c30e11fc17851fcb11edae4e22bdf70e4f8"
+    }
+  },
+  "scope": "Source identity, not native linked/runtime acceptance"
+}

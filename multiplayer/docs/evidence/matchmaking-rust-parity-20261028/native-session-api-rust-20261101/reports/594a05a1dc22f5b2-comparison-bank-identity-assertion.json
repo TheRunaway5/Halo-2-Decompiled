@@ -1,0 +1,9 @@
+{
+  "source": "tests/test_native_session_api.py",
+  "before_sha256": "46ac10e1fa0f50d3193b666a71aca9c0cf27f7259047a05f92faa1f3e11cbca0",
+  "after_sha256": "866ca38dba9b9f9c030d4656372cfab20b96ed36441063532e97e892b28926a3",
+  "before": "            assert all(not v[\"held\"] for v in values)\n",
+  "after": "            assert all(not v[\"held\"] for v in values)\n            assert all(v[\"data\"][\"same_bank\"] for v in result[\"result\"][\"trace\"] if v[\"event\"] == \"copy\"), dict(command=command, result=result)\n",
+  "corpus_commands_or_observations_changed": false,
+  "purpose": "Require the original received-bank address, in addition to comparing that observation across both callers"
+}

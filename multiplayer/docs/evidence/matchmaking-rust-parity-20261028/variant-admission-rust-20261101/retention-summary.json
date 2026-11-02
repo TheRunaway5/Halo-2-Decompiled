@@ -1,0 +1,25 @@
+{
+  "receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/variant-admission-rust-validation.json",
+  "retained_report_count": 100,
+  "retained_report_bytes": 5869617,
+  "clipped_reports": [
+    {
+      "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/variant-admission-rust-20261101/native/iteration-1/build.log",
+      "bytes": 1048576,
+      "sha256": "251ae63c4e131350d8ac55e39f704927892105480f97780f2dd8a53901231c88",
+      "original_bytes": 7803144,
+      "original_sha256": "b3f9ca2a7069f05a377b8cd7007294965cde267fc76596077eb3e2fbcbea3e27",
+      "tail_only": true
+    }
+  ],
+  "required_existing_reference": {
+    "path": "tests/fixtures/game_variant_normalization_original.tsv",
+    "sha256": "b77d88f5ee0b0349d73d5f1e0e4cd691d68407784490fa4efaea7894582106f4",
+    "bytes": 5265946,
+    "modified": false
+  },
+  "report_writer_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/variant-evidence/halo2-test-o_g2iwh2",
+  "retained_large_artifacts": [],
+  "cleanup_verified": true,
+  "duplicate_report_copies_removed": true
+}

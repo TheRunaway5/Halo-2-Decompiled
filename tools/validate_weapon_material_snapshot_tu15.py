@@ -187,7 +187,27 @@ def main():
         'network_configuration_defaults_tu15.json','game_language_tu15_original.json','weapon_alive_material_tu15.json',
         'weapon_firing_material_tu15.json','native_tu15_melee_candidate_table.original.inc',
         'native_tu15_game_engine_methods.original.inc','vehicle_bv_agent_original_tu15.json',
-        'light_fade_curves_tu15_original.json'}
+        'light_fade_curves_tu15_original.json',
+        'weapon_effect_dispatch_tu15_original.json','weapon_effect_request_tu15_original.json',
+        'weapon_effect_location_tu15_original.json',
+        'weapon_effect_iterator_tu15_original.json',
+        'weapon_effect_state_tu15_original.json',
+        'weapon_effect_creation_tu15_original.json',
+        'weapon_effect_initialization_tu15_original.json',
+        'weapon_effect_allocation_tu15_original.json',
+        'weapon_effect_selector_tu15_original.json',
+        'weapon_effect_dispatch_strict_tu15_original.json',
+        'weapon_effect_restart_tu15_original.json',
+        'weapon_zoom_reset_tu15_original.json',
+        'weapon_zoom_reset_strict_tu15_original.json',
+        'weapon_audio_request_strict_tu15_original.json',
+        'weapon_effect_lifecycle_strict_tu15_original.json',
+        'weapon_effect_attached_strict_tu15_original.json',
+        'weapon_effect_location_strict_tu15_original.json',
+        'weapon_effect_direction_strict_tu15_original.json',
+        'weapon_effect_datum_allocate_tu15_original.json.gz',
+        'weapon_sound_local_tu15_original.json.gz',
+        'mcc_weapon_effect_scalar_profiles.json','weapon_zoom_shooting_contracts_tu15_original.json'}
     for path in (ROOT/'tests/fixtures').iterdir():
         # Small expected-data files can change with another chat's source
         # work. Freeze them alongside that source; borrow only larger retained

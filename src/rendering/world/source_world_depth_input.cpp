@@ -14,6 +14,7 @@
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <map>
 #include <set>
 
@@ -113,6 +114,13 @@ std::array<ShaderVector,12> completed_camera(const SourceMainCameraOperandsTu15&
 using GeometryKey=std::tuple<int,unsigned,unsigned,unsigned>;
 GeometryKey key(const Vertex& v){return {v.bsp_cluster,v.source_section,v.source_part,v.material};}
 GeometryKey key(const SourceBspShaderPart& p){return {p.geometry,p.section,p.part,p.material};}
+SourceBspDrawKey draw_key(const Vertex& v) {
+    return {v.material,v.lightmap,v.bsp_cluster,v.source_section,v.source_part};
+}
+bool reference_depth_geometry() {
+    const auto* value=std::getenv("HALO2_REFERENCE_FRESH_DEPTH_GEOMETRY");
+    return value && *value;
+}
 using Identity=SourceWorldDepthMaterialIdentity;
 std::map<Identity,const Material*> selected_materials(const Mesh& mesh,
     std::span<const SourceBspShaderPart> parts) {
@@ -186,7 +194,12 @@ void authored_pass(const Cache& cache,const Material& root,const Material& mater
             throw FormatError("ordinary depth completed pass changes front/cull/bias/AA contract");
     if(completed_cull.cull()!=material.forward_raster.cull)
         throw FormatError("ordinary depth completed pass cull differs from its authored material");
-    const auto authored=cache.load_material(root.source_shader_datum);
+    const auto* reference=std::getenv("HALO2_REFERENCE_FULL_DEPTH_MATERIAL_LOADS");
+    const auto authored_reference=reference && *reference
+        ?std::optional{cache.load_material(root.source_shader_datum)}:std::nullopt;
+    const auto authored_owner=authored_reference?std::shared_ptr<const Material>{}
+        :cache.load_material_metadata(root.source_shader_datum);
+    const auto& authored=authored_reference?*authored_reference:*authored_owner;
     if(root.selected_shader_lod>=authored.lods.size())throw FormatError("ordinary depth main LOD is outside original Cache");
     const auto& lod=authored.lods[root.selected_shader_lod];bool matched=false;
     for(unsigned layer=0;layer<lod.layers.count();++layer) {
@@ -271,7 +284,12 @@ SourceWorldDepthInput SourceWorldDepthInput::complete_owners(SourceWorldDepthInp
         output.independent_parts_.push_back(part);
         if(!water_roots.insert(part.material).second)continue;
         const auto& pass=material.passes.at(material.forward_pass_index);
-        const auto authored=cache.load_material(material.source_shader_datum);
+        const auto* reference=std::getenv("HALO2_REFERENCE_FULL_DEPTH_MATERIAL_LOADS");
+        const auto authored_reference=reference && *reference
+            ?std::optional{cache.load_material(material.source_shader_datum)}:std::nullopt;
+        const auto authored_owner=authored_reference?std::shared_ptr<const Material>{}
+            :cache.load_material_metadata(material.source_shader_datum);
+        const auto& authored=authored_reference?*authored_reference:*authored_owner;
         const auto actual=std::find_if(authored.passes.begin(),authored.passes.end(),[&](const auto& candidate) {
             return candidate.template_pass==pass.template_pass && candidate.implementation==pass.implementation;
         });
@@ -297,15 +315,58 @@ SourceWorldDepthInput SourceWorldDepthInput::complete_owners(SourceWorldDepthInp
     for(const auto& p:parts)if(p.geometry==-1 || !selected.insert(key(p)).second)
         throw FormatError("ordinary depth duplicate/unowned selected BSP part");
     std::set<SourceBspDrawKey> independent_draws;
-    for(const auto& v:resident.expand(selection.bindings)) {
-        if(selected.contains(key(v)) || independent.contains(key(v)))output.selected_geometry_.push_back(v);
-        if(independent.contains(key(v)))independent_draws.insert({v.material,v.lightmap,v.bsp_cluster,v.source_section,v.source_part});
+    std::set<SourceBspDrawKey> draw_keys;
+    const auto expanded=resident.expand(selection.bindings);
+    if(reference_depth_geometry()) {
+        for(const auto& v:expanded) {
+            if(selected.contains(key(v)) || independent.contains(key(v)))output.selected_geometry_.push_back(v);
+            if(independent.contains(key(v)))independent_draws.insert(draw_key(v));
+        }
+        for(const auto& v:output.selected_geometry_)if(selected.contains(key(v)))draw_keys.insert(draw_key(v));
+    } else for(std::size_t first=0;first<expanded.size();) {
+        const auto& vertex=expanded[first];const auto geometry=key(vertex);const auto draw=draw_key(vertex);
+        auto end=first+1;
+        while(end<expanded.size() && draw_key(expanded[end])==draw)++end;
+        const bool ordinary=selected.contains(geometry),water=independent.contains(geometry);
+        if(ordinary || water)output.selected_geometry_.insert(output.selected_geometry_.end(),
+            expanded.begin()+first,expanded.begin()+end);
+        if(ordinary)draw_keys.insert(draw);
+        if(water)independent_draws.insert(draw);
+        first=end;
     }
     output.independent_draws_.assign(independent_draws.begin(),independent_draws.end());
-    std::set<SourceBspDrawKey> draw_keys;
-    for(const auto& v:output.selected_geometry_)if(selected.contains(key(v)))
-        draw_keys.insert({v.material,v.lightmap,v.bsp_cluster,v.source_section,v.source_part});
     output.selected_draws_.assign(draw_keys.begin(),draw_keys.end());
+    if(const auto* verify=std::getenv("HALO2_VERIFY_DEPTH_GEOMETRY_RUNS");verify && *verify) {
+        // Differential admission on the same source selection, including
+        // independent water and noncontiguous raw part runs. No alternate
+        // camera, visibility or simulation result is supplied by this oracle.
+        std::vector<Vertex> fresh;
+        std::set<SourceBspDrawKey> ordinary_keys,water_keys;
+        for(const auto& v:expanded) {
+            if(selected.contains(key(v)) || independent.contains(key(v)))fresh.push_back(v);
+            if(independent.contains(key(v)))water_keys.insert(draw_key(v));
+        }
+        for(const auto& v:fresh)if(selected.contains(key(v)))ordinary_keys.insert(draw_key(v));
+        if(fresh.size()!=output.selected_geometry_.size() ||
+           std::memcmp(fresh.data(),output.selected_geometry_.data(),fresh.size()*sizeof(Vertex)) ||
+           ordinary_keys!=draw_keys || water_keys!=independent_draws)
+            throw FormatError("ordinary depth run selection differs from complete per-vertex reference");
+    }
+    if(!std::is_sorted(output.expected_bsp_.draws.begin(),output.expected_bsp_.draws.end(),
+            [](const auto& a,const auto& b){return a.key<b.key;}) ||
+       std::adjacent_find(output.expected_bsp_.draws.begin(),output.expected_bsp_.draws.end(),
+            [](const auto& a,const auto& b){return a.key==b.key;})!=output.expected_bsp_.draws.end())
+        throw FormatError("ordinary depth resident draw catalogue lost its sorted unique keys");
+    // Index runs without copying vertex payloads. A complete key may occur in
+    // several disjoint runs; keep their original order, exactly like filtering
+    // selected_geometry_ for each draw at the consumption boundary.
+    std::map<SourceBspDrawKey,DrawGeometry> ranges;
+    for(std::size_t first=0;first<output.selected_geometry_.size();) {
+        const auto draw=draw_key(output.selected_geometry_[first]);auto end=first+1;
+        while(end<output.selected_geometry_.size() && draw_key(output.selected_geometry_[end])==draw)++end;
+        auto& range=ranges[draw];range.key=draw;range.count+=end-first;range.runs.push_back({first,end-first});first=end;
+    }
+    for(auto& [draw,range]:ranges)output.draw_geometry_.push_back(std::move(range));
     // The retained logical source viewport/AA is admitted by camera_owner_.
     // c8..11 are regenerated for this full physical target before the ordinary
     // draw;402840 separately owns scissor and inclusive full-window behavior.
@@ -400,7 +461,7 @@ void SourceWorldDepthInput::validate_geometry(const RendererTargets::Use& use,
     using Key=GeometryKey;std::map<Key,std::uint32_t> expected;std::set<Key> seen;
     const auto expect=[&](const auto& p) {
         const Key key{p.geometry,p.section,p.part,p.material};
-        const auto level=source_shader_instance_stipple(p.instance_alpha).level;
+        const auto level=source_shader_instance_stipple_level(p.instance_alpha);
         const auto [it,inserted]=expected.emplace(key,level);
         if(!inserted && it->second!=level)throw FormatError("ordinary depth selected part stipple ownership conflicts");
     };
@@ -408,11 +469,17 @@ void SourceWorldDepthInput::validate_geometry(const RendererTargets::Use& use,
     for(const auto& p:independent_parts_)expect(p);
     if((geometry.empty() && (!parts_.empty() || !independent_parts_.empty())) || geometry.size()%3)
         throw FormatError("ordinary depth requires complete ordinary BSP triangles");
-    for(const auto& v:geometry) {
-        const Key key{v.bsp_cluster,v.source_section,v.source_part,v.material};const auto it=expected.find(key);
-        if(it==expected.end() || v.source_stipple_level!=it->second)
-            throw FormatError("ordinary depth geometry changed actual selected part/stipple identity");
-        seen.insert(key);
+    const bool reference=reference_depth_geometry();
+    for(std::size_t first=0;first<geometry.size();) {
+        const auto identity=key(geometry[first]);const auto it=expected.find(identity);
+        if(it==expected.end())throw FormatError("ordinary depth geometry changed actual selected part/stipple identity");
+        auto end=first;
+        do {
+            if(geometry[end].source_stipple_level!=it->second)
+                throw FormatError("ordinary depth geometry changed actual selected part/stipple identity");
+            ++end;
+        } while(end<geometry.size() && key(geometry[end])==identity && !reference);
+        seen.insert(identity);first=end;
     }
     if(seen.size()!=expected.size())throw FormatError("ordinary depth geometry omitted an actual selected part");
 }
@@ -511,8 +578,13 @@ bool native_attributes_match(const Material& material,const std::array<ShaderVec
     return exact(attributes,enhanced);
 }
 std::uint64_t pixel_fingerprint(const Texture& image) {
-    std::uint64_t h=14695981039346656037ull;
-    for(const auto b:image.pixels){h^=std::to_integer<unsigned char>(b);h*=1099511628211ull;}return h;
+    // Published pixels retain their complete FNV1a identity. Mutable views
+    // invalidate it before exposing a writer, including retained aliases.
+    const auto* reference=std::getenv("HALO2_REFERENCE_UNCACHED_DEPTH_TEXTURE_HASHES");
+    if(!(reference && *reference))return image.pixels.fingerprint();
+    std::uint64_t hash=14695981039346656037ull;
+    for(const auto byte:image.pixels){hash^=std::to_integer<unsigned char>(byte);hash*=1099511628211ull;}
+    return hash;
 }
 void uploaded_image(const Texture& expected,const SourceWorldDepthImageUpload& actual,bool source_image) {
     if(!actual.shape || actual.mutated || actual.source_image!=source_image ||
@@ -531,6 +603,30 @@ void SourceWorldDepthInput::validate_draw(const RendererTargets::Use& use,
     const SourceBspDrawKey& key,std::span<const Vertex> payload,bool resident)const {
     validate_lifetime(use);
     if(!admits_draw(key))throw FormatError("ordinary depth actual BSP draw key is unowned");
+    if(!reference_depth_geometry()) {
+        if(resident) {
+            const auto it=std::lower_bound(expected_bsp_.draws.begin(),expected_bsp_.draws.end(),key,
+                [](const auto& token,const auto& wanted){return token.key<wanted;});
+            if(it==expected_bsp_.draws.end() || it->key!=key || it->storage!=SourceBspVertexStorage::resident)
+                throw FormatError("ordinary depth actual draw changed resident storage");
+            const auto bank=std::span(resident_atlas_).subspan(it->first,it->count);
+            if(payload.size()!=bank.size() || std::memcmp(payload.data(),bank.data(),payload.size_bytes()))
+                throw FormatError("ordinary depth actual draw range/buffer/payload changed");
+        } else {
+            const auto it=std::lower_bound(draw_geometry_.begin(),draw_geometry_.end(),key,
+                [](const auto& range,const auto& wanted){return range.key<wanted;});
+            if(it==draw_geometry_.end() || it->key!=key || payload.size()!=it->count)
+                throw FormatError("ordinary depth actual draw range/buffer/payload changed");
+            std::size_t first{};
+            for(const auto& run:it->runs) {
+                const auto bank=std::span(selected_geometry_).subspan(run.first,run.count);
+                if(std::memcmp(payload.data()+first,bank.data(),bank.size_bytes()))
+                    throw FormatError("ordinary depth actual draw range/buffer/payload changed");
+                first+=run.count;
+            }
+        }
+        return;
+    }
     std::vector<Vertex> expected;
     if(resident) {
         const auto it=std::find_if(expected_bsp_.draws.begin(),expected_bsp_.draws.end(),[&](const auto& t){return t.key==key;});

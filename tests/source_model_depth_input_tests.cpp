@@ -2,6 +2,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/source_model_depth_input.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/source_transparent_parts.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/pstencil/geometry.hpp"
 #include <nlohmann/json.hpp>
@@ -81,6 +82,42 @@ int run(int argc,char** argv){
  const std::array<const SourceShadowRawDraw*,1> receivers{&raw};SourceModelDepthSelection selection{info[3],definition,model_id,5,&model,0,ordinals};
  const auto make=[&](const auto& choice,const auto& input){return source_model_depth_input_tu15(world,use,input,std::span(&choice,1),receivers,mesh.materials);};
  auto depth=make(selection,std::span<const Vertex>(vertices));need(depth.model_vertices()==vertices.size(),"Native model depth lost selected source vertices");depth.validate_vertices(use,depth.vertices());
+ // The classifier uses authentic cache metadata and the captured part.
+ // Additional part identities below are DECLARED branch controls only; no
+ // synthetic part is submitted as native geometry or a live Apply result.
+ SourceShadowModelPartBank authored_parts;
+ const auto part_metadata=cache.load_source_transparent_model_parts(model_id,sections);
+ for(const auto& section:part_metadata.sections)for(const auto& part:section.parts)
+  authored_parts.emplace(std::tuple{model_id,section.section,unsigned(part.ordinal)},
+   SourceShadowModelPart{part.shader,part.type,part.template_lod_layers});
+ SourceShadowRawPlanRoot root{command.root_owner,uniforms,{1,1},{},std::span(&raw,1)};
+ SourceShadowRawPlan plan{raster.camera,std::span(&root,1),&authored_parts};
+ const auto classified=source_model_depth_apply_selections_tu15(std::span(&selection,1),plan);
+ need(classified.size()==1&&classified.front().source_vertices.size()==ordinals.size(),"Actual Apply part lost strict depth selection");
+ need(source_model_depth_apply_selections_tu15(std::span(&selection,1),{}).empty(),"Absent Apply plan promoted ordinary color geometry");
+ auto declared_model=model;auto declared_ids=ordinals;const auto declared_part=65534u;
+ for(unsigned lane=0;lane<3;++lane){auto origin=model.vertex_origins[ordinals[lane]];origin.part=declared_part;
+  declared_ids.push_back(declared_model.vertex_origins.size());declared_model.vertex_origins.push_back(origin);}
+ auto declared=selection;declared.model=&declared_model;declared.source_vertices=declared_ids;
+ auto& additional=authored_parts[{model_id,section_id,declared_part}];additional={command.command[2],4,{0x8000u}};
+ need(source_model_depth_apply_selections_tu15(std::span(&declared,1),plan).front().source_vertices.size()==ordinals.size(),"Cache-proven never-Apply part was promoted");
+ additional={command.command[2],2,{command.command[4],command.command[4]&~0x800u}};
+ reject("opaque part missing Apply and exclusion record",[&]{(void)source_model_depth_apply_selections_tu15(std::span(&declared,1),plan);});
+ SourceShadowModelPartCommand excluded{selection.object,model_id,section_id,declared_part,command.command[2],0,command.command[4],false};
+ root.model_commands=std::span(&excluded,1);
+ reject("Apply-layer record missing actual draw",[&]{(void)source_model_depth_apply_selections_tu15(std::span(&declared,1),plan);});
+ excluded.shader_lod=1;excluded.layers&=~0x800u;
+ need(source_model_depth_apply_selections_tu15(std::span(&declared,1),plan).front().source_vertices.size()==ordinals.size(),"Actual selected non-Apply LOD failed exclusion");
+ excluded.layers^=1u;
+ reject("exclusion layers differ from authored template LOD",[&]{(void)source_model_depth_apply_selections_tu15(std::span(&declared,1),plan);});
+ excluded.layers^=1u;excluded.shader^=1u;
+ reject("exclusion shader differs from authored part",[&]{(void)source_model_depth_apply_selections_tu15(std::span(&declared,1),plan);});
+ excluded.shader^=1u;root.model_commands={};
+ reject("Apply selection escaped original ordinal",[&]{auto ids=ordinals;ids[0]=model.vertex_origins.size();auto bad=selection;bad.source_vertices=ids;(void)source_model_depth_apply_selections_tu15(std::span(&bad,1),plan);});
+ auto& actual_part=authored_parts.at({model_id,section_id,part_id});const auto retained_layers=actual_part.template_lod_layers;
+ actual_part.template_lod_layers[command.command[5]>>8&255u]^=1u;
+ reject("actual Apply layers differ from immutable template LOD",[&]{(void)source_model_depth_apply_selections_tu15(std::span(&selection,1),plan);});
+ actual_part.template_lod_layers=retained_layers;
  const auto positions=pstencil::complete_world_positions(raw.source);unsigned native_order_triangles=0;std::size_t expanded=0;
  for(std::size_t n=0;n<raw.source.draw().triangle_count();++n) {
   const auto triangle=raw.source.draw().triangle(n);
@@ -95,7 +132,7 @@ int run(int argc,char** argv){
   native_order_triangles+=reordered;expanded+=3;
  }
  need(expanded==vertices.size()&&native_order_triangles>0,"Native model depth fixture must exercise cyclic strip expansion with exact raw order");
- SourceShadowRawPlanRoot root{command.root_owner,uniforms,{1,1},{},std::span(&raw,1)};SourceShadowRawPlan plan{raster.camera,std::span(&root,1)};depth.validate_receivers(plan);
+ depth.validate_receivers(plan);
  reject("missing raw Apply root",[&]{auto empty=plan;empty.roots={};depth.validate_receivers(empty);});
  reject("changed actual descriptor",[&]{auto saved=raw.command.descriptor;raw.command.descriptor[4]^=4;try{depth.validate_receivers(plan);}catch(...){raw.command.descriptor=saved;throw;}raw.command.descriptor=saved;});
  reject("foreign full salted object",[&]{auto bad=selection;bad.object^=65536u;(void)make(bad,std::span<const Vertex>(vertices));});

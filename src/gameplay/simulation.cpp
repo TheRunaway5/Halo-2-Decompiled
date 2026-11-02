@@ -17,19 +17,37 @@
 #include "halo2/campaign_source_runtime.hpp"
 #include "halo2/native_campaign_ai_queries_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_area_tu15_binding.hpp"
+#include "halo2/native_campaign_ai_area_count_tu15.hpp"
+#include "halo2/native_campaign_ai_area_choice_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_behavior_reset_tu15_binding.hpp"
 #include "halo2/native_campaign_ai_clump_retirement_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_commands_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_control_tu15_binding.hpp"
 #include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
 #include "halo2/native_tu15_render_camera_packet_binding.hpp"
+#include "halo2/native_campaign_screen_flash_sample_tu15_binding.hpp"
+#include "halo2/native_campaign_model_pose_tu15_binding.hpp"
+#include "halo2/native_tu15_camera_bsp_selection_binding.hpp"
+#include "halo2/native_campaign_view_rectangle_tu15_binding.hpp"
+#include "halo2/native_tu15_camera_view_layout_binding.hpp"
+#include "halo2/native_tu15_camera_projection_binding.hpp"
+#include "halo2/native_tu15_camera_frame_policy_binding.hpp"
+#include "halo2/native_tu15_shadow_inverse_binding.hpp"
+#include "halo2/native_tu15_camera_frame_policy_root.hpp"
+#include "halo2/native_campaign_session_timers_tu15_binding.hpp"
+#include "halo2/native_tu15_render_camera_default_binding.hpp"
+#include "halo2/native_campaign_ai_awareness_tu15_binding.hpp"
 #include "halo2/source_campaign_player_queries_tu15.hpp"
 #include "halo2/script_clock_builtin.hpp"
+#include "halo2/script_mcc_legacy_command.hpp"
+#include "halo2/source_workshop_script_actions.hpp"
+#include "halo2/script_null_global.hpp"
 #include "halo2/source_script_rumble_tu15.hpp"
 #include "halo2/source_campaign_cinematic_tu15.hpp"
 #include "halo2/source_texture_camera_producer_tu15.hpp"
 #include "halo2/source_scripted_sound_point_tu15.hpp"
 #include "halo2/source_campaign_lighting_tu15.hpp"
+#include "halo2/native_tu15_object_scale.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
 #include "halo2/source_campaign_screen_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
@@ -459,6 +477,7 @@ void Simulation::advance_cinematic_render_time(float seconds,int requested,int c
     source_campaign_screen_update_tu15(world);
     scene_.publish_source_function_samples(source_object_function_samples_tu15(world));
     state.crossfade=source_campaign_crossfade_state_tu15(world.memory());
+    state.bloom=source_cinematic_bloom_state(world.memory());
   } else state.crossfade.update(state.render_clock);
 }
 void Simulation::advance_cinematic_camera(float raw_seconds) {
@@ -777,16 +796,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
             return null_datum;
         }
         return id;
-      }, [](unsigned index, const std::optional<ScriptValue> &value) {
-        // Retail external 0x3E3 is a short with a NULL backing address.
-        // 0x20A490 ignores its write; 0x20A2E0 refreshes reads to zero.
-        if (index != 0x3e3 || (value && (value->type < 5 || value->type > 8)))
-          throw FormatError("unsupported external campaign global " +
-                            std::to_string(index));
-        if (value)
-          return ScriptValue{7,scalar_cast_bits(value->bits,value->type,7),{}};
-        return ScriptValue::numeric(0, 7);
-      },SourceHsObjectListServices{
+      }, source_null_campaign_global,SourceHsObjectListServices{
         [this]{if(multiplayer_script_lists_){auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();}if(script_lists_.size()>=65536 || next_script_list_==null_datum)throw FormatError("Native script list bank exhausted");const auto id=next_script_list_++;script_lists_.emplace(id,std::vector<std::uint32_t>{});return id;},
         [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}},clock_builtins);
   scripts_->set_random_choice([this](unsigned count,std::uint32_t visited) {
@@ -2313,6 +2323,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
 }
 ScriptValue Simulation::host(const std::string &name,
                              const std::vector<ScriptValue> &args) {
+  if(const auto command=mcc_script_legacy_command(name,args))return *command;
   auto arity = [&](std::size_t count) {
     if (args.size() != count)
       throw FormatError("invalid " + name + " arity");
@@ -2345,6 +2356,33 @@ ScriptValue Simulation::host(const std::string &name,
     frontend_cinematic_ambient(mutable_cinematic_state().lighting,
         {float(args[0].number()),float(args[1].number()),float(args[2].number())});return {};
   }
+  if(name=="weapon_enable_warthog_chaingun_light") {
+    arity(1);
+    if(args[0].type!=5)throw FormatError("Warthog chaingun light requires a BOOLEAN");
+    if(!source_campaign_)throw FormatError("Warthog chaingun light requires its retained TU1.5 world");
+    source_campaign_warthog_chaingun_light_tu15(source_campaign_->objects().tu15_world(),args[0].truth());
+    return {};
+  }
+  if(name=="object_set_scale") {
+    arity(3);
+    if(args[0].type!=50 || args[1].type!=6 || args[2].type!=7)
+      throw FormatError("Object scale requires a resolved object, REAL and SHORT");
+    if(args[0].bits==null_datum)return {};
+    if(!source_campaign_)throw FormatError("Object scale requires its retained TU1.5 world");
+    source_campaign_object_scale_tu15(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].bits,std::uint16_t(args[2].bits));
+    return {};
+  }
+  if(name=="object_cinematic_visibility") {
+    arity(2);
+    if(args[0].type!=50 || args[1].type!=5)
+      throw FormatError("Cinematic visibility requires a resolved object and BOOLEAN");
+    if(args[0].bits==null_datum)return {};
+    if(!source_campaign_)throw FormatError("Cinematic visibility requires its retained TU1.5 world");
+    source_campaign_object_cinematic_visibility_tu15(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].truth());
+    return {};
+  }
   if(name=="cinematic_lightmap_shadow_enable" || name=="cinematic_lightmap_shadow_disable") {
     arity(0);
     if(!source_campaign_)throw FormatError("Cinematic lightmap shadow control requires its retained TU1.5 world");
@@ -2376,6 +2414,29 @@ ScriptValue Simulation::host(const std::string &name,
     }
     return {};
   }
+  if(name=="object_cinematic_collision") {
+    arity(2);
+    if(!source_campaign_)throw FormatError("Cinematic object collision requires its retained TU1.5 world");
+    source_object_cinematic_collision(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].truth());
+    return {};
+  }
+  if(name=="object_cannot_die") {
+    arity(2);
+    if(args[0].type!=50 || args[1].type!=5)throw FormatError("Object immortality requires a resolved object and boolean");
+    if(!source_campaign_)throw FormatError("Object immortality requires its retained TU1.5 world");
+    source_object_cannot_die(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].truth());
+    return {};
+  }
+  if(name=="unit_set_enterable_by_player") {
+    arity(2);
+    if(args[0].type!=51 || args[1].type!=5)throw FormatError("Unit enterability requires a resolved unit and boolean");
+    if(!source_campaign_)throw FormatError("Unit enterability requires its retained TU1.5 world");
+    source_unit_set_enterable_by_player(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].truth());
+    return {};
+  }
   if(name=="object_uses_cinematic_lighting") {
     arity(2);if(args[0].bits==null_datum)return {};
     // The source selector changes bit24 on an actual live object. Validate
@@ -2403,11 +2464,22 @@ ScriptValue Simulation::host(const std::string &name,
     return {};
   }
   if(name=="rasterizer_bloom_override" || name=="rasterizer_bloom_override_threshold" ||
-      name=="rasterizer_bloom_override_brightness") {
+      name=="rasterizer_bloom_override_brightness" || name=="rasterizer_bloom_override_blur_amount" ||
+      name=="rasterizer_bloom_override_box_factor" || name=="rasterizer_bloom_override_silver_bullet") {
     arity(1);auto &bloom=mutable_cinematic_state().bloom;
+    if(source_campaign_) {
+      auto &world=source_campaign_->objects().tu15_world();
+      const bool boolean=name=="rasterizer_bloom_override" || name=="rasterizer_bloom_override_silver_bullet";
+      source_cinematic_bloom_set(world,name,boolean?std::uint32_t(args[0].truth()):
+          scalar_cast_bits(args[0].bits,args[0].type,6));
+      bloom=source_cinematic_bloom_state(world.memory());return {};
+    }
     if(name=="rasterizer_bloom_override")bloom.enabled=args[0].truth();
     else if(name=="rasterizer_bloom_override_threshold")bloom.threshold=float(args[0].number());
-    else bloom.brightness=float(args[0].number());
+    else if(name=="rasterizer_bloom_override_brightness")bloom.brightness=float(args[0].number());
+    else if(name=="rasterizer_bloom_override_blur_amount")bloom.blur_amount=float(args[0].number());
+    else if(name=="rasterizer_bloom_override_box_factor")bloom.box_factor=float(args[0].number());
+    else bloom.silver_bullet=args[0].truth();
     return {};
   }
   if(name=="cinematic_screen_effect_set_depth_of_field") {
@@ -2509,6 +2581,13 @@ ScriptValue Simulation::host(const std::string &name,
     return name=="device_group_set"?ScriptValue::numeric(changed,5):ScriptValue{};
   }
   if(name=="ai_dialogue_enable") {arity(1);if(args[0].type!=5)throw FormatError("Invalid AI dialogue flag");ai_dialogue_enabled_=args[0].truth();return {};}
+  if(name=="ai_force_active") {
+    arity(2);
+    if(args[0].type!=19 || args[1].type!=5)throw FormatError("AI activation requires its compiled AI reference and boolean");
+    if(!source_campaign_)throw FormatError("AI activation requires its retained TU1.5 world");
+    source_ai_force_active(source_campaign_->objects().tu15_world(),args[0].bits,args[1].truth());
+    return {};
+  }
   if(source_campaign_)if(const auto builtin=native_campaign_ai_query_builtin_tu15(name)) {
     arity(1);
     if(args[0].type!=19)throw FormatError("Campaign AI query requires its compiled AI reference");
@@ -2520,6 +2599,15 @@ ScriptValue Simulation::host(const std::string &name,
     const auto type=std::uint16_t(name=="ai_get_unit"?51:50);
     if(source_campaign_)return {type,source_campaign_->ai_object(args[0].bits),{}};
     const auto units=ai_units(args[0]);return {type,units.empty()?null_datum:units.front()->source_datum,{}};
+  }
+  if(name=="ai_actors") {
+    arity(1);
+    if(args[0].type!=19 || !source_campaign_ || !multiplayer_script_lists_)
+      throw FormatError("AI actors requires its compiled AI reference, retained world and HS list bank");
+    const auto list=native_campaign_ai_actors_tu15(source_campaign_->objects().memory(),args[0].bits,{
+      [this]{multiplayer_script_lists_->roots(scripts_->object_list_roots());return multiplayer_script_lists_->allocate();},
+      [this](auto list,auto object){multiplayer_script_lists_->append(list,object);}});
+    return {31,list,{}};
   }
   if(name=="ai_cannot_die") {
     arity(2);if(args[1].type!=5)throw FormatError("Invalid AI immortality flag");
@@ -2736,8 +2824,16 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "object_cinematic_lod") {
     arity(2);
-    if(source_campaign_)source_campaign_cinematic_lod_tu15(
-        source_campaign_->objects().tu15_world(),args[0].bits,args[1].truth());
+    if(args[0].type!=50 || args[1].type!=5)throw FormatError("Cinematic LOD requires a resolved object and boolean");
+    if(source_campaign_) {
+      const auto object=args[0].bits==0?player_.source_datum:args[0].bits;
+      auto &world=source_campaign_->objects().tu15_world();
+      if(object!=null_datum)(void)world.source_object_body(object);
+      source_campaign_cinematic_lod_tu15(world,object,args[1].truth());
+      // Actors returned by ai_actors belong to the retained object world.
+      // Its real bit19 consumer owns LOD; SceneObjects only owns placements.
+      return {};
+    }
     if (args[0].bits != null_datum && args[0].bits != 0)
       scene_.get(args[0].bits).cinematic_lod=args[1].truth();
     // Current native admission uses highest LOD without distance fades.
@@ -2984,8 +3080,8 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if(name=="object_create_containing" || name=="object_create_anew_containing" || name=="object_destroy_containing") {
     arity(1);if(args[0].type!=9)throw FormatError("Object name search requires a string");
-    // Retail29FF60 visits every case-sensitive substring match in scenario
-    // name order;29FD40/29FD80 delegate ordinary creation/replacement to the
+    // TU1.5 2A9C70 visits every case-sensitive substring match in scenario
+    // name order; BD6A0/2A9A90 own ordinary creation/replacement through the
     // same named factory used by object_create/object_create_anew.
     for(unsigned i=0;i<content_.object_names.size();++i)if(content_.object_names[i].name.find(args[0].text)!=std::string::npos) {
       if(name=="object_destroy_containing") {const auto handle=scene_.resolve(i);if(handle!=null_datum)scene_.destroy(handle);}
@@ -3356,6 +3452,8 @@ std::string Simulation::status() const {
     out << " native_ai_threat=" << native_ai.threat
         << " native_ai_reset=" << native_ai.reset
         << " native_ai_area=" << native_campaign_ai_area_activity_tu15()
+        << " native_ai_area_count=" << native_campaign_ai_area_count_calls_tu15()
+        << " native_ai_area_choice=" << native_campaign_ai_area_choice_calls_tu15()
         << " native_ai_behavior_reset=" << native_campaign_ai_behavior_reset_activity_tu15()
         << " native_ai_clump_retire=" << native_campaign_ai_clump_retirement_activity_tu15()
         << " native_camera_reset=" << native_camera.resets
@@ -3363,7 +3461,20 @@ std::string Simulation::status() const {
         << " native_camera_fov=" << native_camera.fovs
         << " native_camera_control=" << native_campaign_camera_control_calls_tu15()
         << " native_camera_director_reset=" << native_campaign_camera_reset_calls_tu15()
-        << " native_render_camera_packet=" << native_tu15_render_camera_packet_calls();
+        << " native_render_camera_packet=" << native_tu15_render_camera_packet_calls()
+        << " native_screen_flash_sample=" << native_campaign_screen_flash_sample_calls_tu15()
+        << " native_model_pose=" << native_campaign_model_pose_calls_tu15()
+        << " native_camera_bsp=" << native_tu15_camera_bsp_selection_calls()
+        << " native_view_rectangle=" << native_campaign_view_rectangle_calls_tu15()
+        << " native_view_layout=" << native_tu15_camera_view_layout_calls()
+        << " native_camera_projection=" << native_tu15_camera_projection_calls()
+        << " native_camera_frame_policy=" << native_tu15_camera_frame_policy_calls()
+        << " native_camera_frame_policy_root=" << native_tu15_camera_frame_policy_root_calls()
+        << " native_shadow_inverse=" << native_tu15_shadow_inverse_calls()
+        << " native_session_timers=" << native_campaign_session_timers_calls_tu15()
+        << " native_camera_default=" << native_tu15_render_camera_default_calls()
+        << " native_camera_default_init=" << native_tu15_render_camera_default_initialize_calls()
+        << " native_ai_awareness=" << native_campaign_ai_awareness_calls_tu15();
   }
   if(const auto *state=cinematic_state();state && state->screen_active)
     out << " cinematic_clock=" << state->render_clock

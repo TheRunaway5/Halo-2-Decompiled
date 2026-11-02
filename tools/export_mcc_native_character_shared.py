@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retain the finite actual shared Chief/emblem parameter conversion proof.
+"""Retain finite actual shared character/overlay parameter conversion proof.
 
 Only MCC data metadata is normalized. Original programs remain opaque payloads.
 No map, image bank, StringID namespace or native program is modified.
@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import struct
 from mcc_content import MccCache
+from native_program_storage_graph import storage_graph
 
 ROOT = Path(__file__).resolve().parents[1]
 FIELDS = ((4, 12), (12, 4), (20, 16), (28, 6), (36, 2), (44, 2), (52, 10),
@@ -17,6 +18,18 @@ FIELDS = ((4, 12), (12, 4), (20, 16), (28, 6), (36, 2), (44, 2), (52, 10),
 TEMPLATE_FIELDS = ((0, 10), (8, 2), (16, 10), (24, 6), (32, 4))
 SOURCE_LIBRARY = "f523c80325d5fe3f8bff7d4f3768a3b97fb2d9904a9fa455f307757e7436917e"
 SOURCE_SHARED = "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f"
+RESIDENT_LIBRARY = "db415f7973f0cc7a966148db98fd2837c8dfd3c4c320e534eec00ae7e11beb41"
+MATERIALS = [
+    "objects\\characters\\masterchief\\shaders\\masterchief",
+    "objects\\characters\\masterchief\\shaders\\mc_emblem",
+    "objects\\characters\\elite\\shaders\\elite_emblem",
+    "objects\\vehicles\\warthog\\turrets\\gauss\\shaders\\gauss_turret_sensor",
+    *("objects\\vehicles\\scorpion\\shaders\\" + name for name in
+      ("icon", "number_decal", "marine", "no_step", "scorpion_decal")),
+    "objects\\weapons\\multiplayer\\assault_bomb\\shaders\\assault_bomb_scrawl",
+    "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_gauge",
+    "objects\\weapons\\rifle\\plasma_rifle\\shaders\\plasma_rifle_current",
+]
 
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
@@ -43,12 +56,17 @@ def generate(cache):
     library = json.loads((native / "library.json").read_bytes())
     require(digest(canonical(library)) == SOURCE_LIBRARY, "original complete library changed")
     records = {(r["group"], r["name"]): r for r in library["shader_tags"]}
+    resident = cache / "native-shaders/01b_spacestation"
+    resident_library = json.loads((resident / "library.json").read_bytes())
+    require(digest(canonical(resident_library)) == RESIDENT_LIBRARY,
+            "complete already-admitted resident library changed")
+    resident_records = {(r["group"], r["name"]): r for r in resident_library["shader_tags"]}
     shared = cache / "halo2/h2_maps_win64_dx11/shared.map"
     require(digest(shared.read_bytes()) == SOURCE_SHARED, "complete actual shared source changed")
     source = MccCache(shared)
     profiles, cases = [], []
-    for leaf in ("masterchief", "mc_emblem"):
-        name = "objects\\characters\\masterchief\\shaders\\" + leaf
+    for name in MATERIALS:
+        leaf = name.rsplit("\\", 1)[-1]
         shader = next(t for t in source.tags.values() if t["group"] == "shad" and t["name"] == name)
         regions = {}
         def read(address, count):
@@ -101,6 +119,17 @@ def generate(cache):
             put(banks["60"], at + 16, 0)
         native_record = records["stem", stem["name"]]
         native_template = (native / "payloads" / native_record["payload"]).read_bytes()
+        template_source = "coagulation"
+        if stem["name"] == "shaders\\shader_templates\\opaque\\overlay":
+            retained_record = resident_records["stem", stem["name"]]
+            retained = (resident / "payloads" / retained_record["payload"]).read_bytes()
+            require(digest(native_template) + ".bin" == native_record["payload"] and
+                    digest(retained) + ".bin" == retained_record["payload"],
+                    "complete paired/resident original template changed")
+            require(storage_graph(native_record, native_template)["graph"] ==
+                    storage_graph(retained_record, retained)["graph"],
+                    "resident overlay template differs from complete original typed graph")
+            native_record, native_template, template_source = retained_record, retained, "01b_spacestation"
         native_shader_record = records["shad", name]
         original = (native / "payloads" / native_shader_record["payload"]).read_bytes()
         for record, raw in ((native_record, native_template), (native_shader_record, original)):
@@ -112,13 +141,30 @@ def generate(cache):
         # All authored pixel, property and noninterpolated values are literal
         # identical. The finite armor setup has one authenticated original UV
         # row and a compiler reorder; no other instance is admitted by it.
-        for field in (12, 92, 100, 108):
+        for field in (92, 100, 108):
             require(bytes(banks[str(field)]) == original_banks[str(field)], "authored common bank differs")
+        if leaf == "plasma_rifle_gauge":
+            pixels = bytes(banks["12"])
+            require(len(pixels) == 20 and b"".join(pixels[i * 4:(i + 1) * 4]
+                    for i in (0, 2, 1, 4, 3)) == original_banks["12"],
+                    "complete gauge authored color-role permutation differs")
+        else:
+            require(bytes(banks["12"]) == original_banks["12"], "authored color bank differs")
         if leaf == "masterchief":
             vectors = bytes(banks["20"])
             mapping = (2, 1, None, 3, 11, 12, 4, 5, 6, 7, 9, 10)
             transformed = b"".join(struct.pack("<4f", 0, 0, 1, 1) if i is None else vectors[i * 16:(i + 1) * 16] for i in mapping)
             require(transformed == original_banks["20"], "complete armor source vector mapping differs")
+        elif leaf == "gauss_turret_sensor":
+            # The same original environment/alpha UV mapping already proved
+            # for the opaque environment-alpha family: move detail first and
+            # retain the original compiled identity row before the remaining
+            # authored vectors. Every output word is checked against its
+            # independently authenticated original material bank below.
+            vectors = bytes(banks["20"])
+            transformed = (vectors[32:48] + vectors[16:32] + vectors[:16] +
+                           struct.pack("<4f", 0, 0, 1, 1) + vectors[48:])
+            require(transformed == original_banks["20"], "complete sensor source vector mapping differs")
         else:
             require(bytes(banks["20"]) == original_banks["20"], "emblem authored UV differs")
             for i, curve in enumerate(curves):
@@ -163,7 +209,7 @@ def generate(cache):
             "source_graph_sha256": digest(canonical(graph)), "source_root_hex": normalized_root.hex(),
             "source_definition_hex": normalized_definition.hex(),
             "source_banks": {f: bytes(b).hex() for f, b in banks.items()}, "images": image_roles,
-            "runtime_hex": runtime.hex(), "curves": curves, "native_source_map": "coagulation",
+            "runtime_hex": runtime.hex(), "curves": curves, "native_source_map": template_source,
             "input_names": input_names,
             "native_record": native_record, "native_shader_record": native_shader_record,
             "native_banks": {f: b.hex() for f, b in original_banks.items() if f not in ("4", "60")},
@@ -219,7 +265,7 @@ def generate(cache):
     source.close()
     return {"schema": "H2_MCC_NATIVE_CHARACTER_SHARED_V1", "source_shared_sha256": SOURCE_SHARED,
         "source_library_canonical_sha256": SOURCE_LIBRARY,
-        "scope": "Two exact actual shared character setups only; images and original animation input IDs/curves remain authored",
+        "scope": "Twelve exact actual shared character/overlay/weapon-pass setups only; images, authored colors and original animation input IDs/curves remain authored; no programs imported",
         "profiles": profiles}, {"schema": "H2_MCC_CHARACTER_SHARED_FIXTURE_V1", "cases": cases}
 
 def main():
@@ -238,7 +284,7 @@ def main():
             args.policy.write_text(text)
     if args.fixture:
         args.fixture.write_bytes(canonical(fixture))
-    print("Two complete shared character setups authenticated")
+    print(f"{len(policy['profiles'])} complete shared character/overlay setups authenticated")
 
 if __name__ == "__main__":
     main()

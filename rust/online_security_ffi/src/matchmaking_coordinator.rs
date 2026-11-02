@@ -1,185 +1,19 @@
-//! Trusted IO bridge to the Rust matchmaking owner. No network pointers.
-use halo2_online_protocol::matchmaking_accounts::Accounts;
-use halo2_online_protocol::matchmaking_continuity::Continuity;
-use halo2_online_protocol::matchmaking_coordinator::{self as core, Coordinator};
+//! Bounded C ABI; the shared safe Rust registry owns all policy and state.
+use halo2_online_protocol::matchmaking_coordinator as core;
 use halo2_online_protocol::matchmaking_model::{Error, Result};
-use halo2_online_protocol::matchmaking_packet_budget::Budget;
-use halo2_online_protocol::matchmaking_party_directory::Directory;
-use halo2_online_protocol::matchmaking_persistence::{Database, DatabaseBank};
-use std::collections::HashMap;
+use halo2_online_protocol::matchmaking_owners::Owners;
 use std::sync::{
     LazyLock, Mutex,
     atomic::{AtomicUsize, Ordering},
 };
-
-struct Owners {
-    next: u64,
-    values: HashMap<u64, Owner>,
-}
-enum Owner {
-    Queue(Box<Coordinator>),
-    Database(Box<Database>),
-    Bank(Box<DatabaseBank>),
-    Continuity(Box<Continuity>),
-    Budget(Box<Budget>),
-    PartyDirectory(Box<Directory>),
-    Accounts(Box<Accounts>),
-}
-impl Owner {
-    fn execute(&mut self, request: &core::WireValue) -> Result<core::WireValue> {
-        match self {
-            Self::Queue(value) => value.execute(request),
-            Self::Database(value) => value.execute(request),
-            Self::Bank(value) => value.execute(request),
-            Self::Continuity(value) => value.execute(request),
-            Self::Budget(value) => value.execute(request),
-            Self::PartyDirectory(value) => value.execute(request),
-            Self::Accounts(value) => value.execute(request),
-        }
-    }
-}
-fn open(request: &core::WireValue) -> Result<u64> {
-    let mut owners = OWNERS
-        .lock()
-        .map_err(|_| Error(503, "Rust matchmaking owner unavailable"))?;
-    if owners.values.len() >= 4096 {
-        return Err(Error(503, "Native owner capacity reached"));
-    }
-    let owner = if let Some(accounts) = request.get("accounts") {
-        halo2_online_protocol::matchmaking_model::fields(accounts, &[])?;
-        Owner::Accounts(Box::default())
-    } else if let Some(directory) = request.get("party_directory") {
-        if owners
-            .values
-            .values()
-            .filter(|v| matches!(v, Owner::PartyDirectory(_)))
-            .count()
-            >= 128
-        {
-            return Err(Error(503, "Party transaction capacity reached"));
-        }
-        let directory = Directory::new(directory)?;
-        if let Some(source) = directory.source() {
-            if !matches!(owners.values.get(&source), Some(Owner::Queue(_))) {
-                return Err(Error(503, "Party source owner retired"));
-            }
-        }
-        if let Some((source,key,player,now))=directory.account_binding(){
-            let Some(Owner::Accounts(accounts))=owners.values.get_mut(&source)else{return Err(Error(503,"Account source owner retired"));};
-            if !accounts.binding(&key,&player,now)?{return Err(Error(401,"ONLINE session expired; reconnect"));}
-        }
-        Owner::PartyDirectory(Box::new(directory))
-    } else if let Some(database) = request.get("database") {
-        if database["mode"] == "snapshot_bank" {
-            Owner::Bank(Box::new(DatabaseBank::new(database)?))
-        } else if database["mode"] == "result_commit" {
-            use halo2_online_protocol::matchmaking_model as m;
-            m::fields(database, &["mode", "source", "match", "completed"])?;
-            let key = database["source"]
-                .as_u64()
-                .ok_or(Error(400, "Result source owner required"))?;
-            let Some(Owner::Queue(source)) = owners.values.get(&key) else {
-                return Err(Error(503, "Result source owner retired"));
-            };
-            let context = source.result_commit_context(m::text(&database["match"], 64)?)?;
-            Owner::Database(Box::new(Database::result(
-                context,
-                m::integer(&database["completed"], 0, 9007199254740991)?,
-            )?))
-        } else if database["mode"] == "public_rank" {
-            use halo2_online_protocol::matchmaking_model as m;
-            m::fields(database, &["mode", "source", "playlist", "player", "clan"])?;
-            let key = database["source"]
-                .as_u64()
-                .ok_or(Error(400, "Catalog source owner required"))?;
-            let Some(Owner::Queue(source)) = owners.values.get(&key) else {
-                return Err(Error(503, "Catalog source owner retired"));
-            };
-            let clan = if database["clan"].is_null() {
-                None
-            } else {
-                Some(m::text(&database["clan"], 64)?)
-            };
-            let setup = source.public_rank_setup(
-                m::text(&database["playlist"], 64)?,
-                m::text(&database["player"], 64)?,
-                clan,
-            )?;
-            Owner::Database(Box::new(Database::public_rank(&setup)?))
-        } else {
-            Owner::Database(Box::new(Database::new(database)?))
-        }
-    } else if let Some(budget) = request.get("packet_budget") {
-        halo2_online_protocol::matchmaking_model::fields(request, &["packet_budget"])?;
-        halo2_online_protocol::matchmaking_model::fields(budget, &[])?;
-        Owner::Budget(Box::default())
-    } else if let Some(continuity) = request.get("continuity") {
-        halo2_online_protocol::matchmaking_model::fields(request, &["continuity"])?;
-        Owner::Continuity(Box::new(Continuity::new(continuity)?))
-    } else {
-        if owners
-            .values
-            .values()
-            .filter(|v| matches!(v, Owner::Queue(_)))
-            .count()
-            >= 1024
-        {
-            return Err(Error(503, "Native queue owner capacity reached"));
-        }
-        Owner::Queue(Box::new(Coordinator::new(request)?))
-    };
-    let id = owners
-        .next
-        .checked_add(1)
-        .ok_or(Error(503, "Native owner generation exhausted"))?;
-    owners.next = id;
-    owners.values.insert(id, owner);
-    Ok(id)
-}
-static OWNERS: LazyLock<Mutex<Owners>> = LazyLock::new(|| {
-    Mutex::new(Owners {
-        next: 0,
-        values: HashMap::new(),
-    })
-});
+static OWNERS: LazyLock<Mutex<Owners>> = LazyLock::new(|| Mutex::new(Owners::new()));
 static BUFFERS: AtomicUsize = AtomicUsize::new(0);
-
-fn execute(owners: &mut Owners, id: u64, request: &core::WireValue) -> Result<core::WireValue> {
-    if let Some(Owner::PartyDirectory(directory))=owners.values.get(&id){
-        if let Some((source,key,player,now))=directory.account_binding(){
-            let Some(Owner::Accounts(accounts))=owners.values.get_mut(&source)else{return Err(Error(503,"Account source owner retired"));};
-            if !accounts.binding(&key,&player,now)?{return Err(Error(401,"ONLINE session expired; reconnect"));}
-        }
-    }
-    let source = match owners.values.get(&id) {
-        Some(Owner::PartyDirectory(directory)) => directory.source(),
-        Some(_) => return owners.values.get_mut(&id).unwrap().execute(request),
-        None => return Err(Error(503, "Rust matchmaking owner retired")),
-    };
-    if let Some(source) = source {
-        if !matches!(owners.values.get(&source), Some(Owner::Queue(_))) {
-            return Err(Error(503, "Party source owner retired"));
-        }
-    }
-    let mut event = owners.values.get_mut(&id).unwrap().execute(request)?;
-    for _ in 0..1024 {
-        if event["kind"] != "core" {
-            return Ok(event);
-        }
-        let source = source.ok_or(Error(503, "Party source owner required"))?;
-        let Some(Owner::Queue(queue)) = owners.values.get_mut(&source) else {
-            return Err(Error(503, "Party source owner retired"));
-        };
-        let result = queue.execute(&event["request"])?;
-        let mut continuation = core::WireValue::Object(Default::default());
-        continuation["op"] = core::WireValue::from("reply");
-        continuation["frame"] = event["frame"].clone();
-        continuation["value"] = result;
-        event = owners.values.get_mut(&id).unwrap().execute(&continuation)?;
-    }
-    Err(Error(503, "Party owner continuation exceeds bounds"))
+fn open(request: &core::WireValue) -> Result<u64> {
+    OWNERS
+        .lock()
+        .map_err(|_| Error(503, "Rust matchmaking owner unavailable"))?
+        .open(request)
 }
-
 unsafe fn carrier(input: *const u8, length: usize) -> Option<Vec<u8>> {
     if input.is_null() || length > core::REQUEST_LIMIT {
         return None;
@@ -236,7 +70,7 @@ pub unsafe extern "C" fn h2_matchmaking_object_open(
 #[unsafe(no_mangle)]
 pub extern "C" fn h2_matchmaking_owner_drop(id: u64) {
     if let Ok(mut owners) = OWNERS.lock() {
-        owners.values.remove(&id);
+        owners.retire(id);
     }
 }
 
@@ -261,7 +95,7 @@ pub unsafe extern "C" fn h2_matchmaking_owner_request(
         let mut owners = OWNERS
             .lock()
             .map_err(|_| Error(503, "Rust matchmaking owner unavailable"))?;
-        execute(&mut owners, id, &request)
+        owners.request(id, &request)
     });
     unsafe { reply(result, output_length) }
 }

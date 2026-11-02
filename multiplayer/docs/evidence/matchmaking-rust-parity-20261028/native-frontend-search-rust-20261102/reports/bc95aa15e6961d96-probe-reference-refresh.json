@@ -1,0 +1,7 @@
+{
+  "path": "tests/reference/frontend_search_before_rust_20261102/matched_variant.cpp.inc",
+  "previous": null,
+  "after": "d3ee3e3bd1e7bba0eb0441b7978f0a29f64e596d230221f6f449c425cccbe988",
+  "scope": "Declared reference input added before linked probe iteration2; included in its frozen source pin file",
+  "frozen_bytes_match": true
+}

@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "commands": [
+    {
+      "source": "src/network/online_matchmaking.cpp",
+      "source_sha256": "c1d07610176cb6f8531be5d247bdffc70e6a043acbcc89b6611cdd9a3aa08ddf",
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -DWITH_GZFILEOP -o CMakeFiles/halo2_online_matchmaking.dir/src/network/online_matchmaking.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/src/network/online_matchmaking.cpp",
+      "arguments": null
+    },
+    {
+      "source": "tools/rust_service_matchmaking_probe.cpp",
+      "source_sha256": "757101c50cfe1204a0268f53a0b2692069deb92056fab4369956f94da9017bc9",
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/include -O3 -DNDEBUG -std=c++20 -DWITH_GZFILEOP -o CMakeFiles/rust_service_matchmaking_probe.dir/tools/rust_service_matchmaking_probe.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/tools/rust_service_matchmaking_probe.cpp",
+      "arguments": null
+    },
+    {
+      "source": "tools/rust_service_native_handoff_probe.cpp",
+      "source_sha256": "e0fda00e4307e90323ffec6c7ff96e69251e501c85481d4e59dc1bc21e0c8fa7",
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/include -O3 -DNDEBUG -std=c++20 -DWITH_GZFILEOP -o CMakeFiles/rust_service_native_handoff_probe.dir/tools/rust_service_native_handoff_probe.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/tools/rust_service_native_handoff_probe.cpp",
+      "arguments": null
+    },
+    {
+      "source": "tests/online_matchmaking_tests.cpp",
+      "source_sha256": "381feb351a2f4e7ddeee87a562b5157d967dc35acbc12514a469a702225999dd",
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/include -O3 -DNDEBUG -std=c++20 -DWITH_GZFILEOP -o CMakeFiles/online_matchmaking_tests.dir/tests/online_matchmaking_tests.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22/native-source/tests/online_matchmaking_tests.cpp",
+      "arguments": null
+    }
+  ],
+  "native_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-native-qualified/halo2-test-cblc7b22",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/client-controller-link/halo2-test-2kalvi8x",
+  "retained_large_artifacts": []
+}

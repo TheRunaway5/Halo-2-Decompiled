@@ -46,6 +46,12 @@ std::optional<MccOwnedShaderProjection> project_mcc_transparent_two_alpha_env_il
     const Tag& shader,const Tag& native_stem,std::string_view native_payload_name,
     std::span<const std::byte> native_payload,const MccShaderRead&,
     const MccShaderFind&,const MccShaderBitmapFrame&);
+// Verified one_alpha_env tuple with the independently paired cooked pixel
+// ordering. All other authored tuples remain unsupported.
+std::optional<MccOwnedShaderProjection> project_mcc_transparent_one_alpha_env(
+    const Tag& shader,const Tag& native_stem,std::string_view native_payload_name,
+    std::span<const std::byte> native_payload,const MccShaderRead&,
+    const MccShaderFind&,const MccShaderBitmapFrame&);
 
 // Finite data conversion proven against literal paired MCC/TU1.5 banks.
 // The complete source MCC compiled-template/remap graph must match its
@@ -55,5 +61,16 @@ std::optional<MccOwnedShaderProjection> project_mcc_transparent_two_alpha_env_il
 std::optional<MccOwnedShaderProjection> project_mcc_unanimated_world_cooked(
     const Tag& shader,const Tag& source_mcc_stem,const Tag& native_stem,
     std::string_view native_payload_name,std::span<const std::byte> native_payload,
+    const MccShaderRead&,const MccShaderFind&,const MccShaderBitmapFrame&);
+
+// Qualify the complete PC template graph against its already resident pass
+// and vertex program. Only template/remap data is projected; no program bank
+// is imported. The material conversion retains the same authored bank proof.
+std::optional<MccOwnedShaderProjection> project_mcc_resident_one_alpha_env_illum_template(
+    const Tag& source_mcc_stem,const Tag& resident_pass,const Tag& resident_vertex,
+    const MccShaderRead&,const MccShaderFind&);
+std::optional<MccOwnedShaderProjection> project_mcc_resident_one_alpha_env_illum_material(
+    const Tag& shader,const Tag& source_mcc_stem,const Tag& native_stem,
+    const Tag& resident_pass,const Tag& resident_vertex,
     const MccShaderRead&,const MccShaderFind&,const MccShaderBitmapFrame&);
 }

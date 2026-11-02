@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-baseline-link-20261102/halo2-test-sfzgynou",
+  "scope": "Actual pre-migration compiled UI objects, before any source refresh; not runtime or original Live acceptance",
+  "objects": {
+    "src/ui/frontend_state.cpp": {
+      "object_sha256": "bd4ac14d885064030e117dad899b2443ecd2f04ffa0f7583f98974c3c28e612a",
+      "object_bytes": 1930288,
+      "source_sha256": "8c6a7cb37700faaf6239b38a25329c4d46ce1a71f3e108b84afeccdbad4bc17a",
+      "defined_pregame_methods": [
+        "0000000000005440 T halo2::MenuState::cancel_online_lobby_countdown()",
+        "0000000000021320 T halo2::MenuState::update_online_lobby_countdown()",
+        "0000000000003668 t halo2::MenuState::update_online_lobby_countdown() [clone .cold]",
+        "00000000000052e0 T halo2::MenuState::enter_online_matchmaking_lobby()"
+      ],
+      "new_rust_lobby_references": [],
+      "all_defined_symbols_sha256": "3e50fa4afef6fbbd2c3b5612fc5e9c71f05ea901ac9a28e81c8d2ae3fdc15724",
+      "all_undefined_symbols_sha256": "10cbc41286f59ae5593cb013379df1fbba174cc270e55676e5dfa9e00af87ab3"
+    },
+    "src/ui/frontend_party.cpp": {
+      "object_sha256": "19a6b5119183b5c04f857d6238c6219efacd39fc4109df9f5e3eee95c2298e67",
+      "object_bytes": 1183264,
+      "source_sha256": "d18e34a4171608b3dfb446fe2b65e54ad1a5d1c8fa3dacee6b22e8bc5930bc43",
+      "defined_pregame_methods": [
+        "0000000000003870 T halo2::MenuState::update_online_lobby_leave()"
+      ],
+      "new_rust_lobby_references": [],
+      "all_defined_symbols_sha256": "d2099e4fc0ae6842db97471c7e1e4bde587bac0775c290161ce51cf151ee4c31",
+      "all_undefined_symbols_sha256": "21c30ec9db6b2e6f83086f76cb583fbba23e29a60eda2ec81cfe34b860b07580"
+    }
+  },
+  "public_header_sha256": "de856e8cdb96aceae7cb1adfe263aabf69ca55acee1bcee1f9b73d550a4a950d"
+}

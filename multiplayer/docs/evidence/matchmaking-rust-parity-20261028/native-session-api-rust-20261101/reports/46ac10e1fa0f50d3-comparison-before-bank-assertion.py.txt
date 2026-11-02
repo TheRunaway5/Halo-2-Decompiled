@@ -1,0 +1,169 @@
+"""Exact modern C++ packet/audio callers versus production Rust orchestration.
+
+Both sides invoke the real Rust Session owner. Native buffers, audio owners,
+workers, barriers and failures are declared fixtures. Full output, wire bytes,
+state, lock/owner ordering and actual C++ exception identity are compared.
+This does not certify original Live, a played world, genuine providers or the
+installed Linux client.
+"""
+import argparse
+import hashlib
+import itertools
+import json
+import os
+from pathlib import Path
+import random
+import subprocess
+
+ROOT = Path(__file__).resolve().parents[1]
+U32 = (1 << 32) - 1
+U64 = (1 << 64) - 1
+PHASES = ["connecting", "loading", "running", "reviewing", "failed"]
+TARGETS = [0, 1, 3, 15, 16, 255, 256, U32]
+
+
+def cases():
+    for op, phase, audio, barrier, generation, target in itertools.product(
+            ["send", "receive", "preferences", "voices"], PHASES,
+            [False, True], [False, True], [0, 99, U64], TARGETS):
+        yield dict(op=op, phase=phase, audio=audio, barrier=barrier, generation=generation, target=target)
+    for phase, audio, barrier, ready, generation, target in itertools.product(
+            PHASES, [False, True], [False, True], [False, True], [0, 99, U64], TARGETS):
+        yield dict(op="voice", phase=phase, audio=audio, barrier=barrier,
+                   ready=ready, generation=generation, target=target)
+    for source, opus, bits, stamp, signature in itertools.product(
+            TARGETS, [0, 1, 256, 257], [0, 0x80000000, 0x3f000000, 0x7fc00001, 0x7f800000],
+            [0, 99, U64], [False, True]):
+        yield dict(op="voice", source=source, opus=opus, left_bits=bits,
+                   frame_generation=stamp, generation=99, signature=signature)
+    for audio, incoming, phase, generation, resume in itertools.product(
+            [False, True], ["none", "same", "new"], PHASES, [0, 1, 99, U64], [False, True]):
+        yield dict(op="retain", audio=audio, incoming_owner=incoming, phase=phase,
+                   generation=generation, resume=resume)
+    for phase, audio, joinable in itertools.product(PHASES, [False, True], [False, True]):
+        yield dict(op="close", phase=phase, audio=audio, joinable=joinable)
+    for audio, generation, next_generation in itertools.product([False, True], [0, 1, 99, U64], [0, 1, U64-1, U64]):
+        yield dict(op="fence_audio", audio=audio, generation=generation, next_generation=next_generation)
+    for phase, audio, sync in itertools.product(PHASES, [False, True], [False, True]):
+        yield dict(op="sync", phase=phase, audio=audio, sync=sync, generation=U64)
+    for count, peer, size, generation in itertools.product([0, 1, 3], TARGETS, [0, 1, 7, 1400, 1401], [0, 99, U64]):
+        yield dict(op="receive", generation=generation, direct_packets=[dict(
+            peer=peer, epoch=U32-i, generation=U64-i, bytes=[(j*17+i)&255 for j in range(size)]) for i in range(count)])
+    failure_points = {
+        "send": ["lock", "fence", "device_fence", "stamp", "refresh", "send"],
+        "receive": ["lock", "fence", "receive", "received_banks", "copy"],
+        "voice": ["lock", "fence", "device_fence", "stamp", "refresh", "resume", "ready", "voice"],
+        "preferences": ["lock", "fence", "preferences"],
+        "voices": ["lock", "fence", "voices", "decode_frame"],
+        "retain": ["lock", "device_fence", "stamp", "refresh", "bind", "resume"],
+        "close": ["lock", "close_presence", "refresh", "pin", "close_audio", "stop", "join"],
+        "sync": ["lock", "resume"], "fence_audio": ["lock", "device_fence", "stamp", "refresh"],
+    }
+    for op, failures in failure_points.items():
+        for fail, kind, barrier in itertools.product(failures, ["runtime", "overflow", "logic"], [False, True]):
+            yield dict(op=op, fail=fail, exception=kind, barrier=barrier,
+                       audio=op != "retain", incoming_owner="new")
+    for group, phase, barrier, audio, joinable in itertools.product([1, 2, 4], PHASES,
+            [False, True], [False, True], [False, True]):
+        yield dict(nodes=8, group=group, phase=phase, barrier=barrier, audio=audio, joinable=joinable,
+                   source=group-1, target=group, commands=[dict(op=op) for op in [
+                       "send", "voice", "preferences", "receive", "receive", "voices"]]+[
+                       dict(op="retain", incoming_owner="same"), dict(op="fence_audio"),
+                       dict(op="voice"), dict(op="retain", incoming_owner="none"),
+                       dict(op="close"), dict(op="close"), dict(op="sync"), dict(op="receive")])
+    rng = random.Random(0x41504932)
+    for _ in range(2000):
+        yield dict(op=rng.choice(list(failure_points)), phase=rng.choice(PHASES),
+                   audio=bool(rng.getrandbits(1)), ready=bool(rng.getrandbits(1)),
+                   barrier=bool(rng.getrandbits(1)), generation=rng.getrandbits(64),
+                   next_generation=rng.getrandbits(64), frame_generation=rng.getrandbits(64),
+                   target=rng.choice(TARGETS), source=rng.choice(TARGETS),
+                   opus=rng.choice([0, 1, 3, 256, 257]), bytes=rng.choice([0, 1, 7, 1400, 1401]),
+                   incoming=rng.randrange(4), incoming_owner=rng.choice(["none", "same", "new"]),
+                   enabled=bool(rng.getrandbits(1)), muted=rng.getrandbits(16),
+                   joinable=bool(rng.getrandbits(1)), resume=bool(rng.getrandbits(1)))
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--binary", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    args = p.parse_args()
+    scratch = Path(os.environ["HALO2_TEST_SCRATCH"])
+    stderr = (scratch / "native-session-api.log").open("wb")
+    child = subprocess.Popen([str(args.binary)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr)
+    startup = []
+    def request(command):
+        raw = (json.dumps(command, separators=(",", ":")) + "\n").encode()
+        child.stdin.write(raw)
+        child.stdin.flush()
+        while True:
+            line = child.stdout.readline()
+            if line.strip() in (b"Shutdown handler: initialize.", b"Shutdown handler: cleanup."):
+                startup.append(line.decode().strip())
+                continue
+            return raw, json.loads(line)
+    report = dict(passed=False, scope=__doc__, original_live=False, native_world=False,
+                  genuine_provider=False, installed_client=False)
+    commands = steps = refusals = identities = 0
+    ops = {}
+    digest = hashlib.sha256()
+    last = None
+    try:
+        for command in cases():
+            last = command
+            raw, result = request(command)
+            assert result.get("matched"), dict(command=command, result=result)
+            values = result["result"]["steps"]
+            assert all(not v["held"] for v in values)
+            assert all(v["native_exception_identity"] is not False for v in values), dict(command=command, result=result)
+            digest.update(raw)
+            digest.update(json.dumps(result, sort_keys=True, separators=(",", ":")).encode() + b"\n")
+            commands += 1
+            steps += len(values)
+            refusals += sum(v["error"] for v in values)
+            identities += sum(v["native_exception_identity"] is True for v in values)
+            op = "sequence" if "commands" in command else command["op"]
+            ops[op] = ops.get(op, 0) + 1
+        negative = dict(op="fence_audio", audio=True, fail="device_fence", exception="overflow",
+                        discard_native_exception=True)
+        _, observed = request(negative)
+        assert observed.get("matched") is False, observed
+        old = observed["result"]["steps"][0]
+        new = observed["rust"]["steps"][0]
+        assert old["category"] == "overflow" and old["native_exception_identity"] is True, observed
+        assert new["category"] == "other" and new["native_exception_identity"] is False, observed
+        assert old["exception"] == new["exception"] == "Voice delivery generation exhausted"
+        report.update(passed=True, commands=commands, steps=steps, expected_state_or_io_refusals=refusals,
+                      native_exception_identity_checks=identities, operations=ops, sha256=digest.hexdigest(),
+                      lost_native_exception_negative_control=dict(passed=True, command=negative, observation=observed),
+                      binary_sha256=hashlib.sha256(args.binary.read_bytes()).hexdigest(),
+                      source_pins={n: hashlib.sha256((ROOT / n).read_bytes()).hexdigest() for n in [
+                          "tests/native_session_api_tests.cpp", "tests/test_native_session_api.py",
+                          "tests/reference/native_session_api_private_before_rust_20261101.inc",
+                          "tests/reference/native_session_api_stream_before_rust_20261101.inc",
+                          "tests/reference/native_session_api_close_before_rust_20261101.inc"]})
+    except BaseException as error:
+        report.update(error=str(error), commands=commands, steps=steps, last_command=last)
+        raise
+    finally:
+        child.stdin.close()
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait()
+        child.stdout.close()
+        stderr.close()
+        report.update(startup_messages=startup, child_exit_code=child.returncode)
+        if child.returncode != 0:
+            report["passed"] = False
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2) + "\n")
+    assert child.returncode == 0
+    print(json.dumps({k: report[k] for k in ["passed", "commands", "steps", "expected_state_or_io_refusals",
+                                           "native_exception_identity_checks", "operations", "sha256"]}))
+
+
+if __name__ == "__main__":
+    main()

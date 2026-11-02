@@ -22,6 +22,7 @@ from multiplayer.master_server.player_identity import VerifiedOwner
 from multiplayer.master_server.protocol import Problem
 from multiplayer.master_server.tests.test_matchmaking_http import catalog
 from multiplayer_effect_history_http_test import selected_mcc_inputs, unchanged_inputs
+from owned_original_sound_test_inputs import owned_original_inputs
 
 LOG_LIMIT = 1024 * 1024
 
@@ -36,8 +37,9 @@ async def bounded_output(stream):
     return bytes(tail), total
 
 
-async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
-    process = await asyncio.create_subprocess_exec(str(binary), origin, str(descriptor), gameplay, str(map_path),
+async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False,audio_report=None):
+    extra=['--original-destruction-sounds',str(audio_report)]if audio_report else[]
+    process = await asyncio.create_subprocess_exec(str(binary), origin, str(descriptor), gameplay, str(map_path),*extra,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         env=os.environ | dict(HTTP_PROXY='http://127.0.0.1:1', NO_PROXY='', no_proxy=''))
     readers = [asyncio.create_task(bounded_output(stream)) for stream in (process.stdout, process.stderr)]
@@ -90,7 +92,7 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
     for marker in markers:
         assert text.count(marker) == 1, 'Missing/duplicated native control: ' + marker
     if mcc and not inventory_mode:
-        marker = 'PASS selected-MCC-native common-cut receipt route:'
+        marker = 'PASS owned-original-sound common-cut receipt route:'if audio_report else'PASS selected-MCC-native common-cut receipt route:'
         assert text.count(marker) == 1, 'Missing/duplicated selected MCC route: ' + marker
     if not inventory_mode:
         marker = ('PASS Rust prospective native role:' if os.environ.get('HALO2_COMMON_PROSPECTIVE')
@@ -99,6 +101,18 @@ async def native(binary, origin, descriptor, gameplay, map_path, *, mcc=False):
     if os.environ.get('HALO2_COMMON_PROSPECTIVE'):
         marker = 'PASS prospective held foreground boundary:'
         assert text.count(marker) == 1, 'Missing/duplicated bound prospective foreground control: ' + marker
+    if audio_report:
+        marker='PASS original-bank common-cut playing Audio:'
+        assert text.count(marker)==1,'Missing genuine original-bank Audio publication'
+        report=json.loads(audio_report.read_text())
+        assert report['passed']and report['genuine_prospective_original_playing_audio_verified']and len(report['phases'])==2
+        counts=[]
+        for phase in report['phases']:
+            assert phase['passed']and phase['original_context']=='lockout.map'and phase['cases']
+            assert all(c['passed']and c['original_bank']and c['genuine_native_timing_sdl_publication']and
+                c['exact_pcm_rng_replay']and c['saved_playing_voice_restored']for c in phase['cases'])
+            counts.append(len(phase['cases']))
+        assert counts[0]==counts[1];print('QUALIFIED original playing Audio '+json.dumps(dict(cases=sum(counts),phases=[p['phase']for p in report['phases']])),flush=True)
     if os.environ.get('HALO2_COMMON_CLIENT'):
         marker = 'PASS genuine prospective client alternatives:'
         assert text.count(marker) == 1, 'Missing/duplicated actual prospective client control: ' + marker
@@ -116,6 +130,8 @@ async def main():
         help='Explicit selected prepared MCC cache; no Xbox/Vista fallback or import')
     parser.add_argument('--map', type=Path,
         help='Explicit selected MCC Lockout map, within --mcc-root')
+    parser.add_argument('--owned-original-sounds-bundle',type=Path,help='Owned produced original-sound bundle; no runtime selection')
+    parser.add_argument('--audio-report',type=Path,help='Bounded original playing Audio report in the owned build')
     args = parser.parse_args()
     if args.reference and len(args.reference) != 2:
         parser.error('the reference route takes both XBE and MAP')
@@ -123,8 +139,19 @@ async def main():
         parser.error('--mcc-root cannot use reference XBE/MAP arguments')
     if args.map is not None and args.mcc_root is None:
         parser.error('--map requires --mcc-root')
+    if args.owned_original_sounds_bundle:
+        if args.mcc_root or args.reference or not args.audio_report or not os.environ.get('HALO2_COMMON_PROSPECTIVE'):
+            parser.error('owned original sounds require their separate prospective route and --audio-report')
+        args.audio_report=args.audio_report.absolute()
+        if args.audio_report.parent!=args.binary.resolve(strict=True).parent or args.audio_report.suffix!='.json':
+            parser.error('original Audio reports must remain in the owned binary build directory')
+        args.audio_report.unlink(missing_ok=True)
+    elif args.audio_report:parser.error('--audio-report requires --owned-original-sounds-bundle')
     pins = []
-    if args.mcc_root is not None:
+    if args.owned_original_sounds_bundle:
+        map_path,pins=owned_original_inputs(args);gameplay='--mcc'
+        print('OWNED ORIGINAL SOUND INPUT '+json.dumps(dict(route='owned-original-sound-common-cut',inputs=pins,selected_runtime_updated=False)),flush=True)
+    elif args.mcc_root is not None:
         map_path, pins = selected_mcc_inputs(args.mcc_root)
         if args.map is not None:
             if args.map.is_symlink() or args.map.resolve(strict=True) != map_path:
@@ -189,7 +216,7 @@ async def main():
             assert set(rooms) == {row['id'] for row in descriptors}, 'Fixture room identities differ from admission'
             try:
                 await native(binary, str(client.make_url('/')).rstrip('/'), descriptor, gameplay, map_path,
-                    mcc=args.mcc_root is not None)
+                    mcc=args.mcc_root is not None or bool(args.owned_original_sounds_bundle),audio_report=args.audio_report)
             finally:
                 unchanged_inputs(pins)
             assert set(verified) == set(owners), 'Not all three physical identities authenticated independently'

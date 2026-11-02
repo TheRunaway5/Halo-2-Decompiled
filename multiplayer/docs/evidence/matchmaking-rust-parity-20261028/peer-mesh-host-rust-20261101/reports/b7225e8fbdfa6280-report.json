@@ -1,0 +1,59 @@
+{
+  "passed": true,
+  "scope": "Actual compiled production mesh adapter references all8 Rust entries, with no C++ packet parser or ranking owner. Actual Session object references the Rust migration-candidate caller. Synchronization and typed field/resource IO remain C++.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-link/halo2-test-wnhybb55",
+  "object_sha256": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o": "123ed9d22cb6233fd1c27c8cad9647752e72948f177fa74d545fb72ca6e50339",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o": "9959d95345613f29f8d39059ae00c96133c30a567f85a939c7abec2d884aa0ba"
+  },
+  "objects_unchanged": true,
+  "rust_mesh_entry_references": [
+    "new_peer_mesh_quality",
+    "peer_mesh_quality_candidates",
+    "peer_mesh_quality_context",
+    "peer_mesh_quality_is_packet",
+    "peer_mesh_quality_local",
+    "peer_mesh_quality_matrix",
+    "peer_mesh_quality_poll",
+    "peer_mesh_quality_receive"
+  ],
+  "native_session_candidate_entry": true,
+  "source_pins": {
+    "src/network/peer_mesh_quality.cpp": "154eb33d60cade638b899b349995b8531887d52c833ea3071a356e500779f064",
+    "include/halo2/peer_mesh_quality.hpp": "1ab3c437f24f0bcc3dab3dd65670797fe6e5915429889a13390b7e271846de8a",
+    "src/network/online_match_session.cpp": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+    "rust/online_protocol/src/peer_mesh_quality.rs": "29787758fe4e8250f495b0f30dbe14c02f52fc4d1f9323bc5cc6c7bd780c16fc",
+    "rust/online_protocol/src/matchmaking_native_session.rs": "d5d0004a9288c0cb4268bd4bc272b37b4a32e989951f795bd14fbdad8362bbcc",
+    "rust/online_protocol_bridge/src/peer_mesh_quality.rs": "5df613f6c61e58b2f4e1eae38fb62439e32082e30eee4306e3e91958ef64b138",
+    "rust/online_protocol_bridge/src/matchmaking_native_session.rs": "653f2cfb07a5a593012f340e1660250685e46b9d89ee64eee36310b60487d49f",
+    "rust/online_protocol_bridge/src/lib.rs": "c369184b3597e8210446fdb5ff3800e776aa78071b38d2e89d59c544d576ed0a",
+    "cmake/OnlinePeers.cmake": "fd6294c7531b79668dfe032cd36c941dd99181e109388660c7c4f7dbb2ef17fd"
+  },
+  "compile_commands": [
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/online-protocol/Release/include -O3 -DNDEBUG -std=c++20 -o CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/peer_mesh_quality.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/peer_mesh_quality.cpp",
+      "output": "CMakeFiles/halo2_peer_mesh_quality.dir/src/network/peer_mesh_quality.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -DWITH_GZFILEOP -o CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/online_match_session.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src/network/online_match_session.cpp",
+      "output": "CMakeFiles/halo2_online_matchmaking.dir/src/network/online_match_session.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/reference/peer_mesh_quality_before_rust_20261101 -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -O3 -DNDEBUG -std=c++20 -o CMakeFiles/peer_mesh_quality_cpp_reference.dir/tests/peer_mesh_quality_replay.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+      "output": "CMakeFiles/peer_mesh_quality_cpp_reference.dir/tests/peer_mesh_quality_replay.cpp.o"
+    },
+    {
+      "directory": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/build",
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/include -O3 -DNDEBUG -std=c++20 -o CMakeFiles/peer_mesh_quality_rust_replay.dir/tests/peer_mesh_quality_replay.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+      "file": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-mesh-host-native/halo2-test-0ljeblsa/native-source/tests/peer_mesh_quality_replay.cpp",
+      "output": "CMakeFiles/peer_mesh_quality_rust_replay.dir/tests/peer_mesh_quality_replay.cpp.o"
+    }
+  ],
+  "retained_large_artifacts": []
+}

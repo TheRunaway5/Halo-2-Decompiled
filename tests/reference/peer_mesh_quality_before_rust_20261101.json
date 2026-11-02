@@ -1,0 +1,14 @@
+{
+  "scope": "Read-only modern H2QO C++ before Rust migration; not recovered original XNet or original host election.",
+  "source": "src/network/peer_mesh_quality.cpp",
+  "sha256": "9aa494b43b13c22bb3cb5fd06ba85c38e8540e328419557c45282dbe5a2e5fe8",
+  "bytes": 11577,
+  "captured_at_utc": "2026-11-01T12:57:15.517704+00:00",
+  "production_use": false,
+  "header": {
+    "source": "include/halo2/peer_mesh_quality.hpp",
+    "reference": "tests/reference/peer_mesh_quality_before_rust_20261101/halo2/peer_mesh_quality.hpp",
+    "sha256": "1f79b0aea72fc8456f3b7bc3ee76d324feed77fe85804681ef3eae8e11151065",
+    "bytes": 2327
+  }
+}

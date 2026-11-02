@@ -1,0 +1,11 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_progress_rust_tests"
+  ],
+  "filter": "^frontend_progress_cpp_rust$",
+  "refresh": [
+    "tests/generate_frontend_progress_reference.py",
+    "tests/fixtures/matchmaking_progress_sort_tu15_original.json"
+  ]
+}

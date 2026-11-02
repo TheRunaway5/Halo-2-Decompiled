@@ -58,6 +58,58 @@ class AiQuery {
 public:
   explicit AiQuery(const SourcePhysicsContactMemory &memory):memory_(memory) {}
   std::uint32_t actor(std::uint32_t reference) { return resolve_actor(reference); }
+  std::uint32_t actors(std::uint32_t reference,const SourceHsObjectListServices &lists) {
+    if(reference==none)return none;
+    if(!lists.allocate || !lists.append)
+      throw std::invalid_argument("Campaign AI actors query requires its HS list owners");
+    const auto list=lists.allocate();
+    if(list==none)return list;
+    const auto visit=[&](std::uint32_t actor) {
+      const auto unit=read(actor+0x18u);
+      if(unit!=none)lists.append(list,unit);
+      const auto swarm=read(actor+0x1cu);
+      if(swarm==none)return;
+      const auto swarm_rows=read(read(0x510fa8u)+0x44u);
+      auto object=read(swarm_rows+(swarm&0xffffu)*0x34u+0x18u);
+      for(unsigned visited=0;object!=none;++visited) {
+        if(visited>=65536u)throw std::invalid_argument("Campaign swarm object chain is cyclic");
+        const auto rows=read(read(0x4ecbd0u)+0x44u);
+        const auto body=read(rows+(object&0xffffu)*12u+8u);
+        auto next=none;
+        if(!read(body+0x134u)) {
+          const auto extension=body+std::uint32_t(std::int32_t(std::int16_t(read(body+0x13au,2))));
+          if(extension)next=read(extension+0xcu);
+        }
+        lists.append(list,object);object=next;
+      }
+    };
+    if((reference>>30)>=2u) {
+      const auto actor=resolve_actor(reference);
+      if(actor!=none)visit(read(read(0x5020c8u)+0x44u)+(actor&0xffffu)*0x888u);
+      return list;
+    }
+    const bool group=(reference>>30)==1u;
+    if(group)start_group(reference&0xffffu);
+    auto single=reference&0xffffu;
+    while(true) {
+      std::uint32_t squad;
+      if(group)squad=next_group_squad();
+      else if(single!=none) {
+        squad=read(read(0x52be7cu)+0x44u)+single*0x98u;single=none;
+      }else break;
+      if(!squad)break;
+      auto state=read(0x5020a8u);
+      auto member=read(state+1u,1)?read(squad+0x68u):none;
+      for(unsigned visited=0;true;++visited) {
+        state=read(0x5020a8u);
+        if(!read(state+1u,1) || member==none)break;
+        if(visited>=65536u)throw std::invalid_argument("Campaign squad actor chain is cyclic");
+        const auto actor=read(read(0x5020c8u)+0x44u)+(member&0xffffu)*0x888u;
+        member=read(actor+0x20u);visit(actor);
+      }
+    }
+    return list;
+  }
   std::uint32_t query(std::uint32_t reference,NativeCampaignAiQuery operation) {
     if((reference>>30)>=2u) {
       const auto actor=resolve_actor(reference);
@@ -265,5 +317,9 @@ std::uint32_t native_campaign_ai_actor_tu15(const SourcePhysicsContactMemory &me
     std::uint32_t reference) {
   if((reference>>30)<2u)throw std::invalid_argument("Expected an actor or starting-location AI reference");
   return AiQuery(memory).actor(reference);
+}
+std::uint32_t native_campaign_ai_actors_tu15(const SourcePhysicsContactMemory &memory,
+    std::uint32_t reference,const SourceHsObjectListServices &lists) {
+  return AiQuery(memory).actors(reference,lists);
 }
 }

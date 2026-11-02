@@ -1,0 +1,53 @@
+from pathlib import Path
+old=Path('build/test-results/frontend-progress-rust-20261102/original-sort-repro.py.txt').read_text()
+s='''#!/usr/bin/env python3
+"""Unchanged TU1.5 progress sort caller through its real original callees.
+
+Explicit synthetic session/player banks; stops before widget allocation.
+No networking, source slot producer or delivered runtime claim.
+"""
+import argparse
+'''+old[:old.index("(out/'sort-original-fixture.json').write_text")]
+s=s.replace("root=Path.cwd();out=root/'build/test-results/frontend-progress-rust-20261102';scratch=Path(os.environ['HALO2_TEST_SCRATCH'])",
+'''parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--report',type=Path,required=True)
+parser.add_argument('--fixture',type=Path)
+parser.add_argument('--native',type=Path)
+args=parser.parse_args()
+root=Path(__file__).resolve().parents[1];scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve(strict=True)''')
+s=s.replace('mismatches','legacy_mismatches')
+s+='''fixture_bytes=(json.dumps(fixture,separators=(',',':'))+'\\n').encode()
+if args.fixture:
+ args.fixture.parent.mkdir(parents=True,exist_ok=True);args.fixture.write_bytes(fixture_bytes)
+owner=root/'rust/online_protocol/src/matchmaking_frontend_progress.rs'
+if args.native:
+ command=[str(args.native.resolve(strict=True)),'--sort']
+else:
+ probe=scratch/'sort.rs';binary=scratch/'sort-rust'
+ probe.write_text('#[path='+json.dumps(str(owner))+'] mod core;\\n'+r\'''use std::io::{self,BufRead};
+fn main(){for line in io::stdin().lock().lines(){let l=line.unwrap();let v:Vec<i32>=l.split_whitespace().map(|s|s.parse().unwrap()).collect();
+let n=v[0] as usize;let p:Vec<_>=(0..n).map(|i|core::Player{team:v[3+2*i],value:v[4+2*i]}).collect();
+for i in core::order(&p,v[1]!=0,v[2]!=0){print!("{} ",i);}println!();}}
+\''')
+ subprocess.run(['rustup','run','1.96.0','rustc','--edition=2024','-Adead_code',str(probe),'-o',str(binary)],check=True)
+ command=[str(binary)]
+actual=subprocess.check_output(command,input=data.encode()).decode().splitlines()
+assert len(actual)==len(cases)
+mismatches=[]
+for c,line in zip(cases,actual):
+ order=list(map(int,line.split()))
+ if order!=c['original']:mismatches.append(dict(case=c,actual=order))
+report={'passed':not mismatches,'original_execution_passed':True,'cases':len(cases),
+ 'mismatches':len(mismatches),'first_counterexamples':mismatches[:4],
+ 'legacy_stable_sort_differences':len(legacy_mismatches),'legacy_first_counterexamples':legacy_mismatches[:4],
+ 'original_instruction_addresses':len(source.executed),'original_instruction_visits':visits,'original_comparator_calls':calls,
+ 'source_sha256':NEW_PIN,'no_instruction_patches':True,'no_replaced_callees':True,
+ 'backend':'native CXX/Rust wrapper' if args.native else 'standalone current Rust owner',
+ 'rust_source_sha256':hashlib.sha256(owner.read_bytes()).hexdigest(),
+ 'native_binary_sha256':hashlib.sha256(args.native.read_bytes()).hexdigest() if args.native else None,
+ 'scope':__doc__,'fixture_sha256':hashlib.sha256(fixture_bytes).hexdigest(),'scratch':str(scratch),'retained_large_artifacts':[]}
+args.report.parent.mkdir(parents=True,exist_ok=True)
+args.report.write_text(json.dumps(report,indent=2)+'\\n');print(json.dumps(report))
+raise SystemExit(1 if mismatches else 0)
+'''
+dst=Path('tools/oracle_tu15_matchmaking_progress_sort.py');assert not dst.exists();dst.write_text(s)

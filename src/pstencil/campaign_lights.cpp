@@ -60,16 +60,14 @@ SourceEffectLightView CampaignLights::view(PhysicsLiveWorldTu15& world,Vec3 eye,
     };
     const auto priority=[&](std::uint32_t owner) {
         if(owner!=0xffffffffu)(void)world.source_object_body(owner);
-        auto call=world.prepare_source_call();call.gp[6]=owner; // Whole3E9B0: ESI owner.
-        world.run_actual(0x3e9b0u,call);return std::uint8_t(call.gp[0]);
+        return std::uint8_t(world.render_object_has_view_priority(owner));
     };
     collection.owners.local_priority=candidates.admission.local_priority=priority;
     candidates.root_owner=[&](std::uint32_t owner) {
         (void)world.source_object_body(owner);
-        auto call=world.prepare_source_call();call.gp[1]=owner; // WholeBCFB0: ECX child.
-        world.run_actual(0xbcfb0u,call);
-        if(call.gp[0]!=0xffffffffu)(void)world.source_object_body(call.gp[0]);
-        return call.gp[0];
+        const auto root=world.render_object_root(owner);
+        if(root!=0xffffffffu)(void)world.source_object_body(root);
+        return root;
     };
     candidates.owner_kind=[&](std::uint32_t owner) {
         (void)world.source_object_body(owner);
@@ -122,8 +120,7 @@ void CampaignLights::select_native(PhysicsLiveWorldTu15& world,SourceEffectLight
         SourceShadowCandidate candidate;candidate.identity=identity;candidate.owner=-1;
         if(runtime.owner!=0xffffffffu) {
             (void)world.source_object_body(runtime.owner);
-            auto call=world.prepare_source_call();call.gp[1]=runtime.owner;world.run_actual(0xbcfb0u,call);
-            candidate.owner=std::bit_cast<std::int32_t>(call.gp[0]);
+            candidate.owner=std::bit_cast<std::int32_t>(world.render_object_root(runtime.owner));
         }
         candidate.requested_fade=runtime.overall_fade;
         candidate.coverage=source_shadow_coverage(runtime.spatial_center,runtime.spatial_radius,
@@ -132,8 +129,7 @@ void CampaignLights::select_native(PhysicsLiveWorldTu15& world,SourceEffectLight
         if(runtime.owner!=0xffffffffu) {
             const auto headers=word(word(0x4ecbd0u)+0x44u);
             candidate.flags|=std::uint32_t(std::to_integer<unsigned>(memory.view(headers+(runtime.owner&65535u)*12u+3u,1)[0])==2)<<16;
-            auto call=world.prepare_source_call();call.gp[6]=std::bit_cast<std::uint32_t>(candidate.owner);
-            world.run_actual(0x3e9b0u,call);candidate.flags|=call.gp[0]&255u;
+            candidate.flags|=world.render_object_has_view_priority(std::bit_cast<std::uint32_t>(candidate.owner));
         }
         view.candidates.push_back(candidate);
     }
@@ -153,7 +149,7 @@ std::vector<WorldEffectLightReceiver> CampaignLights::receivers(const SourceEffe
         if(!i.supported.contains(at->definition_identity) || Bytes(at->definition->bytes).u16(4)!=0)continue;
         const auto& r=at->runtime;
         const auto shape=source_effect_light_sphere(*at->definition,r.position,r.forward,r.up,r.state.size);
-        auto view=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,shape,fog,main);
+        auto view=source_effect_light_receiver_view(world,r.cluster,r.spatial_center,r.spatial_radius,shape,fog,main,at->definition->flags);
         out.push_back({selected.identity,++i.queries.epoch,selected.requested_fade,std::move(view)});
     }
     return out;

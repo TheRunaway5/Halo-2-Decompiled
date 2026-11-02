@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/iteration-3",
+  "commands": [],
+  "action": "steam",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "tools/test_rust_matchmaking_service.py",
+    "tools/rust_service_steam_controls.py",
+    "tools/rust_service_steam_provider_fixture.cpp"
+  ],
+  "source_files": 134,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam/halo2-test-34aqm_gj/cargo/release/halo2-matchmaking-service",
+    "sha256": "9cd1e57cd5c49ce1e14feccadab01c7e77ad63014a6f29ee31e55b9493d5afa9",
+    "bytes": 10889912,
+    "retained": false
+  },
+  "error": "'Content-Security-Policy'"
+}

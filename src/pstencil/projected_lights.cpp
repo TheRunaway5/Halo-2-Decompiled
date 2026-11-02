@@ -8,6 +8,7 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
+#include "halo2/source_shadow_raw_draw.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/menu_world_depth.hpp"
 #include <algorithm>
@@ -15,6 +16,7 @@
 #include <cstring>
 #include <map>
 #include <optional>
+#include <sstream>
 #include <set>
 #include <tuple>
 
@@ -176,8 +178,42 @@ ProjectedLightFrame ProjectedLights::draw(PhysicsLiveWorldTu15& world,const Sour
             if(material==i.materials.end() || pass_index>=material->second.size())
                 throw FormatError("Native projected shader/LOD/pass was not admitted during residency: "+std::to_string(c[2])+"/"+std::to_string(lod)+"/"+std::to_string(implementation));
             const auto& slot=material->second[pass_index];
-            if(descriptor->words[4]!=slot.pass.implementation_address())
-                throw FormatError("Native projected descriptor differs from its actual compiled implementation pointer");
+            // The Cache owns logical tag addresses; the completed native
+            // descriptor owns this World's resident mapping. Authenticate the
+            // complete current implementation and pass lineage at consumption.
+            const auto current_pass=source_shadow_raw_pass_owner_tu15(world,i.cache,slot.pass);
+            if(!current_pass.matches(slot.pass,descriptor->words[4])) {
+                std::ostringstream detail;
+                detail<<"Native projected descriptor differs from its actual compiled implementation pointer"
+                    <<" wanted={cache_mcc:"<<i.cache.is_mcc()<<",light:"<<light.runtime.identity
+                    <<",light_definition:"<<light.definition_identity<<",features:"<<selected.features
+                    <<",command:"<<command<<",unit:"<<unit_index<<",part:"<<part
+                    <<",vertex_class:"<<vertex_class<<",shader:"<<slot.pass.shader()
+                    <<",lod:"<<lod<<",layer:12,pass:"<<pass_index<<",implementation:"<<implementation
+                    <<",template:"<<slot.pass.shader_template()<<",shader_pass:"<<slot.pass.shader_pass()
+                    <<",vertex_shader:"<<slot.pass.vertex_shader()<<",template_pass:"<<slot.pass.template_pass()
+                    <<",template_remap:"<<slot.pass.template_remap()<<",lod_address:"<<slot.pass.lod_address()
+                    <<",layer_address:"<<slot.pass.layer_address()<<",template_pass_address:"<<slot.pass.template_pass_address()
+                    <<",remap_address:"<<slot.pass.template_remap_address()
+                    <<",pass_postprocess_address:"<<slot.pass.pass_postprocess_address()
+                    <<",logical_implementation_address:"<<slot.pass.implementation_address()
+                    <<",actual_implementation_address:"<<descriptor->words[4]<<"}";
+                try {
+                    const auto &expected=slot.pass.implementation_record();
+                    const auto native=world.resident_cache_address(i.cache,slot.pass.implementation_address(),expected.size());
+                    const auto &memory=world.memory();const auto address=memory.source_address(native,expected.size());
+                    detail<<" resident={address:"<<address<<",matches_descriptor:"<<(address==descriptor->words[4])
+                        <<",complete_preimage_equal:"<<std::ranges::equal(memory.view(native,expected.size()),expected)<<"}";
+                }catch(const std::exception &error){detail<<" resident_error={"<<error.what()<<"}";}
+                detail<<" descriptor={";
+                for(unsigned n=0;n<descriptor->words.size();++n)detail<<(n?",":"")<<descriptor->words[n];
+                detail<<"} command={";
+                for(unsigned n=0;n<c.size();++n)detail<<(n?",":"")<<c[n];
+                detail<<"} unit={";
+                for(unsigned n=0;n<unit.words.size();++n)detail<<(n?",":"")<<unit.words[n];
+                detail<<"}";
+                throw FormatError(detail.str());
+            }
             std::vector<std::array<float,12>> palette;
             MenuWorldSourceOwner owner;
             if(unit.words[1]!=0xffffffffu) {

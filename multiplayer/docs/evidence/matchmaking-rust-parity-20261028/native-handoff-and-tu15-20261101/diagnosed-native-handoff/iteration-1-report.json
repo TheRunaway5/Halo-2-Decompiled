@@ -1,0 +1,154 @@
+{
+  "passed": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/iteration-1",
+  "commands": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+        "--build-worker",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-1-build",
+        "--build-only",
+        "--jobs",
+        "2",
+        "--test-jobs",
+        "1",
+        "--target",
+        "rust_service_native_handoff_probe",
+        "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "--retain-report",
+        "online-protocol/Release/build-report.json"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source/tools/test_rust_matchmaking_service.py",
+        "--source",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/native-source",
+        "--native-handoff-only",
+        "--native-handoff-probe",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build/rust_service_native_handoff_probe",
+        "--output",
+        "/home/eric/Developer/Halo-2-Decompiled/build/test-results/matchmaking-rust-service-native-handoff-owned-20261101/iteration-1-runtime"
+      ],
+      "returncode": 1
+    }
+  ],
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [],
+  "source_pin_sha256": "593c4d26023843e24a9ca72dcf66f303fd0b6c5f0cd0d1db79c589a1c0828b15",
+  "native_probe": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build/rust_service_native_handoff_probe",
+    "sha256": "1dbf3cb58cec9785fd698c0a305fee944e376558065fa9552c9b3157a8856398",
+    "bytes": 27809712,
+    "retained": false
+  },
+  "runtime": {
+    "passed": false,
+    "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service/source",
+    "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service",
+    "commands": [
+      {
+        "argv": [
+          "cargo",
+          "test",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--manifest-path",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service/source/rust/matchmaking_service/Cargo.toml"
+        ],
+        "returncode": 0
+      },
+      {
+        "argv": [
+          "cargo",
+          "build",
+          "--release",
+          "--locked",
+          "--offline",
+          "--jobs",
+          "2",
+          "--manifest-path",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service/source/rust/matchmaking_service/Cargo.toml"
+        ],
+        "returncode": 0
+      }
+    ],
+    "retained_large_artifacts": [],
+    "binary": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/service/cargo/release/halo2-matchmaking-service",
+      "bytes": 11468704,
+      "sha256": "a3b1ed4dd57b20f0143fb680c13aa2aecf10f260a75cfb9a5474879f0479c61d",
+      "retained": false
+    },
+    "mode": "native-handoff-only",
+    "native_handoff_probe": {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-native-handoff/halo2-test-32pw3pel/build/rust_service_native_handoff_probe",
+      "sha256": "1dbf3cb58cec9785fd698c0a305fee944e376558065fa9552c9b3157a8856398",
+      "borrowed_read_only": true
+    },
+    "native_handoff": {
+      "qualified": false,
+      "native_clients": [
+        {
+          "returncode": 1,
+          "error": "Native provider handoff refused",
+          "full_settings_validated": false,
+          "native_loading_reached": false,
+          "native_session_taken": false,
+          "played_world": false,
+          "queue_status": 1,
+          "real_provider": false,
+          "stage": "native provider handoff"
+        },
+        {
+          "returncode": 1,
+          "error": "Native provider handoff refused",
+          "full_settings_validated": false,
+          "native_loading_reached": false,
+          "native_session_taken": false,
+          "played_world": false,
+          "queue_status": 1,
+          "real_provider": false,
+          "stage": "native provider handoff"
+        }
+      ],
+      "full_settings_validated": false,
+      "configured_sdk": false,
+      "negative_control": "Explicit disabled EOS client configuration; v16 must not silently downgrade its transport.",
+      "source_catalog_edited": false,
+      "declared_map_inventory": [
+        "beavercreek",
+        "coagulation",
+        "deltatap",
+        "derelict",
+        "foundation",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ],
+      "real_provider": false,
+      "played_world": false,
+      "original_parity": false,
+      "full_goal_complete": false
+    }
+  }
+}

@@ -13,6 +13,9 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_ui_script_startup_constructors COMMAND native_tu15_ui_script_startup_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/asset-setup/mcc-native-20261015/native-ui-effect-startup/original-constructor/report.json)
     set_tests_properties(original_tu15_ui_script_startup_constructors PROPERTIES TIMEOUT 60)
+    add_test(NAME original_tu15_hs_scalar_cast_constructor COMMAND native_tu15_ui_script_startup_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/hs_scalar_casts_tu15.json)
+    set_tests_properties(original_tu15_hs_scalar_cast_constructor PROPERTIES TIMEOUT 60)
     foreach(target native_tu15_network_link_tests native_tu15_graphics_startup_tests)
         target_sources(${target} PRIVATE src/ui/source_ui_script_startup_tu15_generated.cpp
             src/ui/native_tu15_ui_script_startup_data.cpp)

@@ -27,8 +27,888 @@ Native execution and parity — required across every completion group:
   TU1.1 results do not count toward this goal. Retain small results and required
   reference evidence, and verify disposable build/capture cleanup.
 
+Latest completed frozen cohort, **v1480/00: two observed Frame residual
+owners in all three driving/grenade/rocket runs**,2E5320 and304350. Native
+2EA380 completes986/1,573/1,775 calls, with zero refusals and no old2EA380
+owner. All three strict original frames and FP pass (114,363,573 driving bytes;
+114,887,921 grenade/rocket bytes), with262/305/300 actual seated camera frames.
+The grenade run now exercises native31D930 positively:78 complete joint calls,
+156 angular rows and234 linear rows, zero refusals/FP errors; its required joint
+gate passes. World-deferred/island-listener positive coverage remains open.
+This Frame census excludes player/object schedulers and internal generated
+look callers; it is not the total remaining interaction/dependency count.
+Runtime SHA256:8639bf3ed591efb0f69d1c61d46a2d536a18ace667d1e84b64d547b0e85c14ab.
+[Final1480 census, source checkpoint and cleanup](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-broad-phase-edges-original-v1480-20261102/latest-census.json).
+
+| Current1480 observed Frame routine | Driving calls | Grenade calls | Rocket calls |
+| --- | ---: | ---: | ---: |
+|2E5320|234|156|514|
+|304350|2067|2693|3217|
+
+Previous full frozen cohort, **v1479/00: three observed Frame residual
+identities in each driving/grenade/rocket run**. The remaining observed owners
+are2E5320,2EA380 and304350. Native body update,
+post-step, deletion, wake and discrete querying remove the earlier top-level
+owners. Native Host look/camera/query now run positively; internal generated
+look callers and the player/object schedulers remain outside this Frame census.
+These are observed routines, not a count of every interaction or transitive
+dependency. All three strict original frames pass:114,363,573 driving bytes and
+114,887,921 grenade/rocket bytes, plus FP. All cases retain unexercised
+World-deferred/island-listener gates; native31D930 joint building is also zero
+in this workload. The historical1478 driving107-byte/26-run failure remains red;
+the new run does not establish a fix or cause.
+[Current census and hashes](../analysis/physics/native-live-residual-census-v1479-00-20261102.json).
+Native-only closure remains open.
+
+| Remaining observed routine | Driving calls | Grenade calls | Rocket calls |
+| --- | ---: | ---: | ---: |
+|2E5320|221|194|445|
+|2EA380|978|1559|1789|
+|304350|2047|2718|3184|
+
+Latest live checks:
+
+- [x] Deliver native18A2A0 reorientation in1479/00: one native call and one
+  yaw wrap per driving/grenade/rocket run, zero errors, strict original bytes/FP
+  and231/250/268 actual seated camera frames. Native look/query gates also pass.
+  Reviewed driving video shows occupied chase camera, look turn, exit and peer.
+- [x] Deliver native Host18A0C0 initialization and18A300 look/context/camera,
+  including the bounded16C620 geometric-query closure. v1478/00 driving/
+  grenades/rockets record1,578/5,986/5,866 native look calls,6/6/10 native query
+  calls, zero query refusals/unknowns and271/283/273 actual seated camera frames.
+  Grenade and rocket strict original-state comparisons pass; driving remains red.
+- [x] Merge the completed1474–1478 narrow integrations into canonical Root.
+  Thirty guarded source changes preserve unrelated source/BV test profiles;
+  98 native dependencies already matched exactly. Both compilers pass181-CPP
+  coherent World/four models, the Frame model and complete Host/LiveWorld
+  contexts. [Canonical merge qualification](../analysis/physics/native-canonical-root-coherent-stage-20261102/qualification.json).
+  These checks use an immutable source snapshot; later unrelated shared-Root
+  lighting changes are recorded separately and preserved.
+  This does not promote the launcher/runtime or close remaining native domains.
+- [x] Qualify native18A2A0 reorientation and31D930 joint-constraint builder,
+  including the same production helpers and genuine1478 BEFORE inputs under
+  both compilers/four FP modes/all114,429,109 and114,953,457 captured bytes.
+  Declared reorientation251 profiles/all30 sites and joint1,373 profiles/all207
+  parent sites pass; their independently reviewed177-CPP combined World models pass.
+- [x] Complete selected visible positive native31D930 joint-builder delivery
+  in1480/00 grenade1200:78 attempts/calls/headers/motors/completions,156 angular
+  and234 linear rows, zero refusals/FP errors, strict original bytes/FP and305
+  actual vehicle-camera frames. Genuine source/name evidence identifies the
+  Warthog hull–bumper hinge. Authored condition IDs remain opaque; a sufficient
+  deterministic damage/SDL recipe and wider joint/FP domains are still open.
+- [x] Qualify and wire the sole native2EA380 edge reorder into canonical Root.
+  Both compilers pass630 physical profiles/all980 source sites, including six
+  real read-before-write hardware faults, native allocations and three mutants.
+  Independent World peer and all context/counter models pass;1480/00 delivers
+  it positively in all three strict multiplayer cases with actual vehicle cameras.
+  Additive671-case retained-array growth proof covers owned/borrowed nonempty
+  outputs with the same unchanged kernel. General allocator domains stay open.
+- [x] Verify genuine vehicle destruction in1479/01: two ordinary grenade
+  commands/detonations produce13 moving debris objects and13 submitted parts in
+  each view. Full grenade1200 and driving450 strict original bytes/FP pass;
+  joint building remains zero. Individual debris pixel visibility is not certified.
+- [x] Correct the sole native2E5DB0 sweep-support FLD/read and FSTP/write-fault
+  phase behavior. Both compilers pass168 direct/all43-site and247 composed
+  profiles, with four rejected mutants and independent peer review. Applied
+  narrowly to canonical Root; no new shape/FP domain or live closure is claimed.
+- [x] Deliver native1D77D0 body updates and282C10 post-step in frozen1475.
+  Normal/grenade strict original-frame+FP comparisons pass with actual vehicle
+  cameras. Body impulse/wake and positive dirty post-step work remain unexercised.
+- [x] Deliver native320260 pair deletion and2F81B0 reversed-list destruction
+  in1474/01:3/6 deletion calls and one reversed-list return per normal/grenade,
+  zero refusals, both full strict original frames and actual vehicle cameras.
+- [ ] Close the common contact/solver producers2E5320/2F8B60/30E930,
+  retained contact producer304350/303EE0 and all true child services.
+  Bounded fast returns, genuine child-entry prefixes and unconnected native
+  publication components do not establish complete native closure.
+- [x] Qualify native MOPP AABB30A1E0/2E9670 setup and309940 traversal:
+  both compilers pass285 setup prefixes,819 traversal profiles (748 full returns,
+ 445/464 sites), and323 composed profiles through real original full returns.
+  Ordered DATA/FP/faults and three mutations per component remain strict.
+  [Source checkpoint](../analysis/physics/native-mopp-aabb-qualified-20261102/source-pins.json).
+- [x] Compose native1F6D10 key querying with both AABB/oriented MOPP queries,
+  native visibility and key pruning. Both compilers pass540 profiles/68 full
+  original returns, all174 parent sites,38,354 ordered retained reads/9,315
+  stores and three rejected mutations. The same typed binding uses guarded
+  native local cache storage; no unprovided word or CPU state is supplied.
+  Native oriented setup separately passes289 prefixes and pruning321 profiles.
+  Added six native kernels to the normal strict-FP build; both compilers pass
+  the immutable187-CPP World closure and all four models.
+  [Qualified source](../analysis/physics/native-collision-key-query-qualified-20261102/source-pins.json).
+- [ ] Bind that query into actual2F36F0→304350 native candidate/producer
+  services; finish positive array growth, actual input and live delivery.
+  Raw private-cache observation/address faults, additional property slots,
+  unknown instance owners and wider lifetime/alias domains remain open.
+- [ ] Complete the sole existing native304350 producer/2F36F0 candidate/buffer
+  service closure and303EE0 constructor-input lifetime proof. Earlier component
+  proofs execute genuine remaining services only offline; production requires
+  native children and a proved current DATA preimage. No GP image, fabricated
+  constructor bytes or heap-byte waiver may close this path.
+- [x] Qualify the genuine class23/24→2E4EB0 factory domain with the sole native
+  factory/cache/support/pool implementations. Both compilers/four FP modes/
+  A5 and5A owned scratch compare all89,795,481 input-bank bytes, the256B agent,
+  result and FP. Independent review passes; the small AB4B0 getter admission
+  is applied to canonical Root. Actual producer/World/live delivery remains open.
+  [Qualified factory](../analysis/physics/native-surface-convex-factory-qualified-actual1479-20261102/source-pins.json).
+- [x] Compose the shared native149DA0/E00→233250/233420 pool service helper.
+  Both compilers pass176 public array/pool cases, ordered DATA/FP and three
+  rejected arithmetic/copy mutants. Default heap, alternate owners and large
+  frees remain explicit requirements. The helper supplies no original executor.
+  [Qualified pool services](../analysis/physics/native-pool-array-services-qualified-20261102/source-pins.json).
+- [x] Return from the selected full native moving-contact graph on genuine1479
+  DATA:2E5320→2F8B60→30E/30DE/hull→result→publication→creation→gameplay
+  listeners→computed rejection→native removal→distance publication. Both
+  compilers/four FP modes match all89,795,481 captured bytes,538 retained reads,
+  64 stores and FP/RET16. Zero-count REP metadata and an actual283120 read-phase
+  defect were corrected with their raw failures retained. This is selected
+  component proof; production helper, World wiring and visible delivery are next.
+- [ ] Qualify and wire that exact moving-contact production helper into the
+  frozen1480 World/Frame closure, then test visibly with actual vehicle cameras.
+  Broader initial-simplex/projection/FP/listener and raw-private observer domains
+  remain refused. Preserve the unconfirmed later flag1 solver edit separately;
+  the selected flag0 baseline does not qualify it.
+- [ ] Finish the guarded native2F36F0 Host closure's public/default/fault/alias
+  controls and independent review. Its current private component returns under
+  both compilers/four FP modes with all89,795,481 bytes,634 physics DATA reads,
+  114 persistent stores/preimages and FP equal; three real creations/resolutions/
+  filters have zero refusals. Separate authenticated control-dispatch CODE
+  mappings account only for exact immutable code-fetch PCs. No bank byte is
+  waived. World/live admission and the304350 parent remain open.
+- [x] Qualify native30CD00 publication through genuine native322D20 creation
+  and30CAA0 reduction: both compilers pass42 profiles/all187 parent sites,
+  ordered retained DATA/FP and three rejected mutants. Eight publication,
+  storage, registration and listener kernels are in the normal native build.
+  Both compilers pass the immutable196-CPP dependency cohort/four World models;
+  this excludes preserved later Root phantom/audio work and is not live admission.
+  [Build/model checkpoint](../analysis/physics/native-contact-publication-world-stage-20261102/source-pins.json).
+- [x] Compose the sole native322D20 point-creation service binding with the
+  same guarded event DATA through storage, registration, velocity and listeners.
+  Both compilers pass77 profiles (29 returns/48 faults),191/195 parent sites,
+  6,358 ordered reads/1,681 retained stores, complete FP/point ID and three
+  arithmetic mutations. Bound raw-observer, padding-read and native-only
+  remaining-owner refusal/restore models pass; independent peer review is green.
+  [Qualified binding](../analysis/physics/native-contact-point-creation-binding-qualified-20261102/source-pins.json).
+- [x] Replace eligibility2E4F30/3038C0 with native class-dispatch logic. Both
+  compilers pass130 profiles/all35 sites,120 returns/10 fault prefixes,24 output
+  aliases and32-bit index wrap. The fallback rereads current DATA; a value-
+  preserving cached-read mutant fails the ordered-read gate. Independent review
+  passes and the sole kernel is build-wired; parent/live admission remains open.
+  [Qualified eligibility](../analysis/physics/native-contact-pair-eligibility-qualified-20261102/source-pins.json).
+- [ ] Admit that creation binding through actual304350/World services and
+  visibly test it in multiplayer. Positive activation/removal providers, four
+  rejection/removal source sites and unknown listener/velocity owners remain open.
+- [x] Authenticate the genuine304350 typed BEFORE input with an exact-schema
+  loader:4,033 bank files/89,795,481 bytes, no captured GP/SIMD, after-image or
+  outcome. Twenty-two malformed/oversized controls refuse; extraction has a
+  prechecked192MiB bank/1MiB metadata budget. Independent review passes.
+  [Loader review](../analysis/physics/native-contact-process-before-loader-independent-peer-review-20261102/review.json).
+- [ ] Finish the actual moving-shape slow solver. The selected30DE caller
+  lifetime audit proves four copied undefined rows are unread through full
+  original2E return; poison/SNaN controls preserve all retained bytes and FP.
+  Native30DE composition must keep the same guard. Separately313790 private W
+  changes MXCSR and has no writer on the studied count2 caller path; its actual
+  preimage remains unowned and cannot be replaced with zero or CPU/control bytes.
+- [x] Deliver native316D40 wake with the existing qualified native factory
+  closure, plus native281530 discrete queries. v1473/04 driving450 and
+  grenade1200 match all89,729,945/114,887,921 original bytes and FP. Native wake
+  completes2/3 times, bound factories1/2 and discrete queries5/6, zero refusals;
+  actual occupied vehicle-camera frames285/258. Eight official regressions pass.
+- [x] Qualify and wire the native body-deactivation2815F0 → component1D7260 →
+  motion1D8B20/frame1D8B90 chain. Both compilers pass181 physical profiles,
+  102 full returns,3,183 ordered reads/553 stores, complete FP and four mutants.
+  The exact World builder passes both coherent models and12 negative gates.
+- [ ] Finish strict live body-chain qualification. v1473/05 delivers14/20
+  native snapshots and126/180 stores, zero refusals, with186/267 actual vehicle
+  camera frames. Grenade1200 matches all114,887,921 original bytes and FP;
+  driving450 fails strict equality by104 heap bytes in26 runs. Its saved input
+  roundtrips all4,415 files; original hardware watch traces512-byte303EE0 →
+  2E3250 →2E2E30 copying plus30479C/304820 vector stores. No cause is waived.
+  Keep this source cohort distinct from the passing04 cohort.
+- [x] Replace the selected Host18A300 look route with the native controller and
+  its qualified context/camera/query services in frozen1478. This path has
+  positive native activity and actual vehicle-camera proof, as recorded above.
+- [ ] Close internal generated1088DC→18A300/18A0C0 caller handoffs, positive
+  marker SourcePC observer correspondence, alternate CRT/acos policies and
+  unsupported FP/query/lifetime domains. Canonical Root wiring remains above.
+- [x] Deliver native317200 merge queue,320DA0 deferred pair queue,3232E0
+  manager factory and the qualified282700→B1870→BA570→C0F60→spatial binding.
+  v1472/03 driving450 and grenade1200 match all114,363,573/114,887,921 original
+  bytes and FP. Both queues have5/2 completions and zero refusals; actual
+  occupied vehicle-camera frames352/348. Added/deletion/spatial activity is
+  zero in these runs, so their positive live coverage remains open.
+- [x] Complete the actual1472/01 listener/deletion/spatial component pipeline
+  against unchanged TU1.5 under both compilers: all114,953,457 bank bytes,
+  116 ordered reads,14 stores and FP, with a genuine full return. No supplied
+  child result, private GP transport or compared-byte exclusion.
+- [ ] Repair the v1472/03 fatal-player strict42-byte heap mismatch. A hardware
+  data breakpoint identifies original2E2E43 REP MOVSD as the first writer. A
+  subsequent entry census traces2E3250 from303EE0, copying512 bytes from
+  600EFD20 to10092F80; all42 differences lie in this allocation. Record
+  production/lifetime and a native repair remain to be proved. The captured
+  frame has zero31FFC0 entries; cumulative phantom creation does not explain
+  this frame's mismatch. Keep the saved input and strict test red.
+  [Writer census](../analysis/physics/native-player-original-write-watch-v1472-03-20261102/report.json).
+- [x] Qualify and deliver the actual Elongation2F1CC0 →2F7190→2E4EB0 wrapped
+  factory closure. v1473/03 completes18 factory entries/30 class queries and
+  six native discrete queries, zero refusals,900 ticks/905 exact LAN checks.
+- [ ] Finish ordinary-input authored conveyor coverage and repair the strict
+  Elongation182-byte heap mismatch. Actual spawn slot1 is across the map from
+  the former assumed target; the player never reaches the belt. Hardware watch
+  identifies original2E2E43 copies and30479C/304820 vector stores; the genuine
+  record-producer/lifetime cause remains open. No compared byte is waived.
+- [x] Wire the qualified native316D40 pair wake and finite11-kind PART/point
+  evaluator into Root through narrow guarded changes. The combined139-CPP Root
+  model passes four checks under both compilers. The actual2F8030 wake factory
+  now passes the full native component proof and live04 as recorded above.
+  Positive eleven-kind multiplayer coverage stays open.
+- [x] Qualify and wire the sole native281530→281F10/1D7530 discrete pair
+  binding:72 authored-input profiles per compiler; the authenticated inventory
+  contains11/90/20 parent/helper sites. Ordered persistent operands, return and
+  FP checks, two rejected mutations. Seven diagnostic fields, both JSON paths,
+  eight negative gates and three coherent World models pass both compilers.
+  Unknown filter/motion owners count and refuse; positive live delivery passes04.
+- [x] Wire320260 native pair deletion with a per-operation RAII native scope.
+  Both compilers pass36 genuine-DATA parent cases/188 of247 source sites,
+  coherent World models and counter/JSON/gate controls. An unknown nested owner
+  is counted separately and refused before any ABI/FP transport or execution.
+- [ ] Finish320260's59 remaining source sites/children. Selected live deletion
+  now passes1474/01; the following1473 refusal is historical evidence.
+  v1473/06 passes eight official regressions, then both full cases encounter
+  actual2F81B0 and correctly refuse before a complete frame. Capture its real
+  typed destructor call and port the true child; no live-deletion pass yet.
+
+
+- [x] Deliver native point/reference, manager/base-lock, List/transformed
+  factory, wrapped/compound processing, World merge and regroup in visible
+  imported-MCC multiplayer. v1471/00 driving450 and grenade1200 pass all of
+  these positive gates and strict114,363,573/114,887,921-byte+FP comparisons.
+  Driving has382 actual vehicle-camera frames,0.6-radian camera turn,41 exit
+  frames and388 exact LAN comparisons; grenade has363 camera frames and1,801
+  exact LAN comparisons. The reviewed driving video uses the occupied Warthog
+  chase camera above and the independent peer below.
+- [x] Exercise genuine native repartition during the same strict driving run:
+  12 graph builds, three created islands/three moved bodies, two moved
+  constraints/three moved contacts, balanced6/6 group allocations and36/36
+  temporary constructions/destructions, with zero unknowns/refusals.
+- [x] Wire native reversed2F7480/2F7FB0 processing and both constraint-info
+  owners31D630/31F840. v1471/05 driving450 and grenade1200 match all
+  114,363,573/114,887,921 original bytes and FP; both genuinely invert one
+  contact normal. Explicit normals-positive driving06 passes. Info kernels
+  have independent original proofs; positive live info queries remain unexercised.
+- [x] Complete v1471/07 fatal-player1200 with native deferred queue growth:
+  strict114,887,921-byte+FP match, two real growths, first death867,
+  99 source-dead ticks, authoritative corpse submissions1,330 per view,
+  318 actual vehicle-camera frames and2,282 exact LAN comparisons. Reviewed
+  video shows chase camera, grenade input, respawn and corpse in the top view;
+  sampled lower-view corpse pixels remain unproved.
+- [ ] Complete the full live coverage matrix. Overall05 and07 acceptance stays
+  red because genuine World delete/update queues and island step listeners
+  remain unexercised. Keep these gates enabled and use authentic gameplay.
+- [x] Qualify native phantom creation31FFC0 and native315300/315B00/314F80
+  children against actual1471/09 BEFORE DATA under both compilers, including
+  all114,953,457 captured bytes, ordered DATA, FP and return. A separate
+  declared eight-call sequence proves natural capacity8-to16 growth.
+- [x] Complete visible positive native phantom creation in1473/04 grenade1200:
+  one complex and one simple phantom, two notifications, zero unknowns, positive
+  gate and strict114,887,921-byte+FP equality with258 vehicle-camera frames.
+  Later05 has zero creation activity; that case's positive gate stays red.
+- [x] Qualify native282700 overlap listener and sharedB1870 predicate on both
+  compilers:80 declared profiles/all43+17 source sites,893 ordered reads and49
+  stores,18 fault prefixes/three DATA mutations/three rejected mutants. Real
+  BA570 object-deletion entries remain explicit child dependencies.
+- [x] Capture the actual282700 event before refusal and wire its qualified
+  native BA570/detach/spatial closure on the captured input. Broader BA570
+  lifecycle children and positive live deletion remain open below.
+- [x] Qualify native PART/material/property/conveyor response and the exact
+  point callback/scratch lifetimes under both compilers:217 cases/all418 PART
+  sites and32 transported counter/gate checks. Whole221-site gameplay parent
+  composition passes109 cases with native PART children; no unbound prefixes.
+- [x] Wire PART into Root and qualify its coherent129-CPP World model under
+  both compilers. Exact seven-file base matched the frozen1472 source.
+- [ ] Complete visible positive PART/conveyor coverage. The prepared MCC cache
+  has zero Coagulation conveyor materials; Elongation and Colossus have genuine
+  authored conveyors with kinds0/1. Use their actual surfaces and ordinary input.
+  Wider authored kinds and exceptional FP domains remain explicit requirements.
+- [x] Qualify all11 finite authored function kinds composed with native PART:
+  261 cases (217 baseline plus44 positive),16 function calls per kind under
+  both compilers, all418 PART sites/39,046 reads/3,296 stores/six mutants.
+  The qualified expanded evaluator is now wired into Root; its combined model
+  and visible eleven-kind qualification are separate from finite component proof.
+- [x] Qualify native memory-pressure1496F0/149AD0/2335B0 and allocator/batch
+  helpers against unchanged TU1.5 under both compilers:168 cases/four mutants.
+  The exact production Frame binding passes both compiler models and is wired
+  into Root; selected unsupported object-service children count/refuse.
+- [x] Qualify native1CCE00 pressure pruning and its exact native classifier
+  builder on both compilers:117 profiles,70 complete returns (including dense
+  contact classification), three genuine candidate-entry prefixes and three
+  rejected mutants. Its exact Frame binding passes both compiler models and
+  is wired into Root. Candidate/deletion children remain counted refusals.
+- [x] Requalify the composed Root Frame with both pressure bindings: all65
+  independent original prefix/tail cases pass and both state/read mutations
+  reject. Temporary source and build trees were removed.
+- [x] Deliver both pressure bindings visibly in1472/01: driving450/grenade1200
+  match all114,363,573/114,887,921 original bytes and FP, with348/340 actual
+  vehicle-camera frames. Native memory-pressure completions1,298/4,134 and
+  contact-pruning completions649/2,067, zero refusals/unbound services; both old
+  owners are absent. Dense/candidate work is zero in these selected runs.
+- [ ] Qualify returned positive object collection/candidate/deletion closures,
+  exceptional lifetime and unmasked selected SSE exceptions. These are separate
+  from the successfully delivered ordinary pressure paths.
+- [x] Capture the actual282700 input at1472/01 fatal-player before refusal:
+  all114,953,457 bank bytes plus the actual16-byte event, mode1/depth0 and
+  realFP. Required archive13,668,925 bytes roundtrips; raw132,878,336 allocated
+  bytes removed. No pose, flags, results or original ABI were manufactured.
+- [x] Wire native3232E0 manager creation at the World pair route. The sole
+  native builder passes20 original contexts,19 transported counters and both
+  coherent124-CPP World models. True body destruction and registered lock
+  releases remain explicit refused children. v1472/02–03 delivers5 factories/
+  10 registrations per driving/grenade run with zero refusals and strict equality.
+- [ ] Complete native BA570 object deletion, its real spatial/detach/controller/
+  AI/player callbacks and visible fatal-player composition. The native parent
+  and selected helper returns plus exact production builder pass290 profiles
+  under both compilers;89 full returns/six actual child-entry boundaries.
+  Nine atomic RMW write-fault profiles remain explicitly unqualified; separate
+  read and completed-store observer prefixes pass. NativeC0F60 tree detachment
+  and selected spatial children now qualify the actual listener full return;
+  wider lifecycle children and positive live deletion remain open.
+- [x] Qualify actual v1470 List2F8030 and reversed List2F81F0 inputs against
+  unchanged TU1.5: both compilers match all114,429,109 captured bytes, FP,
+  ordered parent reads/stores and genuine child services. The reversed input
+  exposes the real transformed2F7190 child. Wire the existing native List and
+  transformed constructors and all17 authenticated constant getter leaves.
+  These parent proofs use original child execution offline; they do not prove
+  the entire native child composition.
+  [Reversed input proof](../analysis/physics/native-reversed-list-factory-actual1470-20261101/report.json).
+- [ ] Complete v1470 visible acceptance. Iterations00–05 stop at explicit
+  shape/factory guards;06 passes eight regressions and reaches the actual
+  multiplayer window/first frame, then all three cases stop at the manager
+  lock-profile guard. Actual manager1007BF40 has collector flagsBCDC,
+  A4=0 and owned32-byte array capacity2 (grenade case4). Iteration08 preserves
+  its genuine BEFORE input. Its registry lookup is absent, and the full native
+  manager/collector/base-lock lifetime now matches all114,429,109 bytes,178
+  ordered reads/77 stores, FP and return for three disposing controls under both
+  compilers; two mutations reject. Registered lock storage remains refused.
+  [Actual manager proof](../analysis/physics/native-contact-manager-base-lock-actual1470-tu15-20261102-first/report.json).
+  The06 video visibly shows the occupied Warthog chase camera above and the
+  independent peer below, but supplies no completed strict frame or driving
+  gate. Iteration09 combines point/regroup/base-lock for full450/1200/1200
+  tests and passes the old lock guard, then stops at the explicitly unbound
+  gameplay22E1B0 reference-release service. Iteration10 captures that exact typed
+  boundary before refusal for native integration; no old backend fallback is
+  admitted. Fatal-player and native-only acceptance remain open.
+- [x] Qualify the complete measured point322F70 pipeline using native gameplay
+  listeners, metadata, world update and constraint detach/info. Both compilers
+  match all89,795,481 captured bytes, FP and retained DATA access order across
+  three initialization seeds; all children are native. The same production
+  builder passes guard tests and is wired into Root. The coherent World model
+  and16-field/getter/two-JSON/positive-gate checks pass.
+  [Binding](../analysis/physics/native-contact-point-root-binding-20261101/source-pins.json).
+- [x] Exercise native point/reference removal in completed v1471 driving and
+  grenade runs. Native PART is separately qualified and pending delivery;
+  wider runtime effects, zero-reference destruction and unknown listeners
+  remain refused. Complete private raw-ledger parity remains red separately.
+  Superseded point-stage-v2 remains historical failure evidence.
+- [x] Qualify native3187C0 whole normal-completion connectivity/partition
+  processing and its native graph, arena, pool, temporary-array, constructor
+  and edge children. Both compilers pass48 parent profiles; the sole production
+  service builder passes72 profiles including depths0–5. Genuine09 skips
+  active partition work; positive split worlds are explicitly declared inputs.
+  [Parent qualification](../analysis/physics/native-island-regroup-parent-qualified-20261101/qualification.json).
+- [x] Wire native regroup into Root World with retained caller DATA, native-only
+  services and24 transported counters. The124-CPP Root model passes all ten
+  default profiles and actual factory/merge prefixes. The frozen multiplayer
+  cohort has its own two-compiler model and separate phase/splitting gates.
+  [Root binding](../analysis/physics/native-world-island-regroup-root-binding-20261101/source-pins.json).
+- [x] Compose genuine1470 point DATA through native point removal, declared
+  standalone316D40 wake and native3187C0. Both compilers match all captured
+  bytes and FP after each phase on12 profiles: wake updates one body; regroup
+  builds its graph, finds full connectivity and clears the partition flag.
+  No source flags, poses or contact rows are manufactured; no new island is
+  created. This is declared source entry on genuine DATA, not a captured wake
+  caller or positive live splitting result.
+  [Composition](../analysis/physics/native-point-wake-regroup-actual1470-qualified-20261101/source-pins.json).
+- [x] Visibly exercise native regroup and genuine positive live splitting in
+  v1471/00 driving, as counted above. This supersedes the earlier live-splitting
+  gap; the older inactive input and declared standalone wake still keep their
+  narrower proof scopes.
+- [ ] Finish native wake at every reached caller and wider regroup
+  redistribution/destruction domains. The fresh driving census still contains
+  two316D40 calls; a shared native service at one caller does not convert all
+  callers or prove all wake effects.
+- [x] Implement and wire native wrapped contact-process2F6CA0 and compound
+  contact-process2F7A50, using native2E44D0 geometry and separate caller DATA
+  slots through recursive children. Both compilers pass116 strict original
+  parent-to-child boundary cases,2,838 reads/1,086 stores and three mutations.
+  A separate nested model checks descriptor/geometry lifetime and late source
+  header changes. The coherent World model, factory prefix and merge prefix
+  pass; eight counters and two positive multiplayer gates are wired.
+  [Binding](../analysis/physics/native-contact-process-root-binding-20261101/source-pins.json).
+- [ ] Complete visible delivery of these process parents and genuine returned
+  producer304350/other child processing. The complete raw private composition
+  remains red at2F7A6E's prior bytes reused after2E44D0 saved ESI. The strict
+  parent boundary pass does not waive that result or the persistent128-byte
+  producer/heap failures. No register afterimage is reconstructed.
+- [x] Replace the literal manager-array capacity admission with the qualified
+  native pool domain. Both compilers pass the independent reserve-to-destruction
+  family, including all three owned-array branches; the integrated World model
+  passes all ten profiles. Positive+A4, lock/body-zero and unwind remain open.
+  [Freeze](../analysis/physics/native-contact-manager-array-domain-world-binding-20261101/source-pins.json).
+- [x] Wire native island merge3190D0, sorted contact merge318DE0 and lifetime
+  children317A40/317AD0/322100/3213A0 into World. The private GCC/Clang cohort
+  passes the ten manager profiles, genuine02 factory prefix and genuine09 merge
+  prefix; the actual Root model also passes. The live-world and multiplayer
+  acceptance objects compile. Shared native wake services and World activation
+  counters are included; nested unported merge services refuse before invoking
+  the old backend. This is component/model evidence, with live delivery pending.
+  [Root freeze](../analysis/physics/native-world-island-merge-root-binding-20261101-revision-02/source-pins.json).
+- [ ] Complete the new combined visible cohort with native manager, factory and
+  World merge gates, exact host/peer checks, imported MCC and the actual vehicle
+  camera. v1468 stopped during compilation and produced no runtime or live
+  acceptance. Its expired, process-free build has been removed; its source and
+  logs remain. v1470/00 passes all eight regressions, but all three full visible
+  attempts stop at the explicit shape-class qualification guard before a
+  completed frame or camera result. Iteration01 adds the native contact-process
+  binding and records the genuine refused shape/owner tuple. Normal450,
+  grenade1200 and fatal-player1200 remain required;00 is not a live pass.
+- [x] Capture genuine typed322F70 BEFORE input in v1470/00: actual manager
+  1007C000, point0, original owner322F70, actual FP depth0. The required
+  11,999,089-byte archive roundtrips4,034 files and its raw duplicate is removed.
+- [ ] Finish the wider point-removal and3187C0 branch domains and their live
+  composition described above. Preserve separate retained-DATA, raw-private,
+  declared split-world and genuine live evidence.
+- [x] v1466/07 runs native57 recursive cleanup parents in normal driving,
+  wall contact and grenade cases. Driving450 and grenade1200 match the original;
+  the finite-wall heap mismatch remains open.
+- [x] v1466/08–09 runs native159 cached/wrapped cleanup and deleting children.
+  Normal activity includes73 cached,5 wrapped and108 native destructors, with
+  zero child residual/refusal; manager-point32 and manager-destructor14 remain.
+  The identical08 binary's09 grenade run matches114,887,921 original bytes plus
+  FP, with418 actual vehicle-camera frames and1,803 exact LAN comparisons.
+- [ ] Resolve strict normal08/wall03/07 heap mismatches at10081B8C/1008038C;
+  later passing frames do not waive these failures. Preserve their original
+  BEFORE inputs and ordered-write diagnostics.
+- [x] Capture genuine positive authored+80 component DATA during09 frame724:
+  one authored row, two bodies and an active island, actual depth0. The required
+  13,613,721-byte archive is hash-verified; raw duplicate removed. This is a
+  frame-level eligibility input, not a captured22D460 invocation or creation pass.
+- [x] Qualify positive22D460 creation on the genuine09 frame-level BEFORE DATA:
+  16 declared formal calls per compiler, one created/published constraint each,
+  all1,839,255,312 persistent bytes per compiler,337 ordered events per call,
+  FP/RET4/livevalues match. Preserve the actual1F3460 classification-table read;
+  native code validates its target and uses typed branches.
+  [Report](../build/test-results/native-body-constraint-actual09-classification-tu15/report.json).
+- [x] Compose both real09 body listeners through native2816A0→22D460, then
+  remove each independently computed published handle through native22D0A0.
+  Sixteen profiles per compiler match the448-event closure ledger,
+  1,839,255,312 bytes, FP/RET/livevalues. Global rows/references, list removal/
+  deletion and instance deletion execute16 times each; unbound owners0 and
+  the wrong global-reference-clear mutation rejects.
+  [Aggregate](../analysis/physics/native-constraint-authored-lifetime-actual09-20261101/qualified-aggregate.json).
+- [ ] Qualify actual live activation-listener invocation and visible positive
+  lifetime effect; these are declared component/listener entries on real frame
+  inputs, not a captured original22D460 call or injected gameplay event.
+- [x] Wire manager3232B0/3231B0 and the existing sole collector cleanup owner;
+  the seven-profile World model passes positive unregister/defer/storage lifetime.
+- [ ] Extend manager profile qualification: v1466/10 passes eight regressions,
+  but all three live cases stop before stores at the explicit storage/current-world
+  guard. No complete frame, camera or fatal-player result is claimed for10.
+  The11 readonly tuple identifies collector+3C capacity1, an owned32-byte array;
+  A4/lock are zero and the other two arrays are borrowed. Capture its genuine
+  BEFORE was retained in12 and the owned32 release now passes both compilers:
+  89,795,481 bytes per case,160 reads/71 stores/10 genuine allocator entries,
+  actual flag1 plus declared flags0/3, three mutations rejected each.
+  The eight-profile World model also passes, and the specific cap3C==1 binding
+  is queued for v1467/01 visible requalification. Keep positive+A4,
+  owned arrays, lock/body-zero and error-unwind coverage explicit.
+- [x] Qualify native convex factory2E4EB0/2F8300 on the actual class23 parent
+  domain:40 parent cases/32 native factory completions per compiler,
+  3,589,363,400 persistent bytes, parent ordered events and FP match; three
+  mutations reject. Independent private DATA00/A5/5A and volatile-register poison
+  controls pass. This does not admit other shape classes or unwind domains.
+- [x] Wire native320EF0 and the bounded convex factory; the full default World
+  cached-confirmation model passes without the old320EF0 call. Twelve native
+  parent/factory completion, allocation, shape and refusal counters are wired.
+  The positive fresh-agent World prefix and visible full flow remain separate.
+- [ ] Finish positive factory delivery and genuine point-removal322F70,
+  distinct wrapped-process2F6CA0 and create/delete closure. No injected admission, class
+  substitution or supplied postimages.
+
 Native conversion work currently under validation (these bounded proofs do not
 close a gameplay completion group):
+
+- [x] Qualify native cached-motion `325810` and its closed quaternion/origin
+  helpers: 697 physical original cases pass with GCC and Clang, including
+  ordered reads/stores, FP state, rejection prefixes and five rejected mutations.
+  [Proof](PHYSICS_TU15_NATIVE_CACHED_MOTION_PROOF_20261026.md).
+- [x] Compose native `3205B0` and native cached/fixed motion against eleven
+  actual/declared BEFORE-input cases: 73 native motion calls and zero original
+  motion returns; the remaining agent still executes its genuine original body.
+  This offline proof supplies independently captured agent-entry ABI state and
+  does not qualify construction of that state in production.
+  [Results](../build/test-results/native-island-contact-advance-native-motion-tu15/report.json).
+- [ ] Qualify the new live cached-motion binding, genuine downstream agent
+  dependencies and a visible imported-MCC multiplayer cohort. Require actual
+  dynamic and fixed native activity, matching completed rewind/advance counts,
+  zero contact-motion fallback, and strict original-frame comparison. No guest
+  GP/SIMD postimages or captured-after results may be supplied by the kernel.
+- [x] Wire cached motion and qualify its world binding:110 original world
+  cases,96 native force compositions, a genuine-context model that executes
+  native dynamic/fixed contact motion, and the rejected world mutation pass.
+  [Results](../build/test-results/native-world-cached-motion-binding2-20261101/report.json).
+- [x] Port post-integration listener cohorts `322820/322950` and the closed
+  `3161F0` getter. Both compilers pass210 physical cases and three rejected
+  mutations. Wire both cohorts and pass the world model, including a callback
+  changing the late final listener and stable null compaction.
+  [Proof](PHYSICS_TU15_NATIVE_WORLD_STEP_LISTENERS_PROOF_20261101.md).
+- [ ] Qualify these listener cohorts in visible multiplayer with positive
+  world/island activity and strict original-frame comparison. Custom listener
+  bodies remain explicit dependencies requiring their own native conversion.
+- [x] Qualify native contact-query `2E4FE0`, eligibility `283380`, surface
+  geometry `1F5FE0`, component visibility and native cache `309060/309150`.
+  The composed query/cache proof passes42 cases per compiler across all seven
+  retained producer entries, with3,795,642,138 persistent bytes and3,447 ordered
+  operand events per compiler. Genuine GJK and shape-method dependencies remain.
+  [Cache proof](PHYSICS_TU15_NATIVE_CONTACT_CACHE_PROOF_20261101.md).
+- [ ] Close the real contact-constructor lifetime and production handoff.
+  The resolver's120-case cohort matches persistent bytes, FP and all written
+  data, while its strict before-byte ledger stays red on private control-origin
+  cells. The native compound-parent proof stops at genuine304350 entry; there
+  is no native-parent-to-original-child full-return qualification. No saved GP,
+  EBP or return metadata may be serialized to manufacture a pass.
+  [Lifetime proof](PHYSICS_TU15_NATIVE_COLLISION_COMPONENT_PROOF_20261101.md).
+  The v1463 Gemini replay is independently reproduced with130 differing heap
+  bytes across six adjacent128-byte records. A read-only hardware watch
+  identifies original repeat-copy2E2E43 and304350 vector stores30479C/304820.
+  This locates writers; it neither proves bytes inactive nor permits a waiver.
+  [Diagnosis](../analysis/physics/native-gemini-heap-mismatch-diagnosis-20261101/report.json),
+  [writer watch](../analysis/physics/native-gemini-heap-write-watch-20261101/report.json).
+- [x] Qualify the native compound contact-process parent `2F7A50`:97 physical
+  cases pass under both compilers, including recursive genuine native children,
+  actual `304350` entry stops and three rejected mutations. Genuine noncompound
+  child return/context construction remains open.
+  [Proof](PHYSICS_TU15_NATIVE_COMPOUND_PROCESS_PROOF_20261101.md).
+- [x] Port and wire native deferred world operations, added actions, deletions
+  and updates (`319750/316E90/319CD0/316E10`) and merge allocation monitors.
+  Both compilers pass452 physical cases; the corrected world binding passes
+  source comparisons and callback/reference-lifetime checks. Nine RMW prewrite
+  observer prefixes remain explicitly excluded.
+  [Proof](PHYSICS_TU15_NATIVE_WORLD_DEFERRED_PROOF_20261101.md).
+- [ ] Qualify the deferred queues visibly with all four native counters,
+  actual reference releases, no calls to the old queue owners and strict original
+  comparison. Finish their genuine nested merge, removal and destructor owners.
+- [x] Port contact-manager completion `3230C0` and world/body notification
+  `322560/31FF50`:296 physical cases pass under both compilers with three
+  rejected mutations. One atomic RMW prewrite-observer prefix remains excluded.
+  [Proof](PHYSICS_TU15_NATIVE_CONTACT_COMPLETION_PROOF_20261101.md).
+- [x] Wire contact completion and pass the complete world-binding model,
+  including custom-callback private-frame poison, cached metadata owners and
+  callback-published listener counts. The110 original world cases,96 force
+  compositions and world mutation check also pass.
+- [x] Exercise native contact completion in v1463/09 multiplayer:1,236 calls,
+  2,009 copied contacts,1,236 world and2,472 body notifications,1,368 genuine
+  custom callbacks; the old3230C0 owner is absent and strict original-frame
+  comparison passes. The actual driver vehicle camera and independent peer
+  were visually reviewed. Custom callback bodies remain migration work.
+- [x] Diagnose the real blast failure: the actual D91D0 query selects both the
+  grenade and target vehicle, with genuine vehicle physics-body ownership.
+  Delivery then reaches the missing fifth read-only response-table operand
+  DCDA8. Replace its TU1.5 lookup with the authenticated native five-kind
+  decision; both compilers and the rejecting type4 mutation pass.
+  [Results](../build/test-results/native-damage-response-dispatch-tu15-20261101/report.json).
+- [x] Requalify the native response selector and actual grenade delivery.
+  v1463/13 confirms the vehicle is admitted; distance2.0034 exceeds the authored
+  radius1.75 and correctly yields zero falloff. The declared range6 throw in
+  v1463/14 delivers one actual target impulse and reduces body fraction to
+  0.4133; four authored debris owners submit geometry to both views. Its late
+  114,887,921-byte original comparison passes.
+- [x] v1463/15 delivers two genuine target impulses and reduces body fraction
+  to0.1613, with three authored debris owners submitted to both views and strict
+  original comparison passing at tick1200. Submission counts are separate from
+  framebuffer visibility; full destruction is still red.
+- [x] Exercise source-authored rocket destruction in v1464/02: six genuine
+  target impulses, body fraction−1.60000002 and1,347 death-flag samples; nine
+  authored debris owners submit geometry to both views. The strict original
+  frame compares114,887,921 bytes and actual driver camera renders362 frames.
+  Independent recording review verifies driver camera, exit and rocket input;
+  sampled frames do not isolate every blast flash or individual debris object.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-contact-entity-recovery-original-v1464-20261101/iteration-02-summary.json).
+- [ ] Finish full vehicle retirement/presentation proof and genuine flip
+  input. The surrounding damage-response parent and other damage owners still
+  require native conversion. The completed v1463/00–15 evidence is preserved;
+  interrupted16 produced no live pass and its1,139,437,568-byte temporary owner
+  was removed. The exact source cohort is reconstructed for v1464.
+- [x] Port and wire `3174A0/3173C0/317430` body reference compaction. Both
+  compilers pass323 physical cases; the world binding preserves a store-observer
+  change to the current retirement entry and uses native reserve for growth.
+  [Proof](PHYSICS_TU15_NATIVE_BODY_REFERENCES_PROOF_20261101.md).
+- [ ] Qualify body reference compaction visibly with positive native calls,
+  all three cohorts, no `3174A0` residual and strict original comparison. Complete
+  the remaining body destruction/lifetime owners and growth/fault domains.
+- [x] Qualify the declared Warthog live cached-motion route: ten native calls,
+  ten completed rewinds/advances, four fixed-motion calls, zero motion fallback
+  and a strict89,729,945-byte original frame in v1463/01. Other motion owners
+  and unexercised branches remain separate.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-motion-owners-original-v1463-20261101/iteration-01-summary.json).
+- [x] Qualify the declared Warthog live body-compaction route:34 root calls,
+  102 cohorts and22 moved entries with no old3174A0 owner in v1463/03; actual
+  vehicle camera and strict original frame pass. Growth remains unexercised.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-motion-owners-original-v1463-20261101/iteration-03-summary.json).
+- [x] Port and wire the newly identified sphere-bounds owner2E8D90:295
+  physical original cases under both compilers and the complete world binding
+  model pass. Private transient x87 fault prefixes remain explicitly open.
+  [Proof](PHYSICS_TU15_NATIVE_SPHERE_BOUNDS_PROOF_20261101.md).
+- [x] Exercise native sphere bounds in v1463/05: two actual calls, zero bounds
+  fallback and strict original-frame comparison pass in the vehicle, grenade
+  and object cases. Other sphere branches and fault domains remain open.
+- [x] Wire the qualified direct constraint owner `325EF0` to native `329720`.
+  The strengthened binding model passes; v1463/05 driving completes596 native
+  calls and1,923 rows with no old owner, and grenade/object cases also pass
+  their strict original comparisons. Axis-producer coverage remains open.
+  [Binding results](../build/test-results/native-direct-base-binding2-20261101/report.json).
+- [ ] Exercise post-integration island listeners and deferred delete/update
+  work with source-authenticated multiplayer input. Current driving cases have
+  zero island-listener/delete/update counts; their gates remain red.
+- [x] Qualify the admitted activation family `315CB0/3165D0/316D40/322660/283450`:
+  598 physical cases pass under both compilers. Four RMW prewrite observer
+  prefixes remain excluded; this is not complete fault-contract qualification.
+  [Results](../build/test-results/native-island-activation-admitted-tu15/report.json).
+- [x] Qualify native `282870` activation agents and the composed group filter,
+  discrete dispatch, body listener and ancestor wake services. A typed B9800
+  binding and the actual F2091 transport pass48 physical cases per compiler,
+  preserving incoming x87 values at all admitted depths0–5.
+  [Activation proof](PHYSICS_TU15_NATIVE_ACTIVATION_PROOF_20261101.md).
+- [x] Qualify native `281E10` contact-entity notification and its two property
+  lookups:231 physical cases pass under both compilers, with three rejected
+  mutations. The complete world binding/model passes; the genuine processor
+  receives its actual implicit event input and five typed parameters. Its
+  production gate is exercised in v1464/00–01:01 records3,096 native calls,
+  12,384 properties and3,096 genuine child dispatches, with no old281E10 and a
+  strict tick1200 original match. The historical child1D8A20 was a genuine
+  residual there; its subsequent native conversion is recorded below. [Proof](PHYSICS_TU15_NATIVE_CONTACT_ENTITY_PROOF_20261101.md).
+- [x] Port and wire gameplay sleep wrappers `1D9B20/1D9B70` with their closed
+  eligibility chain `1D9BC0/F20C0/E7790/E65A0` and native body policy. Both
+  compilers pass422 physical cases and three rejected mutations. The world
+  model exercises both owners and blocked/body-test routes; its original
+  world/force comparisons also pass. The next live refresh requires positive
+  native activity and no old wrapper residuals.
+  [Proof](PHYSICS_TU15_NATIVE_GAMEPLAY_DEACTIVATION_PROOF_20261101.md).
+- [x] Exercise that native gameplay sleep-policy gate in v1464/02:92 native
+  calls reconcile to5 blocked/87 body-policy calls,31 biped/61 vehicle tests,
+  no old wrapper and strict original comparison passing. Genuine flip and
+  sleeping-island gates remain separate.
+- [x] Qualify and wire the two contact-feature virtual34 source calls in
+  actual30E930 to native swept/SoA/box/capsule/polygon kernels. Both compilers
+  pass28 complete original root returns,142 production-adapter calls and
+  2,530,428,092 compared persistent bytes. Independent volatile-register poison
+  and adapter mutations verify the void ABI without old GP/SIMD postimages.
+  [Proof](PHYSICS_TU15_NATIVE_CONTACT_FEATURES_HANDOFF_PROOF_20261101.md).
+- [x] Exercise that native contact-feature binding visibly with both actual
+  source-call counters positive, reconciled owner counts, zero refusals and
+  strict original comparison. The whole GJK/producer parents remain open.
+  v1464/04 driving completes15,470 attempts/calls with zero refusal, sources
+  `[7735,7735]` and direct owners `[2798,0,0,4,7056,5612]` (swept,SoA,box,
+  capsule,polygon,sphere). Its strict original frame matches89,729,945 bytes.
+  The earlier v1464/03 builds/passes eight regressions but all three live cases refuse an
+  unqualified feature owner. Normal/rocket vtable4613A0 selects authenticated
+  sphere2E8D40. Its native port now passes147 physical cases per compiler and
+  four mutations;04 has no host refusal on any of its three cases. No extra
+  Gemini algorithm was inferred from the old outer-register diagnostic.
+- [x] Qualify and wire native triangle30D3F0 and closest-segment312620 at all
+  five authenticated solver call sites. Both compilers pass28 complete original
+  roots,73 strict typed-return stages and73 actual-adapter calls with zero
+  refusal, comparing2,530,428,092 persistent bytes each. Runtime/ABI models
+  reject three mutations; no original GP/SIMD postimage is supplied.
+  [Proof](PHYSICS_TU15_NATIVE_SIMPLEX_HELPERS_HANDOFF_PROOF_20261101.md).
+- [x] Exercise both native simplex helper kinds visibly with reconciled
+  per-source counts, zero refusals and a strict original-frame comparison.
+  v1464/04 driving completes4,956 native calls (3,886 triangles/1,070 segments)
+  with no refusal and a strict89,729,945-byte original match. Rocket04 also
+  passes:9,499 helper calls, zero refusal and114,887,921 compared bytes.
+- [x] Qualify and wire native contact-row matching1D8A20:146 physical cases
+  pass under both compilers, including18 genuine1D77D0 entry stops and three
+  rejected mutations. The world model changes row backing/count and event
+  subject during two genuine callback boundaries, with a poisoned private
+  frame. Its110 original world/96 force comparisons also pass.
+  [Component](../build/test-results/native-contact-entity-processor-tu15-20261101/report.json),
+  [binding](../build/test-results/native-world-contact-processor-binding-20261101/report.json).
+- [x] Exercise native1D8A20 in visible multiplayer:04 driving records1,355
+  native parent calls and2,089 matched/updated rows; rocket04 records7,289
+  updates. Both strict original frames pass. The new native parent crosses the
+  actual typed1D77D0 service boundary; that child remains unconverted.
+- [ ] Port the genuine1D77D0 update service and its dependency closure; a
+  positive native matching parent does not make this numeric/callback child native.
+- [x] Qualify native F1DD0 flip arithmetic and direct native BC200/B9800
+  activation composition. Both compilers pass208 controller cases and288 full
+  activation/depth cases, including208 completed declared flips/setters with
+  zero residual calls. The coherent actual-caller adapter/model passes after
+  correcting its test-only borrowed-observer lifetime. These inputs declare
+  flip states and do not prove genuine gameplay rollover.
+  [Full composition](../build/test-results/native-vehicle-flip-full-activation-tu15/report.json),
+  [caller adapter](../build/test-results/native-vehicle-flip-handoff-coherent-tu15/report.json).
+- [x] Exercise the wired native F24D8→F1DD0 controller visibly in v1465/00:
+  837 native handoffs/kernel calls/flag skips, zero refusals/unbound/residuals,
+  399 actual vehicle-camera frames and387 exact LAN comparisons. The selected
+  driving frame450 matches114,363,573 original persistent bytes and FP state.
+  Independent recording review confirms the actual chase camera and peer view.
+  All837 calls are upright skips; completed flip/setter activity stays zero.
+  [Results](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-flip-controller-original-v1465-20261101/iteration-00-summary.json).
+- [ ] Produce genuine rollover/use-action8/reentry and positive native flip/
+  activation. Upright controller selection alone does not qualify this action.
+  The separate controller/action gates prevent ordinary flag skips from
+  masquerading as a completed flip. Unqualified activation services count and
+  throw; there is no lifted fallback. v1464/05 passes eight regressions but
+  its official live case is budget-not-run; the separate bounded child expires
+  before completing controller/camera/original proof. Neither is live acceptance.
+  A fresh owned v1465 cohort is rebuilding the exact source before the retry.
+- [x] Port the321510 pair consumer and its native normalization, quicksort,
+  merge and temporary-record lifetime helpers:521 source sites across six
+  owners. Both compilers pass32 positive declared-input cases, ordered reads/
+  stores, genuine callbacks and three rejecting mutations. Independent callback
+  GP/SIMD poison and authenticated callback-input audits pass. These inputs
+  derive from real existing pairs; captured-positive pair changes are not claimed.
+  [Component](../analysis/physics/native-pair-consumer-tu15-20261101-callback-context-qualified/report.json),
+  [callback audit](../analysis/physics/native-pair-callback-input-context-tu15-20261101-qualified/report.json).
+- [x] Qualify native2E9A00 collision group/mask filtering:1,155 physical
+  original cases pass with GCC and Clang (1,146 full returns and9 read/write/
+  observer-failure prefixes), all32 matrix rows/bits, output aliases,3,411
+  ordered reads/1,148 stores and three rejected mutations. The composed
+  native consumer/filter also passes all32 parent cases per compiler and three
+  rejected mutations; both kernels are selected in the new world binding.
+  Its model and visible qualification remain separate pending checks.
+  [Results](../build/test-results/native-shared-pair-filter-tu15-20261101/report.json).
+- [x] Qualify the native BDA50 object-publication root, BCFB0 root selection,
+  BE7E0 recursive tree and existing native B9390 ancestor marking:372 physical
+  original cases under both compilers, including117 failure prefixes and three
+  rejected mutations. Atomic RMW prewrite-observer and callback-mutated bank
+  domains remain explicit gaps. Its actual frame binding is wired for testing.
+  [Results](../build/test-results/native-object-publication-tu15-20261101/report.json).
+- [x] Qualify the actual native frame/publication binding: the model exercises
+  two completed native publication calls/tree visits, four ancestor-wake calls
+  and actual header stores without the old BDA50 callback. All65 original frame
+  prefix/tail cases,248 ordered stores and both rejected frame mutations pass.
+  This is component plus binding evidence; full frame child-return parity needs
+  the live comparison below.
+  [Results](../build/test-results/native-frame-object-publication-binding-20261101/report.json).
+- [x] Qualify native object publication visibly in v1466/01:1,070 completed publications,3,401 tree visits and2,925 ancestor wakes, zero refusal, and strict114,363,573-byte+FP original frame450 agreement. BDA50 is absent from the residual census. Root-selection positive work is zero and stays open.
+- [x] Qualify the native pair-consumer world binding: all110 original world
+  cases,96 force compositions, the full callback/lifetime model and rejected
+  world mutation pass. The model exercises native filter decisions and genuine
+  create/delete boundaries. Its initial stale allocation-monitor expectation
+  remains a retained failure; corrected allocation DATA and source monitor
+  behavior pass without fabricated321510 effects.
+  [Results](../build/test-results/native-world-pair-consumer-binding2-20261101/report.json).
+- [x] Qualify that native pair binding in visible multiplayer with positive
+  pair/filter input, no old321510/2E9A00 owner, zero refusals and strict original
+  comparison. v1465/01 passes eight regressions, then genuinely reaches an
+  unqualified persistent record release before its first rendered authority
+  frame. No live gate or strict frame is counted. Typed original entry capture
+  and native allocator closure are in progress. Create/delete bodies remain
+  explicit migration dependencies; slow arena and persistent growth services
+  refuse until qualified. The actual02 typed BEFORE now qualifies native
+ 149DA0/149E00 routing and pool release/allocation across genuine1→3 growth:
+ 89,734,085 bytes and146 ordered parent events match under both compilers.
+ Native2E10A0/2E1110 slow arenas also pass33 component cases and nine full
+ parent cases. Both are wired with strict unknown-owner refusals. In03/04,
+ eight regressions pass and live execution reaches the next unqualified delete
+ owner320040 (41 authenticated sites). Its native wrapper is now qualified and wired, including exact callback rereads and native2E4D60. In05, the next315A70 overlap removal is reached; its native80-site closure with314FE0 is qualified and wired. Final06 reaches315100 on receiver1007BCC0. Its new native variant passes38 component cases and all89,795,490 bytes from the authenticated earlier02 input on both compilers, including count5→4 and the9-byte event packet. The wired world model exercises both symmetric removals. No completed camera/original frame is counted for v1465/01–06. v1466/01 now completes966 native pair calls,12 nonempty inputs,7 filters,7 creates and6 deletes, plus3 owned/pool allocations and releases each. Native320040 runs3 times, dispatching one315A70 and two315100 removals with zero unknown/refusal. Strict frame450 matches114,363,573 persistent bytes and FP, with388 actual vehicle-camera frames and386 exact LAN comparisons. The genuine320EF0/320260 children remain residual owners; this closes the selected pair parent/removal path, not full native pair lifecycle.
+ Alias and observer/fault-prefix coverage remains open.
+- [x] Qualify and wire native320040 phantom pair deletion,315A70 complex overlap removal/314FE0 notification, and315100 simple overlap removal. Unknown callbacks still count and refuse.
+  [Deletion](../analysis/physics/native-phantom-pair-delete-tu15-20261101-qualified/report.json),
+  [complex removal](../analysis/physics/native-phantom-overlap-remove-tu15-20261101-qualified/report.json),
+  [simple removal](../analysis/physics/native-simple-phantom-overlap-remove-tu15-20261101-qualified/report.json),
+  [world binding](../build/test-results/native-world-simple-phantom-overlap-remove-binding-20261101/report.json).
+- [x] Include genuine frame-level callees in the residual-owner census, merging counts with world-level owners. The65-case original frame comparison and histogram model pass; future completed live frames must account for these additional residuals.
+- [x] Remove the completed v1465 owner and all its temporary source/build outputs:1,144,471,552 allocated bytes removed. Keep requested working-camera video and the required compressed BEFORE reference.
+  [Cleanup](../analysis/multiplayer/physics-live-tu15-20261012/mcc-native-flip-controller-original-v1465-20261101/owner-cleanup-verification.json).
+- [x] Wire the qualified native slow-arena owners2E10A0/2E1110 into broad-phase and island contact buffers as well as pair consumption. An exhausted-capacity world model passes with real native pool backing and balanced release, with neither old owner called. Visible positive slow-arena coverage is next; unknown backing still refuses.
+  [Binding](../analysis/physics/native-general-stack-arena-world-binding-20261101/source-pins.json).
+- [x] Port and wire native282AB0 inactive-island pair cleanup and native31B730 policy selection. Both compilers pass176 physical cases (121 full returns,3 true policy-entry stops,52 fault prefixes),4,223 ordered reads,163 stores and3 rejected mutations. The world model clears a real declared pair and replaces a kind2 policy with the native default. Invalidation/destructor/base-lock children remain separately counted residuals; callback-mutated cohorts and visible qualification remain open.
+  [Original comparison](../build/test-results/native-inactive-island-cleanup-tu15-20261101/report.json),
+  [binding](../analysis/physics/native-inactive-island-cleanup-world-binding-20261101/source-pins.json).
+- [x] Qualify selected inactive-island cleanup/destruction visibly in v1466/06:11 native282AB0 calls clear12 pairs, select12 native policies and retire8 policies through native1D9C80. Cleanup/refusal/policy-residual counts are zero; old282AB0/1D9C80 owners are absent. Strict original450 matches114,363,573 bytes and FP, with333 actual vehicle-camera frames and390 exact LAN comparisons. Nested invalidators2F3100/2F7A20/323220 remain genuine and listed above.
+- [x] Fix native flip store observation without changing source addresses: v1466/03 single-frag damage tracing now completes one genuine impulse, target health0.5730 and two submitted debris owners, with377 actual vehicle-camera frames and strict114,887,921-byte+FP original1200 agreement. Native events use the root actual-TU1.5 observer tee and avoid canonical-PC remapping; tracing stays enabled.
+- [x] Drive into the actual finite row50 wall using source camera/body-yaw SDL feedback: eight stopped-under-throttle ticks, minimum plane distance0.0703 and native97 acceleration/30 approach calls. Brake input follows the completed wall segment and cannot satisfy its stop criterion.
+- [ ] Resolve the wall03 and cleanup04 strict heap mismatches. Wall03 unchanged-original replay differs at225 bytes in88 runs; hardware watch identifies original2E2E43 repeat-copy at the first differing word. This identifies a writer, not inactive padding or permission to waive bytes.05/06 normal passes do not erase04's unique failing input. Required lossless03/04 archives remain; raw duplicates were removed, freeing240,660,480 recorded allocated bytes net of retention receipts.
+  [Wall diagnosis](../analysis/physics/native-wall-heap-mismatch-diagnosis-20261101/report.json),
+  [write watch](../analysis/physics/native-wall-heap-write-watch-20261101/report.json).
+- [ ] Convert island regrouping3187C0 (482 sites) and quantized endpoint
+  update2EA380 (980 sites), including allocation/callback lifetimes. These
+  are authenticated remaining owners, not completed native implementations.
+  [Inventory](../analysis/physics/native-live-residual-inventory-20261101/report.json).
+- [x] Qualify the bounded native velocity/wake closure through `22D460`:
+  48 physical F2091 cases per compiler preserve4,381,945,008 bytes and FP,
+  with zero residual owners/refusals. The genuine positive constraint loop
+  still has explicit unbound/count-and-throw services; it never falls back to
+  the original whole owner. Actual upright driving has zero velocity work,
+  so genuine flip/wake and positive-row gates remain open.
+  [Results](../build/test-results/native-object-velocity-body-constraint-transport-tu15/report.json).
+- [x] Qualify and wire native payload predicate, contact-manager construction
+  and body policy. Forty-eight actual F2091 cases per compiler pass; v1463/11
+  builds the binding and passes its driving original comparison. Upright
+  driving performs zero velocity/wake calls and is not flip acceptance.
+  [Results](../build/test-results/native-object-velocity-next-transport-tu15/report.json).
+- [x] Qualify and wire native model-constraint lookup and capacity admission
+  (`1DD710/22DEF0/22E040/22E000/22E0D0`, `1DD7B0/22DD90`). Both compilers
+  pass152 actual-island cases per component, including64 found/visible lookup
+  results and168 genuine capacity calls per compiler. The composed48-case
+  F2091 proof passes with zero residual calls/refusals. Its authored constraint
+  banks are empty; saturated capacity/removal and creation remain unqualified
+  and explicitly unbound. The next v1464 source refresh carries this binding.
+  [Lookup](../build/test-results/native-model-constraint-lookup-coherent-tu15/report.json),
+  [capacity](../build/test-results/native-model-constraint-capacity-tu15/report.json),
+  [transport](../build/test-results/native-object-velocity-constraint-services-transport-tu15/report.json).
+- [x] Port native22D0A0 constraint removal and compose its qualified release,
+  body-slot, scalar-cache and data-array deletion helpers. Forty physical
+  island/FP cases per compiler remove64 actual instances, free28 lists and
+  release68 references, preserving5,758,527,040 bytes per compiler. The staged
+  actual48-case F2091 binding passes with zero residuals/refusals and is wired.
+  That transport has zero removal calls; saturated-capacity composition and
+  live positive removal remain unexercised. Actual17A0F0/22FEA0 children remain
+  explicit count-and-throw dependencies, with refusal counters in both velocity
+  and flip paths.
+  [Removal](../build/test-results/native-model-constraint-removal-tu15/report.json),
+  [binding](../build/test-results/native-constraint-removal-binding-transport-tu15/report.json).
+- [x] Qualify and wire native22CEA0 constraint creation,22EBA0 local points,
+ 122B60 normalization and22EDE0 motion comparison. Both compilers pass256
+ original/native constructor calls from40 island/rounding invocations,176
+ normalizer profiles, and the combined48-case F2091 binding. Request DATA is
+ explicitly projected from genuine descriptors;96 constructor inputs declare
+ a valid real-bank slot where the dormant descriptor resolvesFFFF. The actual
+ authored+80 caller and reference-distance loop stay unexercised.
+- [x] Qualify and wire native17A0F0/17A030 retained-handle cleanup:280 original/
+ native calls per compiler include208 valid operations on26 genuine salted
+ handles. The combined transport passes with zero residuals/refusals, but
+ performs zero handle calls. The qualified native C6120 value and17A4A0 destruction children are now wired separately below; deeper177FA0/177020/deferred children still count and refuse.
+- [x] Qualify and wire native17A4A0 destruction and tagged-value cleanup. Both compilers pass140 destruction calls (104 valid),256 tag-clear calls,256 tag-presence calls and96 value-table calls. Positive child/deferred and value-publication branches remain unexercised. The combined F2091 transport has zero actual destruction calls; the component evidence is separate. Current native velocity/flip libraries compile and their temporary build is removed.
+- [x] Wire bounded native22FEA0 reference cleanup into creation/removal.256 actual original/native calls per compiler qualify the existing kind1 counter profile with768 counter writes. Both compilers pass the combined48 F2091 transport calls with runtime work0. Admission explicitly requires flag11zero/kind1/all links and handles None/512 owned DATA bytes. State/effect/frame branches are refused until their positive qualification; original22FEA0 is never retried. Geometry/math/publication helpers have separate positive component proofs.
+  [Binding](../analysis/physics/native-activation-constraint-runtime-kind1-binding-20261101/source-pins.json).
+- [ ] Qualify these creation/handle/destruction routes visibly with actual authored inputs,
+ positive native work and strict original comparison. Their new numerical,
+ storage and child-owner refusal counts must remain zero. The inverse-frame
+ arithmetic has one shared native archive; its unchanged existing camera
+ regression passes. The destruction/tag-value overlay is component and binding qualified and builds in current root; positive authored live work remains open.
+- [ ] Build and visibly exercise the wired F2091 native velocity/wake route
+  using genuine rollover/flip input. The new per-world gate requires positive
+  completed work, zero residual calls/refusals and no unknown factory/getter.
+  Bounded native replacements now cover `22D460/31B730/281F10/3232E0`; positive
+  constraint creation `22CEA0`, capacity lifetime `22D0A0` and their transitive
+  dependencies remain open. A zero-row component pass does not close them.
+- [ ] Verify grenade-to-vehicle impulses, destruction/debris and prop impulses.
+  The source-camera SDL aim fix and declared ordinary stance input produce
+  genuine target impulses and damage in v1463/14–15, with strict original
+  comparison passing. The rocket02 case independently reaches vehicle death;
+  full retirement and independent framebuffer proof of individual debris
+  remain open. Object-case original
+  comparison passes, while
+  `dynamic_prop_impulses_verified` remains false.
+
+November1 continuation: v1463/00–15 have actual completed multiplayer
+results, using the imported MCC cache and actual vehicle camera. The declared
+Warthog cached-motion/body/sphere/direct-constraint/contact-completion routes
+pass bounded original comparison. Two genuine vehicle impulses and partial
+damage pass; island listeners, deferred delete/update, full destruction and prop
+impulses remain open. Gemini's original-frame comparison is red without waivers.
+Interrupted v1462 never reached live testing; its stale running state is not a pass.
 
 - [x] Prove the native `1DA530` non-power scalar domain against complete original
   calls, numerical controls/status and an arithmetic mutation control: 8,832
@@ -237,11 +1117,16 @@ close a gameplay completion group):
   compiler. Both wrong-factory controls are rejected. This is an offline
   service composition; native factory and actual live creation coverage stay open.
   [Results](../build/test-results/native-contact-agent-dispatch-read-order-tu15/report.json).
-- [ ] Finish2F36F0 candidate-update read/callback/cleanup qualification and live
-  binding. Its42 completed physical cases include160 real creates,14 releases
-  and43 reserve calls per compiler, but independent source review still found
-  timing/prefix discrepancies. Keep those findings open while correcting them.
-  [Review](../analysis/physics/native-contact-candidate-source-review-tu15-20261026/report.json).
+- [x] Correct the reviewed2F36F0 timing/cleanup discrepancies and qualify the
+  candidate/inverse/dispatch/reserve/buffer composition:42 cases per compiler
+  compare3,795,642,138 persistent bytes and9,915 ordered operand events, with160
+  real creations,14 releases and43 native reserve calls. All three mutations
+  fail. The old review remains historical failure evidence.
+  [Final composition](../analysis/physics/native-contact-candidates-helpers-composed-tu15-20261026-qualified/aggregate.json).
+- [ ] Wire candidate update and native factories into the live contact path.
+  Keep full304350 producer raw-record/constructor lifetime failures open; the
+  stronger component composition does not waive those differences or qualify
+  complete contact generation.
 - [x] Qualify native constraint base329720 against837 physical cases/prefixes:
   all921 sites,60,160 reads and21,388 stores under GCC/Clang; all four mutations
   rejected. Private transient error payloads, unmasked traps and Xbox-specific

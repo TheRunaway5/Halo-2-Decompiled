@@ -1,8 +1,10 @@
 # Standalone opaque direct-peer candidate delivery; no native-proof readiness.
 add_library(halo2_peer_snapshot_candidate src/network/peer_snapshot_candidate.cpp)
 target_include_directories(halo2_peer_snapshot_candidate PUBLIC include)
+target_include_directories(halo2_peer_snapshot_candidate PRIVATE "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+add_dependencies(halo2_peer_snapshot_candidate halo2_online_protocol_rust_build)
 target_compile_features(halo2_peer_snapshot_candidate PUBLIC cxx_std_20)
-target_link_libraries(halo2_peer_snapshot_candidate PRIVATE OpenSSL::Crypto Threads::Threads)
+target_link_libraries(halo2_peer_snapshot_candidate PRIVATE halo2_online_protocol Threads::Threads)
 if(HALO2_SANITIZERS AND NOT MSVC)
     target_compile_options(halo2_peer_snapshot_candidate PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(halo2_peer_snapshot_candidate PUBLIC -fsanitize=address,undefined)
@@ -12,4 +14,16 @@ if(BUILD_TESTING)
     target_link_libraries(peer_snapshot_candidate_tests PRIVATE halo2_peer_snapshot_candidate Threads::Threads)
     add_test(NAME peer_snapshot_candidate COMMAND peer_snapshot_candidate_tests)
     set_tests_properties(peer_snapshot_candidate PROPERTIES TIMEOUT 60)
+    add_executable(peer_snapshot_candidate_cpp_reference tests/peer_snapshot_candidate_replay.cpp tests/reference/peer_snapshot_candidate_before_rust_20261101.cpp)
+    target_compile_features(peer_snapshot_candidate_cpp_reference PRIVATE cxx_std_20)
+    target_include_directories(peer_snapshot_candidate_cpp_reference BEFORE PRIVATE tests/reference/peer_snapshot_candidate_before_rust_20261101 include)
+    target_link_libraries(peer_snapshot_candidate_cpp_reference PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto Threads::Threads)
+    add_executable(peer_snapshot_candidate_rust_replay tests/peer_snapshot_candidate_replay.cpp)
+    target_compile_features(peer_snapshot_candidate_rust_replay PRIVATE cxx_std_20)
+    target_link_libraries(peer_snapshot_candidate_rust_replay PRIVATE halo2_peer_snapshot_candidate nlohmann_json::nlohmann_json)
+    add_test(NAME peer_snapshot_candidate_cpp_rust_replay COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_peer_snapshot_candidate_replay.py"
+        --reference $<TARGET_FILE:peer_snapshot_candidate_cpp_reference> --rust $<TARGET_FILE:peer_snapshot_candidate_rust_replay>
+        --output "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/snapshot-candidate-cpp-rust.json")
+    set_tests_properties(peer_snapshot_candidate_cpp_rust_replay PROPERTIES TIMEOUT 240)
 endif()

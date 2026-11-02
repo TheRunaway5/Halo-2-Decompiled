@@ -1,0 +1,215 @@
+{
+  "passed": true,
+  "status": "passed",
+  "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build",
+  "steps": [
+    {
+      "name": "configure",
+      "command": [
+        "cmake",
+        "-S",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/native-source",
+        "-B",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build",
+        "-DBUILD_TESTING=ON",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+        "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+        "-DHALO2_MCC_PARTY_UI_TEST_CACHE=/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+        "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+        "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+        "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/configure.log",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "command": [
+        "cmake",
+        "--build",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build",
+        "--config",
+        "Release",
+        "--parallel",
+        "2",
+        "--target",
+        "original_matchmaking_readiness_tests",
+        "rust_service_native_handoff_probe",
+        "online_matchmaking_tests",
+        "online_eos_bootstrap_tests",
+        "rust_service_account_probe",
+        "rust_service_matchmaking_probe",
+        "rust_service_qos_probe",
+        "rust_service_room_probe",
+        "online_login_probe",
+        "rust_service_social_probe",
+        "online_search_qos_tests",
+        "frontend_online_lobby_buttons_tests"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/build.log",
+      "exit_code": 0
+    },
+    {
+      "name": "tests",
+      "command": [
+        "ctest",
+        "--test-dir",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/build",
+        "--build-config",
+        "Release",
+        "--output-on-failure",
+        "--no-tests=error",
+        "--parallel",
+        "1",
+        "--tests-regex",
+        "^rust_frontend_lobby_rendered$"
+      ],
+      "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/tests.log",
+      "exit_code": 0
+    }
+  ],
+  "build_only": false,
+  "validation_not_run": false,
+  "validation_environment": {
+    "source": "repository bundle",
+    "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+    "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-qos-rust-frontend-qualified/halo2-test-3ig1gqu8/native-source/.tools/validation/usr/lib"
+  },
+  "retained_small_reports": [
+    {
+      "path": "Testing/Temporary/LastTest.log",
+      "status": "retained",
+      "bytes": 1945,
+      "sha256": "23beabb87ca17477d491caec5732205a1d92fa5b7c9928208374e3e6c509e026",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/Testing/Temporary/LastTest.log"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-0.log",
+      "status": "retained",
+      "bytes": 6620,
+      "sha256": "52eea44ab34053a0f954fc85d101f83699598e58c1125774821ae682fb9c7206",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-native-handoff-failclosed/step-0.log"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/step-1.log",
+      "status": "retained",
+      "bytes": 339,
+      "sha256": "e998406faa87ec82b4984ba0ddc87d9fdaf0069452da4b2a104b68195afda5c3",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-native-handoff-failclosed/step-1.log"
+    },
+    {
+      "path": "online-protocol/Release/build-report.json",
+      "status": "retained",
+      "bytes": 2133,
+      "sha256": "22931c4d87e98ff8d4f7385b905efb8893411a99bcd7c541aec8708d0b998f97",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/online-protocol/Release/build-report.json"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/report.json",
+      "status": "retained",
+      "bytes": 7817,
+      "sha256": "52ca99d5c7bde394073626352858d660581f39bb5242964de47261fc97164894",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-native-handoff-failclosed/report.json"
+    },
+    {
+      "path": "rust-native-handoff-failclosed/source-manifest.json",
+      "status": "retained",
+      "bytes": 20110,
+      "sha256": "058db22b0612d326e34321872b492c1ec3e1c86a25753b88fab8b8c857583843",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-native-handoff-failclosed/source-manifest.json"
+    },
+    {
+      "path": "rust-service/step-0.log",
+      "status": "retained",
+      "bytes": 6620,
+      "sha256": "e007ecf31b20471383ded7bcea663ff3b7ed95ca65bdb999d1ffe3b6eabfb682",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-service/step-0.log"
+    },
+    {
+      "path": "rust-service/step-1.log",
+      "status": "retained",
+      "bytes": 339,
+      "sha256": "f67cd3d2517010e051706e0481f8b463daff0601324faa6e6cae4c99222402a8",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-service/step-1.log"
+    },
+    {
+      "path": "rust-service/report.json",
+      "status": "retained",
+      "bytes": 23208,
+      "sha256": "de91194fa0eff1be1ca9c95f3c49a1f14eec2f3bf3838422d74431ea2186ce79",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-service/report.json"
+    },
+    {
+      "path": "rust-service/source-manifest.json",
+      "status": "retained",
+      "bytes": 20110,
+      "sha256": "40d8a9d52798acd73ef5303ebf68f84feb97f9d027c27bfb52419d7a5d5ed477",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-service/source-manifest.json"
+    },
+    {
+      "path": "rust-frontend-blocked/report.json",
+      "status": "retained",
+      "bytes": 6144,
+      "sha256": "74c341df230de262c7c3054c70e27abf5828f76e49682f48915f99b4c618d453",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-blocked/report.json"
+    },
+    {
+      "path": "rust-frontend-blocked/source-manifest.json",
+      "status": "retained",
+      "bytes": 20448,
+      "sha256": "306204f1dd220db4dc5ca14cd05b07ec5ea62ffb72770ee37b1d9168227b9dbc",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-blocked/source-manifest.json"
+    },
+    {
+      "path": "rust-frontend-blocked/step-0.log",
+      "status": "retained",
+      "bytes": 6500,
+      "sha256": "3504e8e396f17bf1f38c25a09e3c4e8ae6a7579c4287e1877d776cf3cfe09b50",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-blocked/step-0.log"
+    },
+    {
+      "path": "rust-frontend-complete/report.json",
+      "status": "retained",
+      "bytes": 6133,
+      "sha256": "f772a168253ab2c3ebc56001c95b7ffc696e4bbabf2e0052bd0663eacb7da6e3",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-complete/report.json"
+    },
+    {
+      "path": "rust-frontend-complete/source-manifest.json",
+      "status": "retained",
+      "bytes": 20448,
+      "sha256": "b8a48792e2a853ec8ccaee8a6d10c4ccbeb31daa2d8c3f75437a6bff3821b2be",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-complete/source-manifest.json"
+    },
+    {
+      "path": "rust-frontend-complete/step-0.log",
+      "status": "retained",
+      "bytes": 6500,
+      "sha256": "88dfe81f3903b7ea25e785f168b501ee51d91b85a66aefeb878b4c61af40d8fc",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-complete/step-0.log"
+    },
+    {
+      "path": "rust-frontend-rendered/report.json",
+      "status": "retained",
+      "bytes": 22121,
+      "sha256": "bf8872d127239e074a53138f3bb27cf29956276889ca300cb6b9eee7937a9ef7",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-rendered/report.json"
+    },
+    {
+      "path": "rust-frontend-rendered/source-manifest.json",
+      "status": "retained",
+      "bytes": 20448,
+      "sha256": "0b4d5ff050da336827f3de2a60bf09786494dd9dbf82aba47e02981fb3a797cd",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-rendered/source-manifest.json"
+    },
+    {
+      "path": "rust-frontend-rendered/step-0.log",
+      "status": "retained",
+      "bytes": 6500,
+      "sha256": "b71179ded990eb7891a24a2acf7bf67402725bd5476981e89331c42eec06ab0c",
+      "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-qos-rust-frontend-qualified-20261101/iteration-2/evidence/rust-frontend-rendered/step-0.log"
+    }
+  ]
+}

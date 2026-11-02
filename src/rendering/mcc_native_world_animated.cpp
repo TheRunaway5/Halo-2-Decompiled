@@ -11,6 +11,7 @@ namespace halo2 {
 namespace {
 using Json=nlohmann::json;
 #include "rendering/mcc_native_world_animated_profiles.inc"
+#include "rendering/mcc_native_sky_cooked_profiles.inc"
 constexpr std::array<std::pair<unsigned,unsigned>,14> fields{{
     {4,12},{12,4},{20,16},{28,6},{36,2},{44,2},{52,10},
     {60,20},{68,4},{76,2},{84,4},{92,4},{100,12},{108,4}}};
@@ -39,11 +40,16 @@ std::string digest(std::span<const std::byte> bytes) {
     constexpr char hex[]="0123456789abcdef";std::string result;
     for(auto v:out){result+=hex[v>>4];result+=hex[v&15];}return result;
 }
-const Json* profile_for(const Tag& stem,std::string_view payload) {
+constexpr std::string_view sky_prefix="shaders\\shader_templates\\transparent\\sky_";
+const Json* profile_for(const Tag& stem,std::string_view payload,unsigned overlays) {
     // Immutable build-time registry, not a program or instruction stream.
     static const auto registry=Json::parse(native_world_animated_profiles);
     for(const auto& profile:registry.at("profiles"))
         if(profile.at("template")==stem.name&&profile.at("native_record").at("payload")==payload)return &profile;
+    static const auto skies=Json::parse(native_sky_cooked_profiles);
+    for(const auto& profile:skies.at("profiles"))
+        if(profile.at("template")==stem.name&&profile.at("native_record").at("payload")==payload&&
+           profile.at("source_counts").at("60")==overlays)return &profile;
     return nullptr;
 }
 std::vector<std::byte> shader_lods(std::span<const std::byte> template_lods) {
@@ -70,8 +76,19 @@ std::optional<MccOwnedShaderProjection> project_mcc_animated_clock_world(
     std::string_view payload_name,std::span<const std::byte> payload,
     const MccShaderRead& read_source,const MccShaderFind& find,const MccShaderBitmapFrame& owns_frame) {
     try {
-        const auto* profile=profile_for(native_stem,payload_name);
-        if(!profile||!read_source||!find||!owns_frame)return {};
+        if(!read_source||!find||!owns_frame)return {};
+        const bool sky=native_stem.name.starts_with(sky_prefix);
+        unsigned overlay_count=0;
+        if(sky) {
+            if(shader.group!="shad"||!shader.address||shader.size<84)return {};
+            const Bytes root(read_source(shader.address,84));
+            if(root.u32(4)!=native_stem.datum)return {};
+            const auto address=root.u32(36);
+            if(root.u32(32)!=3||std::uint64_t(address)+124>0x100000000ull)return {};
+            overlay_count=Bytes(read_source(address,124)).u32(60);
+        }
+        const auto* profile=profile_for(native_stem,payload_name,overlay_count);
+        if(!profile)return {};
         const auto same=[&](const Tag& tag) {
             const auto* actual=find(tag.datum);
             return actual&&actual->datum==tag.datum&&actual->group==tag.group&&actual->name==tag.name&&
@@ -158,8 +175,11 @@ std::optional<MccOwnedShaderProjection> project_mcc_animated_clock_world(
             require(count||!pointer,"Empty clock material shader bank has a pointer");
             if(count)banks[i]=source(pointer,std::size_t(count)*stride);
         }
-        require(banks[3]==shader_lods(source_template_banks[0])&&banks[4]==source_template_banks[1]&&
-                banks[5]==shader_pass_ranges(source_template_banks[2]),
+        require(sky?(banks[3]==unhex(profile->at("native_role_banks").at("28").get<std::string>())&&
+                     banks[4]==unhex(profile->at("native_role_banks").at("36").get<std::string>())&&
+                     banks[5]==unhex(profile->at("native_role_banks").at("44").get<std::string>())):
+                (banks[3]==shader_lods(source_template_banks[0])&&banks[4]==source_template_banks[1]&&
+                 banks[5]==shader_pass_ranges(source_template_banks[2])),
                 "Clock material shader scheduling does not match its complete source compiler graph");
         const auto bitmap=[&](std::uint32_t handle,std::uint32_t frame) {
             const auto* tag=find(handle);
@@ -186,20 +206,23 @@ std::optional<MccOwnedShaderProjection> project_mcc_animated_clock_world(
             require(std::find(periods.begin(),periods.end(),Json(period))!=periods.end(),
                     "Clock material period differs from literal authored source");
             auto expected_curve=unhex(expected.at("curve_hex").get<std::string>());
-            require(!expected_curve.empty()&&expected_curve.size()<=4096&&overlays.u32(i*20+12)==expected_curve.size(),
+            const auto extent=overlays.u32(i*20+12);
+            require(!expected_curve.empty()&&expected_curve.size()<=4096&&extent&&extent<=4096&&
+                    (sky||extent==expected_curve.size()),
                     "Clock material function extent differs from its original curve authority");
-            auto curve=source(overlays.u32(i*20+16),expected_curve.size());
+            auto curve=source(overlays.u32(i*20+16),extent);
             bool admitted=curve==expected_curve;
             if(expected.contains("curve_hex_variants")) {
                 // Uplift and paired Zanzibar use the same complete compiler
                 // graph. Their authored scale curves differ only at roles1/3;
                 // preserve either exact source blob instead of replacing it.
-                require(profile->at("template")=="shaders\\shader_templates\\water\\water_static"&&
-                        (i==1||i==3)&&expected.at("curve_hex_variants").size()==2,
+                require((sky || (profile->at("template")=="shaders\\shader_templates\\water\\water_static"&&
+                        (i==1||i==3)))&&expected.at("curve_hex_variants").size()==2,
                         "Unreviewed clock curve variants outside the finite water roles");
                 for(const auto& variant:expected.at("curve_hex_variants")) {
                     const auto bytes=unhex(variant.get<std::string>());
-                    require(bytes.size()==expected_curve.size(),"Clock curve variant extent changed");
+                    require(sky?(!bytes.empty()&&bytes.size()<=4096):bytes.size()==expected_curve.size(),
+                            "Clock curve variant extent changed");
                     admitted|=curve==bytes;
                 }
             }
@@ -229,6 +252,13 @@ std::optional<MccOwnedShaderProjection> project_mcc_animated_clock_world(
             require(prediction_data.u16(i*8)==0&&bitmap(prediction_data.u32(i*8+4),prediction_data.u16(i*8+2)),
                     "Clock material prediction lost its complete bitmap/frame owner");
 
+        if(sky) {
+            const auto mapping=profile->at("mapping").get<std::string>();
+            if(mapping=="swap_environment_pixels") {
+                require(banks[1].size()==16,"Sky environment pixel bank differs from paired layout");
+                for(unsigned n=0;n<4;++n)std::swap(banks[1][4+n],banks[1][8+n]);
+            }else require(mapping=="copy","Unknown qualified sky pixel mapping");
+        }
         // Finite data admission only: literal clock curves and remap roles
         // are retained for the existing native constant writer. No shader
         // program is read or executed by this conversion.
@@ -243,7 +273,10 @@ std::optional<MccOwnedShaderProjection> project_mcc_animated_clock_world(
             const auto span=native.slice(native.u32(pp+field+4),std::size_t(count)*stride);
             native_banks[i]={span.begin(),span.end()};
         }
-        banks[3]=shader_lods(native_banks[0]);banks[4]=native_banks[1];
+        // Paired sky shad LODs have authored zero availability flags; stem
+        // availability is a separate bank. Retain the proved literal shad.
+        if(!sky)banks[3]=shader_lods(native_banks[0]);
+        banks[4]=native_banks[1];
         banks[5]=shader_pass_ranges(native_banks[2]);
         require(banks[6].size()==profile->at("native_shape").at("24").get<std::size_t>()*10,
                 "Clock material implementation roles differ from the complete native template");

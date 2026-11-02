@@ -169,7 +169,7 @@ MenuState &FrontendSession::enter(FrontendOptions::Entry entry,
 void MenuState::clear_runtime_adapters() noexcept {
   if (online_voice_) online_voice_->leave();
   // Join the audio worker before this invocation's SDL/window owner can die.
-  online_voice_.reset(); voice_={};voice_party_=false;
+  online_voice_.reset(); voice_={};party_flow_.voice_party(false);
   // Account/party and queue workers belong to the retained FrontendSession,
   // not this SDL/renderer invocation. Signing them out here loses accepted
   // party/host state between a completed report and its pregame lobby.

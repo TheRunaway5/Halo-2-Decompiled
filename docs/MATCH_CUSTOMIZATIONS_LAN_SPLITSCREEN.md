@@ -96,8 +96,11 @@ This is settings availability, preservation, and bounded native execution
 coverage. It does not establish every combination's full gameplay, rendering,
 audio, physical-Xbox, or cross-machine parity. Richer local Vista postgame
 presentation remains separately bounded; other stock modes use the ordinary
-runtime launch path. Launcher-selected immutable runtimes need a later build
-and qualification to incorporate these source changes.
+runtime launch path. The October 29 [Split Screen startup delivery](SPLITSCREEN_STARTUP_SHADOW_REFERENCE.md)
+includes these source changes in selected immutable runtime
+`9101fc561cbe41539e3c5fb3db5b32bd`; its focused settings regressions passed
+again during qualification. The custom runtime/render evidence below remains
+tied to its earlier pinned cohort.
 
 ### Custom-mode follow-up validation
 

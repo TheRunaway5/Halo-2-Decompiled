@@ -46,18 +46,25 @@ struct Stop{halo2::SourcePhysicsContactRuntimeCall call;};
 }
 int main(int argc,char**argv){try{
     check(argc==2 || (argc==3 && (std::string_view(argv[2])=="first-person-dispatch" ||
-        std::string_view(argv[2])=="first-person-vector-pack" || std::string_view(argv[2])=="first-person-part-retirement")),"Supply original vehicle runtime fixture and optional first-person dispatch mode");if(!std::filesystem::exists(argv[1]))return 77;
+        std::string_view(argv[2])=="first-person-vector-pack" || std::string_view(argv[2])=="first-person-part-retirement" ||
+        std::string_view(argv[2])=="first-person-resource-retirement")),"Supply original vehicle runtime fixture and optional first-person dispatch mode");if(!std::filesystem::exists(argv[1]))return 77;
     const bool first_person_dispatch=argc==3;
     const bool vector_pack=first_person_dispatch && std::string_view(argv[2])=="first-person-vector-pack";
     const bool part_retirement=first_person_dispatch && std::string_view(argv[2])=="first-person-part-retirement";
-    const halo2::SourcePhysicsContactRuntimeCall dispatch_call{
-        vector_pack?0x18f2feu:part_retirement?0x17a6a0u:0x17b262u,
-        vector_pack?0x18bbc0u:part_retirement?0x16e8a0u:0x17a230u,false};
+    const bool resource_retirement=first_person_dispatch && std::string_view(argv[2])=="first-person-resource-retirement";
     const auto dispatch=[&](auto &memory,const auto &call,auto &a,auto control,const auto &services,const auto &stores) {
         return vector_pack?halo2::source_first_person_vector_pack_tu15(memory,call,a,control,services,stores):
             halo2::source_first_person_effect_retirement_tu15(memory,call,a,control,services,stores);
     };
     std::ifstream in(argv[1]);const auto fixture=J::parse(in);check(fixture.at("image")=="1.5","TU1.5 is the sole parity target");std::size_t cases=0,writes=0,instructions=0,fullbytes=0;
+    // Independently enumerated actual CALL sites in resource acquisition,
+    // explicit release, and both completed asynchronous retirement queues.
+    const std::vector<std::uint32_t> resource_sites=resource_retirement?
+        std::vector<std::uint32_t>{0x126307u,0x126466u,0x12657au,0x1265f5u}:std::vector<std::uint32_t>{0};
+    for(const auto resource_site:resource_sites) {
+    const halo2::SourcePhysicsContactRuntimeCall dispatch_call{
+        vector_pack?0x18f2feu:part_retirement?0x17a6a0u:resource_retirement?resource_site:0x17b262u,
+        vector_pack?0x18bbc0u:(part_retirement||resource_retirement)?0x16e8a0u:0x17a230u,false};
     for(const auto&c:fixture.at("cases")){
         if(first_person_dispatch && c.at("entry").get<std::uint32_t>()!=dispatch_call.target)continue;
         const auto name="vehicle_"+std::to_string(c.at("id").get<unsigned>());Memory m;
@@ -94,10 +101,13 @@ int main(int argc,char**argv){try{
                             environment,s,o);
             }
         };
-        if(first_person_dispatch)for(const auto call:std::array<halo2::SourcePhysicsContactRuntimeCall,3>{{
+        if(first_person_dispatch)for(const auto call:std::array<halo2::SourcePhysicsContactRuntimeCall,4>{{
             {dispatch_call.instruction-1u,dispatch_call.target,false},
             {dispatch_call.instruction,dispatch_call.target+1u,false},
-            {dispatch_call.instruction,dispatch_call.target,true}}}) {
+            {dispatch_call.instruction,dispatch_call.target,true},
+            // A genuine pool-free CALL from another native subsystem still
+            // cannot borrow this first-person resource-retirement boundary.
+            {0x1d3121u,dispatch_call.target,false}}}) {
             auto untouched=initial;auto a=state;const auto original=a;bool called=false;
             auto absent=services;absent.instruction=[&](auto){called=true;};
             check(!dispatch(untouched,call,a,halo2::SourcePhysicsFactoryFloatingPoint{0,0},absent,
@@ -152,6 +162,7 @@ int main(int argc,char**argv){try{
         }
         ++cases;writes+=stores.size();instructions+=expected_trace.size();
     }
+    }
     check(cases>0,"Original runtime fixture contains no requested owner cases");
-    std::cout<<"PASS original TU1.5 "<<(vector_pack?"FP vector-pack dispatch":part_retirement?"FP part-retirement dispatch":first_person_dispatch?"FP effect-retirement dispatch":"vehicle environment state")<<": "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes\n";return 0;
+    std::cout<<"PASS original TU1.5 "<<(vector_pack?"FP vector-pack dispatch":part_retirement?"FP part-retirement dispatch":resource_retirement?"FP resource-retirement dispatch":first_person_dispatch?"FP effect-retirement dispatch":"vehicle environment state")<<": "<<cases<<" cases, "<<instructions<<" instructions, "<<writes<<" ordered writes, "<<fullbytes<<" full-state bytes\n";return 0;
 }catch(const std::exception&e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}

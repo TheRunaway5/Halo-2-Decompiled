@@ -1,0 +1,6 @@
+{
+  "queued": true,
+  "after_iteration": 1,
+  "fifo": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-party-view-native-20261102/halo2-test-9n5lcc3j/control.fifo",
+  "request": "final-native-request.json"
+}

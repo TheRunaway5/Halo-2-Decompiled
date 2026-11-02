@@ -6,6 +6,8 @@
 #include "halo2/source_script_sound_clock_native64_tu15.hpp"
 #include "halo2/mcc_sound_variation_provider.hpp"
 #include "halo2/source_loop_sound_request_tu15.hpp"
+#include "halo2/source_object_audio_views_tu15.hpp"
+#include "halo2/source_loop_combined_mix_tu15.hpp"
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -24,6 +26,7 @@ struct MultiplayerAudioBsp {
   struct Cluster {std::int16_t palette=-1,path=-1;};
   std::vector<Palette> palette;
   std::vector<Cluster> clusters;
+  std::vector<std::int16_t> leaf_clusters;
   std::vector<std::vector<std::uint16_t>> paths;
   std::vector<std::uint8_t> pair_distances;
   float distance_lower{},distance_upper{};
@@ -59,6 +62,10 @@ using MultiplayerAudioObserver=std::function<void(const MultiplayerAudioSubmissi
 // The controller owns selection, transitions and subsequent packets.
 struct MultiplayerLoopPacketParametersTu15 {
   float pitch_cents{},gain_db{},gain_control=1;
+  // Actual combined-parent amplitudes in original four-bin order. A native
+  // consumer must perform2216D0 gain publication and preserve the four routes;
+  // scalar distance attenuation is not a consumer for this field.
+  std::optional<std::array<std::uint32_t,4>> combined_amplitudes;
 };
 struct MultiplayerLoopPacketTu15 {
   std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
@@ -341,6 +348,11 @@ public:
   // Uses authored class/playback distance bounds and original distance gain.
   // This handoff does not provide Xbox HRTF/DSP, portal or PVS processing.
   void listeners(std::span<const Vec3>);
+  // Submitted native cameras and their actual BSP. Geometry is loaded from
+  // this Audio's Cache; a position-only update unbinds these oriented inputs.
+  void object_loop_listeners(std::size_t bsp,const SourceObjectAudioViewsTu15&);
+  std::optional<SourceLoopCombinedListenerInputTu15> combined_loop_listener(
+      std::span<const std::byte,68>,std::uint32_t maximum_distance_bits)const;
   // Refresh a live spatial voice from its owning source object's completed
   // WORLD point. This changes only spatial parameters, never PCM or selection.
   // Centered voices and retired identities cannot acquire an emitter here.

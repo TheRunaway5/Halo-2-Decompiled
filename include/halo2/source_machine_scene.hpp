@@ -14,6 +14,8 @@ struct ObjectLightingBinding;
 struct ModelObjectDraw;
 struct SourceLiveModelBaseDrawTu15;
 class PhysicsLiveWorldTu15;
+class SourceCampaignMachineViewPacket;
+struct SourceCampaignMachineDrawInputs;
 struct ReferenceDeviceState;
 // Prepared-resource census; synchronize separately owns live draw admission.
 struct SourceMachineSceneStats {
@@ -43,6 +45,19 @@ class SourceMachineScene {
 public:
     SourceMachineScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
                        Mesh &,const CollisionWorld &,bool source_resource_defer=false);
+    // Renderer-owned definition resources. Native extraction below never
+    // borrows collision, steps a device controller or synthesizes a pose.
+    static std::unique_ptr<SourceMachineScene> campaign_resources(const Cache &,
+        std::span<const ScenarioObject>,std::size_t bsp,Mesh &);
+    bool owns_definition(std::uint32_t)const;
+    void begin_campaign_frame(std::uint64_t actual_frame);
+    std::shared_ptr<const SourceCampaignMachineViewPacket> collect_campaign_view(
+        const SceneObjects &,std::span<const SourceLiveModelBaseDrawTu15>,
+        const SourceModelShaderView &,PhysicsLiveWorldTu15 &,
+        const std::function<SourceCampaignMachineDrawInputs(const SourceLiveModelBaseDrawTu15&)> &);
+    // The caller transfers the same resident common-material block when its
+    // BSP geometry prefix changes. No images or coefficient results reload.
+    void rebase_campaign_materials(unsigned previous_geometry_count,unsigned next_geometry_count);
     ~SourceMachineScene();
     // Independent effects-only presentation over the exact prepared material IDs.
     // No resource reload, Mesh/pass writes, callback aliases or checkpoint sharing.
@@ -133,6 +148,6 @@ public:
 private:
     struct Impl;
     explicit SourceMachineScene(std::unique_ptr<Impl>);
-    std::unique_ptr<Impl> impl_;
+    std::shared_ptr<Impl> impl_;
 };
 } // namespace halo2

@@ -785,7 +785,13 @@ int unrelated_motion_noise(const std::filesystem::path& shaders,VkExtent2D exten
 #include "grazing_normal_gpu_fixture.hpp"
 #include "grazing_secondary_gpu_fixture.hpp"
 #include "temporal_reprojection_gpu_fixture.hpp"
+#include "source_indirect_gpu_fixture.hpp"
+#include "opaque_detail_gpu_fixture.hpp"
 int main(int argc,char** argv)try {
+    if(argc==3 && std::string_view(argv[2])=="--opaque-detail")
+        return opaque_detail_gpu(argv[1]);
+    if(argc==3 && std::string_view(argv[2])=="--source-indirect")
+        return source_indirect_gpu(argv[1]);
     if((argc==3 || argc==5) && (std::string_view(argv[2])=="--foreground-reprojection" ||
                               std::string_view(argv[2])=="--foreground-reprojection-trace")) {
         VkExtent2D extent{512,288};

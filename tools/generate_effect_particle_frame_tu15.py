@@ -14,6 +14,12 @@ ENTRIES=(0x3eb10,0x3f3e0,0x30bd0,0x11f9c0,0x13a6b0,0x145560,0x1458a0,0x1459b0,0x
     0x166a80,0x16e8a0,0x16ea60,0x177020,0x177830,0x1778d0,0x177fa0,
     0x178070,0x178110,0x178240,0x178290,0x178920,0x179df0,0x179ed0,
     0x17ba10,0x17ba50,0x17dce0,0x17dd50,0x17ddc0,0x17de10,
+    #18F9B0 mode3 resolves the actual effect's looping-sound location through
+    #17DCE0(mode3),17DD50 and145560, including encoded first-person nodes.
+    0x17e160,
+    # Its mode2 sibling consumes the actual physics sound-source row,
+    # original rigid body/marker location and authored control clamp.
+    0x230b10,
     0x22ac50,0x22ac60,0x22ac70,0x22ac80,0x22aca0,0x22acc0,0x22acd0,0x22ad20,0x22ad30,0x22ad40,0x22ad50,0x22ad60,0x22b700,0x22b710,0x22b780,0x22b790,
     # Literal44B56C/44B574 initialize/reset the per-frame audio state read
     # by13A9B0's complete18EE50 prelude. Keep the actual arena/checksum owner.
@@ -35,6 +41,8 @@ def main():
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     assert code.at(0x13aa28).operands[0].imm==0x179df0
     assert code.at(0x179ec8).operands[0].imm==0x177830
+    assert code.at(0x18fa45).mnemonic=='call' and code.at(0x18fa45).operands[0].imm==0x17e160
+    assert code.at(0x18fb2c).mnemonic=='call' and code.at(0x18fb2c).operands[0].imm==0x230b10
     assert code.at(0x2c2b01).mnemonic=='call' and code.at(0x2c2b01).operands[0].imm==0x2c2d90
     assert struct.unpack('<4I',image.read(0x44b56c,16))==(0x22c440,0x31d400,0x22c480,0x31d400)
     assert struct.unpack('<I',image.read(0x46d978,4))[0]==0x380e70
@@ -51,6 +59,10 @@ def main():
     sites,instructions,addresses,routines={},{},{},[]
     for entry in sorted(ENTRIES):
         body=_trace(code,entry,set(ENTRIES));assert body.code
+        if entry in (0x17e160,0x230b10):
+            extent=226 if entry==0x17e160 else 802
+            assert min(body.code)==entry and max(pc+code.at(pc).size for pc in body.code)==entry+extent
+            assert sum(code.at(pc).size for pc in body.code)==extent
         assert all(width in (1,4) for _,width,_ in body.tables)
         sites[f'{entry:08x}']=sorted(body.code)
         routines.append(dict(entry=entry,tables=[dict(disc=p,count=n) for p,w,n in body.tables if w==4],byte_tables=[dict(address=p,width=w,count=n,raw_hex=image.read(p,w*n).hex()) for p,w,n in body.tables if w==1]))
@@ -70,9 +82,10 @@ def main():
         pattern=r'static void run_([0-9a-f]+)\(WorldState &s\) \{\n(.*?)\n\}'
         old_bodies=dict(re.findall(pattern,existing,re.S));new_bodies=dict(re.findall(pattern,source,re.S))
         assert set(old_bodies)<=set(new_bodies) and old_bodies
-        source=existing;preserved=len(old_bodies)
+        regenerated=source;source=existing;preserved=len(old_bodies)
+        added_entries=set(new_bodies)-set(old_bodies)
         first=re.search(pattern,source,re.S).start()
-        for entry in sorted(set(new_bodies)-set(old_bodies),key=lambda value:int(value,16)):
+        for entry in sorted(added_entries,key=lambda value:int(value,16)):
             body=f'static void run_{entry}(WorldState &s) {{\n{new_bodies[entry]}\n}}\n\n'
             source=source[:first]+body+source[first:];first+=len(body)
             source=source.replace('switch(entry) {','switch(entry) {\n'+f'case 0x{entry}u:run_{entry}(s);break;',1)
@@ -81,7 +94,7 @@ def main():
             source=source.replace(owner,owner+f'case 0x{entry}u:',1)
         # Virtual calls inside the module need the same complete owner as its
         # exported entry control. Keep the declaration ahead of local dispatch.
-        for entry in ('22b710',):
+        for entry in sorted(added_entries|{'22b710'},key=lambda value:int(value,16)):
             declaration=f'static void run_{entry}(WorldState &);\n'
             source=source.replace(declaration,'')
             position=source.index('static void run_')
@@ -96,8 +109,39 @@ def main():
             if route not in source:
                 assert dispatch in source
                 source=source.replace(dispatch,dispatch+route,1)
+        # New complete bodies also consume literal source return addresses and
+        # operands. Extend their identity mapping without changing an existing
+        # admitted body or any of its original address correspondences.
+        def mappings(text):
+            selected_body=re.search(r'^std::uint32_t selected\([^\n]+$',text,re.M).group(0)
+            return dict(re.findall(r'case 0x([0-9a-f]+)u:return 0x([0-9a-f]+)u;',selected_body))
+        before=mappings(source);after=mappings(regenerated)
+        assert all(after.get(key,value)==value for key,value in before.items())
+        additions=''.join(f'case 0x{key}u:return 0x{value}u;' for key,value in after.items() if key not in before)
+        if additions:
+            assert selected in source
+            source=source.replace(selected,selected+additions,1)
         assert all(dict(re.findall(pattern,source,re.S))[entry]==body for entry,body in old_bodies.items())
-    a.output.write_text(source)
-    report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),particle_vtables=tables,preserved_existing_bodies=preserved)
+    diagnostic_include='#include "halo2/source_physics_entry_observation.hpp"\n'
+    if diagnostic_include not in source:
+        source=source.replace('#include "halo2/source_effect_particle_frame_tu15.hpp"\n',
+            '#include "halo2/source_effect_particle_frame_tu15.hpp"\n'+diagnostic_include,1)
+    diagnostic='''    std::optional<SourcePhysicsEntryObservation> diagnostic;
+    if(entry==0x17e160u || entry==0x230b10u)
+        diagnostic.emplace(m,entry,[&]{return s.save();});
+'''
+    if diagnostic not in source:
+        boundary='s.load(abi);\n    try {'
+        assert source.count(boundary)==1
+        source=source.replace(boundary,'s.load(abi);\n'+diagnostic+'    try {',1)
+    from native_weapon_effect_iterator_bridge_tu15 import install_native_effect_iterator
+    source=install_native_effect_iterator(source)
+    from native_weapon_effect_state_bridge_tu15 import install_native_effect_creation
+    source=install_native_effect_creation(source)
+    from native_normalize_vector_bridge_tu15 import install_native_normalizer
+    a.output.write_text(install_native_normalizer(source,'Tu15Literal'))
+    report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),particle_vtables=tables,preserved_existing_bodies=preserved,
+        effect_loop_location=dict(entry='0017e160',bytes=226,caller='0018fa45',returned='0018fa4a',ret_bytes=8),
+        physics_loop_location=dict(entry='00230b10',bytes=802,caller='0018fb2c',returned='0018fb31',ret_bytes=12))
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print('Complete source particle-frame owners',len(ENTRIES),'instructions',len(instructions))
 if __name__=='__main__':main()

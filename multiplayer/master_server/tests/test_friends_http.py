@@ -11,23 +11,25 @@ from ..player_identity import initialize, player
 
 
 class FriendTagTests(unittest.TestCase):
-    def test_lazy_migration_collision_retry_rename_and_unicode(self):
+    def test_lazy_native_tag_migration_rename_and_unicode(self):
         with closing(sqlite3.connect(":memory:")) as db:
             initialize(db)
             db.execute("INSERT INTO players VALUES('old','steam','verified-old')")
             db.execute("INSERT INTO player_profiles(player,screen_name) VALUES('old','Old')")
             initialize(db)
             self.assertIsNone(friend_tags.tag(db,"old"))
-            with patch.object(friend_tags.secrets,"randbelow",side_effect=[1,1,99999999]):
-                a=player(db,("steam","verified-a"),"Café","Persona")
-                b=player(db,("steam","verified-b"),"Café","Persona")
-            self.assertEqual(friend_tags.tag(db,a),"Café#00000001")
-            self.assertEqual(friend_tags.tag(db,b),"Café#99999999")
-            self.assertEqual(friend_tags.resolve(db,"CAFE\u0301#00000001"),a)
+            a=player(db,("steam","verified-a"),"Café","Persona")
+            b=player(db,("steam","verified-b"),"Café","Persona")
+            first,second=friend_tags.tag(db,a),friend_tags.tag(db,b)
+            self.assertRegex(first,r'^Café#[0-9]{8}$')
+            self.assertRegex(second,r'^Café#[0-9]{8}$')
+            self.assertNotEqual(first,second)
+            suffix=first.rpartition('#')[2]
+            self.assertEqual(friend_tags.resolve(db,"CAFE\u0301#"+suffix),a)
             self.assertEqual(player(db,("steam","verified-a"),"Renamed","New Persona"),a)
-            self.assertEqual(friend_tags.tag(db,a),"Renamed#00000001")
+            self.assertEqual(friend_tags.tag(db,a),"Renamed#"+suffix)
             with self.assertRaisesRegex(Exception,"Player not found"):
-                friend_tags.resolve(db,"Café#00000001")
+                friend_tags.resolve(db,first)
             player(db,("steam","verified-old"),"Old","Persona")
             self.assertRegex(friend_tags.tag(db,"old"),r"^Old#[0-9]{8}$")
             self.assertIsNone(db.execute("SELECT joined_at FROM player_profiles WHERE player='old'").fetchone()[0])
@@ -164,7 +166,8 @@ class FriendsHttpTests(unittest.IsolatedAsyncioTestCase):
             db.set_trace_callback(None)
         self.assertEqual(len(view['friends']),250)
         self.assertLess(len(json.dumps(view).encode()),256*1024)
-        self.assertLessEqual(len(queries),3,'A roster must not issue queries for every friend')
+        self.assertEqual(len([sql for sql in queries if sql.startswith('WITH relationships')]),2)
+        self.assertLessEqual(len(queries),5,'Two native128-row pages,one tag query and BEGIN/COMMIT bound the whole roster')
         b=await self.find(self.a,self.b)
         await self.command(self.a,'request',409,target=b['id'])
 

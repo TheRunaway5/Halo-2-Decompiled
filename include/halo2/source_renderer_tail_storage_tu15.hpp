@@ -24,7 +24,8 @@ struct NativeTu15RendererTailStorageViews {
 NativeTu15RendererTailStorageViews native_tu15_renderer_tail_storage_views(
     const SourceRuntimeMemory&);
 // Native composition of12560's CPU-only12822..1287E storage prefix. The
-// caller invokes complete original20E30/126850/20E90 over the same arena.
+// Slot retirement uses the semantic native20E30 kernel; the caller invokes
+// complete original126850/20E90 over the same arena.
 //126850's aligned allocation is identical for the literal0x34 request.
 // No prior GPU-call result or renderer-initialized flag is supplied/written.
 using SourceRendererCpuOriginalCall=std::function<std::uint32_t(

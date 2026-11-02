@@ -1,0 +1,25 @@
+{
+  "scope": "Repair the error text loss introduced by the new migration bridge before production caller qualification",
+  "red_native_iteration": 2,
+  "original_exception": "ONLINE match connection failed or ended. Search again.",
+  "incorrect_new_exception": "Native migration caller failed",
+  "new_caller_preserves_actual_io_exception_text": true,
+  "changes": [
+    {
+      "source": "rust/online_protocol/src/matchmaking_native_migration.rs",
+      "before_sha256": "ab0c0a1aef7aabd8d9ebe760b1ec83ef08f6e079b76a8e8e4724bb2dbe7ee722",
+      "after_sha256": "969e88a33dcdd0a658d7fa4347e4145d400cb1ddc1a99102a2f6bd1fec51116d"
+    },
+    {
+      "source": "rust/online_protocol_bridge/src/matchmaking_native_migration.rs",
+      "before_sha256": "bab61cbf89632ffc3ea5aee46fe1925487f54d7b95745faf2986f0a1618a2f93",
+      "after_sha256": "18bb66181afd0e7c106474043aa5e5fa3c88317a447c89a956d31619736fec41"
+    },
+    {
+      "source": "rust/online_protocol/tests/matchmaking_native_migration.rs",
+      "before_sha256": "ab6ba163991fef513a42d02b6fc59248c4e36acce02196e1aa210affb72d76b5",
+      "after_sha256": "2363a9ba887a440738f99039e3c20b23509f8e90d3f5e6fd08454032d78e28e2"
+    }
+  ],
+  "no_state_or_admission_guard_weakened": true
+}

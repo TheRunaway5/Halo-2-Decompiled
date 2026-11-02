@@ -58,6 +58,18 @@ ROOTS = {
     ],
 }
 
+# Template/remap data only. Every pass and vertex dependency must already be
+# resident after the normal reviewed closure; these roots cannot add programs.
+RESIDENT_TEMPLATE_ROOTS = {
+    "needle": [("coagulation", "opaque", "tex_bump_env_illum")],
+    "street_sweeper": [("coagulation", "opaque", "tex_bump_env_illum"),
+                       ("coagulation", "opaque", "tex_bump_env_alpha_test")],
+}
+RESIDENT_TEMPLATE_PROOFS = {
+    "tex_bump_env_illum": (1878, "9977d3432b7b9a28a5de532a6e33d343a86e77d07a7011c89f05c42e5e54f76b.bin", 33),
+    "tex_bump_env_alpha_test": (1172, "fd934672b0819dd316a46d9eb26d61def8fb87e7ba5ea2f2cff2d5673a861ea3.bin", 21),
+}
+
 
 def require(value, message):
     if not value:
@@ -145,6 +157,42 @@ def generate(cache):
                 require(target[0] in ("stem", "spas", "vrtx"),
                         "program closure unexpectedly requires an image or material")
                 pending.append((source, tuple(target)))
+        for source, family, leaf in RESIDENT_TEMPLATE_ROOTS.get(name, ()):
+            require(source in {entry[0] for entry in ROOTS[name]},
+                    "resident template would add an unadmitted source library")
+            root_key = ("stem", "shaders\\shader_templates\\" + family + "\\" + leaf)
+            require(root_key not in base and root_key not in additions,
+                    "resident template root already exists")
+            root_record = libraries[source][root_key]
+            require(leaf in RESIDENT_TEMPLATE_PROOFS, "unreviewed resident template metadata")
+            expected_bytes, expected_payload, dependency_count = RESIDENT_TEMPLATE_PROOFS[leaf]
+            require(root_record["bytes"] == expected_bytes and root_record["payload"] == expected_payload,
+                    "resident template metadata differs from the reviewed complete owner")
+            require(not root_record["strings"], "resident template would change StringIDs")
+            normalized(source, root_record)
+            pending = [(source, tuple(target)) for _, target in root_record["references"]]
+            checked = set()
+            while pending:
+                dependency_source, key = pending.pop()
+                if key in checked:
+                    continue
+                checked.add(key)
+                require(key[0] in ("spas", "vrtx"), "resident template escaped pass/vertex metadata")
+                previous = base.get(key, additions.get(key))
+                require(previous is not None, "resident template requires a new shader program: " + repr(key))
+                candidate = libraries[dependency_source][key]
+                body, retained = normalized(dependency_source, candidate), normalized(*previous)
+                require(body["graph"] == retained["graph"],
+                        "resident template requires changed shader instructions or bindings: " + repr(key))
+                equivalences[(dependency_source, key)] = {
+                    "source_map": dependency_source, "group": key[0], "name": key[1],
+                    "candidate_payload": candidate["payload"], "retained_payload": previous[1]["payload"],
+                    "typed_complete_graph_sha256": body["graph_sha256"],
+                    "candidate_storage": body["storage"], "retained_storage": retained["storage"]}
+                pending.extend((dependency_source, tuple(target)) for _, target in candidate["references"])
+            require(len(checked) == dependency_count, "resident template complete dependency census changed")
+            additions[root_key] = source, root_record
+            roots.append({"source_map": source, "group": root_key[0], "name": root_key[1]})
         all_keys = set(base) | set(additions)
         for source, record in additions.values():
             require(all(tuple(target) in all_keys for _, target in record["references"]),

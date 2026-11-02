@@ -1,0 +1,12 @@
+{
+  "action": "validate",
+  "baseline": true,
+  "refresh": [
+    "tests/frontend_parties_http_test.py"
+  ],
+  "targets": [
+    "frontend_online_tests",
+    "native_frontend_party_rust_tests"
+  ],
+  "filter": "^(frontend_party_cpp_rust|frontend_parties_http|mcc_frontend_parties_http)$"
+}

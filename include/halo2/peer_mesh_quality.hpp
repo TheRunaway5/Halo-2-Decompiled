@@ -43,7 +43,6 @@ public:
     std::vector<PeerHostQuality> migration_candidates(std::uint64_t now_ms)const;
     static bool is_packet(std::span<const std::byte>)noexcept;
 private:
-    std::vector<PeerHostQuality> rank(std::uint64_t,std::uint16_t)const;
     struct Impl;std::unique_ptr<Impl> impl_;
 };
 }

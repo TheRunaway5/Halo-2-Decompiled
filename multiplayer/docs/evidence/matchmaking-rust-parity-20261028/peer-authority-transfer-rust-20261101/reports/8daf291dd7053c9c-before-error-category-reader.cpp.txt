@@ -1,0 +1,57 @@
+// One public API reader for the preserved modern C++ and production Rust owner.
+// Private bytes and clocks are declared fixtures. Exceptions are normalized to
+// an error flag; exception text/RTTI, original Live and native worlds are outside
+// this reader's claims.
+#include "halo2/peer_authority_transfer.hpp"
+#include "halo2/multiplayer_datagrams.hpp"
+#include <nlohmann/json.hpp>
+#include <iostream>
+#include <map>
+#include <stdexcept>
+using namespace halo2;
+using Json=nlohmann::json;
+namespace {
+std::vector<std::byte> bytes(const std::string &s){
+    if(s.size()%2)throw std::invalid_argument("odd hex");std::vector<std::byte> out;
+    for(std::size_t i=0;i<s.size();i+=2)out.push_back(std::byte(std::stoul(s.substr(i,2),nullptr,16)));return out;
+}
+template<class T>std::string hex(const T &v){const char digits[]="0123456789abcdef";std::string out;for(auto b:v){const auto n=std::to_integer<unsigned>(b);out+=digits[n>>4];out+=digits[n&15];}return out;}
+AuthorityTransferContext context(const Json &v){AuthorityTransferContext c;const auto b=bytes(v.at("session"));if(b.size()!=32)throw std::invalid_argument("session");std::copy(b.begin(),b.end(),c.session.begin());c.epoch=v.at("epoch");c.membership_revision=v.at("revision");c.peers=v.at("peers");c.host=v.at("host");return c;}
+Json context(const AuthorityTransferContext &c){return {{"session",hex(c.session)},{"epoch",c.epoch},{"revision",c.membership_revision},{"peers",c.peers},{"host",c.host}};}
+AuthorityCutSeal seal(const Json &v){AuthorityCutSeal s;s.id=v.at("id");s.tick=v.at("tick");s.bytes=v.at("bytes");const auto b=bytes(v.at("digest"));if(b.size()!=32)throw std::invalid_argument("seal");std::copy(b.begin(),b.end(),s.digest.begin());return s;}
+Json seal(const AuthorityCutSeal &s){return {{"id",s.id},{"tick",s.tick},{"bytes",s.bytes},{"digest",hex(s.digest)}};}
+AuthorityTransferLimits limits(const Json &v){AuthorityTransferLimits l;
+    l.maximum_bytes=v.value("maximum",l.maximum_bytes);l.bytes_per_second=v.value("rate",l.bytes_per_second);l.burst_bytes=v.value("burst",l.burst_bytes);
+    l.retry_ms=v.value("retry",l.retry_ms);l.offer_ms=v.value("offer",l.offer_ms);l.idle_ms=v.value("idle",l.idle_ms);l.lifetime_ms=v.value("lifetime",l.lifetime_ms);
+    l.window_chunks=v.value("window",l.window_chunks);l.features=v.value("features",l.features);return l;
+}
+}
+int main(){
+    std::map<unsigned,std::unique_ptr<PeerAuthorityTransfer>> owners;std::string line;
+    while(std::getline(std::cin,line)){
+        Json out;
+        try {const auto v=Json::parse(line);const std::string op=v.at("op");
+            if(op=="new"){auto next=std::make_unique<PeerAuthorityTransfer>(v.at("self"),context(v.at("context")),limits(v.value("limits",Json::object())));owners[v.at("id")]=std::move(next);out={{"ok",true}};}
+            else if(op=="is_packet")out={{"value",PeerAuthorityTransfer::is_packet(bytes(v.at("bytes")))}};
+            else {auto &s=*owners.at(v.at("id").get<unsigned>());
+                if(op=="state"){const auto f=s.feature_snapshot();Json supported=Json::array();for(unsigned p=0;p<16;++p)supported.push_back(s.supported(p));out={{"context",context(s.context())},{"features",f.features},{"supported",supported},{"protocol",native_multiplayer_protocol}};}
+                else if(op=="supported")out={{"value",s.supported(v.at("peer"))}};
+                else if(op=="feature")out={{"value",s.feature_supported(v.at("peer"),v.at("feature"))}};
+                else if(op=="replace")out={{"value",s.replace_context(context(v.at("expected")),context(v.at("context")))}};
+                else if(op=="publish"){const auto targets=v.at("targets").get<std::vector<unsigned>>();out={{"seal",seal(s.publish(context(v.at("context")),v.at("tick"),bytes(v.at("bytes")),targets,v.at("now")))}};}
+                else if(op=="ahead")out={{"seal",seal(s.publish_ahead(context(v.at("context")),seal(v.at("previous")),v.at("tick"),bytes(v.at("bytes")),v.at("peer"),v.at("now")))}};
+                else if(op=="poll"){Json packets=Json::array();for(const auto &p:s.poll(v.at("now"),v.at("budget")))packets.push_back({{"peer",p.peer},{"bytes",hex(p.bytes)}});out={{"packets",packets}};}
+                else if(op=="receive")out={{"value",s.receive(v.at("peer"),bytes(v.at("bytes")),v.at("now"))}};
+                else if(op=="completed"){const auto p=s.take_completed();out={{"completed",p?Json{{"peer",p->peer},{"context",context(p->context)},{"seal",seal(p->seal)},{"bytes",hex(*p->bytes)}}:Json(nullptr)}};}
+                else if(op=="delivered")out={{"value",s.delivered_to(context(v.at("context")),seal(v.at("seal")),v.at("peer"))}};
+                else if(op=="failed")out={{"value",s.failed_to(context(v.at("context")),seal(v.at("seal")),v.at("peer"),v.at("now"))}};
+                else if(op=="preparing")out={{"value",s.note_native_preparation(context(v.at("context")),seal(v.at("seal")),v.at("peer"),v.at("now"))}};
+                else if(op=="ack")out={{"value",s.acknowledge_validated(context(v.at("context")),seal(v.at("seal")))}};
+                else if(op=="reject")out={{"value",s.reject_delivered(context(v.at("context")),seal(v.at("seal")))}};
+                else if(op=="validated"){Json rows=Json::array();for(const auto &p:s.validated_cuts())rows.push_back({{"peer",p.peer},{"context",context(p.context)},{"seal",seal(p.seal)}});out={{"receipts",rows}};}
+                else throw std::invalid_argument("op");
+            }
+        }catch(const std::exception &){out={{"error",true}};}
+        std::cout<<out.dump()<<std::endl;
+    }
+}

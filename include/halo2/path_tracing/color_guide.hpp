@@ -5,6 +5,8 @@ namespace halo2::path_tracing {
 // Source lightmap images are independent of material albedo and include the
 // original per-cluster/instance palette choice. Cache only this RT owner.
 void refresh_color_guides(Scene&,std::span<const Texture>);
+// Lane 3=2 admits the authenticated per-pixel static diffuse 2*T3.rgb
+// transfer. Other eligible guides retain hue only and leave this lane zero.
 std::array<std::uint32_t,4> color_guide_material(const Material&);
 ShaderVector color_guide_triangle(const Vertex&,const Vertex&,const Vertex&,const GpuMaterial&);
 // CPU reference for primary/secondary atlas transport and static-event hue.

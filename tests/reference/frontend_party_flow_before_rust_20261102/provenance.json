@@ -1,0 +1,12 @@
+{
+  "purpose": "Captured modern native party actions and privacy callers; not original Live producers",
+  "source_pins": {
+    "src/ui/frontend_party.cpp": "0b28fca7c78529675e0037ae91b7ccef19f0197501e759dde932a883d1315d44",
+    "src/ui/frontend_state.cpp": "5e9aa9cbd4578706fac2691a7ecf3c0a23a0b216f072d3a65d9f7429030cba75",
+    "src/ui/frontend_clans.cpp": "49b3caceac77299b2c834ac45b47b4f990907735e26e34fad39043e71dd787e5",
+    "include/halo2/frontend.hpp": "260a70da544f2cbcea556df32fa4105cd19db3e38f3b224367be47aa8c6be4b8",
+    "include/halo2/online_account.hpp": "430b69891df4d7b209e2e645b8b1af64df5cc24f06b780326d9dd47514e5e91b",
+    "tests/frontend_online_tests.cpp": "2461742295152dcf7de676ca0fecf3d5dd4bcf877e768ab2e27506d8f3924775",
+    "tests/frontend_online_lobby_buttons_tests.cpp": "539a8e16ded9590931f93cad7f5ba3201c2e47f776a15f715d2fd9ca7f8aa72a"
+  }
+}

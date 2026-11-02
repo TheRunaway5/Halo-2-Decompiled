@@ -241,7 +241,7 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
                 r=await self.client.post("/v1/friends/commands",headers=actor_headers,
                     json={"request_id":str(__import__('uuid').uuid4()),"action":"unblock","target":ids[target]})
                 self.assertEqual(r.status,200,await r.text())
-            self.directory.steam_friends.cache.clear();private=True
+            self.directory.steam_friends._cache.clear();private=True
             r=await self.client.get("/v1/account/steam-friends",headers=first)
             self.assertEqual((await r.json())["state"],"private")
 
@@ -267,8 +267,9 @@ class SteamLoginTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await r.json())["clan"]["name"],"Retained Clan")
         self.assertNotIn("76561197960287930",await r.text())
         r = await self.client.post("/v1/matchmaking/session",headers=headers,json={"screen_name":"Chosen Screen Name","maps":["lockout"],
-            "compatibility":"halo2-native-queue-v12","local_players":[{"screen_name":"Duplicate","discord_token":"legacy"}]})
+            "compatibility":"halo2-native-queue-v12","language":0,"local_players":[{"screen_name":"Duplicate","discord_token":"legacy"}]})
         self.assertEqual(r.status,400,await r.text())
+        self.assertEqual((await r.json())['error'],'Each signed-in couch player needs a different account')
         _, another=await self.complete("76561197960287931")
         r=await self.client.post("/v1/account/link-discord",headers={"Authorization":"Bearer "+another["token"]},json={"discord_token":"legacy"})
         self.assertEqual(r.status,409,await r.text())

@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""All-local semantic input liveness for the contiguous agent cleanup family."""
+import argparse,hashlib,inspect,json,os
+from pathlib import Path
+import audit_native_pair_callbacks_context_tu15 as audit
+from capstone.x86_const import X86_OP_REG
+from oracle_smg_firing_1_1 import ROOT,Xbe,_Code
+from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
+OWNERS=(0x2f82d0,0x2f6c80,0x2f8090,0x3051a0,0x2fc540,0x30ca60,0x2f7e90,0x2f5b30,0x2f3580,0x2f7a10)
+def sha(p):return hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();assert os.environ.get('HALO2_TEST_SCRATCH')and sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');audit.SAVES|={0x2f82d0,0x2f6c80,0x2f8090,0x3051a0,0x2fc540,0x30ca60,0x30ca6a,0x30ca6f,0x2f7ea6,0x2f3596};previous=audit.successors
+ def successors(image,code,pc):
+  if pc==0x2f5b30:
+   assert code.at(pc).bytes.hex()=='e94bdaffff'
+   return []
+  return previous(image,code,pc)
+ audit.successors=successors;source=inspect.getsource(audit.gp_audit);needle='  save=pc in SAVES';assert source.count(needle)==1;source=source.replace(needle,"  if pc==0x30ca7c:\n   assert i.bytes.hex()=='33c9' and i.mnemonic=='xor' and i.operands[0].type==X86_OP_REG and i.operands[0].reg==i.operands[1].reg\n   reads=[r for r in reads if r!=i.operands[0].reg]\n"+needle);audit.__dict__['X86_OP_REG']=X86_OP_REG;exec(source,audit.__dict__);gp=[audit.gp_audit(image,code,o)for o in OWNERS];xmm=[dict(entry=o,body_sites=len(audit.complete_body(code,o).code),XMM_operand_sites=[pc for pc in audit.complete_body(code,o).code if any(code.at(pc).reg_name(r).startswith('xmm')for r in sum(code.at(pc).regs_access(),[]))])for o in OWNERS];j=dict(passed=all(x['passed']for x in gp)and all(not x['XMM_operand_sites']for x in xmm),original_sha256=NEW_PIN,owners_GP=gp,owners_XMM=xmm,scope='All local paths; ECX receiver and ESP formal arguments only; no volatile GP/XMM semantic incoming dependency.2F5B30 genuine direct tailjmp to separately audited2F3580. PhysicalFS chain is source control lifetime; native C++ ownership has no virtual FS. Remaining manager/allocator services retain explicit transitive owner obligations.',source_hashes={str(Path(__file__).relative_to(ROOT)):sha(__file__),str(Path(audit.__file__).relative_to(ROOT)):sha(audit.__file__)},audit_function_sha256=hashlib.sha256(source.encode()).hexdigest(),owned_scratch=os.environ['HALO2_TEST_SCRATCH'],retained_large_artifacts=[]);a.output.mkdir(parents=True,exist_ok=False);(a.output/'report.json').write_text(json.dumps(j,indent=2,sort_keys=True)+'\n');print(j['passed']);return 0 if j['passed']else 1
+if __name__=='__main__':raise SystemExit(main())

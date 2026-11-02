@@ -1,0 +1,8 @@
+{
+  "owned_cache": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-account-client-rust-20261101/halo2-test-hivs385d/build/CMakeCache.txt",
+  "before_sha256": "bd4cf4c86fd0c5599c0b799482211aa37ea9fa5da1a38169de289d3aca4dc6a8",
+  "after_sha256": "3bf5ac7de0c2c9bc74c6dc99c9992e9ea450e2c7e4a5faba0f4c906bcc6f73a3",
+  "setting": "HALO2_MCC_PARTY_UI_TEST_CACHE",
+  "borrowed_asset_root": "/home/eric/Developer/Halo-2-Decompiled/assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b",
+  "reason": "Enable actual native playlist and Start button regression tests in the disposable worker; no selected runtime change"
+}

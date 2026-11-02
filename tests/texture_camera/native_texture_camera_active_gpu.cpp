@@ -3,6 +3,7 @@
 #include "native_texture_camera_authored_setup.hpp"
 #include "native_texture_camera_gpu_observation.hpp"
 #include "halo2/campaign_source_runtime.hpp"
+#include "halo2/simulation.hpp"
 #include "halo2/source_campaign_secondary_view_tu15.hpp"
 #include "halo2/source_texture_camera_producer_tu15.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
@@ -25,7 +26,7 @@ namespace {
 constexpr std::string_view camera_template="shaders\\shader_templates\\texture_camera\\texture_camera";
 struct Options {
     std::filesystem::path producer,consumer,original,shared,prepared,shaders,output,reference;
-    bool offline_reference{};
+    bool offline_reference{},inactive_renew_only{},inactive_skip_renew_control{};
 };
 SourceViewProjectionBank controlled_consumer_bank(const Camera &camera) {
     SourceFrustumProjectionInput input;
@@ -131,6 +132,49 @@ SourceSceneCopyContext copy_context(PhysicsLiveWorldTu15 &world,std::span<const 
 }
 template<class F> void rejects(F &&action,const char *why) {
     bool caught=false;try{action();}catch(const FormatError&){caught=true;}require(caught,why);
+}
+void inactive_renew(const Options &options,SDL_Window *window,Json &report) {
+    // The ordinary application renews every retained camera frame, including
+    // an inactive25800 request with no secondary scene/CPU-prefix. Keep that
+    // real path separate from the96 authored active-camera controls below.
+    Cache cache(options.producer,options.shared,{},options.prepared);
+    require(cache.is_mcc(),"Inactive renewal requires its actual prepared MCC input");
+    auto content=cache.load_content(0);
+    require(!cache.spawns().empty(),"Inactive renewal lacks its authored campaign start");
+    auto runtime=std::make_shared<CampaignSourceRuntime>(cache,0,1,0x12345678u,0x89abcdefu);
+    Simulation simulation(content,BspContent{std::move(content.collision),content.navigation},0,cache.spawns().front(),
+        [&](auto graph,auto name){return cache.load_named_animation(graph,name);},
+        [&](std::size_t bsp){return cache.load_bsp_content(bsp);},{},std::nullopt,std::nullopt,SourceSceneObjectOwner{},runtime);
+    simulation.cinematic_animation_assets(std::make_shared<CinematicAnimationAssets>(cache));
+    simulation.set_difficulty(1);simulation.start_level();
+    auto &world=runtime->objects().tu15_world();
+    report["initial_simulation"]=simulation.status();
+    const auto original=source_texture_camera_original_view_tu15(world,0,1,0,0);
+    Mesh mesh;Material material;material.diffuse={1,1,11,{std::byte{32},std::byte{80},std::byte{128},std::byte{255}}};mesh.materials.push_back(material);
+    mesh.vertices={{{4,-2,-1},{1,1,1},{0,0},0},{{4,2,-1},{1,1,1},{0,0},0},{{4,0,2},{1,1,1},{0,0},0}};
+    Renderer renderer(window,mesh,true,{},nullptr,{},nullptr,options.shaders);
+    DisplaySettings display;display.internal_width=640;display.internal_height=480;display.upscaler=Upscaler::Off;renderer.display_settings(display);
+    const auto before=source_texture_camera_inputs_tu15(world.memory());const auto copy=copy_context(world,original);
+    const auto targets=renderer.prepare_texture_camera_targets(before,copy,{640,480});
+    require(!targets.available(18)&&!targets.available(20),"Inactive renewal fabricated camera targets");
+    auto frame=source_texture_camera_frame_tu15(world,original,targets);
+    require(!frame.source_rendered_view()&&!frame.scene_view()&&!frame.completed_scene_view()&&!frame.completed_scene_prefix()&&!frame.copy_target(),
+        "Inactive25800 unexpectedly requested a secondary scene");
+    frame.targets().require_current();
+    report["public_state"]={{"source_rendered_view",frame.source_rendered_view()},
+        {"scene_view",bool(frame.scene_view())},{"completed_scene_view",bool(frame.completed_scene_view())},
+        {"completed_scene_prefix",bool(frame.completed_scene_prefix())},{"copy_target",bool(frame.copy_target())},
+        {"target18",frame.targets().available(18)},{"target20",frame.targets().available(20)},
+        {"targets_current",true},{"source_frames_submitted",renderer.target_resources().acquire().bank().source_frames_submitted},
+        {"camera_word0",before.camera_words[0]},{"cinematic_auxiliary",before.cinematic_auxiliary},{"cinematic",before.cinematic}};
+    report["reached_renewal"]=true;report["inactive_source_frame"]=true;report["device"]=renderer.device_name();
+    if(!options.inactive_skip_renew_control)renderer.renew_texture_camera_frame(frame);
+    frame.targets().require_current();report["renewed"]=!options.inactive_skip_renew_control;
+    Camera camera;camera.field_of_view=60;
+    require(renderer.draw_texture_camera(camera,{&frame,nullptr,{}},{},options.output/"inactive-renew.ppm"),
+        "Renewed inactive source frame failed actual ordinary presentation");
+    const auto image=pixels(options.output/"inactive-renew.ppm");report["pixel_sha256"]=image.sha256;
+    report["presented_frames"]=1;report["passed"]=true;
 }
 void run(const Options &options,SDL_Window *window,Json &report) {
     Cache original(options.original),cache(options.producer,options.shared,{},options.prepared),
@@ -351,6 +395,8 @@ int main(int argc,char **argv)try {
     Options options;
     for(int i=1;i<argc;++i) {
         const std::string key=argv[i];if(key=="--offline-reference"){options.offline_reference=true;continue;}
+        if(key=="--inactive-renew-only"){options.inactive_renew_only=true;continue;}
+        if(key=="--inactive-skip-renew-control"){options.inactive_skip_renew_control=true;continue;}
         require(i+1<argc,"Missing active texture-camera option value");const std::filesystem::path value=argv[++i];
         if(key=="--producer")options.producer=value;else if(key=="--consumer")options.consumer=value;
         else if(key=="--original-producer")options.original=value;else if(key=="--shared-dir")options.shared=value;
@@ -361,15 +407,15 @@ int main(int argc,char **argv)try {
     const auto *scratch=std::getenv("HALO2_TEST_SCRATCH");require(scratch,"Fresh owned active camera scratch is required");
     const auto *observations=std::getenv("HALO2_CAPTURE_BSP_DRAW_BINDINGS");
     require(observations&&std::string_view(observations)=="1","Explicit actual native draw/image observations are required");
-    require(!options.output.empty()&&!options.producer.empty()&&!options.consumer.empty()&&!options.original.empty()&&
+    require(!options.output.empty()&&!options.producer.empty()&&(options.inactive_renew_only||(!options.consumer.empty()&&!options.original.empty()))&&
         !options.shared.empty()&&!options.prepared.empty()&&!options.shaders.empty(),"All actual camera source inputs are required");
     const auto output=std::filesystem::weakly_canonical(options.output);
     const auto relative=output.lexically_relative(std::filesystem::canonical(scratch));
     require(!relative.empty()&&!relative.is_absolute(),"Camera outputs escape owned scratch");
     for(const auto &part:relative)require(part!="..","Camera outputs escape owned scratch");
-    require(options.offline_reference==options.reference.empty(),"Choose offline reference or native comparison explicitly");
-    require(options.producer.filename()=="06a_sentinelwalls.map"&&
-        (options.consumer.filename()=="06a_sentinelwalls.map"||options.consumer.filename()=="07b_forerunnership.map"),
+    require(options.inactive_renew_only||options.offline_reference==options.reference.empty(),"Choose offline reference or native comparison explicitly");
+    require(options.inactive_renew_only||(options.producer.filename()=="06a_sentinelwalls.map"&&
+        (options.consumer.filename()=="06a_sentinelwalls.map"||options.consumer.filename()=="07b_forerunnership.map")),
         "Active camera cohort must retain the finite actual producer/consumer owners");
     std::filesystem::create_directories(options.output);
     require(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());
@@ -383,7 +429,14 @@ int main(int argc,char **argv)try {
         {"seed",0x12345678u},{"auxiliary_seed",0x89abcdefu},{"effect_seconds",0},
         {"cases",Json::array()},{"controls",Json::array()},
         {"boundary","CPU original source differential, runtime activation/all-map cohort and physical Xbox pixels remain separate evidence"}};
-    try {run(options,window,report);}catch(const std::exception &error){report["error"]=error.what();report["passed"]=false;}
+    if(options.inactive_renew_only) {
+        report["schema"]="HALO2_NATIVE_TEXTURE_CAMERA_INACTIVE_RENEW_GPU_V1";
+        report["producer_scope"]="Actual prepared MCC cold World, original view constructor and inactive25800; no supplied frame/private records";
+        report["consumer_scope"]="Minimal real-GPU ordinary draw through application prepare/frame/renew/draw_texture_camera pattern";
+        report["inactive_renew_only"]=true;
+        report["inactive_skip_renew_control"]=options.inactive_skip_renew_control;
+    }
+    try {if(options.inactive_renew_only)inactive_renew(options,window,report);else run(options,window,report);}catch(const std::exception &error){report["error"]=error.what();report["passed"]=false;}
     SDL_DestroyWindow(window);SDL_Quit();std::ofstream(options.output/"report.json")<<report.dump(2)<<'\n';
     std::cout<<report.dump(2)<<'\n';return report.at("passed").get<bool>()?0:1;
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

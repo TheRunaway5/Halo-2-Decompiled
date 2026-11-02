@@ -1,0 +1,807 @@
+{
+  "rows": [
+    {
+      "team": -128,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": -1,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 0,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 9,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 15,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 9,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 16,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 31,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 32,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 63,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    },
+    {
+      "team": 127,
+      "source_type": 2,
+      "maximum": 255,
+      "status": 7,
+      "query_calls": [
+        {
+          "producer": "19a951",
+          "slot": 0,
+          "present": 1
+        },
+        {
+          "producer": "19a951",
+          "slot": 1,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 2,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 3,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 4,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 5,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 6,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 7,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 8,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 9,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 10,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 11,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 12,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 13,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 14,
+          "present": 0
+        },
+        {
+          "producer": "19a951",
+          "slot": 15,
+          "present": 0
+        }
+      ]
+    }
+  ],
+  "source_function": "19A2CE",
+  "source_bytes_unchanged": true,
+  "constant_services": {
+    "session_state": 3,
+    "established": true,
+    "active": true,
+    "members_status": 0,
+    "percent": 100,
+    "countdown": -1,
+    "host": true
+  }
+}

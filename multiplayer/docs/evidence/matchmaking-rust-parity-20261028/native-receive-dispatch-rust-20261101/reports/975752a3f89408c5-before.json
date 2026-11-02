@@ -1,0 +1,14 @@
+{
+  "captured_at_utc": "2026-11-01T19:39:14.287387+00:00",
+  "scope": "Existing modern Session receive caller and native lock/owner boundaries, not original Live/XNet",
+  "production_use": false,
+  "source": "src/network/online_match_session.cpp",
+  "sha256": "161d5d98ddeb2cbde1895f173b749382154b90405e88ae432549c95cd2cc5325",
+  "bytes": 72419,
+  "extraction": {
+    "path": "tests/reference/native_receive_dispatch_before_rust_20261101.inc",
+    "sha256": "37b3ef4791019aef29e2ce0136117121e9df6682043a80fafc32a178dddcb349",
+    "bytes": 2978,
+    "exact_start_end_substring": true
+  }
+}

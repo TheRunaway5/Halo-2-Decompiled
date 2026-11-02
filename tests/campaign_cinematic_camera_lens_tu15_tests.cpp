@@ -1,5 +1,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/source_campaign_camera_lens_tu15.hpp"
+#include "halo2/cinematic_letterbox.hpp"
 #include "halo2/source_view_projection.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <bit>
@@ -32,6 +33,19 @@ glm::mat4 raster(const Camera &c,unsigned w,unsigned h) {
 int main(int argc,char **argv)try {
     const bool legacy=argc==2 && std::string(argv[1])=="--legacy-cinematic-full-rectangle";
     check(argc==1 || legacy,"unexpected lens-test argument");
+    for(float progress:{0.f,.25f,.5f,.75f,1.f}) {
+        const auto standard=cinematic_letterbox_program(progress,640,480,1.3333333730697632f);
+        check(equal_bits(standard[6],progress*.125f)&&equal_bits(standard[7],progress),
+              "Standard original letterbox height or animation progress changed");
+        const auto wide=cinematic_letterbox_program(progress,960,540,1.3333333730697632f);
+        check(wide[6]==0.f&&equal_bits(wide[7],progress),
+              "Wide cinematic bars crop the preserved original horizontal composition");
+        const auto ordinary=cinematic_letterbox_program(progress,960,540);
+        check(equal_bits(ordinary[6],progress*.125f)&&equal_bits(ordinary[7],progress),
+              "Ordinary overlay inherited a campaign aspect override");
+    }
+    check(std::abs(cinematic_letterbox_program(1.f,960,600,1.3333333730697632f)[6]-.05f)<.000001f,
+          "16:10 letterbox does not fit the original active cinematic frame");
     unsigned contexts{},raster_checks{},scales{},gameplay{};
     for(const auto &f:lens_fixtures) {
         const auto original=std::bit_cast<SourceViewProjectionBank>(f.view);
@@ -67,6 +81,18 @@ int main(int argc,char **argv)try {
                 throw FormatError("raster projection coefficient differs from captured TU1.5 matrix");
             }
         }++raster_checks;
+        // The ordinary PC campaign caller must retain the authored horizontal
+        // composition on a wide surface. Expanding the horizontal frustum
+        // exposes the finite Earth matte's right edge (opening tick5000).
+        for(const auto [w,h]:std::array{std::pair{960u,540u},std::pair{1920u,1080u},std::pair{2560u,1080u}}) {
+            const auto wide=source_campaign_camera_lens_tu15(real(f.camera[10]),w,h,{48,36,544,408});
+            auto output=previous;wide.apply(output);const auto wide_raster=raster(output,w,h);
+            check(std::abs(wide_raster[0][0]-p[0][0])<.00001f,
+                  "Wide cinematic exposes scenery outside the authored horizontal camera framing");
+            const auto wide_source=source_frustum_projection(wide.source);
+            check(std::abs(wide_source.projection_program[10]-wide_raster[0][0])<.00001f,
+                  "Wide cinematic GPU and source culling use different horizontal framing");
+        }
         for(const auto [w,h]:std::array{std::pair{320u,240u},std::pair{1280u,960u},std::pair{2560u,1920u}}) {
             const auto scaled=source_campaign_camera_lens_tu15(real(f.camera[10]),w,h,{48,36,544,408});
             auto output=previous;scaled.apply(output);const auto q=source_frustum_projection(scaled.source);
@@ -77,7 +103,7 @@ int main(int argc,char **argv)try {
         }
         // The previous gameplay caller already publishes this physical-safe
         // bank and this source_camera_projection result. Keep both unchanged.
-        for(const auto [w,h]:std::array{std::pair{640u,480u},std::pair{1920u,1080u},std::pair{1001u,751u}}) {
+        for(const auto [w,h]:std::array{std::pair{640u,480u},std::pair{1280u,960u},std::pair{1001u,751u}}) {
             const auto safe=full_surface_viewport({48,36,544,408},w,h);
             const auto old_raster=source_camera_projection(real(f.camera[10]),{0,0,float(w),float(h)},safe,false);
             const auto shared=source_campaign_camera_lens_tu15(real(f.camera[10]),w,h,{48,36,544,408});

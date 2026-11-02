@@ -1,0 +1,7 @@
+{
+  "action": "validate",
+  "targets": [
+    "native_frontend_progress_rust_tests"
+  ],
+  "filter": "^frontend_progress_cpp_rust$"
+}

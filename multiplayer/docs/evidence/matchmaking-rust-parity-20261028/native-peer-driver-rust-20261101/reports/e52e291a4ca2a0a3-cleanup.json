@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "owned_scratch_paths": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-f2t9spx7",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-2hmqi01j",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-full-rust/halo2-test-fj6j7msv",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-room/halo2-test-iah8ls2i"
+  ],
+  "all_removed": true,
+  "parent_remaining": {
+    "native-peer-driver-full-rust": [],
+    "native-peer-driver-native": [],
+    "native-peer-driver-staging": [],
+    "native-peer-driver-audit": [],
+    "native-peer-driver-room": []
+  },
+  "native_unit_state": "LoadState=not-found\nActiveState=inactive\nSubState=dead\n",
+  "native_unit_inactive": true,
+  "retained_large_artifacts": [],
+  "preserved": "Original/reference assets, licensed SDK archive, preexisting evidence/snapshots, selected runtimes and unrelated active work"
+}

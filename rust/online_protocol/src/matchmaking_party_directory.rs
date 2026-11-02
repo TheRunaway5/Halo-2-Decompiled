@@ -10,8 +10,18 @@ use std::collections::BTreeMap;
 
 const MAX_STEPS: usize = 1024;
 const MAX_JOURNAL_BYTES: usize = 1024 * 1024;
-#[path="matchmaking_clan_directory.rs"]
+#[path = "matchmaking_clan_directory.rs"]
 mod clans;
+#[path = "matchmaking_friend_directory.rs"]
+mod friends;
+#[path = "matchmaking_public_history.rs"]
+mod history;
+#[path = "matchmaking_identity_directory.rs"]
+mod identity;
+#[path = "matchmaking_profile_directory.rs"]
+mod profiles;
+#[path = "matchmaking_voice_directory.rs"]
+mod voice;
 #[derive(Clone)]
 struct Entry {
     request: Value,
@@ -46,6 +56,12 @@ pub struct Directory {
     bytes: usize,
     started: bool,
     terminal: bool,
+    profile_commit_ready: bool,
+    friend_commit_ready: bool,
+    voice_commit_ready: bool,
+    steam_commit_ready: bool,
+    identity_revoke: Option<String>,
+    identity_commit_ready: bool,
 }
 struct Cursor<'a> {
     journal: &'a [Entry],
@@ -53,24 +69,171 @@ struct Cursor<'a> {
     index: usize,
     source: bool,
     clock: f64,
+    profiles: bool,
+    friends: bool,
+    friend_cloud: bool,
+    voices: bool,
+    steam: bool,
+    account_key: Option<String>,
+    transaction_owned: bool,
 }
 impl Directory {
     pub fn new(config: &Value) -> Result<Self> {
         m::fields_optional(
             config,
             &["mode", "source", "player", "wall", "clock"],
-            &["body", "features", "party", "target", "admitted", "steam","family","account_source","account_key","account_now"],
+            &[
+                "body",
+                "features",
+                "party",
+                "target",
+                "admitted",
+                "steam",
+                "family",
+                "account_source",
+                "account_key",
+                "account_now",
+                "profile_source",
+                "profile_now",
+                "transaction_owned",
+                "friend_source",
+                "friend_now",
+                "friend_cloud",
+                "voice_source",
+                "voice_now",
+                "voice_account_now",
+                "verified_owner",
+                "steam_source",
+                "steam_now",
+                "steam_credential",
+                "identity_account_source",
+            ],
         )?;
-        m::check(config["family"].is_null() || config["family"]=="party" || config["family"]=="clan","Unknown directory family")?;
-        m::check(config["account_source"].is_null()==config["account_key"].is_null(),"Account source/key pair required")?;
-        if !config["account_source"].is_null(){
-            config["account_source"].as_u64().ok_or(Error(400,"Account source owner required"))?;
-            m::hex(&config["account_key"],32)?;m::text(&config["player"],64)?;
-            let now=m::real(&config["account_now"])?;
-            m::check(now>=0. && (now+900.).is_finite(),"Invalid directory account clock")?;
+        if !config["steam_source"].is_null() {
+            config["steam_source"]
+                .as_u64()
+                .ok_or(Error(400, "Steam source owner required"))?;
+            let now = m::real(&config["steam_now"])?;
+            m::check(
+                now >= 0. && (now + 300.).is_finite(),
+                "Invalid Steam cache clock",
+            )?;
+            m::check(
+                !config["account_source"].is_null(),
+                "Authenticated Steam directory source required",
+            )?;
         }
-        if config["family"]=="clan" && ["command","get"].iter().any(|m|config["mode"]==*m){
-            m::check(!config["account_source"].is_null(),"Authenticated clan directory source required")?;
+        m::check(
+            config["family"].is_null()
+                || [
+                    "party", "clan", "history", "profile", "friends", "voice", "identity",
+                ]
+                .iter()
+                .any(|family| config["family"] == *family),
+            "Unknown directory family",
+        )?;
+        if !config["voice_source"].is_null() {
+            config["voice_source"]
+                .as_u64()
+                .ok_or(Error(400, "Voice source required"))?;
+            let now = m::real(&config["voice_now"])?;
+            m::check(now >= 0. && (now + 300.).is_finite(), "Invalid voice clock")?;
+            m::check(
+                config["family"] == "voice",
+                "Voice directory family required",
+            )?;
+        }
+        if config["family"] == "voice"
+            && matches!(config["mode"].as_str(), Some("preflight" | "attach"))
+        {
+            m::check(
+                !config["account_source"].is_null(),
+                "Authenticated voice source required",
+            )?;
+        }
+        if !config["friend_source"].is_null() {
+            config["friend_source"]
+                .as_u64()
+                .ok_or(Error(400, "Friend source owner required"))?;
+            let now = m::real(&config["friend_now"])?;
+            m::check(
+                now >= 0. && (now + 300.).is_finite(),
+                "Invalid friend cache clock",
+            )?;
+        }
+        if !config["friend_cloud"].is_null() {
+            m::boolean(&config["friend_cloud"])?;
+        }
+        if !config["profile_source"].is_null() {
+            config["profile_source"]
+                .as_u64()
+                .ok_or(Error(400, "Profile source owner required"))?;
+            let now = m::real(&config["profile_now"])?;
+            m::check(
+                now >= 0. && (now + 300.).is_finite(),
+                "Invalid profile clock",
+            )?;
+        }
+        if !config["transaction_owned"].is_null() {
+            m::boolean(&config["transaction_owned"])?;
+        }
+        if !config["identity_account_source"].is_null() {
+            config["identity_account_source"]
+                .as_u64()
+                .ok_or(Error(400, "Canonical account source required"))?;
+            m::check(
+                config["family"] == "identity"
+                    && matches!(config["mode"].as_str(), Some("link" | "link_preflight")),
+                "Canonical link operation required",
+            )?;
+        }
+        if config["family"] == "identity"
+            && matches!(config["mode"].as_str(), Some("link" | "link_preflight"))
+        {
+            m::check(
+                !config["identity_account_source"].is_null(),
+                "Canonical account source required",
+            )?;
+        }
+        m::check(
+            config["account_source"].is_null() == config["account_key"].is_null(),
+            "Account source/key pair required",
+        )?;
+        if !config["account_source"].is_null() {
+            config["account_source"]
+                .as_u64()
+                .ok_or(Error(400, "Account source owner required"))?;
+            m::hex(&config["account_key"], 32)?;
+            m::text(&config["player"], 64)?;
+            let now = m::real(&config["account_now"])?;
+            m::check(
+                now >= 0. && (now + 900.).is_finite(),
+                "Invalid directory account clock",
+            )?;
+        }
+        if config["family"] == "clan" && ["command", "get"].iter().any(|m| config["mode"] == *m) {
+            m::check(
+                !config["account_source"].is_null(),
+                "Authenticated clan directory source required",
+            )?;
+        }
+        if config["family"] == "profile"
+            && ["get", "update"].iter().any(|mode| config["mode"] == *mode)
+        {
+            m::check(
+                !config["account_source"].is_null(),
+                "Authenticated profile source required",
+            )?;
+        }
+        if config["family"] == "friends"
+            && ["get", "command"]
+                .iter()
+                .any(|mode| config["mode"] == *mode)
+        {
+            m::check(
+                !config["account_source"].is_null(),
+                "Authenticated friend source required",
+            )?;
         }
         let source = if config["source"].is_null() {
             None
@@ -97,13 +260,77 @@ impl Directory {
             bytes: 0,
             started: false,
             terminal: false,
+            profile_commit_ready: false,
+            friend_commit_ready: false,
+            voice_commit_ready: false,
+            steam_commit_ready: false,
+            identity_revoke: None,
+            identity_commit_ready: false,
         })
     }
     pub fn source(&self) -> Option<u64> {
         self.source
     }
-    pub fn account_binding(&self)->Option<(u64,String,String,f64)>{
-        Some((self.config["account_source"].as_u64()?,self.config["account_key"].as_str()?.to_owned(),self.config["player"].as_str()?.to_owned(),self.config["account_now"].as_f64()?))
+    pub fn profile_source(&self) -> Option<u64> {
+        self.config["profile_source"].as_u64()
+    }
+    pub fn take_profile_commit(&mut self) -> Option<u64> {
+        if !self.profile_commit_ready {
+            return None;
+        }
+        self.profile_commit_ready = false;
+        self.profile_source()
+    }
+    pub fn friend_source(&self) -> Option<u64> {
+        self.config["friend_source"].as_u64()
+    }
+    pub fn take_friend_commit(&mut self) -> Option<u64> {
+        if !self.friend_commit_ready {
+            return None;
+        }
+        self.friend_commit_ready = false;
+        self.friend_source()
+    }
+    pub fn account_binding(&self) -> Option<(u64, String, String, f64)> {
+        Some((
+            self.config["account_source"].as_u64()?,
+            self.config["account_key"].as_str()?.to_owned(),
+            self.config["player"].as_str()?.to_owned(),
+            self.config["account_now"].as_f64()?,
+        ))
+    }
+    pub fn voice_source(&self) -> Option<u64> {
+        self.config["voice_source"].as_u64()
+    }
+    pub fn steam_source(&self) -> Option<u64> {
+        self.config["steam_source"].as_u64()
+    }
+    pub fn identity_account_source(&self) -> Option<u64> {
+        self.config["identity_account_source"].as_u64()
+    }
+    pub fn take_identity_commit(&mut self) -> Option<(u64, String)> {
+        if !self.identity_commit_ready {
+            return None;
+        }
+        self.identity_commit_ready = false;
+        Some((
+            self.identity_account_source()?,
+            self.identity_revoke.take()?,
+        ))
+    }
+    pub fn take_steam_commit(&mut self) -> Option<u64> {
+        if !self.steam_commit_ready {
+            return None;
+        }
+        self.steam_commit_ready = false;
+        self.steam_source()
+    }
+    pub fn take_voice_commit(&mut self) -> Option<u64> {
+        if !self.voice_commit_ready {
+            return None;
+        }
+        self.voice_commit_ready = false;
+        self.voice_source()
     }
     pub fn execute(&mut self, r: &Value) -> Result<Value> {
         m::check(!self.terminal, "Party transaction retired")?;
@@ -160,19 +387,48 @@ impl Directory {
                 reply: r.clone(),
             });
         }
+        let profiles = self.profile_source().is_some();
+        let friends = self.friend_source().is_some();
+        let voices = self.voice_source().is_some();
+        let steam = self.steam_source().is_some();
         let mut cursor = Cursor {
             journal: &self.journal,
             entropy: &mut self.entropy,
             index: 0,
             source: self.source.is_some(),
             clock: m::real(&self.config["clock"])?,
+            profiles,
+            friends,
+            friend_cloud: self.config["friend_cloud"] == true,
+            voices,
+            steam,
+            account_key: self.config["account_key"].as_str().map(str::to_owned),
+            transaction_owned: self.config["transaction_owned"] == true,
         };
         match operation(&self.config, &mut cursor) {
-            Ok(v) => {
+            Ok(mut v) => {
                 self.terminal = true;
+                if self.config["family"] == "identity" {
+                    self.identity_revoke = v["_native_identity_revoke"].as_str().map(str::to_owned);
+                    if let Some(object) = v.as_object_mut() {
+                        object.remove("_native_identity_revoke");
+                    }
+                }
+                let friend_wake = v.get("_native_friend_wake").is_some_and(|v| v == true)
+                    && self.config["transaction_owned"] == true;
+                if let Some(object) = v.as_object_mut() {
+                    object.remove("_native_friend_wake");
+                }
                 let rejection = v.get("_native_rejection").cloned().unwrap_or(Value::Null);
+                self.profile_commit_ready =
+                    rejection.is_null() && self.config["transaction_owned"] == true;
+                self.friend_commit_ready = self.profile_commit_ready;
+                self.identity_commit_ready =
+                    self.profile_commit_ready && self.identity_revoke.is_some();
+                self.voice_commit_ready = self.profile_commit_ready && v["staged"] == true;
+                self.steam_commit_ready = self.profile_commit_ready;
                 Ok(
-                    json!({"kind":"done","value":if rejection.is_null(){v}else{Value::Null},"rejection":rejection,"atomic":true}),
+                    json!({"kind":"done","value":if rejection.is_null(){v}else{Value::Null},"rejection":rejection,"atomic":true,"friend_cloud_wake":friend_wake}),
                 )
             }
             Err(FlowError::Yield(v)) => {
@@ -227,6 +483,44 @@ impl Cursor<'_> {
     }
     fn provider(&mut self, method: &str, args: Value) -> Flow<Value> {
         Ok(self.io(json!({"kind":"provider","method":method,"args":args}))?["value"].clone())
+    }
+    fn profile(&mut self, request: Value) -> Flow<Value> {
+        need(self.profiles, 503, "Native profile source unavailable")?;
+        Ok(self.io(json!({"kind":"profiles","request":request}))?["value"].clone())
+    }
+    fn friend_cache(&mut self, request: Value) -> Flow<Value> {
+        need(self.friends, 503, "Native friend cache source unavailable")?;
+        Ok(self.io(json!({"kind":"friends","request":request}))?["value"].clone())
+    }
+    fn voice(&mut self, request: Value) -> Flow<Value> {
+        need(self.voices, 503, "Native voice source unavailable")?;
+        Ok(self.io(json!({"kind":"voice","request":request}))?["value"].clone())
+    }
+    fn steam(&mut self, request: Value) -> Flow<Value> {
+        need(self.steam, 403, "Native Steam invitation proof required")?;
+        Ok(self.io(json!({"kind":"steam","request":request}))?["value"].clone())
+    }
+    fn random_discriminator(&mut self, key: &str) -> Flow<String> {
+        if let Some(value) = self.entropy.get(key) {
+            return Ok(value.clone());
+        }
+        need(
+            self.entropy.len() < 256,
+            503,
+            "Friend entropy bank exceeds bounds",
+        )?;
+        for _ in 0..128 {
+            let mut raw = [0; 4];
+            getrandom::getrandom(&mut raw)
+                .map_err(|_| Error(503, "Friend tag entropy unavailable"))?;
+            let draw = u32::from_le_bytes(raw);
+            if draw < 4_200_000_000 {
+                let value = format!("{:08}", draw % 100_000_000);
+                self.entropy.insert(key.to_owned(), value.clone());
+                return Ok(value);
+            }
+        }
+        Err(Error(503, "Friend tag entropy unavailable").into())
     }
     fn core(&mut self, mut request: Value) -> Flow<Value> {
         need(self.source, 503, "Matchmaking playlists are not configured")?;
@@ -968,8 +1262,7 @@ fn command(c: &mut Cursor<'_>, who: &str, body: &Value, steam: &Value, now: i64)
                 "invite" => {
                     let name = m::text(&body["username"], 73)?;
                     let target = if name.contains('#') {
-                        let r = c.provider("friend_tag", json!(name))?;
-                        txt(&r)?.to_owned()
+                        friends::resolve(c, &json!(name))?
                     } else {
                         let name = name.to_lowercase();
                         need(
@@ -1015,10 +1308,25 @@ fn command(c: &mut Cursor<'_>, who: &str, body: &Value, steam: &Value, now: i64)
                     let subject =
                         platform(&body["steam_id"], 17, 17, "Invalid Steam invitation target")?;
                     need(
-                        steam["state"] == "ready"
-                            && array(steam, "friends").iter().any(|r| r["id"] == subject),
+                        c.transaction_owned,
+                        409,
+                        "Steam invitation requires an owned transaction",
+                    )?;
+                    let claim = m::text(steam, 36)?;
+                    let key = c
+                        .account_key
+                        .clone()
+                        .ok_or(Error(403, "Authenticated Steam proof required"))?;
+                    let proof=c.steam(json!({"op":"authorize","claim":claim,"player":who,"key":key,"target":subject,"payload":crate::matchmaking_steam_request::payload(body)}))?;
+                    let linked = c.one(
+                        "SELECT subject FROM player_identities WHERE player=? AND provider='steam'",
+                        json!([who]),
+                    )?;
+                    need(
+                        linked.as_ref().is_some_and(|r| r[0] == proof["subject"])
+                            && proof["target"] == subject,
                         403,
-                        "Refresh Steam friends before inviting this player",
+                        "Steam identity changed; refresh friends",
                     )?;
                     let row=c.one("SELECT player FROM player_identities WHERE provider='steam' AND subject=?",json!([subject]))?.ok_or(Error(404,"Player must sign into ONLINE first"))?;
                     need(
@@ -1377,7 +1685,24 @@ fn features(v: &Value, command: bool) -> Value {
     json!({"local_players":!command && enabled("local_players"),"appearance":!command && enabled("appearance"),"postgame":!command && enabled("postgame"),"countdown":enabled("countdown"),"privacy":enabled("privacy")})
 }
 fn operation(r: &Value, c: &mut Cursor<'_>) -> Flow<Value> {
-    if r["family"]=="clan"{return clans::operation(r,c);}
+    if r["family"] == "identity" {
+        return identity::operation(r, c);
+    }
+    if r["family"] == "voice" {
+        return voice::operation(r, c);
+    }
+    if r["family"] == "friends" {
+        return friends::operation(r, c);
+    }
+    if r["family"] == "clan" {
+        return clans::operation(r, c);
+    }
+    if r["family"] == "history" {
+        return history::operation(r, c);
+    }
+    if r["family"] == "profile" {
+        return profiles::operation(r, c);
+    }
     let mode = txt(&r["mode"])?;
     let now = m::integer(&r["wall"], 0, 9007199254650000)?;
     if mode == "schema" {

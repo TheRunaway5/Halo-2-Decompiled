@@ -20,7 +20,8 @@ class Registers(ctypes.Structure):
 
 
 class OriginalAudioCpu:
-    def __init__(self,image,elf_path:Path,control_word:int,mxcsr:int,extra_declared_regions=()):
+    def __init__(self,image,elf_path:Path,control_word:int,mxcsr:int,extra_declared_regions=(),source_bank_bytes=0x10000,
+                 read_only_declared_regions=()):
         if os.uname().machine!='x86_64':raise RuntimeError('Original32-bit host CPU runner requires Linux x86_64')
         self.libc=ctypes.CDLL(None,use_errno=True)
         self.libc.ptrace.argtypes=[ctypes.c_uint,ctypes.c_uint,ctypes.c_void_p,ctypes.c_void_p]
@@ -38,20 +39,34 @@ class OriginalAudioCpu:
         # Optional caller-declared MMIO backing is ordinary host memory, never
         # an emulated device or actual hardware readiness. Existing runners
         # retain their exact three-segment ELF when no extra backing is given.
-        declared=list(extra_declared_regions)
-        for address,size in declared:
+        readonly_declared=list(read_only_declared_regions)
+        declared=[(address,size,6) for address,size in extra_declared_regions]
+        # Caller-owned readonly operands permit genuine original write-fault
+        # prefixes. This changes no source instruction or default ELF segment.
+        declared.extend((address,size,4) for address,size in readonly_declared)
+        # Full voice-table callers need more declared data/stack backing than
+        # the default64KiB. This changes only the empty caller-owned ELF bank;
+        # original image sections and instruction bytes remain unchanged.
+        assert source_bank_bytes%4096==0 and 0x10000<=source_bank_bytes<=0x2000000
+        for address,size,_ in declared:
             assert address%4096==size%4096==0 and address>=0x4000000 and size>0
             assert address+size<=0x100000000
-        intervals=sorted((a,a+n)for a,n in declared)
+        intervals=sorted((a,a+n)for a,n,_ in declared)
         assert all(a[1]<=b[0]for a,b in zip(intervals,intervals[1:]))
         header=struct.pack('<16sHHIIIIIHHHHHH',ident,2,3,1,0x3000000,52,0,0,52,32,3+len(declared),0,0,0)
         segments=[struct.pack('<8I',1,4096,0x10000,0x10000,len(raw),len(raw),7,4096),
-                  struct.pack('<8I',1,4096+len(raw),0x1000000,0x1000000,0,0x10000,7,4096),
+                  struct.pack('<8I',1,4096+len(raw),0x1000000,0x1000000,0,source_bank_bytes,7,4096),
                   struct.pack('<8I',1,4096+len(raw),0x3000000,0x3000000,0,4096,7,4096)]
-        segments.extend(struct.pack('<8I',1,4096+len(raw),address,address,0,size,6,4096)for address,size in declared)
+        readonly_bytes=bytearray()
+        for address,size,flags in declared:
+            # Linux's zero-file-size PT_LOAD/BSS can inherit writable brk
+            # backing. File-backed pages retain the actual readonly policy.
+            offset=4096+len(raw)+len(readonly_bytes) if flags==4 else 4096+len(raw)
+            segments.append(struct.pack('<8I',1,offset,address,address,size if flags==4 else 0,size,flags,4096))
+            if flags==4:readonly_bytes.extend(bytes(size))
         prefix=header+b''.join(segments)
         assert not elf_path.exists()
-        elf_path.write_bytes(prefix+bytes(4096-len(prefix))+raw);elf_path.chmod(0o700)
+        elf_path.write_bytes(prefix+bytes(4096-len(prefix))+raw+readonly_bytes);elf_path.chmod(0o700)
         child=os.fork()
         if child==0:
             if self.libc.ptrace(0,0,None,None)!=0:os._exit(125)
@@ -67,6 +82,21 @@ class OriginalAudioCpu:
             self.fp=ctypes.create_string_buffer(512);self.trace(14,0,ctypes.addressof(self.fp))
             self.trace(0x4200,0,0x100000) # PTRACE_O_EXITKILL: own child only.
             self.memory_fd=os.open(f'/proc/{child}/mem',os.O_RDWR)
+            if readonly_declared:
+                mappings=[]
+                for line in Path(f'/proc/{child}/maps').read_text().splitlines():
+                    interval,permissions=line.split()[:2]
+                    low,high=(int(value,16) for value in interval.split('-'))
+                    mappings.append((low,high,permissions))
+                for address,size in readonly_declared:
+                    cursor=address
+                    for low,high,permissions in mappings:
+                        if low<=cursor<high:
+                            if 'r' not in permissions or 'w' in permissions:
+                                raise RuntimeError('Declared original readonly operand has writable/unreadable backing')
+                            cursor=min(address+size,high)
+                            if cursor==address+size:break
+                    if cursor!=address+size:raise RuntimeError('Declared original readonly operand has missing backing')
             # Linux x86_64 struct user.u_debugreg offset, independently checked
             # with a compile-time offsetof assertion in the validation harness.
             self.debug_offset=848

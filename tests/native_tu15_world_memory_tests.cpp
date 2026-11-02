@@ -28,11 +28,67 @@ using namespace halo2;
 #include "fixtures/native_tu15_melee_candidate_table.original.inc"
 #include "fixtures/weapon_fallback_constructor_tu15.original.inc"
 #include "fixtures/native_tu15_multiplayer_branch_data.original.inc"
+#include "fixtures/native_tu15_projected_light_cold.original.inc"
 void check(bool condition,const char* message) {
     if(!condition)throw std::runtime_error(message);
 }
 std::uint32_t word(const SourceRuntimeMemory& memory,std::uint32_t address) {
     return Bytes(memory.view(address,4)).u32(0);
+}
+void check_projected_light_cold_storage(const SourceRuntimeMemory& cold,
+    const SourceRuntimeKernelTickCount& input) {
+    const auto before=cold.checkpoint();SourceRuntimeMemory written;written.restore(before);
+    constexpr std::uint32_t opacity=0xa55a1739u;
+    written.write(0x492250u,std::as_bytes(std::span(&opacity,1)));
+    unsigned total{};
+    for(const auto [address,bytes]:projected_light_cold_original_ranges) {
+        const auto owner=std::ranges::find(before.regions,address,
+            &SourceRuntimeMemory::CheckpointRegion::address);
+        check(owner!=before.regions.end() && owner->bytes.size()==bytes &&
+            owner->access==SourceRuntimeMemory::Access::ReadWrite && !owner->page_bytes &&
+            owner->committed.empty() && owner->owner.starts_with("native TU1.5 loader-zeroed49790"),
+            "Projected light backing lost its exact writable cold owner");
+        check(std::ranges::all_of(cold.view(address,bytes),[](auto b){return b==std::byte{};}),
+            "Projected light cold backing differs from original loader-zero bytes");
+        check(cold.native_address(address,bytes).value>UINT32_MAX,
+            "Projected light backing narrowed its native address");
+        bool crossed=false;try{(void)cold.view(address,bytes+1u);}
+        catch(const std::out_of_range&){crossed=true;}
+        check(crossed,"Projected light owner borrowed the neighboring bank");
+        std::vector<std::byte> pattern(bytes);
+        for(unsigned n=0;n<bytes;++n)pattern[n]=std::byte((n*37u+bytes+1u)&255u);
+        written.write(address,pattern);total+=bytes;
+        for(const auto offset:{0u,bytes/2u,bytes-1u})for(const auto access:{
+            SourceRuntimeMemory::Access::ReadOnly,SourceRuntimeMemory::Access::ReadWrite}) {
+            SourceRuntimeMemory foreign;
+            foreign.mount(address+offset,std::array{std::byte{0xa5}},access,
+                "foreign projected light cold-bank overlap");
+            const auto prior=foreign.checkpoint();bool rejected=false;
+            try{mount_native_tu15_renderer_startup_data(foreign);}
+            catch(const std::invalid_argument&){rejected=true;}
+            check(rejected && foreign.checkpoint()==prior,
+                "Projected light conflict caused partial renderer startup publication");
+        }
+    }
+    check(total==180,"Projected light cold ranges exceed the original180 bytes");
+    const auto live=written.checkpoint();SourceRuntimeMemory restored;restored.restore(live);
+    check(restored.checkpoint()==live && word(restored,0x492250u)==opacity,
+        "Projected light checkpoint changed actual writes or the separate opacity owner");
+    const auto opacity_owner=std::ranges::find(before.regions,0x492250u,
+        &SourceRuntimeMemory::CheckpointRegion::address);
+    check(opacity_owner!=before.regions.end() && opacity_owner->bytes.size()==4 &&
+        opacity_owner->owner=="native TU1.5 loader-zeroed32340 shadow opacity destination",
+        "Projected light cold banks displaced the separate opacity owner");
+    bool rejected=false;try{mount_native_tu15_renderer_startup_data(restored);}
+    catch(const std::invalid_argument&){rejected=true;}
+    check(rejected && restored.checkpoint()==live,
+        "Repeated renderer construction reset retained projected light values");
+    auto fresh=native_tu15_world_memory(input);
+    for(const auto [address,bytes]:projected_light_cold_original_ranges)
+        check(std::ranges::equal(fresh.view(address,bytes),cold.view(address,bytes)),
+            "Fresh world inherited another world's projected light constants");
+    check(cold.checkpoint()==before,"Projected light controls changed the original cold world");
+    std::cout<<"Projected light cold backing:4 exact owners/180bytes,24 foreign overlaps, writes/checkpoint/fresh-world controls\n";
 }
 void check_portal_empty_bounds(const SourceRuntimeMemory& cold) {
     // Original21b207e7...176462 reads this writable .data pointer. Its
@@ -347,6 +403,7 @@ int main(int argc,char** argv)try {
         check(rejected&&partial.checkpoint()==prior,"Multiplayer branch admission changed or accepted a conflicting owner");
     }
     auto memory=native_tu15_world_memory(input);
+    check_projected_light_cold_storage(memory,input);
     // Authenticated21b207e7... D3D section flags7: exact eight file-backed
     // bytes4117E0..E7 are zero. They are requested-AA inputs, not a device
     // pointer or a completed hardware/default-state initialization result.

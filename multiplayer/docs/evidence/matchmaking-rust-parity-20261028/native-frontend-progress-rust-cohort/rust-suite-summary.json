@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "totals": {
+    "online_protocol": {
+      "passed": 528,
+      "failed": 0,
+      "ignored": 2
+    },
+    "online_protocol_bridge": {
+      "passed": 65,
+      "failed": 0,
+      "ignored": 2
+    },
+    "matchmaking_service": {
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "production_rust_pins_match_live": true,
+  "drift": [],
+  "source_report": "rust-final/report.json",
+  "note": "All Rust suites passed; the subsequent standalone native fixture used the earlier CXX Vec wrapper and failed to link. The corrected wrapper is tested separately in the owned CMake cohort."
+}

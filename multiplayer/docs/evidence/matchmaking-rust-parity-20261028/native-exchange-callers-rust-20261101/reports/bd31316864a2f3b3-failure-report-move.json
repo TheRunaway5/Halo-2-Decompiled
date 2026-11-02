@@ -1,0 +1,13 @@
+{
+  "from": "build/test-results/native-exchange-callers-rust-20261101/full-rust",
+  "to": "build/test-results/native-exchange-callers-rust-20261101/bridge-test-compile-failure",
+  "reason": "Retain failed test build unchanged before reusing the standard report directory for the corrected full Rust run",
+  "unchanged_files": {
+    "online_protocol-check.log": "459e403bd22246a2a88577a5a8520bbf01d81d60e19812e3423376a2c8ca56cd",
+    "online_protocol_bridge-check.log": "2f97ed353ab0340aa85a47ebe38fbd9e6a8fc2541c23d9cdbe4a3291f66ea27c",
+    "matchmaking_service-check.log": "28bb0ce5b16feb962513e6a68a4f13a77bc75449839ffe599c5e974d560d69dd",
+    "online_protocol-test.log": "5c5b48d6ea5551b76f44ad07c96e054dee34dd3a66389b2d702cc2e1a0f877ef",
+    "online_protocol_bridge-test.log": "4c1df71a201a181c9f7888f4a25cf1ab445b918aa08bb690a6f010a070cbdbc4",
+    "report.json": "b5527af5e8bcd941c5e766ad5ad57045dbf4520495caf03c4d690ad3d5f0a042"
+  }
+}

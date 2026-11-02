@@ -172,6 +172,7 @@ pub fn game(v: &Value, teams: bool) -> Result<()> {
             [1, 2, 3, 4, 7, 8, 9].contains(&engine) && (raw[0x48] & 1 != 0) == teams,
             "Hopper variant engine/team rule differs from playlist",
         )?;
+        check(crate::matchmaking_variant::valid(&raw), "Game variant settings fail original validation")?;
     } else {
         check(
             crate::matchmaking_coordinator::known_variant(s(v, "variant"))?.is_some(),

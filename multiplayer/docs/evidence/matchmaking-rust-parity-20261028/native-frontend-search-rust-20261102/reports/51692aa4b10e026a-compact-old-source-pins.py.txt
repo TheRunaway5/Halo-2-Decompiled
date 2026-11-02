@@ -1,0 +1,25 @@
+import hashlib,json
+from pathlib import Path
+work=Path.cwd()/'build/test-results/frontend-search-rust-20261102';read=lambda p:json.loads(p.read_text());digest=lambda b:hashlib.sha256(b).hexdigest()
+base_info=read(work/'native-candidate/inputs.json');base={}
+for name in base_info['initial_source_pin_parts']:base.update(read(work/'native-candidate'/name))
+requests=[('baseline-initial',read(work/'native/inputs.json')['initial_source_pin_parts']),('baseline-tested',read(work/'native/iteration-1-report.json')['source_pin_parts']),('interrupted-candidate',read(work/'native/interrupted-iteration-2-inputs.json')['source_pin_parts'])]
+sets={};reports=[];initial_keys=None;remove=[]
+for label,names in requests:
+ rows={};parts=[]
+ for name in names:
+  p=work/'native'/name;data=p.read_bytes();part=read(p);rows.update(part);parts.append({'name':name,'sha256':digest(data),'bytes':len(data)});remove.append(p)
+ if initial_keys is None:initial_keys=list(rows)
+ changed={n:h for n,h in rows.items() if base.get(n)!=h};removed=[n for n in base if n not in rows]
+ recovered={n:h for n,h in base.items() if n not in removed};recovered.update(changed)
+ if list(rows)==sorted(rows,key=Path):mode='path-sorted';order=sorted(recovered,key=Path);append=[]
+ else:
+  mode='path-sorted-initial-then-appended';append=[n for n in rows if n not in set(initial_keys)];order=sorted(initial_keys,key=Path)+append;assert order==list(rows)
+ assert recovered==rows and set(order)==set(rows)
+ for i,part in enumerate(parts):
+  data=(json.dumps({n:recovered[n] for n in order[i*400:(i+1)*400]},indent=2)+'\n').encode();assert digest(data)==part['sha256'] and len(data)==part['bytes']
+ record={'schema':'halo2-source-pins-lossless-delta-v1','base':'native-candidate/inputs.json initial_source_pin_parts','label':label,'base_map_sha256':digest(json.dumps(base,sort_keys=True).encode()),'map_sha256':digest(json.dumps(rows,sort_keys=True).encode()),'order':mode,'initial_order_set':'baseline-initial','appended_keys':append,'changed_values':changed,'remove_from_base':removed,'reconstructed_parts':parts,'all_original_part_bytes_verified':True,'files':len(rows)}
+ name='reconstructed-'+label+'-source-pins.json';(work/name).write_text(json.dumps(record,indent=2)+'\n');reports.append(name)
+for p in set(remove):p.unlink()
+result={'passed':True,'scope':'Lossless metadata-only deduplication of superseded source-hash inventories; original source/assets/references are untouched','replacement_reports':reports,'all_original_part_bytes_verified':True,'retired_duplicate_pin_files':len(set(remove)),'reconstruction':'Load base map from the current candidate initial source-pin parts; remove remove_from_base, apply changed_values, order by Path-sorted keys or Path-sorted reconstructed baseline-initial keys followed by appended_keys; serialize 400-key chunks with json.dumps(indent=2) plus newline; verify each stored original SHA-256 and byte count','retained_large_artifacts':[]}
+(work/'source-pin-retirement.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

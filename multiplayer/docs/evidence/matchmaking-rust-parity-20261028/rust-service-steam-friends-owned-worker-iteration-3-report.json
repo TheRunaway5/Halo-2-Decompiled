@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3",
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source",
+  "case": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/iteration-3",
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2",
+        "--manifest-path",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/source/rust/matchmaking_service/Cargo.toml"
+      ],
+      "returncode": 0
+    }
+  ],
+  "action": "steam_friends",
+  "retained_large_artifacts": [],
+  "refreshed_inputs": [
+    "rust/matchmaking_service/src/steam_friends.rs",
+    "rust/matchmaking_service/src/steam_friends_provider.rs",
+    "rust/matchmaking_service/src/steam_friends_http.rs"
+  ],
+  "source_files": 141,
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-steam-friends/halo2-test-f_ta_nz3/cargo/release/halo2-matchmaking-service",
+    "sha256": "e82a05ca659a95f4cb56056ba668867675b2fc1570d290d429122a4baeadedf3",
+    "bytes": 11039424,
+    "retained": false
+  },
+  "steam_friends": {
+    "qualified": true,
+    "checks": [
+      "actual Rust Steam relationship route checks account authority"
+    ],
+    "real_steam": false,
+    "native_played_world": false
+  }
+}

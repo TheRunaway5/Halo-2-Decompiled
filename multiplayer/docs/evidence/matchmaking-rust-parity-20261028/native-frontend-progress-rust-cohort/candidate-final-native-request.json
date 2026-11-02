@@ -1,0 +1,13 @@
+{
+  "action": "validate",
+  "targets": [
+    "frontend_online_tests",
+    "native_frontend_progress_rust_tests"
+  ],
+  "filter": "^(rust_frontend_clans_http|frontend_progress_cpp_rust)$",
+  "refresh": [
+    "tools/oracle_tu15_matchmaking_progress_sort.py",
+    "tools/oracle_tu15_matchmaking_progress_input.py",
+    "cmake/RustMatchmakingFrontend.cmake"
+  ]
+}

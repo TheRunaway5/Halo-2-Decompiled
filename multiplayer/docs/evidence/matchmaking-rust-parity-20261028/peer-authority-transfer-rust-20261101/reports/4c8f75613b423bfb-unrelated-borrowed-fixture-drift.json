@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "fixture": "tests/fixtures/workshop_shape_types_tu15.tsv",
+  "qualified_rust_inventory_sha256": "9ecb13e3796784b19d7d9250adc8c2dadc16bc60107129bd5d10441e622d753a",
+  "current_native_borrowed_fixture_sha256": "bffd0808b2bd6760752f5342c609a3473edd85ae98c61d9a8d3d92714960a9db",
+  "current_root_fixture_sha256": "bffd0808b2bd6760752f5342c609a3473edd85ae98c61d9a8d3d92714960a9db",
+  "native_path_is_borrowed_symlink": true,
+  "source_usage_command": [
+    "rg",
+    "--no-heading",
+    "-n",
+    "workshop_shape_types_tu15",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/rust",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/src",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/include",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/cmake"
+  ],
+  "source_usage_hits": [
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/native-source/cmake/WorkshopShapeTypes.cmake:11:    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/workshop_shape_types_tu15.tsv)"
+  ],
+  "only_registered_consumer": "workshop_shape_types",
+  "consumer_not_selected_in_any_native_iteration": true,
+  "compiled_rust_dependency_reports": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/halo2_online_protocol-39bf39ceaed86c98.d",
+      "retained": "build/test-results/peer-authority-transfer-rust-20261101/compiled-rust-dependencies-0.d.txt",
+      "sha256": "b52c960f3db95c1c6950045cbad16fe437ff94f4d61c3c86613fb9270d716955",
+      "fixture_dependency": false,
+      "authority_owner_dependency": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/halo2_online_protocol-5cd0ecdc615fac64.d",
+      "retained": "build/test-results/peer-authority-transfer-rust-20261101/compiled-rust-dependencies-1.d.txt",
+      "sha256": "ebfaefbeddf558e2a61ad1cb65c7b70a49bef24cac6e269b5cef1f1cb21ab5b9",
+      "fixture_dependency": false,
+      "authority_owner_dependency": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/halo2_online_protocol_bridge-71ad06f1492ca5b1.d",
+      "retained": "build/test-results/peer-authority-transfer-rust-20261101/compiled-rust-dependencies-2.d.txt",
+      "sha256": "815ab6de922616baa0b1681b9d6ca17d4f03ad91f07c6343c7ec15ae0035c637",
+      "fixture_dependency": false,
+      "authority_owner_dependency": true
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/peer-authority-transfer-native/halo2-test-jz7h_zxl/build/online-protocol/Release/cargo/x86_64-unknown-linux-gnu/release/deps/halo2_online_protocol_bridge-e30ca76bff217d1e.d",
+      "retained": "build/test-results/peer-authority-transfer-rust-20261101/compiled-rust-dependencies-3.d.txt",
+      "sha256": "654eada5bb2ea32b2ed89bfe4bb82e4b3404f2c9d356ae13da886ef4e2a90497",
+      "fixture_dependency": false,
+      "authority_owner_dependency": true
+    }
+  ],
+  "all_other_rust_inventory_inputs_match": true,
+  "critical_policy_sources_match": true,
+  "scope": "One over-inclusive borrowed fixture changed in unrelated work. It is absent from compiled Rust dependencies and only referenced by an unselected workshop test. This is not an all-inventory-inputs-identical claim; the foreign fixture is preserved.",
+  "retained_large_artifacts": []
+}

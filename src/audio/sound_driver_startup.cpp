@@ -1,4 +1,5 @@
 #include "halo2/sound_driver_startup.hpp"
+#include "halo2/source_sound_wet_returns_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <limits>
@@ -75,7 +76,7 @@ public:
   const auto current=s.driver_address;const auto output_policy=std::uint8_t(read(current+1,1));write(0x2209fe,current+0x2ab4,c.routing_plugin_identity);
   {auto b=memory(current+0x2a0c,64);need(p.native_plugin_initialize,"Native source routing plugin constructor unavailable")({c.routing_plugin_identity,current+0x2a0c,current+0x2a4c,output_policy,std::span<const std::byte,64>(b.data(),64)});}
   {const auto identity=read(s.driver_address+0x2ab4);const auto policy_byte=std::uint8_t(read(s.driver_address+1,1));auto b=memory(s.runtime_environment_parameters_address,44);need(p.native_plugin_environment,"Native source environment plugin operation unavailable")({identity,s.runtime_environment_parameters_address,policy_byte,std::span<const std::byte,44>(b.data(),44)});}
-  for(unsigned i=0;i<8;++i){const auto slot=s.driver_address+0x2a70+4*i;if(buffer(slot,0x100000,0xf+i)){auto identity=read(slot);buffer_operation(SoundDriverBufferOperation::Volume,identity,{0,0,0});const std::array<std::uint32_t,2> bins{6+i%4,0};buffer_operation(SoundDriverBufferOperation::MixBins,read(slot),{1,0,0},bins);buffer_operation(SoundDriverBufferOperation::Play,read(slot),{0,0,0});}}
+  source_sound_driver_wet_returns_tu15(s,p);
   for(unsigned i=0;i<2;++i){need(p.source_feedback_buffer_construct,"Original2235A0 feedback buffer CPU owner unavailable")(s,s.driver_address+0x2a90+4*i);write(0x220b6f,s.driver_address+0x2a98+4*i,0xffffffff);}
   auto final_driver=s.driver_address;for(unsigned i=0;i<4;++i)write(0x220b8f+8*i,final_driver+0x2abc+4*i,c.one_bits);write(0x220bb2,final_driver+0x2acc,8000);write(0x220bbc,final_driver+0x2ad0,0);
   if(!complete)return failed();

@@ -1,0 +1,416 @@
+{
+  "passed": true,
+  "scope": "Exact modern C++ packet/audio callers versus production Rust orchestration.\n\nBoth sides invoke the real Rust Session owner. Native buffers, audio owners,\nworkers, barriers and failures are declared fixtures. Full output, wire bytes,\nstate, lock/owner ordering and actual C++ exception identity are compared.\nThis does not certify original Live, a played world, genuine providers or the\ninstalled Linux client.\n",
+  "original_live": false,
+  "native_world": false,
+  "genuine_provider": false,
+  "installed_client": false,
+  "commands": 6902,
+  "steps": 8462,
+  "expected_state_or_io_refusals": 464,
+  "native_exception_identity_checks": 243,
+  "operations": {
+    "send": 740,
+    "receive": 1079,
+    "preferences": 738,
+    "voices": 708,
+    "voice": 2189,
+    "retain": 492,
+    "close": 310,
+    "fence_audio": 278,
+    "sync": 248,
+    "sequence": 120
+  },
+  "sha256": "3091e8d9756af0c199448e6d0f05ce2542b9c7a27b59c2981864517f193db7ed",
+  "lost_native_exception_negative_control": {
+    "passed": true,
+    "command": {
+      "op": "fence_audio",
+      "audio": true,
+      "fail": "device_fence",
+      "exception": "overflow",
+      "discard_native_exception": true
+    },
+    "observation": {
+      "matched": false,
+      "result": {
+        "outgoing": [],
+        "remaining_packets": [
+          {
+            "bytes": [
+              72,
+              50,
+              78,
+              50,
+              124,
+              0,
+              3,
+              0
+            ],
+            "epoch": 0,
+            "generation": 0,
+            "peer": 1
+          },
+          {
+            "bytes": [
+              72,
+              50,
+              78,
+              50,
+              124,
+              0,
+              3,
+              1
+            ],
+            "epoch": 0,
+            "generation": 0,
+            "peer": 1
+          }
+        ],
+        "remaining_voices": [
+          {
+            "enabled": true,
+            "frame": {
+              "generation": 0,
+              "left_bits": 0,
+              "opus": [],
+              "radio": false,
+              "right_bits": 0,
+              "sequence": 0,
+              "signature": [],
+              "source": 1
+            },
+            "muted": 32769,
+            "peer": 1,
+            "preferences": true
+          },
+          {
+            "enabled": false,
+            "frame": {
+              "generation": 0,
+              "left_bits": 1056964608,
+              "opus": [
+                0,
+                17,
+                255
+              ],
+              "radio": true,
+              "right_bits": 1048576000,
+              "sequence": 4294967295,
+              "signature": [
+                42,
+                184,
+                102,
+                141,
+                174,
+                54,
+                36,
+                99,
+                89,
+                7,
+                223,
+                222,
+                142,
+                114,
+                88,
+                30,
+                171,
+                64,
+                190,
+                32,
+                45,
+                101,
+                149,
+                183,
+                60,
+                103,
+                132,
+                85,
+                121,
+                224,
+                32,
+                105,
+                156,
+                58,
+                69,
+                2,
+                208,
+                79,
+                189,
+                71,
+                105,
+                240,
+                54,
+                43,
+                238,
+                236,
+                91,
+                243,
+                72,
+                218,
+                204,
+                135,
+                56,
+                77,
+                95,
+                207,
+                91,
+                216,
+                215,
+                24,
+                236,
+                232,
+                6,
+                15
+              ],
+              "source": 1
+            },
+            "muted": 0,
+            "peer": 1,
+            "preferences": false
+          }
+        ],
+        "steps": [
+          {
+            "audio": 1,
+            "audio_closed": false,
+            "audio_refs": 1,
+            "bytes": [
+              238,
+              221
+            ],
+            "category": "overflow",
+            "error": true,
+            "exception": "Voice delivery generation exhausted",
+            "fenced": false,
+            "generation": 0,
+            "held": false,
+            "joined": false,
+            "native_exception_identity": true,
+            "peer": 123,
+            "phase": 2,
+            "presence": false,
+            "received": false,
+            "stopped": false,
+            "voices": []
+          }
+        ],
+        "trace": [
+          {
+            "audio_refs": 1,
+            "data": {},
+            "event": "lock",
+            "locked": false
+          },
+          {
+            "audio_refs": 1,
+            "data": 0,
+            "event": "device_fence",
+            "locked": true
+          },
+          {
+            "audio_refs": 1,
+            "data": {},
+            "event": "unlock",
+            "locked": true
+          }
+        ]
+      },
+      "rust": {
+        "outgoing": [],
+        "remaining_packets": [
+          {
+            "bytes": [
+              72,
+              50,
+              78,
+              50,
+              124,
+              0,
+              3,
+              0
+            ],
+            "epoch": 0,
+            "generation": 0,
+            "peer": 1
+          },
+          {
+            "bytes": [
+              72,
+              50,
+              78,
+              50,
+              124,
+              0,
+              3,
+              1
+            ],
+            "epoch": 0,
+            "generation": 0,
+            "peer": 1
+          }
+        ],
+        "remaining_voices": [
+          {
+            "enabled": true,
+            "frame": {
+              "generation": 0,
+              "left_bits": 0,
+              "opus": [],
+              "radio": false,
+              "right_bits": 0,
+              "sequence": 0,
+              "signature": [],
+              "source": 1
+            },
+            "muted": 32769,
+            "peer": 1,
+            "preferences": true
+          },
+          {
+            "enabled": false,
+            "frame": {
+              "generation": 0,
+              "left_bits": 1056964608,
+              "opus": [
+                0,
+                17,
+                255
+              ],
+              "radio": true,
+              "right_bits": 1048576000,
+              "sequence": 4294967295,
+              "signature": [
+                42,
+                184,
+                102,
+                141,
+                174,
+                54,
+                36,
+                99,
+                89,
+                7,
+                223,
+                222,
+                142,
+                114,
+                88,
+                30,
+                171,
+                64,
+                190,
+                32,
+                45,
+                101,
+                149,
+                183,
+                60,
+                103,
+                132,
+                85,
+                121,
+                224,
+                32,
+                105,
+                156,
+                58,
+                69,
+                2,
+                208,
+                79,
+                189,
+                71,
+                105,
+                240,
+                54,
+                43,
+                238,
+                236,
+                91,
+                243,
+                72,
+                218,
+                204,
+                135,
+                56,
+                77,
+                95,
+                207,
+                91,
+                216,
+                215,
+                24,
+                236,
+                232,
+                6,
+                15
+              ],
+              "source": 1
+            },
+            "muted": 0,
+            "peer": 1,
+            "preferences": false
+          }
+        ],
+        "steps": [
+          {
+            "audio": 1,
+            "audio_closed": false,
+            "audio_refs": 1,
+            "bytes": [
+              238,
+              221
+            ],
+            "category": "other",
+            "error": true,
+            "exception": "Voice delivery generation exhausted",
+            "fenced": false,
+            "generation": 0,
+            "held": false,
+            "joined": false,
+            "native_exception_identity": false,
+            "peer": 123,
+            "phase": 2,
+            "presence": false,
+            "received": false,
+            "stopped": false,
+            "voices": []
+          }
+        ],
+        "trace": [
+          {
+            "audio_refs": 1,
+            "data": {},
+            "event": "lock",
+            "locked": false
+          },
+          {
+            "audio_refs": 1,
+            "data": 0,
+            "event": "device_fence",
+            "locked": true
+          },
+          {
+            "audio_refs": 1,
+            "data": {},
+            "event": "unlock",
+            "locked": true
+          }
+        ]
+      }
+    }
+  },
+  "binary_sha256": "b5b3fad6573ef4ab33b8bdb3cae906b5e432304a5b9e0f2f41fa56f2dc84875c",
+  "source_pins": {
+    "tests/native_session_api_tests.cpp": "821e7ea24266103485fd735f38015e957ea5b4ae8a77699bc8f025cfa29792cf",
+    "tests/test_native_session_api.py": "866ca38dba9b9f9c030d4656372cfab20b96ed36441063532e97e892b28926a3",
+    "tests/reference/native_session_api_private_before_rust_20261101.inc": "fd20254393e0860c95c776fda79c4e26ea8e67171ba10b8d101495d4e3c13055",
+    "tests/reference/native_session_api_stream_before_rust_20261101.inc": "b0ebcc7eb5fbdc442d7b1c1601edb80d5930d43254ed054591d06342dffc82b2",
+    "tests/reference/native_session_api_close_before_rust_20261101.inc": "67145f687aedbfee916d8572be2030e062b7b7af4acc97d4cfdd3e8e914dd6a0"
+  },
+  "startup_messages": [
+    "Shutdown handler: initialize."
+  ],
+  "child_exit_code": 0
+}

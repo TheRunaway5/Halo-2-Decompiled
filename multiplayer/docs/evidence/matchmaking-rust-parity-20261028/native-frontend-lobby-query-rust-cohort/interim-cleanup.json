@@ -1,0 +1,57 @@
+[
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-core-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-component-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-component-authenticated-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-component-original-qualified-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-rust-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-rust-qualified-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-rust-original-qualified-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-stager-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-original-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-wide-team-original-20261102",
+    "children": [],
+    "empty": true
+  },
+  {
+    "path": ".local/test-scratch/frontend-lobby-query-linkage-20261102",
+    "children": [],
+    "empty": true
+  }
+]

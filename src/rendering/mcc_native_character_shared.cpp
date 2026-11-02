@@ -39,19 +39,14 @@ std::string digest(std::span<const std::byte> bytes) {
     for(const auto byte:out){text+=hex[byte>>4];text+=hex[byte&15];}return text;
 }
 }
-std::optional<MccOwnedShaderProjection> project_mcc_character_shared(
+static std::optional<MccOwnedShaderProjection> project_shared_profile(
     const Tag& shader,const Tag& source_stem,const Tag& native_stem,
     std::string_view payload_name,std::span<const std::byte> payload,
     const MccShaderRead& read_source,const MccShaderFind& find,const MccShaderBitmapFrame& owns_frame,
-    const std::function<std::string(std::uint32_t)>& string_id) {
+    const std::function<std::string(std::uint32_t)>& string_id,const Json& candidate) {
     try {
         if(!read_source||!find||!owns_frame||!string_id)return {};
-        static const auto registry=Json::parse(native_character_shared_profiles);
-        const Json* profile=nullptr;
-        for(const auto& candidate:registry.at("profiles"))
-            if(candidate.at("template")==native_stem.name&&candidate.at("native_record").at("payload")==payload_name)
-                profile=&candidate;
-        if(!profile)return {};
+        const auto* profile=&candidate;
         const auto same=[&](const Tag& tag) {
             const auto* actual=find(tag.datum);
             return actual&&actual->datum==tag.datum&&actual->group==tag.group&&actual->name==tag.name&&
@@ -200,5 +195,20 @@ std::optional<MccOwnedShaderProjection> project_mcc_character_shared(
         for(unsigned i=0;i<curves.size();++i)append(output_overlays+i*20+16,curves[i]);
         return result;
     }catch(const FormatError&){return {};}
+}
+std::optional<MccOwnedShaderProjection> project_mcc_character_shared(
+    const Tag& shader,const Tag& source_stem,const Tag& native_stem,
+    std::string_view payload_name,std::span<const std::byte> payload,
+    const MccShaderRead& read_source,const MccShaderFind& find,const MccShaderBitmapFrame& owns_frame,
+    const std::function<std::string(std::uint32_t)>& string_id) {
+    static const auto registry=Json::parse(native_character_shared_profiles);
+    // A template may own several distinct literal authored setups. Qualify
+    // every complete graph/bank/curve contract rather than choosing by the
+    // material's name or assuming the first shared instance represents all.
+    for(const auto& candidate:registry.at("profiles"))
+        if(candidate.at("template")==native_stem.name&&candidate.at("native_record").at("payload")==payload_name)
+            if(auto projected=project_shared_profile(shader,source_stem,native_stem,payload_name,payload,
+                    read_source,find,owns_frame,string_id,candidate))return projected;
+    return {};
 }
 }

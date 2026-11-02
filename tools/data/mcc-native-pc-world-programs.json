@@ -71,6 +71,11 @@
           "source_map": "zanzibar",
           "group": "stem",
           "name": "shaders\\shader_templates\\water\\water_static"
+        },
+        {
+          "source_map": "coagulation",
+          "group": "stem",
+          "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum"
         }
       ],
       "sources": {
@@ -1223,6 +1228,171 @@
               ],
               [
                 382,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum",
+            "bytes": 1878,
+            "payload": "9977d3432b7b9a28a5de532a6e33d343a86e77d07a7011c89f05c42e5e54f76b.bin",
+            "fnv64": "537b9ade6659fa8b",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1728
+              ],
+              [
+                116,
+                168
+              ],
+              [
+                124,
+                348
+              ],
+              [
+                132,
+                708
+              ]
+            ],
+            "references": [
+              [
+                172,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite"
+                ]
+              ],
+              [
+                182,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                192,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                202,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                212,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                222,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                232,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                242,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                252,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                262,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                272,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                282,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                292,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+                ]
+              ],
+              [
+                302,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                312,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                322,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                332,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                342,
                 [
                   "spas",
                   "shaders\\shader_passes\\fog\\fog_planar"
@@ -20037,6 +20207,144 @@
         {
           "source_map": "coagulation",
           "group": "spas",
+          "name": "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail",
+          "candidate_payload": "6751d446912a09ec973cf90b6e8eb82926f405dffdf3a1a99b8af7ad0bfefeb1.bin",
+          "retained_payload": "18743897a6704398f3fcec40728a5a05b8944e0389ea599eb4507947fafee517.bin",
+          "typed_complete_graph_sha256": "105ab4857be2cb0247fcdf92b3899c3741156d328fa5c481993ebcac6ac4703a",
+          "candidate_storage": {
+            "payload_sha256": "6751d446912a09ec973cf90b6e8eb82926f405dffdf3a1a99b8af7ad0bfefeb1",
+            "bytes": 5220,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1530
+              ],
+              [
+                1656,
+                76
+              ],
+              [
+                1732,
+                205
+              ],
+              [
+                1940,
+                456
+              ],
+              [
+                2396,
+                116
+              ],
+              [
+                2512,
+                348
+              ],
+              [
+                2860,
+                2272
+              ],
+              [
+                5132,
+                88
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1654,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1937,
+                "bytes": 3,
+                "sha256": "5ae7e6a42304dc6e4176210b83c43024f99a0bce9a870c3b6d2c95fc8ebfb74c",
+                "all_zero": false,
+                "hex": "ffffff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 14
+          },
+          "retained_storage": {
+            "payload_sha256": "18743897a6704398f3fcec40728a5a05b8944e0389ea599eb4507947fafee517",
+            "bytes": 5220,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1530
+              ],
+              [
+                1656,
+                76
+              ],
+              [
+                1732,
+                205
+              ],
+              [
+                1940,
+                456
+              ],
+              [
+                2396,
+                116
+              ],
+              [
+                2512,
+                348
+              ],
+              [
+                2860,
+                2272
+              ],
+              [
+                5132,
+                88
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1654,
+                "bytes": 2,
+                "sha256": "216ce66d4d6e299690772ea2188aa84e70ed1a86ae637d3d5d975e914fc0a319",
+                "all_zero": false,
+                "hex": "cc03",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1937,
+                "bytes": 3,
+                "sha256": "28043bee7465724f379aae87488a777671fb457dafb9bcd9456a6645a7735143",
+                "all_zero": false,
+                "hex": "4f0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 14
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
           "name": "shaders\\shader_passes\\lightmap\\lightmap_env",
           "candidate_payload": "4df89b3231b28b671bb27768012793bcf9a095f44bb13fa63c6f4571bd09d848.bin",
           "retained_payload": "1181bac73a0553c8d07a4dc9dfc09bd996e10dadbec57159904b13801a297425.bin",
@@ -20162,6 +20470,160 @@
               },
               {
                 "offset": 3124,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 13
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\lightmap\\lightmap_tex_env",
+          "candidate_payload": "dcd545067642dc6e9c43b915496d9c50dd0f824ec9e18a00955d3407f23649b9.bin",
+          "retained_payload": "e0bb90179f74bf07c612255db36884edd0a0b2ae3fc0ff9cd84b9d3f558b7602.bin",
+          "typed_complete_graph_sha256": "246d98b80ba310b718ee8781d21915f0434c815ca55cb66ce29804fb97fe74f0",
+          "candidate_storage": {
+            "payload_sha256": "dcd545067642dc6e9c43b915496d9c50dd0f824ec9e18a00955d3407f23649b9",
+            "bytes": 3212,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1224
+              ],
+              [
+                2544,
+                64
+              ],
+              [
+                2608,
+                60
+              ],
+              [
+                2672,
+                384
+              ],
+              [
+                3056,
+                36
+              ],
+              [
+                3104,
+                108
+              ],
+              [
+                1348,
+                1152
+              ],
+              [
+                2500,
+                36
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 2536,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2668,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3092,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 13
+          },
+          "retained_storage": {
+            "payload_sha256": "e0bb90179f74bf07c612255db36884edd0a0b2ae3fc0ff9cd84b9d3f558b7602",
+            "bytes": 3212,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1224
+              ],
+              [
+                2928,
+                64
+              ],
+              [
+                2992,
+                60
+              ],
+              [
+                1348,
+                384
+              ],
+              [
+                3056,
+                36
+              ],
+              [
+                3104,
+                108
+              ],
+              [
+                1732,
+                1152
+              ],
+              [
+                2884,
+                36
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 2920,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3052,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3092,
                 "bytes": 12,
                 "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
                 "all_zero": true,
@@ -20348,6 +20810,112 @@
               }
             ],
             "relocations": 14
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\self_illumination\\default_self_illumination",
+          "candidate_payload": "bb068c16447dbae6302dc726ec9310650fe045308ec0e45427c2bb5b53190a32.bin",
+          "retained_payload": "c6db562526c6666b045df65709f177c65b0b27711bbae93b988c83223fbfcf86.bin",
+          "typed_complete_graph_sha256": "99caf37ce8c08a8960d6714404ed35a0726c1e86fd06c94de86970cd20f76681",
+          "candidate_storage": {
+            "payload_sha256": "bb068c16447dbae6302dc726ec9310650fe045308ec0e45427c2bb5b53190a32",
+            "bytes": 516,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                4
+              ],
+              [
+                436,
+                55
+              ],
+              [
+                492,
+                24
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 491,
+                "bytes": 1,
+                "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+                "all_zero": false,
+                "hex": "ff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          },
+          "retained_storage": {
+            "payload_sha256": "c6db562526c6666b045df65709f177c65b0b27711bbae93b988c83223fbfcf86",
+            "bytes": 516,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                512,
+                4
+              ],
+              [
+                432,
+                55
+              ],
+              [
+                488,
+                24
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "085edad400785fca7e7e90b1fac4beb776fc2beee5aa24352d5f39b5d57efcad",
+                "all_zero": false,
+                "hex": "0080",
+                "alignment_padding": true
+              },
+              {
+                "offset": 487,
+                "bytes": 1,
+                "sha256": "76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71",
+                "all_zero": false,
+                "hex": "80",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
           }
         },
         {
@@ -20552,6 +21120,112 @@
               }
             ],
             "relocations": 8
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite",
+          "candidate_payload": "dcf94e7cefbff9925a5fe113f766560a9bdb546a618e21c8f89bf628902290c3.bin",
+          "retained_payload": "b6e3a1fa61821c08a81072b7dbbbd237916d32eec5aedb33ac4e3224d65ddd93.bin",
+          "typed_complete_graph_sha256": "4553fad63aa27474001947100fa99dbc77fb0cfb54975d0bd782afaa920c42af",
+          "candidate_storage": {
+            "payload_sha256": "dcf94e7cefbff9925a5fe113f766560a9bdb546a618e21c8f89bf628902290c3",
+            "bytes": 504,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                8
+              ],
+              [
+                440,
+                15
+              ],
+              [
+                456,
+                48
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 455,
+                "bytes": 1,
+                "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+                "all_zero": false,
+                "hex": "ff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          },
+          "retained_storage": {
+            "payload_sha256": "b6e3a1fa61821c08a81072b7dbbbd237916d32eec5aedb33ac4e3224d65ddd93",
+            "bytes": 504,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                8
+              ],
+              [
+                440,
+                15
+              ],
+              [
+                456,
+                48
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "5739f12aa0e6050fdac798a9d8092e0a2b2787e2643e53e30d07feedfa9ac418",
+                "all_zero": false,
+                "hex": "5602",
+                "alignment_padding": true
+              },
+              {
+                "offset": 455,
+                "bytes": 1,
+                "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+                "all_zero": false,
+                "hex": "01",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
           }
         },
         {
@@ -21461,6 +22135,910 @@
         {
           "source_map": "coagulation",
           "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_gel_tex",
+          "candidate_payload": "4948c2f44a4153b2dbc85886fb789e199b1b3dc8a6cd1020e989abffd5f36be1.bin",
+          "retained_payload": "bc6f53c803a37d05af3c6d5c326dc37d8bc98c6aff2af6a23d00e4e065bc9a49.bin",
+          "typed_complete_graph_sha256": "79697b46634f609419abaedc47b37726be17b81c0103a2d5aca0703d774fb3bd",
+          "candidate_storage": {
+            "payload_sha256": "4948c2f44a4153b2dbc85886fb789e199b1b3dc8a6cd1020e989abffd5f36be1",
+            "bytes": 4254,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4192,
+                10
+              ],
+              [
+                208,
+                340
+              ],
+              [
+                4192,
+                10
+              ],
+              [
+                548,
+                580
+              ],
+              [
+                4208,
+                12
+              ],
+              [
+                1128,
+                644
+              ],
+              [
+                4208,
+                12
+              ],
+              [
+                1128,
+                644
+              ],
+              [
+                4224,
+                14
+              ],
+              [
+                1772,
+                724
+              ],
+              [
+                4240,
+                14
+              ],
+              [
+                2496,
+                804
+              ],
+              [
+                4240,
+                14
+              ],
+              [
+                3300,
+                884
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4184,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4202,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4220,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4238,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "bc6f53c803a37d05af3c6d5c326dc37d8bc98c6aff2af6a23d00e4e065bc9a49",
+            "bytes": 4270,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                340
+              ],
+              [
+                560,
+                10
+              ],
+              [
+                572,
+                580
+              ],
+              [
+                4240,
+                12
+              ],
+              [
+                1152,
+                644
+              ],
+              [
+                4240,
+                12
+              ],
+              [
+                1152,
+                644
+              ],
+              [
+                4256,
+                14
+              ],
+              [
+                1796,
+                724
+              ],
+              [
+                2520,
+                14
+              ],
+              [
+                2536,
+                804
+              ],
+              [
+                3340,
+                14
+              ],
+              [
+                3356,
+                884
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "92becdbdea2c39783a364ebd160f504855c59c14bdd9c013f064f8fb1c28660f",
+                "all_zero": false,
+                "hex": "6208",
+                "alignment_padding": true
+              },
+              {
+                "offset": 570,
+                "bytes": 2,
+                "sha256": "607fabe40dd594237726fa1d3f703f9632510eef4139a3a02c70f2904f089a46",
+                "all_zero": false,
+                "hex": "e202",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2534,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3354,
+                "bytes": 2,
+                "sha256": "faa91ec04eac213b9d65920869044f61931075524874227e2591e982605d4f9b",
+                "all_zero": false,
+                "hex": "8106",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4252,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_tex",
+          "candidate_payload": "1f75d3e4793fa8791d4173554090bc6dcd673375ed7b38f3b5c846ac5c460272.bin",
+          "retained_payload": "5c57cf2e9a387ab9695a7bd36d360538764c593c544f8f1999e390d4d1b557ea.bin",
+          "typed_complete_graph_sha256": "ab02e5c182ca80e9e9ed70e0035a4cbe92a4e0ee3c62a0c9dbd3656a18e90d76",
+          "candidate_storage": {
+            "payload_sha256": "1f75d3e4793fa8791d4173554090bc6dcd673375ed7b38f3b5c846ac5c460272",
+            "bytes": 3662,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3616,
+                10
+              ],
+              [
+                208,
+                244
+              ],
+              [
+                3616,
+                10
+              ],
+              [
+                452,
+                468
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                1468,
+                14
+              ],
+              [
+                1484,
+                628
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2112,
+                708
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2820,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1482,
+                "bytes": 2,
+                "sha256": "e07bfcdf24567373709cbdbc58199a0068ce46581a48a1f12a0a20b0b4816564",
+                "all_zero": false,
+                "hex": "fe09",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3608,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3626,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3644,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "5c57cf2e9a387ab9695a7bd36d360538764c593c544f8f1999e390d4d1b557ea",
+            "bytes": 3678,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                244
+              ],
+              [
+                464,
+                10
+              ],
+              [
+                476,
+                468
+              ],
+              [
+                3648,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3648,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                1492,
+                14
+              ],
+              [
+                1508,
+                628
+              ],
+              [
+                3664,
+                14
+              ],
+              [
+                2136,
+                708
+              ],
+              [
+                2844,
+                14
+              ],
+              [
+                2860,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "f94d7226f46fe9ddfec9f135a4eda91558f9f4f0ed7ee6a0b8bcabd30ba62c53",
+                "all_zero": false,
+                "hex": "0602",
+                "alignment_padding": true
+              },
+              {
+                "offset": 474,
+                "bytes": 2,
+                "sha256": "8074b79a17789899edb3a3e6b9972255a94a2c44396e3067abcc3d6d4c678be8",
+                "all_zero": false,
+                "hex": "eb01",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1506,
+                "bytes": 2,
+                "sha256": "e07bfcdf24567373709cbdbc58199a0068ce46581a48a1f12a0a20b0b4816564",
+                "all_zero": false,
+                "hex": "fe09",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2858,
+                "bytes": 2,
+                "sha256": "af398567cec4766dbc12d87503d2dedd539952851eaee19b49df3bba88aff49e",
+                "all_zero": false,
+                "hex": "6a05",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3660,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex",
+          "candidate_payload": "255156fb0ce59e2531ccf5492684a7727b00b7e99054dfdad38a3197a0b7e9fa.bin",
+          "retained_payload": "c75a3493615037161e144aa53c86979d0c039a19e45cf1c877589761dde39d40.bin",
+          "typed_complete_graph_sha256": "7a501976739a1344b274463176a1dd7c8aff6ddc69f7dc0002e31ea378bb1952",
+          "candidate_storage": {
+            "payload_sha256": "255156fb0ce59e2531ccf5492684a7727b00b7e99054dfdad38a3197a0b7e9fa",
+            "bytes": 4078,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4016,
+                10
+              ],
+              [
+                208,
+                340
+              ],
+              [
+                4016,
+                10
+              ],
+              [
+                548,
+                532
+              ],
+              [
+                4032,
+                12
+              ],
+              [
+                1080,
+                612
+              ],
+              [
+                4032,
+                12
+              ],
+              [
+                1080,
+                612
+              ],
+              [
+                4048,
+                14
+              ],
+              [
+                1692,
+                692
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                2384,
+                772
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                3156,
+                852
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4008,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4026,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4044,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4062,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "c75a3493615037161e144aa53c86979d0c039a19e45cf1c877589761dde39d40",
+            "bytes": 4094,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                340
+              ],
+              [
+                560,
+                10
+              ],
+              [
+                572,
+                532
+              ],
+              [
+                4048,
+                12
+              ],
+              [
+                1104,
+                612
+              ],
+              [
+                4048,
+                12
+              ],
+              [
+                1104,
+                612
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                1716,
+                692
+              ],
+              [
+                4080,
+                14
+              ],
+              [
+                2408,
+                772
+              ],
+              [
+                3180,
+                14
+              ],
+              [
+                3196,
+                852
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "59de9659aa68ef0274f5b310995b12dfd4ba63e056d8c0c773e43f5c42a904ad",
+                "all_zero": false,
+                "hex": "190a",
+                "alignment_padding": true
+              },
+              {
+                "offset": 570,
+                "bytes": 2,
+                "sha256": "63540692485e9982808a3ad2d9eda3ef9f9b6b45ea3d491ee894cc3f0b7579e9",
+                "all_zero": false,
+                "hex": "7005",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3194,
+                "bytes": 2,
+                "sha256": "cdc42ed935cc26f4ff6ce8bbb4a72fd5accc7e3dc06f466660ce5932aec0b428",
+                "all_zero": false,
+                "hex": "f302",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4060,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4078,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex_first_person_change_color",
+          "candidate_payload": "d3a9d6e995f5f5fa73e7b635d86793aa05799406bbf58c794dbe659d5f4a75c6.bin",
+          "retained_payload": "dda5219dc227c55a9cd8f58ab0452eec03594032a7eb4303a2e9261d812863e4.bin",
+          "typed_complete_graph_sha256": "c29cc22ed9dfe3804222d711428fb71a3fb458fc1862223e77651217a0a9f514",
+          "candidate_storage": {
+            "payload_sha256": "d3a9d6e995f5f5fa73e7b635d86793aa05799406bbf58c794dbe659d5f4a75c6",
+            "bytes": 3790,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3728,
+                10
+              ],
+              [
+                208,
+                292
+              ],
+              [
+                3728,
+                10
+              ],
+              [
+                500,
+                484
+              ],
+              [
+                3744,
+                12
+              ],
+              [
+                984,
+                564
+              ],
+              [
+                3744,
+                12
+              ],
+              [
+                984,
+                564
+              ],
+              [
+                3760,
+                14
+              ],
+              [
+                1548,
+                644
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                2192,
+                724
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                2916,
+                804
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 3720,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3738,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3756,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3774,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "dda5219dc227c55a9cd8f58ab0452eec03594032a7eb4303a2e9261d812863e4",
+            "bytes": 3806,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                292
+              ],
+              [
+                512,
+                10
+              ],
+              [
+                524,
+                484
+              ],
+              [
+                3760,
+                12
+              ],
+              [
+                1008,
+                564
+              ],
+              [
+                3760,
+                12
+              ],
+              [
+                1008,
+                564
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                1572,
+                644
+              ],
+              [
+                3792,
+                14
+              ],
+              [
+                2216,
+                724
+              ],
+              [
+                2940,
+                14
+              ],
+              [
+                2956,
+                804
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "564521f665be2c789b876705627a4ca470618f55b871dfdf3e25380baf6ba510",
+                "all_zero": false,
+                "hex": "1c08",
+                "alignment_padding": true
+              },
+              {
+                "offset": 522,
+                "bytes": 2,
+                "sha256": "f79e439fadb400fe7348feaa1a25729625acfd1e4763427b22da2b5c293a852b",
+                "all_zero": false,
+                "hex": "4e04",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2954,
+                "bytes": 2,
+                "sha256": "0e1862b77227e30a4b6f6d40295f173db76d2473f8b9e31b241239c07a5837fa",
+                "all_zero": false,
+                "hex": "b400",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3772,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3790,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
           "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse",
           "candidate_payload": "83aaf75b1f374075e22990722a720028034181cd2a796deee2762a958060801c.bin",
           "retained_payload": "99ea625531675413a80ad03c037a8fb0df81702605b908cb98967821b4315ac5.bin",
@@ -21682,6 +23260,232 @@
               },
               {
                 "offset": 3854,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse_tex",
+          "candidate_payload": "55585e7c557a7ad46c56d4940e9841c0efedf6bb53d1b0df8d258b4e351133d7.bin",
+          "retained_payload": "b181fe3c115a9e3931c5cbeda573dd5767196639fdbf38bbd10a4d02162ba6fd.bin",
+          "typed_complete_graph_sha256": "040b986d910dbcf78dfdae6cdaa544778217bc88cbbc454c2374cc64735fe7ec",
+          "candidate_storage": {
+            "payload_sha256": "55585e7c557a7ad46c56d4940e9841c0efedf6bb53d1b0df8d258b4e351133d7",
+            "bytes": 3662,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3600,
+                10
+              ],
+              [
+                208,
+                244
+              ],
+              [
+                3600,
+                10
+              ],
+              [
+                452,
+                468
+              ],
+              [
+                3616,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3616,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3632,
+                14
+              ],
+              [
+                1468,
+                628
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2096,
+                708
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2804,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 3592,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3610,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3628,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3646,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "b181fe3c115a9e3931c5cbeda573dd5767196639fdbf38bbd10a4d02162ba6fd",
+            "bytes": 3678,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                244
+              ],
+              [
+                464,
+                10
+              ],
+              [
+                476,
+                468
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                1492,
+                628
+              ],
+              [
+                3664,
+                14
+              ],
+              [
+                2120,
+                708
+              ],
+              [
+                2828,
+                14
+              ],
+              [
+                2844,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "4f35212d12f9ad2036492c95f1fe79baf4ec7bd9bef3dffa7579f2293ff546a4",
+                "all_zero": false,
+                "hex": "0004",
+                "alignment_padding": true
+              },
+              {
+                "offset": 474,
+                "bytes": 2,
+                "sha256": "327aad9a34a563519b1b47c308803d58b3717974bdf0c16a9a9e283ed6f1249b",
+                "all_zero": false,
+                "hex": "a309",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2842,
+                "bytes": 2,
+                "sha256": "0209d377e44a088f75f84b1fb9d699c808ef7895d1929a4f7d7e171f9afab4f9",
+                "all_zero": false,
+                "hex": "8806",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3644,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3662,
                 "bytes": 2,
                 "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
                 "all_zero": true,
@@ -22150,6 +23954,232 @@
               },
               {
                 "offset": 4910,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex_env",
+          "candidate_payload": "c74022601d06c56c09494036f255a35bd11687f6b326dafb0f56c40153461143.bin",
+          "retained_payload": "ae126c19fc5e445b378cecce4cdc7d849228d587ed2a3e16b0e41bfe83ee0e78.bin",
+          "typed_complete_graph_sha256": "1fb0ce581eb98122780d62499757b439a11406016fa29e5f9ce79edf93818996",
+          "candidate_storage": {
+            "payload_sha256": "c74022601d06c56c09494036f255a35bd11687f6b326dafb0f56c40153461143",
+            "bytes": 4718,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4656,
+                10
+              ],
+              [
+                208,
+                420
+              ],
+              [
+                4656,
+                10
+              ],
+              [
+                628,
+                644
+              ],
+              [
+                4672,
+                12
+              ],
+              [
+                1272,
+                724
+              ],
+              [
+                4672,
+                12
+              ],
+              [
+                1272,
+                724
+              ],
+              [
+                4688,
+                14
+              ],
+              [
+                1996,
+                804
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                2800,
+                884
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                3684,
+                964
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4648,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4666,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4684,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4702,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "ae126c19fc5e445b378cecce4cdc7d849228d587ed2a3e16b0e41bfe83ee0e78",
+            "bytes": 4734,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                420
+              ],
+              [
+                640,
+                10
+              ],
+              [
+                652,
+                644
+              ],
+              [
+                4688,
+                12
+              ],
+              [
+                1296,
+                724
+              ],
+              [
+                4688,
+                12
+              ],
+              [
+                1296,
+                724
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                2020,
+                804
+              ],
+              [
+                4720,
+                14
+              ],
+              [
+                2824,
+                884
+              ],
+              [
+                3708,
+                14
+              ],
+              [
+                3724,
+                964
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "67848a207e8e22e685bc2b4d62e9587487176d384bd2c819a01bb413e1c57213",
+                "all_zero": false,
+                "hex": "cb01",
+                "alignment_padding": true
+              },
+              {
+                "offset": 650,
+                "bytes": 2,
+                "sha256": "20819b56d8c40c2a7a0e4c4da602052b6946d76c90cc4499445593ccb0c6b35c",
+                "all_zero": false,
+                "hex": "3802",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3722,
+                "bytes": 2,
+                "sha256": "70a3eb1cef8e47fec928962c79269cda4c8ba99ef27bcb20605107972d7d8874",
+                "all_zero": false,
+                "hex": "2702",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4700,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4718,
                 "bytes": 2,
                 "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
                 "all_zero": true,
@@ -24441,6 +26471,200 @@
         {
           "source_map": "coagulation",
           "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\stencil_emissive",
+          "candidate_payload": "58e2db5233a301fc84e225341bcf649aae2e268cd793c950be6505dd06d7a4f9.bin",
+          "retained_payload": "fd53528eb0305d55c9b9d711613eabb091501747ede342bba888926b359c6f05.bin",
+          "typed_complete_graph_sha256": "63f78dacfe57eefb2b28a1d4a72e54f90ee6e12d7489696f05d388b9c479ec2e",
+          "candidate_storage": {
+            "payload_sha256": "58e2db5233a301fc84e225341bcf649aae2e268cd793c950be6505dd06d7a4f9",
+            "bytes": 2604,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                4
+              ],
+              [
+                212,
+                196
+              ],
+              [
+                208,
+                4
+              ],
+              [
+                408,
+                276
+              ],
+              [
+                684,
+                6
+              ],
+              [
+                692,
+                356
+              ],
+              [
+                684,
+                6
+              ],
+              [
+                692,
+                356
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                1056,
+                436
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                1492,
+                516
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                2008,
+                596
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 690,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "fd53528eb0305d55c9b9d711613eabb091501747ede342bba888926b359c6f05",
+            "bytes": 2632,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                2608,
+                4
+              ],
+              [
+                208,
+                196
+              ],
+              [
+                2608,
+                4
+              ],
+              [
+                404,
+                276
+              ],
+              [
+                680,
+                6
+              ],
+              [
+                688,
+                356
+              ],
+              [
+                1044,
+                6
+              ],
+              [
+                688,
+                356
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                1052,
+                436
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                1488,
+                516
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                2004,
+                596
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 686,
+                "bytes": 2,
+                "sha256": "898b0a15ad7722ec14f57a5e9c9df4388a86acf941af9bb47eddbdfbe3a326ab",
+                "all_zero": false,
+                "hex": "563f",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1050,
+                "bytes": 2,
+                "sha256": "39e3f4b7183f474bda478ed4612b90c25af321987ea97bc7012e08bc2de3443a",
+                "all_zero": false,
+                "hex": "b242",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2600,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2612,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
           "name": "rasterizer\\vertex_shaders_xbox\\stencil_env_bumped_tangentspace",
           "candidate_payload": "8e4386aeee125e923fea0058e63d50131d45299df5ffa5a523eaafe345e8e3d6.bin",
           "retained_payload": "c71e84f1b5e8e41cdaf57415fe34f72b96daf743d3479324080b4afcfe394424.bin",
@@ -25379,6 +27603,16 @@
           "source_map": "deltatap",
           "group": "stem",
           "name": "shaders\\shader_templates\\opaque\\tex_env"
+        },
+        {
+          "source_map": "coagulation",
+          "group": "stem",
+          "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum"
+        },
+        {
+          "source_map": "coagulation",
+          "group": "stem",
+          "name": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test"
         }
       ],
       "sources": {
@@ -26766,6 +29000,115 @@
           }
         },
         {
+          "source_map": "coagulation",
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_alpha_test",
+            "bytes": 1172,
+            "payload": "fd934672b0819dd316a46d9eb26d61def8fb87e7ba5ea2f2cff2d5673a861ea3.bin",
+            "fnv64": "65116dd60eb156b3",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1072
+              ],
+              [
+                116,
+                156
+              ],
+              [
+                124,
+                256
+              ],
+              [
+                132,
+                460
+              ]
+            ],
+            "references": [
+              [
+                160,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+                ]
+              ],
+              [
+                170,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                180,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                190,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                200,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                210,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                220,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                230,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest"
+                ]
+              ],
+              [
+                240,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                250,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        },
+        {
           "source_map": "01b_spacestation",
           "record": {
             "group": "stem",
@@ -27202,6 +29545,171 @@
               ],
               [
                 382,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ]
+            ],
+            "strings": []
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "record": {
+            "group": "stem",
+            "name": "shaders\\shader_templates\\opaque\\tex_bump_env_illum",
+            "bytes": 1878,
+            "payload": "9977d3432b7b9a28a5de532a6e33d343a86e77d07a7011c89f05c42e5e54f76b.bin",
+            "fnv64": "537b9ade6659fa8b",
+            "pointers": [
+              [
+                92,
+                96
+              ],
+              [
+                100,
+                136
+              ],
+              [
+                108,
+                1728
+              ],
+              [
+                116,
+                168
+              ],
+              [
+                124,
+                348
+              ],
+              [
+                132,
+                708
+              ]
+            ],
+            "references": [
+              [
+                172,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite"
+                ]
+              ],
+              [
+                182,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_env"
+                ]
+              ],
+              [
+                192,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                202,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                212,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                222,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace"
+                ]
+              ],
+              [
+                232,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                242,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                252,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                262,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                272,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_generate"
+                ]
+              ],
+              [
+                282,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+                ]
+              ],
+              [
+                292,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+                ]
+              ],
+              [
+                302,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+                ]
+              ],
+              [
+                312,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\fog\\fog_planar"
+                ]
+              ],
+              [
+                322,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\lightmap\\lightmap_tex_env"
+                ]
+              ],
+              [
+                332,
+                [
+                  "spas",
+                  "shaders\\shader_passes\\self_illumination\\default_self_illumination"
+                ]
+              ],
+              [
+                342,
                 [
                   "spas",
                   "shaders\\shader_passes\\fog\\fog_planar"
@@ -41765,6 +44273,144 @@
         {
           "source_map": "coagulation",
           "group": "spas",
+          "name": "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail",
+          "candidate_payload": "6751d446912a09ec973cf90b6e8eb82926f405dffdf3a1a99b8af7ad0bfefeb1.bin",
+          "retained_payload": "18743897a6704398f3fcec40728a5a05b8944e0389ea599eb4507947fafee517.bin",
+          "typed_complete_graph_sha256": "105ab4857be2cb0247fcdf92b3899c3741156d328fa5c481993ebcac6ac4703a",
+          "candidate_storage": {
+            "payload_sha256": "6751d446912a09ec973cf90b6e8eb82926f405dffdf3a1a99b8af7ad0bfefeb1",
+            "bytes": 5220,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1530
+              ],
+              [
+                1656,
+                76
+              ],
+              [
+                1732,
+                205
+              ],
+              [
+                1940,
+                456
+              ],
+              [
+                2396,
+                116
+              ],
+              [
+                2512,
+                348
+              ],
+              [
+                2860,
+                2272
+              ],
+              [
+                5132,
+                88
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1654,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1937,
+                "bytes": 3,
+                "sha256": "5ae7e6a42304dc6e4176210b83c43024f99a0bce9a870c3b6d2c95fc8ebfb74c",
+                "all_zero": false,
+                "hex": "ffffff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 14
+          },
+          "retained_storage": {
+            "payload_sha256": "18743897a6704398f3fcec40728a5a05b8944e0389ea599eb4507947fafee517",
+            "bytes": 5220,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1530
+              ],
+              [
+                1656,
+                76
+              ],
+              [
+                1732,
+                205
+              ],
+              [
+                1940,
+                456
+              ],
+              [
+                2396,
+                116
+              ],
+              [
+                2512,
+                348
+              ],
+              [
+                2860,
+                2272
+              ],
+              [
+                5132,
+                88
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1654,
+                "bytes": 2,
+                "sha256": "216ce66d4d6e299690772ea2188aa84e70ed1a86ae637d3d5d975e914fc0a319",
+                "all_zero": false,
+                "hex": "cc03",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1937,
+                "bytes": 3,
+                "sha256": "28043bee7465724f379aae87488a777671fb457dafb9bcd9456a6645a7735143",
+                "all_zero": false,
+                "hex": "4f0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 14
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
           "name": "shaders\\shader_passes\\lightmap\\lightmap_env",
           "candidate_payload": "4df89b3231b28b671bb27768012793bcf9a095f44bb13fa63c6f4571bd09d848.bin",
           "retained_payload": "1181bac73a0553c8d07a4dc9dfc09bd996e10dadbec57159904b13801a297425.bin",
@@ -41890,6 +44536,160 @@
               },
               {
                 "offset": 3124,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 13
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\lightmap\\lightmap_tex_env",
+          "candidate_payload": "dcd545067642dc6e9c43b915496d9c50dd0f824ec9e18a00955d3407f23649b9.bin",
+          "retained_payload": "e0bb90179f74bf07c612255db36884edd0a0b2ae3fc0ff9cd84b9d3f558b7602.bin",
+          "typed_complete_graph_sha256": "246d98b80ba310b718ee8781d21915f0434c815ca55cb66ce29804fb97fe74f0",
+          "candidate_storage": {
+            "payload_sha256": "dcd545067642dc6e9c43b915496d9c50dd0f824ec9e18a00955d3407f23649b9",
+            "bytes": 3212,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1224
+              ],
+              [
+                2544,
+                64
+              ],
+              [
+                2608,
+                60
+              ],
+              [
+                2672,
+                384
+              ],
+              [
+                3056,
+                36
+              ],
+              [
+                3104,
+                108
+              ],
+              [
+                1348,
+                1152
+              ],
+              [
+                2500,
+                36
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 2536,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2668,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3092,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 13
+          },
+          "retained_storage": {
+            "payload_sha256": "e0bb90179f74bf07c612255db36884edd0a0b2ae3fc0ff9cd84b9d3f558b7602",
+            "bytes": 3212,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                1224
+              ],
+              [
+                2928,
+                64
+              ],
+              [
+                2992,
+                60
+              ],
+              [
+                1348,
+                384
+              ],
+              [
+                3056,
+                36
+              ],
+              [
+                3104,
+                108
+              ],
+              [
+                1732,
+                1152
+              ],
+              [
+                2884,
+                36
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 2920,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3052,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3092,
                 "bytes": 12,
                 "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
                 "all_zero": true,
@@ -42076,6 +44876,112 @@
               }
             ],
             "relocations": 14
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\self_illumination\\default_self_illumination",
+          "candidate_payload": "bb068c16447dbae6302dc726ec9310650fe045308ec0e45427c2bb5b53190a32.bin",
+          "retained_payload": "73b4db054b11165ad4131bf092799a4708ca61e6a42f2b9e403b0d1e5724aad9.bin",
+          "typed_complete_graph_sha256": "99caf37ce8c08a8960d6714404ed35a0726c1e86fd06c94de86970cd20f76681",
+          "candidate_storage": {
+            "payload_sha256": "bb068c16447dbae6302dc726ec9310650fe045308ec0e45427c2bb5b53190a32",
+            "bytes": 516,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                4
+              ],
+              [
+                436,
+                55
+              ],
+              [
+                492,
+                24
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 491,
+                "bytes": 1,
+                "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+                "all_zero": false,
+                "hex": "ff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          },
+          "retained_storage": {
+            "payload_sha256": "73b4db054b11165ad4131bf092799a4708ca61e6a42f2b9e403b0d1e5724aad9",
+            "bytes": 516,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                512,
+                4
+              ],
+              [
+                432,
+                55
+              ],
+              [
+                488,
+                24
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 487,
+                "bytes": 1,
+                "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+                "all_zero": true,
+                "hex": "00",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
           }
         },
         {
@@ -42280,6 +45186,218 @@
               }
             ],
             "relocations": 8
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite",
+          "candidate_payload": "dcf94e7cefbff9925a5fe113f766560a9bdb546a618e21c8f89bf628902290c3.bin",
+          "retained_payload": "b6e3a1fa61821c08a81072b7dbbbd237916d32eec5aedb33ac4e3224d65ddd93.bin",
+          "typed_complete_graph_sha256": "4553fad63aa27474001947100fa99dbc77fb0cfb54975d0bd782afaa920c42af",
+          "candidate_storage": {
+            "payload_sha256": "dcf94e7cefbff9925a5fe113f766560a9bdb546a618e21c8f89bf628902290c3",
+            "bytes": 504,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                8
+              ],
+              [
+                440,
+                15
+              ],
+              [
+                456,
+                48
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 455,
+                "bytes": 1,
+                "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+                "all_zero": false,
+                "hex": "ff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          },
+          "retained_storage": {
+            "payload_sha256": "b6e3a1fa61821c08a81072b7dbbbd237916d32eec5aedb33ac4e3224d65ddd93",
+            "bytes": 504,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                432,
+                8
+              ],
+              [
+                440,
+                15
+              ],
+              [
+                456,
+                48
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "5739f12aa0e6050fdac798a9d8092e0a2b2787e2643e53e30d07feedfa9ac418",
+                "all_zero": false,
+                "hex": "5602",
+                "alignment_padding": true
+              },
+              {
+                "offset": 455,
+                "bytes": 1,
+                "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+                "all_zero": false,
+                "hex": "01",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "spas",
+          "name": "shaders\\shader_passes\\texture_mapping\\default_texture_zwrite_alphatest",
+          "candidate_payload": "3b99465249534fb2ac429a5a1c99b9a4fed248843ee1794502b1a3b869f690c0.bin",
+          "retained_payload": "8b75bb27da9991208a30d52114a24af91c51ff91cfeeace6234628c00c201060.bin",
+          "typed_complete_graph_sha256": "55a941f6f310b131b608258561fd8a3fa877daeeb2367b9518d5cbde67431bf3",
+          "candidate_storage": {
+            "payload_sha256": "3b99465249534fb2ac429a5a1c99b9a4fed248843ee1794502b1a3b869f690c0",
+            "bytes": 592,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                576,
+                16
+              ],
+              [
+                432,
+                40
+              ],
+              [
+                472,
+                96
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "e31059ad6a5e344b3948469a8c1c7352112628ec061b22764105777a5f8fbd52",
+                "all_zero": false,
+                "hex": "8209",
+                "alignment_padding": true
+              },
+              {
+                "offset": 568,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
+          },
+          "retained_storage": {
+            "payload_sha256": "8b75bb27da9991208a30d52114a24af91c51ff91cfeeace6234628c00c201060",
+            "bytes": 592,
+            "allocations": [
+              [
+                0,
+                36
+              ],
+              [
+                36,
+                88
+              ],
+              [
+                124,
+                306
+              ],
+              [
+                480,
+                16
+              ],
+              [
+                432,
+                40
+              ],
+              [
+                496,
+                96
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 430,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 472,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 6
           }
         },
         {
@@ -43189,6 +46307,910 @@
         {
           "source_map": "coagulation",
           "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_gel_tex",
+          "candidate_payload": "4948c2f44a4153b2dbc85886fb789e199b1b3dc8a6cd1020e989abffd5f36be1.bin",
+          "retained_payload": "bc6f53c803a37d05af3c6d5c326dc37d8bc98c6aff2af6a23d00e4e065bc9a49.bin",
+          "typed_complete_graph_sha256": "79697b46634f609419abaedc47b37726be17b81c0103a2d5aca0703d774fb3bd",
+          "candidate_storage": {
+            "payload_sha256": "4948c2f44a4153b2dbc85886fb789e199b1b3dc8a6cd1020e989abffd5f36be1",
+            "bytes": 4254,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4192,
+                10
+              ],
+              [
+                208,
+                340
+              ],
+              [
+                4192,
+                10
+              ],
+              [
+                548,
+                580
+              ],
+              [
+                4208,
+                12
+              ],
+              [
+                1128,
+                644
+              ],
+              [
+                4208,
+                12
+              ],
+              [
+                1128,
+                644
+              ],
+              [
+                4224,
+                14
+              ],
+              [
+                1772,
+                724
+              ],
+              [
+                4240,
+                14
+              ],
+              [
+                2496,
+                804
+              ],
+              [
+                4240,
+                14
+              ],
+              [
+                3300,
+                884
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4184,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4202,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4220,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4238,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "bc6f53c803a37d05af3c6d5c326dc37d8bc98c6aff2af6a23d00e4e065bc9a49",
+            "bytes": 4270,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                340
+              ],
+              [
+                560,
+                10
+              ],
+              [
+                572,
+                580
+              ],
+              [
+                4240,
+                12
+              ],
+              [
+                1152,
+                644
+              ],
+              [
+                4240,
+                12
+              ],
+              [
+                1152,
+                644
+              ],
+              [
+                4256,
+                14
+              ],
+              [
+                1796,
+                724
+              ],
+              [
+                2520,
+                14
+              ],
+              [
+                2536,
+                804
+              ],
+              [
+                3340,
+                14
+              ],
+              [
+                3356,
+                884
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "92becdbdea2c39783a364ebd160f504855c59c14bdd9c013f064f8fb1c28660f",
+                "all_zero": false,
+                "hex": "6208",
+                "alignment_padding": true
+              },
+              {
+                "offset": 570,
+                "bytes": 2,
+                "sha256": "607fabe40dd594237726fa1d3f703f9632510eef4139a3a02c70f2904f089a46",
+                "all_zero": false,
+                "hex": "e202",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2534,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3354,
+                "bytes": 2,
+                "sha256": "faa91ec04eac213b9d65920869044f61931075524874227e2591e982605d4f9b",
+                "all_zero": false,
+                "hex": "8106",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4252,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_tex",
+          "candidate_payload": "1f75d3e4793fa8791d4173554090bc6dcd673375ed7b38f3b5c846ac5c460272.bin",
+          "retained_payload": "5c57cf2e9a387ab9695a7bd36d360538764c593c544f8f1999e390d4d1b557ea.bin",
+          "typed_complete_graph_sha256": "ab02e5c182ca80e9e9ed70e0035a4cbe92a4e0ee3c62a0c9dbd3656a18e90d76",
+          "candidate_storage": {
+            "payload_sha256": "1f75d3e4793fa8791d4173554090bc6dcd673375ed7b38f3b5c846ac5c460272",
+            "bytes": 3662,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3616,
+                10
+              ],
+              [
+                208,
+                244
+              ],
+              [
+                3616,
+                10
+              ],
+              [
+                452,
+                468
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                1468,
+                14
+              ],
+              [
+                1484,
+                628
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2112,
+                708
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2820,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 1482,
+                "bytes": 2,
+                "sha256": "e07bfcdf24567373709cbdbc58199a0068ce46581a48a1f12a0a20b0b4816564",
+                "all_zero": false,
+                "hex": "fe09",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3608,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3626,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3644,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "5c57cf2e9a387ab9695a7bd36d360538764c593c544f8f1999e390d4d1b557ea",
+            "bytes": 3678,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                244
+              ],
+              [
+                464,
+                10
+              ],
+              [
+                476,
+                468
+              ],
+              [
+                3648,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3648,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                1492,
+                14
+              ],
+              [
+                1508,
+                628
+              ],
+              [
+                3664,
+                14
+              ],
+              [
+                2136,
+                708
+              ],
+              [
+                2844,
+                14
+              ],
+              [
+                2860,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "f94d7226f46fe9ddfec9f135a4eda91558f9f4f0ed7ee6a0b8bcabd30ba62c53",
+                "all_zero": false,
+                "hex": "0602",
+                "alignment_padding": true
+              },
+              {
+                "offset": 474,
+                "bytes": 2,
+                "sha256": "8074b79a17789899edb3a3e6b9972255a94a2c44396e3067abcc3d6d4c678be8",
+                "all_zero": false,
+                "hex": "eb01",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1506,
+                "bytes": 2,
+                "sha256": "e07bfcdf24567373709cbdbc58199a0068ce46581a48a1f12a0a20b0b4816564",
+                "all_zero": false,
+                "hex": "fe09",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2858,
+                "bytes": 2,
+                "sha256": "af398567cec4766dbc12d87503d2dedd539952851eaee19b49df3bba88aff49e",
+                "all_zero": false,
+                "hex": "6a05",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3660,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex",
+          "candidate_payload": "255156fb0ce59e2531ccf5492684a7727b00b7e99054dfdad38a3197a0b7e9fa.bin",
+          "retained_payload": "c75a3493615037161e144aa53c86979d0c039a19e45cf1c877589761dde39d40.bin",
+          "typed_complete_graph_sha256": "7a501976739a1344b274463176a1dd7c8aff6ddc69f7dc0002e31ea378bb1952",
+          "candidate_storage": {
+            "payload_sha256": "255156fb0ce59e2531ccf5492684a7727b00b7e99054dfdad38a3197a0b7e9fa",
+            "bytes": 4078,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4016,
+                10
+              ],
+              [
+                208,
+                340
+              ],
+              [
+                4016,
+                10
+              ],
+              [
+                548,
+                532
+              ],
+              [
+                4032,
+                12
+              ],
+              [
+                1080,
+                612
+              ],
+              [
+                4032,
+                12
+              ],
+              [
+                1080,
+                612
+              ],
+              [
+                4048,
+                14
+              ],
+              [
+                1692,
+                692
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                2384,
+                772
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                3156,
+                852
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4008,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4026,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4044,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4062,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "c75a3493615037161e144aa53c86979d0c039a19e45cf1c877589761dde39d40",
+            "bytes": 4094,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                340
+              ],
+              [
+                560,
+                10
+              ],
+              [
+                572,
+                532
+              ],
+              [
+                4048,
+                12
+              ],
+              [
+                1104,
+                612
+              ],
+              [
+                4048,
+                12
+              ],
+              [
+                1104,
+                612
+              ],
+              [
+                4064,
+                14
+              ],
+              [
+                1716,
+                692
+              ],
+              [
+                4080,
+                14
+              ],
+              [
+                2408,
+                772
+              ],
+              [
+                3180,
+                14
+              ],
+              [
+                3196,
+                852
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "59de9659aa68ef0274f5b310995b12dfd4ba63e056d8c0c773e43f5c42a904ad",
+                "all_zero": false,
+                "hex": "190a",
+                "alignment_padding": true
+              },
+              {
+                "offset": 570,
+                "bytes": 2,
+                "sha256": "63540692485e9982808a3ad2d9eda3ef9f9b6b45ea3d491ee894cc3f0b7579e9",
+                "all_zero": false,
+                "hex": "7005",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3194,
+                "bytes": 2,
+                "sha256": "cdc42ed935cc26f4ff6ce8bbb4a72fd5accc7e3dc06f466660ce5932aec0b428",
+                "all_zero": false,
+                "hex": "f302",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4060,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4078,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex_first_person_change_color",
+          "candidate_payload": "d3a9d6e995f5f5fa73e7b635d86793aa05799406bbf58c794dbe659d5f4a75c6.bin",
+          "retained_payload": "dda5219dc227c55a9cd8f58ab0452eec03594032a7eb4303a2e9261d812863e4.bin",
+          "typed_complete_graph_sha256": "c29cc22ed9dfe3804222d711428fb71a3fb458fc1862223e77651217a0a9f514",
+          "candidate_storage": {
+            "payload_sha256": "d3a9d6e995f5f5fa73e7b635d86793aa05799406bbf58c794dbe659d5f4a75c6",
+            "bytes": 3790,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3728,
+                10
+              ],
+              [
+                208,
+                292
+              ],
+              [
+                3728,
+                10
+              ],
+              [
+                500,
+                484
+              ],
+              [
+                3744,
+                12
+              ],
+              [
+                984,
+                564
+              ],
+              [
+                3744,
+                12
+              ],
+              [
+                984,
+                564
+              ],
+              [
+                3760,
+                14
+              ],
+              [
+                1548,
+                644
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                2192,
+                724
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                2916,
+                804
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 3720,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3738,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3756,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3774,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "dda5219dc227c55a9cd8f58ab0452eec03594032a7eb4303a2e9261d812863e4",
+            "bytes": 3806,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                292
+              ],
+              [
+                512,
+                10
+              ],
+              [
+                524,
+                484
+              ],
+              [
+                3760,
+                12
+              ],
+              [
+                1008,
+                564
+              ],
+              [
+                3760,
+                12
+              ],
+              [
+                1008,
+                564
+              ],
+              [
+                3776,
+                14
+              ],
+              [
+                1572,
+                644
+              ],
+              [
+                3792,
+                14
+              ],
+              [
+                2216,
+                724
+              ],
+              [
+                2940,
+                14
+              ],
+              [
+                2956,
+                804
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "564521f665be2c789b876705627a4ca470618f55b871dfdf3e25380baf6ba510",
+                "all_zero": false,
+                "hex": "1c08",
+                "alignment_padding": true
+              },
+              {
+                "offset": 522,
+                "bytes": 2,
+                "sha256": "f79e439fadb400fe7348feaa1a25729625acfd1e4763427b22da2b5c293a852b",
+                "all_zero": false,
+                "hex": "4e04",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2954,
+                "bytes": 2,
+                "sha256": "0e1862b77227e30a4b6f6d40295f173db76d2473f8b9e31b241239c07a5837fa",
+                "all_zero": false,
+                "hex": "b400",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3772,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3790,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
           "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse",
           "candidate_payload": "83aaf75b1f374075e22990722a720028034181cd2a796deee2762a958060801c.bin",
           "retained_payload": "99ea625531675413a80ad03c037a8fb0df81702605b908cb98967821b4315ac5.bin",
@@ -43410,6 +47432,232 @@
               },
               {
                 "offset": 3854,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse_tex",
+          "candidate_payload": "55585e7c557a7ad46c56d4940e9841c0efedf6bb53d1b0df8d258b4e351133d7.bin",
+          "retained_payload": "b181fe3c115a9e3931c5cbeda573dd5767196639fdbf38bbd10a4d02162ba6fd.bin",
+          "typed_complete_graph_sha256": "040b986d910dbcf78dfdae6cdaa544778217bc88cbbc454c2374cc64735fe7ec",
+          "candidate_storage": {
+            "payload_sha256": "55585e7c557a7ad46c56d4940e9841c0efedf6bb53d1b0df8d258b4e351133d7",
+            "bytes": 3662,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                3600,
+                10
+              ],
+              [
+                208,
+                244
+              ],
+              [
+                3600,
+                10
+              ],
+              [
+                452,
+                468
+              ],
+              [
+                3616,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3616,
+                12
+              ],
+              [
+                920,
+                548
+              ],
+              [
+                3632,
+                14
+              ],
+              [
+                1468,
+                628
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2096,
+                708
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                2804,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 3592,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3610,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3628,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3646,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "b181fe3c115a9e3931c5cbeda573dd5767196639fdbf38bbd10a4d02162ba6fd",
+            "bytes": 3678,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                244
+              ],
+              [
+                464,
+                10
+              ],
+              [
+                476,
+                468
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3632,
+                12
+              ],
+              [
+                944,
+                548
+              ],
+              [
+                3648,
+                14
+              ],
+              [
+                1492,
+                628
+              ],
+              [
+                3664,
+                14
+              ],
+              [
+                2120,
+                708
+              ],
+              [
+                2828,
+                14
+              ],
+              [
+                2844,
+                788
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "4f35212d12f9ad2036492c95f1fe79baf4ec7bd9bef3dffa7579f2293ff546a4",
+                "all_zero": false,
+                "hex": "0004",
+                "alignment_padding": true
+              },
+              {
+                "offset": 474,
+                "bytes": 2,
+                "sha256": "327aad9a34a563519b1b47c308803d58b3717974bdf0c16a9a9e283ed6f1249b",
+                "all_zero": false,
+                "hex": "a309",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2842,
+                "bytes": 2,
+                "sha256": "0209d377e44a088f75f84b1fb9d699c808ef7895d1929a4f7d7e171f9afab4f9",
+                "all_zero": false,
+                "hex": "8806",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3644,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3662,
                 "bytes": 2,
                 "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
                 "all_zero": true,
@@ -43878,6 +48126,232 @@
               },
               {
                 "offset": 4910,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex_env",
+          "candidate_payload": "c74022601d06c56c09494036f255a35bd11687f6b326dafb0f56c40153461143.bin",
+          "retained_payload": "ae126c19fc5e445b378cecce4cdc7d849228d587ed2a3e16b0e41bfe83ee0e78.bin",
+          "typed_complete_graph_sha256": "1fb0ce581eb98122780d62499757b439a11406016fa29e5f9ce79edf93818996",
+          "candidate_storage": {
+            "payload_sha256": "c74022601d06c56c09494036f255a35bd11687f6b326dafb0f56c40153461143",
+            "bytes": 4718,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                4656,
+                10
+              ],
+              [
+                208,
+                420
+              ],
+              [
+                4656,
+                10
+              ],
+              [
+                628,
+                644
+              ],
+              [
+                4672,
+                12
+              ],
+              [
+                1272,
+                724
+              ],
+              [
+                4672,
+                12
+              ],
+              [
+                1272,
+                724
+              ],
+              [
+                4688,
+                14
+              ],
+              [
+                1996,
+                804
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                2800,
+                884
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                3684,
+                964
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 4648,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4666,
+                "bytes": 6,
+                "sha256": "b0f66adc83641586656866813fd9dd0b8ebb63796075661ba45d1aa8089e1d44",
+                "all_zero": true,
+                "hex": "000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4684,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4702,
+                "bytes": 2,
+                "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+                "all_zero": true,
+                "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "ae126c19fc5e445b378cecce4cdc7d849228d587ed2a3e16b0e41bfe83ee0e78",
+            "bytes": 4734,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                10
+              ],
+              [
+                220,
+                420
+              ],
+              [
+                640,
+                10
+              ],
+              [
+                652,
+                644
+              ],
+              [
+                4688,
+                12
+              ],
+              [
+                1296,
+                724
+              ],
+              [
+                4688,
+                12
+              ],
+              [
+                1296,
+                724
+              ],
+              [
+                4704,
+                14
+              ],
+              [
+                2020,
+                804
+              ],
+              [
+                4720,
+                14
+              ],
+              [
+                2824,
+                884
+              ],
+              [
+                3708,
+                14
+              ],
+              [
+                3724,
+                964
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 218,
+                "bytes": 2,
+                "sha256": "67848a207e8e22e685bc2b4d62e9587487176d384bd2c819a01bb413e1c57213",
+                "all_zero": false,
+                "hex": "cb01",
+                "alignment_padding": true
+              },
+              {
+                "offset": 650,
+                "bytes": 2,
+                "sha256": "20819b56d8c40c2a7a0e4c4da602052b6946d76c90cc4499445593ccb0c6b35c",
+                "all_zero": false,
+                "hex": "3802",
+                "alignment_padding": true
+              },
+              {
+                "offset": 3722,
+                "bytes": 2,
+                "sha256": "70a3eb1cef8e47fec928962c79269cda4c8ba99ef27bcb20605107972d7d8874",
+                "all_zero": false,
+                "hex": "2702",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4700,
+                "bytes": 4,
+                "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                "all_zero": true,
+                "hex": "00000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 4718,
                 "bytes": 2,
                 "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
                 "all_zero": true,
@@ -46160,6 +50634,200 @@
                 "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
                 "all_zero": true,
                 "hex": "0000",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          }
+        },
+        {
+          "source_map": "coagulation",
+          "group": "vrtx",
+          "name": "rasterizer\\vertex_shaders_xbox\\stencil_emissive",
+          "candidate_payload": "58e2db5233a301fc84e225341bcf649aae2e268cd793c950be6505dd06d7a4f9.bin",
+          "retained_payload": "fd53528eb0305d55c9b9d711613eabb091501747ede342bba888926b359c6f05.bin",
+          "typed_complete_graph_sha256": "63f78dacfe57eefb2b28a1d4a72e54f90ee6e12d7489696f05d388b9c479ec2e",
+          "candidate_storage": {
+            "payload_sha256": "58e2db5233a301fc84e225341bcf649aae2e268cd793c950be6505dd06d7a4f9",
+            "bytes": 2604,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                208,
+                4
+              ],
+              [
+                212,
+                196
+              ],
+              [
+                208,
+                4
+              ],
+              [
+                408,
+                276
+              ],
+              [
+                684,
+                6
+              ],
+              [
+                692,
+                356
+              ],
+              [
+                684,
+                6
+              ],
+              [
+                692,
+                356
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                1056,
+                436
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                1492,
+                516
+              ],
+              [
+                1048,
+                8
+              ],
+              [
+                2008,
+                596
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 690,
+                "bytes": 2,
+                "sha256": "ca2fd00fa001190744c15c317643ab092e7048ce086a243e2be9437c898de1bb",
+                "all_zero": false,
+                "hex": "ffff",
+                "alignment_padding": true
+              }
+            ],
+            "relocations": 15
+          },
+          "retained_storage": {
+            "payload_sha256": "fd53528eb0305d55c9b9d711613eabb091501747ede342bba888926b359c6f05",
+            "bytes": 2632,
+            "allocations": [
+              [
+                0,
+                12
+              ],
+              [
+                12,
+                196
+              ],
+              [
+                2608,
+                4
+              ],
+              [
+                208,
+                196
+              ],
+              [
+                2608,
+                4
+              ],
+              [
+                404,
+                276
+              ],
+              [
+                680,
+                6
+              ],
+              [
+                688,
+                356
+              ],
+              [
+                1044,
+                6
+              ],
+              [
+                688,
+                356
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                1052,
+                436
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                1488,
+                516
+              ],
+              [
+                2624,
+                8
+              ],
+              [
+                2004,
+                596
+              ]
+            ],
+            "alignment_padding": [
+              {
+                "offset": 686,
+                "bytes": 2,
+                "sha256": "898b0a15ad7722ec14f57a5e9c9df4388a86acf941af9bb47eddbdfbe3a326ab",
+                "all_zero": false,
+                "hex": "563f",
+                "alignment_padding": true
+              },
+              {
+                "offset": 1050,
+                "bytes": 2,
+                "sha256": "39e3f4b7183f474bda478ed4612b90c25af321987ea97bc7012e08bc2de3443a",
+                "all_zero": false,
+                "hex": "b242",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2600,
+                "bytes": 8,
+                "sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+                "all_zero": true,
+                "hex": "0000000000000000",
+                "alignment_padding": true
+              },
+              {
+                "offset": 2612,
+                "bytes": 12,
+                "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+                "all_zero": true,
+                "hex": "000000000000000000000000",
                 "alignment_padding": true
               }
             ],

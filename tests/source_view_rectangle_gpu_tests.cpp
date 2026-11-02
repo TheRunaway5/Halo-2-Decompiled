@@ -34,7 +34,7 @@ std::vector<Vertex> quad(unsigned material,float aspect) {
 }
 Material planar(Material source) {
   // A controlled flat plane isolates the original stencil_texture position
-  // program and copy combiner from geometry/textures elsewhere in the map.
+  // program and authored scope combiner from geometry/textures elsewhere in the map.
   source.forward_vertex=3;source.program_constants[1][0]={1,1,0,0};
   source.program_constants[1][1]={1,1,0,0};source.forward_transforms[0]={1,1,0,0};
   source.forward_transforms[1]={1,1,0,0};source.forward_raster.depth_enable=0;
@@ -121,8 +121,11 @@ int main(int argc,char**argv) {try {
   });require(scope!=root.world_overlays_after.end(),"missing source target16 consumer");
   const auto source=planar(**scope);Mesh mesh;mesh.vertices.resize(3);
   for(unsigned i=0;i<4;++i) {
-    auto m=source;m.scope_texture=false;m.forward_program=scope_copy_frame({}).program;m.forward_blend=0;
+    // Retain the complete authored scope identity admitted by native kernels.
+    // A white detail map makes that same source combiner a flat-color plane.
+    auto m=source;m.scope_texture=false;m.forward_blend=0;
     m.diffuse={1,1,11,{std::byte(24+i*8),std::byte(20+i*8),std::byte(16+i*8),std::byte{255}}, {}};
+    m.detail={1,1,11,std::vector<std::byte>(4,std::byte{255}),{}};
     mesh.materials.push_back(std::move(m));
   }
   auto consumer=source;consumer.detail={1,1,11,std::vector<std::byte>(4,std::byte{255}),{}};
@@ -135,7 +138,7 @@ int main(int argc,char**argv) {try {
   if(std::none_of(layers.begin(),layers.end(),[](const auto& l){return std::string(l.layerName)=="VK_LAYER_KHRONOS_validation";})) {
     SDL_Quit();return 77;
   }
-  auto* reused_window=SDL_CreateWindow("Source rectangle resize",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
+  auto* reused_window=SDL_CreateWindow("Source rectangle resize",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
   require(reused_window,"SDL rectangle window failed");std::size_t channels=0;
   {
     Renderer reused(reused_window,mesh,true);reused.scene_bsp_atmosphere(atmosphere);
@@ -146,7 +149,7 @@ int main(int argc,char**argv) {try {
       for(unsigned players:{1u,2u,3u,4u}) {
         const auto name=std::to_string(extent[0])+"x"+std::to_string(extent[1])+"-"+std::to_string(players);
         const auto prior=run(reused,reused_window,extent,players,true,directory/(name+"-reused"));
-        auto* fresh_window=SDL_CreateWindow("Fresh source rectangle",0,0,int(extent[0]),int(extent[1]),SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
+        auto* fresh_window=SDL_CreateWindow("Fresh source rectangle",0,0,int(extent[0]),int(extent[1]),SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
         require(fresh_window,"fresh SDL rectangle window failed");
         {
           Renderer fresh(fresh_window,mesh,true);fresh.scene_bsp_atmosphere(atmosphere);

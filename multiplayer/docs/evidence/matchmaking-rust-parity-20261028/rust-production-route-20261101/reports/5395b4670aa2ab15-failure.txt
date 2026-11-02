@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/home/eric/Developer/Halo-2-Decompiled/tools/test_rust_matchmaking_delivery.py", line 139, in main
+    report["delivery"] = controls.qualify(source, scratch / ("delivery-%02d" % attempt), binary, library,
+                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                           caddy_binary, shim, attempt_output)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/tools/rust_service_delivery_controls.py", line 233, in qualify
+    expect("PUT", "/v1/account/voice-blocks", token=grant,
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           body={"blocked": [str(900000000000000000 + n) for n in range(2000)]})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-delivery-20261101/halo2-test-70c5pch0/source/tools/rust_service_delivery_controls.py", line 168, in expect
+    assert actual == status, (method, path, actual, status, value.get("error", value.get("proxy_error")))
+           ^^^^^^^^^^^^^^^^
+AssertionError: ('PUT', '/v1/account/voice-blocks', 502, 200, 'Identity provider unavailable')

@@ -27,5 +27,6 @@ struct NativeWorldKernelEntry {
     unsigned default_texture_w_mask=15;
     bool relative_constants=false;
     std::string_view source_depth_vertex_path;
+    std::string_view path_tracing_source_depth_vertex_path;
 };
 }

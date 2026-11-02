@@ -1,0 +1,193 @@
+{
+  "passed": true,
+  "scope": "Read-only frozen native library with one explicitly linked pre-migration Session object, compared with the new production Session. Diagnostic baseline, no original Xbox/world acceptance.",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i",
+  "baseline_source_sha256": "010204b14bf5f0ea41d88abf0aa1039dab1aaaaf70a0bfab7fc54d0d4402f63b",
+  "archive_sha256": "973cd61a7fca0bb5fbc41074c1282802711c7fc95b733a95a3ba51621bce0c51",
+  "commands": [
+    {
+      "name": "compile-baseline",
+      "argv": [
+        "/usr/bin/c++",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source/src",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/online-protocol/Release/include",
+        "-I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source/include",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-DWITH_GZFILEOP",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline.o",
+        "-c",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline.cpp"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "link-normal",
+      "argv": [
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "CMakeFiles/peer_survivor_session_tests.dir/tests/peer_survivor_session_tests.cpp.o",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-peer_survivor_session_tests",
+        "-Wl,-rpath,/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/eos-sdk/SDK/Bin",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline.o",
+        "libhalo2_online_matchmaking.a",
+        "libhalo2_vertex_program_reference.a",
+        "libhalo2_peer_survivor_selection.a",
+        "libhalo2_online_peers.a",
+        "_deps/halo2_datachannel-build/libdatachannel-static.a",
+        "_deps/halo2_datachannel-build/deps/usrsctp/usrsctplib/libusrsctp.a",
+        "/usr/lib/libssl.so",
+        "_deps/halo2_datachannel-build/deps/libjuice/libjuice-static.a",
+        "libhalo2_authority_transfer.a",
+        "libhalo2_source_admissions.a",
+        "libhalo2_peer_mesh_quality.a",
+        "libhalo2_peer_host_agreement.a",
+        "libhalo2_peer_common_cut.a",
+        "libhalo2_peer_snapshot_candidate.a",
+        "libhalo2_online_voice.a",
+        "libhalo2_online_account.a",
+        "libhalo2_discord_identity.a",
+        "libhalo2_online_protocol.a",
+        "online-protocol/Release/libhalo2_online_protocol_bridge.a",
+        "eos-sdk/SDK/Bin/libEOSSDK-Linux-Shipping.so",
+        "-Wl,@/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/online-protocol/Release/native-libs.rsp",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcrypto.so",
+        "/usr/lib/libSDL2-2.0.so.0.3200.74",
+        "/usr/lib/libopus.so",
+        "libhalo2_game_variant.a"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "baseline-normal",
+      "argv": [
+        "python3",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source/tests/peer_host_session_http_test.py",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-peer_survivor_session_tests"
+      ],
+      "returncode": 1
+    },
+    {
+      "name": "link-quality",
+      "argv": [
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "CMakeFiles/peer_mesh_quality_session_tests.dir/tests/peer_mesh_quality_session_tests.cpp.o",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-peer_mesh_quality_session_tests",
+        "-Wl,-rpath,/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/eos-sdk/SDK/Bin",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline.o",
+        "libhalo2_online_matchmaking.a",
+        "libhalo2_vertex_program_reference.a",
+        "libhalo2_peer_survivor_selection.a",
+        "libhalo2_online_peers.a",
+        "_deps/halo2_datachannel-build/libdatachannel-static.a",
+        "_deps/halo2_datachannel-build/deps/usrsctp/usrsctplib/libusrsctp.a",
+        "/usr/lib/libssl.so",
+        "_deps/halo2_datachannel-build/deps/libjuice/libjuice-static.a",
+        "libhalo2_authority_transfer.a",
+        "libhalo2_source_admissions.a",
+        "libhalo2_peer_mesh_quality.a",
+        "libhalo2_peer_host_agreement.a",
+        "libhalo2_peer_common_cut.a",
+        "libhalo2_peer_snapshot_candidate.a",
+        "libhalo2_online_voice.a",
+        "libhalo2_online_account.a",
+        "libhalo2_discord_identity.a",
+        "libhalo2_online_protocol.a",
+        "online-protocol/Release/libhalo2_online_protocol_bridge.a",
+        "eos-sdk/SDK/Bin/libEOSSDK-Linux-Shipping.so",
+        "-Wl,@/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/online-protocol/Release/native-libs.rsp",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcrypto.so",
+        "/usr/lib/libSDL2-2.0.so.0.3200.74",
+        "/usr/lib/libopus.so",
+        "libhalo2_game_variant.a"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "baseline-quality",
+      "argv": [
+        "python3",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source/tests/peer_mesh_quality_session_http_test.py",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-peer_mesh_quality_session_tests"
+      ],
+      "returncode": 1
+    },
+    {
+      "name": "link-continuity",
+      "argv": [
+        "/usr/bin/c++",
+        "-O3",
+        "-DNDEBUG",
+        "CMakeFiles/online_continuity_transport_tests.dir/tests/online_continuity_transport_tests.cpp.o",
+        "-o",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-online_continuity_transport_tests",
+        "-Wl,-rpath,/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/eos-sdk/SDK/Bin",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline.o",
+        "libhalo2_online_matchmaking.a",
+        "libhalo2_vertex_program_reference.a",
+        "libhalo2_peer_survivor_selection.a",
+        "libhalo2_online_peers.a",
+        "_deps/halo2_datachannel-build/libdatachannel-static.a",
+        "_deps/halo2_datachannel-build/deps/usrsctp/usrsctplib/libusrsctp.a",
+        "/usr/lib/libssl.so",
+        "_deps/halo2_datachannel-build/deps/libjuice/libjuice-static.a",
+        "libhalo2_authority_transfer.a",
+        "libhalo2_source_admissions.a",
+        "libhalo2_peer_mesh_quality.a",
+        "libhalo2_peer_host_agreement.a",
+        "libhalo2_peer_common_cut.a",
+        "libhalo2_peer_snapshot_candidate.a",
+        "libhalo2_online_voice.a",
+        "libhalo2_online_account.a",
+        "libhalo2_discord_identity.a",
+        "libhalo2_online_protocol.a",
+        "online-protocol/Release/libhalo2_online_protocol_bridge.a",
+        "eos-sdk/SDK/Bin/libEOSSDK-Linux-Shipping.so",
+        "-Wl,@/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/build/online-protocol/Release/native-libs.rsp",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcurl.so",
+        "/usr/lib/libcrypto.so",
+        "/usr/lib/libSDL2-2.0.so.0.3200.74",
+        "/usr/lib/libopus.so",
+        "libhalo2_game_variant.a"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "baseline-continuity",
+      "argv": [
+        "python3",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-component/halo2-test-538y8maj/native-source/tests/online_continuity_transport_http_test.py",
+        "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-session-baseline/halo2-test-m_6p4l4i/baseline-online_continuity_transport_tests"
+      ],
+      "returncode": 1
+    }
+  ],
+  "cases": {
+    "normal": {
+      "baseline_returncode": 1
+    },
+    "quality": {
+      "baseline_returncode": 1
+    },
+    "continuity": {
+      "baseline_returncode": 1
+    }
+  },
+  "retained_large_artifacts": [],
+  "archive_unchanged": true
+}

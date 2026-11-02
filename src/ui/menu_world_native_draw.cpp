@@ -510,7 +510,8 @@ struct MenuWorldNativeDraw::Impl {
     }
     flush(*next->vertex);flush(*next->fragment);frame=std::move(next);
   }
-  void record(VkCommandBuffer command,std::size_t index) const {
+  void record(VkCommandBuffer command,std::size_t index,
+      const std::function<void(const MenuWorldNativeDrawObservation &)> &observer) const {
     if(!command || !frame || index>=frame->draws.size())
       throw FormatError("raw world record has no matching prepared draw");
     const auto &draw=frame->draws[index];const auto &geometry=draw.geometry;
@@ -529,13 +530,17 @@ struct MenuWorldNativeDraw::Impl {
       vkCmdBindIndexBuffer(command,geometry.indices.buffer,geometry.indices.offset,geometry.index_type);
       vkCmdDrawIndexed(command,geometry.index_count,1,0,0,0);
     }
+    if(observer)observer({draw.pipeline,draw.material,geometry.index_count,!context.triangle_vertices,
+        context.triangle_vertices?VK_NULL_HANDLE:geometry.indices.buffer,
+        context.triangle_vertices?0:geometry.indices.offset,0,0});
   }
 };
 
 MenuWorldNativeDraw::MenuWorldNativeDraw(MenuWorldNativeDrawContext context):impl_(std::make_unique<Impl>(context)){}
 MenuWorldNativeDraw::~MenuWorldNativeDraw()=default;
 void MenuWorldNativeDraw::prepare(std::span<const MenuWorldNativeDrawInput> inputs){impl_->prepare(inputs);}
-void MenuWorldNativeDraw::record(VkCommandBuffer command,std::size_t index) const{impl_->record(command,index);}
+void MenuWorldNativeDraw::record(VkCommandBuffer command,std::size_t index,
+    const std::function<void(const MenuWorldNativeDrawObservation &)> &observer) const{impl_->record(command,index,observer);}
 std::size_t MenuWorldNativeDraw::size() const{return impl_->frame?impl_->frame->draws.size():0;}
 VkPipelineLayout MenuWorldNativeDraw::pipeline_layout() const{return impl_->layout;}
 } // namespace halo2

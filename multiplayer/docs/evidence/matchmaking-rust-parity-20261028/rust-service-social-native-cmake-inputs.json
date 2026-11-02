@@ -1,0 +1,31 @@
+{
+  "schema": "H2_RUST_SERVICE_SOCIAL_NATIVE_INPUTS_V1",
+  "before_sha256": "af889f23004f8fdb0e85c0d7a192ff55663bebb6d0b432624516e0cca5f3ffff",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4397,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-native/halo2-test-jauuqge_/native-source",
+  "copied_source_bytes": 167482812,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-social-native/halo2-test-jauuqge_",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "af889f23004f8fdb0e85c0d7a192ff55663bebb6d0b432624516e0cca5f3ffff",
+  "changed": [],
+  "current_source_drift": [
+    "include/halo2/mcc_native_shaders.hpp",
+    "src/rendering/mcc_native_shaders.cpp"
+  ]
+}

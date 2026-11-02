@@ -168,6 +168,15 @@ void contract_tests(const fs::path& scratch) {
             b_result->library_namespace == "lockout", "same-leaf owners selected the wrong bank");
     require(a_result->source_sha256 != a_result->input_sha256 && a_result->input_sha256 == sha(f.encoded_maps.at(a)),
             "copied source/final encoded identities were conflated");
+    require(!stock_result->preserve_mcc_authoring && !a_result->preserve_mcc_authoring,
+            "Ordinary stock/custom owners acquired Workshop gameplay policy");
+    auto &authority = f.index["maps"][1]["compatibility_authority"];
+    const auto prior_authority = authority;
+    authority["producer"] = "steam_workshop.py";
+    require(!f.resolve(a)->preserve_mcc_authoring, "Workshop producer name alone changed gameplay policy");
+    authority["profile"] = "H2_WORKSHOP_PREPARATION_V1";
+    require(f.resolve(a)->preserve_mcc_authoring, "Authenticated Workshop producer lost authored gameplay policy");
+    authority = prior_authority;
     // Ordinary filename replacement never replaces an already admitted snapshot.
     write(f.root / a, "later unadmitted filename replacement");
     write(f.root / "native-shaders/maps/halo2/Mods/A/Maps/lockout/library.json", "later metadata filename replacement");

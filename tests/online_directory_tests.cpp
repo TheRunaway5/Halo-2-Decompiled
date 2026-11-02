@@ -65,6 +65,24 @@ int main(int argc, char **argv) {
     requests = 0;
     OnlineDirectory empty(options, [&](const auto &, auto) -> OnlineDirectoryResponse { ++requests; return {200, R"({"servers":[]})"}; }, clock);
     check(fetch(empty).servers.empty() && requests == 1, "Empty snapshot triggered failover");
+    const std::string cursor = "00000000-0000-0000-0000-000000000003.00000000-0000-0000-0000-000000000001";
+    unsigned pages = 0;
+    OnlineDirectory paginated(options, [&](const auto &url, auto) -> OnlineDirectoryResponse {
+      ++pages;
+      if (url == "https://primary.example/v1/servers")
+        return {200, Json{{"servers", Json::array({listing()})}, {"next_cursor", cursor}}.dump()};
+      check(url == "https://primary.example/v1/servers?cursor=" + cursor, "Pagination escaped configured route");
+      return {200, Json{{"servers", Json::array({copy})}, {"next_cursor", nullptr}}.dump()};
+    }, clock);
+    const auto complete = fetch(paginated);
+    check(complete.status == OnlineDirectoryStatus::Ready && complete.servers.size() == 2 && pages == 2,
+          "Paginated discovery lost servers");
+    for (const auto &next : {std::string("https://evil.example"), cursor}) {
+      OnlineDirectory looping(options, [&](const auto &, auto) -> OnlineDirectoryResponse {
+        return {200, Json{{"servers", Json::array({listing()})}, {"next_cursor", next}}.dump()};
+      }, clock);
+      check(fetch(looping).status == OnlineDirectoryStatus::Failed, "Unsafe or repeated continuation accepted");
+    }
     OnlineDirectory unconfigured;
     check(fetch(unconfigured).status == OnlineDirectoryStatus::Unconfigured, "Missing configuration started networking");
     for (const auto *url : {"http://remote.example", "https://master.example/api", "https://user:password@master.example", "https://master.example?x", "https://master.example#x", "file:///tmp/master", "https://master.example:99999"}) {

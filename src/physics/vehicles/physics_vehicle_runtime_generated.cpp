@@ -3,9 +3,18 @@
 #include "physics/vehicles/physics_vehicle_runtime_internal.hpp"
 #include "physics/vehicles/source_vehicle_rate_native_tu15_internal.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
+#include "halo2/native_tu15_vehicle_flip_handoff.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_vehicle_runtime_detail;
+static bool handoff_native_vehicle_flip(VehicleState&s) {
+    if(s.image!=SourcePhysicsContactImage::TitleUpdate15)return false;
+    auto actual=s.save();
+    try {
+        if(!native_tu15_handoff_vehicle_flip(s.memory,{0xf24d8u,0xf1dd0u,false},actual,s.observe))return false;
+    } catch(...) {s.load(actual);throw;}
+    s.load(actual);return true;
+}
 std::uint32_t source_estimate(VehicleState &s,std::uint32_t input) {
     if(!s.services.reciprocal_sqrt)throw std::runtime_error("Required original contact RSQRTSS owner unavailable");
     return s.services.reciprocal_sqrt(input);
@@ -929,7 +938,7 @@ if(s.services.instruction){s.services.instruction(0xf15aau);} s.push(0xf15aau,s.
 if(s.services.instruction){s.services.instruction(0xf15abu);} w(s.memory,s.observe,0xf15abu,(0x1cu+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xf15b1u);} s.push(0xf15b1u,selected(0xf15b6u,s.image));run_f0b30(s);
 if(s.services.instruction){s.services.instruction(0xf15b6u);} s.set(0,s.reg(5,4,0),4,0);
-if(s.services.instruction){s.services.instruction(0xf15b8u);} {const auto target=selected(0xf0eb0u,s.image);s.push(0xf15b8u,selected(0xf15bdu,s.image));dispatch(s,target,0xf15b8u,false);}
+if(s.services.instruction){s.services.instruction(0xf15b8u);} {const auto target=selected(0xf0eb0u,s.image);s.push(0xf15b8u,selected(0xf15bdu,s.image));if(!handoff_native_vehicle_flip(s))dispatch(s,target,0xf15b8u,false);}
 if(s.services.instruction){s.services.instruction(0xf15bdu);} s.set(2,r(s.memory,(0x12u+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0xf15c1u);} s.set(2,s.flags.logic((s.reg(2,1,0))|(s.reg(0,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0xf15c3u);} s.set(0,r(s.memory,(0xc1u+s.gp[7]),1),1,0);

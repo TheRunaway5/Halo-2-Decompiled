@@ -10,7 +10,7 @@ def main():
  for name in names:
   dest=project/name;dest.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,dest)
  core=(project/names[1]).read_text();variants={}
- pairs=[('wrong_permutation','variant)*6u','variant)*4u'),('skip_scale_reread','x=multiply(scale,x);scale=scalar(read(memory,matrix));','x=multiply(scale,x);'),('skip_fallback_recopy','else if(!resolve_frame(memory,frame,point,sink))','else if((resolve_frame(memory,frame,point,sink),false))'),('wrong_node_bound','if(std::uint32_t(node)<count)','if(std::uint32_t(node)<=count)'),('wrong_distance_association','const auto first_sum=add(x,z_squared);\n        const auto y_squared=multiply(y,y);','const auto first_sum=add(x,multiply(y,y));\n        const auto y_squared=z_squared;')]
+ pairs=[('wrong_permutation','variant)*6u','variant)*4u'),('skip_scale_reread','scale=scalar(read(memory,matrix));\n        y=multiply(scale,y);','y=multiply(scale,y);'),('skip_fallback_recopy','else if(!resolve_frame(memory,frame,point,sink,coordinate))','else if((resolve_frame(memory,frame,point,sink,coordinate),false))'),('wrong_node_bound','if(std::uint32_t(node)<count)','if(std::uint32_t(node)<=count)'),('wrong_distance_association','const auto first_sum=add(x,z_squared);\n        const auto y_squared=multiply(y,y);','const auto first_sum=add(x,multiply(y,y));\n        const auto y_squared=z_squared;')]
  for name,needle,replacement in pairs:
   assert core.count(needle)==1,(name,core.count(needle));variants[name]=core.replace(needle,replacement)
  for name,text in variants.items():(project/f'src/campaign/ai/{name}.cpp').write_text(text)

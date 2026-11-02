@@ -127,3 +127,22 @@ The current supported Vista presentation is pane 0 while searching, pane 1/its e
 Counts and a roster may describe accepted gathering participants; chosen Halo screen names already public to those participants are sufficient. No Discord ID, account ID, ticket/session ID, raw/hidden rank, candidate score, QoS measurement or inferred team is required by these progress fields. Showing a casual searching illustration must not turn its rank-related callout into disclosure of a player's hidden rank. The user-required privacy contract remains separate from original debug/service internals.
 
 Unresolved here: complete Vista provider transition production through its Windows environment, live original Live service behavior, actual native framebuffer/widescreen fit, and final-start countdown binding in a three-pane Vista screen. These limits do not prevent using the proven authored waiting pane and session-owned progress without inventing visual fields.
+
+## Rust policy and fresh TU1.5 sort/input controls (2026-11-02)
+
+The later [Rust qualification](evidence/matchmaking-rust-parity-20261028/native-frontend-progress-rust-validation.json)
+moves progress/roster/rank/speaker/input decisions and widget selectors to
+safe Rust while preserving the native presentation boundaries above.
+The unchanged 0x25790E caller executes real 0x32B560 qsort and 0x257692/0x2576D7/0x25770A
+comparators over explicit synthetic session banks. All 856 controls match the
+production Rust bridge. The earlier modern stable sort differs on 317 controls,
+including tied teams in the former native smoke-test expectation.
+
+Unchanged 0x2584AE cancellation consumers with the real frozen UI clock getter
+use a signed 60000 ms comparison; wrapped negative differences refuse Cancel at
+pane 2+. The 0x2584C9 leave-count caller executes real 0x19475B/0x1946AA and session/
+membership getters. Its count is players, including couch seats. Two local
+players plus one remote player choose dialog 0x8C, even with only two connections.
+All 536 input controls match Rust. These are bounded original callers/consumers;
+the complete original UI/network producer and dialog allocator are not claimed.
+Reproduce with the progress sort/input oracle tools under tools/run_test.py.

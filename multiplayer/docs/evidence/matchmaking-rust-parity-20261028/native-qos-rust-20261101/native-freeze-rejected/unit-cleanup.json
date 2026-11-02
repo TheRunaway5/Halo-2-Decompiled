@@ -1,0 +1,13 @@
+{
+  "unit": "halo2-mm-qos-frontend-20261101.service",
+  "failed_state_reset": true,
+  "remaining_state": {
+    "LoadState": "not-found",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "MainPID": "0",
+    "Result": "success",
+    "ExecMainStatus": "0"
+  },
+  "retained_large_artifacts": []
+}

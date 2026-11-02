@@ -8,7 +8,8 @@ evidence. It is not a completed inventory or a native-only runtime qualification
 | Area | Current source evidence | Required completion |
 | --- | --- | --- |
 | Live player and world scheduling | `src/physics/physics_live_world_tu15.cpp` still enters player scheduler14FEC0 and object phase B8F40 through the virtual ABI. The world phase now invokes typed `step_native_physics_frame`; its named collision/contact/publication dependencies remain residual owners. The narrow v1455 frozen integration passes all nine visible multiplayer cases. | Finish the native dependency closure while preserving scheduler/callback order and published state. Historical v1396-r2 physics delivery and later launcher selections are separate from these disposable physics cohorts. |
-| World and solver execution | The production binding selects typed world/island, collision/broad-phase, island-agent scheduling, contact-time advance, dynamic accumulator, row solver, initializer, built-in custom callbacks and motion-commit owners. v1461/03 exercises native endpoint/compound/box/centered bounds, but45 residual bounds calls keep its coverage gate red. Qualified native31F770/31F860 producers and329720 base are wired in the working tree; their next visible cohort is pending. Generated bodies and ABI transport remain for named unconverted dependencies. | Finish contact producers, remaining controller/geometry and ownership. Count actual residual identities and require zero fallback before native-only closure. |
+| Player and vehicle look controller | `prepare_player_look` invokes18A300 through `source_run_vehicle_look_tu15`; `src/gameplay/vehicles/source_vehicle_look_tu15_generated.cpp` uses WorldState GP/XMM arrays and instruction-labeled bodies. Canonical Root now selects the qualified native Host controller/context/camera/query route after the guarded1474–1478 backmerge; frozen1478–1479 have positive native gates and actual-camera proof. Internal generated callers still use the lifted implementation outside the Frame census. | Close internal generated callers, observer and exceptional CRT/query/FP domains, then requalify their actual native call flow. |
+| World and solver execution | The production binding selects typed world/island, collision/broad-phase, island-agent scheduling, contact-time advance, dynamic accumulator, row solver, initializer, built-in custom callbacks and motion-commit owners. v1463/05 exercises native sphere bounds and direct rows;09 exercises native3230C0 contact completion. v1464/00–01 additionally exercises native281E10/property selection with strict original checks. v1464/04 exercises native1D8A20 contact matching, six feature owners and both simplex helper kinds with strict driving/rocket original comparisons. The1D77D0 child and whole producer/GJK parents remain genuine dependencies. Generated bodies and ABI transport remain for named unconverted dependencies. | Finish contact producers, remaining controller/geometry and ownership. Count actual residual identities and require zero fallback before native-only closure. |
 | Vehicle rate kernels | `src/physics/vehicles/physics_vehicle_runtime_generated.cpp:1448` and1516 select structured rate kernels. `source_vehicle_rate_native_tu15_internal.hpp:27` can decline for observers, tracing or backing conditions. | Preserve the proved kernels and remove live lifted fallback as remaining branches are converted. Instrumented validation must exercise the native path. |
 | Object motion and lifetime | `include/halo2/native_tu15_object_motion.hpp:18` leaves teleport placement unported; lines47–61 identify activation/vehicle-child limits. `tests/native_tu15_object_motion_tu15_tests.cpp:380` skips refused cases. | Convert and validate teleport, activation, sleeping islands, wake listeners, deferred bodies and applicable child updates. Refusals are remaining coverage, not passes. |
 | Live execution proof | `tests/physics_multiplayer_acceptance.cpp` now records authority/local per-world native-frame and residual-call counts, in addition to process-wide rate activity. The frame gate requires actual native-frame activity. | Record every path and assert zero lifted/emulated gameplay fallback before native-only closure. Requalify visible multiplayer and actual vehicle cameras. Nonzero residual-call counts keep the closure open. |
@@ -24,11 +25,157 @@ behavior would not satisfy parity.
 
 ## Native conversion evidence in progress
 
+- The native30CD00→322D20→30CAA0 publication/creation/reduction chain passes
+  all187 parent sites and strict retained DATA/FP under both compilers. Its
+  eight kernels are build-wired; an immutable196-CPP/four-model cohort passes.
+  The sole native point-creation binding passes77 cases and bound padding/raw
+  observer/native-only refusal models with independent review. Actual304350
+  service/constructor lifetime, positive activation/removal and World/live
+  admission remain open. No source executor is accepted by the new binding.
+
+- Frozen1480/00 now passes all three strict original frames/FP and actual
+  vehicle cameras with native2EA380:986/1,573/1,775 calls, zero refusals/oldowner.
+  Genuine native31D930 is positive in grenade1200 with78 completions,156 angular
+  and234 linear rows, zero errors. All three Frame censuses contain only
+ 2E5320/304350. Canonical Root has the narrow ten-file broad-phase integration;
+  remaining schedulers, internal controller callers, deferred/listener and wider
+  lifetime/FP/query domains keep the native-only goal open.
+
+- Latest completed frozen1479/00 has three observed Frame owners in each
+  driving/grenade/rocket run:2E5320/2EA380/304350. Native Host look/controller/
+  camera/query/reorientation gates pass with231/250/268 actual seated camera
+  frames. All three strict original frames pass114,363,573/114,887,921/
+  114,887,921 bytes and FP. Joint building is zero/unexercised. Historical1478
+  driving remains strict RED by107 heap bytes in26 runs; this is not proved
+  fixed by the new run. The retained original-writer trace identifies copying and later vector
+  stores, not a proved lifetime waiver or cause. Native deletion/body/post-step
+  passed earlier1474–1475 strict multiplayer. Qualified18A2A0 runs positively in1479;31D930 remains live-unexercised,
+  including the1479/01 vehicle-death run. Their narrow canonical
+  Root merge now passes181-CPP World/four models, Frame and full Host/LiveWorld
+  contexts under both compilers; these checks do not promote the launcher.
+  Internal generated look callers, player/object schedulers, positive dirty/
+  World-deferred/island-listener and wider domains keep native-only closure open.
+  [Current census](../analysis/physics/native-live-residual-census-v1479-00-20261102.json).
+- Native wrapped2F6CA0/compound2F7A50 processing is wired with separate retained
+  caller DATA and explicit remaining children. Actual1470 List/reversed-List
+  creation and the exposed transformed2F7190 child are now wired into06, which
+  reaches a visible first frame before the manager lock-profile guard. It has
+  no completed strict-frame/camera acceptance. The measured native322F70 point
+  pipeline is also wired and model-qualified; wider effect/part/destruction
+  branches refuse. Native3187C0 whole parent and its all-native service builder
+  pass both compilers on genuine skip and declared split inputs; positive live
+  regroup remains required. See the regularly updated
+  [checklist](PHYSICS_TU15_REMAINING_CHECKLIST.md) for proof limits and next gates.
+- Native World merge3190D0/contact merge318DE0 and lifetime children are wired
+  through the qualified shared activation service builder. The ten-profile Root
+  World model and the two compiler source-backed prefix cohorts pass; native
+  merge refuses nested unconverted callbacks. General constraint/lifetime/runtime
+  counters now include World activation. This proves the selected binding and
+  modeled prefixes, with actual visible merge/wake acceptance still pending.
+  [Integration freeze](../analysis/physics/native-world-island-merge-root-binding-20261101-revision-02/source-pins.json).
+- Native manager-array release now admits the qualified pool-size domain rather
+  than a literal capacity list. Independent native/original reserve-to-delete
+  tests cover all three owned branches. The failed/interrupted v1467–68 live
+  attempts retain their results; component proofs do not turn them into passes.
+- The positive09 Warthog constraint input now passes native22D460 creation and
+  publication against both original compilers:16 formal calls each over genuine
+  frame-level BEFORE DATA. The native parent preserves actual classification
+  table reads; original caller/live-positive invocation remain unqualified.
+  Native convex factory2E4EB0/2F8300 also passes40 composed class23 parent cases
+  per compiler. Both systems must still complete their specific live gates.
+- Manager3232B0/3231B0 and the shared collector destructor are wired and pass
+  positive World lifetime integration. v1466/10 stops at the storage/current-world
+  admission guard before any manager stores; this new profile is being captured.
+  Its eight regression passes are not complete multiplayer acceptance.
+
+- November1 v1466/08–09 adds selected native57 cleanup parents and159 cached/
+  wrapped/destructor children. Old converted owners are absent;08 names17
+  remaining owners, including322F70/3232B0 and distinct wrapped-process2F6CA0. Identical08 binary
+  passes strict09 grenade1200 over114,887,921 bytes+FP,418 actual vehicle-camera
+  frames and1,803 exact LAN comparisons. Normal08 and wall heap mismatches stay
+  open. Genuine positive authored+80 DATA was captured readonly at09 frame724;
+  no original22D460 invocation, positive creation or native-only closure is claimed.
+  [Current census and remaining gates](PHYSICS_TU15_REMAINING_CHECKLIST.md).
+
+- November1 v1465/00 passes the actual native F24D8→F1DD0 controller
+  gate:837 calls/flag skips, zero refusals/residuals,399 actual vehicle-camera
+  frames and387 exact LAN comparisons. The driving frame450 matches
+  114,363,573 original persistent bytes and FP. Genuine rollover, use-action8,
+  completed flip and positive activation remain open.
+- Native pair consumption321510 plus five normalization/sort/merge/lifetime
+  helpers passes32 positive declared-input cases and three mutations under both
+  compilers. The new world binding reuses the already-native2E9A00 group filter;
+  its expanded1,155-case proof and32 composed parent cases pass. Actual create/
+  delete bodies remain explicit dependencies. Native slow arena and persistent growth now match the actual02 input;320040 phantom deletion,315A70/314FE0 complex removal and315100 simple removal are qualified and wired. Live05/06 reached these exact nested owners; v1466/01 now passes these selected live gates, object publication and strict114,363,573-byte+FP frame450 comparison with388 actual vehicle-camera frames. Its merged census still reports15 residual owner identities, including the genuine320EF0/320260 handler bodies. Native slow arenas are also wired for broad-phase/contact buffers with a positive exhausted-capacity world model; their visible coverage is separate. The complete world model,110 original world cases,96 force
+  compositions and rejected mutation pass. Full native-only closure remains open.
+- The native frame now selects BDA50 object publication, BCFB0 root selection,
+  BE7E0 tree traversal and native B9390 ancestor marking. Both compilers pass372
+  physical cases; its frame binding passes65 original prefix/tail cases and
+  native publication model checks. The actual live cohort is next. Atomic RMW
+  prewrite-observer, mutable-bank and full-frame live domains stay open.
+  [Proof](PHYSICS_TU15_NATIVE_OBJECT_PUBLICATION_PROOF_20261101.md).
+- Native22D0A0 model-constraint removal is wired into capacity admission. Its
+  actual-instance component proof and ordinary F2091 binding pass. The latter
+  exercises zero removal calls; positive saturated-capacity/live removal and
+  actual17A0F0/22FEA0 native lifetime children remain open.
+
+- November1 v1464/00–01: native contact-entity notification/property selection
+  and its genuine child dispatch are positive;01 completes3,096 native calls,
+  12,384 property queries and a strict tick1200 original comparison. The native
+  child contact-matching parent1D8A20 is now component/model qualified and
+  passes the04 live gate with2,089 actual updates in driving and7,289 in the
+  rocket case;1D77D0 remains an explicit genuine residual service.
+  [Entity proof](PHYSICS_TU15_NATIVE_CONTACT_ENTITY_PROOF_20261101.md).
+- Native gameplay sleep wrappers1D9B20/1D9B70 now own their complete
+  eligibility chain and compose native body policy. Both compilers pass422
+  physical original cases and the complete world-binding model. v1464/02
+  exercises92 native calls (5 blocked/87 body-policy), with no old wrapper
+  and strict original comparison passing.
+  [Proof](PHYSICS_TU15_NATIVE_GAMEPLAY_DEACTIVATION_PROOF_20261101.md).
+- The native contact-feature adapter passes28 complete original root returns
+  per compiler,142 actual native calls and2,530,428,092 persistent compared
+  bytes, including independent volatile-register poison. Its two generated
+  virtual34 source calls and per-world scope are wired. After qualifying the
+  sixth sphere owner,04 driving completes15,470 native feature calls with zero
+  refusal; its strict original frame matches89,729,945 bytes. Both simplex
+  helper kinds also pass their live gate (4,956 native calls/zero refusal). This does not close the full304350 constructor lifetime.
+  [Proof](PHYSICS_TU15_NATIVE_CONTACT_FEATURES_HANDOFF_PROOF_20261101.md).
+- November1 v1463/05: native sphere bounds executes twice with zero bounds
+  fallback; the native direct constraint builder completes596 calls/1,923 rows
+  in driving, with genuine grenade/object cases also passing original checks.
+  Native cached motion and body compaction already execute in this same cohort.
+  The native F2091 velocity/wake transport is now wired with per-world refusal
+  and residual-owner counters and staged for official build/live qualification.
+  The bounded native dependency closure now covers payload filtering, manager
+  construction, policy and22D460 constraint update; native lookup/capacity is
+  also qualified and wired. Positive creation/capacity lifetime, genuine flip
+  input and authored constraint rows remain open. Ordinary driving performs
+  zero velocity/wake work and cannot qualify that route.
+
+
+- November1: native post-integration `322820/322950/3161F0` listener scheduling
+  passes210 physical cases under both compilers and is wired with per-world
+  activity. Native deferred `319750/316E90/319CD0/316E10` queues and merge
+  allocation monitors pass452 physical cases and the corrected world binding.
+  Driving exercises positive world-listener and deferred operation/action work;
+  island-listener/delete/update gates remain unexercised. Custom callbacks and
+  nested merge/removal/destruction owners remain explicit dependencies.
+  [Listener proof](PHYSICS_TU15_NATIVE_WORLD_STEP_LISTENERS_PROOF_20261101.md),
+  [queue proof](PHYSICS_TU15_NATIVE_WORLD_DEFERRED_PROOF_20261101.md).
+- November1: the qualified `325810` cached-motion kernel and actual `08FDB0`
+  no-op are now selected by the contact-time world binding. Per-world diagnostics
+  separately count completed rewinds/advances, fixed-motion calls and remaining
+  motion fallbacks. The new acceptance gate requires both native kinds, completed
+  counts and zero motion fallback. World-binding and bounded Warthog multiplayer qualification pass in v1463/01;
+  genuine remaining contact-agent ABI and
+  full native-only execution remain open. The interrupted v1462 build produced
+  no live evidence and is not counted as qualification.
 - Native lift scalar `1DA530`: [retained report](../analysis/physics/native-lift-scalar-tu15-20261026-final/report.json)
   compares 8,832 complete unchanged original calls and 912 authentic stops at the
   required power owner. Results, MXCSR and x87 exception flags match over 48
   precision/rounding/DAZ/FTZ combinations; a private arithmetic mutation fails.
-  Positive-exponent native power and live force integration remain open.
+  The subsequent power and visible Midship/Lockout proofs below qualify their
+  declared domains; broader force-parent and Xbox numerical closure remain open.
 - Native world frame `1CC8D0`, body iterator, publication decision and deferred
   reference operations: [current retained report](../build/test-results/native-physics-frame-read-phases-tu15/report.json)
   passes 65 original root-prefix/tail cases, 248 ordered persistent stores and

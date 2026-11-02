@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "cases": 3105,
+  "native_observations": 2688,
+  "comparisons": 5839,
+  "fault_controls": 14,
+  "preserved_native_exception_identity": 14,
+  "differences": [],
+  "native_sha256": "41a0c3bae42d1ce7107b0b659443c899819e9f9fb5e8288e580cbc2ad2ebed57",
+  "scope": "Captured native party callers versus current native Rust/CXX callers.\n\nThe local profile/login/seat observations are declared synthetic IO. This\nqualifies projection/caller equivalence, not original Live identity production,\nphysical controller input or installed-runtime delivery. The enclosing owned\nrun_tests.py/run_test.py lifecycle removes every generated build product.\n"
+}

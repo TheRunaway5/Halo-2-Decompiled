@@ -327,8 +327,8 @@ The final quad is84x84 logical pixels for one participant and64x64 for split
 screen. The native fixture checks all40 current-layout cases against those
 vertices, including the spanning view in three-player layouts, and checks that
 each quad remains inside its own cell. Desktop presentation retains the uniform
-artwork scale and places corner HUD groups eight logical pixels from every edge
-of each player's viewport. This applies to single-player and all split layouts,
+artwork scale. Single-player retains its authored floating HUD inset; only
+split-screen places corner HUD groups eight logical pixels from every edge,
 including the spanning view in three-player layouts. Grenades and ammo use the
 top corners; shields/radar and scores use the bottom corners.
 

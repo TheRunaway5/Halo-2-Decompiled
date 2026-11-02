@@ -1,0 +1,32 @@
+{
+  "schema": "H2_STEAM_NATIVE_INPUTS_V1",
+  "before_sha256": "7c3dad9a8e14d6a0a4d5517c89e0252585cfcd05612564d2874c9b5e1c2042f9",
+  "after_sha256": "7c3dad9a8e14d6a0a4d5517c89e0252585cfcd05612564d2874c9b5e1c2042f9",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json"
+  ],
+  "input_count": 4279,
+  "changed": [],
+  "returncode": 8,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet/native-source",
+  "copied_files": 4279,
+  "copied_source_bytes": 166405566,
+  "borrowed_cpp_headers": 0,
+  "current_source_drift": [
+    "src/app/loop_audio_capture.hpp"
+  ],
+  "declared_refresh": {},
+  "source_control": "Owned source/build under one finite run_test.py owner; phase refreshes are explicit; external original assets borrowed read-only.",
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/steam-provider-owner/halo2-test-xde4cmet",
+  "retained_large_artifacts": []
+}

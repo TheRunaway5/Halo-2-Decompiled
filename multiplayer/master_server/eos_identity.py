@@ -14,7 +14,7 @@ from aiohttp import web
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from .protocol import fields, require, parse
-from .player_statistics import enqueue
+from .native_profiles import database
 
 
 def b64(value):
@@ -152,13 +152,8 @@ class EosIdentity:
         # their still-current capability after the asynchronous verification.
         db=self.directory.store.db
         with db:
-            old=db.execute('SELECT puid FROM eos_players WHERE player=?',(who,)).fetchone()
-            require(old is None or old[0]==puid,'EOS identity migration requires explicit recovery',409)
-            linked=db.execute('SELECT player FROM eos_players WHERE puid=?',(puid,)).fetchone()
-            require(linked is None or linked[0]==who,'EOS identity already linked',409)
-            if old is None:
-                db.execute('INSERT INTO eos_players VALUES(?,?)',(who,puid))
-                enqueue(db,who)
+            if not db.in_transaction:db.execute('BEGIN')
+            database(db,'eos_bind',who,body={'account':who,'puid':puid})
             cloud=getattr(self.directory,'friend_cloud',None)
             if cloud:
                 cloud.enqueue(who);cloud.wake.set()

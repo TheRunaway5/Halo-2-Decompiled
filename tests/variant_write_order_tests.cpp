@@ -6,6 +6,8 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <limits>
 #include <sstream>
 #include <thread>
 using namespace halo2;
@@ -162,16 +164,40 @@ void cache_and_launch(const std::filesystem::path &maps) {
   }
   std::cout<<"PASS disposable real-tag alias order, repeated rows, native canonical lobby text and both ordinary Start routes\n";
 }
+void opaque_preferences(const FrontendContent &content) {
+  Temporary temporary;const auto path=temporary.path/"opaque.cfg";
+  {std::ofstream file(path);file<<"halo2-native-menu-v1\nactive \"Ordered Source\"\nprofile \"Ordered Source\"\n"
+      <<"variant_name \"Ordered Custom\" 0\nvariant 4294967295 -2147483648\n"
+      <<"saved_variant \"Ordered Custom\" 0\nsaved_value \"Ordered Custom\" 4294967295 -2147483648\n";
+    check(bool(file),"cannot create opaque native metadata fixture");}
+  for(unsigned pass=0;pass<2;++pass) {
+    MenuState menu(content,path);menu.save();
+    std::ifstream file(path);const std::string saved{std::istreambuf_iterator<char>(file),{}};
+    check(saved.find("variant 4294967295 -2147483648\n")!=std::string::npos &&
+          saved.find("saved_value \"Ordered Custom\" 4294967295 -2147483648\n")!=std::string::npos,
+          "native preference roundtrip narrowed or lost opaque metadata");
+  }
+  UiVariant invalid{"Opaque native metadata",0,{}};
+  invalid.values.append(0xffffffffu,std::numeric_limits<int>::min());
+  const UiVariant plain{invalid.name,invalid.engine,{}};
+  check(source_game_variant(invalid).bytes==source_game_variant(plain).bytes,
+        "unknown metadata changed the original source buffer");
+  bool refused=false;
+  try{(void)slayer_rules(invalid);}catch(const FormatError &error){
+    refused=std::string(error.what())=="Unsupported native Slayer ruleset";
+  }
+  check(refused,"unknown native extension bypassed the established admission guard");
+  std::cout<<"PASS native opaque metadata load/save/reload retains full integers and the existing native-admission refusal\n";
+}
 void preferences(const std::filesystem::path &maps) {
-  const auto content=Cache(maps/"mainmenu.map").load_frontend();Temporary temporary;
+  const auto content=Cache(maps/"mainmenu.map").load_frontend();opaque_preferences(content);Temporary temporary;
   const auto path=temporary.path/"menu.cfg";
   {std::ofstream file(path);file<<"halo2-native-menu-v1\nactive \"Ordered Source\"\nprofile \"Ordered Source\"\n"
       <<"variant_name \"Ordered Custom\" 0\nvariant 2 10\nvariant 1 2\nvariant 10 32767\n"
-      <<"variant 89 261\nvariant 88 -1\nvariant 4294967295 -2147483648\n"
+      <<"variant 89 261\nvariant 88 -1\n"
       <<"saved_variant \"Ordered Custom\" 0\nsaved_value \"Ordered Custom\" 2 10\n"
       <<"saved_value \"Ordered Custom\" 1 2\nsaved_value \"Ordered Custom\" 10 32767\n"
-      <<"saved_value \"Ordered Custom\" 89 261\nsaved_value \"Ordered Custom\" 88 -1\n"
-      <<"saved_value \"Ordered Custom\" 4294967295 -2147483648\n";
+      <<"saved_value \"Ordered Custom\" 89 261\nsaved_value \"Ordered Custom\" 88 -1\n";
     check(bool(file),"cannot create native ordered preference fixture");}
   auto start=[&](MenuState &menu,int score) {
     lobby(menu,0);choose(menu,1,23);choose(menu,1,207);choose(menu,entry(menu,0),208);
@@ -199,7 +225,10 @@ void preferences(const std::filesystem::path &maps) {
 }
 int main(int argc,char **argv) try {
   check(argc==3,"ordered variant check needs original fixture and map directory");
-  const std::filesystem::path maps=argv[2];
-  if(!std::filesystem::exists(maps/"mainmenu.map"))return 77;
+  const std::filesystem::path requested_maps=argv[2];
+  if(!std::filesystem::exists(requested_maps/"mainmenu.map"))return 77;
+  // Frozen cohorts borrow this trusted fixture directory through a symlink.
+  // Supply its physical owner to the unchanged confined resource reader.
+  const auto maps=std::filesystem::canonical(requested_maps);
   oracle(argv[1]);cache_and_launch(maps);preferences(maps);return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

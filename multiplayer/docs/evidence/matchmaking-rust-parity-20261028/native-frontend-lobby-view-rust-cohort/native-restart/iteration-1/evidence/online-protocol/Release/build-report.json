@@ -1,0 +1,63 @@
+{
+  "scope": "Rust static library, process-main SDK worker and generated CXX interface, not runtime acceptance",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: x86_64-unknown-linux-gnu\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "targets": [
+    "x86_64-unknown-linux-gnu"
+  ],
+  "lock_sha256": "a3fbd6b1bc564aebf7efb7cd8459c96dd4f1bd30f8bc439612e01f2615208f47",
+  "cxx_version": "1.0.205",
+  "native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "resolved_native_flags": [
+    "-lstdc++",
+    "-lcurl",
+    "-lgcc_s",
+    "-lutil",
+    "-lrt",
+    "-lpthread",
+    "-lm",
+    "-ldl",
+    "-lc"
+  ],
+  "requested_cxx": "/usr/bin/c++",
+  "requested_cxx_flags": "",
+  "archive": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/build/online-protocol/Release/libhalo2_online_protocol_bridge.a",
+  "archive_sha256": "24baa792c075510f295f01217ed8819846c8b744a274f7ac5b857b94acb435e4",
+  "worker": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/build/online-protocol/Release/eos_sdk_worker",
+  "worker_sha256": "013aecc859c33f5e5bccaf20d0c32a3cd86c4018ac8b3183acb0630bbfe7a7e2",
+  "worker_link_flags": "",
+  "header_sha256": {
+    "rust/cxx.h": "bb4eada7adbd269a932009682a12a15f716f0460761430e2b68ea7dab764646c",
+    "halo2-online-protocol-bridge/src/lib.rs.h": "23f10177433c66a49207755bb07fb3f31adc8a730a5c83109ef64dbd26e5da2c",
+    "src/eos_sdk.hpp": "85ccbd3cce12d58d2cc9650307362230c5eb82a08ee2a1567b5c1dfe7ecc9300",
+    "src/matchmaking_client.hpp": "815601da339b4f660101f374e94bbce003c0fc204817e1c691a3590eb11a3a44",
+    "src/matchmaking_native_qos.hpp": "5227724ffe8e222c8345870cc977442ffd188a402aafd901ab3759e83fe001f9",
+    "src/matchmaking_native_session.hpp": "eb9504d271a2288c3c9eaf8328a893e95e43cd1295fb7b1755d3b56f1b0600d5",
+    "src/matchmaking_native_peers.hpp": "96caaad66db4555464f4d5f6f719250c998a088980e8a7fcd4adfea990c3fc6a",
+    "src/matchmaking_native_publication.hpp": "6f28cbd956ee843c58ffb87d84ec729db23a2bd7bafb424050fd1ddb2c91936e",
+    "src/matchmaking_native_preparation.hpp": "b13720655ec857890d29fa6e7cc458564932102749b21248940f8a0eadfbb98a",
+    "src/matchmaking_native_exchange.hpp": "80571cffd80f4ea8b56aa99f718e66dbc8d4c2fbc04775cbade40b1aa3afd597",
+    "src/peer_snapshot_candidate.hpp": "05d492aee791aa6934f5333548cad31e01975a8fb0d2388b2853cd563ce0ccbc",
+    "src/matchmaking_native_receive.hpp": "e423fe9bc39877396fbb7962da35136590b6aacbab6de936cf3237bfaee4030f",
+    "src/matchmaking_native_access.hpp": "439720cc9639e8bd71fa11df863d1c0a7411c1462817e2cac115010307a04163",
+    "src/matchmaking_native_migration.hpp": "b511e2673cb878fd4133b317f30fd38d68169c39b060ac70a0551f99d7a7a55a",
+    "src/matchmaking_native_api.hpp": "b1c1cb774a25b65cf74d7a04234d1181d810b271442e375fd5bc35099db15593",
+    "src/matchmaking_account_client.hpp": "b2b70aace6af82c89e2d230c7fc69a8cb07ffff6a2a7afb328f264fbd501d56a",
+    "src/matchmaking_native_results.hpp": "a58489b8f9aece14e42dd5eba83d9dd2a9618218da57721fcdc55c9fbb52aeb0",
+    "src/matchmaking_frontend_search.hpp": "1a4b23e3e8f73bb0b435225e76d9d249e55359c59b68fb59110c744ae36d2b27",
+    "src/matchmaking_frontend_presentation.hpp": "c585ce076e354cd5be5488ff27a11ddbe35448b1263e5e01db2213fa225d0414",
+    "src/matchmaking_frontend_party.hpp": "b16ebfb203d27c19e0b3c5c21fbbb29f083a025d96cf6874506f1d5105ded639",
+    "src/matchmaking_frontend_party_flow.hpp": "44a2f33de5777250046fb61942d22a6a4094d0976364c1950b2c80d852b68868",
+    "src/matchmaking_frontend_lobby_view.hpp": "c6d15ea77cb1f080c2664ba46263c3cc54ae70e6d38b269f923122676d18b8ef"
+  },
+  "cargo_target_dir": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-lobby-view-native-restart-20261102/halo2-test-el89tulj/build/online-protocol/Release/cargo"
+}

@@ -1,0 +1,19 @@
+{
+  "scope": "Full modern native friends UI/party action/observer caller before Rust ownership; not original Live service recovery",
+  "source_pins": {
+    "src/ui/frontend_friends.cpp": "fe67294cb41b3a1816bac98e84330cc197f8f205427217f85fb44afed8f0fbb1",
+    "include/halo2/frontend.hpp": "8ce52b9bd28e80d013e01ff32bb58b2be3aeeb9ca26bcac65ddae53ea6a9ec63",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "b17ec9028188956fa3191d16259d1ac36e6a46d762b544bff6c08a4259b1930f",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "9b117a11ef96b99f68762884549fb7819d08ed6c7ff990b46b93a844540be08b",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "ac11ab2994f9dcefab333b1e597e1bcbd3b13f702ae181a221bb17069c1f9d17",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "c84685ad32460b7b56f78e6a19eb43f5b1b9ce50790e98d52ed68ee06a0edb27"
+  },
+  "capture_names": {
+    "src/ui/frontend_friends.cpp": "src__ui__frontend_friends.cpp.reference",
+    "include/halo2/frontend.hpp": "include__halo2__frontend.hpp.reference",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "include__halo2__frontend_matchmaking_party_flow.hpp.reference",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "src__ui__frontend_matchmaking_party_flow_bridge.cpp.reference",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol__src__matchmaking_frontend_party_flow.rs.reference",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol_bridge__src__matchmaking_frontend_party_flow.rs.reference"
+  }
+}

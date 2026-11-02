@@ -598,7 +598,15 @@ void SourceRuntimeMemory::read_vector(std::uint32_t p,std::span<std::byte,16> ou
 }
 std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_read_view(
     std::uint32_t p,std::size_t n) const noexcept {
-  if(reference_small_transfers || reference_scalar_vector_reads ||
+  return try_ordinary_view(p,n,false);
+}
+std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_write_extent(
+    std::uint32_t p,std::size_t n) const noexcept {
+  return try_ordinary_view(p,n,true);
+}
+std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_ordinary_view(
+    std::uint32_t p,std::size_t n,bool writable) const noexcept {
+  if((writable&&!n) || reference_small_transfers || reference_scalar_vector_reads ||
      n>(std::uint64_t{1}<<32)-p)return std::nullopt;
   Position found{};
   if(source_pages_)
@@ -610,6 +618,8 @@ std::optional<std::span<const std::byte>> SourceRuntimeMemory::try_read_view(
     --found;
   }
   const auto &region=found->second;
+  if(writable && (region.access!=Access::ReadWrite || (region.shared && region.shared->write_guard_)))
+    return std::nullopt;
   const auto bytes=region.storage();
   const auto offset=std::uint64_t(p)-found->first;
   if(offset>=bytes.size() || n>bytes.size()-offset)return std::nullopt;

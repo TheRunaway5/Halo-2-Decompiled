@@ -1,0 +1,40 @@
+{
+  "schema": "H2_RUST_SERVICE_FRIEND_CLOUD_NATIVE_INPUTS_V1",
+  "before_sha256": "7f484f7d5cb5a7ff22433d09201cf3b3d7c1e23303f84e6565b2f960127d51b3",
+  "source_pin_parts": [
+    "source-pins-0.json",
+    "source-pins-1.json",
+    "source-pins-2.json",
+    "source-pins-3.json",
+    "source-pins-4.json",
+    "source-pins-5.json",
+    "source-pins-6.json",
+    "source-pins-7.json",
+    "source-pins-8.json",
+    "source-pins-9.json",
+    "source-pins-10.json",
+    "source-pins-11.json"
+  ],
+  "input_count": 4407,
+  "source_snapshot": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-final/halo2-test-7ln5x2ji/native-source",
+  "copied_source_bytes": 167604877,
+  "borrowed_cpp_headers": 0,
+  "drift_during_freeze": [],
+  "report_helper_scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-final/halo2-test-7ln5x2ji",
+  "retained_large_artifacts": [],
+  "returncode": 0,
+  "after_sha256": "7f484f7d5cb5a7ff22433d09201cf3b3d7c1e23303f84e6565b2f960127d51b3",
+  "changed": [],
+  "current_source_drift": [
+    "CMakeLists.txt",
+    "cmake/CampaignAiScalarDefaults.cmake",
+    "include/halo2/source_damage_material_native_tu15.hpp",
+    "include/halo2/source_object_emblem.hpp",
+    "rust/matchmaking_service/README.md",
+    "src/assets/content.cpp",
+    "src/gameplay/multiplayer/multiplayer_runtime.cpp",
+    "src/gameplay/objects/source_damage_material_native_tu15_internal.hpp",
+    "src/gameplay/objects/source_object_emblem.cpp",
+    "src/gameplay/units/source_damage_delivery_runtime_generated.cpp"
+  ]
+}

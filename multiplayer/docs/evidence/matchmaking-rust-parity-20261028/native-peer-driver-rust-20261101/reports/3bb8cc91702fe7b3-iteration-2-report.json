@@ -1,0 +1,234 @@
+{
+  "passed": true,
+  "baseline": false,
+  "source": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/native-source",
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_",
+  "refreshed": [
+    {
+      "path": "src/network/online_match_session.cpp",
+      "before": "c37075dd11962d553f2347e218d4cbc3074a28d0ff4c768a2b4fc18ec731b98c",
+      "after": "8206d189ff52f976752bf42945b63556b9eca5b3da41fe336120eee44314091e"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_native_peers.rs",
+      "before": "434309468712b23b9aedd2b1f89ba00b926b0d05e1402eece28b3c949b8ccf02",
+      "after": "e5854fe1c6ff08e789787b027f8c22d7ce05c2b06eddd2373fba80d74ad22aee"
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/lib.rs",
+      "before": "f1b775d1c01fd4a8257c5424b2aa39f5f8bb9d0a5d08812c53cb47079310fc97",
+      "after": "755ddcab73d700986179607f284f62524da088cd029aa85046665dbf35b7a8b9"
+    }
+  ],
+  "retained_large_artifacts": [],
+  "source_pin_parts": [
+    "iteration-2-source-pins-0.json",
+    "iteration-2-source-pins-1.json",
+    "iteration-2-source-pins-2.json",
+    "iteration-2-source-pins-3.json",
+    "iteration-2-source-pins-4.json",
+    "iteration-2-source-pins-5.json",
+    "iteration-2-source-pins-6.json",
+    "iteration-2-source-pins-7.json",
+    "iteration-2-source-pins-8.json",
+    "iteration-2-source-pins-9.json",
+    "iteration-2-source-pins-10.json",
+    "iteration-2-source-pins-11.json",
+    "iteration-2-source-pins-12.json",
+    "iteration-2-source-pins-13.json",
+    "iteration-2-source-pins-14.json",
+    "iteration-2-source-pins-15.json",
+    "iteration-2-source-pins-16.json",
+    "iteration-2-source-pins-17.json",
+    "iteration-2-source-pins-18.json",
+    "iteration-2-source-pins-19.json",
+    "iteration-2-source-pins-20.json",
+    "iteration-2-source-pins-21.json",
+    "iteration-2-source-pins-22.json",
+    "iteration-2-source-pins-23.json",
+    "iteration-2-source-pins-24.json",
+    "iteration-2-source-pins-25.json",
+    "iteration-2-source-pins-26.json",
+    "iteration-2-source-pins-27.json",
+    "iteration-2-source-pins-28.json",
+    "iteration-2-source-pins-29.json",
+    "iteration-2-source-pins-30.json",
+    "iteration-2-source-pins-31.json",
+    "iteration-2-source-pins-32.json",
+    "iteration-2-source-pins-33.json",
+    "iteration-2-source-pins-34.json",
+    "iteration-2-source-pins-35.json",
+    "iteration-2-source-pins-36.json",
+    "iteration-2-source-pins-37.json",
+    "iteration-2-source-pins-38.json",
+    "iteration-2-source-pins-39.json",
+    "iteration-2-source-pins-40.json",
+    "iteration-2-source-pins-41.json",
+    "iteration-2-source-pins-42.json",
+    "iteration-2-source-pins-43.json",
+    "iteration-2-source-pins-44.json",
+    "iteration-2-source-pins-45.json"
+  ],
+  "source_pin_sha256": "8640bfead0acc45f36f07bcf3dcd43103425c4935c82a35bc39d47148cb98584",
+  "command": [
+    "/usr/bin/python3",
+    "/home/eric/Developer/Halo-2-Decompiled/tools/run_tests.py",
+    "--build-worker",
+    "--source",
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/native-source",
+    "--output",
+    "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2",
+    "--jobs",
+    "2",
+    "--test-jobs",
+    "1",
+    "--target",
+    "peer_authority_transfer_tests",
+    "--target",
+    "peer_host_session_tests",
+    "--target",
+    "peer_survivor_session_tests",
+    "--target",
+    "peer_mesh_quality_session_tests",
+    "--target",
+    "online_continuity_transport_tests",
+    "--target",
+    "online_peer_transport_tests",
+    "--target",
+    "rust_service_room_probe",
+    "--filter",
+    "^(peer_authority_transfer|online_peer_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$",
+    "--cmake-arg=-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "--cmake-arg=-DHALO2_ONLINE_RUST_OFFLINE=ON",
+    "--cmake-arg=-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+    "--cmake-arg=-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+    "--cmake-arg=-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+    "--cmake-arg=-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip",
+    "--retain-report",
+    "Testing/Temporary/LastTest.log",
+    "--retain-report",
+    "online-protocol/Release/build-report.json"
+  ],
+  "exit_code": 0,
+  "runner_report": {
+    "passed": true,
+    "status": "passed",
+    "build": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/build",
+    "steps": [
+      {
+        "name": "configure",
+        "command": [
+          "cmake",
+          "-S",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/native-source",
+          "-B",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/build",
+          "-DBUILD_TESTING=ON",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+          "-DHALO2_ONLINE_RUST_OFFLINE=ON",
+          "-DHALO2_TEST_ASSET_SOURCE_ROOT=/home/eric/Developer/Halo-2-Decompiled",
+          "-DHALO2_STAGE_BUILD_OUTPUT=OFF",
+          "-DHALO2_STAGE_CUSTOM_ASSETS=OFF",
+          "-DHALO2_EOS_SDK_ARCHIVE=/home/eric/Developer/Halo-2-Decompiled/EOS-SDK-58105819-Release-v1.19.2.1.zip"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2/configure.log",
+        "exit_code": 0
+      },
+      {
+        "name": "build",
+        "command": [
+          "cmake",
+          "--build",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/build",
+          "--config",
+          "Release",
+          "--parallel",
+          "2",
+          "--target",
+          "peer_authority_transfer_tests",
+          "peer_host_session_tests",
+          "peer_survivor_session_tests",
+          "peer_mesh_quality_session_tests",
+          "online_continuity_transport_tests",
+          "online_peer_transport_tests",
+          "rust_service_room_probe"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2/build.log",
+        "exit_code": 0
+      },
+      {
+        "name": "tests",
+        "command": [
+          "ctest",
+          "--test-dir",
+          "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/build",
+          "--build-config",
+          "Release",
+          "--output-on-failure",
+          "--no-tests=error",
+          "--parallel",
+          "1",
+          "--tests-regex",
+          "^(peer_authority_transfer|online_peer_direct_udp|peer_mesh_quality_native_session|peer_host_(native_session|aborted_cut|measured_migration|audio_session)|peer_survivor_selection_(normal|mixed|abort|preparation)_session|online_continuity_(native|legacy)_transport)$"
+        ],
+        "log": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2/tests.log",
+        "exit_code": 0
+      }
+    ],
+    "build_only": false,
+    "validation_not_run": false,
+    "validation_environment": {
+      "source": "repository bundle",
+      "layer_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/native-source/.tools/validation/usr/share/vulkan/explicit_layer.d",
+      "library_path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/native-peer-driver-native/halo2-test-hpc137l_/native-source/.tools/validation/usr/lib"
+    },
+    "retained_small_reports": [
+      {
+        "path": "Testing/Temporary/LastTest.log",
+        "status": "retained",
+        "bytes": 25325,
+        "sha256": "5b7c59938930f67bd162959792652c41a158076d6f94fc78f106ba6a7ebef927",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2/evidence/Testing/Temporary/LastTest.log"
+      },
+      {
+        "path": "online-protocol/Release/build-report.json",
+        "status": "retained",
+        "bytes": 2324,
+        "sha256": "4621443b92665c2ffbdd938c3c737827683602f7dcfcb03f0a60c3ab8c2b88d1",
+        "retained_path": "/home/eric/Developer/Halo-2-Decompiled/build/test-results/native-peer-driver-rust-20261101/native/iteration-2/evidence/online-protocol/Release/build-report.json"
+      }
+    ]
+  },
+  "binaries": {
+    "peer_authority_transfer_tests": {
+      "sha256": "f69e815d03ae53cf83814d9d810d600a1c054e74898791b244af6495f0630856",
+      "bytes": 24615096
+    },
+    "peer_host_session_tests": {
+      "sha256": "c473dd769eca41697d01545c9974362e1a6d063f40b2affb4e9205c4a24ffd6f",
+      "bytes": 28283680
+    },
+    "peer_survivor_session_tests": {
+      "sha256": "c050bc721d19af45f2e0408c63264e10a643b40daef7ef8cbcab607031fc5194",
+      "bytes": 28207576
+    },
+    "peer_mesh_quality_session_tests": {
+      "sha256": "484b7460a2cdeb6fa727e563e683b9a152bf6ae882091217d3daf5896ce548cc",
+      "bytes": 28216016
+    },
+    "online_continuity_transport_tests": {
+      "sha256": "0bcb5d4ab8df63ae26537ddab46712baa975e68b48c26eb2a04cd64c200fbcb5",
+      "bytes": 28144072
+    },
+    "online_peer_transport_tests": {
+      "sha256": "6f6cb13cdc697f9bf481bedf14ac9b48d6fda2808dc6c3e5a8dc5e2c814ee37c",
+      "bytes": 27046528
+    },
+    "rust_service_room_probe": {
+      "sha256": "c51a7935bcbd0f70e7118b75a030b9216ea133771b6b714a5b7bddbca9eb5ea4",
+      "bytes": 28187232
+    }
+  },
+  "frozen_inputs_intact": true
+}

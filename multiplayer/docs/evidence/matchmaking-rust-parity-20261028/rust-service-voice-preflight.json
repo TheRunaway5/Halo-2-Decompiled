@@ -1,0 +1,41 @@
+{
+  "authentication_preflight_passed": false,
+  "relay_qualified": false,
+  "real_audio": false,
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-voice-preflight/halo2-test-85gt3si8",
+  "binary": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-final-cmake/halo2-test-ns2salhc/build/Testing/Temporary/scratch/halo2-test-xy7kuk0n/cargo/release/halo2-matchmaking-service",
+    "sha256": "233b9c4af3c09d5551379729d283a6638c9a052489b02e57f74bd49b5434afa8",
+    "bytes": 11202816,
+    "borrowed_read_only": true,
+    "retained": false
+  },
+  "donor_owner": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-final-cmake/halo2-test-ns2salhc/build/Testing/Temporary/scratch/halo2-test-xy7kuk0n",
+  "donor_fixture_active": true,
+  "sources": {
+    "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/rust-service-friend-cloud-final-cmake/halo2-test-ns2salhc/build/Testing/Temporary/scratch/halo2-test-xy7kuk0n/source/tools/test_rust_matchmaking_service.py": "31b5a80dc15e57296fc0efcba7b2edb99aca519774b04b36db0298be8b2c7720",
+    "tools/rust_service_voice_controls.py": "def45158b90c780f7f07f6fa33fc2201ad08aa6d70063cb32844ed1e96341b69"
+  },
+  "retained_large_artifacts": [],
+  "genuine_red": "('PUT', '/v1/account/voice-blocks', 503, 'Required service capability unavailable')",
+  "schema": "H2_RUST_SERVICE_VOICE_PREFLIGHT_V1",
+  "updated_utc": "2026-11-01T04:02:49.059747+00:00",
+  "own_scratch_removed": true,
+  "own_scratch_parent_empty": true,
+  "full_goal_complete": false,
+  "original_parity_certified": false,
+  "rendered_linux_menu_acceptance": false,
+  "expected_status": 401,
+  "observed_status": 503,
+  "proven_route": "PUT /v1/account/voice-blocks",
+  "scope": "Independent loopback preflight using the current frozen Rust candidate read-only. No donor state was reused or mutated. This records a missing route, not voice relay or original/native/delivered acceptance.",
+  "donor_owner_removed": true,
+  "donor_binary_retained": false,
+  "donor_validated_receipt": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-friend-cloud-validation.json",
+  "donor_binary_matches_final_cloud_candidate": true,
+  "baseline_source": {
+    "path": "multiplayer/docs/evidence/matchmaking-rust-parity-20261028/rust-service-voice-preflight-source.txt",
+    "sha256": "def45158b90c780f7f07f6fa33fc2201ad08aa6d70063cb32844ed1e96341b69",
+    "bytes": 855
+  }
+}

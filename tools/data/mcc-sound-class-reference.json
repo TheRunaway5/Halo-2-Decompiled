@@ -1478,7 +1478,8 @@
     "intro_luminous_publication": "23e04ffe8f8fe2e3b96d21b1706d51f7787a04438b671349a8586667820d6da3",
     "sky_water_namespace_publication": "c2f19a14722ab9480a7993c380e823a5fe4241cdc8f7713e93d3a48bc681d492",
     "zanzibar_current_publication": "0136785ad2c4e168c97c37dfe027d111d7940a57f83b428a7f6c001c06b5db12",
-    "oldmombasa_current_typed_globals_publication": "ca0d08bc8b34acb0b9cd45c85a9675b57dfed37cd6a2966edf481ec5167d8301"
+    "oldmombasa_current_typed_globals_publication": "ca0d08bc8b34acb0b9cd45c85a9675b57dfed37cd6a2966edf481ec5167d8301",
+    "serialized_class_namespace_audit": "5b3c01680a145b4ea06d9aacf27af844b673b4e5f4185727a0d82389a69abb2f"
   },
   "scope": "48 exact functional words in25 primary-named class rows only; six repurposed/unproved slots stay complete MCC rows. No full54-class semantic equivalence claim; no pixel/audio payload or runtime Original dependency.",
   "published_contexts": [
@@ -1744,6 +1745,398 @@
           "map": "03a_oldmombasa",
           "sha256": "5941140f8d8883f99c0efbeca5ac1d7a1d7e14c20a76bc40e419604d33e401ee"
         }
+      ]
+    }
+  ],
+  "serialized_contexts": [
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 143360,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 199944,
+        "size": 6528
+      },
+      "sound_block": "01000000d4320200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673d01d5fff786d6e73e51d74ff216b7073030078e104229583",
+      "class_root": "36000000100d0300",
+      "source_bank_sha256": "7d6f7324c9287b65e37bb798f47624b2a582121db5fb7dd0ccf150f8ee947e03",
+      "source_maps": [
+        "06b_floodzone.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 147456,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 204040,
+        "size": 6528
+      },
+      "sound_block": "01000000d4420200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673a31ef080786d6e73b81e0581216b7073030078e144239285",
+      "class_root": "36000000101d0300",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        "06a_sentinelwalls.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 147456,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 204040,
+        "size": 6528
+      },
+      "sound_block": "01000000d4420200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673c01e9780786d6e73d51eac80216b7073030078e1b4228c84",
+      "class_root": "36000000101d0300",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        "07a_highcharity.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 147456,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 204040,
+        "size": 6528
+      },
+      "sound_block": "01000000d4420200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673f01e7f80786d6e73051f9480216b7073030078e1d6226684",
+      "class_root": "36000000101d0300",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        "08b_deltacontrol.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 151552,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 208136,
+        "size": 6528
+      },
+      "sound_block": "01000000d4520200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673a91ff581786d6e73be1f0a82216b7073030078e1ce231b86",
+      "class_root": "36000000102d0300",
+      "source_bank_sha256": "a3763502e8e6ba876622f2cb562f6123360b7344e3452944cb78278334b37fc4",
+      "source_maps": [
+        "03a_oldmombasa.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 151552,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 208136,
+        "size": 6528
+      },
+      "sound_block": "01000000d4520200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673fc204d83786d6e7311216283216b7073030078e15f24b186",
+      "class_root": "36000000102d0300",
+      "source_bank_sha256": "a3763502e8e6ba876622f2cb562f6123360b7344e3452944cb78278334b37fc4",
+      "source_maps": [
+        "05b_deltatowers.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 155648,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 212232,
+        "size": 6528
+      },
+      "sound_block": "01000000d4620200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b78667313226084786d6e7328227584216b7073030078e16325b187",
+      "class_root": "36000000103d0300",
+      "source_bank_sha256": "a87471cc746b857e2321c04da97e8e65dfbf107e53441e81a907712b7692939a",
+      "source_maps": [
+        "05a_deltaapproach.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 159744,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 216328,
+        "size": 6528
+      },
+      "sound_block": "01000000d4720200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673be219783786d6e73d321ac83216b7073030078e1e125bb87",
+      "class_root": "36000000104d0300",
+      "source_bank_sha256": "600a9a3850f70c54775cbd5127007e74b921f42f4fbe666c1d467f7824d6824e",
+      "source_maps": [
+        "03b_newmombasa.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 163840,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 220424,
+        "size": 6528
+      },
+      "sound_block": "01000000d4820200",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673dc236186786d6e7326247686216b7073030078e19327e489",
+      "class_root": "36000000105d0300",
+      "source_bank_sha256": "f395ee7e3ad09b0a10a511a4b671a7f213d1a6070dabe4dafb6bca7784a2b5e4",
+      "source_maps": [
+        "01b_spacestation.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 110592,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 167176,
+        "size": 6528
+      },
+      "sound_block": "01000000d4b20100",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b78667334167ff8786d6e73491694f8216b7073030078e19a1ae6fc",
+      "class_root": "36000000108d0200",
+      "source_bank_sha256": "07d88414b566df69e0dc56083fc23b1171417bb6f7cf60096008af74f3a5d0a7",
+      "source_maps": [
+        "04b_floodlab.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 114688,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 171272,
+        "size": 6528
+      },
+      "sound_block": "01000000d4c20100",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673c91514f8786d6e73de1529f8216b7073030078e1b81a04fd",
+      "class_root": "36000000109d0200",
+      "source_bank_sha256": "fbe8c30bcf6f49c94f5918b874a61f72cbd29aa1c9e69807f57f118a92843d5a",
+      "source_maps": [
+        "04a_gasgiant.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 118784,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 175368,
+        "size": 6528
+      },
+      "sound_block": "01000000d4d20100",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673fe1847fb786d6e7313195cfb216b7073030078e16d1cb7fe",
+      "class_root": "3600000010ad0200",
+      "source_bank_sha256": "7c667d69cd670147d75ef431e224c66cbd0382c2da39108fdf14c5bf0d42f4b6",
+      "source_maps": [
+        "07b_forerunnership.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 122880,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 179464,
+        "size": 6528
+      },
+      "sound_block": "01000000d4e20100",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673341a7efc786d6e73491a93fc216b7073030078e19f1deaff",
+      "class_root": "3600000010bd0200",
+      "source_bank_sha256": "e284168a69933e4f9ec9064ac91512f1a158966128ba7fc8b7f4cb94428aef05",
+      "source_maps": [
+        "08a_deltacliffs.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 61440,
+        "size": 49548
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 118024,
+        "size": 6528
+      },
+      "sound_block": "01000000d4f20000",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b7866738408fae9786d6e7399080fea216b7073030078e1f20d69ef",
+      "class_root": "3600000010cd0100",
+      "source_bank_sha256": "3daa64e129ed6c78e9a2a943c3f97e26aa460030e98b368358bd93b2b8f1f5fb",
+      "source_maps": [
+        "01a_tutorial.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782541312,
+        "address": 61440,
+        "size": 16788
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782672386,
+        "address": 85264,
+        "size": 6528
+      },
+      "sound_block": "01000000d4f20000",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673ff0a8eec786d6e732a0ba3ec216b7073030078e1960e10f0",
+      "class_root": "36000000184d0100",
+      "source_bank_sha256": "4fcaa17e18acffdeb5c3d80922d82a8c364aafbdd2a1df684517a88ed93bd0e4",
+      "source_maps": [
+        "00a_introduction.map"
+      ]
+    },
+    {
+      "globals": {
+        "group": "matg",
+        "name": "globals\\globals",
+        "datum": 3782492776,
+        "address": 372736,
+        "size": 49732
+      },
+      "legacy": {
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "datum": 3782623850,
+        "address": 429504,
+        "size": 6528
+      },
+      "sound_block": "01000000d4b20500",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "class_root": "36000000c88d0600",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        "ascension.map",
+        "beavercreek.map",
+        "burial_mounds.map",
+        "coagulation.map",
+        "colossus.map",
+        "cyclotron.map",
+        "foundation.map",
+        "headlong.map",
+        "lockout.map",
+        "midship.map",
+        "waterworks.map",
+        "zanzibar.map",
+        "containment.map",
+        "warlock.map",
+        "deltatap.map",
+        "turf.map",
+        "backwash.map",
+        "dune.map",
+        "elongation.map",
+        "gemini.map",
+        "triplicate.map",
+        "derelict.map",
+        "highplains2.map"
       ]
     }
   ]

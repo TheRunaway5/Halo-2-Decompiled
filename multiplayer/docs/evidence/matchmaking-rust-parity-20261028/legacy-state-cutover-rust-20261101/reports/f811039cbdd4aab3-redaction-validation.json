@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "scope": "Report/error redaction only; no service or control behavior changed",
+  "driver_sha256": "bd69a48156d62c17882e40f5e191704b3b2be5149cf33a5d1bf487c6eb82af71",
+  "redacted_files": [
+    {
+      "path": "report.json",
+      "before_sha256": "eaf5135043683299e9436f8d5f6831547d4b08f904b0514f7958556ea625bb71",
+      "after_sha256": "542ede959895130d90479cea1d404b6643c4b6f0b9a9d4159e28462017b50714"
+    },
+    {
+      "path": "source-manifest-final.json",
+      "before_sha256": "1ae0f548a13c05f04e1a123cf48efe115c3a32c15487c3e7c87c2272572a943c",
+      "after_sha256": "cbef25d0b8a4deb6595087b440f1367279a1107ad106eb2dc439fa7e5d15b2f7"
+    }
+  ],
+  "original_fixture_grant_revoked_by_process_shutdown": true
+}

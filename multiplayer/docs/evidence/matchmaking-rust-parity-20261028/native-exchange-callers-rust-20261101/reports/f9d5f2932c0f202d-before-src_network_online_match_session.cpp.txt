@@ -1,0 +1,968 @@
+#include "halo2/custom_slayer.hpp"
+#include "halo2/frontend.hpp"
+#include "halo2/online_match_session.hpp"
+#include "halo2/online_peer_transport.hpp"
+#include "halo2/source_game_variant.hpp"
+#include "halo2/peer_migration_preparation.hpp"
+#include "halo2-online-protocol-bridge/src/lib.rs.h"
+#include "halo2/native_matchmaking_socket.hpp"
+#include <chrono>
+#include <algorithm>
+#include <atomic>
+#include <bit>
+#include <cmath>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <limits>
+#include <set>
+#include <stdexcept>
+#include <thread>
+
+namespace halo2 {
+namespace {
+namespace bridge=online_protocol_bridge;
+using Clock=std::chrono::steady_clock;
+void require(bool ok){if(!ok)throw std::runtime_error("ONLINE match connection failed or ended. Search again.");}
+std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
+rust::Slice<const std::uint8_t> wire(std::span<const std::byte> bytes){return {reinterpret_cast<const std::uint8_t*>(bytes.data()),bytes.size()};}
+std::vector<std::byte> native_bytes(const rust::Vec<std::uint8_t>& bytes){std::vector<std::byte> out;out.reserve(bytes.size());for(auto b:bytes)out.push_back(std::byte(b));return out;}
+bridge::HostAgreementContext wire_context(const AuthorityTransferContext &c){
+  bridge::HostAgreementContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+AuthorityTransferContext native_context(const bridge::HostAgreementContext &c){
+  AuthorityTransferContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::byte(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+bridge::NativeSessionAudio wire_audio(const GameVoiceFrame &f){
+  bridge::NativeSessionAudio out;out.source=f.source;out.sequence=f.sequence;out.radio=f.radio;out.left=f.gains.left;out.right=f.gains.right;out.generation=f.delivery_generation;
+  for(auto b:f.opus)out.opus.push_back(b);
+  if(f.origin_signature)for(auto b:*f.origin_signature)out.signature.push_back(std::to_integer<std::uint8_t>(b));
+  return out;
+}
+GameVoiceFrame native_audio(const bridge::NativeSessionAudio &f){
+  GameVoiceFrame out;out.source=f.source;out.sequence=f.sequence;out.radio=f.radio;out.gains={f.left,f.right};out.delivery_generation=f.generation;
+  out.opus.assign(f.opus.begin(),f.opus.end());if(f.signature.size()==64){std::array<std::byte,64> sig;std::ranges::transform(f.signature,sig.begin(),[](auto b){return std::byte(b);});out.origin_signature=sig;}return out;
+}
+bridge::NativeSessionConfig configuration(const std::string &origin,const std::string &room,const std::string &bearer,unsigned self,
+    const std::vector<OnlineAdmission>& roster,bool local,std::optional<bool> teams,bool continuity,const OnlineMatchTransportOptions &transport){
+  bridge::NativeSessionConfig c;c.origin=native_matchmaking_io::origin(origin,bearer,local);c.room=room;c.self_peer=self;
+  for(const auto &p:roster){bridge::NativeSessionSeat s;s.slot=p.slot;s.peer=online_admission_peer(p);s.name=p.name;s.guest=p.guest;s.team=p.team;
+    std::ranges::transform(p.identity,s.identity.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});c.seats.push_back(std::move(s));}
+  c.team_present=teams.has_value();c.team_mode=teams.value_or(false);c.protocol=native_multiplayer_protocol;c.extension_floor=native_slayer_ruleset_parameter;
+  c.direct=transport.direct_udp;c.continuity=continuity;c.peer_migration=transport.peer_host_migration;c.snapshot_candidates=transport.snapshot_candidates;
+  c.survivor_selection=transport.survivor_cut_selection;c.terminal_recovery=transport.terminal_recovery;c.eos=transport.eos.has_value();
+  if(transport.eos)for(const auto &p:transport.eos->peers)c.eos_peers.push_back(p.slot);
+  c.now=transfer_time();return c;
+}
+AuthorityTransferLimits source_transfer_limits(bool snapshot_candidates=false,bool survivor_selection=false,bool terminal=false){
+  AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
+  limits.features|=authority_feature_source_presented_model_poses;
+  if(snapshot_candidates)limits.features|=authority_feature_source_snapshot_candidate;
+  if(survivor_selection)limits.features|=authority_feature_survivor_selection;
+  if(terminal){limits.features&=~authority_feature_source_common_cut;limits.features|=authority_feature_source_admitted_camera;}
+  return limits;
+}
+online_protocol_bridge::MigrationPreparationCut preparation_cut(const AuthorityCutSeal &cut){
+  online_protocol_bridge::MigrationPreparationCut out{};
+  out.present=true;out.id=cut.id;out.tick=cut.tick;out.bytes=cut.bytes;
+  std::ranges::transform(cut.digest,out.digest.begin(),[](auto byte){return std::to_integer<std::uint8_t>(byte);});
+  return out;
+}
+bridge::HostAgreementDecision wire_decision(const std::optional<PeerMigrationDecision> &value){
+  bridge::HostAgreementDecision out;out.present=value.has_value();if(!value)return out;
+  out.previous=wire_context(value->previous);out.next=wire_context(value->next);
+  out.ballot.round=value->ballot.round;out.ballot.proposer=value->ballot.proposer;
+  out.value.host=value->value.host;out.value.cut=preparation_cut(value->value.cut);out.voters=value->voters;return out;
+}
+bridge::HostAgreementState wire_agreement(const PeerHostAgreementState &v){
+  bridge::HostAgreementState out;out.suspected=v.suspected;out.fenced=v.fenced;out.electorate=v.electorate;out.silent=v.silent;out.majority=v.majority;out.rejected=v.rejected;
+  for(unsigned p=0;p<16;++p)if(v.ready[p])out.ready[p]=preparation_cut(*v.ready[p]);
+  out.decision=wire_decision(v.decision);return out;
+}
+bridge::NativePublicationContext publication_context(const AuthorityTransferContext &c){
+  bridge::NativePublicationContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::to_integer<std::uint8_t>(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+AuthorityTransferContext publication_context(const bridge::NativePublicationContext &c){
+  AuthorityTransferContext out;std::ranges::transform(c.session,out.session.begin(),[](auto b){return std::byte(b);});
+  out.epoch=c.epoch;out.membership_revision=c.membership_revision;out.peers=c.peers;out.host=c.host;return out;
+}
+bridge::NativePreparationTicket preparation_ticket(const PeerMigrationPreparationTicket &t){
+  bridge::NativePreparationTicket out;out.present=true;out.context=publication_context(t.context);out.self_peer=t.self;out.id=t.id;return out;
+}
+PeerMigrationPreparationTicket preparation_ticket(const bridge::NativePreparationTicket &t){return {publication_context(t.context),t.self_peer,t.id};}
+bridge::MigrationDriverAction preparation_action(const PeerMigrationPreparationAction &a){
+  bridge::MigrationDriverAction out;out.kind=static_cast<bridge::MigrationDriverActionKind>(a.kind);out.reason=static_cast<bridge::MigrationDriverReason>(a.reason);
+  if(a.ticket){out.ticket.present=true;out.ticket.context=wire_context(a.ticket->context);out.ticket.self_peer=a.ticket->self;out.ticket.id=a.ticket->id;}return out;
+}
+bridge::NativePublicationDecision publication_decision(const PeerMigrationDecision &d){
+  bridge::NativePublicationDecision out;out.present=true;out.previous=publication_context(d.previous);out.next=publication_context(d.next);
+  out.round=d.ballot.round;out.proposer=d.ballot.proposer;out.host=d.value.host;out.cut=preparation_cut(d.value.cut);out.voters=d.voters;return out;
+}
+AuthorityCutSeal publication_cut(const bridge::MigrationPreparationCut &c){
+  AuthorityCutSeal out;out.id=c.id;out.tick=c.tick;out.bytes=c.bytes;
+  std::ranges::transform(c.digest,out.digest.begin(),[](auto b){return std::byte(b);});return out;
+}
+rust::Vec<bridge::SourceAdmissionsPlayer> publication_players(const std::vector<SourcePlayerAdmission> &rows){
+  rust::Vec<bridge::SourceAdmissionsPlayer> out;for(const auto &p:rows){bridge::SourceAdmissionsPlayer v;v.slot=p.slot;v.player=p.player;v.identity=p.identity;out.push_back(v);}return out;
+}
+
+}
+struct OnlineMatchSession::Impl {
+  unsigned self, host = 16;
+  const std::vector<OnlineAdmission> roster;
+  mutable std::mutex mutex;
+  Phase phase = Phase::Connecting;
+  std::string error;
+  std::optional<std::uint64_t> native_fingerprint;
+  std::optional<bool> result_recorded;
+  std::optional<TerminalObservation> terminal;
+  std::uint16_t departed_players{};
+  const bool supports_continuity;
+  const OnlineMatchTransportOptions transport_options;
+  OnlineContinuityState continuity_state;
+  AuthorityTransferDigest authority_session{};
+  std::shared_ptr<PeerAuthorityTransfer> authority;
+  std::shared_ptr<PeerSourceAdmissions> source_admissions;
+  std::shared_ptr<PeerCommonCutAgreement> common_cut;
+  std::shared_ptr<PeerSurvivorSelection> survivor_selection;
+  bool selection_started{};
+  std::unique_ptr<PeerMigrationPreparation> preparation_driver;
+  std::shared_ptr<const unsigned char> preparation_identity=std::make_shared<const unsigned char>(0);
+  std::shared_ptr<PeerSnapshotCandidate> snapshot_candidate;
+  std::shared_ptr<PeerMeshQuality> mesh_quality;
+  std::shared_ptr<PeerHostAgreement> agreement;
+  std::optional<AuthorityTransferContext> agreement_context;
+  struct AgreementGeneration {AuthorityTransferContext context;std::shared_ptr<PeerHostAgreement> owner;};
+  std::vector<AgreementGeneration> agreement_history;
+  bool peer_started{},peer_fenced{};
+  std::optional<std::vector<SourcePlayerAdmission>> continuity_admissions;
+  std::shared_ptr<GameVoice> audio;
+  std::uint64_t audio_generation{};
+  std::uint16_t voice_members{};
+  bool postgame_presence_observed{};
+  bool postgame_presence_closed{};
+  std::uint16_t voice_blocked{};
+  std::atomic<bool> voice_focused{false};
+  std::atomic<bool> control_online{false};
+  std::atomic<std::uint16_t> direct_ready{0};
+  std::atomic<std::uint64_t> rejected_direct{0};
+  std::function<void()> postgame_voice_pump;
+  std::jthread worker;
+  const std::optional<bool> team_mode;
+  rust::Box<bridge::NativeSession> controller;
+  const bool packet_epochs;
+  bridge::NativeSessionView projection;
+  void refresh(){
+    projection=bridge::native_session_view(*controller);
+    phase=Phase(projection.phase);host=projection.host;error=std::string(projection.error);
+    native_fingerprint=projection.fingerprint_present?std::optional(projection.fingerprint):std::nullopt;
+    result_recorded=projection.recorded_present?std::optional(projection.recorded):std::nullopt;
+    departed_players=projection.departed;peer_started=projection.peer_started;peer_fenced=projection.peer_fenced;
+    selection_started=projection.selection_started;audio_generation=projection.audio_generation;
+    voice_members=projection.voice_members;voice_blocked=projection.voice_blocked;
+    postgame_presence_observed=projection.presence_present;postgame_presence_closed=!projection.presence_present;
+    continuity_state={projection.epoch,projection.continuity_host,projection.members,std::nullopt};
+    if(projection.selected.present)continuity_state.selected=OnlineWorldSeal{projection.selected.epoch,projection.selected.tick,std::string(projection.selected.digest)};
+    std::ranges::transform(projection.session,authority_session.begin(),[](auto b){return std::byte(b);});
+  }
+  void apply(const bridge::NativeSessionEffects &effect){
+    refresh();
+    if(effect.initialize){
+      const auto context=native_context(effect.context);
+      authority=std::make_shared<PeerAuthorityTransfer>(self,context,source_transfer_limits(transport_options.snapshot_candidates,transport_options.survivor_cut_selection,transport_options.terminal_recovery));
+      source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
+      if(effect.common)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
+      if(effect.snapshot)snapshot_candidate=std::make_shared<PeerSnapshotCandidate>(self,context);
+      if(effect.agreement){agreement_context=context;agreement=std::make_shared<PeerHostAgreement>(self,context,transfer_time());}
+      if(effect.selection){survivor_selection=std::make_shared<PeerSurvivorSelection>(self,context);preparation_driver=std::make_unique<PeerMigrationPreparation>(self,context);}
+    }
+    if(effect.quality_present)mesh_quality=std::make_shared<PeerMeshQuality>(self,native_context(effect.quality));
+    if(effect.observe_host&&agreement)agreement->observe_host(transfer_time());
+    if(effect.audio_fence)fence_audio();
+    if(effect.audio_stop&&audio)audio->enable(false);
+  }
+  bridge::NativeSessionResources resources()const{
+    bridge::NativeSessionResources out;out.authority_present=bool(authority);if(authority)out.authority=wire_context(authority->context());
+    out.quality_present=bool(mesh_quality);if(mesh_quality)out.quality=wire_context(mesh_quality->context());
+    out.agreement_present=agreement_context.has_value();if(agreement_context)out.agreement=wire_context(*agreement_context);return out;
+  }
+
+  Impl(std::string origin, std::string room, std::string bearer, unsigned s,
+       std::vector<OnlineAdmission> r, bool local,std::optional<bool> teams,bool continuation,OnlineMatchTransportOptions transport) : self(s),roster(std::move(r)),supports_continuity(continuation),transport_options(std::move(transport)),team_mode(teams),
+      controller(bridge::new_native_session(configuration(origin,room,bearer,self,roster,local,teams,continuation,transport_options))),
+      packet_epochs(bridge::native_session_epoch_packets(*controller)){
+    agreement_history.reserve(15);refresh();
+    if(projection.quality_present)mesh_quality=std::make_shared<PeerMeshQuality>(self,native_context(projection.quality));
+    auto socket_worker=bridge::native_session_worker(*controller);
+    const auto room_api=std::string(bridge::native_session_room_api(*controller));
+    worker=std::jthread([this,room_api,bearer,socket_worker=std::move(socket_worker)](std::stop_token stop){run(*socket_worker,room_api,bearer,stop);});
+  }
+  ~Impl(){worker.request_stop();if(worker.joinable())worker.join();}
+  bool epoch_packets()const{return packet_epochs;}
+  // Session mutex is held. Capability Hello state persists through transport
+  // loss; direct readiness never removes a participant from this barrier.
+  bridge::NativePeerPlan peer_plan()const{
+    static_assert(authority_feature_source_common_cut==512u&&authority_feature_source_snapshot_candidate==1024u&&
+        authority_feature_survivor_selection==2048u);
+    bridge::NativePeerResources out;
+    if(authority){const auto observed=authority->feature_snapshot();out.authority_present=true;out.authority=wire_context(observed.context);out.features=observed.features;}
+    if(common_cut){out.common_present=true;out.common=wire_context(common_cut->context());}
+    if(survivor_selection){out.selection_present=true;out.selection=wire_context(survivor_selection->state().context);}
+    if(snapshot_candidate){out.snapshot_present=true;out.snapshot=wire_context(snapshot_candidate->state().context);}
+    return bridge::native_session_peer_plan(*controller,out);
+  }
+  bool common_supported()const{return peer_plan().common_supported;}
+  bool common_phase()const{return projection.common_phase;}
+  bool native_control_phase()const{return projection.native_control_phase;}
+  bool selection_supported()const{return peer_plan().selection_supported;}
+  void native_fence(bool force=false,bool selected_failed=false){
+    if(!agreement_context)return;
+    bridge::NativeSessionFence observation;observation.context=wire_context(*agreement_context);
+    const auto learned=agreement?std::optional(agreement->state(transfer_time())):std::nullopt;
+    observation.fenced=force||(learned&&learned->fenced);
+    observation.decision=wire_decision(learned?learned->decision:std::nullopt);
+    observation.selection_started=selection_started;observation.selection_failed=selected_failed;
+    apply(bridge::native_session_fence(*controller,observation));
+  }
+  void preparation_terminal(){native_fence(true);}
+  void begin_selection(){
+    if(!agreement_context)return;
+    bridge::native_session_selection(*controller,wire_context(*agreement_context));refresh();
+  }
+  // Every callback below runs under the caller-held Session generation lock.
+  // It observes/executes actual owners; the Rust driver controls all admission
+  // and sequencing. No mutable Rust Session borrow spans a native callback.
+  struct PublicationIo final:bridge::NativePublicationIo{
+    Impl &s;const ValidatedAuthorityCut *ready{};const PeerMigrationDecision *decision{};
+    NativeCommit commit{};void *native{};
+    mutable std::optional<AcceptedSourcePlayers> prior;
+    struct SuccessorOwners{
+      std::shared_ptr<PeerAuthorityTransfer> transfer;
+      std::shared_ptr<PeerSourceAdmissions> admissions;
+      std::shared_ptr<PeerMeshQuality> quality;
+      std::shared_ptr<PeerHostAgreement> agreement;
+      std::shared_ptr<PeerCommonCutAgreement> common;
+      std::shared_ptr<PeerSurvivorSelection> selection;
+      std::unique_ptr<PeerMigrationPreparation> preparation;
+      std::shared_ptr<const unsigned char> identity;
+      std::shared_ptr<PeerSnapshotCandidate> candidate;
+      std::vector<SourcePlayerAdmission> players;
+    };
+    mutable std::unique_ptr<SuccessorOwners> pending;
+    explicit PublicationIo(Impl &session):s(session){}
+    std::uint64_t publication_now_ms()const override{return transfer_time();}
+    bridge::NativePublicationSession publication_session(const bridge::NativePublicationDecision &d)const override{
+      return bridge::native_publication_session(*s.controller,d);
+    }
+    bridge::NativePublicationResources publication_resources()const override{
+      bridge::NativePublicationResources out;out.agreement_present=bool(s.agreement);out.agreement_context_present=s.agreement_context.has_value();
+      if(s.agreement_context)out.agreement_context=publication_context(*s.agreement_context);
+      out.authority_present=bool(s.authority);if(s.authority)out.authority=publication_context(s.authority->context());
+      out.source_present=bool(s.source_admissions);out.history=s.agreement_history.size();return out;
+    }
+    bridge::NativePublicationSelection publication_selection(const bridge::MigrationPreparationCut &cut)const override{
+      bridge::NativePublicationSelection out;out.present=bool(s.survivor_selection);out.started=s.selection_started;
+      if(s.survivor_selection){out.supported=s.selection_supported();const auto value=s.survivor_selection->state();out.complete=value.selection_complete;out.failed=value.failed;out.survivors=value.survivors;
+        if(cut.present)out.allows_ready=s.survivor_selection->allows_ready(s.self,publication_cut(cut));}
+      return out;
+    }
+    bridge::NativePublicationAgreement publication_agreement(std::uint64_t now)const override{
+      bridge::NativePublicationAgreement out;out.present=bool(s.agreement);if(s.agreement)out.state=wire_agreement(s.agreement->state(now));return out;
+    }
+    bridge::NativePublicationCommon publication_common()const override{
+      bridge::NativePublicationCommon out;
+      if(s.common_cut){const auto value=s.common_cut->state();out.abort=value.abort;out.pending=value.pending.has_value();
+        if(value.pending){out.context=publication_context(value.pending->context);out.cut=preparation_cut(value.pending->seal);}}
+      return out;
+    }
+    bridge::NativePublicationAdmission publication_admission()const override{
+      bridge::NativePublicationAdmission out;prior=s.source_admissions?s.source_admissions->accepted():std::nullopt;out.present=prior.has_value();
+      if(prior){out.context=publication_context(prior->context);out.players=publication_players(prior->players);}
+      out.continuity_present=s.continuity_admissions.has_value();if(s.continuity_admissions)out.continuity=publication_players(*s.continuity_admissions);return out;
+    }
+    bridge::NativePublicationAudio publication_audio()const override{
+      bridge::NativePublicationAudio out;out.present=bool(s.audio);if(s.audio)out.ready=s.audio->ready(s.audio_generation);return out;
+    }
+    bridge::NativePublicationSnapshot publication_snapshot()const override{
+      bridge::NativePublicationSnapshot out;out.present=bool(s.snapshot_candidate);
+      if(s.snapshot_candidate){const auto value=s.snapshot_candidate->state();out.pending=value.pending.has_value();out.retired=value.retired;}return out;
+    }
+    bool publication_blocks()const override{return s.preparation_driver&&s.preparation_driver->blocks_publication();}
+    void publication_invalidate(const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));s.survivor_selection->invalidate(publication_cut(cut));
+    }
+    bool publication_observe_ready(std::uint8_t peer,const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));return s.survivor_selection->observe_ready(peer,publication_cut(cut));
+    }
+    void publication_fence(bool failed)const override{s.native_fence(false,failed);}
+    bool publication_ready()const override{require(ready&&s.agreement);return s.agreement->publish_ready(*ready);}
+    bool publication_propose(std::uint32_t peer,std::uint64_t now)const override{require(bool(s.agreement));return s.agreement->propose(peer,now);}
+    std::uint32_t publication_candidate(std::uint64_t now)const override{return s.migration_candidate(now).value_or(16);}
+    void publication_allocate(const bridge::NativePublicationSuccessor &plan)const override{
+      require(decision&&prior);const auto &next=decision->next;auto owners=std::make_unique<SuccessorOwners>();
+      owners->transfer=std::make_shared<PeerAuthorityTransfer>(s.self,next,source_transfer_limits(plan.snapshot_feature,plan.selection_feature));
+      owners->admissions=PeerSourceAdmissions::resume_after_host_loss(s.self,next,s.roster,*prior);
+      owners->identity=std::make_shared<const unsigned char>(0);
+      if(plan.multiple){
+        owners->quality=std::make_shared<PeerMeshQuality>(s.self,next);
+        owners->agreement=std::make_shared<PeerHostAgreement>(s.self,next,transfer_time());
+        owners->common=std::make_shared<PeerCommonCutAgreement>(s.self,next);
+      }
+      if(plan.selection){owners->selection=std::make_shared<PeerSurvivorSelection>(s.self,next);owners->preparation=std::make_unique<PeerMigrationPreparation>(s.self,next);}
+      if(plan.snapshot)owners->candidate=std::make_shared<PeerSnapshotCandidate>(s.self,next);
+      owners->players=prior->players;pending=std::move(owners);
+    }
+    bool publication_has_commit()const override{return commit!=nullptr;}
+    bool publication_commit()const override{require(commit!=nullptr);return commit(native);}
+    void publication_publish()const override{
+      require(pending&&decision&&s.agreement_context);auto &owners=*pending;
+      s.continuity_admissions=std::move(owners.players);s.authority=std::move(owners.transfer);s.source_admissions=std::move(owners.admissions);s.mesh_quality=std::move(owners.quality);
+      s.common_cut=std::move(owners.common);s.survivor_selection=std::move(owners.selection);
+      s.preparation_driver=std::move(owners.preparation);s.preparation_identity=std::move(owners.identity);s.snapshot_candidate=std::move(owners.candidate);
+      s.agreement_history.push_back({*s.agreement_context,s.agreement});s.agreement=std::move(owners.agreement);s.agreement_context=decision->next;
+      bridge::native_session_committed(*s.controller,wire_decision(*decision));s.refresh();s.sync_audio();
+    }
+  };
+  // The observation retains native facts only; Rust authorizes context and
+  // continuity consistency before the existing Rust state machine sees them.
+  PeerMigrationPreparationObservation preparation_observation(std::uint64_t now){
+    static_assert(unsigned(Phase::Connecting)==0&&unsigned(Phase::Loading)==1&&unsigned(Phase::Running)==2&&
+        unsigned(Phase::Reviewing)==3&&unsigned(Phase::Postgame)==4&&unsigned(Phase::Failed)==5&&
+        unsigned(Phase::AwaitingWorld)==6&&unsigned(Phase::Migrating)==7&&unsigned(Phase::Rebinding)==8);
+    PublicationIo io(*this);const auto resources=io.publication_resources();const auto admission=io.publication_admission();
+    const auto authorized=bridge::native_preparation_authorize(*controller,resources,admission,selection_supported());
+    PeerMigrationPreparationObservation out;
+    if(resources.authority_present)out.context=publication_context(resources.authority);
+    out.self=self;out.phase=std::uint8_t(phase);out.supported=authorized.supported;out.selection_started=selection_started;
+    if(authorized.admitted_present)out.admitted=publication_context(authorized.admitted);
+    if(agreement)out.agreement=agreement->state(now);
+    if(survivor_selection)out.selection=survivor_selection->state();
+    return out;
+  }
+  // The actual request identity and native observations remain with their
+  // owners. Rust decides all request, completion and publication sequencing.
+  struct PreparationIo final:bridge::NativePreparationIo{
+    Impl &s;const PeerSurvivorInventory *inventory{};bool owner_matches{};
+    mutable std::optional<PeerMigrationPreparationObservation> observed;
+    explicit PreparationIo(Impl &session):s(session){}
+    bool preparation_driver_present()const override{return bool(s.preparation_driver);}
+    bool preparation_owner_matches()const override{return owner_matches;}
+    void preparation_observe()const override{observed=s.preparation_observation(transfer_time());}
+    bridge::MigrationDriverAction preparation_step()const override{
+      require(s.preparation_driver&&observed);return preparation_action(s.preparation_driver->step(*observed));
+    }
+    bool preparation_reserve(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed);return s.preparation_driver->reserve_retirement(*observed,preparation_ticket(ticket));
+    }
+    bool preparation_retained(const bridge::NativePreparationTicket &ticket,std::uint64_t lease)const override{
+      require(bool(s.preparation_driver));return s.preparation_driver->retained(preparation_ticket(ticket),lease);
+    }
+    bridge::MigrationDriverRetirement preparation_retired(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed);return static_cast<bridge::MigrationDriverRetirement>(s.preparation_driver->retired(*observed,preparation_ticket(ticket)));
+    }
+    bridge::MigrationDriverFreezeKind preparation_admit(const bridge::NativePreparationTicket &ticket)const override{
+      require(s.preparation_driver&&observed&&inventory);const auto common=s.common_cut?std::optional{s.common_cut->state()}:std::nullopt;
+      return static_cast<bridge::MigrationDriverFreezeKind>(s.preparation_driver->admit_freeze(*observed,preparation_ticket(ticket),*inventory,common).kind);
+    }
+    bridge::MigrationDriverFreezeKind preparation_admit_external()const override{
+      require(s.preparation_driver&&observed&&inventory);const auto common=s.common_cut?std::optional{s.common_cut->state()}:std::nullopt;
+      return static_cast<bridge::MigrationDriverFreezeKind>(s.preparation_driver->admit_external_freeze(*observed,*inventory,common).kind);
+    }
+    bridge::NativePreparationSelection preparation_selection()const override{
+      bridge::NativePreparationSelection out;out.present=bool(s.survivor_selection);out.started=s.selection_started;
+      if(s.survivor_selection){const auto selected=s.survivor_selection->state();out.context=publication_context(selected.context);out.failed=selected.failed;}return out;
+    }
+    bool preparation_publish()const override{require(s.survivor_selection&&inventory);return s.survivor_selection->publish_inventory(*inventory);}
+    bool preparation_invalidate(const bridge::MigrationPreparationCut &cut)const override{
+      require(bool(s.survivor_selection));return s.survivor_selection->invalidate(cut.present?std::optional{publication_cut(cut)}:std::nullopt);
+    }
+    void preparation_abort()const override{s.selection_abort();}
+    void preparation_progress()const override{s.selection_progress();}
+    void preparation_begin()const override{s.begin_selection();}
+    void preparation_terminal()const override{s.preparation_terminal();}
+    bool preparation_retirement_pending()const override{require(bool(s.preparation_driver));return s.preparation_driver->retirement_pending();}
+  };
+  void selection_abort(){PublicationIo io(*this);bridge::native_publication_abort(io);}
+  void selection_progress(){PublicationIo io(*this);bridge::native_publication_progress(io);}
+  bool snapshot_supported()const{return peer_plan().snapshot_supported;}
+  using CommonAction=bool(PeerCommonCutAgreement::*)(const PeerCommonCut &);
+  bool common_action(const PeerCommonCut &cut,CommonAction action,bool retirement=false){
+    std::lock_guard lock(mutex);
+    if((phase!=Phase::Running&&!(retirement&&common_phase()))||!common_supported()||common_cut->context()!=cut.context)return false;
+    const auto result=((*common_cut).*action)(cut);selection_abort();selection_progress();return result;
+  }
+  bool peer_handoff_phase()const{return projection.peer_handoff_phase;}
+  std::optional<unsigned> migration_candidate(std::uint64_t now)const{
+    if(!projection.peer_handoff_phase)return {};
+    bridge::NativeSessionCandidate observed;
+    observed.agreement_present=agreement&&agreement_context;
+    if(observed.agreement_present){observed.context=wire_context(*agreement_context);observed.agreement=wire_agreement(agreement->state(now));}
+    observed.quality_present=bool(mesh_quality);
+    if(mesh_quality){observed.quality=wire_context(mesh_quality->context());for(const auto &q:mesh_quality->migration_candidates(now))observed.ranked.push_back(q.peer);}
+    observed.selection_supported=selection_supported();
+    if(survivor_selection){const auto state=survivor_selection->state();observed.selection_complete=state.selection_complete;observed.selection_failed=state.failed;}
+    const auto selected=bridge::native_session_candidate(*controller,observed);
+    return selected<16?std::optional(unsigned(selected)):std::nullopt;
+  }
+  // Session mutex is held. Once a vote is accepted, no queued predecessor
+  // gameplay or voice can reach a native consumer, even before a learner has
+  // enough independent receipts to identify the successor.
+  void fence_audio(){
+    const auto generation=audio?audio->fence():audio_generation;
+    bridge::native_session_fence_audio(*controller,generation);refresh();
+  }
+  void sync_audio(){if(audio&&projection.sync_audio)(void)audio->resume(audio_generation);}
+  void fence_peer_generation(){PublicationIo io(*this);bridge::native_publication_fence(io);}
+  void queue_world(std::uint8_t kind,const OnlineWorldSeal &s){
+    bridge::NativeSessionSeal value;value.present=true;value.epoch=s.epoch;value.tick=s.tick;value.digest=s.digest;
+    bridge::native_session_world(*controller,kind,value);refresh();
+  }
+  void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
+    if(PeerSurvivorSelection::is_packet(packet)){
+      std::lock_guard lock(mutex);
+      if(common_phase()&&selection_supported()&&epoch==survivor_selection->state().context.epoch){
+        survivor_selection->receive(source,packet,transfer_time());selection_abort();selection_progress();
+      }
+      return;
+    }
+    if(PeerSnapshotCandidate::is_packet(packet)){
+      std::shared_ptr<PeerSnapshotCandidate> candidate;
+      {std::lock_guard lock(mutex);if(common_phase()&&snapshot_supported())candidate=snapshot_candidate;}
+      if(candidate&&epoch==candidate->state().context.epoch)candidate->receive(source,packet,transfer_time());
+      return;
+    }
+    if(PeerCommonCutAgreement::is_packet(packet)){
+      // Serialize Abort with the final native publication check. The Rust
+      // metadata owner invokes no native/session callbacks; lock ordering is
+      // session then common-cut, as for the explicit common actions.
+      std::lock_guard lock(mutex);
+      if(common_phase()&&common_supported()&&(!epoch_packets()||epoch==common_cut->context().epoch))
+        common_cut->receive(source,packet,transfer_time());
+      selection_abort();selection_progress();
+      return;
+    }
+    if(PeerHostAgreement::is_packet(packet)){
+      std::lock_guard lock(mutex);
+      if(peer_handoff_phase()&&agreement_context&&epoch==agreement_context->epoch&&agreement){
+        agreement->receive(source,packet,transfer_time());selection_progress();fence_peer_generation();
+      }else for(const auto &past:agreement_history)if(epoch==past.context.epoch){past.owner->receive(source,packet,transfer_time());break;}
+      return;
+    }
+    if(PeerMeshQuality::is_packet(packet)){
+      std::shared_ptr<PeerMeshQuality> quality;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp)quality=mesh_quality;}
+      if(quality&&(!epoch_packets()||epoch==quality->context().epoch))quality->receive(source,packet,transfer_time());
+      return;
+    }
+    if(PeerSourceAdmissions::is_packet(packet)){
+      std::shared_ptr<PeerSourceAdmissions> admissions;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&native_control_phase())admissions=source_admissions;}
+      if(admissions&&(!epoch_packets()||epoch==admissions->context().epoch))admissions->receive(source,packet);
+      return;
+    }
+    if(PeerAuthorityTransfer::is_packet(packet)){
+      std::shared_ptr<PeerAuthorityTransfer> transfer;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&native_control_phase())transfer=authority;}
+      if(transfer&&(!epoch_packets()||epoch==transfer->context().epoch))transfer->receive(source,packet,transfer_time());
+      return;
+    }
+    std::lock_guard lock(mutex);
+    fence_peer_generation();
+    if(bridge::native_session_datagram(*controller,source,epoch,wire(packet))&&agreement)agreement->observe_host(transfer_time());
+    refresh();
+  }
+  void fail(const std::string &message){
+    std::lock_guard lock(mutex);apply(bridge::native_session_fail(*controller,message));
+  }
+  void run_eos_authentication(const std::shared_ptr<OnlinePeerTransport> &direct,const std::string &room_api,
+                              const std::string &bearer,std::stop_token stop) {
+    try{
+      auto http=online_protocol_bridge::new_eos_auth_http(room_api,bearer);
+      std::stop_callback cancel(stop,[&]{online_protocol_bridge::eos_auth_http_cancel(*http);});
+      while(!stop.stop_requested()){
+        {std::lock_guard lock(mutex);if(phase==Phase::Failed)return;}
+        // Rust owns credential HTTP and typed parsing. No transport/SDK or
+        // Session mutex is held during the cancellable request.
+        const auto request=direct->authentication_request();
+        if(!request.kind){std::this_thread::sleep_for(std::chrono::milliseconds(20));continue;}
+        const online_protocol_bridge::EosAuthRequest message{request.kind,request.ticket,request.token,request.user};
+        const auto result=online_protocol_bridge::eos_auth_http_request(*http,message);
+        if(stop.stop_requested())return;
+        OnlineEosAuthResponse response{};
+        response.kind=result.kind;response.ticket=result.ticket;response.status=result.status;response.ok=result.ok;
+        response.token=std::string(result.token);response.user=std::string(result.user);response.expires_in=result.expires_in;
+        direct->complete_authentication(response);
+      }
+    }catch(const std::exception &e){fail(e.what());}
+    catch(...){fail("EOS account authentication could not complete.");}
+  }
+  struct PeerIo final:bridge::NativeMatchPeersIo{
+    Impl &session;OnlinePeerTransport &direct;std::stop_token stop;
+    mutable std::shared_ptr<PeerMeshQuality> sampled_quality;
+    PeerIo(Impl &s,OnlinePeerTransport &d,std::stop_token token):session(s),direct(d),stop(token){}
+    bool peers_cancelled()const override{return stop.stop_requested();}
+    void peers_wait(std::uint32_t ms)const override{std::this_thread::sleep_for(std::chrono::milliseconds(ms));}
+    bool peers_ready(std::uint8_t peer)const override{return direct.ready(peer);}
+    bool peers_failed(std::uint8_t peer)const override{return direct.failed(peer);}
+    rust::Vec<bridge::NativeSessionSignal> peers_signals()const override{
+      rust::Vec<bridge::NativeSessionSignal> out;
+      for(auto &s:direct.signals()){bridge::NativeSessionSignal v;v.peer=s.peer;v.kind=s.type;v.payload=s.payload;v.mid=s.mid;out.push_back(std::move(v));}
+      return out;
+    }
+    void peers_signal(const bridge::NativeSessionSignal &signal)const override{
+      std::lock_guard lock(session.mutex);bridge::native_session_signal(*session.controller,signal);
+    }
+    bridge::NativePeerSample peers_sample(std::uint16_t ready)const override{
+      session.direct_ready.store(ready,std::memory_order_relaxed);
+      bridge::NativePeerSample out;
+      {std::lock_guard lock(session.mutex);sampled_quality=session.mesh_quality;out.setup=session.peer_plan().setup;}
+      const auto measured=sampled_quality?sampled_quality->local(transfer_time()):std::nullopt;
+      out.now=transfer_time();out.authenticated=direct.authentication_ready();
+      for(unsigned peer=0;peer<16;++peer){const auto link=measured?measured->links[peer]:PeerLinkQuality{};
+        bridge::NativeSessionLink row;row.peer=peer;row.measured=link.measured;row.rtt=link.rtt_ms;row.upload=link.upload_bytes_per_second;row.loss=link.loss_per_mille;out.links.push_back(row);}
+      return out;
+    }
+    bridge::NativePeerDatagram peers_receive()const override{
+      std::vector<std::byte> bytes;unsigned peer{};bridge::NativePeerDatagram out;
+      out.present=direct.receive(bytes,peer);out.peer=peer;
+      if(out.present)for(auto byte:bytes)out.bytes.push_back(std::to_integer<std::uint8_t>(byte));
+      return out;
+    }
+    void peers_datagram(std::uint32_t peer,std::uint32_t epoch,rust::Slice<const std::uint8_t> bytes)const override{
+      session.datagram(peer,{reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},epoch);
+    }
+    void peers_rejected()const override{
+      auto value=session.rejected_direct.load(std::memory_order_relaxed);
+      while(value!=UINT64_MAX&&!session.rejected_direct.compare_exchange_weak(value,value+1,std::memory_order_relaxed)){}
+    }
+    rust::Vec<bridge::NativeSessionPacket> peers_drain()const override{
+      rust::Vec<bridge::NativeSessionPacket> frames;std::function<void()> pump;
+      {std::lock_guard lock(session.mutex);session.fence_peer_generation();session.sync_audio();frames=bridge::native_session_outgoing(*session.controller);pump=session.postgame_voice_pump;}
+      if(pump)pump();return frames;
+    }
+    void peers_send_media(const bridge::NativeSessionPacket &frame,rust::Slice<const std::uint8_t> bytes)const override{
+      std::lock_guard lock(session.mutex);session.fence_peer_generation();
+      if(bridge::native_session_packet_current(*session.controller,frame))peers_send(frame.peer,bytes);
+    }
+    void peers_send(std::uint32_t peer,rust::Slice<const std::uint8_t> bytes)const override{
+      direct.send({reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},peer);
+    }
+    template<class Packets> static rust::Vec<bridge::NativePeerDatagram> packets(Packets values,std::uint32_t epoch){
+      rust::Vec<bridge::NativePeerDatagram> out;
+      for(auto &p:values){bridge::NativePeerDatagram v;v.present=true;v.peer=p.peer;v.epoch=epoch;
+        for(auto b:p.bytes)v.bytes.push_back(std::to_integer<std::uint8_t>(b));out.push_back(std::move(v));}
+      return out;
+    }
+    rust::Vec<bridge::NativePeerDatagram> peers_poll(bridge::NativePeerPoll kind,std::uint32_t budget,std::uint16_t ready,std::uint32_t index)const override{
+      std::unique_lock lock(session.mutex);
+      if(!bridge::native_peer_poll_allowed(session.peer_plan(),kind))return {};
+      switch(kind){
+        case bridge::NativePeerPoll::Authority:{const auto owner=session.authority;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Admissions:{const auto owner=session.source_admissions;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Common:{const auto owner=session.common_cut;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Selection:
+          session.selection_abort();session.selection_progress();
+          return packets(session.survivor_selection->poll(transfer_time(),budget),session.survivor_selection->state().context.epoch);
+        case bridge::NativePeerPoll::Snapshot:{const auto owner=session.snapshot_candidate;lock.unlock();
+          return owner?packets(owner->poll(transfer_time(),budget),owner->state().context.epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Quality:{const auto owner=sampled_quality;lock.unlock();
+          return owner?packets(owner->poll(ready,transfer_time(),budget),owner->context().epoch):rust::Vec<bridge::NativePeerDatagram>{};}
+        case bridge::NativePeerPoll::Agreement:{
+          if(index>session.agreement_history.size())return {};
+          const auto owner=index?session.agreement_history[index-1].owner:session.agreement;
+          if(!owner||(!index&&!session.agreement_context))return {};
+          const auto epoch=index?session.agreement_history[index-1].context.epoch:session.agreement_context->epoch;
+          return packets(owner->poll(transfer_time(),budget),epoch);}
+        default:return {};
+      }
+    }
+    void peers_drive()const override{
+      std::lock_guard lock(session.mutex);const auto now=transfer_time();
+      if(const auto candidate=session.migration_candidate(now))session.agreement->drive(*candidate,now);
+    }
+    std::uint32_t peers_agreement_generations()const override{
+      std::lock_guard lock(session.mutex);return session.peer_plan().handoff?session.agreement_history.size()+1:0;
+    }
+    bool peers_finish(const bridge::NativeSessionDirect &sample)const override{
+      std::lock_guard lock(session.mutex);session.fence_peer_generation();if(session.peer_plan().failed)return false;
+      bridge::NativeSessionDirect observation;observation.now=sample.now;observation.authenticated=sample.authenticated;
+      observation.ready=sample.ready;observation.failed=sample.failed;
+      for(const auto &link:sample.links)observation.links.push_back(link);
+      observation.authority_present=bool(session.authority);if(session.authority)observation.authority=wire_context(session.authority->context());
+      const auto admitted=session.source_admissions?session.source_admissions->accepted():std::nullopt;
+      observation.admitted_present=admitted.has_value();if(admitted)observation.admitted=wire_context(admitted->context);
+      const auto result=bridge::native_session_direct(*session.controller,observation);session.apply(result.effects);
+      if(result.terminal_present){const auto context=native_context(result.terminal);
+        session.terminal=TerminalObservation(context,session.self,std::uint16_t(context.peers&~(1u<<session.self)));}
+      return !result.failed;
+    }
+    void peers_failure()const override{session.fail("ONLINE match connection failed or ended. Search again.");}
+  };
+  void run_peers(const std::shared_ptr<OnlinePeerTransport> &direct,std::stop_token stop){
+    try{
+      auto peer_worker=[&]{std::lock_guard lock(mutex);return bridge::native_session_peer_worker(*controller);}();
+      PeerIo io(*this,*direct,stop);bridge::native_peer_run(*peer_worker,io);
+    }catch(const std::exception &e){fail(e.what());}
+  }
+  struct ControlIo final:bridge::NativeMatchSessionIo{
+    Impl &session;OnlinePeerTransport *direct;native_matchmaking_io::Socket socket;
+    ControlIo(Impl &s,OnlinePeerTransport *peer,std::stop_token stop):session(s),direct(peer),socket(stop){}
+    std::uint64_t session_now_ms()const override{return socket.now_ms();}
+    bool session_cancelled()const override{return socket.cancelled();}
+    void session_wait(std::uint32_t ms)const override{socket.wait(ms);}
+    void session_open(const bridge::MatchmakingQosOpen &options)const override{socket.open(options);session.control_online=true;}
+    bridge::MatchmakingQosFrame session_receive()const override{return socket.receive();}
+    bridge::MatchmakingQosSent session_send(bridge::NativeSessionSendKind kind,rust::Slice<const std::uint8_t> bytes)const override{return socket.send(kind,bytes);}
+    void session_close()const override{session.control_online=false;socket.close();}
+    rust::String session_text(rust::Slice<const std::uint8_t> bytes)const override{
+      bridge::NativeSessionEffects effect;
+      {std::lock_guard lock(session.mutex);effect=bridge::native_session_text(*session.controller,bytes,session.resources());session.apply(effect);}
+      if(effect.signal_present){require(direct);direct->signal({effect.signal.peer,std::string(effect.signal.kind),std::string(effect.signal.payload),std::string(effect.signal.mid)});}
+      return effect.reply;
+    }
+    void session_datagram(std::uint8_t peer,std::uint32_t epoch,rust::Slice<const std::uint8_t> bytes)const override{
+      session.datagram(peer,{reinterpret_cast<const std::byte*>(bytes.data()),bytes.size()},epoch);
+    }
+    void session_pump()const override{
+      std::function<void()> pump;{std::lock_guard lock(session.mutex);session.sync_audio();if(!direct)pump=session.postgame_voice_pump;}
+      if(pump)pump();
+    }
+    bridge::NativeSessionFlush session_flush()const override{std::lock_guard lock(session.mutex);return bridge::native_session_flush(*session.controller);}
+    bool session_packet_current(const bridge::NativeSessionPacket &packet)const override{
+      std::lock_guard lock(session.mutex);return bridge::native_session_packet_current(*session.controller,packet);
+    }
+    bool session_failure(bool terminal,rust::Str message)const override{
+      std::lock_guard lock(session.mutex);const auto result=bridge::native_session_failure(*session.controller,terminal,message);session.apply(result.effects);return !result.failed;
+    }
+  };
+  void run(const bridge::NativeSessionWorker &socket_worker,const std::string &room_api,const std::string &bearer,std::stop_token stop){
+    try{
+      std::shared_ptr<OnlinePeerTransport> direct;
+      if(transport_options.direct_udp){
+        std::vector<unsigned> physical;for(const auto &p:roster)if(online_admission_peer(p)==p.slot)physical.push_back(p.slot);
+        if(transport_options.eos)direct=std::make_shared<OnlinePeerTransport>(self,*transport_options.eos);
+        else direct=std::make_shared<OnlinePeerTransport>(self,physical,transport_options.stun_servers);
+      }
+      std::jthread peer_worker;if(direct)peer_worker=std::jthread([this,direct](std::stop_token token){run_peers(direct,token);});
+      std::jthread eos_auth_worker;
+      if(direct&&transport_options.eos&&transport_options.eos->account_login)
+        eos_auth_worker=std::jthread([this,direct,room_api,bearer](std::stop_token token){run_eos_authentication(direct,room_api,bearer,token);});
+      ControlIo io(*this,direct.get(),stop);bridge::native_session_run(socket_worker,io);
+    }catch(const std::exception &e){fail(e.what());}
+  }
+
+};
+OnlineMatchSession::OnlineMatchSession(std::string o, std::string r, std::string b, unsigned s, std::vector<OnlineAdmission> roster, bool local,std::optional<bool> teams)
+    : OnlineMatchSession(std::move(o),std::move(r),std::move(b),s,std::move(roster),local,teams,false) {}
+OnlineMatchSession::OnlineMatchSession(std::string o,std::string r,std::string b,unsigned s,
+    std::vector<OnlineAdmission> roster,bool local,std::optional<bool> teams,bool continuation)
+    : OnlineMatchSession(std::move(o),std::move(r),std::move(b),s,std::move(roster),local,teams,continuation,{}) {}
+OnlineMatchSession::OnlineMatchSession(std::string o,std::string r,std::string b,unsigned s,
+    std::vector<OnlineAdmission> roster,bool local,std::optional<bool> teams,bool continuation,OnlineMatchTransportOptions transport)
+    : impl_(std::make_unique<Impl>(std::move(o), std::move(r), std::move(b), s, std::move(roster), local,teams,continuation,std::move(transport))) {
+  std::lock_guard lock(impl_->mutex);impl_->postgame_voice_pump=[this]{pump_postgame_voice();};
+}
+OnlineMatchSession::~OnlineMatchSession() {
+  impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
+  if(impl_->audio)impl_->audio->enable(false);
+}
+OnlineMatchSession::Phase OnlineMatchSession::phase() const { std::lock_guard lock(impl_->mutex); return impl_->phase; }
+std::uint16_t OnlineMatchSession::departed_players() const { std::lock_guard lock(impl_->mutex);return impl_->departed_players; }
+std::optional<bool> OnlineMatchSession::result_recorded() const { std::lock_guard lock(impl_->mutex);return impl_->result_recorded; }
+std::optional<std::uint16_t> OnlineMatchSession::postgame_presence() const {
+  std::lock_guard lock(impl_->mutex);
+  return !impl_->postgame_presence_closed&&impl_->postgame_presence_observed&&(impl_->phase==Phase::Reviewing||impl_->phase==Phase::Postgame)?
+      std::optional(impl_->voice_members):std::nullopt;
+}
+bool OnlineMatchSession::terminal_recovery_enabled() const{return impl_->transport_options.terminal_recovery;}
+std::optional<OnlineMatchSession::TerminalObservation> OnlineMatchSession::terminal_observation() const {
+  std::lock_guard lock(impl_->mutex);return impl_->terminal;
+}
+unsigned OnlineMatchSession::self() const { return impl_->self; }
+bool OnlineMatchSession::direct_udp() const {return impl_->transport_options.direct_udp;}
+std::uint64_t OnlineMatchSession::rejected_direct_dispatches()const noexcept {
+  return impl_->rejected_direct.load(std::memory_order_relaxed);
+}
+bool OnlineMatchSession::snapshot_candidates_enabled()const{return impl_->transport_options.snapshot_candidates;}
+std::shared_ptr<PeerSnapshotCandidate> OnlineMatchSession::snapshot_candidates()const{
+  std::lock_guard lock(impl_->mutex);
+  return impl_->common_phase()&&impl_->snapshot_supported()?impl_->snapshot_candidate:nullptr;
+}
+bool OnlineMatchSession::master_connected() const {return impl_->control_online;}
+std::vector<unsigned> OnlineMatchSession::local_slots() const {
+  std::vector<unsigned> slots;
+  for(const auto &player:impl_->roster)
+    if(online_admission_peer(player)==impl_->self)slots.push_back(player.slot);
+  return slots;
+}
+unsigned OnlineMatchSession::host() const { std::lock_guard lock(impl_->mutex); return impl_->host; }
+std::optional<bool> OnlineMatchSession::team_mode() const { return impl_->team_mode; }
+const std::vector<OnlineAdmission> &OnlineMatchSession::roster() const { return impl_->roster; }
+std::string OnlineMatchSession::error() const { std::lock_guard lock(impl_->mutex); return impl_->error; }
+std::optional<OnlineContinuityState> OnlineMatchSession::continuity() const {
+  std::lock_guard lock(impl_->mutex);if(!impl_->epoch_packets())return std::nullopt;return impl_->continuity_state;
+}
+std::vector<OnlineWorldSeal> OnlineMatchSession::world_seals(){
+  std::lock_guard lock(impl_->mutex);std::vector<OnlineWorldSeal> result;
+  for(const auto &s:bridge::native_session_seals(*impl_->controller))result.push_back({s.epoch,s.tick,std::string(s.digest)});
+  return result;
+}
+std::optional<AuthorityTransferContext> OnlineMatchSession::authority_context() const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return std::nullopt;
+  return transfer->context();
+}
+bool OnlineMatchSession::authority_supported(unsigned peer) const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&transfer->supported(peer);
+}
+bool OnlineMatchSession::authority_replay_supported(unsigned peer) const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_presented_model_poses);
+}
+bool OnlineMatchSession::authority_pipeline_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_pipeline);
+}
+bool OnlineMatchSession::authority_delivered(unsigned peer,const AuthorityTransferContext &context,const AuthorityCutSeal &seal)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->delivered_to(context,seal,peer);
+}
+bool OnlineMatchSession::authority_host_continuation_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_host_continuation);
+}
+bool OnlineMatchSession::authority_admitted_camera_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return impl_->transport_options.terminal_recovery&&peer<16&&
+      (impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_admitted_camera);
+}
+std::vector<PeerHostQuality> OnlineMatchSession::host_candidates()const {
+  std::shared_ptr<PeerMeshQuality> quality;unsigned host;Phase phase;
+  {std::lock_guard lock(impl_->mutex);quality=impl_->mesh_quality;host=impl_->host;phase=impl_->phase;}
+  if(!quality||phase==Phase::Connecting||phase==Phase::Failed||quality->context().host!=host)return {};
+  return quality->candidates(transfer_time());
+}
+std::optional<PeerHostAgreementState> OnlineMatchSession::peer_migration()const{
+  std::lock_guard lock(impl_->mutex);
+  if(!impl_->agreement)return std::nullopt;
+  return impl_->agreement->state(transfer_time());
+}
+OnlineMatchSession::MigrationPreparationStep OnlineMatchSession::migration_preparation_request(){
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);const auto result=bridge::native_preparation_request(io);
+  MigrationPreparationStep step{static_cast<MigrationPreparationOutcome>(result.outcome),{}};
+  if(result.ticket.present)step.request=MigrationPreparationRequest(static_cast<MigrationPreparationKind>(result.kind),
+      publication_context(result.ticket.context),result.ticket.self_peer,result.ticket.id,s.preparation_identity);
+  return step;
+}
+OnlineMatchSession::MigrationPreparationOutcome OnlineMatchSession::complete_migration_preparation(
+    const MigrationPreparationRequest &request,const std::optional<PeerSurvivorInventory> &inventory){
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);io.owner_matches=request.owner_.lock()==s.preparation_identity;
+  io.inventory=inventory?&*inventory:nullptr;
+  const auto ticket=preparation_ticket(PeerMigrationPreparationTicket{request.context(),request.self(),request.id()});
+  return static_cast<MigrationPreparationOutcome>(bridge::native_preparation_complete(io,
+      static_cast<bridge::NativePreparationKind>(request.kind()),ticket,inventory.has_value(),inventory?inventory->lease:0));
+}
+bool OnlineMatchSession::migration_preparation_retiring()const{
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);return bridge::native_preparation_retiring(io);
+}
+bool OnlineMatchSession::prepare_peer_migration(const ValidatedAuthorityCut &cut){
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);io.ready=&cut;
+  return bridge::native_publication_prepare(io,publication_context(cut.context),preparation_cut(cut.seal));
+}
+bool OnlineMatchSession::freeze_survivor_selection(const AuthorityTransferContext &context,const PeerSurvivorInventory &inventory){
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);io.inventory=&inventory;
+  return bridge::native_preparation_freeze(io,publication_context(context));
+}
+std::optional<PeerSurvivorSelectionState> OnlineMatchSession::survivor_selection()const{
+  std::lock_guard lock(impl_->mutex);
+  if(!impl_->survivor_selection)return {};
+  return impl_->survivor_selection->state();
+}
+bool OnlineMatchSession::invalidate_survivor_selection(const AuthorityTransferContext &context,std::optional<AuthorityCutSeal> cut){
+  auto &s=*impl_;std::lock_guard lock(s.mutex);Impl::PreparationIo io(s);bridge::MigrationPreparationCut selected;
+  if(cut)selected=preparation_cut(*cut);
+  return bridge::native_preparation_invalidate(io,publication_context(context),selected);
+}
+bool OnlineMatchSession::propose_peer_migration(unsigned peer){
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);return bridge::native_publication_propose(io,peer);
+}
+std::optional<unsigned> OnlineMatchSession::migration_candidate()const{
+  std::lock_guard lock(impl_->mutex);return impl_->migration_candidate(transfer_time());
+}
+bool OnlineMatchSession::propose_peer_migration(){
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);return bridge::native_publication_propose_automatic(io);
+}
+bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision){
+  return finish_peer_migration(decision,nullptr,nullptr);
+}
+bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision,NativeCommit commit,void *native){
+  std::lock_guard lock(impl_->mutex);Impl::PublicationIo io(*impl_);io.decision=&decision;io.commit=commit;io.native=native;
+  return bridge::native_publication_finish(io,publication_decision(decision));
+}
+bool OnlineMatchSession::publish_source_players(const AuthorityTransferContext &context,std::span<const SourcePlayerAdmission> players) {
+  std::shared_ptr<PeerSourceAdmissions> admissions;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
+    if(impl_->continuity_admissions&&!std::ranges::equal(players,*impl_->continuity_admissions))return false;
+    admissions=impl_->source_admissions;}
+  return admissions&&admissions->publish(context,players);
+}
+std::optional<AcceptedSourcePlayers> OnlineMatchSession::source_players()const {
+  std::lock_guard lock(impl_->mutex);const auto admissions=impl_->source_admissions;
+  const auto value=admissions?admissions->accepted():std::nullopt;
+  if(value&&impl_->continuity_admissions&&value->players!=*impl_->continuity_admissions)return std::nullopt;
+  return value;
+}
+bool OnlineMatchSession::source_players_confirmed(unsigned peer)const {
+  std::shared_ptr<PeerSourceAdmissions> admissions;{std::lock_guard lock(impl_->mutex);admissions=impl_->source_admissions;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&admissions&&admissions->confirmed(peer);
+}
+AuthorityCutSeal OnlineMatchSession::publish_authority(const AuthorityTransferContext &context,std::uint64_t tick,
+    std::vector<std::byte> archive,std::span<const unsigned> targets) {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
+    transfer=impl_->authority;require(bool(transfer));}
+  return transfer->publish(context,tick,std::move(archive),targets,transfer_time());
+}
+std::optional<ReceivedAuthorityCut> OnlineMatchSession::received_authority() {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return std::nullopt;
+  return transfer->take_completed();
+}
+AuthorityCutSeal OnlineMatchSession::publish_authority_ahead(const AuthorityTransferContext &context,const AuthorityCutSeal &previous,
+    std::uint64_t tick,std::vector<std::byte> bytes,unsigned target){
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
+    transfer=impl_->authority;require(bool(transfer));}
+  return transfer->publish_ahead(context,previous,tick,std::move(bytes),target,transfer_time());
+}
+bool OnlineMatchSession::acknowledge_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->acknowledge_validated(context,seal);
+}
+bool OnlineMatchSession::reject_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->reject_delivered(context,seal);
+}
+std::vector<ValidatedAuthorityCut> OnlineMatchSession::validated_authority() {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return {};
+  return transfer->validated_cuts();
+}
+std::optional<PeerCommonCutState> OnlineMatchSession::common_cut()const{
+  std::lock_guard lock(impl_->mutex);if(!impl_->common_supported())return {};
+  return impl_->common_cut->state();
+}
+bool OnlineMatchSession::offer_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::offer);}
+bool OnlineMatchSession::confirm_common_cut_native(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::confirm_native);}
+bool OnlineMatchSession::associate_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::associate);}
+bool OnlineMatchSession::apply_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::apply);}
+bool OnlineMatchSession::release_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::release);}
+bool OnlineMatchSession::reject_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::reject);}
+bool OnlineMatchSession::abort_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::abort);}
+bool OnlineMatchSession::acknowledge_common_cut_abort(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::acknowledge_abort,true);}
+void OnlineMatchSession::seal_world(std::uint64_t tick,const std::string &hash) {
+  std::lock_guard lock(impl_->mutex);require(impl_->phase==Phase::Running && impl_->host==impl_->self);
+  impl_->queue_world(0,{impl_->continuity_state.epoch,tick,hash});
+}
+void OnlineMatchSession::acknowledge_world(const OnlineWorldSeal &seal) {
+  std::lock_guard lock(impl_->mutex);
+  require((impl_->phase==Phase::Running && seal.epoch==impl_->continuity_state.epoch) ||
+      (impl_->phase==Phase::AwaitingWorld && seal.epoch+std::uint64_t{1}==impl_->continuity_state.epoch));
+  impl_->queue_world(1,seal);
+}
+void OnlineMatchSession::accept_migration(std::uint64_t tick,const std::string &hash) {
+  std::lock_guard lock(impl_->mutex);const auto &selected=impl_->continuity_state.selected;
+  require(impl_->phase==Phase::Migrating && impl_->self==impl_->host && selected && selected->tick==tick && selected->digest==hash);
+  impl_->queue_world(2,*selected);
+}
+void OnlineMatchSession::rebind_migration(std::uint64_t tick,const std::string &hash) {
+  std::lock_guard lock(impl_->mutex);const auto &selected=impl_->continuity_state.selected;
+  require(impl_->phase==Phase::Rebinding && impl_->self!=impl_->host && selected && selected->tick==tick && selected->digest==hash);
+  impl_->queue_world(3,*selected);
+}
+void OnlineMatchSession::loaded(std::uint64_t fingerprint,const UiVariant& variant){
+  const auto source=source_game_variant(variant);std::vector<bridge::NativeSessionParameter> parameters;
+  for(const auto &[id,value]:variant.values){bridge::NativeSessionParameter out;out.id=id;out.value=value;parameters.push_back(out);}
+  std::lock_guard lock(impl_->mutex);
+  bridge::native_session_loaded(*impl_->controller,fingerprint,{source.bytes.data(),source.bytes.size()},{parameters.data(),parameters.size()});impl_->refresh();
+}
+std::optional<std::uint64_t> OnlineMatchSession::loaded_fingerprint()const{
+  std::lock_guard lock(impl_->mutex);return impl_->native_fingerprint;
+}
+void OnlineMatchSession::send(std::span<const std::byte> packet,unsigned peer){
+  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();bridge::native_session_send(*impl_->controller,peer,wire(packet));
+}
+bool OnlineMatchSession::receive(std::vector<std::byte> &packet,unsigned &peer){
+  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();auto received=bridge::native_session_receive(*impl_->controller);
+  if(received.empty())return false;
+  peer=received[0].peer;packet=native_bytes(received[0].bytes);return true;
+}
+void OnlineMatchSession::voice(unsigned target,const GameVoiceFrame &frame){
+  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();impl_->sync_audio();
+  bridge::native_session_voice(*impl_->controller,target,wire_audio(frame),!impl_->audio||impl_->audio->ready(impl_->audio_generation));
+}
+void OnlineMatchSession::voice_preferences(unsigned target,bool enabled,std::uint16_t muted){
+  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();bridge::native_session_preferences(*impl_->controller,target,enabled,muted);
+}
+std::uint16_t OnlineMatchSession::voice_blocks() const {std::lock_guard lock(impl_->mutex);return impl_->voice_blocked;}
+std::vector<MatchVoicePacket> OnlineMatchSession::voice_packets(){
+  std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();std::vector<MatchVoicePacket> result;
+  for(const auto &v:bridge::native_session_voices(*impl_->controller))result.push_back({v.peer,v.preferences,v.enabled,v.muted,native_audio(v.audio)});
+  return result;
+}
+void OnlineMatchSession::retain_voice(std::shared_ptr<GameVoice> audio) {
+  std::lock_guard lock(impl_->mutex);require(!impl_->audio || impl_->audio==audio);
+  if(impl_->audio==audio)return;
+  impl_->audio=std::move(audio);if(impl_->audio)bridge::native_session_bind_audio(*impl_->controller);impl_->fence_audio();impl_->sync_audio();
+}
+std::shared_ptr<GameVoice> OnlineMatchSession::retained_voice() const {
+  std::lock_guard lock(impl_->mutex);return impl_->audio;
+}
+bool OnlineMatchSession::postgame_voice_enabled(unsigned slot) const {
+  std::lock_guard lock(impl_->mutex);return bridge::native_session_voice_enabled(*impl_->controller,slot);
+}
+void OnlineMatchSession::update_postgame_voice(bool focused) {
+  impl_->voice_focused=focused;
+}
+void OnlineMatchSession::pump_postgame_voice() {
+  const auto audio=retained_voice();if(!audio)return;
+  const auto phase_now=phase();
+  if(phase_now==Phase::Failed){audio->enable(false);return;}
+  if(phase_now!=Phase::Reviewing && phase_now!=Phase::Postgame)return;
+  audio->focus(impl_->voice_focused);audio->radio(false,true);
+  audio->blocks(voice_blocks());
+  const auto selected=audio->snapshot();rust::Vec<bridge::NativeSessionAudio> outgoing;
+  for(const auto &frame:audio->outgoing())outgoing.push_back(wire_audio(frame));
+  rust::Vec<bridge::NativeSessionAudio> received;
+  {std::lock_guard lock(impl_->mutex);impl_->fence_peer_generation();
+    received=bridge::native_session_postgame_voice(*impl_->controller,transfer_time(),selected.enabled,selected.muted,selected.blocked,std::move(outgoing),audio->ready(impl_->audio_generation));}
+  for(const auto &frame:received)audio->receive(native_audio(frame));
+}
+
+void OnlineMatchSession::close_postgame() {
+  {std::lock_guard lock(impl_->mutex);bridge::native_session_close_postgame(*impl_->controller);impl_->refresh();}
+  if(const auto audio=retained_voice())audio->close();
+  impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
+}
+void OnlineMatchSession::complete(std::span<const std::byte> report){
+  std::lock_guard lock(impl_->mutex);bridge::native_session_complete(*impl_->controller,wire(report));
+}
+void OnlineMatchSession::confirm_result(){
+  std::lock_guard lock(impl_->mutex);bridge::native_session_confirm(*impl_->controller);
+}
+std::vector<std::byte> OnlineMatchSession::postgame()const{
+  std::lock_guard lock(impl_->mutex);return native_bytes(bridge::native_session_postgame(*impl_->controller));
+}
+} // namespace halo2

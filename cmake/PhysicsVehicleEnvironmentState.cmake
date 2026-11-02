@@ -39,4 +39,7 @@ if(BUILD_TESTING)
     add_test(NAME original_first_person_part_retirement_tu15 COMMAND physics_vehicle_environment_state_tests
         "${HALO2_FIRST_PERSON_PART_RETIREMENT_TU15_FIXTURE}" first-person-part-retirement)
     set_tests_properties(original_first_person_part_retirement_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_first_person_resource_retirement_tu15 COMMAND physics_vehicle_environment_state_tests
+        "${HALO2_FIRST_PERSON_PART_RETIREMENT_TU15_FIXTURE}" first-person-resource-retirement)
+    set_tests_properties(original_first_person_resource_retirement_tu15 PROPERTIES SKIP_RETURN_CODE 77)
 endif()
