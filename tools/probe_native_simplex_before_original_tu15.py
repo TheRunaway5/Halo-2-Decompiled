@@ -14,7 +14,7 @@ from generate_physics_live_support_tu15 import complete_body
 
 def sha(p):return hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--reference',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,scope=__doc__,owned_scratch=str(scratch),retained_large_artifacts=[],native_result_supplied=False)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--reference',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--native',action='store_true',help='Also compare the native kernel on an independently loaded BEFORE, without supplying any original result');a=p.parse_args();a.output=a.output.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,scope=__doc__,owned_scratch=str(scratch),retained_large_artifacts=[],native_result_supplied=False)
  try:
   receipt=json.loads((a.reference/'retention.json').read_text());archive=a.reference/'actual-native-before.tar.zst';capture=a.reference/'capture-native-before.json';assert sha(archive)==receipt['archive_sha256']and sha(capture)==receipt['capture_manifest_sha256']and sha(NEW_DEFAULT)==NEW_PIN
   d=json.loads(capture.read_text());assert d['schema']=='native-tu15-convex-simplex-typed-before-v1'and not d['physics_result_supplied']and not d['guest_abi_fabricated'];typed=d['input'];assert typed['owner']==0x30e930 and typed['preserved_x87_depth']==0
@@ -52,8 +52,50 @@ int main(int argc,char**argv){J result{{"passed",false}};try{
   {"work_counts_after",hex(child.read(typed.at("work"),12))},{"after_fp",J::array({fp.cwd,fp.swd,fp.mxcsr})},{"all_executed_instruction_bytes_authenticated",true}};
  }catch(const std::exception&e){result["error"]=e.what();std::cerr<<e.what()<<'\\n';}std::ofstream output(argv[4]);output<<result.dump(2)<<'\\n';return result.at("passed").get<bool>()?0:1;}
 '''
-  (scratch/'driver.cpp').write_text(driver);request=scratch/'request.json';request.write_text(json.dumps(dict(text_first=section.va,input=typed)))
-  command=['c++','-std=c++20','-O2','-I'+str(ROOT/'include'),str(scratch/'driver.cpp'),'-o',str(scratch/'probe')];r=subprocess.run(command,capture_output=True,text=True);(a.output/'build.log').write_text(r.stdout+r.stderr);assert r.returncode==0,r.stderr[-3000:]
+  if a.native:
+   driver='#include "halo2/native_tu15_convex_simplex_solver_binding.hpp"\n'+driver
+   old=' const auto fp=child.fp();result='
+   assert driver.count(old)==1
+   native=r'''
+ const auto expected_fp=child.fp();
+ Child native;native.pid=fork();check(native.pid>=0,"Cannot start native BEFORE backing");if(!native.pid){if(ptrace(PTRACE_TRACEME,0,nullptr,nullptr)<0)_exit(126);execl(argv[1],argv[1],nullptr);_exit(127);}
+ native.wait();request(PTRACE_SETOPTIONS,native.pid,nullptr,reinterpret_cast<void*>(PTRACE_O_EXITKILL));request(PTRACE_CONT,native.pid);native.wait();check(WSTOPSIG(native.status)==SIGTRAP,"Native BEFORE setup failed");
+ struct View:halo2::SourcePhysicsContactMemory {
+  Child&process;std::array<std::byte,4096>private_data{};static constexpr std::uint32_t first=0x6000000u;
+  explicit View(Child&p):process(p){private_data.fill(std::byte{0xa5});}
+  bool owned(std::uint32_t p,std::size_t n)const{return p>=first&&std::uint64_t(p-first)+n<=private_data.size();}
+  void read(std::uint32_t p,std::span<std::byte>b)const override{if(owned(p,b.size()))std::copy_n(private_data.begin()+p-first,b.size(),b.begin());else{const auto source=process.read(p,b.size());std::copy(source.begin(),source.end(),b.begin());}}
+  void read_vector(std::uint32_t p,std::span<std::byte,16>b)const override{read(p,b);}
+  void write(std::uint32_t p,std::span<const std::byte>b)override{if(owned(p,b.size()))std::copy(b.begin(),b.end(),private_data.begin()+p-first);else process.write(p,b);}
+ }storage(native);
+ halo2::NativeTu15ConvexSimplexMemory guarded(storage);const auto&controls=typed.at("floating_point");
+ halo2::NativeTu15PhysicsFrameFp state{controls.at("x87_control_word"),controls.at("x87_status"),controls.at("mxcsr")};
+ constexpr auto q=0x6000000u;const halo2::NativeTu15ContactShapeScratch child_shape{q+0x900u,q+0x910u,nullptr};
+ halo2::NativeTu15ConvexSimplexBindingActivity activity;
+ auto bound=halo2::native_tu15_make_bound_convex_contact_services(guarded,
+  {{q+0xe00u,q+0xe04u,q+0xe08u,q+0xe10u,q+0xe20u,{q+0xa00u,q+0xb00u,q+0xb40u,{q+0x400u,{q+0x200u,q+0x204u,{q,q+0x10u,q+0x30u,q+0x60u,q+0x20u}}}}},{q+0x800u,q+0x810u,&child_shape}},0,{},&activity);
+ const auto native_result=bound.solve_simplex(typed.at("work"),{typed.at("first")},{typed.at("second")},typed.at("relative_transform"),typed.at("support_cache"),typed.at("plane"),state);
+ std::uint64_t compared{},differences{};J first_differences=J::array();
+ for(const auto&region:request_data.at("regions")){const auto address=region.at("address").get<std::uint32_t>(),bytes=region.at("size").get<std::uint32_t>();const auto expected=child.read(address,bytes),actual=native.read(address,bytes);compared+=bytes;for(unsigned i=0;i<bytes;++i)if(expected[i]!=actual[i]){++differences;if(first_differences.size()<16)first_differences.push_back(J{{"address",address+i},{"source",std::to_integer<unsigned>(expected[i])},{"native",std::to_integer<unsigned>(actual[i])}});}}
+ result["native_comparison"]={{"return_word",native_result},{"compared_bytes",compared},{"different_bytes",differences},{"first_differences",first_differences},{"fp",J::array({state.control_word,state.status,state.mxcsr})},{"expected_fp",J::array({expected_fp.cwd,expected_fp.swd,expected_fp.mxcsr})},{"native_solver_calls",activity.completed}};
+ check(native_result==std::uint32_t(child.regs().rax),"Native projection result differs");
+ check(differences==0,"Native projection retained banks differ: "+first_differences.dump());
+ check(state.control_word==expected_fp.cwd&&state.status==expected_fp.swd&&state.mxcsr==expected_fp.mxcsr,"Native projection FP differs");
+ check(activity.completed==1&&activity.refusals==0&&guarded.refused_reads()==0,"Native projection ownership differs");
+ const auto comparison=result.at("native_comparison");
+'''
+   # A local class cannot own a static data member; use the literal in its
+   # address predicate while retaining the ordinary private DATA identity.
+   native=native.replace('static constexpr std::uint32_t first=0x6000000u;','').replace('p>=first&&std::uint64_t(p-first)','p>=0x6000000u&&std::uint64_t(p-0x6000000u)').replace('p-first','p-0x6000000u')
+   driver=driver.replace(old,native+old)
+   old='{"all_executed_instruction_bytes_authenticated",true}};'
+   assert driver.count(old)==1;driver=driver.replace(old,'{"all_executed_instruction_bytes_authenticated",true},{"native_comparison",comparison}};')
+  (scratch/'driver.cpp').write_text(driver);request=scratch/'request.json';request.write_text(json.dumps(dict(text_first=section.va,input=typed,regions=[dict(address=p,size=len(raw))for p,raw in merged.items()])))
+  units=[]
+  if a.native:
+   import validate_native_convex_simplex_solver_actual_tu15 as core
+   units=[str(ROOT/'src/physics'/n)for n in dict.fromkeys(core.UNITS)]
+  command=['c++','-std=c++20','-O2','-fno-fast-math','-ffp-contract=off','-frounding-math','-I'+str(ROOT/'include'),str(scratch/'driver.cpp'),*units,'-o',str(scratch/'probe')];r=subprocess.run(command,capture_output=True,text=True);(a.output/'build.log').write_text(r.stdout+r.stderr);assert r.returncode==0,r.stderr[-3000:]
   result=a.output/'original.json';r=subprocess.run([str(scratch/'probe'),str(exe),str(scratch/'text.bin'),str(request),str(result)],capture_output=True,text=True);(a.output/'probe.log').write_text(r.stdout+r.stderr);assert r.returncode==0,r.stderr[-3000:]
   observed=json.loads(result.read_text());path=observed.pop('path');code=_Code(image,'.text');owner=complete_body(code,0x30e930);calls=[]
   for pc in dict.fromkeys(path):
@@ -61,7 +103,7 @@ int main(int argc,char**argv){J result{{"passed",false}};try{
    if ins.mnemonic=='call':calls.append(dict(pc=hex(pc),assembly=ins.op_str,count=path.count(pc),actual_targets=sorted({path[n+1]for n,p in enumerate(path[:-1])if p==pc})))
   observed['calls']=calls;observed['solver_sites_executed']=len(set(path)&set(owner.code));result.write_text(json.dumps(observed,indent=2)+'\n')
   listing=''.join(f'{pc:x} {code.at(pc).bytes.hex()} {code.at(pc).mnemonic} {code.at(pc).op_str}\n'for pc in sorted(set(path)));(a.output/'executed-original.txt').write_text(listing)
-  report.update(passed=True,original_sha256=NEW_PIN,archive_sha256=receipt['archive_sha256'],input=typed,all_instruction_bytes_unchanged=True,source_instructions=observed['instructions'],solver_sites_executed=observed['solver_sites_executed'],return_word=observed['return_word'],result_sha256=sha(result),listing_sha256=hashlib.sha256(listing.encode()).hexdigest(),capture_gp_abi_consumed=False,tool_sha256=sha(__file__))
+  report.update(passed=True,native_compared=a.native,original_sha256=NEW_PIN,archive_sha256=receipt['archive_sha256'],input=typed,all_instruction_bytes_unchanged=True,source_instructions=observed['instructions'],solver_sites_executed=observed['solver_sites_executed'],return_word=observed['return_word'],result_sha256=sha(result),listing_sha256=hashlib.sha256(listing.encode()).hexdigest(),capture_gp_abi_consumed=False,tool_sha256=sha(__file__))
  except BaseException as error:report['error']=str(error)or repr(error);raise
  finally:
   report['temporary_allocated_bytes_before_cleanup']=sum(p.stat().st_blocks*512 for p in scratch.rglob('*')if p.is_file());(a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n')

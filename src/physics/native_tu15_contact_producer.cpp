@@ -86,7 +86,7 @@ void native_tu15_produce_contacts(SourcePhysicsContactMemory&memory,NativeTu15Co
     native_contact_detail::UnwindGuard array_cleanup([&]{environment.cleanup([&]{native_tu15_release_owned_contact_records(memory,records,fp,record_cleanup);});});
     native_contact_detail::UnwindGuard component_cleanup([&]{environment.cleanup([&]{require(s.destroy_component_buffer,"Native TU1.5 contact producer unwind requires actual component destructor");s.destroy_component_buffer(p+0x6cu,fp);});});
     profile(m,false,s);
-    const auto transform=m.word(second.identity+8u);const auto shape=m.word(second.identity);m.word(0x3043b1,p+0x38u,transform);const auto container=m.word(shape+0xcu);const auto key=m.word(second.identity+4u);m.word(0x3043c4,p+0x30u,container);m.word(0x3043d0,p+0x34u,key);
+    const auto transform=m.word(second.identity+8u);const auto shape=m.word(second.identity);m.word(0x3043b1,p+0x38u,transform);m.word(0x3043b5,p+0x3cu,second.identity);const auto container=m.word(shape+0xcu);const auto key=m.word(second.identity+4u);m.word(0x3043c4,p+0x30u,container);m.word(0x3043d0,p+0x34u,key);
     environment.dependency([&]{require(s.update_candidates,"Native TU1.5 contact producer requires actual2F36F0 candidate owner");s.update_candidates(producer,first,{p+0x30u},context,0x2f3140u,fp);});
     m.word(0x3043e9,records.identity,p+0x120u);m.word(0x3043f0,records.identity+4u,0);m.word(0x3043f7,records.identity+8u,0x80000004u);
     const auto initial_components=m.word(agent+0x10u);array_cleanup.arm(); // Actual30440A, after count read.

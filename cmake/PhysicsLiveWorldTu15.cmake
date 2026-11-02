@@ -1,5 +1,6 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
 include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15DataArrayAllocateSpecific.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/NativeTu15PageAllocator.cmake")
 # Keep new strict-FP owners in a small library: adding a per-source flag to
 # halo2_systems changes its shared flags file and rebuilds unrelated systems.
 add_library(halo2_native_constraint_solver STATIC
@@ -572,6 +573,14 @@ if(BUILD_TESTING)
         set_tests_properties(native_tu15_sound_${group} PROPERTIES TIMEOUT 300)
     endfunction()
     halo2_native_sound_group_test(resources binding cache_query chunk_readiness)
+    add_executable(native_tu15_sound_cache_pages_tests EXCLUDE_FROM_ALL
+        tests/native_tu15_sound_stream_packets_tests.cpp src/audio/native_tu15_sound_kernels_resources.cpp)
+    target_include_directories(native_tu15_sound_cache_pages_tests PRIVATE include src)
+    target_link_libraries(native_tu15_sound_cache_pages_tests PRIVATE nlohmann_json::nlohmann_json)
+    set(HALO2_SOUND_CACHE_PAGES_FIXTURE "" CACHE FILEPATH "Independent original TU1.5 cache page allocation/eviction fixture")
+    add_test(NAME native_tu15_sound_cache_pages COMMAND native_tu15_sound_cache_pages_tests
+        "${HALO2_SOUND_CACHE_PAGES_FIXTURE}" "${CMAKE_CURRENT_BINARY_DIR}/native-sound-cache-pages.json")
+    set_tests_properties(native_tu15_sound_cache_pages PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
     add_executable(native_tu15_sound_cache_datum_tests EXCLUDE_FROM_ALL
         tests/native_tu15_sound_stream_packets_tests.cpp src/audio/native_tu15_sound_kernels_resources.cpp)
     target_include_directories(native_tu15_sound_cache_datum_tests PRIVATE include src)
@@ -662,7 +671,7 @@ if(BUILD_TESTING)
         --output "${CMAKE_CURRENT_BINARY_DIR}/native-sound-stream-format.json")
     set_tests_properties(native_tu15_sound_stream_format PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
-    foreach(_h2_sound_resource_target IN ITEMS native_tu15_sound_cache_datum_tests
+    foreach(_h2_sound_resource_target IN ITEMS native_tu15_sound_cache_pages_tests native_tu15_sound_cache_datum_tests
         native_tu15_sound_stream_packets_tests native_tu15_sound_stream_retirement_tests
         native_tu15_sound_stream_queue_tests native_tu15_sound_stream_payload_tests
         native_tu15_sound_stream_service_bridge native_tu15_sound_stream_constructor_bridge)

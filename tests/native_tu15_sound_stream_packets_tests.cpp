@@ -48,7 +48,8 @@ int main(int argc,char**argv)try{
   services.required_owner=[&](auto& m,const auto& call,auto& a,const auto& observer){
    need(std::ranges::find(allowed,call.target)!=allowed.end(),"Stream callee lacks its declared native CPU owner");
    const auto get=[&](std::uint32_t at){std::array<std::byte,4> b{};m.read(at,b);return value(b);};
-   const unsigned count=call.target==0x21f260u?3u:call.target==0x2e4d60u?1u:0u;
+   const unsigned count=call.target==0x21f260u?3u:
+       (call.target==0x2e4d60u||call.target==0x21f3b0u||call.target==0x21f3f0u)?1u:0u;
    need(count!=0,"Stream CPU callee ABI is unavailable");J args=J::array();
    for(unsigned n=0;n<count;++n)args.push_back(get(a.gp[4]+4u+n*4u));
    calls.push_back({{"target",call.target},{"gp",a.gp},{"return",get(a.gp[4])},{"args",args}});

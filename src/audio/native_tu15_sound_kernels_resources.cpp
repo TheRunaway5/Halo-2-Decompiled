@@ -10,6 +10,8 @@
 #include "audio/native_tu15_sound_kernel.hpp"
 #include "halo2/native_tu15_data_array_allocate_specific.hpp"
 #include "halo2/native_tu15_data_array_allocate.hpp"
+#include "halo2/native_tu15_data_array_delete.hpp"
+#include "halo2/native_tu15_page_allocator.hpp"
 
 namespace halo2::native_tu15_sound {
 namespace {
@@ -30,6 +32,28 @@ void initialize_record(M& m,Abi& a,FP,const O& o,const Services&){
 }
 void allocate_datum(M& m,Abi& a,FP,const O& o,const Services&){
     native_tu15_data_array_allocate_abi(m,a,o);
+}
+void delete_datum(M& m,Abi& a,FP,const O& o,const Services&){
+    native_tu15_data_array_delete_abi(m,a,o);
+}
+void page_prefer(M& m,Abi& a,FP,const O&,const Services&){
+    native_tu15_page_window_prefer_abi(m,a);
+}
+void page_allocate(M& m,Abi& a,FP,const O& o,const Services& s){
+    native_tu15_page_allocate_abi(m,a,s,o);
+}
+void page_delete(M& m,Abi& a,FP,const O& o,const Services& s){
+    native_tu15_page_delete_abi(m,a,s,o);
+}
+
+// Actual21F3F0 page eviction callback. The chunk loses its cache handle
+// before the complete core datum-deletion ABI retires the cache entry.
+void cache_page_deleted(M& m,Abi& a,FP,const O& o,const Services&){
+    auto& g=a.gp;g[0]=argument(m,a,0);g[2]=u32(m,sound_cache);g[1]=g[0]&0xffffu;
+    g[4]-=4u;store(m,{},0x21f402u,g[4],g[6]);g[6]=u32(m,g[2]+0x44u);g[1]<<=4u;
+    g[1]=u32(m,g[1]+g[6]+12u);store(m,o,0x21f40du,g[1]+8u,0xffffffffu);
+    g[4]-=4u;store(m,{},0x21f414u,g[4],0x21f419u);native_tu15_data_array_delete_abi(m,a,o);
+    g[6]=u32(m,g[4]);g[4]+=4u;pop_return(m,a,4);
 }
 
 // MOV r8,value: replaces only the register's low byte.
@@ -618,9 +642,13 @@ void stream_completed(M& m,Abi& a,FP,const O& o,const Services& services){
 // Every kernel reproduces all eight general registers, so none needs a
 // Contract exclusion.
 constexpr Kernel resource_table[]{
+    {0x13fe00u,page_prefer},
+    {0x13fe50u,page_allocate,{},true},
+    {0x140310u,page_delete,{},true},
     {0x16e6a0u,allocate_datum},
     {0x16e770u,allocate_specific},
     {0x16e860u,initialize_record},
+    {0x16e8a0u,delete_datum},
     {0x129470u,release_binding},
     {0x12b1c0u,rebind},
     {0x1296e0u,sound_playable},
@@ -628,6 +656,7 @@ constexpr Kernel resource_table[]{
     {0x1293f0u,lock_binding_entry},
     {0x21f260u,request_chunk_entry,{},true},    // may call 21F420 and 2DBF74
     {0x21f3b0u,cache_entry_retained},
+    {0x21f3f0u,cache_page_deleted},
     {0x21f360u,chunk_data},
     {0x2b98d0u,stream_packet},
     {0x2b9950u,stream_packet_submitted},

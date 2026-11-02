@@ -134,7 +134,7 @@ def physical(p,rows,suffix):
   row.update(actual,physical_verified=True)
  return rows
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[]);save(a.output/'report.json',report)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--overlay-source',type=Path,default=ROOT);a=p.parse_args();a.overlay_source=a.overlay_source.resolve();a.output.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[]);save(a.output/'report.json',report)
  try:
   assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);m=metadata(image);owned=prepare(image,m,scratch);rows=physical(owned,inputs(image),'complete');prefix=[]
   for seed in[r for r in rows if 'fault_seed'in r['name']]:
@@ -142,12 +142,15 @@ def main():
     for n in range(len(items)):
      case=copy.deepcopy(seed);case.update(id=len(rows)+len(prefix),name=seed['name']+'_'+phase+'_'+str(n),fault=dict(phase=phase,ordinal=n));prefix.append(case)
   rows+=physical(owned,prefix,'prefix');fixture=scratch/'records.json';fixture.write_text(json.dumps(dict(image_sha256=NEW_PIN,required_backend=BACKEND,body_sites=m['body_sites'],listing_sha256=m['listing_sha256'],cases=rows),separators=(',',':'))+'\n')
-  project=scratch/'project';(project/'include/halo2').mkdir(parents=True);(project/'src').mkdir();(project/'tests').mkdir();source=ROOT/'src/physics/native_tu15_contact_records.cpp';header=ROOT/'include/halo2/native_tu15_contact_records.hpp';test=ROOT/'tests/native_tu15_contact_records_tests.cpp';shutil.copytree(ROOT/'include',project/'include',dirs_exist_ok=True);shutil.copyfile(source,project/'src/native.cpp');shutil.copyfile(test,project/'tests/test.cpp');text=source.read_text();variants={}
+  project=scratch/'project';(project/'include/halo2').mkdir(parents=True);(project/'src').mkdir();(project/'tests').mkdir();source=a.overlay_source/'src/physics/native_tu15_contact_records.cpp';header=a.overlay_source/'include/halo2/native_tu15_contact_records.hpp';test=ROOT/'tests/native_tu15_contact_records_tests.cpp';shutil.copytree(ROOT/'include',project/'include',dirs_exist_ok=True);shutil.copytree(a.overlay_source/'include',project/'include',dirs_exist_ok=True);shutil.copyfile(source,project/'src/native.cpp');shutil.copyfile(test,project/'tests/test.cpp');text=source.read_text();variants={}
   needle='add_scalar(z,yx)';assert text.count(needle)==1;variants['wrong_dot']=text.replace(needle,'add_scalar(product,add_scalar(y,z))')
   needle='if(!parity((first>>8u)&5u))return 1;';assert text.count(needle)==1;variants['skip_limit']=text.replace(needle,'if(false)return 1;')
   needle='bool committed=false;';assert text.count(needle)==1;variants['wrong_scalar']=text.replace(needle,'value^=1u;bool committed=false;')
   needle='if(!committed)asm volatile';assert text.count(needle)==1;variants['rollback_observer']=text.replace(needle,'if(true)asm volatile')
   snapshot_pins={str(p.relative_to(project)):sha(p)for p in [project/'src/native.cpp',project/'tests/test.cpp',project/'include/halo2/native_tu15_contact_records.hpp',project/'include/halo2/native_tu15_physics_frame.hpp',project/'include/halo2/physics_contact_record.hpp']}
+  for name in ('native_tu15_retained_store_observation.hpp','native_tu15_contact_candidate_private_data.hpp'):
+   dependency=project/'include/halo2'/name
+   if dependency.is_file():snapshot_pins[str(dependency.relative_to(project))]=sha(dependency)
   for name,variant in variants.items():(project/'src'/f'{name}.cpp').write_text(variant)
   (project/'negative.py').write_text('''import subprocess,sys
 r=subprocess.run([sys.argv[1],sys.argv[2]],text=True,capture_output=True)
