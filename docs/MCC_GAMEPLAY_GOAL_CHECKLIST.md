@@ -1440,6 +1440,13 @@ records the verified result here before starting dependent work.
   E3 renderer test are required before further camera or delivery claims.
   [Combined overlay receipt](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-source-refresh-1.json),
   [Current preparation](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-preparation-1.json).
+- [x] Rebuild the actual isolated Cache and native GPU consumer with that
+  exact combined overlay. All six CTests pass: both preceding environment
+  checks, both new tiling checks, and nonrelative/relative scenery Vulkan
+  consumers. The changed loader and new adapter are rebuilt before the native
+  GPU executable is relinked. This baseline preserves the preceding engine
+  behavior; actual E3 camera rendering remains its separate next gate.
+  [Current six-test GPU baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/tiling-gpu-baseline-1/report.json).
 - [ ] Implement and qualify the complete authored three-channel environment/
   illumination material conversion, then rerun the actual E3 camera GPU path
   before production camera admission or a new qualified feedback build.
