@@ -553,13 +553,16 @@ class EnginePromotionTests(unittest.TestCase):
                      'mcc_native_meter_actual_source','mcc_frontend_submenus','mcc_frontend_selection_stability',
                      'workshop_navigation_content','original_workshop_camera_shared',
                      'mcc_native_env_illum_three_channel','mcc_native_env_illum_three_channel_generator',
-                     'mcc_native_tiling_specular','mcc_native_tiling_specular_generator']:
+                     'mcc_native_tiling_specular','mcc_native_tiling_specular_generator',
+                     'mcc_native_alpha_environment','mcc_native_alpha_environment_generator']:
             self.assertIn(name,filters[1])
         self.assertIn('multiplayer-menu-startup.json',commands[1])
         self.assertIn('friends-footer-anchor.json',commands[1])
         self.assertIn('loop-audio-locations.json',commands[1])
         self.assertIn('mcc_native_tiling_specular_probe',commands[1])
         self.assertIn('tiling.json',commands[1])
+        self.assertIn('mcc_native_alpha_environment_probe',commands[1])
+        self.assertIn('alpha-environment.json',commands[1])
         self.assertIn('smg-warthog-audio.json',commands[1])
         self.assertIn('smg-warthog-audio.log',commands[1])
         self.assertIn('workshop_navigation_content_tests',commands[1])

@@ -1458,6 +1458,168 @@ records the verified result here before starting dependent work.
   removed; the shared engine build remains active for the next conversion.
   [Exact next material boundary](../build/test-results/workshop-goal-20261101/e3-camera-render-boundary-3.json),
   [Actual native E3 run](../build/test-results/workshop-goal-20261101/camera-e3-gpu-6/consumer.json).
+- [x] Capture the exact next alpha-test/environment family across all39
+  stock owners and both E3 variants. The complete census has88 authored rows,
+  68 exact original pairs, one normalized MCC compiler graph and zero read
+  errors. The native candidate inventory finds38 original template owners.
+  All source/shared-map identity checks pass and the completed census owner
+  is removed. Native parameter/animation projection and admission are still
+  unqualified; investigate the complete paired banks before changing code.
+  [Next family census](../build/test-results/workshop-goal-20261101/tex_bump_env_alpha_test-pairs-1-summary.json),
+  [Exact native candidates](../build/test-results/workshop-goal-20261101/tex_bump_env_alpha_test-authority-candidates-1.json).
+- [x] Compare every complete paired alpha/environment bank before admitting
+  a conversion. All68 packed-color banks match directly, but the vector bank
+  expands8->9, pass schedules8->10 and implementation records33->34. Several
+  vector copy candidates remain ambiguous and native vector3 has no direct
+  source copy. All88 authored rows have no overlays. These are unresolved
+  ownership questions, not permission to insert a default vector or choose
+  the first equal-valued slot. No alpha/environment conversion is admitted.
+  The completed comparison owner is removed.
+  [Unresolved complete-bank comparison](../build/test-results/workshop-goal-20261101/alpha-env-bank-comparison-1.json).
+- [x] Resolve why alpha/environment native vector3 has no direct copy.
+  All38 native variants share one complete compiler graph. The slot is used
+  twice by alpha-test zwrite, for bitmap1/component-mode10; MCC binds that
+  same bitmap's scale with mode9. Authenticate original17000's complete
+  relocated TU1.5 counterpart16FE0, then execute it unchanged across21 mask
+  discoveries and1185 mixed/boundary cases, observing all101 instructions.
+  Mode9 copies XY, mode10 copies ZW, and mode13 copies all four lanes. This
+  establishes the required lane distinction rather than an unused/default
+  vector. The original RET4 stack contract, preserved registers and dirty
+  register masks also pass. Both completed owners are removed. Named-role
+  linkage and complete projection remain open.
+  [Complete vector uses](../build/test-results/workshop-goal-20261101/alpha-env-vector-uses-1.json),
+  [Original TU1.5 masks](../build/test-results/workshop-goal-20261101/alpha-env-mask-TU15-original-1.json),
+  [Complete body correspondence](../build/test-results/workshop-goal-20261101/alpha-env-mask-TU15-candidates-1.json).
+- [x] Decode the alpha/environment editable template and all nine source/
+  original passes to exact EOF, plus35 textual implementations' named
+  declarations, with no missing pass metadata. Named bitmap roles uniquely
+  distinguish bump/base/detail/alpha-test transforms; the six source/native
+  pixel roles match exactly, and all four internal/specular vector roles
+  match their original counterparts. The alpha-test transform changes from
+  XY-scale mode9 to ZW-scale mode10, with no texture-stage rescaling. This
+  identifies a channel relocation, not a new literal scale constant. Both
+  completed metadata/linkage owners are removed; complete-bank projection
+  and native integration are still required.
+  [Complete authored metadata](../build/test-results/workshop-goal-20261101/alpha-env-authored-roles-1.json),
+  [Named source/original linkage](../build/test-results/workshop-goal-20261101/alpha-env-named-linkage-1.json).
+- [x] Prove the complete static alpha/environment conversion against all88
+  authored rows,68 independently paired originals and38 complete native
+  template variants. All952 complete original banks match, including typed
+  image/frame/scalar identities. Native alpha-test ZW receives the authored
+  MCC XY scale, while the bump scale and full bump transform retain their
+  separate consumers. A nondefault alpha scale and bump translation control
+  passes; no literal scale is injected. Canonical zero is limited to lanes
+  unread by every static original remap, and animated inputs remain refused.
+  This is metadata proof; native integration and E3 GPU qualification remain
+  open. The completed projection owner is removed.
+  [Complete projection proof](../build/test-results/workshop-goal-20261101/alpha-env-projection-proof-1.json).
+- [x] Implement native alpha/environment static conversion and qualify GCC,
+  Clang and Clang ASan/UBSan components. Each compiler passes110 actual-content
+  cases covering88 authored rows,68 original pairs and all38 original template
+  variants;1568 complete banks,1201 refusal controls and nondefault alpha/bump
+  transform controls pass. Rename and exact typed-alias controls also pass.
+  The required portable fixture retains70969 compressed bytes of metadata;
+  its2202017-byte decoded owner and all three compiler builds are removed.
+  Original shader programs, source maps, selected runtimes and frozen engine
+  source remain unchanged by these component tests. Add the two mandatory
+  checks to the build policy; actual engine/GPU qualification remains open.
+  [Component matrix](../build/test-results/workshop-goal-20261101/alpha-env-component-1/report.json).
+- [x] Extend the declared engine snapshot with only the qualified alpha/
+  environment files and narrow Cache/build-policy changes. The20-file delta
+  retains all36 prior overlays, giving52 combined overlays and14651 production
+  files (inventory86cd52fc). Restoring each original before-hash reproduces
+  the selected sealed source exactly. All85 build-policy controls pass;
+  they are mocked orchestration checks, not gameplay evidence. Root texture-
+  camera work, both runtime selections and original assets stay intact.
+  The two new mandatory tests raise the next full candidate suite to109;
+  that full suite and actual E3 GPU acceptance remain open.
+  [Declared source refresh](../build/test-results/workshop-goal-20261101/camera-engine-1/alpha-source-refresh-1.json).
+- [x] Rebuild the changed Cache loader and alpha/environment unit in the
+  declared snapshot, then pass all eight focused CTests: three complete
+  material components/generators and both existing native scenery Vulkan
+  consumers. Unchanged physics/systems/renderer providers are reused and
+  remain pinned by the actual E3 harness. This qualifies the integrated
+  focused baseline; both E3 GPU cases and full109-case delivery remain open.
+  [Eight-test baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/alpha-gpu-baseline-1/report.json).
+- [x] Rerun both actual E3 GPU cases after alpha integration. Both now clear
+  complete BSP material admission and reach the first native camera caller,
+  `camera_intro_logo`. The newly reached refusal is the renderer's explicitly
+  required creation/write observation ledger, which this test had not enabled.
+  The frozen renderer reads HALO2_CAPTURE_BSP_DRAW_BINDINGS at construction;
+  existing all-map/body GPU consumers opt in before creating their Renderer.
+  Give the E3 consumer the same explicit opt-in. No renderer guard, native
+  behavior, source resident/LOD/PVS check or production declaration changes.
+  GPU7 is failed evidence with zero accepted frames; rerun after this fix.
+  [Reached ledger boundary](../build/test-results/workshop-goal-20261101/camera-e3-gpu-7/consumer.json).
+- [x] Enable the existing E3 observation ledger and trace the next no-draw
+  boundary without changing native visibility or draw policy. GPU8/9/10
+  advance through both logo camera callers; Chief reveal frame3 admits no
+  geometry. Exact GPU10 diagnostics agree for both variants: containing
+  cluster32, visible clusters35/32, no geometry/instance memberships or
+  resident parts/vertices in either cluster, all portals open and no arena
+  exhaustion. This camera-only fixture removes all382 authored objects;
+  demanding a BSP draw for those structurally empty clusters is incorrect.
+  Verify an explicit empty view instead: require its actual containing
+  cluster, complete native visibility, no authored geometry/memberships/
+  resident parts, no admitted/selected geometry, and zero actual BSP draws.
+  Other views still require actual draws. Negative controls reject missing
+  visibility, exhausted visibility and an actual geometry-bearing cluster.
+  All55 callers,110 samples, pixel motion/replay and native draw/upload
+  gates remain required; actors/full missions remain outside this fixture.
+  [Actual authored empty BSP](../build/test-results/workshop-goal-20261101/e3-camera-authored-empty-BSP-1.json).
+- [x] Execute the complete empty/nonempty classification controls and advance
+  GPU11 through seven complete native camera callers per variant. The30
+  recorded GPU samples include5134 actual BSP draws and14 exact pixel-replay
+  controls, with up to307200 pixels changing under the frozen-camera control.
+  Both variants next stop at `camera_intro_sniper3`: the test unnecessarily
+  required the resident vertex-buffer path. The existing renderer supports
+  source-owned dynamic BSP tokens when selected stipple changes the vertex
+  stream; its complete command/descriptor/part checks already cover both.
+  Extend the consumer to require exact resident-or-dynamic storage, native
+  binding/part/count identities and every submitted vertex byte. Resident
+  bytes must equal the source bank; dynamic bytes may change only the selected
+  material/stipple fields. Keep all other checks and require both paths in the
+  final sweep. This changes test coverage, not the renderer or native policy.
+  GPU11 remains failed partial evidence and camera production admission stays
+  closed pending all55 callers in both variants.
+  [Partial actual GPU evidence](../build/test-results/workshop-goal-20261101/e3-camera-partial-render-11.json).
+- [x] Complete both actual E3 camera GPU12 sweeps on hardware Vulkan. Each
+  variant passes55 authored callers,110 native HS start/restart calls,
+  330 native frames,110 GPU samples and55 frozen-camera/exact-replay pairs.
+  Each submits221 captures,57829 source-owned BSP draws (57075 resident,
+  754 dynamic) and verifies2608487352 submitted vertex bytes. All three
+  empty-view refusal controls pass; four samples have positively empty BSP
+  ownership,106 have actual draws. No vertex instruction program is uploaded.
+  Authored bounded portal-prefix behavior (limit bit1 observed), material
+  warnings, removed382 objects and all22 other script requirements remain
+  explicit. This proves the camera feature's native HS/observer/BSP/GPU path,
+  not full mod rendering, actor/mission flow or Xbox framebuffer parity.
+  Both complete GPU owners/captures are removed. Admit only MCC454->Xbox452
+  next, then qualify the production profile and feedback build separately.
+  [Both complete camera consumers](../build/test-results/workshop-goal-20261101/camera-e3-gpu-12/consumer.json).
+- [x] Admit only the authenticated MCC454->Xbox452 camera declaration into
+  development metadata and regenerate its native table (412 declarations).
+  The six-file frozen delta includes the exact camera consumer sources and
+  an explicit production-profile mode that generates no private declaration
+  override. All58 combined overlays restore the original selected sealed
+  inventory;14652 production files now hash to aacb3395. The delivered runtime
+  remains411 declarations/E323 requirements. Qualify the rebuilt production
+  table and actual E3 GPU path, then full candidate/sweep/launcher delivery.
+  [Narrow camera admission](../build/test-results/workshop-goal-20261101/camera-engine-1/camera-source-refresh-1.json).
+- [x] Rebuild the actual412-declaration Cache table and pass all ten focused
+  production-baseline checks, including signature layout/generator validation,
+  all three material components and both scenery Vulkan consumers. No private
+  declaration is used by that compiled Cache. Next run both complete E3 camera
+  GPU cases explicitly against the production table before candidate packaging.
+  [Production baseline](../build/test-results/workshop-goal-20261101/camera-engine-1/camera-production-baseline-1/report.json).
+- [x] Pass both complete E3 GPU13 sweeps against the rebuilt production412
+  table, explicitly with no private declaration override. All55 callers,
+  330 native frames and110 GPU samples per variant pass the same complete
+  static/dynamic payload, empty-view, pixel-motion and replay checks. This
+  qualifies the production camera declaration; full109-case feedback-build
+  qualification, installed-cohort comparison, source archive and both normal
+  launcher delivery are still required before publishing it to the user.
+  [Production camera consumers](../build/test-results/workshop-goal-20261101/camera-e3-gpu-13-production/consumer.json).
 - [ ] Implement and qualify the complete authored three-channel environment/
   illumination material conversion, then rerun the actual E3 camera GPU path
   before production camera admission or a new qualified feedback build.

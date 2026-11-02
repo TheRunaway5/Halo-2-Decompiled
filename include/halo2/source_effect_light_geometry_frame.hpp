@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_bsp_draw_collector.hpp"
 #include "halo2/source_effect_light_opaque.hpp"
+#include "halo2/native_tu15_frustum_draw_cull.hpp"
 
 namespace halo2 {
 struct SourceEffectLightGeometryFrameContext {
@@ -26,6 +27,11 @@ struct SourceEffectLightGeometryFrameWorld {
     std::function<void(SourceBspPartCommandState&,const SourceDrawUnitState&,
         const SourceBspAdmission&,const SourceBspPartCommandContext&,
         std::uint32_t)> complete_commands;
+    const SourcePortalVisibilitySet* visibility{};
+    // A live World supplies its actual arithmetic environment and optional
+    // original-code diagnostic here. The standalone typed owner is the default.
+    std::function<std::vector<NativeTu15FrustumDrawCall>(SourceDrawUnitState&,
+        const SourceBspAdmission&,const SourceDrawUnitCullContext&)> frustum_cull;
 };
 enum class SourceEffectLightGeometryFramePhase {collected,culled};
 using SourceEffectLightGeometryFrameObserver=std::function<void(
@@ -38,6 +44,7 @@ using SourceEffectLightGeometryFrameObserver=std::function<void(
 // production follow this entry; opaque selection alone is not a draw.
 struct SourceEffectLightGeometryFrameResult {
     std::vector<SourceDrawUnitSphereCall> cull_calls;
+    std::vector<NativeTu15FrustumDrawCall> frustum_calls;
     unsigned opaque_count{};
 };
 SourceEffectLightGeometryFrameResult source_effect_light_geometry_frame(SourceDrawUnitState&,

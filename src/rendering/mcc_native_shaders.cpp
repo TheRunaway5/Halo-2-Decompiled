@@ -7,6 +7,7 @@
 #include "halo2/mcc_native_illum_three_channel.hpp"
 #include "halo2/mcc_native_env_illum_three_channel.hpp"
 #include "halo2/mcc_native_tiling_specular.hpp"
+#include "halo2/mcc_native_alpha_environment.hpp"
 #include "halo2/mcc_native_world_default_roles.hpp"
 #include "halo2/mcc_native_character_shared.hpp"
 #include "halo2/mcc_native_library.hpp"
@@ -954,6 +955,22 @@ void Cache::initialize_mcc_native_shaders(const MccPreparedMapOwner* owner) {
                     std::uint32_t extent=0;bool ambiguous=false;
                     const auto consider=[&](const Tag& owner) {
                         if(owner.address!=alias.address||owner.group!=alias.group||!owner.size)return;
+                        if(extent&&extent!=owner.size)ambiguous=true;
+                        extent=owner.size;
+                    };
+                    for(const auto& owner:tags_)consider(owner);
+                    for(const auto& owner:retained_tag_allocations_)consider(owner);
+                    return !ambiguous&&extent>=minimum;
+                });
+            if(!projected)projected=project_mcc_alpha_environment(original,source->second,native_stem,filename,payload,
+                [&](std::uint32_t address,std::size_t size) {
+                    return Bytes(storage_).slice(metadata_offset(address,size),size);
+                },[&](std::uint32_t handle)->const Tag* {return find_tag({handle});},
+                [&](std::uint32_t handle,std::uint32_t frame) {return frame<bitmap_count(handle);},
+                [&](const Tag& alias,std::size_t minimum) {
+                    std::uint32_t extent{};bool ambiguous=false;
+                    const auto consider=[&](const Tag& owner) {
+                        if(owner.group!=alias.group||owner.address!=alias.address||!owner.size)return;
                         if(extent&&extent!=owner.size)ambiguous=true;
                         extent=owner.size;
                     };

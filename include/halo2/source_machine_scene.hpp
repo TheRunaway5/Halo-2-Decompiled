@@ -17,6 +17,9 @@ class PhysicsLiveWorldTu15;
 class SourceCampaignMachineViewPacket;
 struct SourceCampaignMachineDrawInputs;
 struct ReferenceDeviceState;
+struct SourceControlMaterialOwner {
+    std::uint32_t object{},definition{};
+};
 // Prepared-resource census; synchronize separately owns live draw admission.
 struct SourceMachineSceneStats {
     unsigned placements{},render_models{},position_overlays{};
@@ -38,7 +41,9 @@ struct SourceMachinePortalState {
     SourcePortalDoorInput door;
     bool initialized_group_state_only{};
 };
-// Authored type7 resources, with the recovered live device controller/PRT path.
+// Authored type7 machines and type8 controls share the live device pose/PRT
+// path. Controls retain their own constructor, placement and lighting type;
+// only machines participate in door portals. Campaign resources remain type7.
 // The cache and collision service must outlive this scene. Construction
 // allocates all material slots before Renderer creates its resident resources.
 class SourceMachineScene {
@@ -145,6 +150,8 @@ public:
     std::vector<SourceMachinePortalState> portal_owners() const;
     const SourceMachineSceneStats &stats() const;
     std::span<const SourceMachineResourceBoundary> deferred_resource_owners() const;
+    // Live controls keep independent slots for their native screen functions.
+    std::optional<SourceControlMaterialOwner> control_material_owner(unsigned material)const;
 private:
     struct Impl;
     explicit SourceMachineScene(std::unique_ptr<Impl>);

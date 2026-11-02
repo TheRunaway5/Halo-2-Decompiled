@@ -21,7 +21,7 @@ struct PointLights::Impl {
     struct Attachment {unsigned slot;std::uint32_t light,marker;std::vector<ObjectAttachmentMarker> markers;bool native_required{};};
     struct Live {std::uint32_t light,definition;Transform frame;std::uint32_t source_light=none;};
     const Cache& cache;unsigned bsp;
-    BspAtmosphere locations;ObjectLightSpatialBsp memberships;TerrainCollision terrain;
+    BspAtmosphere locations;ObjectLightSpatialBsp memberships;SourcePortalBsp portals;TerrainCollision terrain;
     SourceEffectLightDatumPool pool;SourceEffectLightSpatialPool spatial;
     SourceEffectLightQueryState queries;std::array<SourceShadowSelectionCache,4> selection;
     std::map<std::uint32_t,EffectLightDefinition> definitions;
@@ -71,7 +71,7 @@ struct PointLights::Impl {
             std::uint32_t(tick),queries.epoch,30,std::int16_t(bsp),true};
     }
     Impl(const Cache& c,unsigned index):cache(c),bsp(index),locations(c.load_bsp_atmosphere(index)),
-        memberships(c.load_object_light_spatial_bsp(index)),terrain(c.load_raw_terrain_collision(index)),spatial(memberships.clusters.size()) {
+        memberships(c.load_object_light_spatial_bsp(index)),portals(c.load_source_portal_bsp(index)),terrain(c.load_raw_terrain_collision(index)),spatial(memberships.clusters.size()) {
         pool.activate();
         for(const auto& tag:c.tags()) {
             if(tag.group!="proj" && tag.group!="weap" && tag.group!="bipd" && tag.group!="vehi" &&
@@ -258,10 +258,10 @@ SourceEffectLightView PointLights::view(Vec3 camera,const SourceEffectLightColle
     source_effect_lights_select(result,i.selection,std::bit_cast<std::int32_t>(collection.local_player),candidates,frame,false);return result;
 }
 std::vector<WorldEffectLightReceiver> PointLights::receivers(const SourceEffectLightView& lights,
-    const SourceBspAdmissionBsp& geometry,std::span<const std::uint8_t> fog,const SourceBspAdmission* main) {
+    const SourceBspAdmissionBsp& geometry,std::span<const std::uint8_t> fog,const SourceBspAdmission* main,std::span<const std::uint32_t> open_portals) {
     Impl::Mutation mutation(*impl_);
     auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
-    const SourceEffectLightReceiverWorld world{i.memberships,geometry,i.locations,std::int16_t(i.bsp)};
+    const SourceEffectLightReceiverWorld world{i.memberships,geometry,i.locations,std::int16_t(i.bsp),&i.portals,open_portals};
     for(const auto& selected:lights.selected) {
         if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
         const auto at=std::find_if(lights.records.begin(),lights.records.end(),[&](const auto& r){return r.runtime.identity==selected.identity;});

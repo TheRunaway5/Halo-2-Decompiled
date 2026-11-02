@@ -15,16 +15,23 @@ SourceEffectLightGeometryFrameResult source_effect_light_geometry_frame(SourceDr
     cull.mode=context.draw.mode;cull.main_prefix=state.main_prefix;cull.draw_count=state.draw_count;
     if(cull.draw_count>state.units.size() || cull.main_prefix>cull.draw_count)
         throw FormatError("source light frame dynamic collector escaped current draw bank");
-    std::array<SourceCullDrawBanks,850> banks;
-    for(unsigned i=cull.main_prefix;i<cull.draw_count;++i) {
-        const auto flags=state.units[i].words[0];
-        if((flags&1u) || !(flags&0x40u))continue;
-        if(!world.cull_bank)throw FormatError("source light frame lacks current cull geometry owner");
-        banks[i]=world.cull_bank(i,state.units[i]);
-    }
     SourceEffectLightGeometryFrameResult result;
-    result.cull_calls=source_draw_unit_sphere_cull(state.units,banks,state.arena,
-        context.draw.mask_arena_address,cull);
+    if(cull.query_mode==0) {
+        if(!world.visibility)throw FormatError("Source light frustum frame lacks its actual visibility bank");
+        if(world.frustum_cull)result.frustum_calls=world.frustum_cull(state,admission,cull);
+        else result.frustum_calls=native_tu15_frustum_draw_cull_44710(state.units,state.arena,
+            context.draw.mask_arena_address,cull,*world.visibility,admission.associations,world.cull_bank);
+    }else {
+        std::array<SourceCullDrawBanks,850> banks;
+        for(unsigned i=cull.main_prefix;i<cull.draw_count;++i) {
+            const auto flags=state.units[i].words[0];
+            if((flags&1u) || !(flags&0x40u))continue;
+            if(!world.cull_bank)throw FormatError("source light frame lacks current cull geometry owner");
+            banks[i]=world.cull_bank(i,state.units[i]);
+        }
+        result.cull_calls=source_draw_unit_sphere_cull(state.units,banks,state.arena,
+            context.draw.mask_arena_address,cull);
+    }
     if(observer)observer(SourceEffectLightGeometryFramePhase::culled,state,admission);
     auto command_context=context.commands;
     command_context.mode=context.draw.mode;

@@ -396,3 +396,18 @@ original-bound fixtures still pass; this adds no original Live or TU1.5 producer
 claim. Remaining native account/friends/clan/team/postgame owners, full original
 recovery, natural played-world scope, genuine providers and installed G01-G12
 delivery remain open.
+
+`matchmaking_frontend_friends` owns the complete native friends caller,
+including provider/availability selection, native/social party and invitation
+actions, menu/text/column choices and roster refresh/focus. Friend/activity
+targets live in the existing Rust party controller; their C++ fields are removed.
+Native code supplies typed provider/localization/navigation IO and opaque
+snapshot storage. [Qualification](../../multiplayer/docs/evidence/matchmaking-rust-parity-20261028/native-frontend-friends-flow-rust-validation.json)
+records 722 Rust passes, 6,025 modern caller comparisons, 4,993 callback-boundary
+observations and Rust reentries, 106 preserved native exceptions and 35 passing
+native checks including SDL/Vulkan playlist/Start/privacy and party pixels.
+The former undefined C++ INT_MIN negations are excluded from equivalence and
+separately controlled in Rust. This adds no original Live/TU1.5 provider claim.
+Remaining native account/voice/clan/team/postgame owners, full original recovery,
+natural played-world scope, genuine providers and installed G01-G12 delivery
+remain open.

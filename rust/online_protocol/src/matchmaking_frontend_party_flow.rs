@@ -108,6 +108,10 @@ pub struct State {
     pub voice_wanted: bool,
     pub friend_target: Vec<u8>,
     pub activity_target: Vec<u8>,
+    pub clan_target: Vec<u8>,
+    pub clan_target_kind: u32,
+    pub clan_message_page: u32,
+    pub clan_confirmation: Option<crate::matchmaking_frontend_clans::Command>,
 }
 pub struct Controller(Mutex<State>);
 impl Default for Controller {
@@ -182,6 +186,21 @@ impl Controller {
     }
     pub fn set_activity_target(&self, value: Vec<u8>) {
         self.edit(|s| s.activity_target = value);
+    }
+    pub fn set_clan_target(&self, value: Vec<u8>, kind: u32) {
+        self.edit(|s| {
+            s.clan_target = value;
+            s.clan_target_kind = kind;
+        });
+    }
+    pub fn set_clan_confirmation(&self, value: Option<crate::matchmaking_frontend_clans::Command>) {
+        self.edit(|s| s.clan_confirmation = value);
+    }
+    pub fn take_clan_confirmation(&self) -> Option<crate::matchmaking_frontend_clans::Command> {
+        self.0.lock().unwrap().clan_confirmation.take()
+    }
+    pub fn advance_clan_message(&self) {
+        self.edit(|s| s.clan_message_page = s.clan_message_page.wrapping_add(1));
     }
     pub fn match_voice(&self, selected: bool, joined: bool) -> bool {
         let state = self.state();

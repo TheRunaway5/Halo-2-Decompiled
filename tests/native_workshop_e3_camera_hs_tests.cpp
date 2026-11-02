@@ -168,7 +168,7 @@ int main(int argc,char** argv){
     try {
         const auto signature=mcc_script_builtin_signature(454);
         need(signature && signature->xbox_opcode==452 && signature->name=="camera_set_animation",
-            "E3 camera consumer requires its explicit private profile");
+            "E3 camera consumer requires its authenticated admitted declaration");
         Cache cache(argv[1],argv[2],{},argv[3]);need(cache.is_mcc(),"E3 camera consumer requires MCC content");
 #if defined(HALO2_E3_CAMERA_DELIVERY_ONLY)
         std::optional<CameraInput> fixture_input;

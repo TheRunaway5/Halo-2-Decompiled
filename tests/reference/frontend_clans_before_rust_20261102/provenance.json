@@ -1,0 +1,21 @@
+{
+  "scope": "Full modern native clan, account/voice binding and clan message-advance caller before Rust ownership; not original Live service recovery",
+  "source_pins": {
+    "src/ui/frontend_clans.cpp": "e205d1b7314b8a26d74fa94ff3e1f0bad2a4a948d937f7acfe766de7633c8d0d",
+    "src/ui/frontend_state.cpp": "1b9166216a1594b0026a6b57cd2357226aa03a40d3dfd2b8ca37266a0be2024e",
+    "include/halo2/frontend.hpp": "ac5e2841886c33038962875c9aa84fb4648466947c1b70c1cfb9f1e577c19cf7",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "ffcf35e0e4ac1fc55acc36fe71dc4ccd1cbe1833c83bbd17fac1ee180474939c",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "8e3f885b592c1ab18ce6c237cb1bdc29cbb488b5b96497f4100302d0735b11e5",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "73d4c5d91026ca856b1526a1af28949b06029fdc032fc770895ee30ed919559a",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "d96d07daedb6d1d6d160ffa8750dc9fd3b93b6c4de6f9f0b5a28fb9003095809"
+  },
+  "capture_names": {
+    "src/ui/frontend_clans.cpp": "src__ui__frontend_clans.cpp.reference",
+    "src/ui/frontend_state.cpp": "src__ui__frontend_state.cpp.reference",
+    "include/halo2/frontend.hpp": "include__halo2__frontend.hpp.reference",
+    "include/halo2/frontend_matchmaking_party_flow.hpp": "include__halo2__frontend_matchmaking_party_flow.hpp.reference",
+    "src/ui/frontend_matchmaking_party_flow_bridge.cpp": "src__ui__frontend_matchmaking_party_flow_bridge.cpp.reference",
+    "rust/online_protocol/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol__src__matchmaking_frontend_party_flow.rs.reference",
+    "rust/online_protocol_bridge/src/matchmaking_frontend_party_flow.rs": "rust__online_protocol_bridge__src__matchmaking_frontend_party_flow.rs.reference"
+  }
+}

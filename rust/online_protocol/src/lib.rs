@@ -36,6 +36,7 @@ pub mod matchmaking_frontend_party_view;
 pub mod matchmaking_frontend_lobby_query;
 pub mod matchmaking_frontend_account_flow;
 pub mod matchmaking_frontend_friends;
+pub mod matchmaking_frontend_clans;
 pub mod matchmaking_origin;
 pub mod matchmaking_native_qos;
 pub mod matchmaking_native_session;

@@ -274,6 +274,15 @@ if(BUILD_TESTING)
   set_tests_properties(vehicle_weapon_hud PROPERTIES SKIP_RETURN_CODE 77)
   add_executable(vehicle_weapon_hud_world_tests tests/vehicle_weapon_hud_world_tests.cpp)
   target_link_libraries(vehicle_weapon_hud_world_tests PRIVATE halo2_systems)
+  add_executable(vehicle_loop_profiles_tu15_tests tests/vehicle_loop_profiles_tu15_tests.cpp)
+  target_link_libraries(vehicle_loop_profiles_tu15_tests PRIVATE halo2_systems)
+  add_executable(source_loop_detail_centered_tu15_tests tests/source_loop_detail_centered_tu15_tests.cpp
+      src/audio/source_loop_detail_control_tu15.cpp)
+  target_include_directories(source_loop_detail_centered_tu15_tests PRIVATE include)
+  target_link_libraries(source_loop_detail_centered_tu15_tests PRIVATE nlohmann_json::nlohmann_json halo2_glm)
+  add_test(NAME original_loop_detail_centered_tu15 COMMAND source_loop_detail_centered_tu15_tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/loop_detail_centered_tu15.json")
+  set_tests_properties(original_loop_detail_centered_tu15 PROPERTIES SKIP_RETURN_CODE 77)
   add_executable(body_impulse_tu15_tests tests/body_impulse_tu15_tests.cpp)
   add_executable(rocket_first_person_reference_tests tests/rocket_first_person_reference_tests.cpp)
   target_link_libraries(rocket_first_person_reference_tests PRIVATE halo2_systems)
@@ -282,6 +291,24 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/body_impulse_tu15_original.json)
   if(EXISTS "${HALO2_ROCKET_GHOST_MCC_MAP}")
     get_filename_component(halo2_ghost_boost_maps "${HALO2_ROCKET_GHOST_MCC_MAP}" DIRECTORY)
+    add_test(NAME native_mcc_vehicle_loop_profiles_tu15 COMMAND vehicle_loop_profiles_tu15_tests
+        "${HALO2_ROCKET_GHOST_MCC_MAP}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/vehicle_loop_profiles_tu15.json"
+        "${CMAKE_CURRENT_BINARY_DIR}/vehicle-loop-profiles.json")
+    set_tests_properties(native_mcc_vehicle_loop_profiles_tu15 PROPERTIES TIMEOUT 180)
+    foreach(vehicle_audio_case ghost warthog warthog-gauss)
+      set(vehicle_audio_owner "${vehicle_audio_case}")
+      set(vehicle_audio_env "")
+      if(vehicle_audio_case STREQUAL "warthog-gauss")
+        set(vehicle_audio_owner warthog)
+        set(vehicle_audio_env HALO2_TEST_GAUSS_HORN=1)
+      endif()
+      add_test(NAME native_mcc_vehicle_controls_audio_${vehicle_audio_case} COMMAND ${CMAKE_COMMAND} -E env
+          ${vehicle_audio_env} $<TARGET_FILE:object_loop_audio_runtime_tu15_tests>
+          "${HALO2_ROCKET_GHOST_MCC_MAP}" "${halo2_ghost_boost_maps}"
+          "${CMAKE_CURRENT_BINARY_DIR}/vehicle-controls-audio-${vehicle_audio_case}.json"
+          native-object-loop-controls ${vehicle_audio_owner})
+      set_tests_properties(native_mcc_vehicle_controls_audio_${vehicle_audio_case} PROPERTIES TIMEOUT 180)
+    endforeach()
     add_test(NAME original_rocket_first_person_reference COMMAND rocket_first_person_reference_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps" "${halo2_ghost_boost_maps}"
         "${CMAKE_CURRENT_BINARY_DIR}/rocket-first-person-reference.json")

@@ -10,6 +10,8 @@
 #include "halo2/source_loop_track_transition_tu15.hpp"
 #include "halo2/source_loop_track_control_tu15.hpp"
 #include "halo2/desktop_session.hpp"
+#include "halo2/multiplayer_kbm.hpp"
+#include "helpers/gameplay_fixture.hpp"
 #include <algorithm>
 #include <bit>
 #include <fstream>
@@ -29,8 +31,8 @@ std::uint32_t word(const SourceRuntimeMemory &memory,std::uint32_t address,unsig
   return value;
 }
 struct Entrance {Spawn spawn;Vec3 point;std::uint32_t definition=null_datum;};
-Entrance entrance(const Cache &cache,const LevelContent &content,const std::string &owner) {
-  if(owner!="banshee"&&owner!="warthog") {
+Entrance entrance(const Cache &cache,const LevelContent &content,const std::string &owner,bool controls_mode) {
+  if(owner!="banshee"&&owner!="warthog"&&owner!="ghost") {
     const std::map<std::string,std::string> paths{{"extra-rocks","\\extra_rocks"},{"skittery-bugs","\\skittery_bugs"},
         {"flies","\\monopoint_flies"},{"birds-insects","\\outdoor_birds_insects"},
         {"powerhaus","\\powerhaus"},{"under-glass","\\hq_under_glass"},
@@ -106,7 +108,7 @@ Entrance entrance(const Cache &cache,const LevelContent &content,const std::stri
       position.z=floor->position.z+content.player.radius;
       const auto delta=points.front().world.position-(position+Vec3{0,0,content.player.camera_height});
       return {{position,std::atan2(delta.y,delta.x)},points.front().world.position,
-          owner=="banshee"?placed.definition:null_datum};
+          owner=="banshee"||controls_mode?placed.definition:null_datum};
     }
   }
   throw FormatError("No authored vehicle driver approach");
@@ -120,11 +122,11 @@ int main(int argc,char **argv) {
   try {
     check(argc==5||argc==6,"Supply MCC_MAP MCC_MAPS REPORT MODE [warthog|banshee|teleporter|sound-scenery]");output=argv[3];
     const std::string owner=argc==6?argv[5]:"warthog";
-    check(owner=="warthog"||owner=="banshee"||owner=="teleporter"||owner=="sound-scenery"||
+    check(owner=="warthog"||owner=="banshee"||owner=="ghost"||owner=="teleporter"||owner=="sound-scenery"||
         owner=="extra-rocks"||owner=="skittery-bugs"||owner=="flies"||owner=="birds-insects"||
         owner=="powerhaus"||owner=="under-glass"||owner=="green-hum"||owner=="lift","Unknown authored audio owner");
-    const bool vehicle=owner=="warthog"||owner=="banshee";
-    const std::string mode=argv[4];check(mode=="baseline"||mode=="source-frame"||mode=="listeners-and-source-frame"||mode=="selected-loop"||mode=="nonspatial-control"||mode=="native-views-frame"||mode=="native-views-empty"||mode=="native-views-far"||mode=="native-loop-packet"||mode=="native-loop-packet-converted"||mode=="native-object-loop"||mode=="native-object-loop-omit"||mode=="native-object-loop-retire"||mode=="native-object-loop-maneuvers","Unknown object-loop mode");
+    const bool vehicle=owner=="warthog"||owner=="banshee"||owner=="ghost";
+    const std::string mode=argv[4];check(mode=="baseline"||mode=="source-frame"||mode=="listeners-and-source-frame"||mode=="selected-loop"||mode=="nonspatial-control"||mode=="native-views-frame"||mode=="native-views-empty"||mode=="native-views-far"||mode=="native-loop-packet"||mode=="native-loop-packet-converted"||mode=="native-object-loop"||mode=="native-object-loop-omit"||mode=="native-object-loop-retire"||mode=="native-object-loop-maneuvers"||mode=="native-object-loop-controls","Unknown object-loop mode");
     const bool object_mode=mode.starts_with("native-object-loop");
     const bool packets_mode=mode.starts_with("native-loop-packet")||object_mode;
     report["mode"]=mode;report["map"]=argv[1];report["owner"]=owner;
@@ -132,13 +134,18 @@ int main(int argc,char **argv) {
     options.local_players=(packets_mode||mode.starts_with("native-views"))?2:1;
     options.starting_weapon=5;options.source_object_world=true;options.mute=true;
     options.session_random_seed=0x22a0d10u;
-    Vec3 entry_point;std::optional<Spawn> lift_spawn;
+    const bool controls_mode=mode=="native-object-loop-controls";
+    if(controls_mode)options.variant.values.set(76,owner=="ghost"?3:
+        owner=="banshee"?1:std::getenv("HALO2_TEST_GAUSS_HORN")?2:1);
+    Vec3 entry_point;std::optional<Spawn> lift_spawn,vehicle_spawn;
     std::set<std::uint32_t> target_loops;std::uint32_t target_definition=null_datum;
     {
       Cache cache(options.map,options.shared_maps);
       const auto content=cache.load_content(0,true,source_game_variant(options.variant));
-      const auto setup=entrance(cache,content,owner);
-      if(owner=="lift")lift_spawn=setup.spawn;else options.native_spawn_inputs={setup.spawn};
+      const auto setup=entrance(cache,content,owner,controls_mode);
+      if(owner=="lift")lift_spawn=setup.spawn;
+      else if(controls_mode && vehicle)vehicle_spawn=setup.spawn;
+      else options.native_spawn_inputs={setup.spawn};
       entry_point=setup.point;target_definition=setup.definition;
       report["declared_entry_spawn"]={setup.spawn.position.x,setup.spawn.position.y,setup.spawn.position.z};
       report["authored_entry_point"]={setup.point.x,setup.point.y,setup.point.z};
@@ -152,6 +159,8 @@ int main(int argc,char **argv) {
         }
         check(!target_loops.empty(),"Chosen object has no actual authored loop attachment");
       }
+      if(controls_mode && owner=="warthog")for(const auto& tag:cache.tags())
+        if(tag.group=="lsnd" && tag.name.ends_with("\\warthog_horn\\warthog_horn"))target_loops.insert(tag.datum);
     }
     MultiplayerPreparedWorld world(options,std::nullopt);world.bind_source_local_views(world.local_slots);
     report["actual_local_player_rows"]=world.local_slots.size();
@@ -159,6 +168,19 @@ int main(int argc,char **argv) {
     auto &source=*world.source_objects;auto &native=source.tu15_world();
     const auto native_audio_locations=world.cache->load_bsp_atmosphere(0);
     auto &memory=native.memory();
+    if(vehicle_spawn) {
+      std::array<Controls,multiplayer_capacity> warmup{};
+      for(unsigned tick=0;tick<60;++tick)world.match.step(warmup);
+      const auto initial=world.match.state();const auto slot=world.local_slots.front();
+      check(world.match.source_engine_owned() && initial.players[slot].source_unit!=null_datum,
+          "Vehicle controls require canonical source-engine birth before scene placement");
+      test::place_player(world.match,slot,*vehicle_spawn);
+      native.set_object_position(initial.players[slot].source_unit,vehicle_spawn->position);
+      std::array<Controls,multiplayer_capacity> neutral{};
+      for(const auto local:world.local_slots){neutral[local].yaw=initial.players[local].yaw;neutral[local].pitch=initial.players[local].pitch;}
+      neutral[slot].yaw=vehicle_spawn->facing;world.match.step(neutral);
+      report["canonical_spawn_then_declared_position_input"]=true;
+    }
     std::optional<float> placed_lift_height;
     if(lift_spawn) {
       check(options.native_spawn_inputs.empty() && world.match.source_engine_owned(),
@@ -224,6 +246,14 @@ int main(int argc,char **argv) {
       report["lift_native_placement"]["first_completed_position"]={player.position.x,player.position.y,player.position.z};
     }
     std::uint32_t target_object=null_datum;
+    const auto target_family=[&](std::uint32_t object) {
+      for(unsigned depth=0;object!=null_datum && depth<0x800;++depth) {
+        if(object==target_object)return true;
+        object=source.object_parent(object);
+      }
+      return false;
+    };
+
     const auto select_target=[&](unsigned tick) {
       if(target_definition==null_datum||target_object!=null_datum)return;
       float nearest=1e30f;
@@ -283,6 +313,8 @@ int main(int argc,char **argv) {
     std::uint32_t control_loop=null_datum;
     std::vector<SourceLoopSoundRequestTu15> packet_requests;
     std::uint32_t packet_auxiliary=0x6d2b1943u;const auto packet_auxiliary_before=packet_auxiliary;
+    unsigned action_packets{},action_starts{},action_loops{},action_sides{};
+    std::set<MultiplayerAudio::Voice> action_voices;
     unsigned native_packets{},native_boost_sides{},native_contrail_sides{},native_lift_activation_packets{},lift_activation_requests{};
     double native_peak{};bool packet_mutation_rejected=false;
     std::unique_ptr<MultiplayerAudio> packet_audio;
@@ -300,7 +332,17 @@ int main(int argc,char **argv) {
             ++native_packets;
             if(!report.contains("native_packets"))report["native_packets"]=Json::array();
             const auto tag=world.cache->query_tag({.handle=TagHandle{event.sound}});
-            if(tag && event.owner==target_object) {
+            if(tag && (event.owner==target_object || (controls_mode && target_family(event.owner)))) {
+              const bool action=owner=="ghost"?tag->name.find("\\ghost_boost_")!=std::string::npos:
+                  owner=="warthog"?tag->name.find("\\warthog_horn\\")!=std::string::npos:false;
+              if(action) {
+                ++action_packets;
+                action_starts+=tag->name.ends_with("\\in");
+                action_loops+=tag->name.ends_with("\\loop");
+                action_sides|=tag->name.find("_left\\")!=std::string::npos?1u:
+                    tag->name.find("_right\\")!=std::string::npos?2u:0u;
+                action_voices.insert(event.voice);
+              }
               if(tag->name.find("\\banshee_boost_left\\")!=std::string::npos)native_boost_sides|=1u;
               if(tag->name.find("\\banshee_boost_right\\")!=std::string::npos)native_boost_sides|=2u;
               if(tag->name.find("\\banshee_contrail_left\\")!=std::string::npos)native_contrail_sides|=1u;
@@ -330,7 +372,7 @@ int main(int argc,char **argv) {
         packet_audio->bind_object_loop_random_source([desktop]{return desktop->fresh_secondary_random();});
       }
       report["packet_metadata_domain"]=packet_metadata?"actual converted native World":"raw MCC boundary control, not original flag policy";
-      if(owner=="banshee" && packet_metadata) {
+      if((owner=="banshee" || controls_mode) && packet_metadata) {
         std::set<std::uint32_t> sounds;report["native_phase_sound_metadata"]=Json::array();
         for(const auto definition:target_loops)for(const auto& track:world.cache->load_looping_sound(definition).tracks)
           for(const auto sound:{track.start,track.loop,track.end,track.alternate,track.alternate_end,
@@ -378,12 +420,12 @@ int main(int argc,char **argv) {
           (word(memory,word(memory,pool+0x48u)+(index>>5)*4u)&(1u<<(index&31u)))) {
         const auto record=word(memory,pool+0x44u)+index*24u;
         selected=((word(memory,record,2)<<16)|index)==args[2]&&
-            word(memory,record+16u)==target_object&&word(memory,record+12u)==args[0];
+            (word(memory,record+16u)==target_object || (controls_mode && target_family(word(memory,record+16u))))&&word(memory,record+12u)==args[0];
       }
       target_requests+=selected&&target_loops.contains(args[0]);
       if(selected && tag && tag->name.ends_with("\\midship_activate_lift\\midship_activate_lift") &&
           args[5]!=2 && Bytes(request.location).f32(4)>0)++lift_activation_requests;
-      if(selected)check(request.emitter_owner==target_object,
+      if(selected)check(request.emitter_owner==target_object || (controls_mode && target_family(request.emitter_owner)),
           "Attached loop observer lost its actual source emitter identity");
       if(packet_audio && selected && target_loops.contains(args[0]))packet_requests.push_back(request);
       control_requests+=control_loop!=null_datum&&args[2]==control_loop;
@@ -422,7 +464,8 @@ int main(int argc,char **argv) {
     // a six-second fixture cannot require that cue to have played yet.
     const auto test_ticks=owner=="sound-scenery" &&
         std::filesystem::path(argv[1]).filename()=="lockout.map"?600u:
-        mode=="native-object-loop-maneuvers"?360u:180u;
+        (mode=="native-object-loop-maneuvers"||controls_mode)?360u:180u;
+    MultiplayerKbm keyboard;
     for(tick=0;tick<test_ticks;++tick) {
       packet_requests.clear();
       select_target(tick);
@@ -455,9 +498,16 @@ int main(int argc,char **argv) {
                 Vec3{0,0,world.content.player.camera_height};
             if(mode=="native-object-loop-retire" && tick>=60)point=point+Vec3{10000,10000,10000};
             views[view]=SourceObjectAudioViewTu15{point,std::int16_t(native_audio_locations.cluster_at(point))};
+            if(controls_mode) {
+              const auto location=native_audio_locations.location_at(point);
+              const auto player=world.match.state().players[world.local_slots[view]];
+              views[view]=SourceObjectAudioViewTu15{point,std::int16_t(location.cluster),
+                  SourceObjectAudioViewTu15::Orientation{direction(player.yaw,player.pitch),{0,0,1}},location.leaf};
+            }
             listeners.push_back(point);
           }
           packet_audio->listeners(listeners);
+          if(controls_mode)packet_audio->object_loop_listeners(0,views);
         }
         native.step_native_object_audio(views,tick_seconds);
         if(tick==0 || tick==60 || tick==179) {
@@ -499,7 +549,16 @@ int main(int argc,char **argv) {
       if(packet_audio) {
         packet_audio->update();
         if(object_mode) {
-          if(mode!="native-object-loop-omit")for(const auto& request:packet_requests)packet_audio->object_loop_request(request);
+          if(mode!="native-object-loop-omit")for(const auto& request:packet_requests) {
+            if(!controls_mode)packet_audio->object_loop_request(request);
+            else try{packet_audio->object_loop_request(request);}catch(const FormatError& error) {
+              const auto tag=world.cache->query_tag({.handle=TagHandle{request.arguments[0]}});
+              const Json failure{{"loop",request.arguments[0]},{"name",tag?tag->name:""},{"error",error.what()}};
+              auto& failures=report["playback_errors"];
+              if(failures.is_null())failures=Json::array();
+              if(std::find(failures.begin(),failures.end(),failure)==failures.end())failures.push_back(failure);
+            }
+          }
           packet_audio->object_loop_frame(tick_seconds);
         }else for(const auto& request:packet_requests) {
           const auto &args=request.arguments;const Bytes location(request.location);
@@ -597,6 +656,14 @@ int main(int argc,char **argv) {
           commands[slot].jump=tick>=45&&tick<90;
         }
       }
+      if(controls_mode && player.source_parent!=null_datum) {
+        SDL_Event button{};button.type=SDL_MOUSEBUTTONDOWN;
+        button.button.button=owner=="warthog"?SDL_BUTTON_LEFT:SDL_BUTTON_RIGHT;
+        const bool held=(tick>=90&&tick<150)||(tick>=180&&tick<210);
+        if(!held)button.type=SDL_MOUSEBUTTONUP;
+        keyboard.handle_event(button);
+        commands[slot]=keyboard.consume(commands[slot].yaw,commands[slot].pitch).gameplay_controls(false,true,false);
+      }
       world.match.step(commands);
       if(vehicle && target_object!=null_datum && (tick==60 || tick==100 || tick==140 || tick==179 || tick==200 || tick==239 || tick==359)) {
         const auto body=source.source_object_body(target_object),driver=source.source_object_body(player.source_unit);
@@ -604,6 +671,9 @@ int main(int argc,char **argv) {
         report["actual_vehicle_audio_control_samples"].push_back({{"tick",tick},{"vehicle",target_object},
             {"body",body},{"source_control_word",word(memory,body+0x148)},
             {"source_driver_control_word",word(memory,driver+0x148)},
+            {"source_parent",player.source_parent},{"source_seat",player.source_seat},
+            {"player_position",{player.position.x,player.position.y,player.position.z}},
+            {"action_target",player.action_prompt.target.object},{"action",player.action_prompt.target.action},
             {"command_crouch",commands[slot].crouch},{"command_jump",commands[slot].jump},
             {"command_secondary",commands[slot].fire_secondary},
             {"position_bits",{word(memory,body+0x64),word(memory,body+0x68),word(memory,body+0x6c)}},
@@ -623,10 +693,16 @@ int main(int argc,char **argv) {
     }
     native.observe_loop_sound_requests({});report["final_loops"]=loops();report["ticks"]=tick;report["seated_ticks"]=seated;
     report["request_count"]=requests;report["request_samples_clipped"]=requests>report["source_requests"].size();
-    if(packet_audio){report["native_loop_final_voices"]=packet_audio->voices();packet_audio->stop();}
+    unsigned active_action_voices{};
+    if(packet_audio){
+      for(const auto voice:action_voices)active_action_voices+=packet_audio->voice_active(voice);
+      report["native_loop_final_voices"]=packet_audio->voices();packet_audio->stop();
+    }
     report["native_PCM_verified"]=bool(packet_audio)&&native_peak>0&&native_packets>0;
     report["native_loop_packet_peak"]=native_peak;report["native_loop_packet_submissions"]=native_packets;
     report["native_banshee_boost_sides"]=native_boost_sides;
+    report["action_audio"]={{"packets",action_packets},{"starts",action_starts},{"loops",action_loops},
+        {"sides",action_sides},{"active_after_release",active_action_voices}};
     report["native_banshee_contrail_sides"]=native_contrail_sides;
     if(owner=="lift")report["lift_activation"]={{"initial_height",initial_height},{"peak_height",peak_height},
         {"positive_source_requests",lift_activation_requests},{"actual_native_packets",native_lift_activation_packets}};
@@ -647,10 +723,14 @@ int main(int argc,char **argv) {
     if(object_mode)report["passed"]=report["passed"].get<bool>()&&packet_mutation_rejected;
     if(mode=="native-object-loop-maneuvers")report["passed"]=report["passed"].get<bool>()&&
         report.value("native_metadata_restore_rejected_without_target",false)&&native_boost_sides==3u&&native_contrail_sides==3u;
+    if(controls_mode)report["passed"]=report["passed"].get<bool>()&&action_packets>0&&action_starts>=2&&action_loops>0&&
+        active_action_voices==0&&(owner!="ghost"||action_sides==3u)&&
+        (!report.contains("playback_errors")||report["playback_errors"].empty());
+    if(controls_mode && !report["passed"].get<bool>())report["error"]="Held mouse input produced no complete authored boost/horn audio";
     if(owner=="lift" && packet_audio)report["passed"]=report["passed"].get<bool>()&&
         peak_height>initial_height && lift_activation_requests>0 && native_lift_activation_packets>0;
     report["ordinary_object_loop_profile_verified"]=object_mode&&report["passed"].get<bool>();
-    if(!report["passed"].get<bool>())report["error"]=mode=="native-object-loop-retire"?
+    if(!report["passed"].get<bool>()&&!report.contains("error"))report["error"]=mode=="native-object-loop-retire"?
         "Native object loop streams survived source-owner retirement":mode=="native-object-loop-maneuvers"&&native_boost_sides!=3u?
         "Actual secondary intent reached neither complete Banshee boost audio pair":packet_audio&&target_requests?
         "Actual source requests reached no native loop PCM":"Original object loops produced no playback requests";

@@ -61,6 +61,7 @@ int overshield_live_feedback_test(int argc,char** argv) {
         const auto slot=prepared.local_slots.at(0);
         for(unsigned n=0;n<15;++n)match.step({});
         const auto unit=match.player(slot).source_current_object;
+        const auto spawn=match.state().players.at(slot).position;
         unsigned row=~0u;std::uint32_t pickup_sound=null_datum;
         for(unsigned i=0;i<prepared.content.netgame_equipment.size();++i) {
             const auto &p=prepared.content.netgame_equipment[i];if(p.items.size()!=1 || p.items[0].group!=0x65716970u)continue;
@@ -68,16 +69,36 @@ int overshield_live_feedback_test(int argc,char** argv) {
             const Bytes b(tag.bytes_at(tag.source_address()+0x12c,0x10));
             if(b.u16(0)==2){row=i;pickup_sound=b.u32(0xc);break;}
         }
-        require(row!=~0u && pickup_sound!=null_datum,"Overshield has no authored pickup/sound");
+        require(row!=~0u,"Overshield has no authored pickup");
+        // The original overshield eqip sound is NONE. Its ordinary charge
+        // audio belongs to hudg+418's charging mask, with distinct species refs.
+        std::set<std::uint32_t> charge_sounds;
+        const auto hud=prepared.cache->query_tag({.group=TagGroup::from_string("hudg"),.require_address=true});
+        require(bool(hud),"Overshield charge has no HUD globals");
+        const auto hm=prepared.cache->load_source_tag_metadata(hud->datum);
+        const Bytes h(hm.bytes_at(hm.source_address(),hm.size()));
+        const Bytes entries(hm.bytes_at(h.u32(0x41c),h.u32(0x418)*24));
+        for(unsigned n=0;n<h.u32(0x418);++n)if(entries.u32(n*24+8)&1u) {
+            const auto at=n*24+(species?16u:0u),group=entries.u32(at),sound=entries.u32(at+4);
+            if(sound==null_datum)continue;
+            if(group==0x736e6421u)charge_sounds.insert(sound);
+            else if(group==0x6c736e64u) {
+                const auto loop=prepared.cache->load_looping_sound(sound);
+                for(const auto& track:loop.tracks)if(track.loop!=null_datum)charge_sounds.insert(track.loop);
+            }
+        }
+        require(!charge_sounds.empty(),"Overshield charge mask has no authored sound packets");
         auto item=objects.netgame_object(row);if(item==null_datum)item=objects.create_netgame_object(row);
         require(item!=null_datum,"Original owner did not spawn the overshield");
         const auto position=objects.object_transform(item).position;
         const auto abi=native.prepare_source_call();require(abi.floating_point.has_value(),"Flash reference has no source FP policy");
         const NativeTu15PhysicsFrameFp fp{abi.floating_point->x87_control_word,abi.x87_status,abi.floating_point->mxcsr};
-        unsigned inputs{},requests{},native_flash_frames{},rendered_flash_frames{},other_flash_frames{},mismatched_flash_frames{};
+        unsigned inputs{},requests{},native_flash_frames{},submitted_flash_frames{},other_flash_frames{},mismatched_flash_frames{};
+        unsigned native_charge_frames{},mismatched_charge_frames{};
         unsigned world_vertices{},fp_vertices{};std::set<std::uint64_t> voices;std::size_t pcm_frames{};
-        std::optional<std::uint32_t> contact_tick;bool moved=false,finished=false,expired=false;float maximum_shield{};
-        std::vector<nlohmann::json> sound_requests;
+        std::set<int> native_flash_types;
+        std::optional<std::uint32_t> contact_tick;bool moved=false,returned=false,finished=false,expired=false;float maximum_shield{};
+        std::vector<nlohmann::json> sound_requests,charge_packets;
         native.observe_sound_submissions([&](bool before,std::uint32_t sound,std::uint32_t request,
             const SourcePhysicsWorldRuntimeAbi&,const SourceRuntimeMemory& memory,auto,auto) {
             if(!before || sound!=pickup_sound)return;
@@ -92,6 +113,15 @@ int overshield_live_feedback_test(int argc,char** argv) {
                 if(std::none_of(live.begin(),live.end(),[&](const auto& v){return v.object==item;}))contact_tick=state.tick;
             }
             maximum_shield=std::max(maximum_shield,state.players.at(slot).shield);
+            if(contact_tick) {
+                const auto body=objects.object_body(unit);
+                const bool charging=(Bytes(native.memory().view(body+0x10au,2)).u16(0)&0x200u)!=0;
+                native_charge_frames+=charging;
+                mismatched_charge_frames+=charging!=state.players.at(slot).shield_recharging;
+            }
+            // After actual sound delivery, return the same unit to its spawn
+            // so the second real player's source camera can inspect its aura.
+            if(contact_tick && !returned && !voices.empty()) {native.set_object_position(unit,spawn);returned=true;}
             if(contact_tick && state.tick>*contact_tick+75) {
                 finished=true;SDL_Event quit{};quit.type=SDL_QUIT;require(SDL_PushEvent(&quit)==1,"Cannot finish overshield feedback capture");
             }
@@ -100,15 +130,23 @@ int overshield_live_feedback_test(int argc,char** argv) {
             if(!contact_tick || tick<*contact_tick)return;
             FlashSample reference(native.memory());const auto expected=reference.sample(view,fp);
             if(view==0) {
-                native_flash_frames+=expected.intensity>0;rendered_flash_frames+=actual.intensity>0;
+                if(expected.intensity>0)native_flash_types.insert(expected.type);
+                native_flash_frames+=expected.intensity>0;submitted_flash_frames+=actual.intensity>0;
                 mismatched_flash_frames+=player_screen_flash_argb(expected)!=player_screen_flash_argb(actual) ||
                     (expected.intensity>0 && expected.type!=actual.type);
                 if(tick>*contact_tick+65)expired=expected.intensity==0 && actual.intensity==0;
             } else other_flash_frames+=actual.intensity>0 || expected.intensity>0;
         };
         o.audio_observer=[&](const MultiplayerAudioSubmission& s) {
-            if(s.sound!=pickup_sound)return;
+            if(s.sound!=pickup_sound && !charge_sounds.contains(s.sound))return;
             require(s.voice && s.frames,"Overshield sound has no real queued PCM");
+            if(charge_sounds.contains(s.sound)) {
+                require(moved && match.state().players.at(slot).shield>1 &&
+                    s.kind==MultiplayerAudioKind::Shield && s.view==0 && s.owner==unit,
+                    "Overshield charge lost its actual pickup, unit or local-view owner");
+                charge_packets.push_back({{"sound",s.sound},{"owner",s.owner},{"view",s.view},
+                    {"voice",s.voice},{"frames",s.frames},{"tick",match.state().tick}});
+            }
             if(voices.insert(s.voice).second)pcm_frames+=s.frames;
         };
         o.shield_layer_observer=[&](unsigned view,unsigned owner,bool first_person,std::uint32_t shader,std::uint32_t,std::span<const Vertex> vertices) {
@@ -118,16 +156,23 @@ int overshield_live_feedback_test(int argc,char** argv) {
         };
         o.screenshot=output/(std::to_string(species)+"-pickup.ppm");
         const auto status=run_multiplayer(o);native.observe_sound_submissions({});
-        const bool ok=status==0 && contact_tick && finished && maximum_shield>2.9f && requests==1 && voices.size()==1 &&
-            pcm_frames && native_flash_frames && rendered_flash_frames && !mismatched_flash_frames && !other_flash_frames && expired && world_vertices && fp_vertices;
+        const bool ok=status==0 && contact_tick && finished && maximum_shield>2.9f &&
+            requests==(pickup_sound==null_datum?0u:1u) && !voices.empty() &&
+            pcm_frames && native_charge_frames && !mismatched_charge_frames &&
+            native_flash_types==std::set<int>{5} && native_flash_frames && submitted_flash_frames &&
+            !mismatched_flash_frames && !other_flash_frames && expired && world_vertices && fp_vertices;
         report["cases"].push_back({{"species",species?"Elite":"Spartan"},{"passed",ok},{"consumed",contact_tick.has_value()},
             {"source_unit",unit},{"pickup_sound",pickup_sound},{"native_requests",requests},{"requests",sound_requests},
+            {"hud_charge_sounds",charge_sounds},
+            {"charge_packets",charge_packets},
+            {"native_charge_frames",native_charge_frames},{"mismatched_charge_frames",mismatched_charge_frames},
             {"queued_voices",voices.size()},{"pcm_frames",pcm_frames},{"native_flash_frames",native_flash_frames},
-            {"rendered_flash_frames",rendered_flash_frames},{"mismatched_flash_frames",mismatched_flash_frames},
+            {"submitted_flash_frames",submitted_flash_frames},{"mismatched_flash_frames",mismatched_flash_frames},
+            {"native_flash_types",native_flash_types},
             {"other_view_flash_frames",other_flash_frames},{"expired",expired},{"maximum_shield",maximum_shield},
             {"world_vertices",world_vertices},{"fp_vertices",fp_vertices},{"finished",finished}});
         passed&=ok;save();std::cout<<report["cases"].back().dump()<<std::endl;
     }
-    report["passed"]=passed;save();require(passed,"Native overshield pickup did not deliver its exact local flash, one queued sound and world/FP layers");
+    report["passed"]=passed;save();require(passed,"Native overshield pickup did not deliver its exact local flash, authored charge PCM and world/FP layers");
     return 0;
 }

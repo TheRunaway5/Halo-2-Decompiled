@@ -96,6 +96,7 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
     std::array<std::uint32_t,16> mask;
     std::memcpy(mask.data(),memory.view(pointer,sizeof(mask)).data(),sizeof(mask));
     SourceCampaignViewFrameTu15 frame;
+    frame.open_portals=mask;
     frame.visibility=source_portal_visibility(portals_,std::span{&input.clipping,1},fog.cluster,mask);
     const auto containing=source_bsp_fog_admission(atmosphere,{true,true,fog.planar_datum,0});
     SourceBspAdmissionInput bsp_input;bsp_input.containing_fog=containing;

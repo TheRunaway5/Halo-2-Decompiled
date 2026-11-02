@@ -1,0 +1,45 @@
+--- frozen/src/physics/physics_live_world_tu15.cpp
++++ current/src/physics/physics_live_world_tu15.cpp
+@@ -57,6 +57,7 @@
+ #include "halo2/native_tu15_object_velocity_handoff.hpp"
+ #include "halo2/native_tu15_contact_features_handoff.hpp"
+ #include "halo2/native_tu15_simplex_helpers_handoff.hpp"
++#include "halo2/native_tu15_overlap_query_handoff.hpp"
+ #include "halo2/native_tu15_vehicle_flip_binding.hpp"
+ #include "halo2/native_tu15_vehicle_flip_handoff.hpp"
+ #include "halo2/native_tu15_object_velocity_transport.hpp"
+@@ -693,6 +694,7 @@
+     NativeTu15ObjectVelocityHandoffActivity native_object_velocity_handoffs;
+     NativeTu15ContactFeaturesHandoffActivity native_contact_features_handoffs;
+     NativeTu15SimplexHelpersHandoffActivity native_simplex_helpers_handoffs;
++    NativeTu15OverlapQueryHandoffActivity native_overlap_query_handoffs;
+     NativeTu15VehicleFlipHandoffActivity native_vehicle_flip_handoffs;
+     NativeTu15VehicleFlipBindingActivity native_vehicle_flips;
+     std::uint64_t native_vehicle_flip_unqualified_owners{};
+@@ -2978,6 +2980,17 @@
+                 throw std::runtime_error("TU1.5 live process growth resource frame differs");
+             const auto result=virtual_memory.allocate({word(m,bp),0,word(m,np),f.type,4});
+             put(m,bp,result.base);put(m,np,result.bytes);a.gp[0]=result.status;a.gp[4]+=24;return;
++        }
++        if(c.target==0x2f73c0u&&image==SourcePhysicsContactImage::TitleUpdate15) {
++            if(sp<0x600c2000u||sp>0x600fffc0u)
++                throw FormatError("Native overlap query has no retained caller DATA arena");
++            const NativeTu15OverlapQueryHandoffPolicy policy{
++                0x600c0000u,0x60100000u,(sp-0x2000u)&~15u,0x2000u,
++                !o&&(!physics_store_observer||physics_store_observer_read_only),
++                &first_person_phase_active,&weapon_effect_phase_active,
++                [this](auto pc){last_instruction=pc;}};
++            if(native_tu15_handoff_overlap_query(m,c,a,policy,services().timestamp_counter,
++                o,&native_overlap_query_handoffs))return;
+         }
+         for(const auto&e:physics_live_entries_tu15::entries)if(c.target==e.actual) {
+             using Module=physics_live_entries_tu15::Module;
+@@ -6194,7 +6207,7 @@
+     } restore{m,saved,record+0xf8u,before_f8,completed};
+     for(const auto& [at,bytes]:writes)m.write(at,bytes);
+     auto call=impl_->frame(std::array{input.owner,input.root,1u,0u});const auto shadow=call.gp[4]+0x80u;
+-    put(m,shadow,0,1);put(m,call.gp[4]+16u,shadow);
++    const std::byte clear{};m.write(shadow,std::span(&clear,1));put(m,call.gp[4]+16u,shadow);
+     call.gp[0]=input.light;call.gp[1]=definition;call.gp[6]=0x5598f8u;
+     impl_->run_actual(0x31650u,call);
+     const std::array<std::span<const SourceBspAdmissionRecord>,3> expected{

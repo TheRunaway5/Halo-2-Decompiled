@@ -57,7 +57,8 @@ CampaignLightingFrame CampaignRenderer::draw(PhysicsLiveWorldTu15& world,
     i.lights.select_native(world,lights,candidates,
         std::bit_cast<std::int32_t>(collection.local_player),input.frame,input.cinematic);
     const auto containing=source_bsp_fog_admission(i.atmosphere,{true,true,input.fog.planar_datum,0});
-    const auto receivers=i.lights.receivers(lights,i.geometry,containing,&main.bsp);
+    if(!main.open_portals)throw FormatError("Campaign light receivers lost this main view's actual portal mask");
+    const auto receivers=i.lights.receivers(lights,i.geometry,containing,&main.bsp,*main.open_portals);
     SourceEffectLightModelViewTu15 models{world,main.objects,{},containing};
     models.context.entry.distance_scale=input.distance_scale;
     models.context.entry.coverage_multiplier=source_geometry_lod_policy(1).coverage_multiplier;

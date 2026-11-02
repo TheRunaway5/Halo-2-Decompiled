@@ -627,8 +627,21 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   controls across three profiles and an [eight-case GPU copy/resume probe](../analysis/campaign-camera-20261030/arbiter-alpha-gpu-diagnostic-r1/gpu-neutrality-root-r4-review.json).
   An actual renderer compile caught a local cleanup-type scope error; its
   reviewed correction now passes the R6 epoch3 full build, speech test and
-  both focused CTests. Actual opt-in alpha/depth capture and visible shading
-  correction remain pending; the probe does not establish Xbox parity.
+  both focused CTests. The [later opt-in capture](../analysis/campaign-camera-20261030/arbiter-alpha-actual-r6-epoch7-r4-root-review.json)
+  records a post-fence read of all1,080 torso vertices,152 bytes each,
+  matching the ordinary CPU world upload. Its three depth snapshots yield
+  zero accepted same-depth interior samples, and the completed1402 companion
+  frame is absent. The capture remains rejected; no alpha metrics, shading
+  correction or Xbox parity follows. Required compressed diagnostic inputs
+  total137,128 bytes; its private scratch is removed. The [late escort image](../analysis/campaign-camera-20261030/arbiter-late4550-actual-r6-epoch3-root-r1/capture.json)
+  still shows weak gold reflections; an exact Original frame match is open.
+  A later [depth-only diagnostic](../analysis/campaign-camera-20261030/arbiter-alpha-source7-failure-audit-r1/depth-diagnostic.json)
+  identifies the classifier's reversed facing sign. The reviewed correction
+  follows Vulkan's negative shoelace area and finds1,980 exact depth matches
+  in the retained region. It changes diagnostic classification only; the old
+  capture remains rejected and no color/alpha metrics were accepted. New
+  one-frame alpha and exact3001 Council capture adapters are CPU-qualified
+  and independently reviewed, awaiting the R7 build and idle capture lease.
 - [ ] **Actual post-cutscene crash:** the user's log reaches01a_tutorial and
   fails at tick10 in actual root1D0670, callback1B0AD9→1BBEE0. The tight native
   Armory reproduction matches its actor, descriptor and GP/stack packet.
@@ -678,13 +691,25 @@ Armory gameplay boundary; the earlier rendering smoke is not training acceptance
   rebasing and current-input qualification before another full build.
   The [R6 actual replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r6/execution/captures/capture-001-epoch-001/root-review.json)
   passes275BA0 with an actual nonzero AL and reaches275F3E→275CB0,
-  returning to275F43. The current epoch3 replay reproduces the same GP/stack
-  refusal after a passing full build, speech test and two focused CTests.
-  The handoff still terminates at Armory25; neither controllable gameplay
-  nor the genuine children of275CB0 are qualified. Required bounded replay
-  references total19,948,884 bytes across these two R6 collections; their
-  raw capture scratch is removed. The finite R6 source/build owner remains
-  active for the opt-in shading capture. V13 remains launcher-selected.
+  returning to275F43. Subsequent native parent and object-point continuations
+  pass the composed build and focused tests. The [latest completed replay](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r6/execution/captures/capture-006-epoch-007/root-review.json)
+  reaches actualE2365→E04B0, returning toE236A. The native19-site E04B0
+  predicate and seven caller phases pass the epoch8 full build and speech
+  test, but its replay expires before the handoff. No actual AL outcome or
+  controllable-gameplay acceptance is supplied. The finite R6 owner and exact
+  owned processes are [removed](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r6/root-cleanup.json);
+  six completed replay collections retain58,586,097 bytes of required
+  references. The R7 continuation carries exact epoch7 source files and raw
+  links into a new owned source tree, with no build or acceptance transferred.
+  Its [first reviewed refresh](../analysis/campaign-camera-20261030/opening-five-issues-cohort-r7/refresh-001/root-admission.json)
+  admits the same E04B0 closure; a fresh full build is active. V13 remains
+  launcher-selected.
+  The [35-site BCDF0 lookup](../analysis/campaign-native-ai-actions-20261030/action-object-datum-lookup-abi-r1/report.json)
+  and [13-site E22C0 reset](../analysis/campaign-native-ai-actions-20261030/action-object-reset-abi-r1/report.json)
+  now pass bounded raw-ABI component tests and independent source reviews.
+  Each preserves real memory/stack reads and ordered stores; no new Original
+  execution or comparisons were performed. Their caller compositions and
+  actual runtime branches remain separate, unfinished gates.
   Five [private native safety dependencies](../analysis/campaign-native-ai-actions-20261030/safety-components-root-review-v3.json)
   (269CA0/269BF0/269B60/269A60/269940) pass7,315 unchanged original cases,259 reachable sites, exact ordered
   reads/stores, raw byte returns, SIMD status/lanes and original x87/MMX

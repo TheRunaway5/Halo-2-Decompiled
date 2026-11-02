@@ -1,7 +1,9 @@
 """Run actual E3 camera callers through native HS/effects and observer frames.
 
-Borrow completed, immutable providers from the frozen engine build. Only test metadata adds
-the authenticated MCC454->Xbox452 declaration. The explicit camera-only decoded
+Borrow completed, immutable providers from the frozen engine build. Historical
+private mode adds the authenticated MCC454->Xbox452 declaration only to test
+metadata; --production-profile requires its already admitted production table.
+The explicit camera-only decoded
 Cache fixture preserves all55 authored camera calls while complete unmodified
 E3 scripts retain their other22 requirements. This is not mission admission.
 All preparations/compiler/world outputs use run_test.py owned scratch.
@@ -30,6 +32,7 @@ def main():
     parser.add_argument('--delivery-only',action='store_true',help='Check complete unchanged native metadata with the completed Cache library; no World/HS execution')
     parser.add_argument('--camera-fixture-delivery',action='store_true',help='Check camera-only decoded input delivery/restoration with the Cache library; no World/HS execution')
     parser.add_argument('--gpu',action='store_true',help='Check the actual E3 native observer/source BSP/Vulkan camera consumer as well as HS/frames')
+    parser.add_argument('--production-profile',action='store_true',help='Require the admitted production camera declaration; do not generate a private override')
     parser.add_argument('--base-cache',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
     if args.camera_fixture_delivery:args.delivery_only=True
@@ -101,11 +104,16 @@ def main():
     assert len(original)==1 and original[0]['xbox_opcode']==452 and original[0]['xbox_evaluator']=='0x2b27b0'
     assert camera['name']=='camera_set_animation'and camera['return_type']==4 and camera['arguments']==[36,11]
     profile=json.loads((source/'tools/mcc-script-layout.json').read_text())
-    assert len(profile['builtins'])==411 and not any(r['mcc_opcode']==454 for r in profile['builtins'])
-    profile['builtins'].append(dict(**camera,**original[0]))
-    generated=runpy.run_path(str(source/'tools/generate_mcc_script_layout.py'))['generated'](profile)
     project=owner/'project';project.mkdir();private=project/'private/campaign/scripting/mcc_script_layout.inc'
-    private.parent.mkdir(parents=True);private.write_text(generated)
+    if args.production_profile:
+        admitted=[r for r in profile['builtins']if r['mcc_opcode']==454]
+        assert len(profile['builtins'])==412 and admitted==[dict(**camera,**original[0])]
+        assert not private.exists()
+    else:
+        assert len(profile['builtins'])==411 and not any(r['mcc_opcode']==454 for r in profile['builtins'])
+        profile['builtins'].append(dict(**camera,**original[0]))
+        generated=runpy.run_path(str(source/'tools/generate_mcc_script_layout.py'))['generated'](profile)
+        private.parent.mkdir(parents=True);private.write_text(generated)
     test=root/'tests/native_workshop_e3_camera_hs_tests.cpp';test_pin=digest(test);shutil.copyfile(test,project/'camera_hs.cpp')
     extra_pins={};shader_pins={}
     if args.gpu:
@@ -197,6 +205,7 @@ target_link_libraries(camera_hs PRIVATE nlohmann_json::nlohmann_json SDL2::SDL2
         helper_sha256=digest(Path(__file__)),libraries=libraries,link_template_sha256=link_pin,cases=cases,
         GPU_requested=args.gpu,GPU_test_sources=extra_pins,GPU_shaders=shader_pins,
         authenticated_mcc=camera,authenticated_xbox=original[0],production_camera_admission_changed=False,
+        production_profile_used=args.production_profile,test_camera_declaration_added=not args.production_profile,
         delivery_only=args.delivery_only,camera_fixture_delivery=args.camera_fixture_delivery,native_HS_requested=not args.delivery_only,
         native_HS_completed_cases=sum(bool(row.get('native_HS_executed'))for row in evidence),
         selected_runtime_unchanged=True,owned_scratch=str(owner),retained_large_artifacts=[])

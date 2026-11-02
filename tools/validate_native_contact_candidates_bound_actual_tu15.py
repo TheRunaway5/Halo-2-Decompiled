@@ -65,7 +65,7 @@ def metadata(image):
  return dict(sites=list(sites.values()),source_listing_sha256=listings)
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);p.add_argument('--compilers',nargs='+',default=['g++','clang++']);p.add_argument('--convex-header',type=Path);p.add_argument('--dispatch-proof',type=Path);p.add_argument('--overlay',type=Path);p.add_argument('--public-default',action='store_true');p.add_argument('--mutants',action='store_true');a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[],captured_bank_exclusions=[],captured_gp_or_after_consumed=False,public_shared_algorithm_default_domain=a.public_default)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',required=True,type=Path);p.add_argument('--compilers',nargs='+',default=['g++','clang++']);p.add_argument('--convex-header',type=Path);p.add_argument('--dispatch-proof',type=Path);p.add_argument('--overlay',type=Path);p.add_argument('--public-default',action='store_true');p.add_argument('--private-checks',type=Path);p.add_argument('--mutants',action='store_true');a=p.parse_args();out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();report=dict(passed=False,owned_scratch=str(scratch),retained_large_artifacts=[],captured_bank_exclusions=[],captured_gp_or_after_consumed=False,public_shared_algorithm_default_domain=a.public_default)
  try:
   source=NativeContactProcessBeforeInput(ARCHIVE,ARCHIVE_PIN,scratch/'before',0x304350)
   reference=build_constraint_reference(source,scratch/'reference');reference['entry']='Declared original2F36F0 ECX agent,4ordinary formals from actual304 DATA; no captured2F ABI';save(scratch/'reference/reference.json',reference)
@@ -92,7 +92,7 @@ def main():
    text=(project/'native_tu15_mopp_aabb_traversal.cpp').read_text();start=text.index('    void run(');body=text[start:text.index('\n};',start)];assert hashlib.sha256(body.encode()).hexdigest()==proof['native_control_sha256']
    text=(project/'native_tu15_collision_component.cpp').read_text();start=text.index('bool native_tu15_collision_component_enabled(');body=text[start:text.index('NativeTu15ContactComponent native_tu15_resolve_surface_component(',start)];assert hashlib.sha256(body.encode()).hexdigest()==proof['native_component_control_sha256']
   shutil.copyfile(ROOT/'tools/observe_native_contact_candidates_bound_actual_tu15.cpp',project/'driver.cpp')
-  shutil.copyfile(ROOT/'tools/native_contact_candidate_private_data_checks_tu15.hpp',project/'native_contact_candidate_private_data_checks_tu15.hpp')
+  shutil.copyfile(a.private_checks if a.private_checks else ROOT/'tools/native_contact_candidate_private_data_checks_tu15.hpp',project/'native_contact_candidate_private_data_checks_tu15.hpp')
   variants={};text=(project/'native_tu15_contact_candidates.cpp').read_text()
   if a.mutants:
    for name,before,after in [('wrong_transform','second_motion+0x20u,first_motion+0x20u','first_motion+0x20u,second_motion+0x20u'),('opaque_entry_read','m.word(0x2f3d6b,output+4u,m.word(input+4u))','m.word(0x2f3d6b,output+4u,0)'),('upper_publication','m.vector(0x2f37e7,self+0x30u,maximum)','m.vector(0x2f37e7,self+0x30u,minimum)')]:

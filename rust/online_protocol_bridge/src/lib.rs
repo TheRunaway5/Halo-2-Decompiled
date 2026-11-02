@@ -76,6 +76,8 @@ mod matchmaking_frontend_account_flow;
 use matchmaking_frontend_account_flow::*;
 mod matchmaking_frontend_friends;
 use matchmaking_frontend_friends::*;
+mod matchmaking_frontend_clans;
+use matchmaking_frontend_clans::*;
 mod matchmaking_frontend_lobby_view;
 use matchmaking_frontend_lobby_view::*;
 use matchmaking_readiness::{matchmaking_connected_teams, matchmaking_eligibility,
@@ -304,7 +306,18 @@ mod ffi {
     struct PartyFlowFriend {id:Vec<u8>,state:Vec<u8>}
     struct PartyFlowFacts {mode:i32,frames:Vec<PartyFlowFrame>,account_client:bool,queue_client:bool,voice_client:bool,authenticated:bool,busy:bool,party:bool,leader:bool,version:u64,privacy_present:bool,privacy:PartyFlowPrivacy,outgoing:Vec<PartyBytesData>,invitations:Vec<PartyFlowInvite>,friends:Vec<PartyFlowFriend>,clan:bool,clan_members:Vec<PartyBytesData>,signed_in:Vec<u8>,launch:bool,status:u32,party_message:Vec<u8>,command_serial:u64,successful_present:bool,successful:bool,voice_party:bool,voice_joined:bool,voice_connecting:bool,microphone_muted:bool,muted:Vec<PartyBytesData>}
     struct PartyFlowCommand {action:Vec<u8>,value:Vec<u8>,playlist:Vec<u8>,revision:Vec<u8>,version:u64,privacy_present:bool,privacy:u32,privacy_revision:u64,privacy_context:Vec<u8>,join_context:Vec<u8>}
-    struct PartyFlowState {friend_target:Vec<u8>,activity_target:Vec<u8>,friend_join_serial:u64,account_name:Vec<u8>,voice_party:bool,voice_wanted:bool,target:Vec<u8>,kind:u32,version:u64,tab:u32,dismissed:Vec<PartyBytesData>,pending:bool,frame_instance:u64,command_serial:u64,revision:u64,mode:u32,context:Vec<u8>}
+    struct PartyFlowState {clan_target:Vec<u8>,clan_target_kind:u32,clan_message_page:u32,clan_confirmation_present:bool,clan_confirmation:ClansFlowCommand,friend_target:Vec<u8>,activity_target:Vec<u8>,friend_join_serial:u64,account_name:Vec<u8>,voice_party:bool,voice_wanted:bool,target:Vec<u8>,kind:u32,version:u64,tab:u32,dismissed:Vec<PartyBytesData>,pending:bool,frame_instance:u64,command_serial:u64,revision:u64,mode:u32,context:Vec<u8>}
+    struct ClansFlowCommand {action:Vec<u8>,value:Vec<u8>,role:u32,confirmed:bool}
+    struct ClansFlowMember {id:Vec<u8>,name:Vec<u8>,role:u32,is_self:bool,presence:i32}
+    struct ClansFlowMessage {name:Vec<u8>,body:Vec<u8>}
+    struct ClansFlowClan {name:Vec<u8>,role:u32,members:Vec<ClansFlowMember>,outgoing:Vec<PartyInviteData>,messages:Vec<ClansFlowMessage>}
+    struct ClansFlowAccount {message:Vec<u8>,clan_present:bool,clan:ClansFlowClan,invitations:Vec<PartyInviteData>,party_present:bool,leader:bool}
+    struct ClansFlowVoice {joined:bool,connecting:bool,microphone_muted:bool,transmitting:bool,muted:Vec<PartyBytesData>,talking:Vec<PartyBytesData>,message:Vec<u8>,revision:u64}
+    struct ClansFlowFrame {screen:u32,context:u32,selected:u32,description:Vec<u8>,entries:Vec<AccountFlowEntry>}
+    struct ClansFlowFacts {account_client:bool,voice_client:bool,social_client:bool,same_account:bool,candidate_account:bool,local_accounts:Vec<bool>,account:ClansFlowAccount,voice:ClansFlowVoice,frame_present:bool,frame:ClansFlowFrame,frames:Vec<ClansFlowFrame>}
+    struct ClansFlowEffect {kind:u32,top:bool,index:u64,a:u32,b:u32,flag:bool,text:Vec<u8>,entry:AccountFlowEntry,entries:Vec<AccountFlowEntry>}
+    struct ClansFlowArgument {a:u32,b:u32,flag:bool,command:ClansFlowCommand,text:Vec<u8>}
+    struct ClansFlowResult {handled:bool,text:Vec<u8>}
     struct FriendsFlowFriend {id:Vec<u8>,name:Vec<u8>,tag:Vec<u8>,state:Vec<u8>,presence:Vec<u8>,joinable:LobbyViewBool,context:Vec<u8>}
     struct FriendsFlowAccount {authenticated:bool,busy:bool,party:bool,leader:bool,available:bool,tag:Vec<u8>,message:Vec<u8>,friends:Vec<FriendsFlowFriend>,search_present:bool,search:FriendsFlowFriend}
     struct FriendsFlowSocialFriend {handle:Vec<u8>,name:Vec<u8>,kind:i32,presence:i32}
@@ -676,6 +689,19 @@ mod ffi {
         fn friends_flow_update_account(self:&NativeFrontendFriendsIo)->Result<()>;
         fn friends_flow_social_command(self:&NativeFrontendFriendsIo,kind:u32,target:&[u8],action:&[u8])->Result<bool>;
         fn friends_flow_effect(self:&NativeFrontendFriendsIo,effect:&FriendsFlowEffect)->Result<()>;
+    }
+    unsafe extern "C++" {
+        include!("src/matchmaking_frontend_clans.hpp");
+        type NativeFrontendClansIo;
+        fn clans_flow_facts(self:&NativeFrontendClansIo)->Result<ClansFlowFacts>;
+        fn clans_flow_effect(self:&NativeFrontendClansIo,effect:&ClansFlowEffect)->Result<()>;
+        fn clans_flow_command(self:&NativeFrontendClansIo,command:&ClansFlowCommand)->Result<bool>;
+        fn clans_flow_party_command(self:&NativeFrontendClansIo,command:&PartyFlowCommand)->Result<()>;
+        fn clans_flow_update_account(self:&NativeFrontendClansIo)->Result<()>;
+        fn clans_flow_select(self:&NativeFrontendClansIo,index:u32)->Result<()>;
+        fn clans_flow_prepare_pane(self:&NativeFrontendClansIo,screen:u32,pane:u32)->Result<()>;
+        fn clans_flow_localized(self:&NativeFrontendClansIo,index:u32)->Result<Vec<u8>>;
+        fn clans_flow_localized_direct(self:&NativeFrontendClansIo,screen:u32,pane:u32,index:u32)->Result<Vec<u8>>;
     }
     unsafe extern "C++" {
         include!("src/matchmaking_native_preparation.hpp");
@@ -1129,6 +1155,8 @@ mod ffi {
         fn frontend_account_flow(controller:&FrontendPartyFlow,continuation:bool,io:&NativeFrontendAccountFlowIo)->Result<()>;
         fn frontend_friends_flow(controller:&FrontendPartyFlow,action:u32,a:u32,b:u32,io:&NativeFrontendFriendsIo)->Result<FriendsFlowResult>;
         fn frontend_friends_screen(screen:u32,context:u32)->bool;
+        fn frontend_clans_flow(controller:&FrontendPartyFlow,action:u32,argument:&ClansFlowArgument,io:&NativeFrontendClansIo)->Result<ClansFlowResult>;
+        fn frontend_clans_screen(screen:u32,context:u32)->bool;
 
         fn new_frontend_party_flow()->Box<FrontendPartyFlow>;
         fn clone_frontend_party_flow(controller:&FrontendPartyFlow)->Box<FrontendPartyFlow>;

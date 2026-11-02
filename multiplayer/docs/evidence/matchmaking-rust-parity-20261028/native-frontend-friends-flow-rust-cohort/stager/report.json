@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "command": [
+    "/usr/bin/python3",
+    "-B",
+    "tests/test_build_online_protocol_rust.py"
+  ],
+  "exit_code": 0,
+  "source_pins": {
+    "tests/test_build_online_protocol_rust.py": "8ca39476f8c266aa631c30573b47b789a3809c60267dcb62c21c7a087c2cb757",
+    "tools/build_online_protocol_rust.py": "dc99df622f0f956e430e8a13e36b49c7e4a7119f91a7207fff8fa51fd71ada6a"
+  },
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-stager-20261102/halo2-test-phzbqgdr",
+  "retained_large_artifacts": []
+}

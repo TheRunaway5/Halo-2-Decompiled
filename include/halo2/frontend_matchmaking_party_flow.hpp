@@ -3,9 +3,10 @@
 #include <memory>
 #include <string>
 #include <vector>
-namespace halo2::online_protocol_bridge {class NativeFrontendPartyFlowIo;class NativeFrontendPartyViewIo;class NativeFrontendAccountFlowIo;class NativeFrontendFriendsIo;struct FriendsFlowResult;struct PartyFlowState;}
+namespace halo2::online_protocol_bridge {class NativeFrontendPartyFlowIo;class NativeFrontendPartyViewIo;class NativeFrontendAccountFlowIo;class NativeFrontendFriendsIo;class NativeFrontendClansIo;struct ClansFlowArgument;struct ClansFlowResult;struct FriendsFlowResult;struct PartyFlowState;}
 namespace halo2 {
 struct FrontendFriendsResult {bool handled{};std::string text;};
+struct FrontendClansResult {bool handled{};std::string text;};
 struct OnlinePartyCommand;
 enum class FrontendPartyFlowAction:unsigned {Accept,Notice,SwitchTab,OpenedPrivacy,SelectPrivacy,ObservePrivacy};
 class FrontendMatchmakingPartyFlow {
@@ -26,6 +27,7 @@ public:
   bool match_voice(bool,bool)const;
   void observe_account(const online_protocol_bridge::NativeFrontendAccountFlowIo&,bool)const;
   online_protocol_bridge::FriendsFlowResult friends(unsigned,unsigned,unsigned,const online_protocol_bridge::NativeFrontendFriendsIo&)const;
+  online_protocol_bridge::ClansFlowResult clans(unsigned,const online_protocol_bridge::ClansFlowArgument&,const online_protocol_bridge::NativeFrontendClansIo&)const;
   unsigned tab()const;
   std::string target()const;
   unsigned kind()const;
@@ -43,4 +45,5 @@ private:
 bool frontend_party_flow_screen(int mode,unsigned screen,unsigned context);
 bool frontend_party_flow_picker(unsigned screen,unsigned context);
 bool frontend_friends_flow_screen(unsigned screen,unsigned context);
+bool frontend_clans_flow_screen(unsigned screen,unsigned context);
 }

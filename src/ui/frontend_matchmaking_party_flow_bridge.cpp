@@ -35,6 +35,7 @@ void FrontendMatchmakingPartyFlow::voice_wanted(bool value)const{bridge::fronten
 bool FrontendMatchmakingPartyFlow::match_voice(bool selected,bool joined)const{return bridge::frontend_party_flow_match_voice(*impl_->state,selected,joined);}
 void FrontendMatchmakingPartyFlow::observe_account(const bridge::NativeFrontendAccountFlowIo&io,bool continuation)const{bridge::frontend_account_flow(*impl_->state,continuation,io);}
 bridge::FriendsFlowResult FrontendMatchmakingPartyFlow::friends(unsigned action,unsigned a,unsigned b,const bridge::NativeFrontendFriendsIo&io)const{return bridge::frontend_friends_flow(*impl_->state,action,a,b,io);}
+bridge::ClansFlowResult FrontendMatchmakingPartyFlow::clans(unsigned action,const bridge::ClansFlowArgument&arg,const bridge::NativeFrontendClansIo&io)const{return bridge::frontend_clans_flow(*impl_->state,action,arg,io);}
 unsigned FrontendMatchmakingPartyFlow::tab()const{return state().tab;}
 std::string FrontendMatchmakingPartyFlow::target()const{return flow_text(state().target);}
 unsigned FrontendMatchmakingPartyFlow::kind()const{return state().kind;}
@@ -48,4 +49,5 @@ std::string FrontendMatchmakingPartyFlow::text(unsigned index,const bridge::Nati
 bool frontend_party_flow_screen(int mode,unsigned screen,unsigned context){return bridge::frontend_party_flow_screen(mode,screen,context);}
 bool frontend_party_flow_picker(unsigned screen,unsigned context){return bridge::frontend_party_flow_picker(screen,context);}
 bool frontend_friends_flow_screen(unsigned screen,unsigned context){return bridge::frontend_friends_screen(screen,context);}
+bool frontend_clans_flow_screen(unsigned screen,unsigned context){return bridge::frontend_clans_screen(screen,context);}
 }

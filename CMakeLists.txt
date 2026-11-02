@@ -600,6 +600,7 @@ target_sources(halo2_cache PRIVATE src/rendering/mcc_native_illum_no_specular.cp
     src/rendering/mcc_native_world_default_roles.cpp src/rendering/mcc_native_illum_three_channel.cpp)
 target_sources(halo2_cache PRIVATE src/rendering/mcc_native_env_illum_three_channel.cpp)
 target_sources(halo2_cache PRIVATE src/rendering/mcc_native_tiling_specular.cpp)
+target_sources(halo2_cache PRIVATE src/rendering/mcc_native_alpha_environment.cpp)
 target_sources(halo2_cache PRIVATE src/assets/mcc/mcc_native_map_owner.cpp src/assets/mcc_prepared_map_owner.cpp)
 target_sources(halo2_cache PRIVATE src/campaign/scripting/mcc_script_layout.cpp src/campaign/scripting/native_mcc_script_builtin.cpp)
 target_sources(halo2_cache PRIVATE src/assets/mcc/mcc_gameplay_scalar.cpp)
@@ -1634,7 +1635,7 @@ if(HALO2_SANITIZERS AND NOT MSVC)
     target_link_options(halo2_weapon_kernels PUBLIC -fsanitize=address,undefined)
 endif()
 
-foreach(shader upscale_prepare.comp upscale_motion.vert upscale_motion.frag world.vert world_prt.vert world.frag light_volume.vert light_volume.frag particle.frag fog.vert fog.frag water_copy.frag scene_copy.frag scope_copy.frag bloom.vert bloom.frag cinematic_crossfade.frag crt_oled.frag display.frag patchy_noise.vert patchy_noise.frag patchy_composite.frag bsp_patchy_noise.frag bsp_patchy_composite.frag overlay.vert overlay.frag ui.vert ui.frag ui_frame.frag hud.frag vista_loading.vert vista_loading.frag)
+foreach(shader upscale_prepare.comp upscale_motion.vert upscale_motion.frag world.vert world_prt.vert world.frag light_volume.vert light_volume.frag particle.frag fog.vert fog.frag water_copy.frag scene_copy.frag scope_copy.frag bloom.vert bloom.frag cinematic_crossfade.frag crt_oled.frag display.frag patchy_noise.vert patchy_noise.frag patchy_composite.frag bsp_patchy_noise.frag bsp_patchy_composite.frag overlay.vert overlay.frag player_flash_invert.frag ui.vert ui.frag ui_frame.frag hud.frag vista_loading.vert vista_loading.frag)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/${shader}.spv
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
         COMMAND ${GLSLANG_VALIDATOR} -V ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader} -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/${shader}.spv
@@ -4495,7 +4496,7 @@ if(BUILD_TESTING)
     add_executable(shield_overlay_tests tests/shield_overlay_tests.cpp)
     target_link_libraries(shield_overlay_tests PRIVATE halo2_systems)
     add_test(NAME original_shield_overlay COMMAND shield_overlay_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+        ${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/shield-overlay.tsv)
     set_tests_properties(original_shield_overlay PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(equipment_material_tests tests/equipment_material_tests.cpp)
@@ -4528,11 +4529,11 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/shield-material.tsv)
     set_tests_properties(original_shield_material PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME original_overshield_material COMMAND source_shield_material_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+        ${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/overshield_material_original.tsv)
     set_tests_properties(original_overshield_material PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME original_overshield_camouflage_material COMMAND source_shield_material_tests
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+        ${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/overshield_camouflage_material_original.tsv --camouflage)
     set_tests_properties(original_overshield_camouflage_material PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_shield_model_shaders_tests tests/source_shield_model_shaders_tests.cpp)
@@ -5223,11 +5224,21 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_BINARY_DIR}/cpu-skin-input-inspection)
     add_executable(source_shield_render_tests tests/source_shield_render_tests.cpp)
     target_link_libraries(source_shield_render_tests PRIVATE halo2_renderer)
-    target_compile_definitions(source_shield_render_tests PRIVATE HALO2_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_definitions(source_shield_render_tests PRIVATE HALO2_SOURCE_DIR="${HALO2_TEST_ASSET_SOURCE_ROOT}")
     add_test(NAME source_shield_renderer_gpu COMMAND source_shield_render_tests
         ${CMAKE_CURRENT_BINARY_DIR}/shield-input-inspection)
     set_tests_properties(source_shield_renderer_gpu PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT
         "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation;VK_LAYER_VALIDATE_SYNC=1;VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT")
+    foreach(shield_case IN ITEMS "1280;720;2" "1920;1080;2" "3840;2160;4" "1279;719;4")
+        list(GET shield_case 0 shield_width)
+        list(GET shield_case 1 shield_height)
+        list(GET shield_case 2 shield_views)
+        set(shield_test source_shield_renderer_${shield_width}x${shield_height}_${shield_views}views)
+        add_test(NAME ${shield_test} COMMAND source_shield_render_tests ${CMAKE_CURRENT_BINARY_DIR}/${shield_test}
+            --extent ${shield_width} ${shield_height} --views ${shield_views})
+        set_tests_properties(${shield_test} PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE TIMEOUT 240 ENVIRONMENT
+            "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation;VK_LAYER_VALIDATE_SYNC=1;VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;SDL_VIDEODRIVER=x11")
+    endforeach()
     set_tests_properties(source_world_vertex_declaration_cpu source_world_vertex_declaration_gpu PROPERTIES SKIP_RETURN_CODE 77)
     target_link_libraries(source_shadow_vertex_tests PRIVATE halo2_cache Vulkan::Vulkan)
     target_compile_definitions(source_shadow_vertex_tests PRIVATE
@@ -5456,6 +5467,16 @@ if(BUILD_TESTING)
     add_executable(rumble_asset_tests tests/rumble_asset_tests.cpp)
     add_executable(player_screen_flash_tests tests/player_screen_flash_tests.cpp)
     add_executable(player_screen_flash_kernel_tests tests/player_screen_flash_tests.cpp src/gameplay/units/player_screen_flash.cpp src/core/kernels.cpp)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
+        add_executable(native_player_effect_tick_tu15_tests tests/native_player_effect_tick_tu15_tests.cpp
+            src/gameplay/units/native_player_effect_tick_tu15.cpp src/gameplay/units/native_player_effect_tick_tu15_binding.cpp)
+        target_include_directories(native_player_effect_tick_tu15_tests PRIVATE include)
+        target_link_libraries(native_player_effect_tick_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+        add_test(NAME native_player_effect_tick_tu15 COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/test_native_campaign_screen_lifecycle_tu15.py
+            --probe $<TARGET_FILE:native_player_effect_tick_tu15_tests>
+            --fixture ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/native_player_effect_tick_tu15.json.gz)
+    endif()
     target_include_directories(player_screen_flash_kernel_tests PRIVATE include)
     target_compile_definitions(player_screen_flash_kernel_tests PRIVATE HALO2_FLASH_KERNEL_ONLY=1)
     target_link_libraries(player_screen_flash_kernel_tests PRIVATE nlohmann_json::nlohmann_json)
@@ -5466,10 +5487,13 @@ if(BUILD_TESTING)
     target_link_libraries(player_screen_flash_render_tests PRIVATE halo2_renderer)
     add_test(NAME native_player_screen_flash_render COMMAND player_screen_flash_render_tests
         "${CMAKE_CURRENT_BINARY_DIR}/player-screen-flash-render")
-    set_tests_properties(native_player_screen_flash_render PROPERTIES TIMEOUT 120)
+    set_tests_properties(native_player_screen_flash_render PROPERTIES TIMEOUT 240 RUN_SERIAL TRUE)
     if(UNIX AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/lib/libVkLayer_khronos_validation.so")
         set_tests_properties(native_player_screen_flash_render PROPERTIES ENVIRONMENT
             "VK_LAYER_PATH=${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/share/vulkan/explicit_layer.d;LD_LIBRARY_PATH=${CMAKE_CURRENT_SOURCE_DIR}/.tools/validation/usr/lib:$ENV{LD_LIBRARY_PATH}")
+    endif()
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set_property(TEST native_player_screen_flash_render APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=x11")
     endif()
     target_sources(player_screen_flash_tests PRIVATE src/gameplay/units/player_screen_flash.cpp src/gameplay/units/player_screen_flash_content.cpp src/core/kernels.cpp)
     target_link_libraries(player_screen_flash_tests PRIVATE halo2_cache)
@@ -8030,6 +8054,7 @@ if(BUILD_TESTING)
     include(cmake/WorkshopCollectionAgent.cmake)
     include(cmake/MccNativeEnvIllumThreeChannel.cmake)
     include(cmake/MccNativeTilingSpecular.cmake)
+    include(cmake/MccNativeAlphaEnvironment.cmake)
     foreach(world_profile world_default_roles illum_no_specular illum_three_channel character_shared)
         add_executable(mcc_native_${world_profile}_probe tests/mcc_native_${world_profile}_tests.cpp
             src/rendering/mcc_native_${world_profile}.cpp src/assets/cache.cpp)
@@ -9561,9 +9586,9 @@ if(BUILD_TESTING)
   target_link_libraries(multiplayer_audio_tests PRIVATE halo2_systems)
   include(cmake/MultiplayerAudioContinuation.cmake)
   add_test(NAME multiplayer_authored_audio COMMAND multiplayer_audio_tests
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03")
+    "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps/lockout.map"
+    "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/disc/maps"
+    "${HALO2_TEST_ASSET_SOURCE_ROOT}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03")
   set_tests_properties(multiplayer_authored_audio PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
 endif()
 
@@ -12027,3 +12052,5 @@ include(cmake/NativeTu15ResourceRequest.cmake)
 include(cmake/NativeTu15RenderLighting.cmake)
 include(cmake/NativeTu15DrawUnits.cmake)
 include(cmake/NativeTu15LightReceiverFlags.cmake)
+include(cmake/NativeTu15LargeSphereVisibility.cmake)
+include(cmake/NativeTu15FrustumDrawCull.cmake)

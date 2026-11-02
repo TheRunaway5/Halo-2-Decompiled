@@ -18,7 +18,7 @@ public:
     }
     virtual bool active(std::uint64_t)const=0;
     virtual std::uint64_t play(const MultiplayerLoopPacketTu15&)=0;
-    virtual void parameters(std::uint64_t,const MultiplayerLoopPacketParametersTu15&,Vec3)=0;
+    virtual void parameters(std::uint64_t,const MultiplayerLoopPacketParametersTu15&,std::optional<Vec3>)=0;
     virtual bool accepts_packet(std::uint64_t)const=0;
     virtual bool queue(std::uint64_t,std::uint32_t,unsigned,unsigned)=0;
     virtual void fade(std::uint64_t,float,bool,std::uint16_t)=0;
@@ -76,8 +76,9 @@ struct SourceLoopPhasedStateTu15 {
 // ownership. The emitter datum is never used as this combined group's key.
 std::pair<std::uint32_t,std::uint32_t> source_loop_phased_key_tu15(
     const SourceLoopSoundRequestTu15&,const LoopingSound&);
-// Recovered spatial root0 and synchronized root18 profiles: actual native
-// voices, supported phase chunk queues, authored entry/exit/alternate transitions
+// Original ordinary, spatial, synchronized and fake-spatialization profiles:
+// preserve the caller's centered/spatial location rather than inventing one.
+// Native voices, supported phase chunk queues, authored entry/exit/alternate transitions
 // and pitch layers. Unsynchronized selection retains the common RNG/range bank.
 // Other profiles remain explicit requirements, not guessed fallbacks.
 void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15&,SourceLoopPhasedOutputTu15&,

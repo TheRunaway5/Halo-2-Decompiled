@@ -35,3 +35,14 @@ if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESS
         --report "${CMAKE_CURRENT_BINARY_DIR}/native-tu15-light-receiver-flags.json")
     set_tests_properties(original_tu15_light_receiver_flags PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 600)
 endif()
+
+# Whole BSP receiver prefix uses its original-input generator in test scratch.
+if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
+    if(TARGET effect_light_receiver_tests)
+        add_test(NAME original_large_sphere_receiver_bsp_prefix COMMAND "${HALO2_RENDERER_ORACLE_PYTHON}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/oracle_effect_light_large_receiver.py"
+            --native $<TARGET_FILE:effect_light_receiver_tests>
+            --report "${CMAKE_CURRENT_BINARY_DIR}/large-sphere-receiver-bsp-prefix.json")
+        set_tests_properties(original_large_sphere_receiver_bsp_prefix PROPERTIES TIMEOUT 600)
+    endif()
+endif()

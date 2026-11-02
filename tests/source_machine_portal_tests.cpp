@@ -50,7 +50,8 @@ int main(){try{
         for(auto &w:r.result)in>>w;require(bool(in),"invalid original portal machine initializer record");maps[map].push_back(r);}
     unsigned records=0,packets=0,gemini=0;
     for(const auto &[map,rows]:maps){const auto path=std::filesystem::exists("assets/disc/maps/"+map+".map")?"assets/disc/maps/"+map+".map":"assets/map-pack/maps/"+map+".map";
-        Cache cache(path);const auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
+        Cache cache(std::filesystem::canonical(path),std::filesystem::canonical("assets/disc/maps"));
+        const auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
         SourceMachineScene machines(cache,content.objects,0,mesh,collision);SceneObjects objects(content,0);
         bool rejected=false;try{machines.portal_owners();}catch(const FormatError &){rejected=true;}
         require(rejected,"portal bridge accepted unbound initial machine generation");machines.synchronize(objects);

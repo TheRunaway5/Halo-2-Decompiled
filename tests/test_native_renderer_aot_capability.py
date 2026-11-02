@@ -204,6 +204,16 @@ return uint(m.program[3].y)==0x53525448u && uint(m.program[5].y)<=52u?color:colo
         self.omit_path_tracing_modules(shaders.PATH_TRACING_FILES)
         self.assertFalse(self.f.available())
 
+    def test_overshield_flash_executable_requires_its_fixed_shader(self):
+        self.f.runtime.write_bytes(self.f.runtime.read_bytes()+shaders.PLAYER_FLASH_EXECUTABLE_MARKER)
+        self.f.report['runtime']['sha256'] = self.f.digest(self.f.runtime)
+        self.omit_path_tracing_modules(shaders.PLAYER_FLASH_FILES)
+        self.assertFalse(self.f.available())
+
+    def test_older_executable_keeps_its_qualified_shader_abi_without_overshield_flash(self):
+        self.omit_path_tracing_modules(shaders.PLAYER_FLASH_FILES)
+        self.assertTrue(self.f.available())
+
     def test_older_executable_preserves_its_qualified_fixed_shader_abi(self):
         self.f.runtime.write_bytes(self.f.runtime.read_bytes().replace(shaders.PATH_TRACING_EXECUTABLE_MARKER, b'')
                                    .replace(shaders.PATH_TRACING_VISIBILITY_MARKER, b'')

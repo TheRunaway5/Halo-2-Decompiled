@@ -1,0 +1,29 @@
+import hashlib,json
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-friends-flow-rust-20261102'
+baseline=json.loads((root/'multiplayer/docs/evidence/matchmaking-rust-parity-20261028/friend-goal-criteria-before.json').read_text())
+data=json.loads((root/'multiplayer/docs/matchmaking-rust-parity-gaps.json').read_text())
+sha=lambda value:hashlib.sha256(value).hexdigest()
+projection={k:data[k] for k in ('algorithm_index','scope','gaps','acceptance_gates')}
+inventory=sha(json.dumps(projection,sort_keys=True).encode())
+criteria={k:data[k] for k in baseline['criteria'] if k!='gap_criteria'}
+keys=tuple(baseline['criteria']['gap_criteria'][0])
+criteria['gap_criteria']=[{k:gap[k] for k in keys} for gap in data['gaps']]
+full=sha(json.dumps(criteria,sort_keys=True).encode())
+goal=json.loads((work/'goal-observation-closure.json').read_text())
+objective=sha(goal['objective'].encode())
+assert inventory=='e6735c569741dc34c28472634ae5fa8f8f0c73de93ea03e8e230583470362048'
+assert full==baseline['sha256']=='72ad76ed73f1fc5a2f1ac0d073e59756e849dd05cda32b855ef063c577c9c8d8'
+assert criteria==baseline['criteria']
+assert objective=='605c72b028f4b6ad52b9a2c6a84a98fe61f656fc7bd4cd619068f6c9261147a9'
+assert goal['status']=='active' and not data['certified'] and not data['goal_complete']
+assert len(data['gaps'])==12 and len(data['algorithm_index']['ids'])==53 and len(data['acceptance_gates']['gates'])==12
+pdf=sha((root/data['reference']['path']).read_bytes())
+lobby=sha((root/'tests/frontend_lobby_policy_tests.cpp').read_bytes())
+assert pdf=='37851f359e0bf14366da356707c146dc4927d26e2d7e93adfb90c92cca0f658d'
+assert lobby=='5628821834841393db25cd7036ea01b7c56042a5dd041eb83da79f0c706964ae'
+result={'passed':True,'scope_inventory_sha256':inventory,'full_criteria_projection_sha256':full,'goal_objective_sha256':objective,
+ 'reference_sha256':pdf,'lobby_policy_fixture_sha256':lobby,'goal_status':'active','gaps':12,'algorithm_ids':53,'acceptance_gates':12,
+ 'criteria_unchanged':True,'certified':False,'goal_complete':False}
+(work/'scope-check.json').write_text(json.dumps(result,indent=2)+'\n')
+print(json.dumps(result))

@@ -432,6 +432,7 @@ struct Renderer::Impl {
     VkPipeline light_volume_pipeline{};
     bool light_volume_materials{};
     VkPipeline overlay{},popup_tint_pipeline{},player_flash_pipeline{},ui_backdrop_pipeline{};
+    VkPipeline player_flash_darken_pipeline{},player_flash_invert_pipeline{};
     VkPipeline source_water_alpha_clear_pipeline{};
     VkPipeline ui_pipeline{};
     VkPipeline ui_frame_pipeline{},ui_frame_backdrop_pipeline{};
@@ -2782,6 +2783,9 @@ struct Renderer::Impl {
         source_water_alpha_clear_pipeline=VK_NULL_HANDLE;
         if (player_flash_pipeline) vkDestroyPipeline(device, player_flash_pipeline, nullptr);
         player_flash_pipeline=VK_NULL_HANDLE;
+        if(player_flash_darken_pipeline)vkDestroyPipeline(device,player_flash_darken_pipeline,nullptr);
+        if(player_flash_invert_pipeline)vkDestroyPipeline(device,player_flash_invert_pipeline,nullptr);
+        player_flash_darken_pipeline=player_flash_invert_pipeline=VK_NULL_HANDLE;
         overlay = VK_NULL_HANDLE;
         if(popup_tint_pipeline)vkDestroyPipeline(device,popup_tint_pipeline,nullptr);
         popup_tint_pipeline=VK_NULL_HANDLE;
@@ -3760,7 +3764,20 @@ struct Renderer::Impl {
         // ONE/INVSRCALPHA, RGB writes only. It follows the player's HUD.
         blend.srcColorBlendFactor=VK_BLEND_FACTOR_ONE;
         check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&player_flash_pipeline),"create original player flash pipeline");
+        //409DE: the original DARKEN branch uses ONE/ONE/REVERSE_SUBTRACT.
+        blend.dstColorBlendFactor=VK_BLEND_FACTOR_ONE;blend.colorBlendOp=VK_BLEND_OP_REVERSE_SUBTRACT;
+        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&player_flash_darken_pipeline),"create original darken flash pipeline");
+        //40B32: INVERT uses its literal native combiner, ONE_MINUS_DST_COLOR,
+        //CONSTANT_COLOR and ADD. Overshield151540 requests this type5 branch.
+        const auto invert_fragment=shader("player_flash_invert.frag.spv");
+        vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
+        module.codeSize=invert_fragment.size()*4;module.pCode=invert_fragment.data();
+        check(vkCreateShaderModule(device,&module,nullptr,&frag),"create original invert flash shader");stages[1].module=frag;
+        blend.srcColorBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+        blend.dstColorBlendFactor=VK_BLEND_FACTOR_CONSTANT_COLOR;blend.colorBlendOp=VK_BLEND_OP_ADD;
+        check(vkCreateGraphicsPipelines(device,pipeline_cache->get(),1,&info,nullptr,&player_flash_invert_pipeline),"create original invert flash pipeline");
         blend.srcColorBlendFactor=VK_BLEND_FACTOR_SRC_ALPHA;
+        blend.dstColorBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend.colorWriteMask=VK_COLOR_COMPONENT_R_BIT|VK_COLOR_COMPONENT_G_BIT|VK_COLOR_COMPONENT_B_BIT|VK_COLOR_COMPONENT_A_BIT;
         vkDestroyShaderModule(device,vert,nullptr);vert=VK_NULL_HANDLE;
         vkDestroyShaderModule(device,frag,nullptr);frag=VK_NULL_HANDLE;
@@ -8521,13 +8538,17 @@ struct Renderer::Impl {
         if(!temporal_upscaler)draw_reticle();
         const auto draw_player_flash=[&](const PlayerScreenFlash &flash,const VkViewport &view,const VkRect2D &clip) {
             if(flash.intensity<=0 || !flash.type || effects.fade>0)return;
-            if(flash.type!=1)throw FormatError("Player screen flash requires its original blend implementation");
+            if(flash.type!=1 && flash.type!=2 && flash.type!=5)
+                throw FormatError("Player screen flash requires its original blend implementation");
             const auto packed=player_screen_flash_argb(flash);
             constexpr float byte_scale=1.f/255.f;
             const std::array<float,8> color{float((packed>>16)&255)*byte_scale,float((packed>>8)&255)*byte_scale,
                 float(packed&255)*byte_scale,float(packed>>24)*byte_scale,float(extent.width),float(extent.height),0,0};
             {vkCmdSetViewport(command,0,1,&view);capture_viewport(view);}{vkCmdSetScissor(command,0,1,&clip);capture_scissor(clip);}
-            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,player_flash_pipeline);
+            const auto pipeline=flash.type==5?player_flash_invert_pipeline:
+                flash.type==2?player_flash_darken_pipeline:player_flash_pipeline;
+            if(flash.type==5)vkCmdSetBlendConstants(command,color.data());
+            vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline);
             vkCmdPushConstants(command,overlay_layout,VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(color),color.data());
             vkCmdDraw(command,3,1,0,0);
         };
@@ -9529,8 +9550,7 @@ struct Renderer::Impl {
                         draw_player_flash(effects.flash,full,{{0,0},extent});
                     } else {
                         const auto &v=views[event.view];
-                        const auto r=v.full_surface?full_surface_viewport({v.left,v.top,v.width,v.height},extent.width,extent.height):
-                            RenderViewport{x+v.left*scale,y+v.top*scale,v.width*scale,v.height*scale};
+                        const auto r=model_viewport(v,extent);
                         const VkViewport viewport{r.left,r.top,r.width,r.height,0,1};
                         const int left=std::max(0,int(r.left)),top=std::max(0,int(r.top));
                         const int right=std::min(int(extent.width),int(r.left+r.width)),bottom=std::min(int(extent.height),int(r.top+r.height));

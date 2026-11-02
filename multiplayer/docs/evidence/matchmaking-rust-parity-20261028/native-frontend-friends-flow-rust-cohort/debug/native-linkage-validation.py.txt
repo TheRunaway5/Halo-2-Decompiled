@@ -1,0 +1,30 @@
+import hashlib,json,re,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-friends-flow-rust-20261102';info=json.loads((work/'native/inputs.json').read_text());build=Path(info['scratch'])/'build';source=Path(info['source'])
+def symbols(path):
+ run=subprocess.run(['nm','-C',str(path)],capture_output=True,text=True);assert run.returncode==0,(str(path),run.stderr[-1000:]);return run.stdout.splitlines()
+def matches(lines,kind,token):return [line for line in lines if(' '+kind+' ')in line and token in line]
+adapter=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_friends.cpp.o';thin=build/'CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o';flow=build/'libhalo2_frontend_party_flow.a'
+a,t,p=map(symbols,[adapter,thin,flow]);assert len(matches(a,'T','halo2::MenuState::friends_flow_drive('))==1
+assert len(matches(a,'U','halo2::FrontendMatchmakingPartyFlow::friends('))==1
+assert len(matches(t,'U','halo2::MenuState::friends_flow_drive('))==1
+names=['set_discord_social(','online_friends_screen(','native_friends(','online_friends_available(','update_online_friend_join(','populate_native_friends(','populate_online_friends(','accept_native_friends(','accept_online_friends(','update_online_friends(','online_friends_text(','online_friends_column(']
+assert len(names)==12
+for name in names:
+ pattern=r' T halo2::MenuState::'+re.escape(name[:-1])+r'(?:\[abi:[^\]]+\])?\('
+ assert sum(bool(re.search(pattern,line))for line in t)==1,name
+imports=[]
+for name in ['frontend_friends_flow','frontend_friends_screen']:
+ rows=matches(p,'U','halo2::online_protocol_bridge::'+name+'(');assert len(rows)==1,(name,rows);imports+=rows
+for path in [source/'include/halo2/frontend.hpp',*(source/'src/ui').glob('*.cpp')]:assert not re.search(r'\b(?:friend_target_|activity_target_)\b',path.read_text()),str(path)
+units=json.loads((build/'compile_commands.json').read_text());names=[n for n in json.loads((work/'declared-scope.json').read_text())if n.startswith('src/')and n.endswith('.cpp')];rows=[]
+for name in names:
+ found=[u for u in units if u['file']==str(source/name)];assert len(found)==1,name
+ unit=found[0];out=re.search(r'(?:^| )-o ([^ ]+)',unit['command']);assert out,name;obj=build/out[1];assert obj.is_file()
+ rows.append(dict(path=name,source_sha256=hashlib.sha256((source/name).read_bytes()).hexdigest(),object=str(obj.relative_to(build)),object_sha256=hashlib.sha256(obj.read_bytes()).hexdigest(),object_bytes=obj.stat().st_size,command=unit['command']))
+assert len(rows)==3
+objects={str(path.relative_to(build)):dict(sha256=hashlib.sha256(path.read_bytes()).hexdigest(),bytes=path.stat().st_size)for path in[adapter,thin,flow]}
+report=dict(passed=True,sole_native_friends_adapter=True,complete_native_friends_caller_reaches_rust=True,former_native_friend_and_activity_targets_removed=True,existing_party_controller_used=True,
+ required_rust_imports=imports,compiled_thin_entry_points=12,affected_production_translation_units=rows,objects=objects,
+ scope='Actual frozen native friends adapter, thin entry points and ABI archive reach Rust. This is component linkage, not installed-client or original Live provider proof.',retained_large_artifacts=[])
+(work/'native-linkage.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(passed=True,compiled_entry_points=12,affected_native_units=3)))

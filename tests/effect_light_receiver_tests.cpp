@@ -33,7 +33,8 @@ int main(int argc,char** argv) {try {
     Cache cache(argv[1]);const auto spatial=cache.load_object_light_spatial_bsp(0);
     const auto geometry=cache.load_source_bsp_admission(0);
     const auto locations=cache.load_bsp_atmosphere(0);
-    Fixture file(argv[2]);require(file.word()==0x3152434c,"receiver fixture version");
+    Fixture file(argv[2]);const auto version=file.word();const bool large=version==0x3252434c;
+    require(large||version==0x3152434c,"receiver fixture version");
     const auto cases=file.word(),clusters=file.word(),camera_words=file.word();
     const auto bsp=std::int16_t(file.word());const auto fog_datum=file.word(),fog_flags=file.word();
     require(clusters==geometry.clusters.size()&&camera_words==6*0x1bc/4,"receiver original input bank shape");
@@ -46,23 +47,45 @@ int main(int argc,char** argv) {try {
         for(unsigned i=0;i<count;++i){SourceBspAdmissionRecord r;r.id=file.word();r.flags=std::uint16_t(file.word());
             r.other=file.word();r.association=std::uint16_t(file.word());queue->push_back(r);}
     }
-    const SourceEffectLightReceiverWorld world{spatial,geometry,locations,bsp};
+    const auto portals=cache.load_source_portal_bsp(0);
+    SourceEffectLightReceiverWorld world{spatial,geometry,locations,bsp,&portals,{}};
     EffectLightSphere shape;const auto position=cameras[0].camera_to_world.position;
     shape.shape[11]=std::bit_cast<std::uint32_t>(position.x);shape.shape[12]=std::bit_cast<std::uint32_t>(position.y);
     shape.shape[13]=std::bit_cast<std::uint32_t>(position.z);shape.shape[17]=std::bit_cast<std::uint32_t>(cameras[0].far_distance);
     std::size_t words=0,positive=0,association_count=0;
     for(unsigned index=0;index<cases;++index) {
         const auto cluster=std::int16_t(file.word());const auto center=file.read<Vec3>();const auto radius=file.read<float>();
+        auto case_cameras=cameras;
+        std::array<std::uint32_t,16> mask{};
+        if(large) {
+            const auto shape_center=file.read<Vec3>();const auto shape_radius=file.read<float>();
+            shape.shape[11]=std::bit_cast<std::uint32_t>(shape_center.x);shape.shape[12]=std::bit_cast<std::uint32_t>(shape_center.y);
+            shape.shape[13]=std::bit_cast<std::uint32_t>(shape_center.z);shape.shape[17]=std::bit_cast<std::uint32_t>(shape_radius);
+            mask=file.read<decltype(mask)>();case_cameras=file.read<decltype(case_cameras)>();world.open_portals=mask;
+        }
         const auto count=file.word();std::vector<std::uint32_t> expected;
         for(unsigned i=0;i<count;++i)expected.push_back(file.word());
         const auto out=source_effect_light_receiver_view(world,cluster,center,radius,shape,fog,&main,0);
         require(out.visibility.groups.size()==6,"receiver lost original six cameras");
-        require(std::memcmp(out.visibility.groups.data(),cameras.data(),sizeof(cameras))==0,"receiver C1D90 camera words differ");
+        require(std::memcmp(out.visibility.groups.data(),case_cameras.data(),sizeof(case_cameras))==0,"receiver C1D90 camera words differ");
         std::vector<std::uint32_t> actual{out.flags,out.pass_mode,out.query_mode,out.location.leaf,
             std::uint32_t(std::int32_t(out.location.cluster)),std::uint32_t(std::int32_t(out.location.bsp)),6,
             unsigned(out.visibility.clusters.size())};
-        for(const auto& c:out.visibility.clusters)actual.insert(actual.end(),{unsigned(c.source_cluster)&65535,unsigned(c.counts[0])&65535});
+        for(const auto& c:out.visibility.clusters) {
+            actual.insert(actual.end(),{unsigned(c.source_cluster)&65535,unsigned(c.counts[0])&65535});
+            if(large) {
+                for(unsigned i=1;i<6;++i)actual.push_back(unsigned(c.counts[i])&65535);
+                for(const auto first:c.first_indices)actual.push_back(unsigned(first)&65535);
+            }
+        }
         actual.insert(actual.end(),out.visibility.sorted_cluster_indices.begin(),out.visibility.sorted_cluster_indices.end());
+        if(large) {
+            actual.push_back(unsigned(out.visibility.frustums.size()));
+            for(const auto& frustum:out.visibility.frustums) {
+                const auto row=std::bit_cast<std::array<std::uint32_t,66>>(frustum);
+                actual.insert(actual.end(),row.begin(),row.begin()+3);actual.insert(actual.end(),row.begin()+4,row.end());
+            }
+        }
         for(unsigned i=0;i<512;i+=4)actual.push_back(unsigned(out.bsp.cluster_entries[i])|(unsigned(out.bsp.cluster_entries[i+1])<<8)|
             (unsigned(out.bsp.cluster_entries[i+2])<<16)|(unsigned(out.bsp.cluster_entries[i+3])<<24));
         actual.insert(actual.end(),out.bsp.marked_clusters.begin(),out.bsp.marked_clusters.end());
@@ -87,7 +110,7 @@ int main(int argc,char** argv) {try {
         words+=actual.size()+camera_words;positive+=!out.bsp.clusters.empty()||!out.bsp.instances.empty();
         association_count+=out.bsp.associations.size();
     }
-    require(file.done()&&cases>=64&&positive>=20&&association_count>0,"receiver fixture lacks complete positive coverage");
+    require(file.done()&&cases>=(large?32:64)&&positive>=20&&association_count>0,"receiver fixture lacks complete positive coverage");
     std::cout<<"PASS "<<cases<<" original receiver queries, "<<words<<" exact owned/camera words, "<<positive<<" nonempty receivers, "<<association_count<<" complete association masks\n";
     return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

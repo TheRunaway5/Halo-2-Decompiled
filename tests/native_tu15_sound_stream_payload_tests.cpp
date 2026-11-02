@@ -5,6 +5,9 @@
 #include "halo2/audio.hpp"
 #include "halo2/original_sound_runtime_bank_tu15.hpp"
 #include "halo2/sdl_sound_platform.hpp"
+#ifdef HALO2_SOUND_COLD_CACHE
+#include "halo2/source_sound_cache_io_tu15.hpp"
+#endif
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -27,6 +30,9 @@ constexpr std::uint32_t table=0x04000000u,stream=table+12u,cache=0x04200000u,ent
  allocator=0x04400000u,block_owner=0x04500000u,blocks=0x04600000u,sdk=0x04800000u,pool=0x09000000u,
  stack=0x02008000u,codec=0x0048b908u,codec_table=0x004633b4u,
  sdk_status=0x07000000u,sdk_process=0x07000010u,sdk_boundary=0x07000020u;
+#ifdef HALO2_SOUND_COLD_CACHE
+constexpr std::uint32_t cache_bits=0x04900000u,page_bits=0x04a00000u;
+#endif
 const native_tu15_sound::Kernel& kernel(std::uint32_t entry){
  for(const auto table:{native_tu15_sound::resource_kernels(),native_tu15_sound::startup_kernels()}){
   const auto k=std::ranges::find(table,entry,&native_tu15_sound::Kernel::entry);if(k!=table.end())return *k;}
@@ -65,12 +71,20 @@ struct Plan {
   const auto decoded=decode_sound(encoded);need(decoded.rate==48000&&decoded.frames()&&decoded.chunk_boundaries.size()==encoded.packet_chunks.size(),"Native decoder omitted resource boundaries");
   const auto root=memory.bank->load(sound,pitch);const Bytes p(root.permutations.at(permutation));const auto chunk_table=memory.bank->block(8);
   need(p.u16(14)==encoded.packet_chunks.size(),"Native graph chunk count differs");std::size_t offset{},first{};
+#ifdef HALO2_SOUND_COLD_CACHE
+  std::size_t physical{};for(const auto& chunk:encoded.packet_chunks)physical+=(chunk.bytes+511u)&~511u;
+  memory.map(pool,physical);
+#else
   memory.map(pool,encoded.data.size());
+#endif
   for(unsigned n=0;n<encoded.packet_chunks.size();++n){
    const auto descriptor=chunk_table.address+(p.u16(12)+n)*12u;const auto count=encoded.packet_chunks[n].bytes;
    std::vector<std::byte> resource(count);memory.bank->read_resource(descriptor,0,resource);
    need(std::ranges::equal(resource,std::span(encoded.data).subspan(offset,count)),"Actual descriptor read differs from original encoded interval");
-   memory.write(pool+std::uint32_t(offset),resource);const auto end=decoded.chunk_boundaries[n].end_frame;
+#ifndef HALO2_SOUND_COLD_CACHE
+   memory.write(pool+std::uint32_t(offset),resource);
+#endif
+   const auto end=decoded.chunk_boundaries[n].end_frame;
    need(decoded.chunk_boundaries[n].encoded_end==offset+count&&end>first,"Zero-output resource requires its separate completion owner");
    chunks.push_back({descriptor,pool+std::uint32_t(offset),count,first,end-first});offset+=count;first=end;
   }
@@ -83,6 +97,10 @@ struct Pipeline {
  SourcePhysicsContactRuntimeServices services;std::map<std::uint32_t,unsigned> calls;
  unsigned callback_submissions{},accepted{},callbacks{},successes{},flushed{},failed{},acknowledged{},boundaries{},submitted_bytes{},retained_witnesses{};
  unsigned constructions{},constructor_pauses{};
+#ifdef HALO2_SOUND_COLD_CACHE
+ struct ReadReceipt {std::uint32_t descriptor,destination,bytes;std::string sha256;};
+ std::vector<ReadReceipt> read_receipts;SourceSoundCacheIoTu15Services io;
+#endif
  std::size_t next{};bool remove_on_submit{},in_callback{};
  Pipeline(std::shared_ptr<OriginalSoundRuntimeBankTu15> bank,TagHandle sound,unsigned pitch,unsigned permutation,const EncodedSound& expected,SdlSoundPlatform& port)
   :memory(std::move(bank)),plan(memory,sound,pitch,permutation,expected),output(port){
@@ -93,18 +111,65 @@ struct Pipeline {
   for(unsigned n=0;n<stock.size();++n)memory.put(codec_table+n*4u,stock[n]);
   memory.put(0x46a0d0u,0x3f800000u);memory.put(0x46a11cu,0x40000000u);
   memory.put(sdk,sdk+0x100u);memory.put(sdk+0x10cu,sdk_status);memory.put(sdk+0x110u,sdk_process);memory.put(sdk+0x114u,sdk_boundary);
+#ifdef HALO2_SOUND_COLD_CACHE
+  memory.map(cache_bits,4096);memory.map(page_bits,4096);
+  const auto capacity=std::uint32_t(plan.chunks.size()+1u);
+  for(const auto [owner,rows,bits,stride]:std::array<std::array<std::uint32_t,4>,2>{{{cache,entries,cache_bits,16},{block_owner,blocks,page_bits,24}}}){
+   for(const auto [offset,value]:std::array<std::pair<unsigned,std::uint32_t>,8>{{{0x20,capacity},{0x24,stride},{0x34,0},{0x38,0},{0x3c,0},{0x40,0x8000},{0x44,rows},{0x48,bits}}})memory.put(owner+offset,value);
+  }
+  for(const auto [offset,value]:std::array<std::pair<unsigned,std::uint32_t>,9>{{{0x20,0x21f3f0},{0x24,0x21f3b0},{0x2c,0},{0x30,std::uint32_t(memory.regions.at(pool).size()/512u)},{0x34,9},{0x38,1},{0x3c,0xffffffff},{0x40,0xffffffff},{0x64,block_owner}}})memory.put(allocator+offset,value);
+  for(unsigned n=0;n<8;++n)memory.put(allocator+0x44u+n*4u,0x7fffffffu);
+  for(const auto& chunk:plan.chunks)memory.put(chunk.descriptor+8u,0xffffffffu);
+  io.read=[&](const auto& request){return memory.bank->read_cache_resource(request);};
+  io.retain_completed_read=[&](auto descriptor,auto destination,auto bytes){
+   need(memory.get(descriptor+8u)!=0xffffffffu,"Resource receipt lacks its actually allocated cache handle");
+   const auto handle=memory.get(descriptor+8u);const auto entry=entries+(handle&65535u)*16u;
+   need(!memory.get(entry+2u,1),"Cache became ready before its actual read receipt");
+   const auto original=memory.bank->read_cache_resource({descriptor,memory.get(descriptor),memory.get(descriptor+4u),bytes});
+   need(std::ranges::equal(memory.view(destination,bytes),original),"Resource receipt preceded its actual complete physical bytes");
+   read_receipts.push_back({descriptor,destination,bytes,sha(memory.view(destination,bytes))});
+   return std::uint32_t(read_receipts.size());
+  };
+#else
   for(unsigned n=0;n<plan.chunks.size();++n){
    // Declared already-loaded cache ABI state over actual resource backing.
    // No source I/O completion, cache admission or voice is claimed here.
    memory.put(plan.chunks[n].descriptor+8u,0xa1230000u|n);memory.put(entries+n*16u+2u,1,1);
    memory.put(blocks+n*24u+8u,plan.chunks[n].data-pool);
   }
+#endif
   abi.gp={0x1234,0x5678,0x9abc,0x12345678,stack,0x87654321,0x13572468,0x24681357};abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
   services.required_owner=[&](auto&,const auto& call,auto& a,const auto& observer){
    ++calls[call.target];
+#ifdef HALO2_SOUND_COLD_CACHE
+   if(source_try_sound_cache_io_tu15(memory,call,a,io))return;
+#endif
    if(call.target==sdk_status||call.target==sdk_process||call.target==sdk_boundary||call.target==0x3875c2u||call.target==0x3858f8u){service(call.target,a);return;}
    kernel(call.target).run(memory,a,*a.floating_point,observer,services);
   };
+#ifdef HALO2_SOUND_COLD_CACHE
+  need(memory.get(cache+0x3cu)==0&&memory.get(block_owner+0x3cu)==0&&read_receipts.empty(),"Cold fixture did not start from empty pools");
+  for(auto& chunk:plan.chunks){
+   need(memory.get(chunk.descriptor+8u)==0xffffffffu,"Cold fixture supplied a loaded cache datum");
+   abi.gp[3]=chunk.descriptor;run(0x21f420u,std::array{sound.value});
+   const auto handle=memory.get(chunk.descriptor+8u),index=handle&65535u;
+   need(handle!=0xffffffffu&&memory.get(entries+index*16u,2)==(handle>>16u)&&memory.get(entries+index*16u+2u,1)==1,
+    "Native cache allocation/read did not publish its actual salted ready entry");
+   chunk.data=pool+(memory.get(blocks+index*24u+8u)<<9u);
+   need(read_receipts.size()==std::size_t(&chunk-plan.chunks.data()+1)&&read_receipts.back().destination==chunk.data&&
+    read_receipts.back().bytes==((chunk.bytes+511u)&~511u),"Actual resource receipt differs from native page allocation");
+   const auto resource=memory.bank->read_cache_resource({chunk.descriptor,memory.get(chunk.descriptor),memory.get(chunk.descriptor+4u),(chunk.bytes+511u)&~511u});
+   need(std::ranges::equal(memory.view(chunk.data,resource.size()),resource),"Native allocation/read changed exact authenticated sector bytes");
+  }
+  need(memory.get(cache+0x3cu)==plan.chunks.size()&&memory.get(block_owner+0x3cu)==plan.chunks.size(),"Native cold read lost its actual allocated datums");
+  auto cached=expected;cached.data.clear();
+  for(const auto& chunk:plan.chunks){const auto bytes=memory.view(chunk.data,chunk.bytes);cached.data.insert(cached.data.end(),bytes.begin(),bytes.end());}
+  const auto decoded_cache=decode_sound(cached);
+  need(decoded_cache.chunk_boundaries.size()==plan.chunks.size(),"Actual cold-cache decoder lost its resource boundaries");
+  for(unsigned n=0;n<plan.chunks.size();++n)need(decoded_cache.chunk_boundaries[n].end_frame==plan.chunks[n].first+plan.chunks[n].frames,
+   "Actual cold-cache decoding changed its packet PCM intervals");
+  plan.pcm=std::make_shared<const std::vector<float>>(decoded_cache.stereo);
+#endif
   // The real native caller now owns descriptor/format construction and its
   // reused index/output slot. Driver allocation/admission remains a declared
   // component input, as do already-loaded cache rows and producer timing.
@@ -116,8 +181,9 @@ struct Pipeline {
  ~Pipeline(){try{output.flush(voice);while(const auto c=output.completion(voice))output.acknowledge(voice,c->submission);output.destroy_voice(voice);}catch(...) {}}
  unsigned queued()const{return memory.get(stream+2u,1)&7u;}
  unsigned submitted()const{return(memory.get(stream+2u,1)>>3u)&7u;}
- unsigned pin(unsigned n)const{return memory.get(entries+n*16u+4u,1);}
- unsigned references(unsigned n)const{return memory.get(entries+n*16u+5u,1);}
+ unsigned cache_row(unsigned n)const{return entries+(memory.get(plan.chunks.at(n).descriptor+8u)&65535u)*16u;}
+ unsigned pin(unsigned n)const{return memory.get(cache_row(n)+4u,1);}
+ unsigned references(unsigned n)const{return memory.get(cache_row(n)+5u,1);}
  void run(std::uint32_t entry,std::span<const std::uint32_t> args={}){
   abi.gp[4]=stack;memory.put(stack,0x03000000u);for(unsigned n=0;n<args.size();++n)memory.put(stack+4u+n*4u,args[n]);
   ++calls[entry];kernel(entry).run(memory,abi,*abi.floating_point,{},services);need(abi.gp[4]==stack+4u+args.size()*4u,"Composed native root changed caller stack balance");
@@ -174,7 +240,14 @@ J exercise(const std::shared_ptr<OriginalSoundRuntimeBankTu15>& bank,TagHandle s
  const EncodedSound& expected,SdlSoundPlatform& output,SdlSoundPlatform& reference){
  const auto prepared=decode_sound(expected);const auto data=std::make_shared<const std::vector<float>>(prepared.stereo);
  unsigned success_packets{},callback_refill_packets{},flush_packets{},failure_packets{},flush_remainders{},failure_remainders{},boundary_witness{},rejected_pins{},retained{},constructions{},pauses{};std::map<std::uint32_t,unsigned> roots;
- const auto record=[&](const Pipeline& p){for(const auto& [pc,n]:p.calls)roots[pc]+=n;retained+=p.retained_witnesses;constructions+=p.constructions;pauses+=p.constructor_pauses;};
+#ifdef HALO2_SOUND_COLD_CACHE
+ unsigned cold_reads{};std::uint64_t cold_bytes{};
+#endif
+ const auto record=[&](const Pipeline& p){for(const auto& [pc,n]:p.calls)roots[pc]+=n;retained+=p.retained_witnesses;constructions+=p.constructions;pauses+=p.constructor_pauses;
+#ifdef HALO2_SOUND_COLD_CACHE
+  cold_reads+=unsigned(p.read_receipts.size());for(const auto& r:p.read_receipts)cold_bytes+=r.bytes;
+#endif
+ };
  const auto play=[&](bool deferred_second){
   Pipeline p(bank,sound,pitch,permutation,expected,output);same(*p.plan.pcm,*data);
   const auto compare_voice=reference.create_voice(0x888,unity());
@@ -227,9 +300,13 @@ J exercise(const std::shared_ptr<OriginalSoundRuntimeBankTu15>& bank,TagHandle s
   rejected_pins=unsigned(p.next);p.release();p.clear();record(p);
  }
  J calls=J::object();for(const auto& [pc,n]:roots)calls[std::to_string(pc)]=n;
- return {{"success_packets",success_packets},{"callback_refill_packets",callback_refill_packets},{"flush_packets",flush_packets},{"failed_packets",failure_packets},{"flush_unsubmitted_pins",flush_remainders},{"failure_unsubmitted_pins",failure_remainders},{"rejected_queued_pins",rejected_pins},
+ J result{{"success_packets",success_packets},{"callback_refill_packets",callback_refill_packets},{"flush_packets",flush_packets},{"failed_packets",failure_packets},{"flush_unsubmitted_pins",flush_remainders},{"failure_unsubmitted_pins",failure_remainders},{"rejected_queued_pins",rejected_pins},
   {"first_boundary_witness",boundary_witness},{"retained_callback_service_witnesses",retained},{"native_stream_constructions",constructions},{"actual_constructor_pauses",pauses},{"pcm_frames",prepared.frames()},
   {"pcm_sha256",sha(std::as_bytes(std::span(prepared.stereo)))},{"root_and_callee_calls",calls}};
+#ifdef HALO2_SOUND_COLD_CACHE
+ result["cold_cache_reads"]=cold_reads;result["authenticated_sector_bytes"]=cold_bytes;
+#endif
+ return result;
 }
 }
 int main(int argc,char**argv){J report{{"passed",false},{"goal_complete",false},{"cases",J::array()},
@@ -238,6 +315,11 @@ int main(int argc,char**argv){J report{{"passed",false},{"goal_complete",false},
  {"full_format_caller_cpu_chain",true},
  {"source_world_cache_voice_or_device_admission",false},{"retail_sdk_dsp_or_xbox_waveform_equivalence",false},{"source_event_schedule_or_normal_gameplay_delivery",false},
  {"whole_encoded_chunks_only",true},{"seeked_or_zero_frame_packet_mapping_verified",false},{"native_boundary_policy","Input-boundary annotation over actual PCM queue; no Xbox discontinuity command equivalence"}};
+#ifdef HALO2_SOUND_COLD_CACHE
+ report["scope"]="Authenticated original resources through complete native21F420/13FE50 allocation/binding, actual native1A3B70 resource reads and receipts, native stock stream lifecycle and manual SDL consumption; declared empty pool/physical backing, driver, producer timing and unity gain/rate";
+ report["cache_loaded_rows_supplied"]=false;report["native_cache_allocator_and_actual_resource_read"]=true;report["pcm_decoded_from_actual_cold_cache_bytes"]=true;
+ report["caller_format_preparation"]="Actual native224E20/225EF0 caller; cold cache readiness follows actual native resource receipts; driver ABI, unity gain and manual timing remain declared";
+#endif
  try{
   need(argc==4||argc==5,"Supply authenticated prepared catalog, external catalog SHA256, report and optional unique case index");if(!*argv[1])return 77;
   need(std::getenv("HALO2_TEST_SCRATCH"),"Run through the owned test lifecycle");std::ifstream file(argv[1],std::ios::binary);need(bool(file),"Prepared catalog unavailable");

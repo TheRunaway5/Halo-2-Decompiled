@@ -13,13 +13,14 @@ struct CampaignLights::Impl {
     unsigned bsp;
     BspAtmosphere locations;
     ObjectLightSpatialBsp memberships;
+    SourcePortalBsp portals;
     std::map<std::uint32_t,EffectLightDefinition> definitions;
     std::set<std::uint32_t> supported;
     SourceEffectLightQueryState queries;
     std::array<SourceShadowSelectionCache,4> selection;
     std::vector<std::string> gaps;
     Impl(const Cache& cache,unsigned index):bsp(index),locations(cache.load_bsp_atmosphere(index)),
-        memberships(cache.load_object_light_spatial_bsp(index)) {
+        memberships(cache.load_object_light_spatial_bsp(index)),portals(cache.load_source_portal_bsp(index)) {
         for(const auto& tag:cache.tags())if(tag.group=="ligh") {
             try {
                 definitions.emplace(tag.datum,load_effect_light(cache,tag.datum));supported.insert(tag.datum);
@@ -137,9 +138,9 @@ void CampaignLights::select_native(PhysicsLiveWorldTu15& world,SourceEffectLight
         frame,3,std::bit_cast<float>(0x3c23d70au),cinematic);
 }
 std::vector<WorldEffectLightReceiver> CampaignLights::receivers(const SourceEffectLightView& lights,
-    const SourceBspAdmissionBsp& geometry,std::span<const std::uint8_t> fog,const SourceBspAdmission* main) {
+    const SourceBspAdmissionBsp& geometry,std::span<const std::uint8_t> fog,const SourceBspAdmission* main,std::span<const std::uint32_t> open_portals) {
     auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
-    const SourceEffectLightReceiverWorld world{i.memberships,geometry,i.locations,std::int16_t(i.bsp)};
+    const SourceEffectLightReceiverWorld world{i.memberships,geometry,i.locations,std::int16_t(i.bsp),&i.portals,open_portals};
     for(const auto& selected:lights.selected) {
         if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
         const auto at=std::find_if(lights.records.begin(),lights.records.end(),[&](const auto& row){return row.runtime.identity==selected.identity;});

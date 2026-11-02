@@ -16,6 +16,10 @@
 using namespace halo2;
 namespace {
 void require(bool value,const char*message){if(!value)throw FormatError(message);}
+Cache reference_cache(const std::filesystem::path& path){
+    // Resolve offline original-map aliases; runtime cache admission stays strict.
+    return Cache(std::filesystem::canonical(path),std::filesystem::canonical("assets/disc/maps"));
+}
 struct Submission {std::vector<Vertex>vertices;std::vector<ObjectLightingBinding>light;std::vector<SourceObjectViewSelection>selected;};
 SourceObjectViewLod view(unsigned index,float metric,unsigned players=1,std::uint32_t flags=0,
     std::uint16_t controls=0,bool special=false){
@@ -28,7 +32,7 @@ LevelContent one_object(const LevelContent&content,const ScenarioObject&object){
     LevelContent result;result.objects={object};result.object_names=content.object_names;return result;
 }
 void prop_views(){
-    Cache cache("assets/disc/maps/headlong.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/headlong.map");const auto content=cache.load_content(0,true);
     const auto source=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.definition==0xeb4309ceu;});
     require(source!=content.objects.end(),"original Headlong bus fixture missing");
     auto one=one_object(content,*source);CollisionWorld collision(content.collision);Mesh mesh;
@@ -78,7 +82,7 @@ void prop_views(){
     std::cout<<"Headlong bus: realLOD0/2/3/5 streams, independent two-view hysteresis, caps/modifiers and first-view lighting\n";
 }
 void machine_views(){
-    Cache cache("assets/map-pack/maps/gemini.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/map-pack/maps/gemini.map");const auto content=cache.load_content(0,true);
     const auto source=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.type==7 && o.placement==1;});
     require(source!=content.objects.end(),"original Gemini high door fixture missing");
     auto one=one_object(content,*source);CollisionWorld collision(content.collision);Mesh mesh;
@@ -92,7 +96,7 @@ void machine_views(){
     std::cout<<"Gemini high door: distinct original region streams and one retained owner light bank\n";
 }
 void prt_section_binding(){
-    Cache cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/zanzibar.map");const auto content=cache.load_content(0,true);
     const auto source=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.definition==0xe93107bcu;});
     require(source!=content.objects.end(),"original crane source fixture missing");
     std::ifstream fixture("tests/fixtures/retail_prt_object_banks.tsv");std::uint32_t datum;
@@ -146,7 +150,7 @@ void prt_section_binding(){
         <<" original retained words; one sourceLODInfo and fixed source section/palette order\n";
 }
 void empty_collectors(){
-    Cache cache("assets/disc/maps/headlong.map");const auto content=cache.load_content(0,true);
+    auto cache=reference_cache("assets/disc/maps/headlong.map");const auto content=cache.load_content(0,true);
     const auto source=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.definition==0xeb4309ceu;});
     auto selected=cache.load_initial_model_selection(source->definition,source->variant);
     std::fill(selected.permutations.begin(),selected.permutations.end(),255);

@@ -1,7 +1,7 @@
 // Generated from tools/mcc-script-layout.json.
 // MCC SHA256 de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946
 // Xbox TU1.5 SHA256 21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd
-constexpr std::array<Builtin,411> builtins{{
+constexpr std::array<Builtin,412> builtins{{
     {0,0,3,0,2,"begin",{}},
     {1,1,3,0,2,"begin_random",{}},
     {2,2,3,0,2,"if",{}},
@@ -282,6 +282,7 @@ constexpr std::array<Builtin,411> builtins{{
     {450,448,4,1,0,"cs_enable_pathfinding_failsafe",{5}},
     {451,449,4,1,0,"camera_control",{5}},
     {452,450,4,2,0,"camera_set",{15,7}},
+    {454,452,4,2,0,"camera_set_animation",{36,11}},
     {455,453,4,4,0,"camera_set_animation_relative",{36,11,51,14}},
     {456,454,4,5,0,"camera_predict_resources_at_frame",{36,11,51,14,8}},
     {457,455,4,1,0,"camera_predict_resources_at_point",{15}},

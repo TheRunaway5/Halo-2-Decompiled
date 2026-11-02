@@ -36,6 +36,64 @@ void same_pose(const std::vector<Vertex>&a,const std::vector<Vertex>&b){
   a[i].normal.z!=b[i].normal.z || a[i].prt_cluster!=b[i].prt_cluster || a[i].prt_weights!=b[i].prt_weights)
   throw FormatError("machine lifetime retained previous pose or advanced from render time");
 }
+void control_lifetimes(Cache &cache){
+ auto content=cache.load_content(0,true);
+ const auto control=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.type==8;});
+ if(control==content.objects.end())throw FormatError("Zanzibar control fixture missing");
+ const auto placement=std::size_t(control-content.objects.begin());
+ for(std::size_t i=0;i<content.objects.size();++i)if(i!=placement)content.objects[i].definition=null_datum;
+ CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
+ if(scene.stats().render_models!=1)throw FormatError("Gate-control keypad/screen model was not prepared for rendering");
+ SceneObjects objects(content,0);SourceDeviceWorld devices(content);devices.synchronize(objects);
+ const auto draw=[&]{std::vector<Vertex> vertices;std::vector<ObjectLightingBinding> bindings;
+  scene.append(vertices,bindings);return vertices;};
+ if(!draw().empty())throw FormatError("Control geometry submitted before its live birth");
+ scene.synchronize(objects,&devices);scene.update_pose(0,0,mesh);
+ const auto vertices=draw();std::set<std::string> shaders;
+ for(const auto&v:vertices)shaders.insert(mesh.materials.at(v.material).name);
+ const std::string prefix="scenarios\\objects\\multi\\zanzibar\\keypad\\shaders\\";
+ if(vertices.empty() || !shaders.contains(prefix+"keypad") || !shaders.contains(prefix+"screen"))
+  throw FormatError("Live control draw omitted the authored keypad or screen");
+ const auto owners=scene.effect_owners();
+ if(owners.size()!=1 || owners[0].placement!=placement || !scene.portal_owners().empty())
+  throw FormatError("Control render lifetime acquired a machine portal owner");
+ const auto handle=owners[0].object;const auto checkpoint=scene.checkpoint();
+ for(const auto&v:vertices) {
+  const auto owner=scene.control_material_owner(v.material);
+  if(!owner || owner->object!=handle || owner->definition!=control->definition)
+   throw FormatError("Control screen material lost its current object function owner");
+ }
+ if(!devices.activate_admitted_control(handle).changed)throw FormatError("Rendered control no longer activates its authored gate group");
+ devices.step(1.f/30.f);scene.synchronize(objects,&devices);scene.update_pose(1,1,mesh);
+ if(draw().empty())throw FormatError("Consumed control lost its keypad/screen model");
+ objects.visible(handle,false);devices.synchronize(objects);scene.synchronize(objects,&devices);
+ if(!draw().empty())throw FormatError("Hidden control retained visible geometry");
+ auto restore=scene.prepare_restore(checkpoint);
+ if(!scene.commit_restore(restore))throw FormatError("Control presentation checkpoint refused its original owner");
+ same_pose(vertices,draw());
+ objects.destroy(handle);devices.synchronize(objects);scene.synchronize(objects,&devices);
+ if(!draw().empty())throw FormatError("Retired control retained stale geometry");
+ std::cout<<"PASS authored control keypad/screen: resident model, live birth/use/hide/retirement, checkpoint, no machine portals; vertices="<<vertices.size()<<'\n';
+}
+void other_control_resources(){
+ unsigned total{};
+ for(const auto* path:{"assets/map-pack/maps/containment.map","assets/map-pack/maps/dune.map"}) {
+  auto cache=reference_cache(path);auto content=cache.load_content(0,true);unsigned expected{};
+  for(auto& object:content.objects) {
+   if(object.type==8 && object.definition!=null_datum)++expected;
+   else object.definition=null_datum;
+  }
+  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
+  SceneObjects objects(content,0);SourceDeviceWorld devices(content);devices.synchronize(objects);
+  scene.synchronize(objects,&devices);scene.update_pose(0,0,mesh);
+  std::vector<Vertex> vertices;std::vector<ObjectLightingBinding> bindings;scene.append(vertices,bindings);
+  if(!expected || scene.stats().render_models!=expected || bindings.size()!=expected || vertices.empty() || !scene.portal_owners().empty())
+   throw FormatError("Containment/Relic control resources lost authored geometry or became portal owners");
+  total+=expected;
+ }
+ if(total!=3)throw FormatError("Other authored multiplayer control corpus changed");
+ std::cout<<"PASS three authored Containment/Relic control resources and live render lifetimes\n";
+}
 void prepared_machine_birth(){
  Cache cache=reference_cache("assets/map-pack/maps/triplicate.map");auto content=cache.load_content(0,true);
  const auto at=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.type==7 && scenery_automatic_creation_allowed(o,2);});
@@ -304,7 +362,7 @@ void simulation_devices(){
  SceneObjects objects(content,0);SourceDeviceWorld devices(content);devices.synchronize(objects);
  machines.synchronize(objects,&devices);machines.update_pose(0,0,mesh);
  std::vector<Vertex> initial;std::vector<ObjectLightingBinding> bindings;machines.append(initial,bindings);
- if(bindings.size()!=6)throw FormatError("Zanzibar live source machine render inventory");
+ if(bindings.size()!=7)throw FormatError("Zanzibar live source machine/control render inventory");
  const auto gate=material_vertices(initial,bindings[1]);std::uint32_t control=~0u;
  for(const auto&[id,o]:devices.owners())if(content.devices[o.placement]->control)control=id;
  if(control==~0u || !devices.activate_admitted_control(control).changed)throw FormatError("Zanzibar admitted shared control failed");
@@ -347,12 +405,12 @@ void simulation_devices(){
  objects.destroy(old_gate);devices.synchronize(objects);replica.apply_snapshot(devices.snapshot(301));
  peer.synchronize(client_objects,&replica);peer.update_pose(301,2,peer_mesh);
  peer_vertices.clear();peer_bindings.clear();peer.append(peer_vertices,peer_bindings);
- if(peer_bindings.size()!=5 || !material_vertices(peer_vertices,gate_binding).empty())
+ if(peer_bindings.size()!=6 || !material_vertices(peer_vertices,gate_binding).empty())
   throw FormatError("removed authoritative gate submitted stale client geometry");
  const auto replacement=objects.create(gate_name,false,302);devices.synchronize(objects);
  replica.apply_snapshot(devices.snapshot(302));peer.synchronize(client_objects,&replica);peer.update_pose(302,3,peer_mesh);
  peer_vertices.clear();peer_bindings.clear();peer.append(peer_vertices,peer_bindings);
- if(replacement==old_gate || peer_bindings.size()!=6)throw FormatError("recreated authoritative gate did not publish client geometry");
+ if(replacement==old_gate || peer_bindings.size()!=7)throw FormatError("recreated authoritative gate did not publish client geometry");
  same_pose(open_gate,material_vertices(peer_vertices,gate_binding));
  std::cout<<"Zanzibar simulation owner: shared control moves rendered gate, exact portal inputs, repeated-view stability\n";
 }
@@ -391,14 +449,16 @@ void presentation_devices(){
  std::cout<<"Triplicate presentation: four fractional geometry steps per simulation tick; portal channels unchanged\n";
 }
 }
-int main(){try{
+int main(int argc,char**argv){try{
+ if(argc==3 && std::string(argv[1])=="--control") {Cache cache(argv[2]);control_lifetimes(cache);return 0;}
+ {auto cache=reference_cache("assets/disc/maps/zanzibar.map");control_lifetimes(cache);}other_control_resources();
  solved_machine_pose_reuse();prepared_machine_birth();reference_devices();triplicate_lifetimes();simulation_devices();presentation_devices();SourceMachineSceneStats totals;unsigned vertices=0,bindings=0,prt_banks=0;
  const std::string maps=" ascension beavercreek burial_mounds coagulation colossus cyclotron foundation headlong lockout midship waterworks zanzibar containment warlock deltatap turf backwash dune elongation gemini triplicate ";
  for(const auto&directory:{"assets/disc/maps","assets/map-pack/maps"})for(const auto&entry:std::filesystem::directory_iterator(directory)){
   if(entry.path().extension()!=".map" || maps.find(" "+entry.path().stem().string()+" ")==std::string::npos)continue;
   Cache cache=reference_cache(entry.path());auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
   // This original census covers the automatic initial MP2/current-BSP corpus.
-  for(auto &o:content.objects)if(o.type==7 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
+  for(auto &o:content.objects)if(o.type==8 || (o.type==7 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0)))o.definition=null_datum;
   SourceMachineScene scene(cache,content.objects,0,mesh,collision);
   SceneObjects objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(objects);const auto&s=scene.stats();
   totals.placements+=s.placements;totals.render_models+=s.render_models;totals.position_overlays+=s.position_overlays;

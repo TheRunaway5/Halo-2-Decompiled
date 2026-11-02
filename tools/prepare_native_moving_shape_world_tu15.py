@@ -40,14 +40,14 @@ def main():
       throw std::runtime_error("Native moving PROCESS requires distinct caller-owned32KiB DATA");}
     NativeTu15MovingShapeNativeServices native;native.timestamp_counter=collision.timestamp_counter;
     native.activate_island=[&](auto&view,auto current_world,auto island,auto&context){
-      native_tu15_activate_island_with_residuals(view,current_world,island,context,state.x87_depth,
+      native_tu15_activate_island_with_residuals(view,{current_world},{island},context,state.x87_depth,
         {wake,wake+4u,wake+0x20u,wake+0x80u,0x800u},
         [](auto,std::span<const std::uint32_t>,std::optional<std::uint32_t>,unsigned,auto&)->std::uint32_t{
           throw std::runtime_error("Native moving wake requires an additional typed native owner");
         },{},stats?&stats->world_activation:nullptr);
     };
-    native_tu15_process_bound_moving_shape_contact(m,{agent.identity},{first.identity},second,
-      configuration,output,{data,0x8000u},current,state.x87_depth,native,pair_deletion_scope,
+    native_tu15_process_bound_moving_shape_contact(m,{agent.identity},{first.identity},{second.identity},
+      {configuration.identity},{output.identity},{data,0x8000u},current,state.x87_depth,native,pair_deletion_scope,
       stats?&stats->moving_shape_process:nullptr);
   };
 '''
@@ -92,9 +92,10 @@ def main():
  # the same-helper original proof, comparing with the exact frozen source set.
  units=tuple(dict.fromkeys(prefix.UNITS+full.EXTRA+('native_tu15_constraint_body_slots.cpp','native_tu15_constraint_scalar_cache.cpp','native_tu15_contact_creation_gameplay.cpp','native_tu15_activation_payload_filter.cpp','native_tu15_activation_agents.cpp','native_tu15_contact_cache.cpp')))
  pending=[(ROOT/'src/physics'/name).resolve()for name in units]+[ROOT/'include/halo2/native_tu15_moving_shape_process_binding.hpp'];visited={};unit_names=[]
- baseline=ROOT/'analysis/physics/native-convex-simplex-solver-qualified-actual1479-20261102/source/src/physics/native_tu15_convex_simplex_solver.cpp'
+ qualified=ROOT/'analysis/physics/native-moving-shape-process-qualified-actual1479-20261102/source'
+ baseline=qualified/'src/physics/native_tu15_convex_simplex_solver.cpp'
  while pending:
-  original=pending.pop();name=str(original.relative_to(ROOT));path=baseline if name=='src/physics/native_tu15_convex_simplex_solver.cpp'else original
+  original=pending.pop();name=str(original.relative_to(ROOT));path=qualified/name if(qualified/name).is_file()else original
   if name in visited:continue
   digest=sha(path);visited[name]=digest
   if manifest.get(name)!=digest:
@@ -105,8 +106,14 @@ def main():
  for name in units:unit_names.append(str((ROOT/'src/physics'/name).resolve().relative_to(ROOT)))
  def cmake(s):
   existing=set(re.findall(r'src/[^\s)\"]+\.cpp',s));new=[name for name in unit_names if name not in existing]
-  return s+'\n# Native moving PROCESS: sole semantic kernels; same retained validity view.\ntarget_sources(halo2_native_pair_consumer PRIVATE\n'+''.join('  '+name+'\n'for name in new)+')\n'
+  return s+'\n# Native moving PROCESS: sole semantic kernels; same retained validity view.\ntarget_sources(halo2_native_pair_consumer PRIVATE\n'+''.join('  '+name+'\n'for name in new)+')\n# Reuse the existing sole feature archive; do not duplicate its CPP.\ntarget_link_libraries(halo2_native_pair_consumer PUBLIC halo2_native_contact_features)\n'
  edit('cmake/PhysicsLiveWorldTu15.cmake',cmake)
+ # These small test-only headers were inherited by the qualified1480 model,
+ # but are deliberately absent from its runtime-only source checkpoint.
+ inherited=json.loads((ROOT/'analysis/physics/native-broad-phase-edges-world-stage-20261102/source-pins.json').read_text())['inherited_source_sha256']
+ for name,digest in inherited.items():
+  path=ROOT/'analysis/physics/native-broad-phase-edges-world-stage-20261102/staged'/name;assert sha(path)==digest
+  target=stage/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(path.read_bytes());before[name]=manifest.get(name);after[name]=digest
  (OUT/'native-moving-shape-world.diff').write_text(''.join(diffs))
  r=dict(qualified=False,root_reviewed=False,no_root_source_changes=True,base_1480_manifest_sha256='b5a7f99df8cae90cda36884056d1e8aa5aa0b0e5cbe7007d24327a8d0b8e1ec1',base_hashes=before,source_sha256=after,dependency_source_sha256=visited,fields=FIELDS,new_gate='HALO2_REQUIRE_NATIVE_MOVING_SHAPE_PROCESS',compiled_solver_baseline_sha256=sha(baseline),remaining=['Exact staged World models and dispatch/counters/FP/resource/observer tests','Independent source/resource peer','Fresh imported-MCC visible strict original/live','Wider solver/count/shape/gameplay/profile/exception observer domains remain refused'])
  (OUT/'source-pins.json').write_text(json.dumps(r,indent=2)+'\n');print(dict(staged_files=len(after),fields=len(FIELDS),manifest_sha256=sha(OUT/'source-pins.json')))

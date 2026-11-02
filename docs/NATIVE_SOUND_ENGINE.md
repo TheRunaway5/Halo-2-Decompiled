@@ -277,7 +277,8 @@ unreached lifted SDK/hardware code from the game build, and publishing.
 | Stock chunk retirement | `2B82A0`, `2B99C0` | 96 plus CRT copy | Native; 1,302 direct-XBE cases, six rejected mutants; stream/voice integration remains open |
 | Common stream construction, PCM initialization | `2B8370`, `2B7F40` | 53 | Native CPU; 892 comparisons under explicit real SDL service ABI; parent caller/driver admission remains open |
 | Stream format and descriptor caller | `224E20`, `225EF0` | 73 | Native admitted CPU/FP profile; 698 comparisons with separate source-opcode C1 oracle; full physical/Xbox ABI remains open |
-| Core cache datum allocation dependencies | `16E6A0`, `16E770`, `16E860` | 152 | Core-owned native GPR/frame/DF adapters; 4,390 unchanged-XBE cases; page allocator and cache-binding join remain open |
+| Core cache datum allocation dependencies | `16E6A0`, `16E770`, `16E860` | 152 | Core-owned native GPR/frame/DF adapters; 4,390 unchanged-XBE cases; page/read continuation below |
+| Native cache pages, eviction and read caller | `13FE00`, `13FE50`, `140310`, `16E8A0`, `21F3F0`, `21F420` | 588 plus shared callees | 2,585 direct-XBE cases; success read calls stop at the I/O boundary; actual cold resource/PCM lifecycle qualified below |
 | Startup | `12EB50`, `1972C0`, `1973E0`, `224EC0`, `2254F0`, `2275A0`, `227EA0` | 934 | |
 | Startup storage | 17 routines | 667 | |
 | Object looping-sound update: frame | `18EE50`, `223DA0`, `22C560`, `226370`, `18ED80`, `18F510`, `18F900`, `129DD0`, `18D390`, `18D3D0` | 742 | Native, tested (41k cases, full trace coverage) |
@@ -610,4 +611,64 @@ two combined four-bin profiles and Xbox waveform/wet-feedback proof remain
 open. The prior archive-budget rejection is not rerun or bypassed. The
 [closure receipt](../build/test-results/vehicle-destruction-native-cache-datum-20261102/owner-closure.json)
 records private source/build/bank removal and preservation of the required
+original reference. No new large artifact or selected-runtime promotion is added.
+
+
+## Native page allocation and actual cache reads, 2026-11-02
+
+Core-owned `13FE00` window preference, `13FE50` page allocation and `140310`
+list retirement now compose with the complete `16E8A0` deletion ABI and the
+previously qualified general/requested datum allocators. The sound module owns
+`21F3F0` eviction and `21F420` cache binding. Actual busy/delete callbacks retain
+their source GPR/argument/frame ABI. The page allocator preserves window scans,
+256-slot wrap, age policies, physical overlap eviction, full-pool oldest-record
+retirement, neighbor links, threshold/pool-pointer alias and fresh metadata reads.
+The private `32A660` stack probe touches actual mapped pages as called here;
+this is not global CRT or OS guard-page qualification.
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-pages-20261102/qualification.json)
+passes 2,585 unchanged-XBE cases: 2,374 returns, 24 matching faults and 187
+stops at the exact `21F4BD -> 1A3B70` read boundary. All boundary GPRs, six
+arguments, return slot and earlier CPU stores are compared; no read result is
+supplied. The original post-read return ABI is not compared by that oracle.
+There are 6,480 actual original busy/delete callbacks, 69,653 ordered semantic
+stores, 1,164,820 private stack writes and 700 DF-set cases. Full mapped bytes,
+caller FP/SIMD/FS and DF checks pass. Arithmetic EFLAGS remain scratch.
+Independent fixtures have identical hashes. The source coverage report retains
+the nine unexercised negative-ring instruction sites and one alignment NOP;
+its 756 observed sites are not a claim that every static branch was exercised.
+
+A separate authenticated cold-cache test starts with empty declared native
+pools and real owned physical backing. Native `21F420`/`13FE50` allocate and
+bind each chunk. The existing strict native I/O owner reads its actual original
+sector resource, copies all bytes and retains a real receipt before publishing
+readiness. PCM is decoded from those actual cache bytes and sent through native
+format/construction, stock queue/pump/callback/release and actual manual SDL
+consumption. All 908 contexts, 9,450 routes and 31 names are checked, covering
+273 distinct permutations, 55 multi-chunk permutations and 375 chunks across
+1,147 lifecycle scenarios. The run performs 1,657 real reads totaling
+53,057,536 sector bytes, with exact uninterrupted same-PC PCM comparisons and
+pin/reference cleanup. It supplies no loaded cache rows. Empty-pool/physical
+reservation, driver ABI, producer timing and unity gain/rate remain declared
+component inputs. Native synchronous read/receipt policy is not Xbox worker,
+kernel, retail SDK or DSP equivalence.
+
+All twelve restored suites pass. Eleven compiled wrong variants are rejected,
+including ignored busy answers, lost predecessor/backlink state, backwards
+poisoning errors, stale chunk handles, changed cache indices/rounding, skipped
+reads and receipts issued before physical bytes. The prior loaded-cache payload
+report is unchanged. Constructor/service/format input and trace hashes are
+unchanged, including the separate C1 opcode oracle and 295 raw Unicorn C1
+differences. Compiler evidence retains 75 object hashes, three archive hashes,
+224 frozen source dependencies and 681 external dependencies, with no checkout
+drift. The earlier coverage-floor failure and corrected raw-input setup remain
+in the bounded session evidence.
+
+Source World/cache/voice/device admission, production handoff, original event
+schedule/selection/gain/pitch/spatial behavior and normal local/split/LAN
+destruction delivery remain open. Both combined four-bin profiles, Xbox
+waveform/wet feedback, all 37 complete-definition gates and D01-D13 remain open.
+The prior factory archive-budget rejection is not rerun or bypassed. The
+[closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
+records removal of private source/build/banks and preservation of the required
 original reference. No new large artifact or selected-runtime promotion is added.

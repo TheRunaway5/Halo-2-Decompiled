@@ -15,8 +15,22 @@ pub fn clone_frontend_party_flow(c: &FrontendPartyFlow) -> Box<FrontendPartyFlow
 pub fn frontend_party_flow_state(c: &FrontendPartyFlow) -> ffi::PartyFlowState {
     let s = c.0.state();
     let p = s.pending;
+    let confirmation = s.clan_confirmation;
     ffi::PartyFlowState {
         target: s.target,
+        clan_target: s.clan_target,
+        clan_target_kind: s.clan_target_kind,
+        clan_message_page: s.clan_message_page,
+        clan_confirmation_present: confirmation.is_some(),
+        clan_confirmation: confirmation
+            .as_ref()
+            .map(super::matchmaking_frontend_clans::encoded_command)
+            .unwrap_or_else(|| ffi::ClansFlowCommand {
+                action: vec![],
+                value: vec![],
+                role: 0,
+                confirmed: false,
+            }),
         friend_target: s.friend_target,
         activity_target: s.activity_target,
         friend_join_serial: s.friend_join_serial,

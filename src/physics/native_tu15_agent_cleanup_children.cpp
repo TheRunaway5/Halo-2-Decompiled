@@ -8,7 +8,7 @@ class Memory {
 public:
     Memory(SourcePhysicsContactMemory&m,const SourcePhysicsContactRecordObserver&o):memory_(m),observer_(o){}
     std::uint32_t word(std::uint32_t p,unsigned size=4)const{std::array<std::byte,4>b{};memory_.read(p,std::span(b).first(size));std::uint32_t v{};for(unsigned n=0;n<size;++n)v|=std::to_integer<unsigned>(b[n])<<(8u*n);return v;}
-    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value){std::array<std::byte,4>b{};for(unsigned n=0;n<4;++n)b[n]=std::byte(value>>(8u*n));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(observer_){e.before.resize(4);memory_.read(p,e.before);e.written.assign(b.begin(),b.end());}memory_.write(p,b);if(observer_)observer_(e);}
+    void word(std::uint32_t pc,std::uint32_t p,std::uint32_t value,unsigned bytes=4){std::array<std::byte,4>b{};for(unsigned n=0;n<bytes;++n)b[n]=std::byte(value>>(8u*n));SourcePhysicsContactRecordStore e{pc,p,{},{}};if(observer_){e.before.resize(bytes);memory_.read(p,e.before);e.written.assign(b.begin(),b.begin()+bytes);}memory_.write(p,std::span(b).first(bytes));if(observer_)observer_(e);}
 };
 void release(const NativeTu15ArrayGrowthServices&s,NativeTu15ArrayReleaseRequest r,NativeTu15PhysicsFrameFp&fp){if(!s.release)throw std::runtime_error("Native TU1.5 agent cleanup requires its actual release owner");s.release(r,fp);}
 }
@@ -66,6 +66,21 @@ void native_tu15_cleanup_single_point_contact_agent(SourcePhysicsContactMemory&m
         const NativeTu15ContactVirtualOwner owner{m.word(table+8u)};
         if(!s.remove_point)throw std::runtime_error("Native single-point cleanup requires its actual removal owner");
         s.remove_point(manager,owner,std::uint16_t(point),fp);
+    }
+    native_tu15_dispose_contact_reference(memory,agent.identity,fp,s.agents);
+}
+void native_tu15_cleanup_sphere_contact_agent(SourcePhysicsContactMemory&memory,
+    NativeTu15ContactAgent agent,NativeTu15PhysicsFrameFp&fp,
+    const NativeTu15AgentCleanupChildrenServices&s,
+    const SourcePhysicsContactRecordObserver&observer){
+    Memory m(memory,observer);
+    const auto cached=m.word(agent.identity+12u,2);
+    if(cached != 0xffffu){
+        const auto manager=m.word(agent.identity+8u),table=m.word(manager);
+        const NativeTu15ContactVirtualOwner owner{m.word(table+8u)};
+        if(!s.remove_point)throw std::runtime_error("Native sphere cleanup requires its actual removal owner");
+        s.remove_point(manager,owner,std::uint16_t(cached),fp);
+        m.word(0x2f9978u,agent.identity+12u,0xffffu,2);
     }
     native_tu15_dispose_contact_reference(memory,agent.identity,fp,s.agents);
 }

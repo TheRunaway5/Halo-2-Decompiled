@@ -118,9 +118,10 @@ struct NativeWorldEffects::Impl {
   struct LightResources {
     BspAtmosphere locations;
     ObjectLightSpatialBsp memberships;
+    SourcePortalBsp portals;
     TerrainCollision terrain;
     explicit LightResources(const Cache &c,unsigned bsp=0)
-        :locations(c.load_bsp_atmosphere(bsp)),memberships(c.load_object_light_spatial_bsp(bsp)),
+        :locations(c.load_bsp_atmosphere(bsp)),memberships(c.load_object_light_spatial_bsp(bsp)),portals(c.load_source_portal_bsp(bsp)),
          terrain(c.load_raw_terrain_collision(bsp)) {
       if(terrain.bsps.size()!=1)throw FormatError("World effect light requires actual first BSP collision bank");
     }
@@ -1674,9 +1675,9 @@ SourceEffectLightView NativeWorldEffects::source_light_view(PhysicsLiveWorldTu15
 }
 std::vector<WorldEffectLightReceiver> NativeWorldEffects::source_light_receivers(PhysicsLiveWorldTu15& source,
     unsigned bsp,const SourceEffectLightView& lights,const SourceBspAdmissionBsp& geometry,
-    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view) {
+    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals) {
   auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;const auto& resources=i.native_resources(bsp);
-  const SourceEffectLightReceiverWorld world{resources.memberships,geometry,resources.locations,std::int16_t(bsp)};
+  const SourceEffectLightReceiverWorld world{resources.memberships,geometry,resources.locations,std::int16_t(bsp),&resources.portals,open_portals};
   const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {return i.native_definition(id);};
   for(const auto& selected:lights.selected) {
     if(!(selected.requested_fade>std::bit_cast<float>(0x3d8f5c29u)))continue;
@@ -1710,11 +1711,11 @@ std::vector<WorldEffectLightReceiver> NativeWorldEffects::source_light_receivers
 }
 std::vector<WorldEffectLightReceiver> NativeWorldEffects::light_receivers(
     const SourceEffectLightView& lights,const SourceBspAdmissionBsp& geometry,
-    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view) {
+    std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals) {
   auto& i=*impl_;std::vector<WorldEffectLightReceiver> out;
   if(!i.light_world)return out;
   const SourceEffectLightReceiverWorld world{i.light_world->resources->memberships,geometry,
-      i.light_world->resources->locations,0};
+      i.light_world->resources->locations,0,&i.light_world->resources->portals,open_portals};
   const SourceEffectLightDefinitions definition=[&](auto id)->const EffectLightDefinition& {
     return i.light_definitions.at(id);
   };

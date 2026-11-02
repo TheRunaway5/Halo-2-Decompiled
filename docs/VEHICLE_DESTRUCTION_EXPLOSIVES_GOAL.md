@@ -3599,3 +3599,36 @@ complete-definition gates and D01-D13 remain open. The
 [closure receipt](../build/test-results/vehicle-destruction-native-stream-format-20261102/owner-closure.json)
 records private source/build/bank removal, preservation of the required
 original reference and no new large artifact or selected-runtime promotion.
+
+
+## Native page allocation and cold resource playback, 2026-11-02
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-pages-20261102/qualification.json)
+adds core-owned `13FE00`/`13FE50`/`140310`, complete `16E8A0` GPR/frame/DF
+retirement, and sound-owned `21F3F0` eviction/`21F420` binding. There are 2,585
+unchanged-XBE comparisons: 2,374 returns, 24 matching faults and 187 exact read
+boundaries with no supplied I/O result. Actual original busy/delete callbacks,
+all mapped bytes, private frames and caller FP/SIMD/FS/DF are compared. Source
+coverage retains the unexercised negative-ring/alignment sites; the private
+stack-probe and original post-read return ABI limits remain explicit.
+
+Authenticated playback now also runs from declared empty pools and actual
+physical backing through native allocation/binding and real resource reads.
+Read bytes and retained native receipts precede ready publication. PCM decoded
+from those physical bytes passes the native stream lifecycle and manual SDL
+comparison for all 273 distinct permutations/1,147 scenarios, including all
+55 multi-chunk permutations. There are 1,657 actual reads/53,057,536 sector
+bytes. This closes the component allocator-to-authenticated-read/PCM join;
+it does not admit an actual source World, driver, cache reservation or voice.
+
+All twelve restored suites pass and eleven compiled wrong variants are
+rejected. Independent original fixtures match; the prior loaded-cache payload
+report and constructor/service/format inputs/traces remain unchanged. The C1
+oracle limitation and raw Unicorn differences remain recorded. Original event
+timing/selection/gain/pitch/spatial behavior, production handoff, normal local/
+split/LAN delivery, both four-bin profiles, Xbox waveform/wet feedback, all 37
+complete-definition gates and D01-D13 remain open. The previous factory archive
+budget refusal is not rerun or bypassed. The
+[closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
+records private source/build/bank removal, preservation of the required original
+reference and no new large artifact or selected-runtime promotion.

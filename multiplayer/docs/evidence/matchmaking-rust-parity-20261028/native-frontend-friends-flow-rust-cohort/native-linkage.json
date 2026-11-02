@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "sole_native_friends_adapter": true,
+  "complete_native_friends_caller_reaches_rust": true,
+  "former_native_friend_and_activity_targets_removed": true,
+  "existing_party_controller_used": true,
+  "required_rust_imports": [
+    "                 U halo2::online_protocol_bridge::frontend_friends_flow(halo2::online_protocol_bridge::FrontendPartyFlow const&, unsigned int, unsigned int, unsigned int, halo2::online_protocol_bridge::NativeFrontendFriendsIo const&)",
+    "                 U halo2::online_protocol_bridge::frontend_friends_screen(unsigned int, unsigned int)"
+  ],
+  "compiled_thin_entry_points": 12,
+  "affected_production_translation_units": [
+    {
+      "path": "src/ui/frontend_friends.cpp",
+      "source_sha256": "def95788a068b284cc24abd1a371faac365ed61fb480d9b3b7849bea3e74eeab",
+      "object": "CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o",
+      "object_sha256": "b423e4fbe60f10b6b7f215ea1094cd8c12681017a83f67bb84448f8206629ead",
+      "object_bytes": 6568,
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/cmake/../include -isystem /usr/include/SDL2 -isystem /usr/include/libnm -isystem /usr/include/glib-2.0 -isystem /usr/lib/glib-2.0/include -isystem /usr/include/libmount -isystem /usr/include/blkid -isystem /usr/include/sysprof-6 -O1 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -Wno-missing-field-initializers -ffp-contract=off -DWITH_GZFILEOP -pthread -o CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src/ui/frontend_friends.cpp"
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_friends.cpp",
+      "source_sha256": "5913b4fd60f383d8814a7a4562df3ca3d5183c91203f8742120adf49713ec85e",
+      "object": "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_friends.cpp.o",
+      "object_sha256": "fdf67685c276d61883f7bfb7c4ac80ea93addf122e9712971cc4b77aa45afe47",
+      "object_bytes": 81224,
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/build/online-protocol/Release/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/cmake/../include -isystem /usr/include/SDL2 -isystem /usr/include/libnm -isystem /usr/include/glib-2.0 -isystem /usr/lib/glib-2.0/include -isystem /usr/include/libmount -isystem /usr/include/blkid -isystem /usr/include/sysprof-6 -O1 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic -Wno-missing-field-initializers -ffp-contract=off -DWITH_GZFILEOP -pthread -o CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_friends.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src/ui/frontend_matchmaking_friends.cpp"
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_party_flow_bridge.cpp",
+      "source_sha256": "8e3f885b592c1ab18ce6c237cb1bdc29cbb488b5b96497f4100302d0735b11e5",
+      "object": "CMakeFiles/halo2_frontend_party_flow.dir/src/ui/frontend_matchmaking_party_flow_bridge.cpp.o",
+      "object_sha256": "6bae0ba46cc8d77c8334bc31a75b9c00f5422bbc83c673a81e37e8bdfc2ea49b",
+      "object_bytes": 24024,
+      "command": "/usr/bin/c++  -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/include -I/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/build/online-protocol/Release/include -O1 -DNDEBUG -std=c++20 -o CMakeFiles/halo2_frontend_party_flow.dir/src/ui/frontend_matchmaking_party_flow_bridge.cpp.o -c /home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d/native-source/src/ui/frontend_matchmaking_party_flow_bridge.cpp"
+    }
+  ],
+  "objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_friends.cpp.o": {
+      "sha256": "fdf67685c276d61883f7bfb7c4ac80ea93addf122e9712971cc4b77aa45afe47",
+      "bytes": 81224
+    },
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o": {
+      "sha256": "b423e4fbe60f10b6b7f215ea1094cd8c12681017a83f67bb84448f8206629ead",
+      "bytes": 6568
+    },
+    "libhalo2_frontend_party_flow.a": {
+      "sha256": "baa80bf6adaac76c931d20fb7f0a45bf5e1afd48b733aa0c34b5182854aab182",
+      "bytes": 27046
+    }
+  },
+  "scope": "Actual frozen native friends adapter, thin entry points and ABI archive reach Rust. This is component linkage, not installed-client or original Live provider proof.",
+  "retained_large_artifacts": []
+}

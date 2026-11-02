@@ -33,6 +33,7 @@ struct SourceMachineScene::Impl {
     struct Machine {
         std::size_t source_object{};
         unsigned authored_placement{};
+        std::uint16_t object_type=7;
         std::uint32_t definition_datum{};
         std::optional<ReferenceDeviceState> reference;
         std::uint32_t handle=0xffffffffu;
@@ -153,28 +154,37 @@ struct SourceMachineScene::Impl {
         if(!collision&&!campaign)throw FormatError("Machine presentation requires its actual collision owner");
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
-            if(object.type==7)machine_placements.insert(source_object);
+            const bool device=object.type==7 || (!campaign && object.type==8);
+            if(device)machine_placements.insert(source_object);
             // Resource preparation does not perform source birth admission.
             // Named/persistent owners can be born globally outside their origin
             // BSP, and an initially absent machine can be created later. Only
             // synchronize's actual lifetimes/visibility select submitted models.
-            if(object.type!=7 || object.definition==null_datum)continue;
+            if(!device || object.definition==null_datum)continue;
             ++counts.placements;
             Machine m;m.source_object=source_object;m.definition_datum=object.definition;
-            m.authored_placement=unsigned(object.placement);m.definition=cache.load_source_machine_definition(object.definition);
-            m.placement=cache.load_source_machine_placement(unsigned(object.placement));
+            m.authored_placement=unsigned(object.placement);m.object_type=std::uint16_t(object.type);
+            if(object.type==7) {
+                m.definition=cache.load_source_machine_definition(object.definition);
+                m.placement=cache.load_source_machine_placement(unsigned(object.placement));
+            } else {
+                // Controls use the same authored position/power pose channels,
+                // but their placement table and constructor are not machines.
+                m.definition=cache.load_source_device_pose_definition(object.definition);
+                m.placement=load_source_device_world_definition(cache,object)->placement;
+            }
             if(object.type<0 || object.type>127 || object.source< -128 || object.source>127 ||
                 object.origin_bsp< -32768 || object.origin_bsp>32767)
                 throw FormatError("machine portal identity exceeds source field widths");
             m.portal_identity={object.unique_id,std::int16_t(object.origin_bsp),std::int8_t(object.type),std::int8_t(object.source)};
-            m.portal_definition=cache.load_source_machine_portal_definition(object.definition);
+            if(object.type==7)m.portal_definition=cache.load_source_machine_portal_definition(object.definition);
             m.initial_device_flags=source_machine_initial_device_flags(m.placement.device_flags);
             m.position=m.placement.initial_position;m.power=m.placement.initial_power;m.scale=object.scale;
             //All nineteen supplied gears have private power/position groups.
             //Named gear groups require1152E0's shared group write producer.
             if(!campaign && m.definition.type==2 && (m.placement.power_group!=-1 || m.placement.position_group!=-1))
                 throw FormatError("named gear group progression requires source shared state: "+m.definition.name);
-            m.runtime_flags=source_machine_object_flags(0,m.definition);
+            m.runtime_flags=object.type==7?source_machine_object_flags(0,m.definition):0;
             if(m.definition.position)++counts.position_overlays;
             if(m.definition.type!=2)++counts.initial_state_only;
             if(m.definition.render_model==0xffffffffu){nonrendered_placements.insert(source_object);continue;}
@@ -328,7 +338,8 @@ struct SourceMachineScene::Impl {
         std::set<unsigned> seen;std::set<std::uint32_t> handles;
         std::vector<std::pair<Machine*,const ReferenceDeviceState*>> matched;
         for(const auto&r:devices) {
-            auto m=std::find_if(state.machines.begin(),state.machines.end(),[&](const auto&m){return m.authored_placement==r.scenario_placement;});
+            auto m=std::find_if(state.machines.begin(),state.machines.end(),[&](const auto&m){
+                return m.object_type==r.object_type && m.authored_placement==r.scenario_placement;});
             const auto finite=[](Vec3 v){return std::isfinite(v.x)&&std::isfinite(v.y)&&std::isfinite(v.z);};
             if(r.object_type!=7 || m==state.machines.end() || m->definition_datum!=r.definition ||
                 m->definition.render_model!=r.render_model || !seen.insert(r.scenario_placement).second ||
@@ -377,7 +388,7 @@ struct SourceMachineScene::Impl {
                     throw FormatError("machine recreation requires current source named groups: "+m.definition.name);
                 m.handle=object.handle;m.created_tick=object.created_tick;m.advanced_tick=object.created_tick;
                 m.position=m.placement.initial_position;m.power=m.placement.initial_power;
-                m.runtime_flags=source_machine_object_flags(0,m.definition);m.light={};m.geometry.reset_history();
+                m.runtime_flags=m.object_type==7?source_machine_object_flags(0,m.definition):0;m.light={};m.geometry.reset_history();
             }else if(m.created_tick!=object.created_tick)
                 throw FormatError("machine full handle changed its source creation tick");
             m.object=object.root;m.scale=object.root.scale;
@@ -413,14 +424,14 @@ struct SourceMachineScene::Impl {
         const auto origin=m.sphere.center;
         const bool due=object_lighting_query_due(m.light,frame,origin,distance,false);
         ObjectLightQueryContext context;context.bank_valid=source_object_light_query_bank_valid(lighting);
-        context.object_type=7;context.definition_flags=m.definition.object_flags;context.runtime_flags=m.runtime_flags;
+        context.object_type=m.object_type;context.definition_flags=m.definition.object_flags;context.runtime_flags=m.runtime_flags;
         const auto query=due?source_object_light_query(context,[&](unsigned mode){
             return query_object_lightmap(surface,*collision,origin,ObjectLightMapQueryContext{mode,
                 !(m.light.sample_valid && m.light.lighting_valid),1.f,m.light.target});},
             []{return ObjectLightQueryResult{};}):ObjectLightQueryAdmission{};
         if(query.query.status==ObjectLightQueryStatus::attribution_unresolved)
             throw FormatError("machine source lighting contact attribution unresolved: "+m.definition.name);
-        update_object_lighting_cache(m.light,conversion,7,frame,origin,{},due,
+        update_object_lighting_cache(m.light,conversion,m.object_type,frame,origin,{},due,
             query.accepted?query.query.sample:std::optional<ObjectLightmapSample>{});
     }
     void update(std::uint64_t tick,std::int32_t frame,Vec3 eye,float draw_scale,Mesh&mesh){
@@ -750,6 +761,8 @@ bool SourceMachineScene::retain_source_view(unsigned view,std::span<const Source
     if(draws.empty())return false;
     const auto at=std::find_if(impl_->state.machines.begin(),impl_->state.machines.end(),[&](const auto& m){return m.active&&m.visible&&m.handle==draws.front().object;});
     if(at==impl_->state.machines.end())return false;auto& machine=*at;Impl::require_resources(machine);
+    if(machine.object_type==8)
+        machine.runtime_flags=Bytes(world.memory().view(world.object_body(machine.handle)+4u,4)).u32(0);
     if(machine.source_views[view])throw FormatError("Native MACH owner was retained twice");
     Impl::SourceView retained;
     for(const auto& draw:draws) {
@@ -789,10 +802,17 @@ void SourceMachineScene::append_source_models(std::vector<ModelObjectDraw>& outp
     }
 }
 std::span<const SourceMachineResourceBoundary>SourceMachineScene::deferred_resource_owners()const{impl_->own();return impl_->deferred_resources;}
+std::optional<SourceControlMaterialOwner> SourceMachineScene::control_material_owner(unsigned material)const {
+    impl_->own();
+    for(const auto& m:impl_->state.machines)if(m.object_type==8 && m.active && m.visible && !m.resource_error &&
+        material>=m.geometry.first_material && material-m.geometry.first_material<m.geometry.material_count)
+        return SourceControlMaterialOwner{m.handle,m.definition_datum};
+    return {};
+}
 std::vector<SourceMachinePortalState> SourceMachineScene::portal_owners()const{
     impl_->own();if(!impl_->state.lifetimes_bound)throw FormatError("Machine portal snapshot requires synchronized source lifetimes");
     std::vector<SourceMachinePortalState> out;
-    for(const auto&m:impl_->state.machines)if(m.active){
+    for(const auto&m:impl_->state.machines)if(m.active && m.object_type==7){
         if(m.handle==0xffffffffu)throw FormatError("portal owner snapshot requires synchronized machine lifetimes");
         if(m.reference && m.definition.type!=2)
             throw FormatError("reference door portal state requires its actual shared group/device bank");

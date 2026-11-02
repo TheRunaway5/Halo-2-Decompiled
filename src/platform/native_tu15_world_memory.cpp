@@ -2965,6 +2965,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x2fc540u,0x2f8410u,0x2f8ef0u,0x308ca0u,0x2e5320u,
         0x2f82d0u,0x2e38c0u,0x2e4ea0u,0x2e4fe0u},
         "native TU1.5 authored 2E1407 physical contact query typed dispatch identity");
+    // Actual2F99AC installs this eight-method sphere contact interface.
+    declare_dispatch(0x41cd80u,std::array{
+        0x2fc540u,0x2f9ca0u,0x2f99c0u,0x308ca0u,
+        0x2f9e80u,0x2f9960u,0x2e38c0u,0x2e4ea0u},
+        "native TU1.5 authored 2F99AC sphere contact typed dispatch identity");
     // Actual2F7643 installs this eight-method interface;2F7703
     // independently installs the following interface at41CC84.
     declare_dispatch(0x41cc64u,std::array{

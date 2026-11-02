@@ -1,5 +1,13 @@
 # Physics native-kernel migration audit
 
+November2 selected component update: all three genuine1479 query continuations
+and the full304350 native provider graph now pass both compilers/four rounding
+modes/two unavailable scratch backings, matching all89,795,481 captured bytes
+and FP without original execution services. The query has18 rejected numeric
+mutant runs and independent review. Typed producer-helper/observer/World/live
+acceptance remains open; the latest visible cohort still has2E5320/304350 Frame
+residuals. Historical heap mismatches are not waived.
+
 The [physics goal](PHYSICS_PLAYERS_VEHICLES_OBJECTS_GOAL.md#required-end-state-native-kernels-with-unchanged-tu15-behavior)
 requires native semantic kernels and 1:1 English Xbox TU1.5 behavior together.
 This is an evolving source audit with bounded conversion and multiplayer
@@ -24,6 +32,14 @@ they preserve TU1.5 semantics. Replacing those semantics with approximate host
 behavior would not satisfy parity.
 
 ## Native conversion evidence in progress
+
+- The missing3043B5 ordinary second-identity payload store is independently
+  qualified on genuine1479 input and applied to canonical Root. The isolated
+  303BA0 bitwise-copy capability propagates unknown private DATA without
+  inventing values and refuses undefined retained escapes; both compilers pass
+  five controls and796 original-code/default/fault cases. Actual304350 and
+  general303EE0 lifetime/heap failure closure remain open; no live owner is
+  removed by these component results.
 
 - The native30CD00→322D20→30CAA0 publication/creation/reduction chain passes
   all187 parent sites and strict retained DATA/FP under both compilers. Its

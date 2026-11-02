@@ -4,6 +4,66 @@ The requested completion condition is every authored weapon zoom sound and
 shooting effect matching TU1.5, with native kernels. This checkpoint does not
 certify that complete condition.
 
+## Native system owner179ED0
+
+The reached effect-system walker now has a complete native owner in its actual
+frame caller. It retains the source's byte writes over the caller argument,
+partial AL/BX updates, three-byte virtual-call return addresses, system and
+location iteration, exact fault state and all returned lower-owner FP/MMX state.
+No gameplay admission or missing service result is supplied in production.
+
+`effect-systems-original-reference-v1.json` records 193 physical i386 cases,
+20,693 instructions, 172 returns and 21 memory faults. All 109 original owner
+instruction sites were observed unchanged. Its 1,933 lower ABI results are
+explicit test controls, including virtual targets; this qualifies the outer
+owner rather than its lower callees or complete output. The preceding compiled
+owner matches the first 184 cases, then commits ESP four bytes early on the
+first readonly PUSH. The native owner matches all cases. The composed 327-case
+frame reference still runs its real original definition lookup through the
+compiled native caller and supplies no lower results.
+
+All nine frame/scan/particle/system routes pass under Clang, GCC and ASAN/UBSAN.
+The latter instruments the kernel, actual specialized frame caller and probe;
+other linked libraries retain qualified Release bytes. All 30 preceding CTests
+also pass in each mode with 94 actual source inputs. Eight private defects are
+rejected: early ESP, virtual return length, argument-byte widening, AL/BX
+zero-extension, one-iteration truncation, signed mode and discarded FP controls.
+Restored baselines pass and original inputs remain unchanged. One qualification
+driver initially made a tuple fixture key; its failed report is preserved and
+no result was reclassified.
+
+`effect-systems-runtime-qualification-v1` passes 163 selected CTests on one
+unchanged 12,870-file code cohort with unchanged prepared-MCC inputs. The current
+zoom checks retain 15 worlds, 34 local requests/PCM submissions, and four UDP
+recipient views with 88 PCM submissions across 68 explicit levels and 60 melee
+resets. Joined packet-loss firing delivers 40 rounds/40 PCM and
+241 particle draws for Human, and 52/52 with 190 draws for Elite.
+These counts describe those actual runs, not complete authored lifecycle or
+independent waveform/framebuffer parity. There are now 36 qualified native
+entries and 6,024 original component cases; declared lower controls, bounded
+prefixes and the separate 5,917 semantic timeline cases remain distinct scopes.
+
+`native-effect-systems-validation.json` pins the full evidence. The required
+original expected fixture `tests/fixtures/weapon_effect_systems_tu15_original.json.gz`
+is 1,122,420 bytes. Completed helper/compile owners are removed by the owned
+workflow; the active source/build and their size are in `effect-systems-retention.json`.
+The read-only interface census `native-effect-input-reads-v3.json` observes
+49,518 reads during 24 whole native render iterations after one genuine SMG
+shot, with 6 particle draws. It records all six real pool layouts and reached
+read extents, plus one observed unit byte at +213 already carried by the FP
+packet's `current[1]`. The narrower v2 advance-only census leaves two particle
+pools unobserved. Fast pointer borrows, other private banks, effect creation and
+other weapon paths remain outside this dependency proof; zero observed reads
+do not prove an input is unnecessary. The first unprepared probe produced no
+draws; ordinary initial render preparation fixes its positive control. No
+production guard or admission was relaxed. Both positive reports and the failed
+probe diagnostics remain preserved.
+
+The ordinary client still lacks a native effect owner with all current admitted
+inputs. Its readonly FP packet and sparse native shadow cuts remain separate.
+Full native graph/lifecycle qualification, independent original output and
+launcher-selected delivery remain unfinished; the full user goal is active.
+
 ## Native effect frame and pool traversal
 
 TU1.5 `179DF0`, `16EA60` and `177830` now execute through native kernels in

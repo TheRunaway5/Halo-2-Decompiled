@@ -1,5 +1,8 @@
 add_library(halo2_native_weapon_effect_dispatch_tu15 STATIC src/gameplay/weapons/native_weapon_effect_dispatch_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/rendering/effects/source_private_particle_phase_tu15.cpp)
 if(BUILD_TESTING)
+    add_executable(native_private_particle_phase_tu15_tests tests/native_private_particle_phase_tu15_tests.cpp)
+    target_link_libraries(native_private_particle_phase_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_executable(native_weapon_effect_frame_tu15_tests tests/native_weapon_effect_frame_tu15_tests.cpp)
     target_include_directories(native_weapon_effect_frame_tu15_tests PRIVATE tests)
     target_link_libraries(native_weapon_effect_frame_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
@@ -425,6 +428,10 @@ if(BUILD_TESTING)
     target_link_libraries(native_weapon_zoom_audio_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     set(HALO2_MCC_WEAPON_EFFECTS_MAP "" CACHE FILEPATH "Prepared MCC map for actual weapon zoom/effect validation")
     get_filename_component(HALO2_MCC_WEAPON_EFFECTS_MAPS "${HALO2_MCC_WEAPON_EFFECTS_MAP}" DIRECTORY)
+    add_test(NAME native_private_particle_phase_tu15 COMMAND native_private_particle_phase_tu15_tests
+        "${HALO2_MCC_WEAPON_EFFECTS_MAP}" "${HALO2_MCC_WEAPON_EFFECTS_MAPS}"
+        "${CMAKE_CURRENT_BINARY_DIR}/native-private-particle-phase.json")
+    set_tests_properties(native_private_particle_phase_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
     add_executable(native_weapon_zoom_fire_caller_tu15_tests tests/native_weapon_zoom_fire_caller_tu15_tests.cpp)
     target_link_libraries(native_weapon_zoom_fire_caller_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_weapon_zoom_fire_caller_tu15 COMMAND native_weapon_zoom_fire_caller_tu15_tests
@@ -559,6 +566,7 @@ if(BUILD_TESTING)
         native_weapon_effect_next_event_tu15_tests
         native_weapon_effect_next_event_callers_tu15_tests
         native_weapon_effect_frame_tu15_tests
+        native_private_particle_phase_tu15_tests
         native_weapon_effect_random_range_tu15_tests
         native_weapon_effect_random_range_callers_tu15_tests
         native_weapon_effect_creation_tu15_tests

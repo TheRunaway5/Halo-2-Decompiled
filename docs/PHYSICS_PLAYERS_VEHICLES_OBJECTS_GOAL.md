@@ -33,6 +33,20 @@ setup/traversal, visibility and compaction. Both compilers pass540 profiles,
 strict-FP build; actual2F36F0/304350 service/lifetime and live integration remain
 open. The typed local-cache guard supplies no unwritten bytes or CPU state.
 
+The selected native2F36F0 candidate/provider closure now independently passes
+both compilers/four FP modes, all89,795,481 retained bytes,634 physics reads,
+114 persistent stores/preimages,38 DATA controls and three numeric mutants.
+All three genuine actual2E4FE0/2F8630 queries now return natively with exact
+banks,56 defined output bytes and FP under both compilers/four FP modes/two
+initially unavailable scratch backings. Eighteen numeric mutant runs reject
+actual DATA/FP changes, and independent review passes. The full selected304350
+provider graph also returns under both compilers/four FP modes/two backings,
+matching all89,795,481 retained bytes and FP with three native queries/record
+appends/distance publications and zero original execution services. Its typed
+production-helper, ordered observer, World and visible multiplayer delivery
+remain in progress. The source-authenticated constructor/query/candidate
+aliases preserve actual writers; unknown fields are never invented.
+
 Native contact publication now reaches real native point creation and cache
 reduction under both compilers/all187 publication sites. Eight completed
 kernels are in the build; their immutable196-CPP dependency/four-model cohort
@@ -40,6 +54,13 @@ passes. The sole point-creation binding independently passes77 physical cases
 and guarded-memory/native-only refusal models. Actual304350 parent services,
 constructor lifetime and live admission remain open; these component/build
 results do not change the two-owner live Frame census.
+
+The missing native3043B5 parent-payload store is independently qualified and
+applied in source. All genuine-prefix bank bytes, defined fields and FP match;
+the historical whole-producer heap failures remain unchanged. Isolated private
+record-copy definedness passes five controls and796 original-code/default/fault
+cases under both compilers. Actual304350 lifetime/service composition, its
+remaining native query solver domain and World/live admission remain open.
 
 The completed1474–1478 integrations are now wired into canonical Root through
 thirty guarded source changes, preserving unrelated work. Both compilers pass
@@ -52,8 +73,8 @@ rollover/use-action8, schedulers, internal look callers and wider exceptional
 FP/lifetime/query domains. Native-only1:1 TU1.5 parity remains incomplete and
 the goal remains active.
 
-The cumulative cleanup ledger verifies989 completed scratch owners absent and
-240,030,220,288 allocated file bytes removed (223.5 GiB). This excludes active
+The cumulative cleanup ledger verifies1,101 completed scratch owners absent and
+270,440,116,224 allocated file bytes removed (251.9 GiB). This excludes active
 work and unmeasured build storage; it is not a global free-space delta. Required
 reference archives, requested videos and source checkpoints remain protected.
 

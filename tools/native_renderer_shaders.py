@@ -48,7 +48,9 @@ world.vert.spv world_prt.vert.spv world_emblem.geom.spv
 PATH_TRACING_FILES = frozenset({"path_tracing/world.vert.spv", "path_tracing/world.frag.spv"})
 PATH_TRACING_VISIBILITY_FILES = frozenset({"path_tracing/depth.frag.spv"})
 PATH_TRACING_LIGHTING_FILES = frozenset({"path_tracing/lighting.frag.spv"})
-AOT_FIXED_FILES = AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES
+PLAYER_FLASH_FILES = frozenset({"player_flash_invert.frag.spv"})
+PLAYER_FLASH_EXECUTABLE_MARKER = b"player_flash_invert.frag.spv\0"
+AOT_FIXED_FILES = AOT_BASE_FIXED_FILES | PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES | PLAYER_FLASH_FILES
 # This mode-availability diagnostic is retained by every engine exposing the
 # RT choice. Bind that executable feature to its complete fixed shader pair;
 # older qualified v2 executables remain admitted with their original fixed ABI.
@@ -229,11 +231,12 @@ def _bound_shader_requirements(executable):
             lighting = data.find(PATH_TRACING_LIGHTING_MARKER) != -1
             temporal = data.find(PATH_TRACING_TEMPORAL_MARKER) != -1
             surface = data.find(PATH_TRACING_SURFACE_MARKER) != -1
+            player_flash = data.find(PLAYER_FLASH_EXECUTABLE_MARKER) != -1
         if before != descriptor_identity(stream.fileno()) or before != path_identity(executable):
             raise ValueError("Native shader catalog executable changed during validation")
     if not paths:
         raise ValueError("Native executable has no bound per-program Vulkan catalog")
-    return paths, path_tracing, visibility, lighting, temporal, surface
+    return paths, path_tracing, visibility, lighting, temporal, surface, player_flash
 
 
 def _module_contract_job(raw, name):
@@ -320,8 +323,10 @@ def validate_native_package(directory, *, expected_sha256=None, executable, work
             validate_module(row)
         while pending:
             completed()
-    bound_generated, path_tracing, visibility, lighting, temporal, surface = _bound_shader_requirements(executable)
+    bound_generated, path_tracing, visibility, lighting, temporal, surface, player_flash = _bound_shader_requirements(executable)
     fixed = AOT_BASE_FIXED_FILES
+    if player_flash:
+        fixed |= PLAYER_FLASH_FILES
     if path_tracing or visibility or lighting or temporal or surface or (PATH_TRACING_FILES | PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():
         fixed |= PATH_TRACING_FILES
     if visibility or lighting or temporal or surface or (PATH_TRACING_VISIBILITY_FILES | PATH_TRACING_LIGHTING_FILES) & files.keys():

@@ -15,6 +15,10 @@ bool source_effect_light_append_parent_biped(SourceObjectAdmission& out,
     if(out.objects.size()>=in.capacity-1u)return false;
     out.objects.push_back({object,0x1000u,0xffffu,0});return true;
 }
+std::uint32_t source_effect_light_query_mode_135837(std::size_t cameras,float radius,std::uint32_t flags) {
+    if(!cameras)return 1u;
+    return !(radius<3.f)||(flags&0x100u)?0u:1u;
+}
 SourceEffectLightReceiverView source_effect_light_receiver_view(
     const SourceEffectLightReceiverWorld& world,
     std::int16_t containing_cluster,Vec3 spatial_center,float spatial_radius,
@@ -22,23 +26,30 @@ SourceEffectLightReceiverView source_effect_light_receiver_view(
     const SourceBspAdmission* auxiliary,std::uint32_t definition_flags) {
     if((shape.shape[0]&0xffffu)!=0)
         throw FormatError("source effect receiver requires spherical C1D90 shape");
-    if(!(spatial_radius<3.f))
-        throw FormatError("source effect receiver requires unported large-bound portal intersection");
     const auto f=[&](unsigned i){return std::bit_cast<float>(shape.shape[i]);};
     const auto cameras=source_effect_light_cameras({f(11),f(12),f(13)},f(17));
     SourceEffectLightReceiverView out;out.flags=(auxiliary?1u:0u)|((definition_flags>>12)&0x400u);
     out.location={0xffffffffu,containing_cluster,world.selected_bsp};
     if(containing_cluster==-1)
         out.location=source_object_point_location(world.locations,world.selected_bsp,spatial_center);
-    for(const auto& c:cameras)out.visibility.groups.push_back(c.camera);
-    const auto clusters=source_bsp_sphere_clusters(world.spatial,out.location.cluster,
-        spatial_center,spatial_radius);
-    for(const auto id:clusters.clusters) {
-        SourceClusterFrustumRanges range;range.source_cluster=id;
-        //132D60 owns +0/+2 only. Mode1 ignores the retained other ranges.
-        out.visibility.clusters.push_back(range);
+    out.query_mode=source_effect_light_query_mode_135837(cameras.size(),spatial_radius,out.flags);
+    if(out.query_mode==0) {
+        if(!world.portals||world.open_portals.size()!=16)
+            throw FormatError("Source large-sphere receiver lacks its live portal bank/mask");
+        std::array<SourceFrustumCamera,6> groups;
+        for(unsigned i=0;i<groups.size();++i)groups[i]=cameras[i].camera;
+        out.visibility=source_portal_visibility(*world.portals,groups,out.location.cluster,world.open_portals);
+    }else {
+        for(const auto& c:cameras)out.visibility.groups.push_back(c.camera);
+        const auto clusters=source_bsp_sphere_clusters(world.spatial,out.location.cluster,
+            spatial_center,spatial_radius);
+        for(const auto id:clusters.clusters) {
+            SourceClusterFrustumRanges range;range.source_cluster=id;
+            //135870 owns +0/+2 only. Mode1 ignores the retained other ranges.
+            out.visibility.clusters.push_back(range);
+        }
+        out.visibility.sorted_cluster_indices=clusters.sorted_indices;
     }
-    out.visibility.sorted_cluster_indices=clusters.sorted_indices;
     SourceBspAdmissionInput in;
     in.cluster_capacity=source_bsp_light_cluster_capacity;
     in.instance_capacity=source_bsp_light_instance_capacity;

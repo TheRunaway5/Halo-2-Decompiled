@@ -21,6 +21,7 @@
 # Generated reference captures and oracle payloads can contain original bytes.
 # Keep the fixture documentation and Python generators with the tests.
 /tests/fixtures/*
+!/tests/fixtures/native_player_effect_tick_tu15.json.gz
 !/tests/fixtures/loop_combined_mix_tu15.json
 !/tests/fixtures/loop_combined_publication_tu15.json
 !/tests/fixtures/loop_combined_routing_tu15.json

@@ -49,13 +49,19 @@ struct SourceEffectLightReceiverWorld {
     const SourceBspAdmissionBsp& geometry;
     const BspAtmosphere& locations;
     std::int16_t selected_bsp;
+    const SourcePortalBsp* portals{};
+    std::span<const std::uint32_t> open_portals;
 };
-// Ordinary standalone spherical31C80→1320F0→132D60/134390 preparation.
+//135837's tail after the non-light mode2 branch. Spheres supply six cameras;
+// no cameras select mode1 before the radius/flag tests. NaN selects mode0.
+std::uint32_t source_effect_light_query_mode_135837(std::size_t cameras,float radius,std::uint32_t flags);
+// Spherical31C70→134C00 preparation.
 // The shape supplies six C1D90 cameras; persistent corrected bounds supply
 // sphere membership/admission. The auxiliary queues and fog membership are
 // the current main view's actual inputs, not a query at the light position.
-// This is the spatial-radius<3 branch (the actual frag/plasma radius is2).
-// Larger bounds select a different portal/intersection owner in132B80.
+// Small bounds use135870 sphere membership. At radius>=3 (or NaN),175F90
+// consumes the six cameras, actual portal BSP and this view's live door mask.
+//135410's auxiliary intersection records have no downstream reader.
 // Definition bit22 contributes the literal0x400 object-query restriction;
 // BSP admission ignores that bit. Dynamic objects, parent append, draw-unit/
 // prefix/mask production and submission are separate.

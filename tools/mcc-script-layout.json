@@ -5099,6 +5099,27 @@
       ]
     },
     {
+      "mcc_opcode": 454,
+      "name": "camera_set_animation",
+      "return_type": 4,
+      "arguments": [
+        36,
+        11
+      ],
+      "mcc_flags": 0,
+      "mcc_descriptor": "0x180b277e0",
+      "mcc_evaluator": "0x180788de0",
+      "xbox_opcode": 452,
+      "xbox_descriptor": "0x458e90",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        36,
+        11
+      ],
+      "xbox_flags": 0,
+      "xbox_evaluator": "0x2b27b0"
+    },
+    {
       "mcc_opcode": 455,
       "name": "camera_set_animation_relative",
       "return_type": 4,

@@ -26,7 +26,7 @@ struct ParentInputs final:SourceLoopPhasedOutputTu15 {
     bool single_chunk(std::uint32_t,unsigned,unsigned)override{throw FormatError("Parent-only test attempted a chunk query");}
     bool active(std::uint64_t)const override{throw FormatError("Parent-only test fabricated a native voice");}
     std::uint64_t play(const MultiplayerLoopPacketTu15&)override{throw FormatError("Parent-only test attempted PCM playback");}
-    void parameters(std::uint64_t,const MultiplayerLoopPacketParametersTu15&,Vec3)override{throw FormatError("Parent-only test attempted voice parameters");}
+    void parameters(std::uint64_t,const MultiplayerLoopPacketParametersTu15&,std::optional<Vec3>)override{throw FormatError("Parent-only test attempted voice parameters");}
     bool accepts_packet(std::uint64_t)const override{throw FormatError("Parent-only test attempted packet admission");}
     bool queue(std::uint64_t,std::uint32_t,unsigned,unsigned)override{throw FormatError("Parent-only test attempted packet delivery");}
     void fade(std::uint64_t,float,bool,std::uint16_t)override{throw FormatError("Parent-only test attempted a voice fade");}

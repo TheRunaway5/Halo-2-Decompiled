@@ -144,6 +144,31 @@ Latest live checks:
   proofs execute genuine remaining services only offline; production requires
   native children and a proved current DATA preimage. No GP image, fabricated
   constructor bytes or heap-byte waiver may close this path.
+- [x] Restore the missing3043B5 parent-payload store from the ordinary second
+  identity, in the original read/store order. Both compilers/four FP modes/two
+  scratch poisons match the genuine1479 prefix, all89,795,481 banks bytes and FP.
+  Independent review passes and the one-store change is applied to canonical
+  Root. The six historical whole-producer failures retain identical byte counts
+  and first differences; this does not close303EE0 or live producer delivery.
+  [Qualified prefix](../analysis/physics/native-contact-producer-parent-payload-qualified-20261102/source-pins.json).
+- [ ] Finish the isolated native303BA0/303EE0 private-record DATA lifetime
+  integration. Unknown bitwise copies preserve per-byte undefinedness; reads
+  and retained escapes refuse until the actual source writer defines a value.
+  Five private controls/two private mutants and796 default original-code cases,
+  including faults and four rejected mutants, pass under both compilers. All45
+  buffer and seven producer results exactly match the baseline; six SEH fault
+  prefixes and six historical producer heap cases remain red. Independent record-copy review passes; selected actual304350 composition now
+  returns with exact banks/FP. Wider lifetime and live admission remain open. The staged change supplies no
+  constructor bytes and is not admitted to World/live. The genuine first query
+  returns valid=0. Twelve original hardware traces establish constructor
+  fields20/24/28 as the prior native inverse-transform output, partially updated
+  by2E5008/2E4FFF/2E505A. The authenticated native layout is
+  constructor=query.base=candidate.base+370, parent=candidate.base+400.
+  Full lifetime composition remains required; unknown vector fields stay
+  unavailable. The isolated selection swap passes14 DATA/alias/FP controls per
+  compiler with all16 compiled dependencies and tools pinned before/after; its default seven-case producer results remain exactly unchanged.
+  [Default record results](../analysis/physics/native-contact-record-private-public-default-20261102-second/report.json).
+  [Actual numeric-field writers](../analysis/physics/native-contact-constructor-query-numeric-fields-actual1479-20261102-first/report.json).
 - [x] Qualify the genuine class23/24→2E4EB0 factory domain with the sole native
   factory/cache/support/pool implementations. Both compilers/four FP modes/
   A5 and5A owned scratch compare all89,795,481 input-bank bytes, the256B agent,
@@ -161,19 +186,47 @@ Latest live checks:
   compilers/four FP modes match all89,795,481 captured bytes,538 retained reads,
   64 stores and FP/RET16. Zero-count REP metadata and an actual283120 read-phase
   defect were corrected with their raw failures retained. This is selected
-  component proof; production helper, World wiring and visible delivery are next.
+  component proof. The exact production helper now independently passes with
+  all32KiB initially unavailable, zero unknown reads, eight admission controls
+  and six rejected compiler mutants. World wiring and visible delivery are next.
+  [Frozen moving helper](../analysis/physics/native-moving-shape-process-qualified-actual1479-20261102/source-pins.json).
 - [ ] Qualify and wire that exact moving-contact production helper into the
   frozen1480 World/Frame closure, then test visibly with actual vehicle cameras.
+  The isolated199-CPP dependency closure/three World models pass under both
+  compilers. Typed retained observation, complete contexts and actual live
+  delivery remain pending; raw observer callbacks may not be silently dropped.
   Broader initial-simplex/projection/FP/listener and raw-private observer domains
-  remain refused. Preserve the unconfirmed later flag1 solver edit separately;
-  the selected flag0 baseline does not qualify it.
-- [ ] Finish the guarded native2F36F0 Host closure's public/default/fault/alias
-  controls and independent review. Its current private component returns under
+  remain refused. Preserve concurrent crash-repair solver projection work
+  separately; the selected flag0 baseline does not qualify its wider branches.
+- [x] Qualify all three genuine1479 native query continuations through the sole
+  shared solver, native closest-segment and triangle kernels. Both compilers,
+  four FP modes and two initially unavailable scratch backings pass48 full
+  executions: all89,795,481 captured bytes,56 defined result bytes, return/valid
+  and FP match. Eighteen numeric mutant runs are rejected by actual DATA/FP
+  differences. Independent review passes. Wider simplex/refinement domains
+  remain explicit requirements.
+  [Final query source](../analysis/physics/native-contact-query-simplex-continuation-qualified-actual1479-20261102/source-pins.json).
+- [x] Return from the selected full native304350 provider graph on genuine1479
+  BEFORE DATA under both compilers/four FP modes/two initially unavailable
+  scratch backings. All89,795,481 captured bytes and FP match; each call resolves
+  three components, runs three native queries, appends three records and
+  publishes three distances, with zero original execution services. The
+  authenticated candidate/query/constructor aliases remain live across the
+  complete call. This is selected component proof; typed production-helper,
+  ordered access/observer, mutation, World and visible live acceptance remain
+  open. Historical heap failures remain red.
+  [Full native producer result](../analysis/physics/native-contact-producer-bound-actual1479-20261102-fourth/report.json).
+- [x] Finish the selected guarded native2F36F0 Host closure's public/default/
+  fault/alias controls and independent review. Final v6 returns under
   both compilers/four FP modes with all89,795,481 bytes,634 physics DATA reads,
   114 persistent stores/preimages and FP equal; three real creations/resolutions/
-  filters have zero refusals. Separate authenticated control-dispatch CODE
+  filters have zero refusals. Its38 DATA controls and three real numeric mutants
+  pass/reject as required; default/fault regressions and independent peer pass.
+  Separate authenticated control-dispatch CODE
   mappings account only for exact immutable code-fetch PCs. No bank byte is
-  waived. World/live admission and the304350 parent remain open.
+  waived. Additive private-lifetime invalidation/copy protection is separately
+  being qualified. World/live admission and the304350 parent remain open.
+  [Final selected candidate closure](../analysis/physics/native-contact-candidates-private-data-stage-v6-20261102/source-pins.json).
 - [x] Qualify native30CD00 publication through genuine native322D20 creation
   and30CAA0 reduction: both compilers pass42 profiles/all187 parent sites,
   ordered retained DATA/FP and three rejected mutants. Eight publication,

@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Complete captured modern clan caller vs actual production Rust/CXX IO.
+
+Providers, resources and navigation are controlled; cached unrelated data,
+callback-boundary state, exception identity and reentry are compared. Only the
+clan-page branch of auxiliary is wrapped, with void return mapped to handled.
+Original Xbox callers/Live providers and installed-client delivery stay open.
+C++ out-of-bounds command/role lookups, empty-body i=1 modulo zero and malformed
+nonprogressing page loops are excluded; separate Rust controls require errors.
+"""
+import argparse,copy,hashlib,itertools,json,subprocess
+from pathlib import Path
+ID=[255,0,128]
+def base():
+ return dict(target=ID,account=dict(message=ID,clan=dict(name=ID,role=3,members=[dict(id=ID,name='same',role=1,self=False,presence=2),dict(id='B',name='same',role=0,self=True,presence=1),dict(id=ID,name='duplicate',role=2,presence=3)],outgoing=[dict(id=ID,name='same'),dict(id='B',name='same')],messages=[dict(id=ID,name='same',body='a'*63+'é'+'b'*65),dict(id='B',name='same',body='second')]),invitations=[dict(id=ID,name='same'),dict(id='B',name='same')]),voice=dict(joined=True,connecting=False,microphone=False,transmitting=True,muted=[ID],talking=[ID,'B'],message=ID))
+def scene(screen=26,context=1,entries=None,selected=0):return [dict(screen=6),dict(screen=186),dict(screen=screen,context=context,entries=entries or[],selected=selected)]
+def corpus():
+ out=[]
+ for screen,context,bits in itertools.product([26,217,31,236,211,33,0xffffffff],[0,1,41],range(16)):
+  c=base();c.update(op='populate',voice_party=bool(bits&1),voice_client=bool(bits&2),target_kind=bits%3,detached=bool(bits&8));c['voice'].update(joined=bool(bits&4),connecting=bool(bits&2),microphone=bool(bits&8));c['account'].update(party=bool(bits&2),leader=bool(bits&4));c['account']['clan']['role']=bits%5
+  if bits==15:c['account']['clan']=None
+  c['frames']=scene(screen,context,[dict(label=ID,destination=-5,value=99)]if bits&8 else[]);c['view']=copy.deepcopy(c['frames'][-1]);out.append(c)
+ for screen,context,index,bits in itertools.product([26,217,31,236,211,33,0xffffffff],[0,1,41],[0,1,2,3,4,6,8,99],range(4)):
+  c=base();c.update(op='text',index=index,voice_party=bool(bits&1),voice_client=bool(bits&2),page=bits);c['frames']=scene(screen,context,selected=bits);c['voice'].update(joined=bool(bits&1),microphone=bool(bits&2),revision=bits);out.append(c)
+ for screen,index,missing in itertools.product([26,236],[0,1,2,3,4,6,8,99],['screen_count','pane_count','text_count']):
+  c=base();c.update(op='text',index=index);c[missing]=0;c['frames']=scene(screen,41);out.append(c)
+ for body,index,page in itertools.product(['','a','a'*64,'a'*65,'a'*128,'a'*63+'é'+'b'*63+'é','界'*65],[0,1,2,99],[0,1,2,7]):
+  if not body and index==1:continue
+  c=base();c.update(op='text',index=index,page=page);c['frames']=scene(211,41);c['account']['clan']['messages'][0]['body']=body;out.append(c)
+ for role,presence,bits,row,column in itertools.product(range(4),[-1,0,1,2,3,99],range(8),[0,3,0xffffffff],[0,1,2]):
+  c=base();c.update(op='column',row=row,column=column,voice_party=bool(bits&1));c['voice'].update(joined=bool(bits&2),transmitting=bool(bits&4));c['account']['clan']['members'][0].update(role=role,presence=presence,self=bool(bits&4));out.append(c)
+ for op,screen,context in itertools.product(['screen','advance'],[26,217,31,236,211,33,0xffffffff],[0,1,41]):
+  c=base();c.update(op=op);c['frames']=scene(screen,context);out.append(c)
+ for destination,value,bits in itertools.product([31,167,-33,-5,-999],[-2147483648,-1,0,1,2,999,1000,1001,1999,2000,2001,2147483647],range(4)):
+  c=base();c.update(op='accept',account_client=bool(bits&1));c['frames']=scene(26,1,[dict(destination=destination,value=value)],99 if bits==3 else 0);out.append(c)
+ for screen,destination,value,bits in itertools.product([217,31,236,211],[167,211,236,-5,-32,-30,-33,-999],[-1,0,1,2,3,4,5,10,11,12,13,14,2147483647],range(8)):
+  if destination==-30 and value<0:continue
+  c=base();c.update(op='accept',reply=bool(bits&1),account_client=bool(bits&2),voice_client=bool(bits&4),voice_party=bool(bits&2));c['voice'].update(joined=bool(bits&1),connecting=bool(bits&4),microphone=bool(bits&2));c['frames']=scene(screen,41,[dict(destination=destination,value=value)]);out.append(c)
+ for selected,confirmation,account_client,reply in itertools.product([0,1,99],[False,True],[False,True],[False,True]):
+  c=base();c.update(op='accept',account_client=account_client,reply=reply);c['frames']=scene(33,41,selected=selected)
+  if confirmation:c['confirmation']=dict(action='leave',value=ID,role=3,confirmed=True)
+  out.append(c)
+ for op,replacement,bits in itertools.product(['bind-account','bind-voice'],range(3),range(32)):
+  c=base();c.update(op=op,replacement=replacement,account_client=bool(bits&1),voice_client=bool(bits&2),social_client=bool(bits&4),voice_party=bool(bits&8),voice_wanted=bool(bits&16),locals=bits%16);out.append(c)
+ for held,screen,bits in itertools.product([False,True],[26,167],range(4)):
+  c=base();c.update(op='ptt',held=held,voice_client=bool(bits&1));c['frames']=scene(screen);out.append(c)
+ # Defined short-circuit: no frame lookup for absent voice or held=false.
+ for held,voice_client in [(False,True),(True,False),(False,False)]:
+  c=base();c.update(op='ptt',held=held,voice_client=voice_client,frames=[],target='');out.append(c)
+ for action,bits,shape in itertools.product(['leave','role','remove','accept','unknown'],range(8),range(4)):
+  c=base();c.update(op='command',command=dict(action=action,value=ID,role=3,confirmed=True),account_client=bool(bits&1),reply=bool(bits&2),voice_party=bool(bits&4));c['frames']=[scene(31,41),scene(26,0),scene(14,0),[dict(screen=26,context=0)]][shape];out.append(c)
+ for callback,reenter,op in [('signout','drop-local','bind-account'),('signout','replace-account','bind-account'),('social-bind','drop-account','bind-account'),('social-bind','replace-account','bind-account'),('open','replace-clan','accept'),('open','confirm','confirm'),('command','confirm','command'),('screen','replace-clan','text'),('pane','replace-clan','text'),('localized','replace-clan','text'),('voice-leave','same-account','accept')]:
+  c=base();c.update(op=op,reenter_on=callback,reenter=reenter,index=2,voice_party=True,command=dict(action='role',value=ID),account_after=dict(clan=dict(role=2,members=[dict(id=ID,role=2)])));c['frames']=scene(217,41,[dict(destination=236 if callback=='open'else -32,value=0)]);out.append(c)
+ return out
+def run(native,cases):
+ p=subprocess.run([str(native)],input=''.join(json.dumps(c)+'\n'for c in cases),text=True,capture_output=True);lines=p.stdout.splitlines()
+ if lines[:1]==['Shutdown handler: initialize.']and lines[-1:]==['Shutdown handler: cleanup.']:lines=lines[1:-1]
+ if p.returncode or len(lines)!=len(cases):raise RuntimeError(json.dumps(dict(exit_code=p.returncode,actual=len(lines),expected=len(cases),stderr=p.stderr[-2500:],stdout=p.stdout[:1600])))
+ return [json.loads(line)for line in lines]
+def batches(native,cases):
+ for i in range(0,len(cases),8):
+  group=cases[i:i+8];yield from zip(group,run(native,group))
+def controls():
+ out=[]
+ for op in ['bind-account','bind-voice','confirm','command','ptt','text','accept']:
+  c=base();c.update(op=op,index=1,held=True,command=dict(action='leave',value=ID),voice_party=True);c['frames']=scene(217,41,[dict(destination=-32,value=0)]);out.append(c)
+ for destination,value in [(-30,13),(-30,0),(-30,3),(-30,5),(236,0),(167,7),(-32,1),(-32,2)]:
+  c=base();c.update(op='accept');c['frames']=scene(217,41,[dict(destination=destination,value=value)]);out.append(c)
+ c=base();c.update(op='text',index=2);c['frames']=scene(236,41,selected=3);out.append(c)
+ c=base();c.update(op='accept',confirmation=dict(action='leave',value=ID));c['frames']=scene(33,41);out.append(c)
+ return out
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('native',type=Path);p.add_argument('--report',type=Path,required=True);a=p.parse_args();cases=corpus();differences=[];reads=reentries=0
+ for index,(case,value)in enumerate(batches(a.native,cases)):
+  reads+=len(value['before']['calls']);reentries+=value['rust']['reentries']
+  if value['before']!=value['rust']and len(differences)<3:differences.append(dict(index=index,case=case,actual=value))
+ selected=controls();faults=[]
+ for case,value in zip(selected,run(a.native,selected)):
+  for index in range(len(value['before']['calls'])):
+   for nonstd in [False,True]:faults.append(case|dict(fail=index,nonstd=nonstd))
+ identity=0
+ for case,value in batches(a.native,faults):
+  identity+=int(value['rust'].get('same_object',value['rust'].get('error')=='int'and value['rust'].get('integer')==73))
+  if value['before']!=value['rust']and len(differences)<3:differences.append(dict(case=case,actual=value))
+ report=dict(passed=not differences,cases=len(cases),native_io_observations=reads,rust_state_reentries=reentries,fault_controls=len(faults),preserved_native_exception_identity=identity,differences=differences,undefined_cpp_inputs_excluded=True,native_sha256=hashlib.sha256(a.native.read_bytes()).hexdigest(),scope=__doc__)
+ a.report.parent.mkdir(parents=True,exist_ok=True);a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items()if k!='differences'}))
+ if differences:print(json.dumps(differences[0])[:8000])
+ raise SystemExit(0 if report['passed']else 1)
+if __name__=='__main__':main()

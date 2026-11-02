@@ -56,6 +56,34 @@ void cache_page_deleted(M& m,Abi& a,FP,const O& o,const Services&){
     g[6]=u32(m,g[4]);g[4]+=4u;pop_return(m,a,4);
 }
 
+// Actual21F420: allocate physical pages and the same salted cache datum,
+// bind the source chunk, then issue the exact source resource read. The
+// required1A3B70 owner must perform real I/O before publishing completion.
+void allocate_cache_chunk(M& m,Abi& a,FP,const O& o,const Services& s){
+    auto& g=a.gp;
+    const auto push=[&](std::uint32_t pc,std::uint32_t value){g[4]-=4u;store(m,{},pc,g[4],value);};
+    const auto pop=[&](){const auto value=u32(m,g[4]);g[4]+=4u;return value;};
+    g[0]=u32(m,g[3]+4u);g[1]=u32(m,cache_allocator);push(0x21f429u,g[5]);
+    push(0x21f42au,0);g[0]&=0x3fffffffu;push(0x21f431u,g[0]);push(0x21f432u,g[1]);
+    push(0x21f433u,0x21f438u);native_tu15_page_allocate_abi(m,a,s,o);g[5]=g[0];
+    if(g[5]!=no_handle){
+        g[0]=u32(m,cache_allocator);g[2]=u32(m,g[0]+0x64u);g[2]=u32(m,g[2]+0x44u);
+        push(0x21f44eu,g[6]);g[6]=g[5];push(0x21f451u,g[7]);g[6]&=0xffffu;g[1]=g[6]*3u;
+        g[7]=u32(m,g[2]+g[1]*8u+8u);g[1]=u32(m,g[0]+0x34u);g[2]=u32(m,0x50ebe0u);
+        g[7]<<=(g[1]&31u);g[0]=g[5];g[7]+=g[2];g[2]=u32(m,sound_cache);
+        push(0x21f474u,0x21f479u);native_tu15_data_array_allocate_specific_abi(m,a,o);
+        g[0]=u32(m,g[2]+0x44u);g[6]<<=4u;g[6]+=g[0];g[0]=u32(m,g[4]+0x10u);
+        store(m,o,0x21f485u,g[3]+8u,g[5]);store(m,o,0x21f488u,g[6]+8u,g[0]);store(m,o,0x21f48bu,g[6]+12u,g[3]);
+        store8(m,o,0x21f48eu,g[6]+4u,0);store8(m,o,0x21f492u,g[6]+5u,0);store8(m,o,0x21f496u,g[6]+3u,0);
+        g[0]=u32(m,g[3]+4u)&0x3fffffffu;if(g[0]&511u){g[0]|=511u;++g[0];}
+        g[1]=u32(m,g[3]);g[6]+=2u;
+        const std::uint32_t args[]{g[0],g[7],0,g[6],5,4};
+        call_out(m,a,s,o,0x21f4bdu,0x1a3b70u,0x21f4c2u,args,true);
+        g[7]=pop();g[6]=pop();
+    }
+    g[5]=pop();pop_return(m,a,4);
+}
+
 // MOV r8,value: replaces only the register's low byte.
 std::uint32_t low_byte(std::uint32_t reg,std::uint32_t value){return (reg&~0xffu)|(value&0xffu);}
 
@@ -657,6 +685,7 @@ constexpr Kernel resource_table[]{
     {0x21f260u,request_chunk_entry,{},true},    // may call 21F420 and 2DBF74
     {0x21f3b0u,cache_entry_retained},
     {0x21f3f0u,cache_page_deleted},
+    {0x21f420u,allocate_cache_chunk,{},true},
     {0x21f360u,chunk_data},
     {0x2b98d0u,stream_packet},
     {0x2b9950u,stream_packet_submitted},

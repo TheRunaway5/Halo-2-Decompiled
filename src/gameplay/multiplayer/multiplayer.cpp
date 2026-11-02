@@ -3003,6 +3003,15 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].ammunition_available=native_weapon_ammunition_available(u,u.weapon);
       result.players[i].damage_feedback=u.damage_feedback;
       result.players[i].shield_recharging=u.vitality.shield_recharging;
+      if(source_object_world_ && source_object_world_->owns_physics()) {
+        // TU1.5 13C40A copies actual unit+10A into HUD status+1E;
+        // 13D200 consumes bit9 for the authored charging sound mask.
+        result.players[i].shield_recharging=false;
+        if(p.source_current_object!=null_datum) {
+          const auto body=source_object_world_->object_body(p.source_current_object);
+          result.players[i].shield_recharging=(Bytes(source_object_world_->memory().view(body+0x10au,2)).u16(0)&0x200u)!=0;
+        }
+      }
       if(const auto *offhand=p.source_current_object!=null_datum?native_hand_weapon(u,1):nullptr) {
         auto &out=result.players[i].secondary_weapon;
         out.definition=offhand->definition;out.datum=offhand->source_datum;

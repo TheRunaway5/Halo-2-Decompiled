@@ -191,12 +191,13 @@ public:
       std::int32_t frame,bool cinematic=false);
   std::vector<WorldEffectLightReceiver> source_light_receivers(PhysicsLiveWorldTu15&,
       unsigned bsp,const SourceEffectLightView&,const SourceBspAdmissionBsp&,
-      std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view);
+      std::span<const std::uint8_t> containing_fog,const SourceBspAdmission* main_view,
+      std::span<const std::uint32_t> open_portals);
   //31C80's selected-light order, actual main-view BSP auxiliary/fog and
   // nested query epochs. Geometry collection/culling/submission stay separate.
   std::vector<WorldEffectLightReceiver> light_receivers(const SourceEffectLightView&,
       const SourceBspAdmissionBsp&,std::span<const std::uint8_t> containing_fog,
-      const SourceBspAdmission* main_view);
+      const SourceBspAdmission* main_view,std::span<const std::uint32_t> open_portals);
   std::vector<ParticleDraw> draw(const MuzzleEffectView &, float fraction,
                                  float seconds) const;
   std::vector<Vertex> decals(std::uint64_t tick, float fraction,

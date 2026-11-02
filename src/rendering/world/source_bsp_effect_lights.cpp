@@ -83,6 +83,7 @@ struct SourceBspEffectLights::Impl {
     std::uint64_t parent_policy_queries{},parent_receiver_rows{};
     std::uint64_t flag_policy_calls{},flag_policy_bsp_rows{},flag_policy_object_rows{},flag_policy_changed{},
         flag_policy_none{},flag_policy_root{},flag_policy_f8{},flag_policy_reference{};
+    std::uint64_t mode0_receivers{},mode0_entries{},mode0_model_entries{},mode0_exhausted{},mode0_reference{},mode0_reference_mismatches{};
     // These are native bank identities. They are never borrowed reference-RAM
     // addresses, and no host pointer is narrowed to32 bits.
     static constexpr std::uint32_t main_arena_token=0x71000000,
@@ -378,7 +379,136 @@ struct SourceBspEffectLights::Impl {
         std::uint64_t views{},native_entries{},residual_entries{},fallbacks{},
             unit_mismatches{},mask_mismatches{},fp_mismatches{};
     } main_cull_stats;
+    std::vector<NativeTu15FrustumDrawCall> light_frustum_cull(PhysicsLiveWorldTu15& live,
+        const SourceLiveEffectLightStateTu15& retained,SourceDrawUnitState& state,
+        const SourceBspAdmission& admission,const SourceObjectAdmission& objects,
+        const SourceLiveEffectLightBindingsTu15& bindings,const SourcePortalVisibilitySet& visibility,
+        const SourceDrawUnitCullContext& context,
+        const std::function<SourceCullDrawBanks(unsigned,const SourceCullDrawUnit&)>& resolve) {
+#if !((defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER))
+        return native_tu15_frustum_draw_cull_44710(state.units,state.arena,bindings.light_arena_token,
+            context,visibility,admission.associations,resolve);
+#else
+        static const std::string reference=[] {
+            const auto* p=std::getenv("HALO2_REFERENCE_LIGHT_FRUSTUM_CULL");
+            return p&&*p&&*p!='0'?std::string(p):std::string{};
+        }();
+        if(!reference.empty() && reference!="1" && reference!="reference")
+            throw FormatError("Large-sphere cull reference mode must be1 or reference");
+        auto caller=live.prepare_source_call();
+        const auto controls=caller.floating_point.value();
+        NativeTu15PhysicsFrameFp fp{controls.x87_control_word,caller.x87_status,controls.mxcsr};
+        const auto before=reference.empty()?std::optional<SourceDrawUnitState>{}:state;
+        std::vector<NativeTu15FrustumDrawCall> calls;
+        {
+            detail::NativeTu15ArithmeticEnvironment environment(fp);
+            calls=native_tu15_frustum_draw_cull_44710(state.units,state.arena,bindings.light_arena_token,
+                context,visibility,admission.associations,resolve);
+        }
+        if(!before)return calls;
+        auto& memory=live.memory();
+        // Restore bytes through their existing owner. Check both the complete
+        // region metadata and every committed backing identity; never restore
+        // a memory checkpoint, remount a bank or replace a platform lease.
+        const auto topology=[&] {
+            using Region=std::tuple<std::uint32_t,unsigned,std::string,std::size_t,std::size_t,std::size_t>;
+            std::vector<Region> regions;
+            memory.visit_region_metadata([&](const auto& r){regions.emplace_back(r.address,unsigned(r.access),std::string(r.owner),r.bytes,r.page_bytes,r.committed_pages);});
+            std::vector<std::tuple<std::uint32_t,std::size_t,const std::byte*>> backing;
+            memory.visit_committed([&](auto at,auto bytes){backing.emplace_back(at,bytes.size(),bytes.data());});
+            return std::pair{std::move(regions),std::move(backing)};
+        };
+        const auto initial_topology=topology();
+        struct Journal {
+            PhysicsLiveWorldTu15& live;
+            struct Saved {std::uint32_t address;std::vector<std::byte> bytes;NativeRuntimeAddress backing;};
+            std::vector<Saved> writes;
+            bool failed{};
+            void retain(std::uint32_t at,std::span<const std::byte> bytes) {
+                writes.push_back({at,{bytes.begin(),bytes.end()},live.memory().native_address(at,bytes.size())});
+            }
+            void write(std::uint32_t at,std::span<const std::byte> bytes) {
+                retain(at,live.memory().view(at,bytes.size()));live.write_source_call_input(at,bytes);
+            }
+            void restore() {
+                if(failed)return;
+                while(!writes.empty()) {
+                    const auto& old=writes.back();
+                    if(live.memory().native_address(old.address,old.bytes.size())!=old.backing) {
+                        failed=true;throw std::runtime_error("Large-sphere reference cannot restore a replaced native lease");
+                    }
+                    live.write_source_call_input(old.address,old.bytes);writes.pop_back();
+                }
+            }
+            ~Journal(){restore();}
+        } journal{live};
+        try {
+            source_live_effect_light_handoff_tu15(memory,retained,*before,admission,objects,bindings,
+                [&](auto at,auto bytes){journal.write(at,bytes);});
+            constexpr std::uint32_t secondary=0x5598f8u,arena_at=secondary+0x25cu,units_at=0x4c6958u;
+            const auto put=[&](std::uint32_t at,const auto& value){journal.write(at,std::as_bytes(std::span(&value,1)));};
+            const auto set=Bytes(memory.view(secondary,4)).u32(0);
+            if(visibility.groups.size()>6u || visibility.clusters.size()>128u || visibility.frustums.size()>512u)
+                throw FormatError("Large-sphere cull reference exceeds its original visibility bank");
+            put(set,std::int16_t(visibility.groups.size()));
+            put(set+0xa6cu,std::uint16_t(visibility.clusters.size()));
+            for(unsigned n=0;n<visibility.clusters.size();++n) {
+                const auto& c=visibility.clusters[n];const auto at=set+0xa6eu+n*26u;
+                put(at,c.source_cluster);put(at+2u,c.counts);put(at+14u,c.first_indices);
+            }
+            put(set+0x1970u,std::uint16_t(visibility.frustums.size()));
+            for(unsigned n=0;n<visibility.frustums.size();++n) {
+                const auto& f=visibility.frustums[n];const auto at=set+0x1974u+n*0x108u;
+                put(at+0x60u,f.bounds);put(at+0x78u,f.planes);
+            }
+            std::array<SourceCullDrawUnit,850> projected;
+            std::memcpy(projected.data(),memory.view(units_at,sizeof(projected)).data(),sizeof(projected));
+            //44710/44E80 consume actual native resident geometry and poses.
+            // Only typed query/draw inputs are projected; every instruction,
+            // entry decision, transform, predicate and output remains genuine.
+            live.run_actual(0x44710u,caller,[&](const auto& store){journal.retain(store.address,store.before);});
+            ++mode0_reference;
+            std::array<SourceCullDrawUnit,850> actual;
+            SourceBspRangeArena arena;
+            std::memcpy(actual.data(),memory.view(units_at,sizeof(actual)).data(),sizeof(actual));
+            std::memcpy(arena.words.data(),memory.view(arena_at,sizeof(arena.words)).data(),sizeof(arena.words));
+            arena.used=Bytes(memory.view(secondary+0xa5cu,2)).u16(0);
+            for(unsigned n=0;n<actual.size();++n)projected[n].words[0]=state.units[n].words[0];
+            const bool units_equal=std::memcmp(actual.data(),projected.data(),sizeof(actual))==0;
+            const bool mask_equal=arena.words==state.arena.words && arena.used==state.arena.used;
+            const bool fp_equal=caller.floating_point->x87_control_word==fp.control_word &&
+                caller.x87_status==fp.status && caller.floating_point->mxcsr==fp.mxcsr;
+            if(!units_equal || !mask_equal || !fp_equal) {
+                ++mode0_reference_mismatches;
+                throw FormatError("Large-sphere native44710 differs: units="+std::to_string(units_equal)+
+                    " masks="+std::to_string(mask_equal)+" FP="+std::to_string(fp_equal)+
+                    " native="+std::to_string(fp.control_word)+":"+std::to_string(fp.status)+":"+std::to_string(fp.mxcsr)+
+                    " original="+std::to_string(caller.floating_point->x87_control_word)+":"+
+                    std::to_string(caller.x87_status)+":"+std::to_string(caller.floating_point->mxcsr));
+            }
+            if(reference=="reference") {
+                for(unsigned n=0;n<actual.size();++n)state.units[n].words[0]=actual[n].words[0];
+                state.arena=arena;
+            }
+            journal.restore();
+            if(topology()!=initial_topology)throw FormatError("Large-sphere cull reference changed a native World lease");
+            // Reuse normal handoff admission without publishing its outputs:
+            // verify retained draws, both arenas and every queue identity.
+            (void)source_live_effect_light_handoff_tu15(memory,retained,*before,admission,objects,bindings,
+                [](auto,auto){});
+        } catch(...) {
+            journal.restore();
+            if(topology()!=initial_topology)throw FormatError("Large-sphere cull reference lost a native World lease");
+            throw;
+        }
+        return calls;
+#endif
+    }
     ~Impl() {
+        if(const auto* p=std::getenv("HALO2_NATIVE_LARGE_SPHERE_STATS");p&&*p)
+            std::cerr<<"Sphere mode0 stats: receivers="<<mode0_receivers<<" entries="<<mode0_entries<<
+                " model_entries="<<mode0_model_entries<<" exhausted="<<mode0_exhausted<<
+                " reference="<<mode0_reference<<" mismatches="<<mode0_reference_mismatches<<'\n';
         if(const auto* p=std::getenv("HALO2_NATIVE_LIGHT_FLAGS_STATS");p&&*p)
             std::cerr<<"Sphere31650 stats: calls="<<flag_policy_calls<<" bsp_rows="<<flag_policy_bsp_rows<<
                 " object_rows="<<flag_policy_object_rows<<" changed_objects="<<flag_policy_changed<<
@@ -680,6 +810,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         source_bsp_range_arena_begin(i.light_arena);i.units.arena=i.light_arena;
         observe(SourceEffectLightCommandPhaseTu15::before_collection,i.units,query);
         SourceEffectLightGeometryFrameWorld world{draw_world,command_world,i.metadata};
+        world.visibility=&receiver.view.visibility;
         // Both geometry families append to the same units, command banks and
         // final sort. Optional model ownership is explicit for BSP-only callers.
         std::map<std::array<std::uint32_t,8>,SourceModelCommandGeometry> live_models;
@@ -770,6 +901,13 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             if(unit.words[0]&0x1000u)result.transform=i.transforms.at(unit.words[3]>>18&2047u);
             return result;
         };
+        if(objects)world.frustum_cull=[&](auto& state,const auto& bsp,const auto& cull) {
+            if(!retained_light)throw FormatError("Large-sphere cull lost its pre-collection World banks");
+            const SourceLiveEffectLightBindingsTu15 bindings{Impl::light_arena_token,
+                Impl::instance_token,i.transforms,0};
+            return i.light_frustum_cull(objects->world,*retained_light,state,bsp,object_receivers,
+                bindings,receiver.view.visibility,cull,world.cull_bank);
+        };
         world.opaque_geometry=[&](unsigned ordinal) {
             const auto& unit=i.units.units.at(ordinal);
             if(unit.words[1]!=0xffffffffu){const auto& section=i.model(unit);return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};}
@@ -780,6 +918,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
                 observe(phase==SourceEffectLightGeometryFramePhase::collected?SourceEffectLightCommandPhaseTu15::collected:
                     SourceEffectLightCommandPhaseTu15::culled,state,bsp);
             });
+        if(receiver.view.query_mode==0) {
+            ++i.mode0_receivers;i.mode0_entries+=result.frustum_calls.size();
+            i.mode0_exhausted+=receiver.view.visibility.exhausted_limits!=0;
+            for(const auto& call:result.frustum_calls)i.mode0_model_entries+=i.units.units.at(call.unit).words[1]!=0xffffffffu;
+        }
         i.light_arena=i.units.arena;
         const auto& commands=i.commands.banks[1];
         const auto selected=std::span(i.opaque).first(result.opaque_count);

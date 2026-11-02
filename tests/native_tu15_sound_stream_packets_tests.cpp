@@ -12,6 +12,7 @@ using namespace halo2;
 namespace {
 using J=nlohmann::json;
 struct Fault {std::uint32_t address,bytes;};
+struct RequiredBoundary {};
 struct Memory final:SourcePhysicsContactMemory {
  std::map<std::uint32_t,std::array<std::byte,4096>> pages;
  void map(std::uint32_t a,std::uint32_t n){for(std::uint32_t p=a>>12;p<=((a+n-1)>>12);++p)pages.try_emplace(p);}
@@ -31,7 +32,7 @@ int main(int argc,char**argv)try{
  std::getline(file,line);const auto header=J::parse(line);
  need(header.at("original_xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"&&
  header.at("raw_abi_only")==true&&header.at("platform_results_supplied").empty(),"Packet fixture authority differs");
- unsigned cases{},returns{},faults{},stores_count{};std::map<std::uint32_t,unsigned> entries;
+ unsigned cases{},returns{},faults{},stores_count{},stopped_count{};std::map<std::uint32_t,unsigned> entries;
  while(std::getline(file,line)){
   if(line.empty())continue;const auto row=J::parse(line);const auto entry=row.at("entry").get<std::uint32_t>();
   const auto table=native_tu15_sound::resource_kernels();
@@ -42,22 +43,27 @@ int main(int argc,char**argv)try{
   SourcePhysicsContactRuntimeAbi abi{};abi.gp=row.at("gp").get<decltype(abi.gp)>();abi.xmm=row.at("xmm").get<decltype(abi.xmm)>();
   abi.eflags=row.value("eflags",0x202u);abi.fs_base=0x12345000;abi.x87_depth=4;abi.x87={1.L,-1.L,0.L,-0.L,7.L,9.L,11.L,13.L};
   abi.x87_status=row.at("fp")[2];abi.floating_point=SourcePhysicsFactoryFloatingPoint{row.at("fp")[0],row.at("fp")[1]};
-  const auto initial=abi;J stores=J::array(),calls=J::array();std::optional<Fault> fault;
+  const auto initial=abi;J stores=J::array(),calls=J::array();std::optional<Fault> fault;bool stopped{};
   native_tu15_sound::Services services;
   const auto allowed=header.value("native_cpu_callees",std::vector<std::uint32_t>{});
+  const auto boundary=header.value("required_boundary_callees",std::vector<std::uint32_t>{});
   services.required_owner=[&](auto& m,const auto& call,auto& a,const auto& observer){
-   need(std::ranges::find(allowed,call.target)!=allowed.end(),"Stream callee lacks its declared native CPU owner");
+   const bool stop=std::ranges::find(boundary,call.target)!=boundary.end();
+   need(stop||std::ranges::find(allowed,call.target)!=allowed.end(),"Stream callee lacks its declared native CPU owner");
    const auto get=[&](std::uint32_t at){std::array<std::byte,4> b{};m.read(at,b);return value(b);};
-   const unsigned count=call.target==0x21f260u?3u:
+   const unsigned count=call.target==0x1a3b70u?6u:call.target==0x21f260u?3u:
        (call.target==0x2e4d60u||call.target==0x21f3b0u||call.target==0x21f3f0u)?1u:0u;
    need(count!=0,"Stream CPU callee ABI is unavailable");J args=J::array();
    for(unsigned n=0;n<count;++n)args.push_back(get(a.gp[4]+4u+n*4u));
    calls.push_back({{"target",call.target},{"gp",a.gp},{"return",get(a.gp[4])},{"args",args}});
+   if(stop)throw RequiredBoundary{};
    const auto k=std::ranges::find(table,call.target,&native_tu15_sound::Kernel::entry);
    need(k!=table.end(),"Declared stream CPU callee is not native");k->run(m,a,*a.floating_point,observer,services);
   };
   try{kernel->run(memory,abi,*abi.floating_point,[&](const auto& q){stores.push_back(J::array({q.instruction,q.address,q.written.size(),value(q.before),value(q.written)}));},services);}
   catch(const Fault& f){fault=f;}
+  catch(const RequiredBoundary&){stopped=true;}
+  need(stopped==row.value("stopped_at_required_owner",false),"Original required-owner boundary differs");stopped_count+=stopped;
   const bool expected_fault=!row.at("fault").is_null();
   if(bool(fault)!=expected_fault || (fault&&(fault->address!=row["fault"][0]||fault->bytes!=row["fault"][1]))){
    std::cerr<<"Packet case "<<row["case"]<<" entry "<<std::hex<<entry<<" fault differs\n";return 1;}
@@ -88,13 +94,18 @@ int main(int argc,char**argv)try{
  const auto required=header.value("required_entries",std::vector<std::uint32_t>{0x21f360u,0x2b98d0u,0x2b9950u});
  need(cases>=header.value("minimum_cases",1500u)&&entries.size()==required.size()&&faults>0,"Original stream coverage incomplete");
  for(const auto entry:required)need(entries.contains(entry),"Required original stream entry absent");
- const J report{{"passed",true},{"cases",cases},{"returns",returns},{"faults",faults},{"ordered_stores",stores_count},
+ J report{{"passed",true},{"cases",cases},{"returns",returns},{"faults",faults},{"ordered_stores",stores_count},
  {"all_general_registers_on_return",true},{"caller_fp_simd_preserved",true},{"all_mapped_native_bytes_checked",true},
  {"callee_stack_scratch_excluded",!header.value("source_stack_stores_observed",false)},
  {"original_stack_bytes_checked",header.value("source_stack_stores_observed",false)},
  {"caller_direction_preserved_checked",header.value("caller_direction_preserved",false)},
  {"callee_entry_gprs_arguments_checked",!header.value("native_cpu_callees",std::vector<std::uint32_t>{}).empty()},
  {"native_world_voice_or_device_admission",false},{"multi_chunk_loop_playback_verified",false}};
+ if(!header.value("required_boundary_callees",std::vector<std::uint32_t>{}).empty()){
+  report["stopped_at_required_owner_cases"]=stopped_count;report["returns"]=returns-stopped_count;
+  report["boundary_results_supplied"]=false;
+  report["all_boundary_general_registers_checked"]=true;report["original_post_read_return_abi_qualified"]=false;
+ }
  std::ofstream(argv[2])<<report.dump(2)<<'\n';std::cout<<report.dump()<<'\n';return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 

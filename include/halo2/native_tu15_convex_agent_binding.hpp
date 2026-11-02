@@ -12,7 +12,8 @@ struct NativeTu15ConvexAgentBindingActivity {
     std::uint64_t attempts{},completed{},refusals{},pool_allocations{},pool_releases{},
         class_queries{},centers{},supports{},encodings{};
 };
-// Qualified class23, class8 and authored polygon class24; empty-live-x87 domain. Every
+// Qualified class23, class8, sphere class4 and authored polygon class24;
+// empty-live-x87 domain. Every
 // dependency is native; an unsupported allocator/shape/depth refuses explicitly.
 inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
     SourcePhysicsContactMemory&memory,const NativeTu15ConvexAgentArguments&arguments,
@@ -44,7 +45,7 @@ inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
                 if(activity)++activity->class_queries;
                 return native_tu15_contact_child_class_24();
             }
-            if(owner.identity==0xad390u){
+            if(owner.identity==0xad390u||owner.identity==0x2e8cf0u){
                 if(const auto kind=native_tu15_activation_type(owner.identity)){
                     if(activity)++activity->class_queries;
                     return *kind;
@@ -54,7 +55,14 @@ inline NativeTu15ContactAgent native_tu15_create_bound_convex_contact_agent(
         };
         services.cache.shape_center=[&](auto shape,auto owner,auto output,auto&){native_tu15_contact_shape_center(memory,shape,owner,output,observe);if(activity)++activity->centers;};
         services.cache.support_vertex=[&](auto shape,auto owner,auto direction,auto output,auto&state){const NativeTu15ContactShapeScratch child{scratch.child_scalar,scratch.child_dots,nullptr};native_tu15_contact_shape_support(memory,shape,owner,direction,output,{scratch.wrapper_scalar,scratch.wrapper_dots,&child},state,0,observe);if(activity)++activity->supports;};
-        services.cache.vertex_encoding=[&](auto,auto owner,auto&){if(owner.identity!=0x1cb030u)throw std::runtime_error("Native TU1.5 convex factory requires qualified encoding owner");if(activity)++activity->encodings;return native_tu15_contact_shape_vertex_encoding();};
+        services.cache.vertex_encoding=[&](auto,auto owner,auto&){
+            if(activity)++activity->encodings;
+            if(owner.identity==0x1cb030u)return native_tu15_contact_shape_vertex_encoding();
+            if(owner.identity==0xad740u){
+                if(const auto encoding=native_tu15_activation_type(owner.identity))return *encoding;
+            }
+            throw std::runtime_error("Native TU1.5 convex factory requires qualified encoding owner");
+        };
         const auto agent=native_tu15_create_convex_contact_agent(memory,arguments,{scratch.relative_transform,{scratch.cache}},fp,services,observe);
         if(activity)++activity->completed;return agent;
     }catch(...){if(activity)++activity->refusals;throw;}

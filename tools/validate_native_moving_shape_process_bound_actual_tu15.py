@@ -4,7 +4,7 @@
 Genuine1479 typed input, full unchanged-original return/all retained DATA/FP.
 Current Root solver is not edited and its unqualified flag1 domain is not used.
 """
-import hashlib,inspect,json,os,sys,subprocess
+import hashlib,inspect,json,os,sys,subprocess,re,shutil
 from pathlib import Path
 import validate_native_moving_shape_process_full_native_actual_tu15 as full
 import validate_native_moving_shape_process_solved_actual_tu15 as prefix
@@ -44,23 +44,39 @@ def observer_source():
 def main():
  baseline=ROOT/'analysis/physics/native-convex-simplex-solver-qualified-actual1479-20261102/source/src/physics/native_tu15_convex_simplex_solver.cpp';pin='c58c0ba274a0c894db23fdcda49a12d471d42e4e2fc8dd521aca0726e09800ad';assert hashlib.sha256(baseline.read_bytes()).hexdigest()==pin
  helper=ROOT/'include/halo2/native_tu15_moving_shape_process_binding.hpp';helper_pin=hashlib.sha256(helper.read_bytes()).hexdigest();tool_pin=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
- scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();project=scratch/'qualified-solver';project.mkdir();source=project/'native_tu15_convex_simplex_solver.cpp';source.write_bytes(baseline.read_bytes());original_run=subprocess.run
+ scratch=Path(os.environ['HALO2_TEST_SCRATCH']).resolve();project=scratch/'qualified-source';project.mkdir();original_run=subprocess.run
+ header=ROOT/'analysis/physics/native-convex-simplex-solver-qualified-actual1479-20261102/source/include/halo2/native_tu15_convex_simplex_solver.hpp';assert hashlib.sha256(header.read_bytes()).hexdigest()=='df194a3114e0232b5d7ecf6aaf1ce6f11fb597cd3ad0b4632a26832697410cb0'
+ overrides={};seeds=[(ROOT/'src/physics'/n).resolve()for n in tuple(dict.fromkeys(prefix.UNITS+full.EXTRA+('native_tu15_contact_cache.cpp','native_tu15_constraint_body_slots.cpp','native_tu15_constraint_scalar_cache.cpp','native_tu15_contact_creation_gameplay.cpp','native_tu15_activation_payload_filter.cpp','native_tu15_activation_agents.cpp')))]+[helper,Path(full.__file__),ROOT/'tools/observe_native_moving_shape_process_solved_actual_tu15.cpp']
+ while seeds:
+  original=seeds.pop().resolve();name=str(original.relative_to(ROOT))
+  if name in overrides:continue
+  effective=baseline if name=='src/physics/native_tu15_convex_simplex_solver.cpp'else header if name=='include/halo2/native_tu15_convex_simplex_solver.hpp'else original
+  target=project/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(effective.read_bytes());overrides[name]=target
+  for inc in re.findall(r'^#include "([^"\n]+)"',effective.read_text(),re.M):
+   child=ROOT/'include'/inc if inc.startswith('halo2/')else original.parent/inc
+   if child.is_file():seeds.append(child.resolve())
+ def pinned_full_main():
+  source=inspect.getsource(full.main)
+  old='pins[name]=hashlib.sha256(path.read_bytes()).hexdigest()';assert source.count(old)==1;source=source.replace(old,'input_path=SOURCE_OVERRIDES.get(name,path);pins[name]=hashlib.sha256(input_path.read_bytes()).hexdigest()')
+  source=source.replace('path.read_text(),re.M','input_path.read_text(),re.M')
+  old='hashlib.sha256((ROOT/n).read_bytes()).hexdigest()';assert source.count(old)==1;source=source.replace(old,'hashlib.sha256(SOURCE_OVERRIDES.get(n,ROOT/n).read_bytes()).hexdigest()')
+  env=dict(full.__dict__,SOURCE_OVERRIDES=overrides);exec(source,env);return env['main']()
  compiled={};mutants=[]
  changes={'wrong_radius':(ROOT/'src/physics/native_tu15_convex_contact_process.cpp','minus(m.word(radius_shape+0xcu));','plus(m.word(radius_shape+0xcu));'),'wrong_second_point':(ROOT/'src/physics/native_tu15_convex_contact_process.cpp','transpose_direction(x,y,z,relative)','transpose_direction(z,y,x,relative)'),'disabled_native_scope':(helper,'NativeTu15PairDeletionNativeScopeGuard scope(native_only,&out.native_only);','(void)native_only;')}
  def run(command,*args,**kwargs):
   if isinstance(command,list)and str(ROOT/'src/physics/native_tu15_convex_simplex_solver.cpp')in command:
-   command=[str(source)if p==str(ROOT/'src/physics/native_tu15_convex_simplex_solver.cpp')else p for p in command];command.insert(1,'-I'+str(ROOT/'src/physics'))
+   command=[str(overrides[str(Path(p).relative_to(ROOT))])if str(p).startswith(str(ROOT)+'/')and str(Path(p).relative_to(ROOT))in overrides else p for p in command];command[1:1]=['-I'+str(project/'include'),'-I'+str(project/'src/physics')]
    compiled[command[command.index('-o')+1]]=list(command)
   result=original_run(command,*args,**kwargs)
   if isinstance(command,list)and command and command[0]in compiled and result.returncode==0:
    build=compiled[command[0]];compiler=Path(build[0]).name;output=Path(command[4]).parent
    for name,(kernel,old,new)in changes.items():
-    content=kernel.read_text();assert content.count(old)==1,(name,content.count(old));overlay=scratch/(compiler+'-'+name);overlay.mkdir();target=overlay/(compiler+'-mutant')
+    frozen=overrides[str(kernel.relative_to(ROOT))];content=frozen.read_text();assert content.count(old)==1,(name,content.count(old));overlay=scratch/(compiler+'-'+name);overlay.mkdir();target=overlay/(compiler+'-mutant')
     variant=[str(target)if p==command[0]else p for p in build]
     if kernel==helper:
      include=overlay/'include/halo2';include.mkdir(parents=True);(include/helper.name).write_text(content.replace(old,new));variant.insert(1,'-I'+str(overlay/'include'))
     else:
-     modified=overlay/kernel.name;modified.write_text(content.replace(old,new));variant=[str(modified)if p==str(kernel)else p for p in variant]
+     modified=overlay/kernel.name;modified.write_text(content.replace(old,new));variant=[str(modified)if p==str(frozen)else p for p in variant]
     b=original_run(variant,capture_output=True,text=True);(output/f'{compiler}-{name}-build.log').write_text(b.stdout+b.stderr);assert b.returncode==0,b.stderr[-5000:]
     path=output/f'{compiler}-{name}.json';execution=original_run([str(target),*command[1:4],str(path)],capture_output=True,text=True);(output/f'{compiler}-{name}.log').write_text(execution.stdout+execution.stderr);assert execution.returncode!=0 and path.exists()and json.loads(path.read_text()).get('passed')is False,name+' survived'
     mutants.append(dict(compiler=compiler,mutant=name,rejected=True,report=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
@@ -69,9 +85,9 @@ def main():
  old_extra=full.EXTRA;full.EXTRA=(*old_extra,'native_tu15_contact_cache.cpp')
  # The production wrapper uses the full caller's outer builder, preserving
  # current source-before/after pins and adding the independent baseline pin.
- try:rc=full.main()
+ try:rc=pinned_full_main()
  finally:full.observer_source=old_observer;full.EXTRA=old_extra;subprocess.run=original_run
- p=Path(sys.argv[sys.argv.index('--output')+1])/'report.json';r=json.loads(p.read_text());r['production_moving_helper']=True;r['compiled_solver_baseline_sha256']=pin;r['compiled_solver_baseline']=str(baseline.relative_to(ROOT));r['production_helper_sha256']=helper_pin;r['production_validator_sha256']=tool_pin;r['production_sources_unchanged']=hashlib.sha256(helper.read_bytes()).hexdigest()==helper_pin and hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==tool_pin;r['mutants']=mutants;r['flag1_domain_admitted']=False
+ p=Path(sys.argv[sys.argv.index('--output')+1])/'report.json';r=json.loads(p.read_text());r['production_moving_helper']=True;r['compiled_solver_baseline_sha256']=pin;r['compiled_solver_baseline']=str(baseline.relative_to(ROOT));r['compiled_solver_header_baseline_sha256']=hashlib.sha256(header.read_bytes()).hexdigest();r['compiled_sources_are_owned_snapshot']=True;r['compiled_source_sha256']={name:hashlib.sha256(path.read_bytes()).hexdigest()for name,path in overrides.items()};r['production_helper_sha256']=helper_pin;r['production_validator_sha256']=tool_pin;r['production_sources_unchanged']=hashlib.sha256(helper.read_bytes()).hexdigest()==helper_pin and hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==tool_pin;r['mutants']=mutants;r['flag1_domain_admitted']=False
  if not r['production_sources_unchanged']:r['passed']=False;rc=1
  if r.get('passed'):
   assert len(mutants)==6

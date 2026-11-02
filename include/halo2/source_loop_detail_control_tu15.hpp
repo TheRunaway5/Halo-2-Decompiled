@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <span>
+#include <optional>
 namespace halo2 {
 struct SourceLoopDetailBoundsTu15 {
     std::array<float,2> yaw,pitch,distance;
@@ -15,6 +16,12 @@ Vec3 source_loop_detail_offset_tu15(const SourceLoopDetailBoundsTu15&,std::uint3
 struct SourceLoopDetailSpatialTu15 {Vec3 offset,position;float control{},gain_db{};};
 SourceLoopDetailSpatialTu15 source_loop_detail_spatial_tu15(
     std::span<const std::byte,68> parent,const SourceLoopDetailBoundsTu15&,std::uint32_t& seed);
+//223750..223814: choose among actual local views before drawing the offset.
+// Points are in physical-view order with inactive views omitted. No views
+// means no selection, no offset and no random draw.
+std::optional<SourceLoopDetailSpatialTu15> source_loop_detail_centered_tu15(
+    std::span<const std::byte,68> parent,const SourceLoopDetailBoundsTu15&,
+    std::span<const Vec3> listeners,std::uint32_t& seed);
 std::int32_t source_loop_detail_deadline_tu15(std::array<float,2> period,
     std::uint32_t flags,std::int32_t clock,std::uint32_t& seed,bool initial);
 }

@@ -25,7 +25,7 @@ public:
         std::int32_t frame,bool cinematic);
     std::vector<WorldEffectLightReceiver> receivers(const SourceEffectLightView&,
         const SourceBspAdmissionBsp&,std::span<const std::uint8_t> containing_fog,
-        const SourceBspAdmission* main);
+        const SourceBspAdmission* main,std::span<const std::uint32_t> open_portals);
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

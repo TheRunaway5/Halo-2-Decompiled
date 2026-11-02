@@ -32,6 +32,17 @@ void native_tu15_release_contact_agent(SourcePhysicsContactMemory&memory,NativeT
 NativeTu15ContactAgent native_tu15_create_contact_agent(SourcePhysicsContactMemory&memory,
  NativeTu15ContactAgentFactory kind,const NativeTu15ContactAgentFactoryArguments&arguments,
  NativeTu15PhysicsFrameFp&fp,const NativeTu15ArrayGrowthServices&s,const SourcePhysicsContactRecordObserver&observer){
+ if(kind==NativeTu15ContactAgentFactory::owner_2f9990){
+  Memory m(memory,observer);
+  const auto allocator=m.word(0x48c938u),table=m.word(allocator),owner=m.word(table+0x10u);
+  if(!s.allocate)throw std::runtime_error("Native TU1.5 contact agent requires actual allocation ownership");
+  const NativeTu15ContactAgent agent{s.allocate({allocator,owner,16u,0x1au},fp)};
+  if(!arguments.user_data)throw std::runtime_error("Native TU1.5 contact agent requires its late user-data input");
+  const auto user_data=arguments.user_data(),p=agent.identity;
+  m.word(0x2f99a3u,p+4u,0x10u,2);m.word(0x2f99a9u,p+8u,user_data);
+  m.word(0x2f99acu,p,0x41cd80u);m.word(0x2f99b2u,p+0xcu,0xffffu,2);
+  return agent;
+ }
  if(kind==NativeTu15ContactAgentFactory::owner_2f3670||kind==NativeTu15ContactAgentFactory::owner_2f5530){
   const bool reversed=kind==NativeTu15ContactAgentFactory::owner_2f5530;
   Memory m(memory,observer);

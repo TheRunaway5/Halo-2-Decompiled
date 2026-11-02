@@ -1,0 +1,92 @@
+{
+  "schema": "H2_MATCHMAKING_SELECTED_RUNTIME_OBSERVATION_V1",
+  "observed_at_utc": "2026-11-02T20:16:39.797208+00:00",
+  "read_only": true,
+  "launchers": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/Halo2-Launcher",
+      "sha256": "698f643373b1ab6465d2eeae2d6424a1e7f544bd32f1b3cd867b0bdb5869b221",
+      "bytes": 302912,
+      "exit_code": 0,
+      "runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+      "frontend_runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+      "report": "initial-Halo2-Launcher-info.log"
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/Halo2-Title-Launcher",
+      "sha256": "9f30e786158e1930df1ff56cf456dc01a076e20a1b595a1b63f440a727d4feb0",
+      "bytes": 302920,
+      "exit_code": 0,
+      "runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+      "frontend_runtime": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+      "report": "initial-Halo2-Title-Launcher-info.log"
+    }
+  ],
+  "runtime": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/halo2_native",
+    "sha256": "c959dce8bb4a2b96f8bf3760a35f275454b182a5990e5d293d190b1e06ece551",
+    "bytes": 267311528
+  },
+  "source_manifest": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/bin/engine-builds/824185e7306d46cfa61015806277e63a/source-hashes.json",
+    "sha256": "f53c58d01788c6415645478b302237b10a340357112bcde5ddf13f6094987208",
+    "entries": 14615
+  },
+  "migration_inputs": [
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_friends.rs",
+      "current_sha256": "73bb471589b1b43b721cc8cf63768da7a39371c62c4ca6bd792849569eb6f20d",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol/src/matchmaking_frontend_party_flow.rs",
+      "current_sha256": "73d4c5d91026ca856b1526a1af28949b06029fdc032fc770895ee30ed919559a",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_friends.rs",
+      "current_sha256": "1722d14a03dbdf0b0ba03ca513e7c5a86d6da5e28d38bfbeda1fca066d33e1ea",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "rust/online_protocol_bridge/src/matchmaking_frontend_friends.hpp",
+      "current_sha256": "dc96ae15576e3a15b8fd3d4dba23616b5bdada82a7752451272a8f18dbf384e9",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    },
+    {
+      "path": "src/ui/frontend_friends.cpp",
+      "current_sha256": "def95788a068b284cc24abd1a371faac365ed61fb480d9b3b7849bea3e74eeab",
+      "published_sha256": "c135aabe9fe9d4daaf32e31e18452e2a15ffe0a1e96ebcf8150dafed77c059c7",
+      "present_in_selected_source_manifest": true,
+      "matches": false
+    },
+    {
+      "path": "src/ui/frontend_matchmaking_friends.cpp",
+      "current_sha256": "5913b4fd60f383d8814a7a4562df3ca3d5183c91203f8742120adf49713ec85e",
+      "published_sha256": null,
+      "present_in_selected_source_manifest": false,
+      "matches": false
+    }
+  ],
+  "migration_delivered": false,
+  "frontend_selection": {
+    "path": "/home/eric/Developer/Halo-2-Decompiled/frontend-runtime-selection.json",
+    "present": true,
+    "sha256": "5e96b4f766be1ab5be5f0dfca57e00f1d10b8b9e5941fff651d00a4709f9e4c1",
+    "bytes": 316
+  },
+  "selected_runtime_replaced": false,
+  "production_service_activated": false,
+  "physical_installed_input": false,
+  "acceptance_gates_closed": [],
+  "scope": "Read-only launcher-selected artifact observation. The new friends migration is not the selected runtime. This does not observe production service/catalog/configuration identities or certify installed physical input.",
+  "retained_large_artifacts": []
+}

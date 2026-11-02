@@ -1,0 +1,19 @@
+import datetime,hashlib,json,re,subprocess
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-friends-flow-rust-20261102';launchers=[]
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for name in['Halo2-Launcher','Halo2-Title-Launcher']:
+ path=root/name;run=subprocess.run([str(path),'--launcher-info'],capture_output=True,text=True,timeout=60);assert run.returncode==0,(name,run.stderr[-1000:]);(work/(name+'-info.log')).write_text(run.stdout)
+ runtime=re.search(r'^Runtime: (.+)$',run.stdout,re.MULTILINE);frontend=re.search(r'^Frontend runtime: (.+)$',run.stdout,re.MULTILINE);assert runtime and frontend
+ launchers.append(dict(path=str(path),sha256=sha(path),bytes=path.stat().st_size,exit_code=0,runtime=runtime[1],frontend_runtime=frontend[1],report=name+'-info.log'))
+assert len({r['runtime']for r in launchers})==len({r['frontend_runtime']for r in launchers})==1
+runtime=Path(launchers[0]['runtime']);assert runtime==Path(launchers[0]['frontend_runtime'])and runtime.is_file();manifest=runtime.parent/'source-hashes.json';published=json.loads(manifest.read_text())
+names=['rust/online_protocol/src/matchmaking_frontend_friends.rs','rust/online_protocol/src/matchmaking_frontend_party_flow.rs','rust/online_protocol_bridge/src/matchmaking_frontend_friends.rs','rust/online_protocol_bridge/src/matchmaking_frontend_friends.hpp','src/ui/frontend_friends.cpp','src/ui/frontend_matchmaking_friends.cpp']
+rows=[]
+for name in names:
+ current=sha(root/name);old=published.get(name);rows.append(dict(path=name,current_sha256=current,published_sha256=old,present_in_selected_source_manifest=name in published,matches=old==current))
+inputs_match=all(row['matches']for row in rows)
+selection=root/'frontend-runtime-selection.json';selection_record=dict(path=str(selection),present=selection.is_file())
+if selection.is_file():selection_record.update(sha256=sha(selection),bytes=selection.stat().st_size)
+report=dict(schema='H2_MATCHMAKING_SELECTED_RUNTIME_OBSERVATION_V1',observed_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),read_only=True,launchers=launchers,runtime=dict(path=str(runtime),sha256=sha(runtime),bytes=runtime.stat().st_size),source_manifest=dict(path=str(manifest),sha256=sha(manifest),entries=len(published)),migration_inputs=rows,migration_inputs_match_selected_source_manifest=inputs_match,migration_delivered=None if inputs_match else False,migration_delivery_qualified=False,frontend_selection=selection_record,selected_runtime_replaced=False,production_service_activated=False,physical_installed_input=False,acceptance_gates_closed=[],scope='Read-only launcher-selected artifact observation and source-manifest comparison. Source metadata alone does not qualify delivered execution. This does not observe production service/catalog/configuration identities or certify installed physical input.',retained_large_artifacts=[])
+(work/'selected-runtime-observation.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(dict(two_launchers_agree=True,runtime_sha256=report['runtime']['sha256'],migration_delivered=report['migration_delivered'],selected_runtime_replaced=False)))

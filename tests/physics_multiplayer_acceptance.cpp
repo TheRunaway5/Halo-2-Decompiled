@@ -2534,8 +2534,10 @@ int main(int argc,char **argv) try {
   const bool player_rearm_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_PLAYER_REARM_INPUT");
   const bool glass_walk_test=scenario=="movement" && std::getenv("HALO2_TU15_GLASS_WALK_INPUT");
   const bool terminal_walk_test=scenario=="movement"&&std::getenv("HALO2_TU15_TERMINAL_WALK_INPUT");
+  const bool terminal_use_test=terminal_walk_test&&std::getenv("HALO2_TU15_TERMINAL_USE_INPUT");
   const bool terminal_physics_test=terminal_walk_test&&std::getenv("HALO2_TU15_TERMINAL_PHYSICS_INPUT");
   unsigned terminal_walk_commands{};bool terminal_approached{};
+  float terminal_control_position{};bool terminal_ready_capture{},terminal_used_capture{};
   const bool glass_state_test=glass_walk_test && std::getenv("HALO2_TU15_GLASS_STATE_INPUT");
   std::set<std::tuple<int,unsigned,unsigned>> glass_authored_parts;
   std::set<std::size_t> glass_submitted_slots;
@@ -2578,9 +2580,9 @@ int main(int argc,char **argv) try {
   const bool single_vehicle_view=std::getenv("HALO2_TU15_VEHICLE_SINGLE_VIEW_INPUT");
   const bool wheel_full_drive=std::getenv("HALO2_TU15_VEHICLE_WHEEL_FULL_DRIVE");
   check(!wheel_full_drive || single_vehicle_view,
-      "Full wheel drive requires the single-view authored Ghost route");
+      "Full wheel drive requires the single-view authored vehicle route");
   const bool wheel_boost_input=std::getenv("HALO2_TU15_VEHICLE_WHEEL_BOOST_INPUT");
-  check(!wheel_boost_input || (single_vehicle_view && wheel_full_drive),
+  check(!wheel_boost_input || (single_vehicle_view && wheel_full_drive && vehicle_name=="ghost"),
       "Wheel boost requires the full-drive authored Ghost route");
   bool wheel_boost_held{};
   unsigned wheel_boost_commands{};
@@ -2719,9 +2721,10 @@ int main(int argc,char **argv) try {
     }}
   // Native TU1.5 startup and HUD resource lookup consume the imported cache.
   // No Xbox image constructor or Vista UI path is supplied at runtime.
-  check(!single_vehicle_view || (vehicle && !lan && !accompanied_driver && vehicle_name=="ghost" &&
+  check(!single_vehicle_view || (vehicle && !lan && !accompanied_driver &&
+      (vehicle_name=="ghost" || (vehicle_name=="warthog_gauss" && !gauss_fire_test && !std::getenv("HALO2_TU15_VEHICLE_CHILD"))) &&
       o.map.filename()=="zanzibar.map" && !wheel_definitions.empty()),
-      "Single-view receiver regression requires a local Ghost driver");
+      "Single-view receiver regression requires a local Ghost or Gauss Warthog driver");
   o.starting_weapon=vehicle_weapon_test?8:5;o.width=single_vehicle_view?1280:960;o.height=single_vehicle_view?720:540;
   o.local_players=single_vehicle_view?1:lan&&!vehicle&&!objects?1:2;o.mute=true;
   if(glass_walk_test||terminal_walk_test){o.local_players=1;o.reference_tick_cadence=true;o.reference_render_fraction=1.f;}
@@ -2927,6 +2930,19 @@ int main(int argc,char **argv) try {
     report["control_input"]="Ordinary SDL approach/look and displayed control pickup hold; no supplied group or motion result";
     if(terminal_walk_test) {
       report["control_input"]="Ordinary local SDL approach/look until the actual control prompt; no pickup/activation input";
+      if(terminal_use_test) {
+        report["control_input"]="Ordinary local SDL approach/look and held authored pickup key; native control channels and screen functions remain unmodified";
+        o.frame_capture=[&](const MultiplayerState& state)->std::filesystem::path {
+          if(!terminal_ready_capture && std::any_of(state.players.begin(),state.players.end(),[&](const auto& p){
+              return p.action_prompt.target.action==3 && p.action_prompt.definition==control_start->definition;})) {
+            terminal_ready_capture=true;return output/"terminal-ready.ppm";
+          }
+          if(terminal_ready_capture && !terminal_used_capture && terminal_control_position>.99f) {
+            terminal_used_capture=true;return output/"terminal-used.ppm";
+          }
+          return {};
+        };
+      }
       if(terminal_physics_test) {
         Camera observer;observer.position=control_start->spawn.position+Vec3{0,0,content.player.camera_height};
         observer.forward=normalized(Vec3{control_start->spawn.position.x-control_start->target.x,
@@ -3090,10 +3106,13 @@ int main(int argc,char **argv) try {
           report["declared_collision_wall"]["survey_direction_input"]=std::stoi(direction);
       }
       if(single_vehicle_view) {
-        o.native_spawn_inputs.clear();
+        // Ghost keeps its ordinary map-authored player spawn. The Gauss
+        // driver uses the existing declared approach to its authored entry
+        // marker, admitted above the cached BSP floor before tick zero.
+        if(vehicle_name=="ghost")o.native_spawn_inputs.clear();
         const auto wheel=std::find_if(content.objects.begin(),content.objects.end(),
             [&](const auto& object){return object.definition==main_wheel_definition;});
-        check(wheel!=content.objects.end(),"Single-view Ghost route lost the actual big wheel placement");
+        check(wheel!=content.objects.end(),"Single-view vehicle route lost the actual big wheel placement");
         single_vehicle_target=wheel->position;
         report["single_view_authored_wheel_target"]=xyz(*single_vehicle_target);
         // Ordinary input waypoints from the cached BSP clearance survey.
@@ -3105,7 +3124,11 @@ int main(int argc,char **argv) try {
             {-1.5f,3.5f,0},{0,2,0},*single_vehicle_target};
         report["single_view_input_route"]=Json::array();
         for(const auto& point:single_vehicle_route)report["single_view_input_route"].push_back(xyz(point));
-        report["location_authority"]="Ordinary map-authored spawn, SDL approach to the actual Ghost entry marker";
+        if(vehicle_name=="ghost")report["location_authority"]="Ordinary map-authored spawn, SDL approach to the actual Ghost entry marker";
+        else {
+          report["declared_initial_location"]=xyz(vehicle_start->spawn.position);
+          report["location_authority"]="Declared approach to the authored Gauss driver entry marker above cached BSP floor before tick zero; ordinary SDL throttle/steering along the surveyed wheel route";
+        }
       } else {
         report["declared_initial_location"]=xyz(vehicle_start->spawn.position);
         report["location_authority"]="Declared half-radius approach to authored vehicle entry marker, above cached BSP floor before tick zero";
@@ -4765,12 +4788,15 @@ int main(int argc,char **argv) try {
       const bool shown=p.action_prompt.target.action==3 && p.action_prompt.definition==control_start->definition;
       if(terminal_walk_test){
         terminal_walk_commands+=c.right!=0;terminal_approached|=shown;
-        key(window_id,SDL_SCANCODE_D,elapsed>=10&&elapsed<120&&!shown);
+        key(window_id,SDL_SCANCODE_D,elapsed>=10&&elapsed<120&&!shown&&!control_pressed);
+        if(terminal_use_test)for(const auto& owner:s.devices.owners)
+          if(owner.definition==control_start->definition)
+            terminal_control_position=std::max(terminal_control_position,owner.state.motion.position);
       } else key(window_id,SDL_SCANCODE_W,!script_test && elapsed>=10 && !control_pressed && !shown &&
           delta.x*delta.x+delta.y*delta.y>interaction_content.player.radius*interaction_content.player.radius);
       const int binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Pickup)];
       check(binding>0 && binding<SDL_NUM_SCANCODES,"Control test requires the actual pickup key");
-      if(!script_test && !terminal_walk_test && shown && !control_pressed) {key(window_id,SDL_Scancode(binding),true);control_pressed=true;}
+      if(!script_test && (!terminal_walk_test || terminal_use_test) && shown && !control_pressed) {key(window_id,SDL_Scancode(binding),true);control_pressed=true;}
       if(control_pressed && !control_released && c.pickup_milliseconds>=
           source_pickup_hold_threshold(interaction_content.pickup_hold_seconds)+100u) {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
@@ -5360,7 +5386,13 @@ int main(int argc,char **argv) try {
   } else if(glass_walk_test)passed&=distance>0 && glass_walk_commands>0 && jump_commands==0;
   else if(terminal_walk_test){report["terminal_walk"]={{"commands",terminal_walk_commands},{"actual_prompt_reached",terminal_approached},
     {"native_wheel_receiver_vertices",terminal_native_receiver_vertices}};
-    passed&=terminal_walk_commands>0&&(terminal_physics_test?distance>0:terminal_approached)&&jump_commands==0;}
+    passed&=terminal_walk_commands>0&&(terminal_physics_test?distance>0:terminal_approached)&&jump_commands==0;
+    if(terminal_use_test) {
+      report["terminal_use"]={{"pickup_pressed",control_pressed},{"pickup_released",control_released},
+        {"native_control_maximum_position",terminal_control_position},{"ready_capture",terminal_ready_capture},{"used_capture",terminal_used_capture}};
+      passed&=control_pressed&&control_released&&terminal_control_position>.99f&&terminal_ready_capture&&terminal_used_capture;
+    }
+  }
   else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
   if(!lan)report["final_inventory"]=inventory(*o.prepared_world);
   if(prop_placement) {

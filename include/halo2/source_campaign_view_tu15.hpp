@@ -68,6 +68,8 @@ struct SourceCampaignViewFrameTu15 {
     std::vector<std::uint32_t> live_effect_definitions;
     unsigned source_particle_commands{};
     bool main_commands_completed{};
+    // Exact16 words used by this completed main view's portal traversal.
+    std::optional<std::array<std::uint32_t,16>> open_portals;
 };
 // Retain immutable authored BSP resources. Every collection rereads the real
 // TU1.5 portal bank, so device updates and checkpoint restore keep one owner.

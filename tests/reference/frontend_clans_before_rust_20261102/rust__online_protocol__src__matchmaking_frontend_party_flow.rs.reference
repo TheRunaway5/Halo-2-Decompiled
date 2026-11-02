@@ -1,0 +1,584 @@
+//! Native accepted-party actions and acknowledgment state. Actual worker,
+//! device and menu operations are typed IO; no state guard spans a callback.
+//! This preserves the replacement client's caller, not original Live policy.
+use crate::matchmaking_frontend_party as projection;
+use std::sync::Mutex;
+pub type Result<T> = std::result::Result<T, String>;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Entry {
+    pub destination: i32,
+    pub value: i32,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Frame {
+    pub screen: u32,
+    pub context: u32,
+    pub instance: u64,
+    pub selected: u32,
+    pub entries: Vec<Entry>,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Privacy {
+    pub mode: u32,
+    pub revision: u64,
+    pub context: Vec<u8>,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Invite {
+    pub id: Vec<u8>,
+    pub name: Vec<u8>,
+    pub version: u64,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Friend {
+    pub id: Vec<u8>,
+    pub state: Vec<u8>,
+}
+#[derive(Clone, Debug, Default)]
+pub struct Party {
+    pub leader: bool,
+    pub version: u64,
+    pub privacy: Option<Privacy>,
+    pub outgoing: Vec<Vec<u8>>,
+}
+#[derive(Clone, Debug, Default)]
+pub struct Facts {
+    pub mode: i32,
+    pub frames: Vec<Frame>,
+    pub account_client: bool,
+    pub queue_client: bool,
+    pub voice_client: bool,
+    pub authenticated: bool,
+    pub busy: bool,
+    pub party: Option<Party>,
+    pub invitations: Vec<Invite>,
+    pub friends: Vec<Friend>,
+    pub clan_members: Option<Vec<Vec<u8>>>,
+    pub signed_in: Vec<u8>,
+    pub launch: bool,
+    pub status: u32,
+    pub party_message: Vec<u8>,
+    pub command_serial: u64,
+    pub successful: Option<bool>,
+    pub voice_party: bool,
+    pub voice_joined: bool,
+    pub voice_connecting: bool,
+    pub microphone_muted: bool,
+    pub muted: Vec<Vec<u8>>,
+}
+impl Facts {
+    fn top(&self) -> Result<&Frame> {
+        self.frames
+            .last()
+            .ok_or_else(|| "Native party menu has no frame".into())
+    }
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Command {
+    pub action: Vec<u8>,
+    pub value: Vec<u8>,
+    pub playlist: Vec<u8>,
+    pub revision: Vec<u8>,
+    pub version: u64,
+    pub privacy: Option<u32>,
+    pub privacy_revision: u64,
+    pub privacy_context: Vec<u8>,
+    pub join_context: Vec<u8>,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Pending {
+    pub frame_instance: u64,
+    pub command_serial: u64,
+    pub revision: u64,
+    pub mode: u32,
+    pub context: Vec<u8>,
+}
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct State {
+    pub target: Vec<u8>,
+    pub kind: u32,
+    pub version: u64,
+    pub tab: u32,
+    pub dismissed: Vec<Vec<u8>>,
+    pub pending: Option<Pending>,
+    pub friend_join_serial: u64,
+    pub account_name: Vec<u8>,
+    pub voice_party: bool,
+    pub voice_wanted: bool,
+    pub friend_target: Vec<u8>,
+    pub activity_target: Vec<u8>,
+}
+pub struct Controller(Mutex<State>);
+impl Default for Controller {
+    fn default() -> Self {
+        Self(Mutex::new(State::default()))
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Ui {
+    Revision,
+    Pop,
+    Open(u32, u32),
+    Back,
+    RebuildPicker,
+    ClearKeyboard,
+    LocalPlayer(u32),
+    Unavailable(Vec<u8>),
+    FormatError(Vec<u8>),
+    VoiceLeave,
+    VoiceRecreate,
+    VoiceJoin,
+    VoiceWanted(bool),
+    VoiceMicrophone(bool),
+    VoiceMute(Vec<u8>, bool),
+    VoiceSnapshot,
+}
+pub trait Io {
+    /// Cached native fields only. Device/worker reads have separate callbacks.
+    fn facts(&self) -> Result<Facts>;
+    fn members(&self) -> Result<Vec<projection::Member>>;
+    fn command(&self, command: &Command) -> Result<bool>;
+    fn command_serial(&self) -> Result<u64>;
+    fn update_account(&self) -> Result<()>;
+    fn cancel_queue(&self) -> Result<()>;
+    fn lobby_input(&self, destination: i32) -> Result<bool>;
+    fn ui(&self, effect: Ui) -> Result<()>;
+}
+pub fn screen(mode: i32, screen: u32, context: u32) -> bool {
+    (screen == 14 && mode == 3)
+        || (screen == 26 && context == 2)
+        || (screen == 216 && context == 0)
+        || (screen == 31 && matches!(context, 42 | 45))
+}
+pub fn picker(screen: u32, context: u32) -> bool {
+    screen == 31 && context == 45
+}
+const WAIT: &[u8] = b"Wait for the current ONLINE operation to finish.";
+impl Controller {
+    pub fn from_state(state: State) -> Self {
+        Self(Mutex::new(state))
+    }
+    pub fn state(&self) -> State {
+        self.0.lock().unwrap().clone()
+    }
+    fn edit(&self, f: impl FnOnce(&mut State)) {
+        f(&mut self.0.lock().unwrap())
+    }
+    pub fn set_friend_join_serial(&self, value: u64) {
+        self.edit(|s| s.friend_join_serial = value);
+    }
+    pub fn set_account_name(&self, value: Vec<u8>) {
+        self.edit(|s| s.account_name = value);
+    }
+    pub fn set_voice_party(&self, value: bool) {
+        self.edit(|s| s.voice_party = value);
+    }
+    pub fn set_voice_wanted(&self, value: bool) {
+        self.edit(|s| s.voice_wanted = value);
+    }
+    pub fn set_friend_target(&self, value: Vec<u8>) {
+        self.edit(|s| s.friend_target = value);
+    }
+    pub fn set_activity_target(&self, value: Vec<u8>) {
+        self.edit(|s| s.activity_target = value);
+    }
+    pub fn match_voice(&self, selected: bool, joined: bool) -> bool {
+        let state = self.state();
+        selected || (state.voice_wanted && state.voice_party && joined)
+    }
+    pub fn clear_dismissed(&self) {
+        self.edit(|s| s.dismissed.clear())
+    }
+    pub fn prune_dismissed(&self, current: &[Vec<u8>]) {
+        self.edit(|s| s.dismissed.retain(|id| current.contains(id)))
+    }
+    pub fn switch_tab(&self, direction: i32, io: &impl Io) -> Result<bool> {
+        let facts = io.facts()?;
+        let frame = facts.top()?;
+        if !picker(frame.screen, frame.context) {
+            return Ok(false);
+        }
+        if direction != 0 {
+            self.edit(|s| s.tab = 1u32.wrapping_sub(s.tab))
+        }
+        io.ui(Ui::RebuildPicker)?;
+        io.ui(Ui::Revision)?;
+        Ok(true)
+    }
+    pub fn notice(&self, accept: bool, io: &impl Io) -> Result<bool> {
+        let f = io.facts()?;
+        let notice = projection::notice(&projection::NoticeFacts {
+            authenticated: f.authenticated,
+            signed_in: f.signed_in,
+            invitations: f
+                .invitations
+                .iter()
+                .map(|i| projection::Invitation {
+                    id: i.id.clone(),
+                    name: i.name.clone(),
+                })
+                .collect(),
+            dismissed: self.state().dismissed,
+            busy: f.busy,
+            party: f.party.is_some(),
+            launch: f.launch,
+            status: f.status,
+        });
+        let Some(notice) = notice else {
+            return Ok(false);
+        };
+        let Some(invite) = f.invitations.iter().find(|i| i.id == notice.invitation.id) else {
+            return Ok(false);
+        };
+        if !accept {
+            self.edit(|s| s.dismissed.push(invite.id.clone()));
+            io.ui(Ui::Revision)?;
+            return Ok(true);
+        }
+        if !notice.can_accept || !f.account_client {
+            return Ok(false);
+        }
+        if !io.command(&Command {
+            action: b"accept".to_vec(),
+            value: invite.id.clone(),
+            version: invite.version,
+            ..Command::default()
+        })? {
+            return Ok(false);
+        }
+        if io.facts()?.queue_client {
+            io.cancel_queue()?
+        }
+        io.update_account()?;
+        io.ui(Ui::Revision)?;
+        Ok(true)
+    }
+    pub fn command(&self, command: Command, io: &impl Io) -> Result<()> {
+        let enter = command.action == b"create" || command.action == b"accept";
+        if !io.facts()?.account_client || !io.command(&command)? {
+            return io.ui(Ui::Unavailable(WAIT.to_vec()));
+        }
+        io.update_account()?;
+        loop {
+            let f = io.facts()?;
+            let top = f.top()?;
+            let retained = if enter {
+                top.screen == 186
+            } else {
+                (top.screen == 26 && top.context == 2) || matches!(top.screen, 14 | 186)
+            };
+            if f.frames.len() <= 1 || retained {
+                break;
+            }
+            io.ui(Ui::Pop)?;
+        }
+        if enter {
+            io.ui(Ui::Open(14, 0))?
+        } else if io.facts()?.top()?.screen != 26 {
+            io.ui(Ui::Open(26, 2))?
+        }
+        io.ui(Ui::Revision)
+    }
+    pub fn opened_privacy(&self, io: &impl Io) -> Result<()> {
+        let f = io.facts()?;
+        let frame = f.top()?;
+        if frame.screen == 25 && f.mode == 3 {
+            if let Some(privacy) = f.party.as_ref().and_then(|p| p.privacy.as_ref()) {
+                self.edit(|s| {
+                    s.pending = Some(Pending {
+                        frame_instance: frame.instance,
+                        command_serial: 0,
+                        revision: privacy.revision,
+                        mode: privacy.mode,
+                        context: privacy.context.clone(),
+                    })
+                });
+            }
+        }
+        Ok(())
+    }
+    pub fn select_privacy(&self, value: i32, io: &impl Io) -> Result<bool> {
+        let f = io.facts()?;
+        let frame = f.top()?;
+        if frame.screen != 25 || f.mode != 3 {
+            return Ok(false);
+        }
+        let party = f.party.as_ref();
+        let before = party.and_then(|p| p.privacy.as_ref());
+        let refusal = if !f.account_client || before.is_none() {
+            Some(b"This ONLINE service does not support party privacy settings.".as_slice())
+        } else if !party.unwrap().leader {
+            Some(b"Only the party leader can change party privacy.".as_slice())
+        } else if f.busy
+            || self
+                .state()
+                .pending
+                .as_ref()
+                .is_some_and(|p| p.command_serial != 0)
+        {
+            Some(WAIT)
+        } else {
+            None
+        };
+        if let Some(message) = refusal {
+            io.ui(Ui::Unavailable(message.to_vec()))?;
+            return Ok(true);
+        }
+        if !(0..=2).contains(&value) {
+            io.ui(Ui::FormatError(
+                b"Original party privacy selection is outside its authored range".to_vec(),
+            ))?;
+            return Ok(true);
+        }
+        let before = before.unwrap();
+        if !self
+            .state()
+            .pending
+            .as_ref()
+            .is_some_and(|p| p.frame_instance == frame.instance && p.context == before.context)
+        {
+            io.ui(Ui::Unavailable(
+                b"The party changed before its privacy selection was accepted.".to_vec(),
+            ))?;
+            return Ok(true);
+        }
+        let command = Command {
+            action: b"privacy".to_vec(),
+            version: party.unwrap().version,
+            privacy: Some(value as u32),
+            privacy_revision: before.revision,
+            privacy_context: before.context.clone(),
+            ..Command::default()
+        };
+        if !io.command(&command)? {
+            io.ui(Ui::Unavailable(WAIT.to_vec()))?;
+            return Ok(true);
+        }
+        let serial = io.command_serial()?;
+        self.edit(|s| {
+            s.pending = Some(Pending {
+                frame_instance: frame.instance,
+                command_serial: serial,
+                revision: before.revision,
+                mode: value as u32,
+                context: before.context.clone(),
+            })
+        });
+        io.update_account()?;
+        Ok(true)
+    }
+    pub fn observe_privacy(&self, io: &impl Io) -> Result<()> {
+        let Some(pending) = self.state().pending else {
+            return Ok(());
+        };
+        let f = io.facts()?;
+        let frame = f.top()?;
+        let current = frame.screen == 25 && frame.instance == pending.frame_instance;
+        let privacy = f.party.as_ref().and_then(|p| p.privacy.as_ref());
+        if privacy.is_none_or(|p| p.context != pending.context) {
+            self.edit(|s| s.pending = None);
+            if current {
+                io.ui(Ui::Unavailable(
+                    b"The party changed before its privacy update was acknowledged.".to_vec(),
+                ))?
+            }
+            return Ok(());
+        }
+        if pending.command_serial == 0 {
+            if !current {
+                self.edit(|s| s.pending = None)
+            }
+            return Ok(());
+        }
+        if f.busy || (f.command_serial == pending.command_serial && f.successful.is_none()) {
+            return Ok(());
+        }
+        let ack = privacy.unwrap();
+        let accepted = f.command_serial == pending.command_serial
+            && f.successful == Some(true)
+            && ack.mode == pending.mode
+            && ack.revision > pending.revision;
+        self.edit(|s| s.pending = None);
+        if !current {
+            return Ok(());
+        }
+        if accepted {
+            io.ui(Ui::Back)
+        } else {
+            io.ui(Ui::Unavailable(if f.party_message.is_empty() {
+                b"The party privacy update was not accepted. Try again.".to_vec()
+            } else {
+                f.party_message
+            }))
+        }
+    }
+    pub fn accept(&self, io: &impl Io) -> Result<bool> {
+        let facts = io.facts()?;
+        let frame = facts.top()?.clone();
+        if !screen(facts.mode, frame.screen, frame.context) {
+            return Ok(false);
+        }
+        let Some(entry) = frame.entries.get(frame.selected as usize) else {
+            return Ok(true);
+        };
+        if frame.screen == 216 && entry.destination == 31 && entry.value == 45 {
+            self.edit(|s| s.tab = 0);
+            io.update_account()?;
+            io.ui(Ui::Open(31, 45))?;
+            return Ok(true);
+        }
+        if frame.context == 45 && matches!(entry.destination, -36 | -37) {
+            let i = entry.value as u32 as usize;
+            if !facts.party.as_ref().is_some_and(|p| p.leader) || facts.busy {
+                return Ok(true);
+            }
+            let command = if entry.destination == -36 {
+                facts
+                    .friends
+                    .get(i)
+                    .filter(|p| p.state == b"friend")
+                    .map(|p| Command {
+                        action: b"invite_friend".to_vec(),
+                        value: p.id.clone(),
+                        ..Command::default()
+                    })
+            } else {
+                facts
+                    .clan_members
+                    .as_ref()
+                    .and_then(|m| m.get(i))
+                    .map(|id| Command {
+                        action: b"invite_member".to_vec(),
+                        value: id.clone(),
+                        ..Command::default()
+                    })
+            };
+            if let Some(command) = command {
+                self.command(command, io)?
+            }
+            return Ok(true);
+        }
+        //250B1E consumes the active countdown before either focused button.
+        if io.lobby_input(entry.destination)? {
+            return Ok(true);
+        }
+        let facts = io.facts()?;
+        if frame.screen == 14 && entry.destination > 0 {
+            if facts.party.as_ref().is_none_or(|p| p.leader) {
+                io.ui(Ui::Open(entry.destination as u32, entry.value as u32))?
+            }
+            return Ok(true);
+        }
+        if frame.screen == 26 && entry.destination == 31 {
+            let i = entry.value as u32 as usize;
+            self.edit(|s| s.version = 0);
+            if let Some(id) = facts
+                .party
+                .as_ref()
+                .and_then(|p| i.checked_sub(2000).and_then(|j| p.outgoing.get(j)))
+            {
+                self.edit(|s| {
+                    s.target = id.clone();
+                    s.kind = 2
+                });
+            } else if let Some(invite) = i.checked_sub(1000).and_then(|j| facts.invitations.get(j))
+            {
+                self.edit(|s| {
+                    s.target = invite.id.clone();
+                    s.kind = 1;
+                    s.version = invite.version
+                });
+            } else if facts.party.is_some() && i < io.members()?.len() {
+                // The native caller performs both reads; retain its ordering.
+                let members = io.members()?;
+                let member = members
+                    .get(i)
+                    .ok_or_else(|| "Native party member changed during selection".to_string())?;
+                if member.controller > 0 {
+                    io.ui(Ui::LocalPlayer(member.controller as u32))?;
+                    return Ok(true);
+                }
+                self.edit(|s| {
+                    s.target = member.handle.clone();
+                    s.kind = 0
+                });
+            } else {
+                return Ok(true);
+            }
+            io.ui(Ui::Open(31, 42))?;
+            return Ok(true);
+        }
+        if entry.destination == 167 {
+            io.ui(Ui::ClearKeyboard)?;
+            io.ui(Ui::Open(167, 9))?;
+            return Ok(true);
+        }
+        if entry.destination > 0 {
+            io.ui(Ui::Open(
+                entry.destination as u32,
+                if entry.destination == 26 {
+                    2
+                } else {
+                    entry.value as u32
+                },
+            ))?;
+            return Ok(true);
+        }
+        if entry.destination == -5 {
+            io.ui(Ui::Back)?;
+            return Ok(true);
+        }
+        if entry.destination == -34 && facts.voice_client {
+            if entry.value == 0 {
+                if facts.voice_party && (facts.voice_joined || facts.voice_connecting) {
+                    io.ui(Ui::VoiceLeave)?;
+                    io.ui(Ui::VoiceWanted(false))?;
+                } else {
+                    io.ui(Ui::VoiceLeave)?;
+                    io.ui(Ui::VoiceRecreate)?;
+                    io.ui(Ui::VoiceJoin)?;
+                }
+            } else if entry.value == 1 {
+                io.ui(Ui::VoiceMicrophone(!facts.microphone_muted))?
+            } else if entry.value == 2 {
+                let target = self.state().target;
+                let mute = !facts.muted.contains(&target);
+                io.ui(Ui::VoiceMute(target, mute))?;
+            }
+            io.ui(Ui::VoiceSnapshot)?;
+            io.ui(Ui::Back)?;
+            io.update_account()?;
+            return Ok(true);
+        }
+        if entry.destination == -33 {
+            const ACTIONS: [&[u8]; 10] = [
+                b"create",
+                b"invite_clan",
+                b"accept",
+                b"decline",
+                b"block",
+                b"leave",
+                b"unready",
+                b"cancel",
+                b"transfer",
+                b"remove",
+            ];
+            if !(0..10).contains(&entry.value) {
+                return Ok(true);
+            }
+            let state = self.state();
+            let command = Command {
+                action: ACTIONS[entry.value as usize].to_vec(),
+                value: state.target,
+                version: if entry.value == 2 { state.version } else { 0 },
+                ..Command::default()
+            };
+            if entry.value == 6 && facts.queue_client {
+                io.cancel_queue()?
+            }
+            self.command(command, io)?;
+        }
+        Ok(true)
+    }
+}

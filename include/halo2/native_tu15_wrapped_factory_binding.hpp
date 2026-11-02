@@ -53,6 +53,9 @@ inline NativeTu15ContactAgent native_tu15_create_bound_wrapped_contact_factory(
                 if(target.identity==0x2f0eb0u){++stats.wrapped_calls;result=native_tu15_create_bv_contact_agent(memory,input,{slot},fp,services,observe);}
                 else if(target.identity==0x2f1cc0u){++stats.wrapped_calls;result=native_tu15_create_wrapped_contact_agent(memory,input,{slot},fp,services,observe);}
                 else{++stats.transformed_calls;result=native_tu15_create_transformed_contact_agent(memory,input,{slot,slot+16u},fp,services,observe);}
+            }else if(target.identity==0x2f9990u){
+                result=native_tu15_create_contact_agent(memory,NativeTu15ContactAgentFactory::owner_2f9990,
+                    NativeTu15ContactAgentFactoryArguments{input.user_data},fp,allocation,observe);
             }else if(target.identity==0x2e4eb0u){
                 ++stats.convex_calls;NativeTu15ConvexAgentServices services;services.allocation=allocation;services.shape_class=shape_class;
                 services.cache.shape_center=[&](auto shape,auto method,auto output,auto&){native_tu15_contact_shape_center(memory,shape,method,output,observe);};

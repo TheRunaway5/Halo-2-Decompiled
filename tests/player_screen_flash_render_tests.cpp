@@ -1,5 +1,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/render_view.hpp"
+#include "scalar_combiners.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -72,7 +74,7 @@ int main(int argc,char **argv)try {
   check(scratch && *scratch,"Player flash rendering requires tools/run_test.py scratch ownership");
   const auto output=std::filesystem::path(scratch)/"player-screen-flash";std::filesystem::create_directories(output);
   SDL_SetMainReady();check(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());
-  auto *window=SDL_CreateWindow("Player screen flash",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
+  auto *window=SDL_CreateWindow("Player screen flash",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIDDEN);
   check(window,SDL_GetError());
   std::ostringstream diagnostics;auto *previous=std::cerr.rdbuf(diagnostics.rdbuf());
   try {
@@ -139,8 +141,64 @@ int main(int argc,char **argv)try {
     const auto faded=capture("fade",effect);
     check(pixel(faded,320,240,0)==0 && pixel(faded,320,240,1)==0 && pixel(faded,320,240,2)==0,
         "Damage flash escaped the campaign's opaque fade");
+    unsigned compositions{};std::uint64_t compared{};
+    for(const auto extent:std::array{std::array{640u,480u},std::array{1280u,720u},
+        std::array{1920u,1080u},std::array{3840u,2160u},std::array{1279u,719u}}) {
+      SDL_SetWindowSize(window,int(extent[0]),int(extent[1]));SDL_PumpEvents();renderer.resized();
+      for(unsigned count:{1u,2u,4u})for(bool inset:{false,true}) {
+        std::vector<ModelView> local(count);
+        const unsigned columns=count==1?1:2,rows=count==4?2:1;
+        for(unsigned i=0;i<count;++i) {
+          auto& v=local[i];v.camera=camera;v.full_surface=true;
+          v.left=float(i%columns)*640/columns;v.top=float(i/columns)*480/rows;
+          v.width=640.f/columns;v.height=480.f/rows;
+          if(inset) {
+            const auto r=full_surface_viewport({v.left,v.top,v.width,v.height},extent[0],extent[1]);
+            const auto l=int(r.left)+int(r.width*3/8),t=int(r.top)+int(r.height/4);
+            v.source_ui_viewport=std::array<std::int32_t,4>{t,l,t+int(r.height/2),l+int(r.width/2)};
+          }
+        }
+        const auto before=capture("resolution-before",{},local);
+        check(before.width==extent[0] && before.height==extent[1],"Flash retained a stale drawable resolution");
+        const auto& v=local.back();auto r=full_surface_viewport({v.left,v.top,v.width,v.height},extent[0],extent[1]);
+        if(v.source_ui_viewport) {
+          const auto& p=*v.source_ui_viewport;r={float(p[1]),float(p[0]),float(p[3]-p[1]),float(p[2]-p[0])};
+        }
+        for(int type:{1,2,5}) {
+          // TU1.5 409A2 uses ONE/INVSRCALPHA/ADD.409DE instead selects
+          // ONE/ONE/REVERSE_SUBTRACT: DARKEN is DST-C in this executable.
+          // Retain these source states rather than the later jpt! XML equation.
+          const PlayerScreenFlash flash{type,.35f,{1,.25f,.5f,.75f}};
+          local.back().screen_flash=flash;const auto after=capture("resolution-flash",{},local);
+          const auto packed=player_screen_flash_argb(flash);const double alpha=double(packed>>24)/255;
+          // Complete literal40880 case5 bank, evaluated independently of the
+          // production shader. General-stage C0 and fixed final R0 are source words.
+          std::array<std::uint32_t,60> program{};
+          program[8]=0xcu;program[9]=0x1c00u;program[10]=packed;program[26]=0xc00u;
+          program[34]=0x01411120u;program[45]=0xc00u;program[53]=1;
+          const auto invert=halo2_test::scalar_combiners(program,{});
+          for(unsigned y=0;y<before.height;++y)for(unsigned x=0;x<before.width;++x) {
+            const bool inside=x>=unsigned(r.left) && x<unsigned(r.left+r.width) &&
+                y>=unsigned(r.top) && y<unsigned(r.top+r.height);
+            for(unsigned c=0;c<3;++c) {
+              const auto n=(std::size_t(y)*before.width+x)*3+c;
+              const double color=double((packed>>(16-c*8))&255);
+              const double result=type==5?before.bytes[n]*color/255.0+(255-before.bytes[n])*invert[c]:
+                  before.bytes[n]*(type==1?1-alpha:1)+(type==1?color:-color);
+              const auto expected=inside?int(std::lround(std::clamp(result,0.0,255.0))):int(before.bytes[n]);
+              check(std::abs(int(after.bytes[n])-expected)<=(inside?1:0),
+                  "Source flash blend, last pixel edge or explicit local viewport differs");++compared;
+            }
+          }
+          ++compositions;
+        }
+        local.back().screen_flash={};const auto reset=capture("resolution-reset",{},local);
+        check(reset.bytes==before.bytes,"Flash retained another frame's local state after reset");
+      }
+    }
     check(diagnostics.str().find("Validation Error")==std::string::npos,"Vulkan flash validation failed");
-    std::cerr.rdbuf(previous);std::cout<<"PASS full-screen red / local blue / HUD-pause ordering / two-three-four-view isolation / opaque campaign fade on "<<renderer.device_name()<<'\n';
+    std::cerr.rdbuf(previous);std::cout<<"PASS "<<compositions<<" LIGHTEN/DARKEN/INVERT resolution/viewport compositions and "<<compared
+      <<" channels; full-screen red / local blue / HUD-pause ordering / two-three-four-view isolation / opaque campaign fade on "<<renderer.device_name()<<'\n';
   }catch(...){std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();throw;}
   SDL_DestroyWindow(window);SDL_Quit();
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

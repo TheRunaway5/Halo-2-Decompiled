@@ -23,6 +23,19 @@ else()
     endif()
 endif()
 target_link_libraries(halo2_systems PUBLIC halo2_native_constraint_solver)
+# Pair/point kernels consume these owners without pulling the World facade.
+# Keep their definitions below the consumers in the static-link dependency
+# graph, including binaries that instantiate only a typed native handoff.
+add_library(halo2_native_array_storage STATIC
+    src/physics/native_tu15_array_growth.cpp
+    src/physics/native_tu15_array_allocator.cpp)
+target_include_directories(halo2_native_array_storage PUBLIC include)
+target_compile_features(halo2_native_array_storage PUBLIC cxx_std_20)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_native_array_storage PRIVATE
+        -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_native_array_storage PUBLIC -fsanitize=address,undefined)
+endif()
 add_library(halo2_native_array_reserve STATIC src/physics/native_tu15_array_reserve.cpp)
 target_include_directories(halo2_native_array_reserve PUBLIC include)
 target_compile_features(halo2_native_array_reserve PUBLIC cxx_std_20)
@@ -31,6 +44,7 @@ if(HALO2_SANITIZERS AND NOT MSVC)
         -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(halo2_native_array_reserve PUBLIC -fsanitize=address,undefined)
 endif()
+target_link_libraries(halo2_native_array_reserve PUBLIC halo2_native_array_storage)
 target_link_libraries(halo2_systems PUBLIC halo2_native_array_reserve)
 add_library(halo2_native_pair_consumer STATIC src/physics/native_tu15_pair_consumer.cpp
     src/physics/native_tu15_pair_consumer_input_observer.cpp
@@ -57,7 +71,7 @@ else()
     target_compile_options(halo2_native_pair_consumer PRIVATE
         -fno-fast-math -ffp-contract=off -frounding-math)
 endif()
-target_link_libraries(halo2_native_pair_consumer PUBLIC Threads::Threads)
+target_link_libraries(halo2_native_pair_consumer PUBLIC Threads::Threads halo2_native_array_storage)
 if(HALO2_SANITIZERS AND NOT MSVC)
     target_compile_options(halo2_native_pair_consumer PRIVATE
         -fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -270,7 +284,6 @@ target_sources(halo2_systems PRIVATE src/physics/native_tu15_physics_frame.cpp
     src/physics/native_tu15_island_transition.cpp
     src/physics/native_tu15_inactive_island_cleanup.cpp
     src/physics/native_tu15_kinematic_motion.cpp
-    src/physics/native_tu15_array_growth.cpp src/physics/native_tu15_array_allocator.cpp
     src/physics/native_tu15_world_collision.cpp
     src/physics/native_tu15_world_collision_listeners.cpp src/physics/native_tu15_world_step_listeners.cpp
     src/physics/native_tu15_world_deferred.cpp src/physics/native_tu15_body_references.cpp
@@ -630,6 +643,21 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/native-sound-stream-payload.json")
     set_tests_properties(native_tu15_sound_stream_payload PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77
         ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+    add_executable(native_tu15_sound_cache_read_tests EXCLUDE_FROM_ALL
+        tests/native_tu15_sound_stream_payload_tests.cpp src/audio/native_tu15_sound_kernels_resources.cpp
+        src/audio/native_tu15_sound_kernels_startup.cpp src/audio/source_sound_cache_io_tu15.cpp
+        src/assets/prepared_original_sound_bank.cpp src/assets/cache.cpp src/audio/original_sound_runtime_bank_tu15.cpp
+        src/audio/audio.cpp src/audio/mcc_audio.cpp src/audio/vista_audio_decode.cpp src/audio/vista_audio_framing.cpp
+        src/audio/sound_fade.cpp src/audio/sound_classes.cpp)
+    target_include_directories(native_tu15_sound_cache_read_tests PRIVATE include src)
+    target_compile_definitions(native_tu15_sound_cache_read_tests PRIVATE HALO2_CACHE_BYTES_ONLY=1 HALO2_SOUND_COLD_CACHE=1)
+    target_link_libraries(native_tu15_sound_cache_read_tests PRIVATE PkgConfig::AVCODEC PkgConfig::OPUS
+        halo2_sound_platform halo2_glm nlohmann_json::nlohmann_json OpenSSL::Crypto Threads::Threads)
+    add_test(NAME native_tu15_sound_cache_read COMMAND native_tu15_sound_cache_read_tests
+        "${HALO2_SOUND_STREAM_PAYLOAD_CATALOG}" "${HALO2_SOUND_STREAM_PAYLOAD_CATALOG_SHA256}"
+        "${CMAKE_CURRENT_BINARY_DIR}/native-sound-cache-read.json")
+    set_tests_properties(native_tu15_sound_cache_read PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy")
     add_library(native_tu15_sound_stream_service_bridge SHARED EXCLUDE_FROM_ALL
         tests/native_tu15_sound_stream_service_bridge.cpp src/audio/native_tu15_sound_kernels_resources.cpp
         src/audio/sdl_sound_platform.cpp)
@@ -674,6 +702,7 @@ if(BUILD_TESTING)
     foreach(_h2_sound_resource_target IN ITEMS native_tu15_sound_cache_pages_tests native_tu15_sound_cache_datum_tests
         native_tu15_sound_stream_packets_tests native_tu15_sound_stream_retirement_tests
         native_tu15_sound_stream_queue_tests native_tu15_sound_stream_payload_tests
+        native_tu15_sound_cache_read_tests
         native_tu15_sound_stream_service_bridge native_tu15_sound_stream_constructor_bridge)
         target_link_libraries(${_h2_sound_resource_target} PRIVATE halo2_native_tu15_data_array_delete)
     endforeach()

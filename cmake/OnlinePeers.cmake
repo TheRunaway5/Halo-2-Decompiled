@@ -88,6 +88,9 @@ target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_party_view.cpp)
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_lobby_query.cpp)
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_account_flow.cpp)
 target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_friends.cpp)
+target_sources(halo2_systems PRIVATE src/ui/frontend_matchmaking_clans.cpp)
+set_property(SOURCE src/ui/frontend_matchmaking_clans.cpp APPEND PROPERTY
+    INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
 set_property(SOURCE src/ui/frontend_matchmaking_friends.cpp APPEND PROPERTY
     INCLUDE_DIRECTORIES "${HALO2_ONLINE_BRIDGE_INCLUDE}")
 set_property(SOURCE src/ui/frontend_matchmaking_account_flow.cpp APPEND PROPERTY
@@ -288,6 +291,27 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_friends_rust.py" $<TARGET_FILE:native_frontend_friends_rust_tests>
         --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-friends-policy.json")
     set_tests_properties(frontend_friends_cpp_rust PROPERTIES TIMEOUT 240)
+    set(_clans_before "${CMAKE_CURRENT_BINARY_DIR}/frontend_clans_before.inc")
+    set(_clans_after "${CMAKE_CURRENT_BINARY_DIR}/frontend_clans_after.inc")
+    add_custom_command(OUTPUT "${_clans_before}" "${_clans_after}"
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_clans_reference.py"
+            --reference "${CMAKE_CURRENT_SOURCE_DIR}/tests/reference/frontend_clans_before_rust_20261102"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}" --before "${_clans_before}" --after "${_clans_after}"
+        DEPENDS tests/generate_frontend_clans_reference.py src/ui/frontend_clans.cpp
+            src/ui/frontend_matchmaking_clans.cpp src/ui/frontend_state.cpp
+            tests/reference/frontend_clans_before_rust_20261102/src__ui__frontend_clans.cpp.reference
+            tests/reference/frontend_clans_before_rust_20261102/src__ui__frontend_state.cpp.reference
+            tests/reference/frontend_clans_before_rust_20261102/provenance.json
+        VERBATIM)
+    add_executable(native_frontend_clans_rust_tests tests/native_frontend_clans_rust_tests.cpp
+        "${_clans_before}" "${_clans_after}")
+    target_include_directories(native_frontend_clans_rust_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${HALO2_ONLINE_BRIDGE_INCLUDE}")
+    target_compile_features(native_frontend_clans_rust_tests PRIVATE cxx_std_20)
+    target_link_libraries(native_frontend_clans_rust_tests PRIVATE halo2_frontend_party_flow nlohmann_json::nlohmann_json)
+    add_test(NAME frontend_clans_cpp_rust COMMAND ${Python3_EXECUTABLE} -B
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_frontend_clans_rust.py" $<TARGET_FILE:native_frontend_clans_rust_tests>
+        --report "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/frontend-clans-policy.json")
+    set_tests_properties(frontend_clans_cpp_rust PROPERTIES TIMEOUT 240)
     set(_frontend_presentation_reference "${CMAKE_CURRENT_BINARY_DIR}/frontend_presentation_reference.inc")
     add_custom_command(OUTPUT "${_frontend_presentation_reference}"
         COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_frontend_presentation_reference.py"

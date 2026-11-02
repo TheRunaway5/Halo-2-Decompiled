@@ -1,4 +1,5 @@
 #include "halo2/native_tu15_overlap_query_handoff.hpp"
+#include "halo2/native_tu15_sphere_cleanup_handoff.hpp"
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -61,6 +62,39 @@ int main()try{
         check(caught&&stats.attempts==1&&stats.refusals==1&&stats.completed==0&&m.writes==0&&a.gp==before,
             "Invalid query caller entered native work or altered its continuation");++refused;
     }
-    std::cout<<"Native query RET16/no-op control and "<<refused<<" caller/FP/DATA/observer refusal controls pass\n";
+    {
+        Memory m;m.put(sp,0x2f6c8bu);m.put(base+0x100u,base+0x200u);
+        m.put(base+0x10cu,0xa5a5ffffu);m.put(base+0x200u,0x2e4d60u);m.writes=0;
+        auto a=abi();a.gp[1]=base+0x100u;const auto before=a;const auto data=m.data;
+        NativeTu15SphereCleanupHandoffActivity activity;
+        check(native_tu15_handoff_sphere_cleanup(m,{0x2f6c88u,0x2f9960u,false},a,
+            {base,base+0x10000u,true},base+0x4000u,{},{},&activity),"Actual sphere cleanup caller was not owned");
+        auto expected=before.gp;expected[4]+=4u;
+        check(a.gp==expected&&a.eflags==before.eflags&&a.fs_base==before.fs_base&&
+            a.x87_status==before.x87_status&&a.floating_point->x87_control_word==before.floating_point->x87_control_word&&
+            a.floating_point->mxcsr==before.floating_point->mxcsr&&m.data==data&&m.writes==0,
+            "Sphere FFFF/no-op cleanup changed caller DATA/control/FP");
+        check(activity.attempts==1&&activity.completed==1&&!activity.refusals&&!activity.scalar_deletions&&
+            !activity.points.attempts,"Sphere no-point path fabricated a removal or deletion");
+    }
+    for(unsigned input=0;input<15;++input){
+        Memory m;m.put(sp,0x2f6c8bu);m.writes=0;auto a=abi();
+        SourcePhysicsContactRuntimeCall c{0x2f6c88u,0x2f9960u,false};
+        NativeTu15SmallContactFactoryPolicy p{base,base+0x10000u,true};auto data=base+0x4000u;bool trace=true;
+        switch(input){
+        case 0:c.instruction++;break;case 1:c.tail=true;break;case 2:m.put(sp,0x2f6c8cu);break;
+        case 3:p.observers_read_only=false;break;case 4:p.first_trace_active=&trace;break;
+        case 5:p.second_trace_active=&trace;break;case 6:a.x87_depth=1;break;
+        case 7:a.floating_point.reset();break;case 8:a.active_mmx=SourcePhysicsMmxAlias{};break;
+        case 9:p.stack_first=sp+1u;break;case 10:p.stack_end=sp+3u;break;
+        case 11:data++;break;case 12:data=sp-0x80u;break;case 13:data=base-0x10u;break;
+        case 14:a.gp[4]=base-4u;break;
+        }
+        m.writes=0;const auto before=a.gp;NativeTu15SphereCleanupHandoffActivity activity;bool caught{};
+        try{native_tu15_handoff_sphere_cleanup(m,c,a,p,data,{},{},&activity);}catch(const std::runtime_error&){caught=true;}
+        check(caught&&activity.attempts==1&&activity.refusals==1&&!activity.completed&&m.writes==0&&a.gp==before,
+            "Invalid sphere cleanup caller entered work or altered its continuation");
+    }
+    std::cout<<"Native query RET16/no-op control and "<<refused<<" query controls; sphere RET0/FFFF/no-op and15caller controls pass\n";
     return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

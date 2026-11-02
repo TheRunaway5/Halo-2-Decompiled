@@ -1,0 +1,10 @@
+{
+  "passed": false,
+  "scope": "Symbol checker diagnostic; production compilation succeeded",
+  "failure": "The checker required an immediate opening parenthesis after string-returning method names and missed their actual [abi:cxx11] tags.",
+  "affected_symbols": [
+    "halo2::MenuState::online_friends_text[abi:cxx11]",
+    "halo2::MenuState::online_friends_column[abi:cxx11]"
+  ],
+  "production_changed": false
+}

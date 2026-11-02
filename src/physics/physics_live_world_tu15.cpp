@@ -28,6 +28,8 @@
 #include "halo2/native_campaign_camera_reset_tu15_binding.hpp"
 #include "halo2/native_tu15_render_camera_packet_binding.hpp"
 #include "halo2/native_campaign_screen_flash_sample_tu15_binding.hpp"
+#include "halo2/native_player_effect_tick_tu15.hpp"
+#include "halo2/player_screen_flash.hpp"
 #include "halo2/native_campaign_model_pose_tu15_binding.hpp"
 #include "halo2/native_tu15_camera_bsp_selection_binding.hpp"
 #include "halo2/native_campaign_view_rectangle_tu15_binding.hpp"
@@ -184,6 +186,9 @@
 #include "halo2/native_vehicle_rate_consumer_tu15.hpp"
 #include "halo2/native_constraint_schema_emitter_consumer_tu15.hpp"
 #include "halo2/native_tu15_world_integration_residuals.hpp"
+#include "halo2/native_tu15_small_contact_factory_handoff.hpp"
+#include "halo2/native_tu15_sphere_cleanup_handoff.hpp"
+#include "halo2/native_tu15_pool_array_services.hpp"
 #include "halo2/source_contrail_geometry_tu15.hpp"
 #include "halo2/source_effect_particle_frame_tu15.hpp"
 #include "halo2/source_particle_swarm_tu15.hpp"
@@ -695,6 +700,8 @@ struct PhysicsLiveWorldTu15::Impl {
     NativeTu15ContactFeaturesHandoffActivity native_contact_features_handoffs;
     NativeTu15SimplexHelpersHandoffActivity native_simplex_helpers_handoffs;
     NativeTu15OverlapQueryHandoffActivity native_overlap_query_handoffs;
+    NativeTu15SmallContactFactoryActivity native_small_contact_factories;
+    NativeTu15SphereCleanupHandoffActivity native_sphere_cleanups;
     NativeTu15VehicleFlipHandoffActivity native_vehicle_flip_handoffs;
     NativeTu15VehicleFlipBindingActivity native_vehicle_flips;
     std::uint64_t native_vehicle_flip_unqualified_owners{};
@@ -1869,6 +1876,7 @@ struct PhysicsLiveWorldTu15::Impl {
         if(native_campaign_screen_flash_sample_tu15_owns_entry(c.target)) {
             native_campaign_screen_flash_sample_tu15_run(m,c.target,c.instruction,a,o);return;
         }
+        if(c.target==0x156480u) {native_player_effect_tick_tu15_run(m,a,o);return;}
         if(native_campaign_model_pose_tu15_owns_entry(c.target)) {
             native_campaign_model_pose_tu15_run(m,c.target,c.instruction,a,o);return;
         }
@@ -2992,6 +3000,24 @@ struct PhysicsLiveWorldTu15::Impl {
             if(native_tu15_handoff_overlap_query(m,c,a,policy,services().timestamp_counter,
                 o,&native_overlap_query_handoffs))return;
         }
+        if(c.target==0x2f9990u&&image==SourcePhysicsContactImage::TitleUpdate15) {
+            const NativeTu15SmallContactFactoryPolicy policy{0x600c0000u,0x60100000u,
+                !o&&(!physics_store_observer||physics_store_observer_read_only),
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}};
+            if(native_tu15_handoff_small_contact_factory(m,c,a,policy,
+                native_tu15_make_pool_array_services(m,o),o,&native_small_contact_factories))return;
+        }
+        if(c.target==0x2f9960u&&image==SourcePhysicsContactImage::TitleUpdate15) {
+            if(sp<0x600c0100u||sp>0x600fffc0u)
+                throw FormatError("Native sphere cleanup has no retained caller DATA arena");
+            const NativeTu15SmallContactFactoryPolicy policy{0x600c0000u,0x60100000u,
+                !o&&(!physics_store_observer||physics_store_observer_read_only),
+                &first_person_phase_active,&weapon_effect_phase_active,
+                [this](auto pc){last_instruction=pc;}};
+            if(native_tu15_handoff_sphere_cleanup(m,c,a,policy,(sp-0x100u)&~15u,
+                native_tu15_make_pool_array_services(m,o),o,&native_sphere_cleanups))return;
+        }
         for(const auto&e:physics_live_entries_tu15::entries)if(c.target==e.actual) {
             using Module=physics_live_entries_tu15::Module;
             switch(e.module) {
@@ -3243,6 +3269,14 @@ struct PhysicsLiveWorldTu15::Impl {
             throw FormatError("TU1.5 live entry requires its retained executor thread");
         // Pure ownership leaves need none of the gameplay binding scopes.
         // Retain public-call journaling and nested entry/store observation.
+        if(image==SourcePhysicsContactImage::TitleUpdate15 && entry==0x156480u) {
+            SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
+            const auto observer=observer_is_composed?o:source_physics_store_observers_tu15(o,physics_store_observer);
+            last_instruction=entry;
+            native_player_effect_tick_tu15_run(bank,a,[&](const auto& store){
+                last_instruction=store.instruction;if(observer)observer(store);
+            });return;
+        }
         if(image==SourcePhysicsContactImage::TitleUpdate15 &&
             native_tu15_render_object_ownership_owns_entry(entry)) {
             SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
@@ -4261,6 +4295,9 @@ struct PhysicsLiveWorldTu15::Impl {
             const auto producer_caller=frame({});
             SourceFirstPersonActionObserverTu15::phase(bank,producer_caller,services());
         }
+        // Literal13AB85 advances the actual local flash/rumble/camera slots
+        // after first-person requests and before the director/clock owners.
+        call_actual(0x156480u);
         // Literal13AB94..13ABBB follows the FP/feedback phases and precedes
         //13ABD3's admitted game-clock increment. Keep the director timer and
         //FOV elapsed input on this same source timeline.
@@ -5866,6 +5903,13 @@ void PhysicsLiveWorldTu15::acknowledge_campaign_screen_capture() {
         []{return std::vector<std::byte>{};});
     Impl::PublicCall active(*impl_);impl_->require_executor();
     native_campaign_screen_capture_complete_tu15(impl_->bank);
+}
+PlayerScreenFlash PhysicsLiveWorldTu15::player_screen_flash(unsigned user) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    const auto caller=impl_->caller_abi();
+    NativeTu15PhysicsFrameFp arithmetic{caller.floating_point->x87_control_word,
+        caller.x87_status,caller.floating_point->mxcsr};
+    return source_player_screen_flash_tu15(impl_->bank,user,arithmetic);
 }
 
 void PhysicsLiveWorldTu15::with_texture_camera_scene_prefix_tu15(

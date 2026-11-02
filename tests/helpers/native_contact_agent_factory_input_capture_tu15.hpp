@@ -12,6 +12,7 @@ namespace halo2::test {
 class NativeContactAgentFactoryInputCaptureTu15 {
     std::filesystem::path directory_;bool captured_{};std::uint32_t owner_{0x2f8030u};
     std::optional<std::uint32_t> excluded_class_query_;
+    std::optional<std::uint32_t> required_class_query_;
     static void require(bool value,const char*why){if(!value)throw std::runtime_error(why);}
 public:
     explicit NativeContactAgentFactoryInputCaptureTu15(std::filesystem::path path){
@@ -31,6 +32,12 @@ public:
                 "Class-query capture selection requires an explicit convex factory owner");
             excluded_class_query_=static_cast<std::uint32_t>(value);
         }
+        if(const auto selected=std::getenv("HALO2_TU15_AGENT_FACTORY_CAPTURE_REQUIRE_CLASS_QUERY")){
+            char*end{};const auto value=std::strtoul(selected,&end,0);
+            require(owner_==0x2e4eb0u&&end&&end!=selected&&!*end&&value<=0xfffffffful,
+                "Required class-query capture needs an explicit convex factory owner");
+            required_class_query_=static_cast<std::uint32_t>(value);
+        }
     }
     template<class Memory>void observe(const NativeTu15ContactAgentFactoryInput& input,const Memory& memory){
         if(captured_||input.owner!=owner_)return;
@@ -40,6 +47,7 @@ public:
             const auto word=[&](std::uint32_t at){return Bytes(memory.view(at,4)).u32(0);};
             second_shape=word(input.second);second_class_query=word(word(*second_shape)+0x14u);
             if(excluded_class_query_&&*excluded_class_query_==*second_class_query)return;
+            if(required_class_query_&&*required_class_query_!=*second_class_query)return;
         }
         require(input.preserved_x87_depth==0,"Agent factory BEFORE needs explicit nonempty x87 operands");
         std::uint64_t bytes{};unsigned regions{};

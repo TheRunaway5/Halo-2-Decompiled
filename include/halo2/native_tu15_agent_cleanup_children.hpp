@@ -38,6 +38,12 @@ void native_tu15_cleanup_bv_contact_agent(SourcePhysicsContactMemory&,
 void native_tu15_cleanup_single_point_contact_agent(SourcePhysicsContactMemory&,
     NativeTu15ContactAgent,NativeTu15PhysicsFrameFp&,
     const NativeTu15AgentCleanupChildrenServices&);
+// Actual2F9960: same zero-extended16-bit point/FFFF admission, with the
+// sourceFFFF publication after removal returns and before current virtual0.
+void native_tu15_cleanup_sphere_contact_agent(SourcePhysicsContactMemory&,
+    NativeTu15ContactAgent,NativeTu15PhysicsFrameFp&,
+    const NativeTu15AgentCleanupChildrenServices&,
+    const SourcePhysicsContactRecordObserver& = {});
 // Actual2F7A10; and2F7E90/2F3580 (2F5B30 is its genuine jump thunk).
 // Native C++ unwind ownership releases the base at the source arm phase.
 void native_tu15_destroy_contact_agent_base(SourcePhysicsContactMemory&,

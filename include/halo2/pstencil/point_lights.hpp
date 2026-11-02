@@ -57,7 +57,7 @@ public:
     SourceEffectLightView view(Vec3,const SourceEffectLightCollectionContext&,
         const SourceEffectLightCandidateContext&,std::int32_t frame);
     std::vector<WorldEffectLightReceiver> receivers(const SourceEffectLightView&,
-        const SourceBspAdmissionBsp&,std::span<const std::uint8_t>,const SourceBspAdmission*);
+        const SourceBspAdmissionBsp&,std::span<const std::uint8_t>,const SourceBspAdmission*,std::span<const std::uint32_t> open_portals);
     std::vector<WorldEffectLight> lights()const;
 private:
     struct Impl;std::unique_ptr<Impl> impl_;

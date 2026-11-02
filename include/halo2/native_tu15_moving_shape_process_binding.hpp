@@ -73,6 +73,7 @@ inline void native_tu15_process_bound_moving_shape_contact(
             throw std::runtime_error(std::string("Native moving process requires native ")+phase+" owner="+std::to_string(owner));
         };
         NativeTu15MovingShapeProcessServices services;
+        services.timestamp_counter=native.timestamp_counter;
         services.classify_shape=[&](auto,auto owner,auto&)->std::uint32_t {
             ++out.classifications;
             if(owner.identity==0xa9520u)return native_tu15_contact_child_class_23();

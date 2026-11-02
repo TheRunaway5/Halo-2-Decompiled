@@ -470,8 +470,13 @@ class MenuState {
   friend struct FrontendLobbyQueryNativeIo;
   friend struct FrontendAccountFlowNativeIo;
   friend struct FrontendFriendsNativeIo;
+  friend struct FrontendClansNativeIo;
   void account_flow_drive(bool);
   FrontendFriendsResult friends_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,unsigned=0)const;
+  FrontendClansResult clans_flow_drive(unsigned,MenuFrame* =nullptr,unsigned=0,unsigned=0,bool=false,OnlineClanCommand={},std::string={})const;
+  void clans_bind_account(std::shared_ptr<OnlineAccount>);
+  void clans_bind_voice(std::shared_ptr<OnlineVoice>);
+  bool clan_message_advance();
   std::string lobby_query_campaign_file(unsigned) const;
   void party_view_populate(MenuFrame&)const;
   std::string party_view_text(const MenuFrame&,unsigned)const;
@@ -766,9 +771,6 @@ private:
   OnlineVoiceSnapshot voice_;
   OnlineAccountSnapshot account_;
   std::vector<FrontendUiSound> pending_ui_sounds_;
-  std::string clan_target_;
-  unsigned clan_target_kind_{}, clan_message_page_{};
-  std::optional<OnlineClanCommand> clan_confirmation_;
   void populate_online_clans(MenuFrame &) const;
   bool accept_online_clans();
   void clan_command(OnlineClanCommand);

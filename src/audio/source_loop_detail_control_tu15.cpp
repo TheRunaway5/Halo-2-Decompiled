@@ -63,6 +63,20 @@ SourceLoopDetailSpatialTu15 source_loop_detail_spatial_tu15(
     const auto offset=source_loop_detail_offset_tu15(bounds,seed);
     return {offset,{scalar(0xc)+offset.x,scalar(0x10)+offset.y,scalar(0x14)+offset.z},scalar(4),scalar(8)};
 }
+std::optional<SourceLoopDetailSpatialTu15> source_loop_detail_centered_tu15(
+    std::span<const std::byte,68> parent,const SourceLoopDetailBoundsTu15& bounds,
+    std::span<const Vec3> listeners,std::uint32_t& seed){
+    if((std::to_integer<unsigned>(parent[3])&15u)!=0 || listeners.size()>4)
+        throw std::invalid_argument("Centered detail requires its original local-view domain");
+    if(listeners.empty())return {};
+    FloatingPoint scope;
+    const auto selected=(std::uint32_t(advance(seed))*std::uint32_t(listeners.size()))>>16;
+    const auto offset=source_loop_detail_offset_tu15(bounds,seed);
+    const auto& point=listeners[selected];
+    const auto scalar=[&](unsigned at){std::uint32_t bits{};for(unsigned n=0;n<4;++n)
+        bits|=std::to_integer<std::uint32_t>(parent[at+n])<<(n*8);return std::bit_cast<float>(bits);};
+    return SourceLoopDetailSpatialTu15{offset,{point.x+offset.x,point.y+offset.y,point.z+offset.z},scalar(4),scalar(8)};
+}
 #else
 Vec3 source_loop_detail_offset_tu15(const SourceLoopDetailBoundsTu15&,std::uint32_t&){
     throw std::runtime_error("Detail offsets require the qualified original x87 owner");
@@ -73,6 +87,10 @@ std::int32_t source_loop_detail_deadline_tu15(std::array<float,2>,std::uint32_t,
 SourceLoopDetailSpatialTu15 source_loop_detail_spatial_tu15(
     std::span<const std::byte,68>,const SourceLoopDetailBoundsTu15&,std::uint32_t&){
     throw std::runtime_error("Detail positions require the qualified original x87 owner");
+}
+std::optional<SourceLoopDetailSpatialTu15> source_loop_detail_centered_tu15(
+    std::span<const std::byte,68>,const SourceLoopDetailBoundsTu15&,std::span<const Vec3>,std::uint32_t&){
+    throw std::runtime_error("Centered detail positions require the qualified original x87 owner");
 }
 #endif
 }

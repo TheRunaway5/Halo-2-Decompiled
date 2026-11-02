@@ -1,0 +1,55 @@
+## Native friends caller and party actions in Rust (2026-11-02)
+
+`matchmaking_frontend_friends` now owns the complete native friends caller:
+provider-selection/availability decisions, native/social menu composition,
+friend requests and party/invitation actions, selected-target state, roster
+refresh/focus and friends text/columns. The existing Rust party controller owns
+the friend and activity targets; their former C++ fields are removed. Pending
+joins still consume actual worker serials and authoritative account membership.
+The native join offer and command handler retain their distinct context guards;
+this migration does not invent additional admission rules.
+
+Native code supplies typed account/social observations, localization, opaque
+snapshot storage, device/provider calls and primitive frame/navigation IO. The
+captured complete modern C++ caller and exact production Rust/CXX adapter agree
+on **6,025 cases**, **4,993 callback-boundary observations and Rust reentries**,
+and all **106 injected standard/nonstandard native exceptions**, including
+their original identity/value and side-effect prefix. Detached frames, actual
+roster indices, raw identity/context bytes, unsigned serials, busy/presence/join
+gates, provider reentry, resource failures and full cached opaque social data are
+compared. Target initialization uses actual selection actions through the Rust
+controller. Roster refresh retains the last duplicate identity match; this stays
+distinct from account refresh's first-match rule.
+
+All three Rust suites pass **722 tests**, including twenty new controls; four
+existing environment-dependent tests remain ignored. The frozen native cohort
+passes **@NATIVE_COUNT@ checks without skips**, including the new whole-friends
+comparison, actual SDL/Vulkan playlist/Start/privacy controls and party pixels,
+native matchmaking/gathering HTTP and existing original-bound lobby/team checks.
+Compiled-object checks confirm that the native entry points reach Rust and the
+two C++ target fields are absent. Seven build-staging checks also pass.
+The first native build stopped on an unrelated frozen physics compile error.
+Its owner's current fix and thirteen-file dependency closure were refreshed
+inside the owned snapshot; shared work and matchmaking sources were untouched.
+The retained initial failure and refresh hashes do not establish physics parity.
+
+Former C++ invitation expressions can negate `INT_MIN`, which is undefined in
+C++. The C++ equivalence corpus excludes that input. Rust uses the equivalent
+bitwise index for admitted negative values and separately tests safe invalid
+`INT_MIN` handling. This is not a new original-Xbox producer or Live claim.
+
+[The bounded receipt](evidence/matchmaking-rust-parity-20261028/native-frontend-friends-flow-rust-validation.json)
+retains source identities, declared provider boundaries and verified cleanup.
+Native account/voice binding and lifecycle, clan menus/actions, team editing,
+postgame review and every remaining matchmaking policy/state owner still need
+work. Full original callers, historical profiles/ordering/arbitration, natural
+played-world outcomes, genuine providers, physical installed Linux input and
+delivered G01-G12 restart/retry/configuration/rollback acceptance remain open.
+All twelve GAP records, 53 algorithm IDs and full goal criteria are unchanged.
+
+Separate read-only launcher observations retain both launcher identities and
+the selected runtime/source-manifest hashes. The initial observation found the
+new friends inputs and the existing Rust party-flow owner absent from that
+manifest. No selected runtime or production service was replaced in this work;
+controlled native checks and physical installed-client delivery stay separate.
+

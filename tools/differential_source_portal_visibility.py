@@ -5,7 +5,7 @@ Camera1BC banks are first constructed by untouched441B0 from explicit camera
 fields. Actual cache portal vertices/planes/ordered cluster lists are supplied
 without inferred adjacency. Open-portal mask is explicit, not a live door claim.
 """
-import argparse,hashlib,json,math,random,struct,subprocess,sys
+import argparse,atexit,hashlib,json,math,os,random,struct,subprocess,sys
 from pathlib import Path
 from unicorn import Uc,UC_ARCH_X86,UC_MODE_32,UC_HOOK_CODE
 from unicorn.x86_const import *
@@ -35,12 +35,15 @@ def main():
     a=argparse.ArgumentParser(description=__doc__);a.add_argument('--binary',type=Path,default=ROOT/'analysis/multiplayer-shading/source_portal_visibility-standalone')
     a.add_argument('--output',type=Path,default=ROOT/'analysis/multiplayer-shading/portal-visibility-differential.json')
     a.add_argument('--write-fixture',type=Path);a.add_argument('--write-assets',type=Path);a.add_argument('--skip-maps',action='store_true');a.add_argument('--count',type=int,default=256)
+    a.add_argument('--light-cubes',action='store_true',help='Original C1D90 six-camera spheres instead of main-view441B0 cameras')
     args=a.parse_args();image=Xbe(ROOT/'assets/disc/default.xbe')
+    if args.light_cubes and (args.write_fixture or args.write_assets):raise ValueError('Cube qualification streams its inputs; retain the bounded JSON report')
+    if args.light_cubes and 'HALO2_TEST_SCRATCH' not in os.environ:raise ValueError('Cube qualification requires tools/run_test.py storage')
     if hashlib.sha256(image.data).hexdigest()!=PIN:raise ValueError('unsupported original executable')
     u=Uc(UC_ARCH_X86,UC_MODE_32);u.mem_map(0x10000,0x600000)
     for s in image.sections:u.mem_write(s.va,image.section_bytes(s))
     u.mem_map(BASE,0x400000);u.mem_map(STOP,0x1000)
-    entries=[0x376f00,0x441b0,0x173130,0x172bb0,0x173b00,0x172840,0x173520,0x1429d0,0x11fc80,0x173890,0x173350,0x173380,0x23a2b0,0x23a430,0x11f5f0,0x173b60,0x172c70,0x1730a0,0x172ee0,0x163db0,0x13de30,0x134950,0x165010,0x181800]
+    entries=[0x376f00,0xc1d90,0x441b0,0x173130,0x172bb0,0x173b00,0x172840,0x173520,0x1429d0,0x11fc80,0x173890,0x173350,0x173380,0x23a2b0,0x23a430,0x11f5f0,0x173b60,0x172c70,0x1730a0,0x172ee0,0x163db0,0x13de30,0x134950,0x165010,0x181800]
     calls={at:0 for at in entries}
     def hook(_u,at,_size,_data):
         if at in calls:calls[at]+=1
@@ -57,6 +60,14 @@ def main():
         put(INPUTS+8,*flat([pos,forward,up]));put(INPUTS+0x48,word(near),word(far));put(INPUTS+0x68,*map(word,rectangle))
         run(0x441b0,[INPUTS],{UC_X86_REG_EBX:INPUTS+8,UC_X86_REG_ESI:BANKS})
         return get(BANKS,111)
+    def cube_cameras(position,radius):
+        frame,shape,count=INPUTS+0x1000,INPUTS+0x2000,INPUTS+0x3000
+        u.mem_write(frame,bytes(0x100));u.mem_write(shape,bytes(0x100));put(count,0)
+        u.mem_write(BANKS,bytes(6*0x1bc))
+        put(shape+0x2c,*map(word,position));put(shape+0x44,word(radius))
+        run(0xc1d90,[frame,shape,BANKS,count])
+        if struct.unpack('<h',u.mem_read(count,2))[0]!=6:raise RuntimeError('Original C1D90 did not construct six sphere cameras')
+        return [get(BANKS+i*0x1bc,111)for i in range(6)]
     def original(groups,containing,bsp,mask):
         clusters,planes,portals=bsp
         u.mem_write(BSP,bytes(0x100000));u.mem_write(OUTPUT,bytes(0x24000));u.mem_write(RAW,bytes(0x80000))
@@ -85,9 +96,28 @@ def main():
             out.extend([u.reg_read(UC_X86_REG_EAX)&255,u.mem_read(CONTAINED,1)[0]])
         return out
     rng=random.Random(0x173130);rows=[];expected=[];labels=[];assetrows=[];mapreport=[]
+    cube_failures=[];cube_words=0;cube_source_hash=hashlib.sha256();cube_native_hash=hashlib.sha256()
+    cube_native=None
+    if args.light_cubes:
+        cube_native=subprocess.Popen([str(args.binary.resolve()),'--probe'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        def close_cube_native():
+            if cube_native.poll()is None:cube_native.terminate();cube_native.wait(timeout=10)
+        atexit.register(close_cube_native)
     def add(groups,containing,bsp,mask,label):
-        rows.append([len(groups),*[v for g in groups for v in g],containing&0xffffffff,*mask,*serialize(bsp)])
-        expected.append(original(groups,containing,bsp,mask));labels.append(label)
+        nonlocal cube_words
+        row=[len(groups),*[v for g in groups for v in g],containing&0xffffffff,*mask,*serialize(bsp)]
+        source=original(groups,containing,bsp,mask)
+        if cube_native:
+            cube_native.stdin.write(' '.join(f'{v:x}'for v in row)+'\n');cube_native.stdin.flush();line=cube_native.stdout.readline()
+            if not line:raise RuntimeError('Native cube probe failed: '+cube_native.stderr.read()[-3000:])
+            actual=[int(v,16)for v in line.split()];cube_words+=len(source)
+            cube_source_hash.update(packed(source));cube_native_hash.update(packed(actual))
+            if source!=actual:cube_failures.append(dict(case=len(rows),label=label,source_words=len(source),native_words=len(actual),
+                input_sha256=hashlib.sha256(packed(row)).hexdigest(),differences=[dict(word=j,source=s,native=n)for j,(s,n)in enumerate(zip(source,actual))if s!=n][:20]))
+            # Retain case accounting without repeating whole BSP banks in RAM.
+            rows.append(None)
+            if len(rows)%128==0:print('cube portal cases',len(rows),flush=True)
+        else:rows.append(row);expected.append(source);labels.append(label)
     masks=[[0xffffffff]*16,[0]*16]+[[rng.getrandbits(32)for j in range(16)]for i in range(8)]
     for i in range(args.count):
         n=1+i%12;portals=[];clusters=[[]for j in range(n)];planes=[]
@@ -99,17 +129,17 @@ def main():
             z=-float(j+1);r=rng.uniform(.2,2);verts=[[-r,-r,z],[r,-r,z],[r,r,z],[-r,r,z]]
             planes.append([0,0,-1,-z]);portals.append({'back':back,'front':front,'plane':j,'flags':rng.choice([0,0,0,2,8,16]),'vertices':verts})
             clusters[back].append(j);clusters[front].append(j)
-        groups=[camera([0,0,0],[0,0,-1],[0,1,0],far=rng.choice([1,2,1024]))for j in range(1+i%6)]
+        groups=cube_cameras([0,0,0],(3.,3.5,4.,5.625,6.,10.,20.)[i%7])if args.light_cubes else [camera([0,0,0],[0,0,-1],[0,1,0],far=rng.choice([1,2,1024]))for j in range(1+i%6)]
         for j,g in enumerate(groups):
-            if j:g[0x84//4]=0 # explicit source far-disabled rectangle branch
+            if j and not args.light_cubes:g[0x84//4]=0 # explicit source far-disabled rectangle branch
         add(groups,-1 if i%13==0 else rng.randrange(n),(clusters,planes,portals),masks[i%len(masks)],f'synthetic{i}')
     # Explicit output/node capacity bounds, with independently admitted polygons.
-    for n in [127,128,129,255,256,257,511,512]:
+    for n in ([]if args.light_cubes else[127,128,129,255,256,257,511,512]):
         portals=[];clusters=[[]for i in range(n)];planes=[]
         for j in range(n-1):
             planes.append([0,0,-1,1]);portals.append({'back':0,'front':j+1,'plane':j,'flags':0,'vertices':[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1]]});clusters[0].append(j);clusters[j+1].append(j)
         add([camera([0,0,0],[0,0,-1],[0,1,0])for j in range(1 if n%2 else 6)],0,(clusters,planes,portals),masks[0],f'capacity{n}')
-    for inside in [False,True]:
+    for inside in ([]if args.light_cubes else[False,True]):
         for side in [0.,.015625,-.015625,scalar(word(.015625)+1),scalar(word(-.015625)+1)]:
             if inside:
                 plane=[0,0,1,0];vertices=[[-1,-1,0],[1,-1,0],[1,1,0],[-1,1,0]];eye=[0,0,side]
@@ -129,11 +159,27 @@ def main():
                     else:
                         p=portals[cluster[0]];normal=planes[p['plane']][:3];side=-1 if p['back']==j else 1;eye=[p['center'][k]+side*normal[k]*.1 for k in range(3)]
                     yaw=(j%16)*math.pi/8;forward=[math.cos(yaw),math.sin(yaw),-.1]
-                    add([camera(eye,forward,[0,0,1],rectangle=(-.532049,.532049,-.399037,.399037))],j,bsp,masks[j%len(masks)],f'{name}:cluster{j}:explicitmask')
+                    if args.light_cubes:
+                        for rindex,radius in enumerate((3.,3.5,4.,5.625,6.,10.,20.)):
+                            groups=cube_cameras(eye,radius)
+                            for mi in (0,1,2+(j+rindex)%8):
+                                add(groups,j,bsp,masks[mi],f'{name}:cube:cluster{j}:radius{radius}:mask{mi}')
+                    else:add([camera(eye,forward,[0,0,1],rectangle=(-.532049,.532049,-.399037,.399037))],j,bsp,masks[j%len(masks)],f'{name}:cluster{j}:explicitmask')
                 pbytes=b''.join(struct.pack('<hhIII',p['back'],p['front'],p['plane'],p['flags'],len(p['vertices']))+b''.join(struct.pack('<fff',*v)for v in p['vertices'])for p in portals)
                 cbytes=b''.join(struct.pack('<I',len(v))+struct.pack('<'+'H'*len(v),*v)for v in clusters)
                 hashes=[fnv(b''.join(struct.pack('<ffff',*p)for p in planes)),fnv(pbytes),fnv(cbytes)];values=[len(planes),len(portals),len(clusters),*[x for h in hashes for x in [h&0xffffffff,h>>32]]]
                 assetrows.append(str(path.relative_to(ROOT))+' | '+' '.join(f'{v:x}'for v in values));mapreport.append({'map':name,'clusters':len(clusters),'portals':len(portals),'cases':len(rows)-start,'cache_sha256':hashlib.sha256(path.read_bytes()).hexdigest()});c.close()
+    if cube_native:
+        cube_native.stdin.close();exit_code=cube_native.wait(timeout=15)
+        if exit_code:raise RuntimeError(cube_native.stderr.read()[-3000:])
+        cube_native.stdout.close();cube_native.stderr.close()
+        report=dict(passed=not cube_failures,source_executable_sha256=PIN,native_binary_sha256=hashlib.sha256(args.binary.read_bytes()).hexdigest(),
+            cases=len(rows),bit_exact_cases=len(rows)-len(cube_failures),compared_words=cube_words,
+            original_calls={f'{at:08x}':n for at,n in calls.items()},maps=mapreport,light_cubes=True,
+            source_output_sha256=cube_source_hash.hexdigest(),native_output_sha256=cube_native_hash.hexdigest(),failures=cube_failures[:8],
+            scope='Whole original C1D90 six-camera spheres, complete173130 constructor and165010 consumer over all21 actual portal banks. Native compares every cube-camera word too. Explicit containing-cluster and open/closed/random portal masks. Word+0xC of108frustum is unwritten/unused and excluded. No live door or draw-cull integration.',
+            retained_large_artifacts=[])
+        args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return bool(cube_failures)
     encoded=[' '.join(f'{v:x}'for v in row)for row in rows]
     native=subprocess.run([str(args.binary.resolve()),'--probe'],input='\n'.join(encoded)+'\n',text=True,capture_output=True,check=True)
     actual=[[int(v,16)for v in line.split()]for line in native.stdout.splitlines()]
@@ -143,6 +189,6 @@ def main():
         selected=sorted(set([*range(min(128,len(rows))),*range(args.count,args.count+18),*range(args.count+18,len(rows),max(1,(len(rows)-args.count-18)//128))]))
         args.write_fixture.write_text('# Untouched173130 complete pure traversal plus165010; source '+PIN+'\n'+'\n'.join(encoded[i]+' | '+' '.join(f'{v:x}'for v in expected[i])for i in selected)+'\n')
     if args.write_assets and not failures:args.write_assets.write_text('# Original all21 literal portal/plane/ordered-cluster bank words. FNV1a64 low,high halves\n'+'\n'.join(assetrows)+'\n')
-    report={'source_executable_sha256':PIN,'native_binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(),'cases':len(rows),'bit_exact_cases':len(rows)-len(failures),'compared_words':sum(map(len,expected)),'original_calls':{f'{at:08x}':n for at,n in calls.items()},'maps':mapreport,'failures':[{'case':f['case'],'label':f['label'],'differences':[{'word':j,'source':s,'native':n}for j,(s,n)in enumerate(zip(f['source'],f['native']))if s!=n][:20],'source_words':len(f['source']),'native_words':len(f['native']),'input':f['input']}for f in failures[:8]],'scope':'Original complete173130 pure constructor and165010 consumer, explicit original441B0 camera fields and4F93A4 masks. Word+0xC of108frustum is unwritten/unused and excluded. No live containing-cluster/door producers or runtime culling integration.'}
+    report={'source_executable_sha256':PIN,'native_binary_sha256':hashlib.sha256(args.binary.read_bytes()).hexdigest(),'cases':len(rows),'bit_exact_cases':len(rows)-len(failures),'compared_words':sum(map(len,expected)),'original_calls':{f'{at:08x}':n for at,n in calls.items()},'maps':mapreport,'light_cubes':args.light_cubes,'failures':[{'case':f['case'],'label':f['label'],'differences':[{'word':j,'source':s,'native':n}for j,(s,n)in enumerate(zip(f['source'],f['native']))if s!=n][:20],'source_words':len(f['source']),'native_words':len(f['native']),**({'input_sha256':hashlib.sha256(packed(f['input'])).hexdigest(),'input_prefix':f['input'][:32]}if args.light_cubes else{'input':f['input']})}for f in failures[:8]],'scope':('Original C1D90 six-camera spheres, complete173130 constructor and165010 consumer over all21 actual portal banks. Native compares every cube-camera word too. Explicit containing-cluster and open/closed/random portal masks; no live door or draw-cull integration.'if args.light_cubes else'Original complete173130 pure constructor and165010 consumer, explicit original441B0 camera fields and4F93A4 masks. Word+0xC of108frustum is unwritten/unused and excluded. No live containing-cluster/door producers or runtime culling integration.')+' Word+0xC of108frustum is unwritten/unused and excluded.'}
     args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items()if k!='failures'},indent=2));print('failures',json.dumps(report['failures'])[:8000]);return bool(failures)
 if __name__=='__main__':raise SystemExit(main())

@@ -357,7 +357,7 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     if(!r.word(section+0x34u))return out;
     out.geometry=source_bsp_sphere_cull_geometry(ranges);
     if(unit.words[7])out.transform=r.get<Transform>(unit.words[7]);
-    if(ranges.accelerator_count>0 || ranges.bounds.empty())return out;
+    if(ranges.accelerator_count>0)return out;
     out.geometry->resolve_owner_pose=[&world,model,context=unit.words[4]] {
         const Reader r{world.memory()};
         SourceCullOwnerPose pose;pose.owner=r.word(context);

@@ -1,0 +1,20 @@
+import hashlib,json,os,re,stat
+from pathlib import Path
+root=Path.cwd();work=root/'build/test-results/frontend-friends-flow-rust-20261102';iteration=json.loads((work/'accepted-native-iteration.json').read_text())['iteration'];record=json.loads((work/f'native/iteration-{iteration}-report.json').read_text());assert record['passed']and record['frozen_inputs_intact']and not(work/f'native/iteration-{iteration}-running.json').exists()
+text=(work/f'native/iteration-{iteration}/tests.log').read_text();passed=re.findall(r'Test\s+#\d+:\s+(\S+)\s+\.+\s+Passed\s+([\d.]+) sec',text);expected=json.loads((work/'final-native-expected-tests.json').read_text());assert len(passed)==len(expected)==35 and {n for n,_ in passed}==set(expected);assert not any(word in text for word in('Skipped','Not Run','***Failed'))
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest();native={}
+for n in record['source_pin_parts']:native.update(json.loads((work/'native'/n).read_text()))
+names=json.loads((work/'declared-scope.json').read_text());assert all(sha(root/n)==native.get(n)for n in names)
+scratch=Path(record['scratch']);build=scratch/'build';linkage=json.loads((work/'native-linkage.json').read_text());assert linkage['passed'];objects={n:r['sha256']for n,r in linkage['objects'].items()}
+for row in linkage['affected_production_translation_units']:
+ n=row['object'];digest=row['object_sha256'];assert n not in objects or objects[n]==digest;objects[n]=digest
+assert all(sha(build/n)==h for n,h in objects.items());total=count=0
+for current,dirs,files in os.walk(scratch,followlinks=False):
+ dirs[:]=[n for n in dirs if not(Path(current)/n).is_symlink()]
+ for n in files:
+  s=(Path(current)/n).lstat()
+  if stat.S_ISREG(s.st_mode):total+=s.st_size;count+=1
+report=dict(scratch=str(scratch),regular_bytes=total,regular_files=count,borrowed_symlinks_not_followed=True,accepted_iteration=iteration,passing_native_checks=len(passed),scoped_sources_current=True,scoped_sources=len(names),validated_object_hashes_unchanged=True,validated_objects=objects,retained_large_artifacts=[])
+(work/'native-before-cleanup.json').write_text(json.dumps(report,indent=2)+'\n')
+with(scratch/'control.fifo').open('w')as stream:stream.write(json.dumps(dict(action='quit'))+'\n')
+print(json.dumps(dict(passing_native_checks=len(passed),validated_objects=len(objects),owned_regular_bytes_pending_cleanup=total,quit_sent=True)))

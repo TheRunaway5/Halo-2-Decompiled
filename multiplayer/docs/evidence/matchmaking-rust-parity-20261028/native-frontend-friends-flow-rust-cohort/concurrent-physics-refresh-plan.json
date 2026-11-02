@@ -1,0 +1,87 @@
+{
+  "reason": "Initial frozen physics file had a four-argument call to the three-argument put helper. Current owner fixed it and added an overlap-query dependency; refresh its actual source/include/CMake closure without editing shared work.",
+  "read_only_root": true,
+  "traversed_files": 1881,
+  "refresh": [
+    {
+      "path": "cmake/PhysicsLiveWorldTu15.cmake",
+      "before": "2aafd6b58e60c17503b5c6fd56f9deeaf5c6360e26291e43665599e912f045f1",
+      "after": "ed4e93a531ba7bc5883c9b8d1f7ef71848c00cdf8b26f86cc25f07a180bab611",
+      "bytes": 174306
+    },
+    {
+      "path": "include/halo2/native_tu15_convex_simplex_input_observer.hpp",
+      "before": null,
+      "after": "657f44820efd21389137d28300f403974372950cf147659bc0afabf4c8d430a7",
+      "bytes": 1268
+    },
+    {
+      "path": "include/halo2/native_tu15_data_array_allocate.hpp",
+      "before": "b7f796875b9ee66d58bf5952ed2168d0c99a952faec6747fb4612124e1188241",
+      "after": "491855b2ab9bf3c958637441d79e10914d208be3b60347b2437e8059d569bb26",
+      "bytes": 766
+    },
+    {
+      "path": "include/halo2/native_tu15_data_array_allocate_specific.hpp",
+      "before": "b490e49442ddafe475d7e824fb650ba4fc53993b37c14e4a2da7d2535e6240a4",
+      "after": "fe13ed246bbb849d64180455ba4c80bc529c8f4bb84d83097f6886a7bd1ba8d1",
+      "bytes": 701
+    },
+    {
+      "path": "include/halo2/native_tu15_overlap_query_handoff.hpp",
+      "before": null,
+      "after": "03aee44f5be1c1ce5339357cf3ce524e76f25abdc0e18dafd30ab714ae2e50b3",
+      "bytes": 1285
+    },
+    {
+      "path": "src/audio/native_tu15_sound_kernels_resources.cpp",
+      "before": "c1436f78546158c0169ad8aecd463a3f3635ced939a4f2f77cb9961050483e1e",
+      "after": "1f735cc39add726e0ad133b8e78c6c7499472744c0f4cddaa6232339039842de",
+      "bytes": 33620
+    },
+    {
+      "path": "src/core/native_tu15_data_array_allocate.cpp",
+      "before": "67d7dc843966a21c6c7576733d8bb07be692684bfec15163d4131aecb582b124",
+      "after": "ff7c137c8367fc1808861ad1a5cdeb887d0567d09ccf4a9efd36670f7093bd34",
+      "bytes": 5605
+    },
+    {
+      "path": "src/physics/native_tu15_convex_simplex_solver.cpp",
+      "before": "20e2ca1e34f5eab491a91b5fc4d1d03bd95e9be44bd9eb891edf557fcee57795",
+      "after": "3b48aad44957b012c3d677904302a1286f375e4d6531bb3ec5fb301a75dd2af0",
+      "bytes": 9834
+    },
+    {
+      "path": "src/physics/native_tu15_overlap_query_handoff.cpp",
+      "before": null,
+      "after": "9c74b1276cf14071b1e0f55368d9bd3a4bf04e64c1d3348e195f71fdb8690a73",
+      "bytes": 3543
+    },
+    {
+      "path": "src/physics/physics_live_world_tu15.cpp",
+      "before": "118cd29f73509f53bcdbb285ae1db4c85bc505fedf3fac099602fe6d57c02eb7",
+      "after": "ef28efadbc36b728367c20f8adfefac075e66b588e31ef1e438912a232dbb45c",
+      "bytes": 501525
+    },
+    {
+      "path": "src/platform/native_tu15_world_memory.cpp",
+      "before": "ac777a941bc98f0128008aedc6456c0d9cf8c9e9698b85ebbf1f5c4f29a56e92",
+      "after": "105bd65c9ed1984d053bd41d435b35b21f1325faf84379b6a5e7203cd6a3b45f",
+      "bytes": 237729
+    },
+    {
+      "path": "tests/native_tu15_overlap_query_handoff_tests.cpp",
+      "before": null,
+      "after": "e602040065356612f712ebda0f42ed46a566e9dcbb2e437e9544ee4c466a3c44",
+      "bytes": 4466
+    },
+    {
+      "path": "tests/native_tu15_sound_stream_packets_tests.cpp",
+      "before": "a8ef0476b08f6a5d4f77484a537fb42895df9c6b174b5b81e8fa5bd89e6e172f",
+      "after": "fe65596f21476dae2cdf75f176a935e538a58f1b0ec9f68f6477f6e2a7b42ca0",
+      "bytes": 8073
+    }
+  ],
+  "root_cmake_not_refreshed": true,
+  "matching_sources_unchanged": true
+}

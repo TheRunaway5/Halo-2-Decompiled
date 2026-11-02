@@ -507,13 +507,16 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
   };
   invalidate_agent=[&](auto receiver,auto owner,auto&context){
     if(owner==0x31d400u)return; // Authentic RET0; no result/postimage.
-    if(owner==0x2f0da0u||owner==0x2fbb10u||owner==0x2f7790u){
+    if(owner==0x2f0da0u||owner==0x2fbb10u||owner==0x2f9960u||owner==0x2f7790u){
       NativeTu15PairDeletionNativeScopeGuard guard(pair_deletion_scope,
         stats?&stats->pair_deletion_scope:nullptr);
       try{
         if(owner==0x2f0da0u){
           native_tu15_cleanup_bv_contact_agent(m,{receiver},context,agent_children,observe);
           if(stats)++stats->native_contact_agent_wrapped_cleanups;
+        }else if(owner==0x2f9960u){
+          native_tu15_cleanup_sphere_contact_agent(m,{receiver},context,agent_children,observe);
+          if(stats)++stats->native_contact_agent_cached_cleanups;
         }else if(owner==0x2fbb10u){
           native_tu15_cleanup_single_point_contact_agent(m,{receiver},context,agent_children);
           if(stats)++stats->native_contact_agent_cached_cleanups;
@@ -576,7 +579,7 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
   const auto cleanup_merge_duplicate=[&](auto object,auto owner,auto&context){
     const auto target=owner.identity;
     if(target!=0x31d400u&&target!=0x2f3100u&&target!=0x2f7a20u&&target!=0x323220u&&
-       target!=0x2f82d0u&&target!=0x2f6c80u&&target!=0x2f0da0u&&target!=0x2fbb10u&&target!=0x2f7790u)
+       target!=0x2f82d0u&&target!=0x2f6c80u&&target!=0x2f0da0u&&target!=0x2fbb10u&&target!=0x2f9960u&&target!=0x2f7790u)
       unqualified_merge("Native TU1.5 island merge requires a qualified duplicate cleanup owner");
     invalidate_agent(object,target,context);
   };
@@ -793,6 +796,10 @@ void native_tu15_step_physics_world_with_residuals(SourcePhysicsContactMemory&m,
       if(target.identity==0x2f3670u||target.identity==0x2f5530u){
         return native_tu15_create_contact_agent(m,target.identity==0x2f3670u?
           NativeTu15ContactAgentFactory::owner_2f3670:NativeTu15ContactAgentFactory::owner_2f5530,
+          NativeTu15ContactAgentFactoryArguments{[&]{return manager.identity;}},current,pair_storage,observe);
+      }
+      if(target.identity==0x2f9990u){
+        return native_tu15_create_contact_agent(m,NativeTu15ContactAgentFactory::owner_2f9990,
           NativeTu15ContactAgentFactoryArguments{[&]{return manager.identity;}},current,pair_storage,observe);
       }
       if(target.identity==0x303c10u||target.identity==0x3040d0u){

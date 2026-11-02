@@ -1,0 +1,48 @@
+{
+  "owned_scratch_removed": true,
+  "parents": [
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-core-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-component-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-rust-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-stager-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-scope-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-linkage-20261102",
+      "empty": true,
+      "children": []
+    },
+    {
+      "path": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-delivery-20261102",
+      "empty": true,
+      "children": []
+    }
+  ],
+  "completed_native_removed_regular_bytes": 6661307174,
+  "retained_large_artifacts": [],
+  "original_assets_existing_references_other_owners_and_selected_runtimes_preserved": true
+}

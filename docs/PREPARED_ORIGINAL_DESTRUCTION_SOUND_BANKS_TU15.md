@@ -1162,3 +1162,38 @@ remain open. The prior archive-budget rejection is not rerun here. The
 [closure receipt](../build/test-results/vehicle-destruction-native-stream-format-20261102/owner-closure.json)
 records private catalog/build/source removal and preservation of the required
 original reference. No new large artifact or selected-runtime promotion is added.
+
+
+## Native page allocation to actual resource reads, 2026-11-02
+
+The [qualification](../build/test-results/vehicle-destruction-native-cache-pages-20261102/qualification.json)
+connects sound-owned `21F420` binding to native core page allocation, real
+busy/delete callbacks and complete datum retirement. All 2,585 original-code
+comparisons pass, including 24 faults and 187 read-boundary stops. These stops
+compare the original CPU call ABI without supplying an I/O result; they do not
+compare the original return after I/O. The private stack-probe scope and
+unexercised negative-ring/alignment sites are retained in the coverage report.
+
+A separate cold-cache lane runs all 273 distinct permutations and 1,147 lifecycle
+scenarios from declared empty pools. Native code allocates/binds the records;
+the existing strict native I/O service reads all authenticated sectors and
+retains receipts before readiness. PCM decoded from the actual physical cache
+bytes reaches the native stock stream lifecycle and real manual SDL, with exact
+uninterrupted same-PC PCM and pin/reference checks. The full 908-context/
+9,450-route/31-name catalog passes, with 55 multi-chunk permutations, 375 chunks
+and 1,657 actual reads totaling 53,057,536 bytes. No loaded cache rows are supplied.
+
+All twelve restored suites pass; eleven wrong compiled variants are rejected,
+including skipped reads and receipt publication before physical bytes. The
+prior loaded-cache payload report remains identical, as do the constructor/
+service/format input and trace hashes. The independent C1 reference profile and
+295 raw Unicorn differences remain unchanged. Declared empty-pool/physical
+reservation, driver ABI, unity gain/rate and manual producer timing still limit
+this component result. Source World/cache/voice/device admission, production
+handoff, normal local/split/LAN delivery, original event timing/selection/gain/
+pitch/spatial behavior, both combined four-bin profiles and Xbox waveform/wet
+feedback remain open. No complete destruction gate is closed by this result.
+The prior factory archive-budget refusal is not rerun or bypassed. The
+[closure receipt](../build/test-results/vehicle-destruction-native-cache-pages-20261102/owner-closure.json)
+records private source/build/bank removal and preservation of the required
+original reference, with no new large artifact or selected-runtime promotion.

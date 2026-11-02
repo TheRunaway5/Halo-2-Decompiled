@@ -1,9 +1,13 @@
 include_guard(GLOBAL)
 target_sources(halo2_physics_world_runtime PRIVATE
     src/campaign/native_campaign_screen_flash_sample_tu15.cpp
-    src/campaign/native_campaign_screen_flash_sample_tu15_binding.cpp)
+    src/campaign/native_campaign_screen_flash_sample_tu15_binding.cpp
+    src/gameplay/units/native_player_effect_tick_tu15.cpp
+    src/gameplay/units/native_player_effect_tick_tu15_binding.cpp
+    src/gameplay/units/player_screen_flash_native.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set_source_files_properties(src/campaign/native_campaign_screen_flash_sample_tu15.cpp PROPERTIES
+    set_source_files_properties(src/campaign/native_campaign_screen_flash_sample_tu15.cpp
+        src/gameplay/units/native_player_effect_tick_tu15.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")

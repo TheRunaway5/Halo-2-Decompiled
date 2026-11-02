@@ -1,0 +1,18 @@
+{
+  "scratch": "/home/eric/Developer/Halo-2-Decompiled/.local/test-scratch/frontend-friends-flow-native-20261102/halo2-test-ug0pgn2d",
+  "regular_bytes": 6661307174,
+  "regular_files": 63781,
+  "borrowed_symlinks_not_followed": true,
+  "accepted_iteration": 2,
+  "passing_native_checks": 35,
+  "scoped_sources_current": true,
+  "scoped_sources": 28,
+  "validated_object_hashes_unchanged": true,
+  "validated_objects": {
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_matchmaking_friends.cpp.o": "fdf67685c276d61883f7bfb7c4ac80ea93addf122e9712971cc4b77aa45afe47",
+    "CMakeFiles/halo2_systems.dir/src/ui/frontend_friends.cpp.o": "b423e4fbe60f10b6b7f215ea1094cd8c12681017a83f67bb84448f8206629ead",
+    "libhalo2_frontend_party_flow.a": "baa80bf6adaac76c931d20fb7f0a45bf5e1afd48b733aa0c34b5182854aab182",
+    "CMakeFiles/halo2_frontend_party_flow.dir/src/ui/frontend_matchmaking_party_flow_bridge.cpp.o": "6bae0ba46cc8d77c8334bc31a75b9c00f5422bbc83c673a81e37e8bdfc2ea49b"
+  },
+  "retained_large_artifacts": []
+}

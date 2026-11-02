@@ -11,8 +11,9 @@ std::uint32_t advance(std::uint32_t& seed){return seed=seed*0x19660du+0x3c6ef35f
 float base_pitch(const SoundVariationDefinition& definition){
     return float(std::bit_cast<std::int16_t>(Bytes(definition.playback).u16(0x18)));
 }
-Vec3 position(const SourceLoopPhasedOwnerTu15& owner){const Bytes p(owner.location);
-    return {p.f32(0xc),p.f32(0x10),p.f32(0x14)};}
+std::optional<Vec3> position(const SourceLoopPhasedOwnerTu15& owner){
+    if(!(std::to_integer<unsigned>(owner.location[3])&15u))return {};
+    const Bytes p(owner.location);return Vec3{p.f32(0xc),p.f32(0x10),p.f32(0x14)};}
 SourceLoopPhasedVoiceTu15* voice(SourceLoopPhasedTrackTu15& track,std::uint64_t id){
     const auto found=std::ranges::find(track.voices,id,&SourceLoopPhasedVoiceTu15::id);
     return found==track.voices.end()?nullptr:&*found;
@@ -150,15 +151,25 @@ void source_loop_phased_request_tu15(SourceLoopPhasedStateTu15& state,SourceLoop
     if(args[5]>2 || !std::isfinite(location.f32(4)) || location.f32(4)<0 ||
         !std::isfinite(location.f32(8)) || !std::isfinite(duration) || duration<0)
         throw FormatError("Native synchronized loop request escapes its caller domain");
-    const auto flags=definition.flags&~0x300u;const bool synchronized=flags==0x18u,combined=flags==0x80u;
-    if((flags!=0 && !synchronized && !combined) || !definition.details.empty() || (synchronized && args[3]==none) ||
-        request.emitter_owner==none || (std::to_integer<unsigned>(request.location[3])&15u)!=1u)
+    const auto flags=definition.flags&~0x300u;
+    const auto type=std::to_integer<unsigned>(request.location[3])&15u;
+    const bool synchronized=(flags&0x10u)!=0,combined=(flags&0x80u)!=0 && type!=0;
+    //220CCD only combines a non-centered location. Always-spatialize and
+    //fake-spatialization are not alternative scheduling algorithms:18D5A0
+    //already supplied the real location.2218C0/220FA5 test synchronization
+    //independently of those authored bits.
+    if((flags&~0xd8u) || !definition.details.empty() || (synchronized && args[3]==none) ||
+        request.emitter_owner==none || type>1u)
         throw FormatError("Loop requires its remaining synchronization/profile owner");
     const auto key=source_loop_phased_key_tu15(request,definition);auto found=state.owners.find(key);const bool created=found==state.owners.end();
     if(created && args[5]==2)return;
     if(combined)output.require_combined_output();
     if(created){if(args[5]==2)return;
-        for(const auto& track:definition.tracks)if(track.loop==none || (track.flags&~(synchronized?3u:7u)) ||
+        //220FBD..221539 handles every five-bit track policy, including the
+        //unused master-surround bit and alternate-only tracks (normal NONE).
+        //The original phase selector, rather than a required normal loop,
+        //decides which authored sound exists for this request.
+        for(const auto& track:definition.tracks)if((track.flags&~0x1fu) ||
             (synchronized && (track.alternate!=none || track.alternate_end!=none ||
                 track.alternate_transition_in!=none || track.alternate_transition_out!=none)))
             throw FormatError("Native phase requires its remaining track profile owner");

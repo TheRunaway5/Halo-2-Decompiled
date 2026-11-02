@@ -4,6 +4,8 @@
 
 namespace halo2 {
 class Cache;
+class SourcePhysicsContactMemory;
+struct NativeTu15PhysicsFrameFp;
 struct PlayerScreenFlashDefinition {
   std::int16_t type{}, priority{};
   float duration{};
@@ -24,6 +26,10 @@ struct PlayerScreenFlash {
 // Whole TU1.5 134960, called on intensity-scaled ARGB by40880. The
 // framebuffer blend consumes these quantized premultiplied channels.
 std::uint32_t player_screen_flash_argb(const PlayerScreenFlash &);
+// Complete native156E40 over the actual source bank, with private output
+// storage. Sampling neither advances the clock nor mutates source effects.
+PlayerScreenFlash source_player_screen_flash_tu15(const SourcePhysicsContactMemory&,
+    std::uint32_t user,NativeTu15PhysicsFrameFp&);
 // TU1.5 156840 ->1578A0 ->156E40. The caller owns the local user, completed
 // report scale, post-damage shield selector and actual signed unit+1FC seat.
 class PlayerScreenFlashPlayer {

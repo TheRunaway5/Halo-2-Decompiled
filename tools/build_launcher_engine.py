@@ -1118,6 +1118,7 @@ def worker(args):
                    '--target', 'mcc_native_world_animated_probe',
                    '--target', 'mcc_native_env_illum_three_channel_probe',
                    '--target', 'mcc_native_tiling_specular_probe',
+                   '--target', 'mcc_native_alpha_environment_probe',
                    '--filter', '^(launcher_first_run|title_launcher_first_run|bundled_launcher_first_run|'
                    'launcher_automatic_build|launcher_engine_promotion|native_gameplay_launcher_routing|native_frontend_launcher_routing|original_tu15_shadow_array_swap|native_mcc_split_screen_menu_startup|'
                    'native_mcc_grenade_shadow_neutral|native_mcc_grenade_shadow_frag|native_mcc_grenade_shadow_plasma|'
@@ -1145,6 +1146,7 @@ def worker(args):
                    'mcc_native_world_animated|mcc_native_world_animated_generator|'
                    'mcc_native_env_illum_three_channel|mcc_native_env_illum_three_channel_generator|'
                    'mcc_native_tiling_specular|mcc_native_tiling_specular_generator|'
+                   'mcc_native_alpha_environment|mcc_native_alpha_environment_generator|'
                    'original_campaign_ai_scalar_defaults_tu15|original_workshop_ai_aim_scalar_defaults_tu15|native_tu15_cold_data|'
                    'mcc_script_signature_layout|mcc_script_signature_profile|'
                    'native_mcc_script_clock_getters|native_mcc_script_commands|native_mcc_script_installed_commands|'
@@ -1186,6 +1188,7 @@ def worker(args):
                    '--retain-report', 'workshop-empty-prop-content.json',
                    '--retain-report', 'workshop-navigation-content.json',
                    '--retain-report', 'tiling.json',
+                   '--retain-report', 'alpha-environment.json',
                    '--retain-report', 'native-late-effect-light-creation.json',
                    '--retain-report', 'source-model-depth-owners.json']
         if gameplay_reference:

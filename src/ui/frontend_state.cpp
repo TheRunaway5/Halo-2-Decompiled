@@ -2114,7 +2114,7 @@ void MenuState::auxiliary() {
   if(frame().vista_pcr)return; // Source details is component3/Y, not X.
   if(frame().screen==14 && lobby_session_action_ &&
       lobby_session_action_(FrontendLobbySessionAction::Auxiliary))return;
-  if (frame().screen == 211 && frame().context == 41) { ++clan_message_page_; ++revision; return; }
+  if (clan_message_advance()) return;
   update_online_login();
   if(online_lobby_input(2))return;
   if (frame().screen == 219 && online_identity()) {

@@ -49,7 +49,7 @@ void checkpoint_roundtrip(const Cache &cache,pstencil::PointLights &lights,psten
                 word(r.definition_identity);word(r.runtime.identity);word(r.runtime.flags);word(r.runtime.cluster);
                 scalar(r.runtime.overall_fade);vector(r.runtime.spatial_center);scalar(r.runtime.spatial_radius);
                 scalar(r.fades.diffuse);scalar(r.fades.specular);scalar(r.fades.secondary);scalar(r.fades.overall);scalar(r.fades.volume);}
-            const auto receivers=lights.receivers(result,geometry,fog,nullptr);received+=receivers.size();word(receivers.size());
+            const auto receivers=lights.receivers(result,geometry,fog,nullptr,{});received+=receivers.size();word(receivers.size());
             for(const auto &receiver:receivers){word(receiver.identity);word(receiver.epoch);scalar(receiver.selected_fade);
                 const auto &r=receiver.view;word(r.flags);word(r.pass_mode);word(r.query_mode);word(r.location.leaf);word(r.location.cluster);word(r.location.bsp);
                 word(r.visibility.groups.size());word(r.visibility.clusters.size());word(r.visibility.exhausted_limits);
@@ -65,7 +65,7 @@ void checkpoint_roundtrip(const Cache &cache,pstencil::PointLights &lights,psten
     collection.local_player=0;
     const auto control_view=lights.view(owner.root.position+Vec3{0,0,2},collection,candidates,7);
     require(!lights.restore_ready(view_stale)&&!lights.commit_restore(view_stale),"A later point-light view kept an old preparation eligible");
-    auto receiver_stale=lights.prepare_restore(before_view);(void)lights.receivers(control_view,geometry,fog,nullptr);
+    auto receiver_stale=lights.prepare_restore(before_view);(void)lights.receivers(control_view,geometry,fog,nullptr,{});
     require(!lights.restore_ready(receiver_stale)&&!lights.commit_restore(receiver_stale),"A later receiver query kept an old point-light preparation eligible");
     const auto cut=lights.checkpoint();const auto cut_owner=owner;
     require(cut.valid()&&cut.tick()==81&&lights.owns_checkpoint(cut)&&visible&&selected&&received,

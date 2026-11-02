@@ -16,6 +16,7 @@
 using namespace halo2;
 namespace {
 bool validation=true;
+unsigned drawable_width=640,drawable_height=480,view_count=1;
 void check(bool value,const char *message){if(!value)throw FormatError(message);}
 struct Image {unsigned width{},height{};std::vector<unsigned char> rgb;};
 Image read(const std::filesystem::path &path) {
@@ -29,13 +30,19 @@ Image read(const std::filesystem::path &path) {
 Image capture(SDL_Window *window,const Mesh &mesh,const Camera &camera,const std::filesystem::path &path,
     const SourceTransparentDrawBank *bank=nullptr,bool first_person=false) {
     Renderer renderer(window,mesh,validation);renderer.scene_clear_color({.025f,.035f,.045f});
-    ModelView view;view.camera=camera;view.width=640;view.height=480;view.vertices=mesh.vertices;view.full_surface=true;
-    if(bank) {
-        if(first_person){view.vertices={};view.foreground=mesh.vertices;view.foreground_transparent=*bank;}
-        else view.world_transparent=*bank;
+    std::vector<ModelView> views(view_count);
+    const unsigned columns=view_count==1?1:2,rows=view_count==4?2:1;
+    for(unsigned i=0;i<view_count;++i) {
+        auto& view=views[i];view.camera=camera;view.width=640.f/columns;view.height=480.f/rows;
+        view.left=float(i%columns)*view.width;view.top=float(i/columns)*view.height;
+        view.vertices=mesh.vertices;view.full_surface=true;
+        if(bank) {
+            if(first_person){view.vertices={};view.foreground=mesh.vertices;view.foreground_transparent=*bank;}
+            else view.world_transparent=*bank;
+        }
     }
     for(unsigned i=0;i<4;++i)
-        if(renderer.draw(camera,path,{},false,{},{},{},{&view,1}))return read(path);
+        if(renderer.draw(camera,path,{},false,{},{},{},views))return read(path);
     throw FormatError("Shield inspection did not submit");
 }
 Image capture_queue(SDL_Window *window,const Mesh &mesh,const Camera &camera,
@@ -92,14 +99,22 @@ void animate(Mesh &mesh,const Cache &cache,std::uint32_t biped,float recent,floa
 }
 int main(int argc,char **argv) {
     try {
-        check(argc==2 || (argc==3 && std::string(argv[2])=="--no-validation"),
-            "Supply shield inspection output directory and optional --no-validation");
-        validation=argc==2;
+        check(argc>=2,"Supply shield inspection output directory, optional --extent W H / --views N / --no-validation");
+        for(int i=2;i<argc;++i) {
+            const std::string option=argv[i];
+            if(option=="--no-validation")validation=false;
+            else if(option=="--extent" && i+2<argc) {
+                drawable_width=unsigned(std::stoul(argv[++i]));drawable_height=unsigned(std::stoul(argv[++i]));
+            } else if(option=="--views" && i+1<argc)view_count=unsigned(std::stoul(argv[++i]));
+            else throw FormatError("Unknown shield inspection option");
+        }
+        check(drawable_width>=320 && drawable_height>=240 && drawable_width<=7680 && drawable_height<=4320 &&
+            (view_count==1 || view_count==2 || view_count==4),"Invalid shield resolution/layout");
         const auto root=std::filesystem::path(HALO2_SOURCE_DIR),directory=std::filesystem::path(argv[1]);
         const auto path=root/"assets/disc/maps/lockout.map";if(!std::filesystem::exists(path))return 77;
         std::filesystem::create_directories(directory);Cache cache(path);const auto content=cache.load_content(0,true);
         check(SDL_Init(SDL_INIT_VIDEO)==0,"Shield inspection SDL initialization failed");
-        auto *window=SDL_CreateWindow("Original shield material inspection",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
+        auto *window=SDL_CreateWindow("Original shield material inspection",0,0,int(drawable_width),int(drawable_height),SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
         check(window,"Shield inspection window unavailable");unsigned cases=0,changed=0,local_controls=0;
         for(unsigned representation:{2u,3u})for(bool first_person:{false,true})for(bool overshield:{false,true}) {
             const auto &r=content.player_representations.at(representation);
@@ -161,12 +176,12 @@ int main(int argc,char **argv) {
                 const auto restored=capture(window,mesh,camera,directory/(name+"-restored.ppm"));
                 check(differences(hit,restored)==0,"Overshield retained another owner's camouflage scalar");
             }
-            check(hit.width==640&&hit.height==480,"Shield inspection ignored its drawable extent");
+            check(hit.width==drawable_width&&hit.height==drawable_height,"Shield inspection ignored its drawable extent");
             std::cout<<name<<": "<<response<<" input-response and "<<local<<" local-coordinate control RGB bytes\n";++cases;
         }
         SDL_DestroyWindow(window);SDL_Quit();
         check(cases==8,"Incomplete damaged/overshield species/view coverage");
-        std::cout<<cases<<" actual authored shield materials rendered deterministically, "<<changed<<" input-response and "<<local_controls
+        std::cout<<drawable_width<<'x'<<drawable_height<<" views="<<view_count<<": "<<cases<<" actual authored shield materials rendered deterministically, "<<changed<<" input-response and "<<local_controls
                  <<" local-coordinate control RGB bytes. Ordered world/FP callback consumers match inspection RGB, retain prefix/null semantics and reject missing group services. Controlled bind channels plus left-hand rotation and bounds camera; no original gameplay-frame or live collector admission claim.\n";
         return 0;
     } catch(const std::exception &e){std::cerr<<e.what()<<'\n';SDL_Quit();return 1;}

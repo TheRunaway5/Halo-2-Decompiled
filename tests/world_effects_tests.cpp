@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
               check(selected.epoch==local*2+1 && selected.visible.size()==1 && selected.selected.size()==1 &&
                     selected.selected[0].identity==lights[0].registration.identity && selected.records[0].fades.overall==1,
                     "Actual registered frag was lost or duplicated by a local view's source visibility/selection");
-              const auto receivers=isolated.light_receivers(selected,geometry,fog,&main);
+              const auto receivers=isolated.light_receivers(selected,geometry,fog,&main,{});
               check(receivers.size()==1 && receivers[0].identity==lights[0].registration.identity &&
                     receivers[0].epoch==local*2+2 && receivers[0].view.pass_mode==1 && receivers[0].view.query_mode==1 &&
                     receivers[0].view.visibility.groups.size()==6 && !receivers[0].view.visibility.clusters.empty(),

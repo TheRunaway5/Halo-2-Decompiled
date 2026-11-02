@@ -4,6 +4,7 @@ set(native_renderer_fixed_shaders
     bloom.vert.spv crt_oled.frag.spv display.frag.spv fog.vert.spv
     light_volume.vert.spv menu_world.geom.spv model_skin.comp.spv
     overlay.frag.spv overlay.vert.spv particle.geom.spv particle.vert.spv
+    player_flash_invert.frag.spv
     particle_directional.vert.spv particle_distortion.vert.spv
     particle_model.geom.spv particle_model.vert.spv particle_perpendicular.vert.spv
     patchy_noise.vert.spv pstencil/lightmap.frag.spv pstencil/lightmap.vert.spv

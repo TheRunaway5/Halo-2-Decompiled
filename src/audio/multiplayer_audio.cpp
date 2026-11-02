@@ -32,6 +32,7 @@
 namespace halo2 {
 namespace {
 constexpr auto none=0xffffffffu;
+void validate_loop_packet_parameters(const MultiplayerLoopPacketParametersTu15&);
 struct ScriptCancellationDomain {
   enum class Life {Live,Prospective,Retired};
   std::atomic<Life> life{Life::Live};
@@ -527,6 +528,12 @@ struct MultiplayerAudio::State {
     const auto output_gain=spatial>0.f?master:0.f;
     return {std::bit_cast<std::uint32_t>(v.relative_rate),volume,paused,{{0,0,output_gain},{1,1,output_gain}}};
   }
+  void loop_location(Voice& voice,std::optional<Vec3> position){
+    if(position && (!std::isfinite(position->x) || !std::isfinite(position->y) || !std::isfinite(position->z)))
+      throw FormatError("Native loop lost its finite source location");
+    if(position)(void)bank(voice.sound,0);
+    voice.position=position;
+  }
   unsigned pump_chunks(Voice& voice){
     unsigned accepted{};
     while(voice.chunks){
@@ -765,8 +772,13 @@ struct MultiplayerAudio::State {
     std::uint64_t play(const MultiplayerLoopPacketTu15& input)override{
       const auto voice=audio.play_loop_packet(input);return voice?voice->id():0;
     }
-    void parameters(std::uint64_t id,const MultiplayerLoopPacketParametersTu15& input,Vec3 position)override{
-      const auto receipt=core.receipt(core.voices.at(id));audio.loop_packet_parameters(receipt,input);audio.emitter(receipt,position);
+    void parameters(std::uint64_t id,const MultiplayerLoopPacketParametersTu15& input,std::optional<Vec3> position)override{
+      validate_loop_packet_parameters(input);
+      auto& voice=core.voices.at(id);const auto receipt=core.receipt(voice);
+      // The source channel copies its complete location, including changes
+      //between local centered playback and an attached world emitter.
+      // Do not turn centered horn coordinates into a world point at(0,0,0).
+      core.loop_location(voice,position);audio.loop_packet_parameters(receipt,input);
     }
     bool accepts_packet(std::uint64_t id)const override{return audio.loop_packet_accepts_input(core.receipt(core.voices.at(id)));}
     bool queue(std::uint64_t id,std::uint32_t sound,unsigned range,unsigned permutation)override{
@@ -991,16 +1003,18 @@ void MultiplayerAudio::object_loop_request(const SourceLoopSoundRequestTu15& inp
     //MCC adds lsnd route bits8/9 after the original eight predicates.
     //Keep this raw-cache mode gate separate from Xbox controller flags.
     if(state->cache.is_mcc() && (definition.flags&0x200u))return;
-    const bool alternate_phase=(definition.flags&~0x300u)==0 && std::ranges::any_of(definition.tracks,[](const auto& track){
-      return track.alternate!=none || track.alternate_end!=none ||
+    const bool authored_phase=std::ranges::any_of(definition.tracks,[](const auto& track){
+      return track.start!=none || track.end!=none || track.alternate!=none || track.alternate_end!=none ||
           track.alternate_transition_in!=none || track.alternate_transition_out!=none;
     });
-    if((definition.flags&0x10u) || alternate_phase || ((definition.flags&0x80u) && type!=0)){
+    const bool track_profile=input.emitter_owner!=none && definition.details.empty() &&
+        !(definition.flags&~0x3d8u);
+    if(track_profile || (definition.flags&0x10u) || authored_phase || ((definition.flags&0x80u) && type!=0)){
       State::Core::PhasedOutput output(*state,*this);source_loop_phased_request_tu15(state->phased_loops,output,input,definition);return;
     }
     if(definition.flags&0xb2u)
       throw FormatError("Object loop requires its synchronization, aggregation or one-shot owner");
-    if(!definition.details.empty() && type!=1)
+    if(!definition.details.empty() && type!=1 && !state->loop_views_bound)
       throw FormatError("Nonspatial loop details require their actual local-listener selection owner");
     for(const auto& track:definition.tracks) {
       if(track.start!=none || track.end!=none || track.alternate!=none || track.alternate_end!=none ||
@@ -1093,8 +1107,8 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
         if(!receipt)continue;
         track.voice=receipt->id();
       }else {
-        receipt=state->receipt(voice->second);loop_packet_parameters(*receipt,parameters);
-        if(position)emitter(*receipt,*position);
+        receipt=state->receipt(voice->second);validate_loop_packet_parameters(parameters);
+        state->loop_location(voice->second,position);loop_packet_parameters(*receipt,parameters);
       }
       live=true;
       if(loop_packet_accepts_input(*receipt) && !queue_loop_packet(*receipt,choose()))
@@ -1107,22 +1121,29 @@ void MultiplayerAudio::object_loop_frame(float elapsed) {
       if(position)emitter(state->receipt(voice->second),*position+detail.offset);
       return false;
     });
-    // Details follow their spatial parent; while that owner is centered
-    // (held in first person) none are scheduled.
-    if(!loop.stopping && !loop.disable_details && !loop.definition.details.empty() && position) {
+    //223670 follows spatial parents, or selects a genuine local listener
+    //for a centered parent. The latter consumes its selection draw first.
+    if(!loop.stopping && !loop.disable_details && !loop.definition.details.empty()) {
       const auto clock=std::bit_cast<std::int32_t>(std::uint32_t(state->platform.elapsed_frames()/48));
       for(unsigned n=0;n<loop.definition.details.size();++n) {
         const auto& detail=loop.definition.details[n];
         if(detail.sound==none || loop.detail_deadlines[n]>=clock ||
             ((detail.flags&1u)&&loop.alternate) || ((detail.flags&2u)&&!loop.alternate))continue;
-        const auto spatial=source_loop_detail_spatial_tu15(loop.location,
-            {detail.yaw,detail.pitch,detail.distance},state->common_secondary());
-        const auto voice=state->play(detail.sound,spatial.gain_db,MultiplayerAudioKind::Ambient,
-            loop.owner,0,false,none,0,1,{},spatial.control,spatial.position);
-        if(voice)loop.detail_voices.push_back({voice,spatial.offset});
+        std::optional<SourceLoopDetailSpatialTu15> spatial;
+        const SourceLoopDetailBoundsTu15 bounds{detail.yaw,detail.pitch,detail.distance};
+        if(position)spatial=source_loop_detail_spatial_tu15(loop.location,bounds,state->common_secondary());
+        else {
+          if(!state->loop_views_bound)throw FormatError("Centered loop details lost their actual local-listener owner");
+          std::vector<Vec3> points;for(const auto& view:state->loop_views)if(view)points.push_back(view->position);
+          spatial=source_loop_detail_centered_tu15(loop.location,bounds,points,state->common_secondary());
+        }
+        if(!spatial)continue;
+        const auto voice=state->play(detail.sound,spatial->gain_db,MultiplayerAudioKind::Ambient,
+            loop.owner,0,false,none,0,1,{},spatial->control,spatial->position);
+        if(voice)loop.detail_voices.push_back({voice,spatial->offset});
         //222166 reschedules a spatial detail even if native PCM admission
         //failed. Never invent a successful source submission or voice.
-        loop.detail_deadlines[n]=source_loop_detail_deadline_tu15(detail.period,detail.flags,
+        if(voice || position)loop.detail_deadlines[n]=source_loop_detail_deadline_tu15(detail.period,detail.flags,
             clock,state->common_secondary(),false);
       }
     }

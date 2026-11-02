@@ -47,6 +47,7 @@
 #include "halo2/source_game_over.hpp"
 
 namespace halo2 {
+struct PlayerScreenFlash;
 // Diagnostic layout is needed only by its consumers. Keep changes to native
 // coverage counters from recompiling unrelated live-world users.
 struct NativeTu15PhysicsFrameExecutionStats;
@@ -276,6 +277,7 @@ public:
     // publication barriers. Neither advances an original-address CPU owner.
     void stop_campaign_screen();
     void acknowledge_campaign_screen_capture();
+    PlayerScreenFlash player_screen_flash(unsigned local_user) const;
     void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
     // The slot is exclusive: active scoped/unscoped owners cannot be replaced.
     SourceCompletedMainCameraObserverScopeTu15 scoped_completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);

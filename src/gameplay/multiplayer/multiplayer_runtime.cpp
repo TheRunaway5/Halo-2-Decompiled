@@ -2912,8 +2912,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
            if(pending<pending_effect_requests)shared_effect_catchup_requests+=pending_effect_requests-pending;
            pending_effect_requests=pending;
          }});
-    if(!rendering_native && damage_audio) {
+    if(damage_audio) {
       damage_audio->advance(current.tick);
+      if(!rendering_native) {
       if(!world_effect_tick && !current.unit_damage_voices.empty())world_voice_serial=current.unit_damage_voices.back().serial;
       for(const auto &event:current.unit_damage_voices)if(event.serial>world_voice_serial) {
         world_voice_serial=event.serial;
@@ -2922,6 +2923,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         });
         if(target!=current.players.end())damage_audio->damage(biped_for(*target),event);
       }
+      }
+      // Native world/FP/effect audio does not execute1977AB's HUD consumer.
+      // Feed its actual charge/vitality state into the authored13A720 sound mask.
       for(unsigned view=0;view<ids.size();++view) {
         const auto &p=current.players[ids[view]];
         damage_audio->hud(view,p.source_unit,p.dead || !p.connected,p.health,p.shield,
@@ -6386,7 +6390,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         effect_light_views[i]=world_render_effects.light_view(camera.position,light_collection,
             light_candidates,std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
         effect_light_receivers[i]=world_render_effects.light_receivers(effect_light_views[i],
-            source_bsp_geometry,containing_fog,&bsp_views[i]);
+            source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
       }
       const auto collect_lights=[&](SourceEffectLightModelViewTu15* models) {
         raw_effect_lights[i]=bsp_effect_lights.draw(effect_light_views[i],effect_light_receivers[i],
@@ -6396,7 +6400,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         if(render_settings.graphics_mode==pstencil::GraphicsMode::pStencil) {
           auto point_view=world_render_point_lights.view(camera.position,light_collection,light_candidates,
               std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
-          auto point_receivers=world_render_point_lights.receivers(point_view,source_bsp_geometry,containing_fog,&bsp_views[i]);
+          auto point_receivers=world_render_point_lights.receivers(point_view,source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
           std::vector<EffectLightRawDraw> point_draws;
           if(!point_receivers.empty()) {
             std::optional<SourceEffectLightModelViewTu15> point_models;
@@ -6554,7 +6558,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           auto lights=world_render_effects.source_light_view(source,options.bsp,light_collection,light_candidates,
               std::bit_cast<std::int32_t>(std::uint32_t(frames)+1));
           auto receivers=world_render_effects.source_light_receivers(source,options.bsp,lights,
-              source_bsp_geometry,containing_fog,&bsp_views[i]);
+              source_bsp_geometry,containing_fog,&bsp_views[i],world_portal_mask.words);
           effect_light_views[i]=lights;effect_light_receivers[i]=receivers;
           if(render_settings.graphics_mode==pstencil::GraphicsMode::PathTracing)
             path_tracing_lights[i]=path_tracing::source_lights(source,lights.records);
@@ -7320,9 +7324,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       object_view.input=[&](std::size_t source_object,std::uint32_t handle,Vec3 center,float) {
         const auto&live=world_simulation.scene().get(handle);
         const auto&authored=content.objects.at(source_object);
-        if(live.placement!=source_object || (authored.type!=6 && authored.type!=7 && authored.type!=11))
+        if(live.placement!=source_object || (authored.type!=6 && authored.type!=7 && authored.type!=8 && authored.type!=11))
           throw FormatError("world geometry LOD requires its actual constructor identity");
-        // All742 original SCEN/MACH/BLOC constructor prefixes have bit19 and
+        // Native control draws already own their selected geometry. The
+        // legacy SCEN/MACH/BLOC constructor prefixes have bit19 and
         // +10A bit2 clear. Their native handlers do not yet run the later
         // HSsetLOD or control-state producers; retain these initial inputs.
         return SourceObjectLodInput{source_geometry_lod_distance(center,camera.position,
@@ -8175,7 +8180,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           options.model_skin_gpu_owner_observer(i,tick,sample);
         };
       view.camera = camera;
-      view.screen_flash=screen_flashes[i].evaluate(*rumble_tables);
+      if(!live_client() && live_world()->source_objects && live_world()->source_objects->owns_physics())
+        view.screen_flash=live_world()->source_objects->tu15_world().player_screen_flash(i);
+      else view.screen_flash=screen_flashes[i].evaluate(*rumble_tables);
       if(options.player_screen_flash_observer)
         options.player_screen_flash_observer(i,current.tick,view.screen_flash);
       if(reference_player)view.source_view_clear=reference_player->view_clear;
@@ -8732,8 +8739,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           ?props.material_owner(m):std::nullopt;
       if(prop_owner && source_render_world->object_definition(prop_owner->object)!=prop_owner->definition)
         throw FormatError("Prop material input lost its current native object/definition owner");
+      const auto control_owner=source_render_world?machines.control_material_owner(m):std::nullopt;
+      if(control_owner && source_render_world->object_definition(control_owner->object)!=control_owner->definition)
+        throw FormatError("Control material input lost its current native object/definition owner");
       const ShaderInput input=[&](std::uint32_t name) {
         if(!name)return 0.f;
+        if(control_owner)return source_render_world->object_shader_input(control_owner->object,name);
         if(prop_owner) {
           // Evaluate before the immutable renderer borrow. BCB70 retains the
           // actual override slots, authored functions, health and random-time
